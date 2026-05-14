@@ -13,6 +13,8 @@ dist-ssr
 *.local
 vite.*.log
 qa-*.png
+coolify-*.png
+.deploy/
 
 # Editor directories and files
 .vscode/*
