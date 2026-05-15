@@ -22,6 +22,9 @@ const mockHeartbeatsApi = vi.hoisted(() => ({
   liveRunsForCompany: vi.fn(),
 }));
 
+const mockRouteState = vi.hoisted(() => ({
+  pathname: "/PAP/dashboard",
+}));
 const mockOpenNewAgent = vi.hoisted(() => vi.fn());
 const mockPushToast = vi.hoisted(() => vi.fn());
 const mockSetSidebarOpen = vi.hoisted(() => vi.fn());
@@ -48,7 +51,7 @@ vi.mock("@/lib/router", () => ({
       {children}
     </a>
   ),
-  useLocation: () => ({ pathname: "/PAP/dashboard", search: "", hash: "", state: null }),
+  useLocation: () => ({ pathname: mockRouteState.pathname, search: "", hash: "", state: null }),
 }));
 
 vi.mock("../context/CompanyContext", () => ({
@@ -193,6 +196,7 @@ describe("SidebarAgents", () => {
       user: { id: "user-1" },
     });
     mockHeartbeatsApi.liveRunsForCompany.mockResolvedValue([]);
+    mockRouteState.pathname = "/PAP/dashboard";
     localStorage.clear();
   });
 
@@ -235,6 +239,41 @@ describe("SidebarAgents", () => {
     await renderSidebarAgents();
 
     expect(agentLinkLabels(container)).toEqual(["Bravo", "Alpha", "Charlie"]);
+  });
+
+  it("renders the agent list as a collapsible reporting tree", async () => {
+    mockAgentsApi.list.mockResolvedValue([
+      makeAgent({ id: "ceo", name: "CEO", urlKey: "ceo", role: "ceo" }),
+      makeAgent({ id: "engineer", name: "Engineer", urlKey: "engineer", reportsTo: "cto" }),
+      makeAgent({ id: "cfo", name: "CFO", urlKey: "cfo", reportsTo: "ceo" }),
+      makeAgent({ id: "cto", name: "CTO", urlKey: "cto", reportsTo: "ceo" }),
+    ]);
+
+    await renderSidebarAgents();
+
+    expect(agentLinkLabels(container)).toEqual(["CEO", "CFO", "CTO", "Engineer"]);
+
+    const collapseCeo = container.querySelector('button[aria-label="Collapse CEO reports"]');
+    expect(collapseCeo).not.toBeNull();
+
+    await act(async () => {
+      collapseCeo?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushReact();
+
+    expect(agentLinkLabels(container)).toEqual(["CEO"]);
+    expect(container.querySelector('button[aria-label="Expand CEO reports"]')).not.toBeNull();
+  });
+
+  it("keeps agents with missing parents visible at the root", async () => {
+    mockAgentsApi.list.mockResolvedValue([
+      makeAgent({ id: "orphan", name: "Orphan", urlKey: "orphan", reportsTo: "missing-manager" }),
+      makeAgent({ id: "ceo", name: "CEO", urlKey: "ceo", role: "ceo" }),
+    ]);
+
+    await renderSidebarAgents();
+
+    expect(agentLinkLabels(container)).toEqual(["CEO", "Orphan"]);
   });
 
   it("uses the heading for section menu and the plus button for agent creation", async () => {

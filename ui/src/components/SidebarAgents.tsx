@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ChevronRight,
   MoreHorizontal,
   PauseCircle,
   Pencil,
@@ -47,6 +48,11 @@ const AGENT_SORT_CHOICES: SidebarSectionRadioChoice[] = [
   { value: "recent", label: "Recent" },
 ];
 
+type SidebarAgentTreeNode = {
+  agent: Agent;
+  children: SidebarAgentTreeNode[];
+};
+
 function agentTimestamp(agent: Agent, field: "lastHeartbeatAt" | "updatedAt" | "createdAt"): number {
   const raw = agent[field];
   if (!raw) return 0;
@@ -76,12 +82,57 @@ function sortAgents(agents: Agent[], sortMode: AgentSidebarSortMode): Agent[] {
   return sorted;
 }
 
+function buildAgentTree(agents: Agent[]): SidebarAgentTreeNode[] {
+  const byId = new Map(agents.map((agent) => [agent.id, agent]));
+  const nodes = new Map<string, SidebarAgentTreeNode>(
+    agents.map((agent) => [agent.id, { agent, children: [] }]),
+  );
+  const roots: SidebarAgentTreeNode[] = [];
+
+  for (const agent of agents) {
+    const node = nodes.get(agent.id);
+    if (!node) continue;
+    const parentId = agent.reportsTo && byId.has(agent.reportsTo) && agent.reportsTo !== agent.id
+      ? agent.reportsTo
+      : null;
+    const parent = parentId ? nodes.get(parentId) : null;
+
+    if (parent) {
+      parent.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  return roots;
+}
+
+function collectParentIds(agent: Agent | undefined, agentsById: Map<string, Agent>): string[] {
+  const parentIds: string[] = [];
+  const seen = new Set<string>();
+  let cursor = agent?.reportsTo ?? null;
+
+  while (cursor && !seen.has(cursor)) {
+    seen.add(cursor);
+    const parent = agentsById.get(cursor);
+    if (!parent) break;
+    parentIds.push(parent.id);
+    cursor = parent.reportsTo;
+  }
+
+  return parentIds;
+}
+
 function SidebarAgentItem({
   activeAgentId,
   activeTab,
   agent,
   disabled,
+  depth,
+  expanded,
+  hasChildren,
   isMobile,
+  onToggleExpanded,
   onPauseResume,
   runCount,
   setSidebarOpen,
@@ -90,7 +141,11 @@ function SidebarAgentItem({
   activeTab: string | null;
   agent: Agent;
   disabled: boolean;
+  depth: number;
+  expanded: boolean;
+  hasChildren: boolean;
   isMobile: boolean;
+  onToggleExpanded: (agentId: string) => void;
   onPauseResume: (agent: Agent, action: "pause" | "resume") => void;
   runCount: number;
   setSidebarOpen: (open: boolean) => void;
@@ -108,9 +163,29 @@ function SidebarAgentItem({
     : isBudgetPaused
       ? "Budget paused"
       : pauseResumeLabel;
+  const indent = depth * 14;
 
   return (
-    <div className="group/agent relative flex items-center">
+    <div
+      className="group/agent relative flex items-center"
+      style={{ paddingLeft: indent }}
+    >
+      {hasChildren ? (
+        <button
+          type="button"
+          className="ml-1 flex h-6 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground/70 outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+          aria-label={expanded ? `Collapse ${agent.name} reports` : `Expand ${agent.name} reports`}
+          aria-expanded={expanded}
+          onClick={() => onToggleExpanded(agent.id)}
+        >
+          <ChevronRight
+            className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-90")}
+            aria-hidden="true"
+          />
+        </button>
+      ) : (
+        <span className="ml-1 h-6 w-5 shrink-0" aria-hidden="true" />
+      )}
       <NavLink
         to={href}
         state={SIDEBAR_SCROLL_RESET_STATE}
@@ -195,6 +270,7 @@ function SidebarAgentItem({
 export function SidebarAgents() {
   const [open, setOpen] = useState(true);
   const [pendingAgentIds, setPendingAgentIds] = useState<Set<string>>(() => new Set());
+  const [collapsedAgentIds, setCollapsedAgentIds] = useState<Set<string>>(() => new Set());
   const queryClient = useQueryClient();
   const { selectedCompanyId } = useCompany();
   const { openNewAgent } = useDialogActions();
@@ -251,10 +327,22 @@ export function SidebarAgents() {
     () => sortAgents(orderedAgents, sortMode),
     [orderedAgents, sortMode],
   );
+  const agentTree = useMemo(() => buildAgentTree(sortedAgents), [sortedAgents]);
+  const sortedAgentsById = useMemo(() => {
+    const map = new Map<string, Agent>();
+    for (const agent of sortedAgents) map.set(agent.id, agent);
+    return map;
+  }, [sortedAgents]);
 
   const agentMatch = location.pathname.match(/^\/(?:[^/]+\/)?agents\/([^/]+)(?:\/([^/]+))?/);
   const activeAgentId = agentMatch?.[1] ?? null;
   const activeTab = agentMatch?.[2] ?? null;
+  const activeAgent = useMemo(() => {
+    if (!activeAgentId) return undefined;
+    return sortedAgents.find(
+      (agent) => agentRouteRef(agent) === activeAgentId || agent.id === activeAgentId,
+    );
+  }, [activeAgentId, sortedAgents]);
 
   useEffect(() => {
     if (!sortModeStorageKey) {
@@ -296,6 +384,31 @@ export function SidebarAgents() {
     },
     [sortModeStorageKey],
   );
+
+  useEffect(() => {
+    const parentIds = collectParentIds(activeAgent, sortedAgentsById);
+    if (parentIds.length === 0) return;
+    setCollapsedAgentIds((current) => {
+      let changed = false;
+      const next = new Set(current);
+      for (const parentId of parentIds) {
+        if (next.delete(parentId)) changed = true;
+      }
+      return changed ? next : current;
+    });
+  }, [activeAgent, sortedAgentsById]);
+
+  const toggleAgentExpanded = useCallback((agentId: string) => {
+    setCollapsedAgentIds((current) => {
+      const next = new Set(current);
+      if (next.has(agentId)) {
+        next.delete(agentId);
+      } else {
+        next.add(agentId);
+      }
+      return next;
+    });
+  }, []);
 
   const pauseResumeAgent = useMutation({
     mutationFn: ({ agent, action }: { agent: Agent; action: "pause" | "resume" }) =>
@@ -343,6 +456,48 @@ export function SidebarAgents() {
     },
   });
 
+  const renderAgentNode = useCallback(
+    (node: SidebarAgentTreeNode, depth: number): ReactNode => {
+      const runCount = liveCountByAgent.get(node.agent.id) ?? 0;
+      const hasChildren = node.children.length > 0;
+      const expanded = !collapsedAgentIds.has(node.agent.id);
+      return (
+        <div key={node.agent.id} className="flex flex-col gap-0.5">
+          <SidebarAgentItem
+            activeAgentId={activeAgentId}
+            activeTab={activeTab}
+            agent={node.agent}
+            depth={depth}
+            disabled={pendingAgentIds.has(node.agent.id)}
+            expanded={expanded}
+            hasChildren={hasChildren}
+            isMobile={isMobile}
+            onToggleExpanded={toggleAgentExpanded}
+            onPauseResume={(targetAgent, action) => pauseResumeAgent.mutate({ agent: targetAgent, action })}
+            runCount={runCount}
+            setSidebarOpen={setSidebarOpen}
+          />
+          {hasChildren && expanded ? (
+            <div className="flex flex-col gap-0.5">
+              {node.children.map((child) => renderAgentNode(child, depth + 1))}
+            </div>
+          ) : null}
+        </div>
+      );
+    },
+    [
+      activeAgentId,
+      activeTab,
+      collapsedAgentIds,
+      isMobile,
+      liveCountByAgent,
+      pauseResumeAgent,
+      pendingAgentIds,
+      setSidebarOpen,
+      toggleAgentExpanded,
+    ],
+  );
+
   return (
     <SidebarSection
       label="Agents"
@@ -364,22 +519,7 @@ export function SidebarAgents() {
         onRadioValueChange: persistSortMode,
       }}
     >
-      {sortedAgents.map((agent: Agent) => {
-        const runCount = liveCountByAgent.get(agent.id) ?? 0;
-        return (
-          <SidebarAgentItem
-            key={agent.id}
-            activeAgentId={activeAgentId}
-            activeTab={activeTab}
-            agent={agent}
-            disabled={pendingAgentIds.has(agent.id)}
-            isMobile={isMobile}
-            onPauseResume={(targetAgent, action) => pauseResumeAgent.mutate({ agent: targetAgent, action })}
-            runCount={runCount}
-            setSidebarOpen={setSidebarOpen}
-          />
-        );
-      })}
+      {agentTree.map((node) => renderAgentNode(node, 0))}
     </SidebarSection>
   );
 }
