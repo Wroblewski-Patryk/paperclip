@@ -73,6 +73,12 @@ export function companyCoreBridgeRoutes(db: Db) {
     });
   });
 
+  router.get("/companies/:companyId/knowledge/map", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    res.json(await svc.knowledgeMap(companyId));
+  });
+
   router.get("/companies/:companyId/tools/companycore/health", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);

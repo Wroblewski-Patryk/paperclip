@@ -78,6 +78,69 @@ export interface CompanyCoreManifestSummary {
   } | null;
 }
 
+export type CompanyCoreKnowledgeNodeType =
+  | "workspace"
+  | "domain"
+  | "area"
+  | "table"
+  | "record"
+  | "capability";
+
+export interface CompanyCoreKnowledgeMapNode {
+  id: string;
+  type: CompanyCoreKnowledgeNodeType;
+  label: string;
+  subtitle: string | null;
+  source: "CompanyCore";
+  syncedWith: string[];
+  count: number | null;
+  status: string | null;
+  updatedAt: string | null;
+  agentAccess: {
+    read: boolean;
+    write: boolean;
+    approvalRequired: boolean;
+    capabilities: string[];
+  };
+  metadata: Record<string, unknown>;
+}
+
+export interface CompanyCoreKnowledgeMapEdge {
+  id: string;
+  source: string;
+  target: string;
+  label: string | null;
+}
+
+export interface CompanyCoreKnowledgeMapSummary {
+  workspaceName: string | null;
+  areaCount: number;
+  tableCount: number;
+  taskCount: number;
+  fileCount: number;
+  noteCount: number;
+  decisionCount: number;
+  projectCount: number;
+  toolCount: number;
+  readCapabilityCount: number;
+  writeCapabilityCount: number;
+  syncedWith: string[];
+  generatedAt: string;
+}
+
+export interface CompanyCoreKnowledgeMap {
+  provider: "companycore";
+  status: CompanyCoreConnectionStatus;
+  source: "CompanyCore";
+  summary: CompanyCoreKnowledgeMapSummary;
+  nodes: CompanyCoreKnowledgeMapNode[];
+  edges: CompanyCoreKnowledgeMapEdge[];
+  errors: Array<{
+    surface: string;
+    message: string;
+  }>;
+}
+
 interface CompanyCoreBridgeConfig {
   baseUrl: string | null;
   apiKeyConfigured: boolean;
@@ -186,6 +249,14 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function asArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  const record = asRecord(value);
+  if (Array.isArray(record.data)) return record.data;
+  if (Array.isArray(record.items)) return record.items;
+  return [];
+}
+
 function normalizeError(code: string, message: string) {
   return { code, message };
 }
@@ -218,6 +289,20 @@ async function requestCompanyCore<T>(config: CompanyCoreBridgeConfig, path: stri
     return body as T;
   } finally {
     clearTimeout(timer);
+  }
+}
+
+async function requestCompanyCoreOptional<T>(
+  config: CompanyCoreBridgeConfig,
+  path: string,
+): Promise<{ data: T | null; error: string | null }> {
+  try {
+    return { data: await requestCompanyCore<T>(config, path), error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : "CompanyCore request failed.",
+    };
   }
 }
 
@@ -323,6 +408,384 @@ function summarizeManifest(data: unknown, config: CompanyCoreBridgeConfig): Comp
     guardrails: asStringArray(record.guardrails),
     tools,
     error: null,
+  };
+}
+
+function titleFromCapability(capability: string): string {
+  return capability
+    .split(":")
+    .map((part) => part.replaceAll("-", " "))
+    .join(" / ");
+}
+
+function labelFromRecord(record: Record<string, unknown>, fallback: string): string {
+  return (
+    asString(record.title) ??
+    asString(record.name) ??
+    asString(record.label) ??
+    asString(record.id) ??
+    fallback
+  );
+}
+
+function normalizeSyncedWith(value: unknown): string[] {
+  const provider = asString(value);
+  if (!provider || provider === "companycore" || provider === "internal") return [];
+  if (provider === "google_drive") return ["Google Drive"];
+  if (provider === "clickup") return ["ClickUp"];
+  return [provider.replaceAll("_", " ")];
+}
+
+function toolAccessForDomain(
+  tools: CompanyCoreToolEntry[],
+  capabilityPrefixes: string[],
+) {
+  const matchingTools = tools.filter((tool) => {
+    const capability = tool.capability ?? "";
+    return capabilityPrefixes.some((prefix) => capability.startsWith(prefix));
+  });
+  const capabilities = Array.from(new Set(matchingTools.map((tool) => tool.capability).filter(Boolean))) as string[];
+  return {
+    read: capabilities.some((capability) => capability.endsWith(":read")),
+    write: capabilities.some((capability) => capability.includes(":write")),
+    approvalRequired: matchingTools.some((tool) => tool.requiresApproval),
+    capabilities,
+  };
+}
+
+function pushNode(
+  nodes: CompanyCoreKnowledgeMapNode[],
+  node: CompanyCoreKnowledgeMapNode,
+) {
+  if (nodes.some((existing) => existing.id === node.id)) return;
+  nodes.push(node);
+}
+
+function pushEdge(
+  edges: CompanyCoreKnowledgeMapEdge[],
+  edge: CompanyCoreKnowledgeMapEdge,
+) {
+  if (edges.some((existing) => existing.id === edge.id)) return;
+  edges.push(edge);
+}
+
+function buildKnowledgeMap(input: {
+  connectionData: unknown;
+  manifestData: unknown;
+  tablesData: unknown;
+  mappingsData: unknown;
+  companyOsData: unknown;
+  tasksData: unknown;
+  filesData: unknown;
+  notesData: unknown;
+  decisionsData: unknown;
+  projectsData: unknown;
+  errors: Array<{ surface: string; message: string }>;
+}): CompanyCoreKnowledgeMap {
+  const connection = asRecord(input.connectionData);
+  const workspace = asRecord(connection.workspace);
+  const operatingModel = asRecord(connection.operatingModel);
+  const manifest = summarizeManifest(input.manifestData, { baseUrl: null, apiKey: null, apiKeyConfigured: true });
+  const tools = manifest.tools;
+  const areas = asArray(operatingModel.areas);
+  const tables = asArray(input.tablesData);
+  const mappings = asArray(input.mappingsData);
+  const tasks = asArray(input.tasksData);
+  const files = asArray(input.filesData);
+  const notes = asArray(input.notesData);
+  const decisions = asArray(input.decisionsData);
+  const projects = asArray(input.projectsData);
+  const nodes: CompanyCoreKnowledgeMapNode[] = [];
+  const edges: CompanyCoreKnowledgeMapEdge[] = [];
+  const syncedWith = new Set<string>();
+  const mappingProviderByTableId = new Map<string, string[]>();
+
+  for (const mapping of mappings) {
+    const record = asRecord(mapping);
+    const tableId = asString(record.tableId);
+    const provider = normalizeSyncedWith(record.provider);
+    if (!tableId || provider.length === 0) continue;
+    mappingProviderByTableId.set(tableId, [
+      ...(mappingProviderByTableId.get(tableId) ?? []),
+      ...provider,
+    ]);
+  }
+
+  const workspaceName = asString(workspace.name) ?? "CompanyCore";
+  pushNode(nodes, {
+    id: "companycore",
+    type: "workspace",
+    label: workspaceName,
+    subtitle: "Source: CompanyCore",
+    source: "CompanyCore",
+    syncedWith: [],
+    count: null,
+    status: asString(connection.status) ?? "connected",
+    updatedAt: null,
+    agentAccess: {
+      read: true,
+      write: tools.some((tool) => tool.capability?.includes(":write")),
+      approvalRequired: tools.some((tool) => tool.requiresApproval),
+      capabilities: Array.from(new Set(tools.map((tool) => tool.capability).filter(Boolean))) as string[],
+    },
+    metadata: {
+      workspaceId: asString(workspace.id),
+      apiVersion: asString(connection.apiVersion),
+      schemaVersion: manifest.schemaVersion,
+    },
+  });
+
+  const domains = [
+    {
+      id: "domain-tasks",
+      label: "Tasks",
+      subtitle: "CompanyCore tasks and workflow records",
+      count: tasks.length,
+      prefixes: ["tasks:", "task-lists:"],
+      syncedWith: Array.from(new Set(tasks.flatMap((item) => normalizeSyncedWith(asRecord(item).source)))),
+    },
+    {
+      id: "domain-files",
+      label: "Files",
+      subtitle: "CompanyCore files indexed from knowledge roots",
+      count: files.length,
+      prefixes: ["google-drive:files:", "google-drive:docs:", "google-drive:sheets:"],
+      syncedWith: Array.from(new Set(files.flatMap((item) => normalizeSyncedWith(asRecord(item).provider)))),
+    },
+    {
+      id: "domain-projects",
+      label: "Projects",
+      subtitle: "CompanyCore project records",
+      count: projects.length,
+      prefixes: ["projects:"],
+      syncedWith: Array.from(new Set(projects.flatMap((item) => normalizeSyncedWith(asRecord(item).source)))),
+    },
+    {
+      id: "domain-notes",
+      label: "Notes",
+      subtitle: "CompanyCore notes and captured context",
+      count: notes.length,
+      prefixes: ["notes:"],
+      syncedWith: Array.from(new Set(notes.flatMap((item) => normalizeSyncedWith(asRecord(item).source)))),
+    },
+    {
+      id: "domain-decisions",
+      label: "Decisions",
+      subtitle: "CompanyCore decisions and decision logs",
+      count: decisions.length,
+      prefixes: ["decisions:", "company-os:"],
+      syncedWith: Array.from(new Set(decisions.flatMap((item) => normalizeSyncedWith(asRecord(item).source)))),
+    },
+    {
+      id: "domain-tables",
+      label: "Operating tables",
+      subtitle: "CompanyCore operating model tables",
+      count: tables.length,
+      prefixes: ["operating-model:", "company-os:"],
+      syncedWith: Array.from(new Set(tables.flatMap((item) => {
+        const row = asRecord(item);
+        return [
+          ...normalizeSyncedWith(row.source),
+          ...(mappingProviderByTableId.get(asString(row.id) ?? "") ?? []),
+        ];
+      }))),
+    },
+  ];
+
+  for (const domain of domains) {
+    for (const provider of domain.syncedWith) syncedWith.add(provider);
+    pushNode(nodes, {
+      id: domain.id,
+      type: "domain",
+      label: domain.label,
+      subtitle: domain.subtitle,
+      source: "CompanyCore",
+      syncedWith: domain.syncedWith,
+      count: domain.count,
+      status: domain.count > 0 ? "available" : "empty",
+      updatedAt: null,
+      agentAccess: toolAccessForDomain(tools, domain.prefixes),
+      metadata: {},
+    });
+    pushEdge(edges, {
+      id: `companycore-${domain.id}`,
+      source: "companycore",
+      target: domain.id,
+      label: "exposes",
+    });
+  }
+
+  for (const area of areas) {
+    const record = asRecord(area);
+    const areaId = asString(record.id) ?? `area-${nodes.length}`;
+    const areaNodeId = `area-${areaId}`;
+    const areaTables = asArray(record.tables);
+    pushNode(nodes, {
+      id: areaNodeId,
+      type: "area",
+      label: labelFromRecord(record, "Operating area"),
+      subtitle: "Operating area",
+      source: "CompanyCore",
+      syncedWith: [],
+      count: areaTables.length,
+      status: areaTables.length > 0 ? "mapped" : "empty",
+      updatedAt: asString(record.updatedAt),
+      agentAccess: toolAccessForDomain(tools, ["operating-model:", "company-os:"]),
+      metadata: { areaId },
+    });
+    pushEdge(edges, {
+      id: `domain-tables-${areaNodeId}`,
+      source: "domain-tables",
+      target: areaNodeId,
+      label: "contains",
+    });
+  }
+
+  for (const table of tables) {
+    const record = asRecord(table);
+    const tableId = asString(record.id) ?? `table-${nodes.length}`;
+    const areaId = asString(record.areaId);
+    const tableSyncedWith = Array.from(new Set([
+      ...normalizeSyncedWith(record.source),
+      ...(mappingProviderByTableId.get(tableId) ?? []),
+    ]));
+    for (const provider of tableSyncedWith) syncedWith.add(provider);
+    pushNode(nodes, {
+      id: `table-${tableId}`,
+      type: "table",
+      label: labelFromRecord(record, "CompanyCore table"),
+      subtitle: asString(record.description) ?? asString(record.apiSlug) ?? "CompanyCore table",
+      source: "CompanyCore",
+      syncedWith: tableSyncedWith,
+      count: null,
+      status: asString(record.syncPolicy) ?? "available",
+      updatedAt: asString(record.updatedAt),
+      agentAccess: toolAccessForDomain(tools, ["operating-model:", "company-os:"]),
+      metadata: {
+        apiSlug: asString(record.apiSlug),
+        tableName: asString(record.tableName),
+        folder: asString(asRecord(record.folder).name),
+      },
+    });
+    pushEdge(edges, {
+      id: `${areaId ? `area-${areaId}` : "domain-tables"}-table-${tableId}`,
+      source: areaId ? `area-${areaId}` : "domain-tables",
+      target: `table-${tableId}`,
+      label: "table",
+    });
+  }
+
+  const recordGroups = [
+    { source: "domain-tasks", items: tasks.slice(0, 24), type: "task", prefixes: ["tasks:"], syncedBy: "source" },
+    { source: "domain-files", items: files.slice(0, 24), type: "file", prefixes: ["google-drive:files:"], syncedBy: "provider" },
+    { source: "domain-projects", items: projects.slice(0, 12), type: "project", prefixes: ["projects:"], syncedBy: "source" },
+    { source: "domain-notes", items: notes.slice(0, 12), type: "note", prefixes: ["notes:"], syncedBy: "source" },
+    { source: "domain-decisions", items: decisions.slice(0, 12), type: "decision", prefixes: ["decisions:"], syncedBy: "source" },
+  ];
+
+  for (const group of recordGroups) {
+    for (const item of group.items) {
+      const record = asRecord(item);
+      const id = asString(record.id) ?? `${group.type}-${nodes.length}`;
+      const synced = normalizeSyncedWith(record[group.syncedBy]);
+      for (const provider of synced) syncedWith.add(provider);
+      pushNode(nodes, {
+        id: `${group.type}-${id}`,
+        type: "record",
+        label: labelFromRecord(record, `CompanyCore ${group.type}`),
+        subtitle: group.type,
+        source: "CompanyCore",
+        syncedWith: synced,
+        count: null,
+        status: asString(record.status) ?? asString(record.syncStatus) ?? asString(record.scanStatus),
+        updatedAt: asString(record.updatedAt) ?? asString(record.lastSyncedAt) ?? asString(record.modifiedTime),
+        agentAccess: toolAccessForDomain(tools, group.prefixes),
+        metadata: {
+          kind: group.type,
+          priority: asString(record.priority),
+          dueDate: asString(record.dueDate),
+          mimeType: asString(record.mimeType),
+          size: typeof record.size === "number" ? record.size : null,
+          projectId: asString(record.projectId),
+          taskList: asString(record.taskList),
+        },
+      });
+      pushEdge(edges, {
+        id: `${group.source}-${group.type}-${id}`,
+        source: group.source,
+        target: `${group.type}-${id}`,
+        label: "sample",
+      });
+    }
+  }
+
+  const capabilityGroups = new Map<string, CompanyCoreToolEntry[]>();
+  for (const tool of tools) {
+    const capability = tool.capability;
+    if (!capability) continue;
+    const group = capability.split(":")[0] ?? capability;
+    capabilityGroups.set(group, [...(capabilityGroups.get(group) ?? []), tool]);
+  }
+
+  for (const [group, groupTools] of Array.from(capabilityGroups.entries()).slice(0, 24)) {
+    const capabilities = Array.from(new Set(groupTools.map((tool) => tool.capability).filter(Boolean))) as string[];
+    pushNode(nodes, {
+      id: `capability-${group}`,
+      type: "capability",
+      label: titleFromCapability(group),
+      subtitle: `${groupTools.length} CompanyCore tools`,
+      source: "CompanyCore",
+      syncedWith: [],
+      count: groupTools.length,
+      status: groupTools.some((tool) => tool.riskLevel === "destructive")
+        ? "destructive"
+        : groupTools.some((tool) => tool.riskLevel === "write")
+          ? "write"
+          : "read",
+      updatedAt: null,
+      agentAccess: {
+        read: capabilities.some((capability) => capability.endsWith(":read")),
+        write: capabilities.some((capability) => capability.includes(":write")),
+        approvalRequired: groupTools.some((tool) => tool.requiresApproval),
+        capabilities,
+      },
+      metadata: {
+        tools: groupTools.slice(0, 8).map((tool) => tool.name),
+      },
+    });
+    pushEdge(edges, {
+      id: `companycore-capability-${group}`,
+      source: "companycore",
+      target: `capability-${group}`,
+      label: "capability",
+    });
+  }
+
+  const readCapabilityCount = tools.filter((tool) => tool.capability?.endsWith(":read")).length;
+  const writeCapabilityCount = tools.filter((tool) => tool.capability?.includes(":write")).length;
+
+  return {
+    provider: "companycore",
+    status: input.errors.length === 0 ? "connected" : "degraded",
+    source: "CompanyCore",
+    summary: {
+      workspaceName,
+      areaCount: areas.length,
+      tableCount: tables.length,
+      taskCount: tasks.length,
+      fileCount: files.length,
+      noteCount: notes.length,
+      decisionCount: decisions.length,
+      projectCount: projects.length,
+      toolCount: tools.length,
+      readCapabilityCount,
+      writeCapabilityCount,
+      syncedWith: Array.from(syncedWith).sort(),
+      generatedAt: new Date().toISOString(),
+    },
+    nodes,
+    edges,
+    errors: input.errors,
   };
 }
 
@@ -499,6 +962,79 @@ export function companyCoreBridgeService(db?: Db) {
           ),
         };
       }
+    },
+
+    async knowledgeMap(companyId: string): Promise<CompanyCoreKnowledgeMap> {
+      const knowledgeConfig = await resolveConfig(companyId, "knowledge");
+      const toolsConfig = await resolveConfig(companyId, "tools");
+      if (!knowledgeConfig.baseUrl || !knowledgeConfig.apiKeyConfigured) {
+        return buildKnowledgeMap({
+          connectionData: {},
+          manifestData: {},
+          tablesData: [],
+          mappingsData: [],
+          companyOsData: {},
+          tasksData: [],
+          filesData: [],
+          notesData: [],
+          decisionsData: [],
+          projectsData: [],
+          errors: [{ surface: "connection", message: "CompanyCore Knowledge is not configured." }],
+        });
+      }
+      const dataConfig = toolsConfig.baseUrl && toolsConfig.apiKeyConfigured ? toolsConfig : knowledgeConfig;
+      const [
+        connectionResult,
+        manifestResult,
+        tablesResult,
+        mappingsResult,
+        companyOsResult,
+        tasksResult,
+        filesResult,
+        notesResult,
+        decisionsResult,
+        projectsResult,
+      ] = await Promise.all([
+        requestCompanyCoreOptional<unknown>(knowledgeConfig, "/v1/connection"),
+        requestCompanyCoreOptional<unknown>(dataConfig, "/v1/mcp/manifest"),
+        requestCompanyCoreOptional<unknown>(dataConfig, "/v1/operating-model/tables"),
+        requestCompanyCoreOptional<unknown>(dataConfig, "/v1/operating-model/external-mappings"),
+        requestCompanyCoreOptional<unknown>(dataConfig, "/v1/company-os"),
+        requestCompanyCoreOptional<unknown>(dataConfig, "/v1/tasks"),
+        requestCompanyCoreOptional<unknown>(dataConfig, "/v1/google-drive/files"),
+        requestCompanyCoreOptional<unknown>(dataConfig, "/v1/notes"),
+        requestCompanyCoreOptional<unknown>(dataConfig, "/v1/decisions"),
+        requestCompanyCoreOptional<unknown>(dataConfig, "/v1/projects"),
+      ]);
+      const errors = [
+        ["connection", connectionResult],
+        ["manifest", manifestResult],
+        ["tables", tablesResult],
+        ["external mappings", mappingsResult],
+        ["company os", companyOsResult],
+        ["tasks", tasksResult],
+        ["files", filesResult],
+        ["notes", notesResult],
+        ["decisions", decisionsResult],
+        ["projects", projectsResult],
+      ].flatMap(([surface, result]) => {
+        const typed = result as { error: string | null };
+        return typed.error ? [{ surface: surface as string, message: typed.error }] : [];
+      });
+
+      return buildKnowledgeMap({
+        connectionData: connectionResult.data ?? {},
+        manifestData: manifestResult.data ?? {},
+        tablesData: tablesResult.data ?? [],
+        mappingsData: mappingsResult.data ?? [],
+        companyOsData: companyOsResult.data ?? {},
+        tasksData: tasksResult.data ?? [],
+        filesData: filesResult.data ?? [],
+        notesData: notesResult.data ?? [],
+        decisionsData: decisionsResult.data ?? [],
+        projectsData: projectsResult.data ?? [],
+        errors,
+      });
     },
   };
 }

@@ -113,6 +113,67 @@ export interface CompanyCoreManifestSummary {
   } | null;
 }
 
+export type CompanyCoreKnowledgeNodeType =
+  | "workspace"
+  | "domain"
+  | "area"
+  | "table"
+  | "record"
+  | "capability";
+
+export interface CompanyCoreKnowledgeMapNode {
+  id: string;
+  type: CompanyCoreKnowledgeNodeType;
+  label: string;
+  subtitle: string | null;
+  source: "CompanyCore";
+  syncedWith: string[];
+  count: number | null;
+  status: string | null;
+  updatedAt: string | null;
+  agentAccess: {
+    read: boolean;
+    write: boolean;
+    approvalRequired: boolean;
+    capabilities: string[];
+  };
+  metadata: Record<string, unknown>;
+}
+
+export interface CompanyCoreKnowledgeMapEdge {
+  id: string;
+  source: string;
+  target: string;
+  label: string | null;
+}
+
+export interface CompanyCoreKnowledgeMap {
+  provider: "companycore";
+  status: CompanyCoreBridgeStatus;
+  source: "CompanyCore";
+  summary: {
+    workspaceName: string | null;
+    areaCount: number;
+    tableCount: number;
+    taskCount: number;
+    fileCount: number;
+    noteCount: number;
+    decisionCount: number;
+    projectCount: number;
+    toolCount: number;
+    readCapabilityCount: number;
+    writeCapabilityCount: number;
+    syncedWith: string[];
+    generatedAt: string;
+  };
+  nodes: CompanyCoreKnowledgeMapNode[];
+  edges: CompanyCoreKnowledgeMapEdge[];
+  errors: Array<{
+    surface: string;
+    message: string;
+  }>;
+}
+
 export const companyCoreApi = {
   settings: (companyId: string) =>
     api.get<CompanyCoreSettings>(`/companies/${companyId}/companycore/settings`),
@@ -122,6 +183,8 @@ export const companyCoreApi = {
     api.get<CompanyCoreConnectionSummary>(`/companies/${companyId}/knowledge/connection`),
   overview: (companyId: string) =>
     api.get<CompanyCoreKnowledgeOverview>(`/companies/${companyId}/knowledge/overview`),
+  map: (companyId: string) =>
+    api.get<CompanyCoreKnowledgeMap>(`/companies/${companyId}/knowledge/map`),
   health: (companyId: string) =>
     api.get<CompanyCoreConnectionSummary>(`/companies/${companyId}/tools/companycore/health`),
   manifest: (companyId: string) =>
