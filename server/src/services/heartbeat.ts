@@ -133,6 +133,7 @@ import {
   decideSuccessfulRunHandoff,
   findExistingFinishSuccessfulRunHandoffWake,
   findExistingRunLivenessContinuationWake,
+  inferSuccessfulRunHandoffDispositionFromText,
   SUCCESSFUL_RUN_HANDOFF_REQUIRED_NOTICE_BODY,
   readContinuationAttempt,
 } from "./recovery/index.js";
@@ -185,6 +186,16 @@ const MAX_RUN_EVENT_PAYLOAD_DEPTH = 6;
 const HEARTBEAT_MAX_CONCURRENT_RUNS_DEFAULT = AGENT_DEFAULT_MAX_CONCURRENT_RUNS;
 const HEARTBEAT_MAX_CONCURRENT_RUNS_MIN = 1;
 const HEARTBEAT_MAX_CONCURRENT_RUNS_MAX = 50;
+const COMPANY_MAX_RUNNING_RUNS_ENV =
+  process.env.PAPERCLIP_COMPANY_MAX_RUNNING_RUNS === undefined
+    ? null
+    : Number(process.env.PAPERCLIP_COMPANY_MAX_RUNNING_RUNS);
+const COMPANY_MAX_RUNNING_RUNS =
+  COMPANY_MAX_RUNNING_RUNS_ENV !== null &&
+  Number.isFinite(COMPANY_MAX_RUNNING_RUNS_ENV) &&
+  COMPANY_MAX_RUNNING_RUNS_ENV > 0
+    ? Math.max(1, Math.floor(COMPANY_MAX_RUNNING_RUNS_ENV))
+    : null;
 const LIVENESS_BOOKKEEPING_ACTIVITY_ACTIONS = [
   "environment.lease_acquired",
   "environment.lease_released",
@@ -4010,6 +4021,65 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     );
   }
 
+  async function inferAndApplySuccessfulRunDisposition(input: {
+    issue: Pick<typeof issues.$inferSelect, "id" | "companyId" | "identifier" | "status">;
+    run: typeof heartbeatRuns.$inferSelect;
+  }) {
+    const commentRows = await db
+      .select({ id: issueComments.id, body: issueComments.body })
+      .from(issueComments)
+      .where(
+        and(
+          eq(issueComments.companyId, input.issue.companyId),
+          eq(issueComments.issueId, input.issue.id),
+          eq(issueComments.authorType, "agent"),
+          eq(issueComments.createdByRunId, input.run.id),
+        ),
+      )
+      .orderBy(desc(issueComments.createdAt), desc(issueComments.id))
+      .limit(5);
+
+    for (const comment of commentRows) {
+      const disposition = inferSuccessfulRunHandoffDispositionFromText(comment.body);
+      if (!disposition) continue;
+      if (input.issue.status !== "in_progress") return { applied: false as const, disposition, reason: "issue already moved" };
+
+      const updated = await issuesSvc.update(input.issue.id, { status: disposition });
+      if (!updated) return { applied: false as const, disposition, reason: "issue update failed" };
+
+      await issuesSvc.addComment(
+        input.issue.id,
+        [
+          `Paperclip inferred issue disposition \`${disposition}\` from the latest agent handoff and updated the issue automatically.`,
+          "",
+          `- Source run: \`${input.run.id}\``,
+          `- Source comment: \`${comment.id}\``,
+        ].join("\n"),
+        { runId: input.run.id },
+        { authorType: "system" },
+      );
+      await logActivity(db, {
+        companyId: input.issue.companyId,
+        actorType: "system",
+        actorId: "heartbeat",
+        agentId: input.run.agentId,
+        runId: input.run.id,
+        action: "issue.successful_run_disposition_inferred",
+        entityType: "issue",
+        entityId: input.issue.id,
+        details: {
+          identifier: input.issue.identifier,
+          status: disposition,
+          sourceRunId: input.run.id,
+          sourceCommentId: comment.id,
+        },
+      });
+      return { applied: true as const, disposition, reason: null };
+    }
+
+    return { applied: false as const, disposition: null, reason: "no explicit disposition comment" };
+  }
+
   async function handleSuccessfulRunHandoff(run: typeof heartbeatRuns.$inferSelect, agent: typeof agents.$inferSelect) {
     if (run.status !== "succeeded") return;
     const context = parseObject(run.contextSnapshot);
@@ -4193,6 +4263,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       budgetBlocked: Boolean(budgetBlock),
       idempotentWakeExists: Boolean(existingWake),
     });
+
+    if (decision.kind === "enqueue" && issue) {
+      const inferred = await inferAndApplySuccessfulRunDisposition({ issue, run });
+      if (inferred.applied) return;
+    }
 
     if (decision.kind !== "enqueue" || !issue) return;
 
@@ -5781,6 +5856,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     return Number(count ?? 0);
   }
 
+  async function countRunningRunsForCompany(companyId: string) {
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(heartbeatRuns)
+      .where(and(eq(heartbeatRuns.companyId, companyId), eq(heartbeatRuns.status, "running")));
+    return Number(count ?? 0);
+  }
+
   async function claimQueuedRun(run: typeof heartbeatRuns.$inferSelect) {
     if (run.status !== "queued") return run;
     const agent = await getAgent(run.agentId);
@@ -5791,6 +5874,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     if (agent.status === "paused" || agent.status === "terminated" || agent.status === "pending_approval") {
       await cancelRunInternal(run.id, "Cancelled because the agent is not invokable");
       return null;
+    }
+    if (COMPANY_MAX_RUNNING_RUNS !== null) {
+      const companyRunningCount = await countRunningRunsForCompany(run.companyId);
+      if (companyRunningCount >= COMPANY_MAX_RUNNING_RUNS) return null;
     }
 
     const context = parseObject(run.contextSnapshot);
@@ -6700,7 +6787,13 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       }
       const policy = parseHeartbeatPolicy(agent);
       const runningCount = await countRunningRunsForAgent(agentId);
-      const availableSlots = Math.max(0, policy.maxConcurrentRuns - runningCount);
+      const companyRunningCount = COMPANY_MAX_RUNNING_RUNS === null
+        ? 0
+        : await countRunningRunsForCompany(agent.companyId);
+      const companyAvailableSlots = COMPANY_MAX_RUNNING_RUNS === null
+        ? Number.POSITIVE_INFINITY
+        : Math.max(0, COMPANY_MAX_RUNNING_RUNS - companyRunningCount);
+      const availableSlots = Math.max(0, Math.min(policy.maxConcurrentRuns - runningCount, companyAvailableSlots));
       if (availableSlots <= 0) return [];
 
       const queuedRuns = await db

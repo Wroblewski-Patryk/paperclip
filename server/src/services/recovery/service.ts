@@ -282,6 +282,21 @@ function isUnsuccessfulTerminalIssueRun(latestRun: LatestIssueRun) {
   );
 }
 
+function hardRuntimeBlockerReason(latestRun: LatestIssueRun) {
+  if (!latestRun || !isUnsuccessfulTerminalIssueRun(latestRun)) return null;
+  const text = `${latestRun.error ?? ""} ${latestRun.errorCode ?? ""}`.toLowerCase();
+  if (text.includes("quota exceeded") || text.includes("check your plan and billing details")) {
+    return "quota exceeded";
+  }
+  if (text.includes("php: command not found") || text.includes("/bin/bash: php: command not found")) {
+    return "missing PHP runtime";
+  }
+  if (text.includes("spawn google-chrome enoent") || text.includes("google-chrome enoent")) {
+    return "missing Chrome runtime";
+  }
+  return null;
+}
+
 function isSuccessfulInProgressContinuationRun(latestRun: LatestIssueRun): latestRun is SuccessfulLatestIssueRun {
   return latestRun?.status === "succeeded";
 }
@@ -1816,6 +1831,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     comment?: string;
     recoveryCause?: StrandedRecoveryCause;
     successfulRunHandoffEvidence?: SuccessfulRunHandoffRecoveryEvidence | null;
+    suppressAutomaticWake?: boolean;
   }) {
     if (isStrandedIssueRecoveryIssue(input.issue)) {
       return escalateStrandedRecoveryIssueInPlace({
@@ -1939,12 +1955,14 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       },
     });
 
-    await enqueueSourceScopedStrandedRecoveryWake({
-      action: recoveryAction,
-      issue: input.issue,
-      latestRun: input.latestRun,
-      recoveryCause,
-    });
+    if (!input.suppressAutomaticWake) {
+      await enqueueSourceScopedStrandedRecoveryWake({
+        action: recoveryAction,
+        issue: input.issue,
+        latestRun: input.latestRun,
+        recoveryCause,
+      });
+    }
 
     if (recoveryAction.ownerAgentId && recoveryAction.ownerAgentId === input.issue.assigneeAgentId) {
       const [currentIssue] = await db
@@ -2026,6 +2044,26 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
           issue,
           previousStatus: issue.status as "todo" | "in_progress",
           latestRun,
+        });
+        if (updated) {
+          result.escalated += 1;
+          result.issueIds.push(issue.id);
+        } else {
+          result.skipped += 1;
+        }
+        continue;
+      }
+
+      const hardBlocker = hardRuntimeBlockerReason(latestRun);
+      if (hardBlocker) {
+        const updated = await escalateStrandedAssignedIssue({
+          issue,
+          previousStatus: issue.status as "todo" | "in_progress",
+          latestRun,
+          suppressAutomaticWake: true,
+          comment:
+            "Paperclip stopped automatic retry for this issue because the latest run hit a hard runtime blocker. " +
+            `Exact blocker: ${hardBlocker}. Moving it to \`blocked\` so a board/operator can fix the runtime or budget before retrying.`,
         });
         if (updated) {
           result.escalated += 1;

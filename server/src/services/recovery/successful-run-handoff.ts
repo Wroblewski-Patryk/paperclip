@@ -23,6 +23,10 @@ export const SUCCESSFUL_RUN_HANDOFF_OPTIONS = [
   "delegate_or_continue_from_checkpoint",
 ] as const;
 
+export const SUCCESSFUL_RUN_HANDOFF_INFERRED_DISPOSITIONS = ["done", "blocked", "in_review"] as const;
+export type SuccessfulRunHandoffInferredDisposition =
+  (typeof SUCCESSFUL_RUN_HANDOFF_INFERRED_DISPOSITIONS)[number];
+
 const PRODUCTIVE_SUCCESS_LIVENESS_STATES = new Set<RunLivenessState>([
   "advanced",
   "completed",
@@ -301,6 +305,41 @@ function isProductiveSuccessfulRun(input: {
 }) {
   if (input.livenessState && PRODUCTIVE_SUCCESS_LIVENESS_STATES.has(input.livenessState)) return true;
   return Boolean(input.detectedProgressSummary);
+}
+
+export function inferSuccessfulRunHandoffDispositionFromText(
+  body: string | null | undefined,
+): SuccessfulRunHandoffInferredDisposition | null {
+  if (!body) return null;
+  const normalized = body
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  const joined = normalized.join("\n").toLowerCase();
+  const candidates = [
+    /(?:final\s+)?disposition(?:\s+for\s+(?:this\s+)?heartbeat)?\s*(?:\([^)]*\))?\s*[:：-]\s*`?(done|blocked|in_review)`?/i,
+    /issue\s+disposition\s*[:：-]\s*`?(done|blocked|in_review)`?/i,
+    /ready\s+(?:for\s+final\s+issue\s+disposition|to\s+(?:be\s+)?(?:closed|set|marked|ustawienia(?:\s+statusu)?))\s*[:：-]?\s*`?(done|blocked|in_review)`?/i,
+    /status\s+(?:to\s+)?`?(done|blocked|in_review)`?\s+(?:is\s+ready|ready|recommended)/i,
+  ];
+
+  for (const regex of candidates) {
+    const match = regex.exec(joined);
+    const disposition = match?.[1] as SuccessfulRunHandoffInferredDisposition | undefined;
+    if (disposition && SUCCESSFUL_RUN_HANDOFF_INFERRED_DISPOSITIONS.includes(disposition)) {
+      return disposition;
+    }
+  }
+
+  if (/\bfinal\s+disposition\b/i.test(joined)) {
+    if (/\bmark(?:ed)?\s+it\s+`?done`?|\b`done`\b\s+for\b|\bdone\s+for\s+(?:the\s+)?bounded\b/i.test(joined)) return "done";
+    if (/\b`blocked`\b|\bblocked\s+on\b|\bresult:\s*\*\*blocked\*\*/i.test(joined)) return "blocked";
+    if (/\b`in_review`\b|\bin[_ -]review\b|\bboard\s+confirmation\b|\bapproval\s+path\b/i.test(joined)) return "in_review";
+  }
+
+  return null;
 }
 
 export function buildSuccessfulRunHandoffInstruction(input: {

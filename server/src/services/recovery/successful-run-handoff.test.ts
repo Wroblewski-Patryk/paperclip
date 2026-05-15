@@ -8,6 +8,7 @@ import {
   buildSuccessfulRunHandoffExhaustedNotice,
   buildSuccessfulRunHandoffRequiredNotice,
   decideSuccessfulRunHandoff,
+  inferSuccessfulRunHandoffDispositionFromText,
   isIdempotentFinishSuccessfulRunHandoffWakeStatus,
   isSuccessfulRunHandoffRequiredNoticeBody,
   noticeMetadataReferencesRecoveryAction,
@@ -297,5 +298,18 @@ describe("successful run handoff decision", () => {
     expect(isSuccessfulRunHandoffRequiredNoticeBody("## Successful run missing issue disposition\n\nold body")).toBe(true);
     expect(isSuccessfulRunHandoffRequiredNoticeBody("## This issue still needs a next step\n\nold body")).toBe(true);
     expect(isSuccessfulRunHandoffRequiredNoticeBody("Unrelated comment")).toBe(false);
+  });
+
+  it("infers explicit dispositions from successful agent handoff comments", () => {
+    expect(inferSuccessfulRunHandoffDispositionFromText("Final disposition: `done` for the bounded closeout."))
+      .toBe("done");
+    expect(inferSuccessfulRunHandoffDispositionFromText("Disposition: `blocked`\n\nBlocker: php runtime is missing."))
+      .toBe("blocked");
+    expect(inferSuccessfulRunHandoffDispositionFromText("Final disposition for this heartbeat: `in_review` (board confirmation pending)."))
+      .toBe("in_review");
+    expect(inferSuccessfulRunHandoffDispositionFromText("Ready for final issue disposition: `done`."))
+      .toBe("done");
+    expect(inferSuccessfulRunHandoffDispositionFromText("I wrote a report and will continue later."))
+      .toBeNull();
   });
 });

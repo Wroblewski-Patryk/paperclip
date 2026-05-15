@@ -117,6 +117,14 @@ These browser suites are intended for targeted local verification and CI, not th
 
 For normal issue work, start with the smallest targeted check that proves the change. Reserve repo-wide typecheck/build/test runs for PR-ready handoff or changes broad enough that narrow checks do not cover the risk.
 
+## Agent Cost Guardrails
+
+Paperclip reduces accidental token burn by accepting explicit successful handoff dispositions and stopping automatic retries for known hard runtime blockers.
+
+Optionally, set `PAPERCLIP_COMPANY_MAX_RUNNING_RUNS` to a positive integer to cap simultaneously running heartbeat executions per company. When unset or set to `0`, Paperclip falls back to per-agent `maxConcurrentRuns` only.
+
+Successful agent handoff comments that explicitly say `Final disposition: done`, `Disposition: blocked`, or `Final disposition: in_review` are now accepted as issue dispositions automatically, which prevents corrective recovery loops from re-running completed work. Hard runtime blockers such as quota exhaustion, missing PHP, or missing Chrome are escalated to visible `blocked` work without another automatic retry.
+
 ## One-Command Local Run
 
 For a first-time local install, you can bootstrap and run in one command:
