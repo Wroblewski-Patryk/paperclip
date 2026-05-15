@@ -93,12 +93,16 @@ function resolveBundledHindsightPluginPath(): string {
   return path.resolve(appDir, "../../packages/plugins/plugin-hindsight-memory");
 }
 
+function resolveDefaultHindsightApiUrl(): string {
+  return process.env.COOLIFY_RESOURCE_UUID ? "http://hindsight:8888" : "http://localhost:8888";
+}
+
 function resolveHindsightPluginConfig(): Record<string, unknown> {
   const config: Record<string, unknown> = {
     hindsightApiUrl:
       process.env.PAPERCLIP_HINDSIGHT_API_URL?.trim() ||
       process.env.HINDSIGHT_API_URL?.trim() ||
-      "http://localhost:8888",
+      resolveDefaultHindsightApiUrl(),
     bankGranularity: ["company", "agent"],
     recallBudget: process.env.PAPERCLIP_HINDSIGHT_RECALL_BUDGET?.trim() || "mid",
     autoRetain: envFlag("PAPERCLIP_HINDSIGHT_AUTO_RETAIN", true),
