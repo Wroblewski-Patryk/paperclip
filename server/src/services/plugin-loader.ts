@@ -52,6 +52,7 @@ import { pluginDatabaseService } from "./plugin-database.js";
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const NPM_COMMAND = process.platform === "win32" ? "npm.cmd" : "npm";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -871,7 +872,7 @@ export function pluginLoader(
         // --ignore-scripts prevents preinstall/install/postinstall hooks from
         // executing arbitrary code on the host before manifest validation.
         await execFileAsync(
-          "npm",
+          NPM_COMMAND,
           ["install", spec, "--prefix", targetInstallDir, "--save", "--ignore-scripts"],
           { timeout: 120_000 }, // 2 minute timeout for npm install
         );
@@ -1506,7 +1507,7 @@ export function pluginLoader(
       if (existsSync(packageJsonPath)) {
         try {
           await execFileAsync(
-            "npm",
+            NPM_COMMAND,
             ["uninstall", plugin.packageName, "--prefix", localPluginDir, "--ignore-scripts"],
             { timeout: 120_000 },
           );
@@ -1858,7 +1859,7 @@ export function pluginLoader(
       // (for example @paperclipai/shared exports). Run those workers through
       // the tsx loader so first-party example plugins work in development.
       if (activePlugin.packagePath && existsSync(DEV_TSX_LOADER_PATH)) {
-        workerOptions.execArgv = ["--import", DEV_TSX_LOADER_PATH];
+        workerOptions.execArgv = ["--import", pathToFileURL(DEV_TSX_LOADER_PATH).href];
       }
 
       await workerManager.startWorker(pluginId, workerOptions);

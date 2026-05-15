@@ -80,6 +80,35 @@ const VITE_DEV_STATIC_PATHS = new Set([
   "/site.webmanifest",
   "/sw.js",
 ]);
+const HINDSIGHT_PLUGIN_KEY = "paperclip-plugin-hindsight";
+
+function envFlag(name: string, defaultValue: boolean): boolean {
+  const value = process.env[name]?.trim().toLowerCase();
+  if (!value) return defaultValue;
+  return !["0", "false", "no", "off"].includes(value);
+}
+
+function resolveBundledHindsightPluginPath(): string {
+  const appDir = path.dirname(fileURLToPath(import.meta.url));
+  return path.resolve(appDir, "../../packages/plugins/plugin-hindsight-memory");
+}
+
+function resolveHindsightPluginConfig(): Record<string, unknown> {
+  const config: Record<string, unknown> = {
+    hindsightApiUrl:
+      process.env.PAPERCLIP_HINDSIGHT_API_URL?.trim() ||
+      process.env.HINDSIGHT_API_URL?.trim() ||
+      "http://localhost:8888",
+    bankGranularity: ["company", "agent"],
+    recallBudget: process.env.PAPERCLIP_HINDSIGHT_RECALL_BUDGET?.trim() || "mid",
+    autoRetain: envFlag("PAPERCLIP_HINDSIGHT_AUTO_RETAIN", true),
+  };
+
+  const secretRef = process.env.PAPERCLIP_HINDSIGHT_API_KEY_REF?.trim();
+  if (secretRef) config.hindsightApiKeyRef = secretRef;
+
+  return config;
+}
 
 export function resolveViteHmrPort(serverPort: number): number {
   if (serverPort <= 55_535) {
@@ -102,6 +131,58 @@ export function shouldEnablePrivateHostnameGuard(opts: {
   return (
     opts.deploymentExposure === "private" &&
     (opts.deploymentMode === "local_trusted" || opts.deploymentMode === "authenticated")
+  );
+}
+
+async function provisionBundledHindsightPlugin(
+  db: Db,
+  loader: ReturnType<typeof pluginLoader>,
+): Promise<void> {
+  if (!envFlag("PAPERCLIP_HINDSIGHT_AUTO_INSTALL", true)) return;
+
+  const packagePath = resolveBundledHindsightPluginPath();
+  if (!fs.existsSync(path.join(packagePath, "package.json"))) {
+    logger.warn({ packagePath }, "Bundled Hindsight plugin package is missing; skipping auto-install");
+    return;
+  }
+
+  const registry = pluginRegistryService(db);
+  const existing = await registry.getByKey(HINDSIGHT_PLUGIN_KEY);
+  const existingCapabilities = new Set(existing?.manifestJson.capabilities ?? []);
+  const needsRefresh =
+    !existing ||
+    existing.status === "uninstalled" ||
+    existing.packagePath !== packagePath ||
+    !existingCapabilities.has("issues.read") ||
+    !existingCapabilities.has("issue.comments.read");
+
+  let plugin = existing;
+  if (needsRefresh) {
+    if (existing && existing.status !== "uninstalled") {
+      await registry.uninstall(existing.id, false);
+    }
+    await loader.installPlugin({ localPath: packagePath });
+    plugin = await registry.getByKey(HINDSIGHT_PLUGIN_KEY);
+    if (plugin && plugin.status !== "ready") {
+      await registry.updateStatus(plugin.id, { status: "ready" });
+    }
+  } else if (plugin.status !== "ready") {
+    plugin = await registry.updateStatus(plugin.id, { status: "ready" });
+  }
+
+  if (!plugin) {
+    logger.warn("Bundled Hindsight plugin install did not produce a registry row");
+    return;
+  }
+
+  await registry.patchConfig(plugin.id, { configJson: resolveHindsightPluginConfig() });
+  logger.info(
+    {
+      pluginId: plugin.id,
+      packagePath,
+      hindsightApiUrl: resolveHindsightPluginConfig().hindsightApiUrl,
+    },
+    "Bundled Hindsight plugin provisioned",
   );
 }
 
@@ -274,6 +355,9 @@ export async function createApp(
       },
     },
   );
+  await provisionBundledHindsightPlugin(db, loader).catch((err) => {
+    logger.error({ err }, "Failed to provision bundled Hindsight plugin");
+  });
   api.use(
     pluginRoutes(
       db,
