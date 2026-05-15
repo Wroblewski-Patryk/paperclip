@@ -1,7 +1,8 @@
 /// <reference path="./types/express.d.ts" />
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, openSync, readFileSync, rmSync } from "node:fs";
+import { spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:http";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { pathToFileURL } from "node:url";
@@ -264,6 +265,8 @@ export async function startServer(): Promise<StartedServer> {
   let pluginMigrationDb;
   let embeddedPostgres: EmbeddedPostgresInstance | null = null;
   let embeddedPostgresStartedByThisProcess = false;
+  let embeddedPostgresFallbackProcess: ChildProcess | null = null;
+  let embeddedPostgresShuttingDown = false;
   let migrationSummary: MigrationSummary = "skipped";
   let activeDatabaseConnectionString: string;
   let resolvedEmbeddedPostgresPort: number | null = null;
@@ -356,6 +359,93 @@ export async function startServer(): Promise<StartedServer> {
     };
   
     const runningPid = getRunningPid();
+    const isEmbeddedPostgresReachable = async (targetPort = port): Promise<boolean> => {
+      try {
+        const connectionString = `postgres://paperclip:paperclip@127.0.0.1:${targetPort}/postgres`;
+        const actualDataDir = await getPostgresDataDirectory(connectionString);
+        return typeof actualDataDir === "string" && resolve(actualDataDir) === resolve(dataDir);
+      } catch {
+        return false;
+      }
+    };
+
+    const readPostgresBinaryPath = (): string | null => {
+      try {
+        const opts = readFileSync(resolve(dataDir, "postmaster.opts"), "utf8").trim();
+        const quoted = opts.match(/^"([^"]+)"/);
+        if (quoted?.[1]) return quoted[1];
+        const first = opts.split(/\s+/)[0]?.trim();
+        return first ? first.replace(/^"|"$/g, "") : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const waitForEmbeddedPostgres = async (targetPort = port): Promise<boolean> => {
+      const deadline = Date.now() + 30_000;
+      while (Date.now() < deadline) {
+        if (await isEmbeddedPostgresReachable(targetPort)) return true;
+        await new Promise((resolveWait) => setTimeout(resolveWait, 500));
+      }
+      return false;
+    };
+
+    const startDetachedEmbeddedPostgres = async (reason: string): Promise<boolean> => {
+      if (embeddedPostgresShuttingDown) return false;
+      if (await isEmbeddedPostgresReachable()) return true;
+
+      const running = getRunningPid();
+      if (running) {
+        logger.warn(
+          { reason, pid: running, port },
+          "Embedded PostgreSQL has a running pid file but is not reachable; waiting before fallback restart",
+        );
+        return waitForEmbeddedPostgres();
+      }
+
+      if (existsSync(postmasterPidFile)) {
+        logger.warn({ reason, postmasterPidFile }, "Removing stale embedded PostgreSQL lock file before fallback restart");
+        rmSync(postmasterPidFile, { force: true });
+      }
+
+      const postgresBinary = readPostgresBinaryPath();
+      if (!postgresBinary) {
+        logger.error({ reason, dataDir }, "Cannot restart embedded PostgreSQL: postmaster.opts did not contain a postgres binary path");
+        return false;
+      }
+
+      const fallbackLogPath = resolve(dirname(dataDir), "logs", "embedded-postgres-fallback.log");
+      const stdoutFd = openSync(fallbackLogPath, "a");
+      const stderrFd = openSync(fallbackLogPath, "a");
+      const child = spawn(postgresBinary, ["-D", dataDir, "-p", String(port)], {
+        detached: true,
+        stdio: ["ignore", stdoutFd, stderrFd],
+      });
+      child.unref();
+      embeddedPostgresFallbackProcess = child;
+      child.once("exit", (code, signal) => {
+        if (embeddedPostgresShuttingDown) return;
+        logger.error(
+          { code, signal, pid: child.pid, reason },
+          "Fallback embedded PostgreSQL process exited",
+        );
+      });
+
+      const ready = await waitForEmbeddedPostgres();
+      if (ready) {
+        logger.warn(
+          { reason, pid: child.pid, port, dataDir, fallbackLogPath },
+          "Restarted embedded PostgreSQL using fallback supervisor",
+        );
+      } else {
+        logger.error(
+          { reason, pid: child.pid, port, dataDir, fallbackLogPath },
+          "Fallback embedded PostgreSQL restart did not become reachable",
+        );
+      }
+      return ready;
+    };
+
     if (runningPid) {
       logger.warn(`Embedded PostgreSQL already running; reusing existing process (pid=${runningPid}, port=${port})`);
     } else {
@@ -418,6 +508,17 @@ export async function startServer(): Promise<StartedServer> {
           });
         }
         embeddedPostgresStartedByThisProcess = true;
+        const managedProcess = (embeddedPostgres as unknown as { process?: ChildProcess }).process;
+        managedProcess?.once("exit", (code, signal) => {
+          if (embeddedPostgresShuttingDown) return;
+          logger.error(
+            { code, signal, pid: managedProcess.pid, port, dataDir },
+            "Managed embedded PostgreSQL process exited unexpectedly; scheduling fallback restart",
+          );
+          setTimeout(() => {
+            void startDetachedEmbeddedPostgres("managed-process-exit");
+          }, 1_000);
+        });
       }
     }
   
@@ -442,6 +543,18 @@ export async function startServer(): Promise<StartedServer> {
     activeDatabaseConnectionString = embeddedConnectionString;
     resolvedEmbeddedPostgresPort = port;
     startupDbInfo = { mode: "embedded-postgres", dataDir, port };
+    setInterval(() => {
+      if (embeddedPostgresShuttingDown) return;
+      void isEmbeddedPostgresReachable()
+        .then((reachable) => {
+          if (reachable) return;
+          logger.error({ port, dataDir }, "Embedded PostgreSQL health probe failed; attempting fallback restart");
+          return startDetachedEmbeddedPostgres("health-probe");
+        })
+        .catch((err) => {
+          logger.error({ err, port, dataDir }, "Embedded PostgreSQL supervisor probe failed");
+        });
+    }, 10_000);
   }
   
   if (config.deploymentMode === "local_trusted" && !isLoopbackHost(config.host)) {
@@ -872,6 +985,7 @@ export async function startServer(): Promise<StartedServer> {
   
   {
     const shutdown = async (signal: "SIGINT" | "SIGTERM") => {
+      embeddedPostgresShuttingDown = true;
       const telemetryClient = getTelemetryClient();
       if (telemetryClient) {
         telemetryClient.stop();
@@ -884,6 +998,14 @@ export async function startServer(): Promise<StartedServer> {
           await embeddedPostgres?.stop();
         } catch (err) {
           logger.error({ err }, "Failed to stop embedded PostgreSQL cleanly");
+        }
+      }
+      if (embeddedPostgresFallbackProcess?.pid) {
+        logger.info({ signal, pid: embeddedPostgresFallbackProcess.pid }, "Stopping fallback embedded PostgreSQL");
+        try {
+          process.kill(embeddedPostgresFallbackProcess.pid, "SIGTERM");
+        } catch (err) {
+          logger.error({ err }, "Failed to stop fallback embedded PostgreSQL cleanly");
         }
       }
 

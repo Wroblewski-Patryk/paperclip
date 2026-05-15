@@ -251,6 +251,16 @@ describe("SidebarAgents", () => {
 
     await renderSidebarAgents();
 
+    expect(agentLinkLabels(container)).toEqual(["CEO", "CFO", "CTO"]);
+
+    const expandCto = container.querySelector('button[aria-label="Expand CTO reports"]');
+    expect(expandCto).not.toBeNull();
+
+    await act(async () => {
+      expandCto?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushReact();
+
     expect(agentLinkLabels(container)).toEqual(["CEO", "CFO", "CTO", "Engineer"]);
 
     const collapseCeo = container.querySelector('button[aria-label="Collapse CEO reports"]');
@@ -262,6 +272,24 @@ describe("SidebarAgents", () => {
     await flushReact();
 
     expect(agentLinkLabels(container)).toEqual(["CEO"]);
+    expect(container.querySelector('button[aria-label="Expand CEO reports"]')).not.toBeNull();
+  });
+
+  it("defaults to expanding only the AI agent's direct reports", async () => {
+    mockAgentsApi.list.mockResolvedValue([
+      makeAgent({ id: "ai", name: "Ai", urlKey: "ai" }),
+      makeAgent({ id: "builder", name: "Builder", urlKey: "builder", reportsTo: "ai" }),
+      makeAgent({ id: "builder-child", name: "Builder Child", urlKey: "builder-child", reportsTo: "builder" }),
+      makeAgent({ id: "ops", name: "Ops", urlKey: "ops", reportsTo: "ai" }),
+      makeAgent({ id: "ceo", name: "CEO", urlKey: "ceo", role: "ceo" }),
+      makeAgent({ id: "cfo", name: "CFO", urlKey: "cfo", reportsTo: "ceo" }),
+    ]);
+
+    await renderSidebarAgents();
+
+    expect(agentLinkLabels(container)).toEqual(["Ai", "Builder", "Ops", "CEO"]);
+    expect(container.querySelector('button[aria-label="Collapse Ai reports"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Expand Builder reports"]')).not.toBeNull();
     expect(container.querySelector('button[aria-label="Expand CEO reports"]')).not.toBeNull();
   });
 

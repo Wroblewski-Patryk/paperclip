@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -105,6 +105,26 @@ function buildAgentTree(agents: Agent[]): SidebarAgentTreeNode[] {
   }
 
   return roots;
+}
+
+function isAiAgent(agent: Agent): boolean {
+  const identifiers = [agent.id, agent.name, agent.urlKey].filter(Boolean);
+  return identifiers.some((value) => value.toLowerCase() === "ai");
+}
+
+function collectDefaultCollapsedAgentIds(agentTree: SidebarAgentTreeNode[]): Set<string> {
+  const defaultExpandedRoot = agentTree.find((node) => isAiAgent(node.agent)) ?? agentTree[0] ?? null;
+  const collapsed = new Set<string>();
+
+  const visit = (node: SidebarAgentTreeNode) => {
+    if (node.children.length > 0 && node.agent.id !== defaultExpandedRoot?.agent.id) {
+      collapsed.add(node.agent.id);
+    }
+    for (const child of node.children) visit(child);
+  };
+
+  for (const node of agentTree) visit(node);
+  return collapsed;
 }
 
 function collectParentIds(agent: Agent | undefined, agentsById: Map<string, Agent>): string[] {
@@ -271,6 +291,7 @@ export function SidebarAgents() {
   const [open, setOpen] = useState(true);
   const [pendingAgentIds, setPendingAgentIds] = useState<Set<string>>(() => new Set());
   const [collapsedAgentIds, setCollapsedAgentIds] = useState<Set<string>>(() => new Set());
+  const collapsedStateKeyRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
   const { selectedCompanyId } = useCompany();
   const { openNewAgent } = useDialogActions();
@@ -328,6 +349,10 @@ export function SidebarAgents() {
     [orderedAgents, sortMode],
   );
   const agentTree = useMemo(() => buildAgentTree(sortedAgents), [sortedAgents]);
+  const collapsedStateKey = useMemo(
+    () => sortedAgents.map((agent) => `${agent.id}:${agent.reportsTo ?? ""}`).join("|"),
+    [sortedAgents],
+  );
   const sortedAgentsById = useMemo(() => {
     const map = new Map<string, Agent>();
     for (const agent of sortedAgents) map.set(agent.id, agent);
@@ -384,6 +409,19 @@ export function SidebarAgents() {
     },
     [sortModeStorageKey],
   );
+
+  useEffect(() => {
+    if (!selectedCompanyId || sortedAgents.length === 0) {
+      collapsedStateKeyRef.current = null;
+      setCollapsedAgentIds(new Set());
+      return;
+    }
+
+    const nextKey = `${selectedCompanyId}:${collapsedStateKey}`;
+    if (collapsedStateKeyRef.current === nextKey) return;
+    collapsedStateKeyRef.current = nextKey;
+    setCollapsedAgentIds(collectDefaultCollapsedAgentIds(agentTree));
+  }, [agentTree, collapsedStateKey, selectedCompanyId, sortedAgents.length]);
 
   useEffect(() => {
     const parentIds = collectParentIds(activeAgent, sortedAgentsById);
