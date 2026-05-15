@@ -81,7 +81,17 @@ function resolveAgentJwtSecretStatus(
   }
 
   if (existsSync(envFilePath)) {
-    const parsed = parseEnvFileContents(readFileSync(envFilePath, "utf-8"));
+    let parsed: ReturnType<typeof parseEnvFileContents>;
+    try {
+      parsed = parseEnvFileContents(readFileSync(envFilePath, "utf-8"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        status: "warn",
+        message: `unable to read ${envFilePath}: ${message}`,
+      };
+    }
+
     const fileValue = typeof parsed.PAPERCLIP_AGENT_JWT_SECRET === "string" ? parsed.PAPERCLIP_AGENT_JWT_SECRET.trim() : "";
     if (fileValue) {
       return {
