@@ -423,9 +423,20 @@ function labelFromRecord(record: Record<string, unknown>, fallback: string): str
     asString(record.title) ??
     asString(record.name) ??
     asString(record.label) ??
+    asString(record.path) ??
+    asString(record.fileName) ??
+    asString(record.taskName) ??
     asString(record.id) ??
     fallback
   );
+}
+
+function firstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    const direct = asString(value);
+    if (direct) return direct;
+  }
+  return null;
 }
 
 function normalizeSyncedWith(value: unknown): string[] {
@@ -676,11 +687,11 @@ function buildKnowledgeMap(input: {
   }
 
   const recordGroups = [
-    { source: "domain-tasks", items: tasks.slice(0, 24), type: "task", prefixes: ["tasks:"], syncedBy: "source" },
-    { source: "domain-files", items: files.slice(0, 24), type: "file", prefixes: ["google-drive:files:"], syncedBy: "provider" },
-    { source: "domain-projects", items: projects.slice(0, 12), type: "project", prefixes: ["projects:"], syncedBy: "source" },
-    { source: "domain-notes", items: notes.slice(0, 12), type: "note", prefixes: ["notes:"], syncedBy: "source" },
-    { source: "domain-decisions", items: decisions.slice(0, 12), type: "decision", prefixes: ["decisions:"], syncedBy: "source" },
+    { source: "domain-tasks", items: tasks, type: "task", prefixes: ["tasks:"], syncedBy: "source" },
+    { source: "domain-files", items: files, type: "file", prefixes: ["google-drive:files:"], syncedBy: "provider" },
+    { source: "domain-projects", items: projects, type: "project", prefixes: ["projects:"], syncedBy: "source" },
+    { source: "domain-notes", items: notes, type: "note", prefixes: ["notes:"], syncedBy: "source" },
+    { source: "domain-decisions", items: decisions, type: "decision", prefixes: ["decisions:"], syncedBy: "source" },
   ];
 
   for (const group of recordGroups) {
@@ -689,11 +700,23 @@ function buildKnowledgeMap(input: {
       const id = asString(record.id) ?? `${group.type}-${nodes.length}`;
       const synced = normalizeSyncedWith(record[group.syncedBy]);
       for (const provider of synced) syncedWith.add(provider);
+      const folder = asRecord(record.folder);
+      const list = asRecord(record.list);
+      const space = asRecord(record.space);
+      const assignee = asRecord(record.assignee);
       pushNode(nodes, {
         id: `${group.type}-${id}`,
         type: "record",
         label: labelFromRecord(record, `CompanyCore ${group.type}`),
-        subtitle: group.type,
+        subtitle: firstString(
+          record.path,
+          record.folderPath,
+          record.listName,
+          list.name,
+          folder.name,
+          space.name,
+          group.type,
+        ),
         source: "CompanyCore",
         syncedWith: synced,
         count: null,
@@ -702,12 +725,19 @@ function buildKnowledgeMap(input: {
         agentAccess: toolAccessForDomain(tools, group.prefixes),
         metadata: {
           kind: group.type,
+          path: firstString(record.path, record.fullPath, record.drivePath),
+          folderPath: firstString(record.folderPath, record.parentPath, record.driveFolderPath),
+          folderName: firstString(record.folderName, folder.name),
+          listName: firstString(record.listName, record.taskList, list.name),
+          spaceName: firstString(record.spaceName, space.name),
+          areaName: firstString(record.areaName, record.area, record.department, record.domain),
+          webUrl: firstString(record.webUrl, record.url, record.alternateLink, record.externalUrl),
           priority: asString(record.priority),
           dueDate: asString(record.dueDate),
           mimeType: asString(record.mimeType),
           size: typeof record.size === "number" ? record.size : null,
           projectId: asString(record.projectId),
-          taskList: asString(record.taskList),
+          assignee: firstString(record.assigneeName, assignee.name, assignee.email),
         },
       });
       pushEdge(edges, {
