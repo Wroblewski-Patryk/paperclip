@@ -793,9 +793,7 @@ function departmentLabelForNode(node: CompanyCoreKnowledgeMapNode, key: string) 
 }
 
 function departmentSearchValues(node: CompanyCoreKnowledgeMapNode) {
-  return [
-    node.label,
-    node.subtitle ?? "",
+  const structuredValues = [
     metadataString(node, "path") ?? "",
     metadataString(node, "folderPath") ?? "",
     metadataString(node, "folderName") ?? "",
@@ -803,6 +801,8 @@ function departmentSearchValues(node: CompanyCoreKnowledgeMapNode) {
     metadataString(node, "areaName") ?? "",
     metadataString(node, "tableName") ?? "",
   ];
+  if (node.type !== "record") return [node.label, node.subtitle ?? "", ...structuredValues];
+  return [...structuredValues, node.subtitle ?? ""];
 }
 
 function filterNodes(nodes: CompanyCoreKnowledgeMapNode[], query: string) {
