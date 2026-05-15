@@ -96,6 +96,7 @@ export function Knowledge() {
     () => filterNodes(map?.nodes ?? [], query),
     [map?.nodes, query],
   );
+  const isSearching = query.trim().length > 0;
   const selectedNode = useMemo(() => {
     if (!map) return null;
     return map.nodes.find((node) => node.id === selectedNodeId) ?? null;
@@ -149,8 +150,16 @@ export function Knowledge() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search files, tasks, folders..."
-                className="h-8 w-full rounded-md border border-border bg-transparent pl-8 pr-2 text-sm outline-none"
+                className="h-8 w-full rounded-md border border-border bg-transparent pl-8 pr-20 text-sm outline-none"
               />
+              {isSearching && (
+                <button
+                  className="absolute right-2 top-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted"
+                  onClick={() => setQuery("")}
+                >
+                  Clear
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-1 rounded-md border border-border p-1">
               {(["map", "library"] as KnowledgeView[]).map((item) => (
@@ -166,7 +175,11 @@ export function Knowledge() {
               ))}
             </div>
             <div className="basis-full text-xs text-muted-foreground sm:basis-auto">
-              {map?.summary.generatedAt ? `Synced preview ${formatDateTime(map.summary.generatedAt)}` : "Live CompanyCore preview"}
+              {isSearching
+                ? `${formatCount(filteredNodes.length)} matching objects`
+                : map?.summary.generatedAt
+                  ? `Synced preview ${formatDateTime(map.summary.generatedAt)}`
+                  : "Live CompanyCore preview"}
             </div>
           </div>
 
@@ -186,6 +199,7 @@ export function Knowledge() {
               selectedNodeId={selectedNode?.id ?? null}
               onSelect={setSelectedNodeId}
               isLoading={mapQuery.isLoading}
+              searchQuery={query}
             />
           )}
         </main>
@@ -202,12 +216,14 @@ function KnowledgeExplorer({
   selectedNodeId,
   onSelect,
   isLoading,
+  searchQuery,
 }: {
   map?: CompanyCoreKnowledgeMap;
   nodes: CompanyCoreKnowledgeMapNode[];
   selectedNodeId: string | null;
   onSelect: (nodeId: string) => void;
   isLoading: boolean;
+  searchQuery: string;
 }) {
   const departments = useMemo(() => buildKnowledgeDepartments(nodes), [nodes]);
   const [focus, setFocus] = useState<KnowledgeExplorerFocus>({ kind: "department", departmentKey: "00" });
@@ -261,6 +277,11 @@ function KnowledgeExplorer({
       </aside>
 
       <section className="min-h-0 overflow-auto p-4">
+        {searchQuery.trim() && (
+          <div className="mb-3 border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+            Filtering departments and children by "{searchQuery.trim()}". Clear search to return to the full knowledge map.
+          </div>
+        )}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -318,6 +339,10 @@ function DepartmentOrbit({
             <div className="mt-1 px-3 text-sm text-muted-foreground">{department.label.replace(/^\d{2}\.?\s*/, "")}</div>
           </div>
         </div>
+        <div className="mt-4 border border-border bg-muted/20 p-3">
+          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Agent counterpart</div>
+          <div className="mt-1 text-sm font-medium">{agentLabelForDepartment(department.key)}</div>
+        </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <MiniStat label="Files" value={totalFiles} />
           <MiniStat label="Tasks" value={totalTasks} />
@@ -346,6 +371,12 @@ function DepartmentOrbit({
               </div>
               <div className="mt-2 text-xs text-muted-foreground">
                 {group.kind === "tasks" ? "Task list" : group.kind === "files" ? "Folder" : group.kind === "tables" ? "Table group" : "Records"}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <Badge tone="muted">CompanyCore</Badge>
+                {syncedWithForNodes(group.nodes).map((provider) => (
+                  <Badge key={provider} tone="muted">{provider}</Badge>
+                ))}
               </div>
               <div className="mt-3 space-y-1 border-t border-border pt-2">
                 {group.nodes.slice(0, 3).map((node) => (
@@ -821,6 +852,28 @@ function canonicalDepartmentLabel(key: string) {
     "11": "11. Innowacje",
     "12": "12. Zarządzanie",
   }[key];
+}
+
+function agentLabelForDepartment(key: string) {
+  return {
+    "00": "00 AIA",
+    "01": "01 CSO",
+    "02": "02 CPO",
+    "03": "03 CRO",
+    "04": "04 COO",
+    "05": "05 CCO",
+    "06": "06 CHRO",
+    "07": "07 CFO",
+    "08": "08 CAO",
+    "09": "09 CTO",
+    "10": "10 CLO",
+    "11": "11 CINO",
+    "12": "12 CEO",
+  }[key] ?? `${key} agent layer`;
+}
+
+function syncedWithForNodes(nodes: CompanyCoreKnowledgeMapNode[]) {
+  return Array.from(new Set(nodes.flatMap((node) => node.syncedWith))).sort();
 }
 
 function departmentSearchValues(node: CompanyCoreKnowledgeMapNode) {
