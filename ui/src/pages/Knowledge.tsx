@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "@/lib/router";
+import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
   ClipboardList,
@@ -12,9 +13,11 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { companyCoreApi } from "../api/companycore";
 import { EmptyState } from "../components/EmptyState";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
+import { queryKeys } from "../lib/queryKeys";
 
 const knowledgeTabs = [
   {
@@ -60,6 +63,13 @@ const rolloutSlices = [
 export function Knowledge() {
   const { selectedCompanyId, selectedCompany } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const overviewQuery = useQuery({
+    queryKey: queryKeys.companyCore.overview(selectedCompanyId ?? ""),
+    queryFn: () => companyCoreApi.overview(selectedCompanyId!),
+    enabled: Boolean(selectedCompanyId),
+  });
+  const overview = overviewQuery.data;
+  const connection = overview?.connection;
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Knowledge" }]);
@@ -98,21 +108,26 @@ export function Knowledge() {
       <section className="grid gap-3 md:grid-cols-3">
         <StatusPanel
           icon={ShieldCheck}
-          label="Source policy"
-          value="CompanyCore first"
-          description="External company data should enter Paperclip through CompanyCore APIs and MCP tools."
+          label="CompanyCore"
+          value={connection?.status ?? (overviewQuery.isLoading ? "checking" : "not connected")}
+          description={
+            connection?.error?.message ??
+            (connection?.workspace.name
+              ? `Connected to ${connection.workspace.name}.`
+              : "External company data should enter Paperclip through CompanyCore APIs and MCP tools.")
+          }
         />
         <StatusPanel
           icon={RefreshCw}
-          label="First workflow"
-          value="Read-only audit"
-          description="Audit Drive and CompanyCore state before enabling writeback or automation."
+          label="Operating model"
+          value={`${connection?.operatingModel.tableCount ?? 0} tables`}
+          description={`${connection?.operatingModel.areaCount ?? 0} areas discovered through CompanyCore.`}
         />
         <StatusPanel
           icon={ClipboardList}
-          label="Output"
-          value="Issues + plans"
-          description="Findings become Paperclip issues, business plan patches, or pipeline proposals."
+          label="Tool surface"
+          value={`${overview?.toolCount ?? 0} tools`}
+          description={`${overview?.approvalToolCount ?? 0} tools currently advertise approval requirements.`}
         />
       </section>
 

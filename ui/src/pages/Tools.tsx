@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "@/lib/router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   Bot,
@@ -12,9 +13,11 @@ import {
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { companyCoreApi } from "../api/companycore";
 import { EmptyState } from "../components/EmptyState";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
+import { queryKeys } from "../lib/queryKeys";
 
 const commandModes = [
   {
@@ -65,6 +68,27 @@ const toolGroups = [
 export function Tools() {
   const { selectedCompanyId, selectedCompany } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const manifestQuery = useQuery({
+    queryKey: queryKeys.companyCore.manifest(selectedCompanyId ?? ""),
+    queryFn: () => companyCoreApi.manifest(selectedCompanyId!),
+    enabled: Boolean(selectedCompanyId),
+  });
+  const healthQuery = useQuery({
+    queryKey: queryKeys.companyCore.health(selectedCompanyId ?? ""),
+    queryFn: () => companyCoreApi.health(selectedCompanyId!),
+    enabled: Boolean(selectedCompanyId),
+  });
+  const manifest = manifestQuery.data;
+  const health = healthQuery.data;
+  const tools = manifest?.tools.length
+    ? manifest.tools.map((tool) => ({
+      name: tool.name,
+      title: tool.title ?? tool.name,
+      description: tool.description ?? `${tool.method ?? "TOOL"} ${tool.path ?? ""}`.trim(),
+      capability: tool.capability ?? tool.riskLevel ?? "tool",
+      icon: Wrench,
+    }))
+    : toolGroups.map((tool) => ({ ...tool, title: tool.name }));
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Tools" }]);
@@ -104,19 +128,19 @@ export function Tools() {
         <SummaryPanel
           icon={ShieldCheck}
           label="Gateway"
-          value="CompanyCore only"
-          description="Paperclip agents should not receive separate Drive or ClickUp credentials."
+          value={health?.status ?? (healthQuery.isLoading ? "checking" : "CompanyCore only")}
+          description={health?.error?.message ?? "Paperclip agents should not receive separate Drive or ClickUp credentials."}
         />
         <SummaryPanel
           icon={LockKeyhole}
-          label="Default mode"
-          value="read_only"
-          description="Write tools stay disabled until the bridge proves provenance and approval behavior."
+          label="Manifest"
+          value={`${manifest?.tools.length ?? 0} tools`}
+          description={manifest?.schemaVersion ? `CompanyCore schema ${manifest.schemaVersion}` : "Write tools stay disabled until the bridge proves provenance and approval behavior."}
         />
         <SummaryPanel
           icon={Bot}
           label="Agent policy"
-          value="Scoped access"
+          value={manifest?.auth.capabilityScoped === false ? "broad key" : "Scoped access"}
           description="Each agent should get only the CompanyCore tools needed for its role."
         />
       </section>
@@ -130,13 +154,13 @@ export function Tools() {
             </p>
           </div>
           <div className="divide-y divide-border">
-            {toolGroups.map((group) => (
+            {tools.map((group) => (
               <div key={group.name} className="grid gap-3 px-4 py-4 md:grid-cols-[2rem_minmax(0,1fr)_12rem] md:items-start">
                 <span className="flex h-8 w-8 items-center justify-center border border-border bg-muted/40">
                   <group.icon className="h-4 w-4" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-semibold">{group.name}</h3>
+                  <h3 className="text-sm font-semibold">{group.title ?? group.name}</h3>
                   <p className="mt-1 text-sm leading-5 text-muted-foreground">{group.description}</p>
                 </div>
                 <code className="w-fit border border-border bg-muted/30 px-2 py-1 text-xs text-muted-foreground md:ml-auto">
