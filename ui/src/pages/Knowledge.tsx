@@ -5,19 +5,14 @@ import {
   BookOpen,
   Boxes,
   BrainCircuit,
-  ChevronRight,
-  CircleDot,
   ClipboardList,
   Database,
   ExternalLink,
   FileText,
   FolderOpen,
-  GitBranch,
   Layers3,
-  ListChecks,
   Maximize2,
   Minus,
-  Network,
   Plus,
   RefreshCw,
   Search,
@@ -36,7 +31,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
 
-type KnowledgeView = "library" | "map" | "tree" | "access" | "sync";
+type KnowledgeView = "library" | "map";
 
 interface LayoutNode extends CompanyCoreKnowledgeMapNode {
   x: number;
@@ -133,17 +128,16 @@ export function Knowledge() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-7rem)] min-h-[680px] flex-col gap-4">
-      <header className="shrink-0 border-b border-border pb-4">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <div className="flex h-[calc(100dvh-7rem)] min-h-[680px] flex-col gap-3">
+      <header className="shrink-0 border-b border-border pb-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-4xl">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {selectedCompany?.name ?? "Company"} knowledge
             </p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">CompanyCore Knowledge Map</h1>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Agent-facing knowledge is modeled as CompanyCore data. The main view is a browsable catalog
-              of areas, files, tasks, and tables; the graph is available when you want to inspect relationships.
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">Knowledge</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              A searchable preview of CompanyCore knowledge available to agents.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -158,38 +152,26 @@ export function Knowledge() {
         </div>
       </header>
 
-      <section className="grid shrink-0 gap-3 md:grid-cols-4">
-        <Metric label="CompanyCore" value={map?.status ?? (mapQuery.isLoading ? "checking" : "not connected")} icon={ShieldCheck} />
-        <Metric label="Knowledge objects" value={formatCount(totalKnowledgeObjects(map))} icon={Sparkles} />
-        <Metric label="Collections" value={formatCount(map?.summary.tableCount ?? 0)} icon={Database} />
-        <Metric label="Agent tools" value={formatCount(map?.summary.toolCount ?? 0)} icon={Network} />
+      <section className="grid shrink-0 gap-3 md:grid-cols-3">
+        <Metric label="Objects" value={formatCount(totalKnowledgeObjects(map))} icon={Sparkles} />
+        <Metric label="Files" value={formatCount(map?.summary.fileCount ?? 0)} icon={FolderOpen} />
+        <Metric label="Tasks" value={formatCount(map?.summary.taskCount ?? 0)} icon={ClipboardList} />
       </section>
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)_22rem]">
-        <aside className="min-h-0 overflow-hidden border border-border bg-background">
-          <div className="border-b border-border p-3">
-            <div className="relative">
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_21rem]">
+        <main className="min-h-0 overflow-hidden border border-border bg-background">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2">
+            <div className="relative min-w-64 flex-1">
               <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search CompanyCore..."
+                placeholder="Search files, tasks, folders..."
                 className="h-8 w-full rounded-md border border-border bg-transparent pl-8 pr-2 text-sm outline-none"
               />
             </div>
-          </div>
-          <KnowledgeTree
-            map={map}
-            nodes={filteredNodes}
-            selectedNodeId={selectedNode?.id ?? null}
-            onSelect={setSelectedNodeId}
-          />
-        </aside>
-
-        <main className="min-h-0 overflow-hidden border border-border bg-background">
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-3 py-2">
-            <div className="flex items-center gap-1">
-              {(["library", "map", "tree", "access", "sync"] as KnowledgeView[]).map((item) => (
+            <div className="flex items-center gap-1 rounded-md border border-border p-1">
+              {(["library", "map"] as KnowledgeView[]).map((item) => (
                 <button
                   key={item}
                   className={`rounded-md px-2.5 py-1.5 text-xs font-medium capitalize transition-colors ${
@@ -201,7 +183,7 @@ export function Knowledge() {
                 </button>
               ))}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="basis-full text-xs text-muted-foreground sm:basis-auto">
               {map?.summary.generatedAt ? `Synced preview ${formatDateTime(map.summary.generatedAt)}` : "Live CompanyCore preview"}
             </div>
           </div>
@@ -224,11 +206,6 @@ export function Knowledge() {
               isLoading={mapQuery.isLoading}
             />
           )}
-          {view === "tree" && (
-            <TreeDetail nodes={filteredNodes} selectedNodeId={selectedNode?.id ?? null} onSelect={setSelectedNodeId} />
-          )}
-          {view === "access" && <AccessDetail map={map} onSelect={setSelectedNodeId} />}
-          {view === "sync" && <SyncDetail map={map} />}
         </main>
 
         <Inspector node={selectedNode} map={map} />
@@ -401,43 +378,8 @@ function KnowledgeLibrary({
   }
 
   return (
-    <div className="grid h-full min-h-0 gap-0 overflow-hidden lg:grid-cols-[18rem_minmax(0,1fr)]">
-      <section className="min-h-0 overflow-auto border-r border-border p-3">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div>
-            <div className="text-sm font-semibold">Areas</div>
-            <div className="text-xs text-muted-foreground">CompanyCore operating model</div>
-          </div>
-          <Badge tone="muted">{formatCount(areas.length)}</Badge>
-        </div>
-        <div className="space-y-2">
-          {areas.length === 0 ? (
-            <div className="border border-dashed border-border p-3 text-sm text-muted-foreground">
-              No operating areas reported by CompanyCore.
-            </div>
-          ) : (
-            areas.map((area) => (
-              <button
-                key={area.id}
-                className={`block w-full rounded-md border px-3 py-2 text-left transition ${
-                  selectedNodeId === area.id ? "border-foreground bg-muted" : "border-border hover:bg-muted/60"
-                }`}
-                onClick={() => onSelect(area.id)}
-              >
-                <div className="flex items-center gap-2">
-                  <Layers3 className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{area.label}</span>
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {area.count !== null ? `${formatCount(area.count)} tables` : "CompanyCore area"}
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-      </section>
-
-      <section className="min-h-0 overflow-auto p-4">
+    <div className="h-full min-h-0 overflow-auto p-4">
+      <section>
         {map?.errors.length ? (
           <div className="mb-4 border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
             <div className="font-semibold">Partial CompanyCore preview</div>
@@ -454,10 +396,38 @@ function KnowledgeLibrary({
           <Metric label="Notes" value={formatCount(notes.length + decisions.length + projects.length)} icon={FileText} />
         </div>
 
-        <div className="space-y-4">
+        {areas.length > 0 && (
+          <section className="mb-4 border border-border bg-background">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Layers3 className="h-4 w-4 text-muted-foreground" />
+                Areas
+              </div>
+              <span className="text-xs text-muted-foreground">{formatCount(areas.length)}</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto p-3">
+              {areas.map((area) => (
+                <button
+                  key={area.id}
+                  className={`shrink-0 rounded-md border px-3 py-2 text-left transition ${
+                    selectedNodeId === area.id ? "border-foreground bg-muted" : "border-border hover:bg-muted/60"
+                  }`}
+                  onClick={() => onSelect(area.id)}
+                >
+                  <div className="max-w-48 truncate text-sm font-medium">{area.label}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {area.count !== null ? `${formatCount(area.count)} tables` : "CompanyCore area"}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div className="space-y-3">
           <KnowledgeSection
-            title="Files and knowledge documents"
-            subtitle="Documents indexed by CompanyCore. Drive is shown only as a sync annotation."
+            title="Files"
+            subtitle="Documents indexed by CompanyCore."
             icon={FolderOpen}
             nodes={files}
             selectedNodeId={selectedNodeId}
@@ -465,8 +435,8 @@ function KnowledgeLibrary({
             groupBy={(node) => fileGroup(node)}
           />
           <KnowledgeSection
-            title="Tasks and task lists"
-            subtitle="CompanyCore tasks grouped by list, space, area, or folder."
+            title="Tasks"
+            subtitle="Grouped by CompanyCore task list."
             icon={ClipboardList}
             nodes={tasks}
             selectedNodeId={selectedNodeId}
@@ -474,8 +444,8 @@ function KnowledgeLibrary({
             groupBy={(node) => taskGroup(node)}
           />
           <KnowledgeSection
-            title="Operating tables"
-            subtitle="Structured CompanyCore tables available to agents."
+            title="Tables"
+            subtitle="Structured CompanyCore data available to agents."
             icon={Database}
             nodes={tables}
             selectedNodeId={selectedNodeId}
@@ -483,7 +453,7 @@ function KnowledgeLibrary({
             groupBy={(node) => collectionGroup(node, "Operating tables")}
           />
           <KnowledgeSection
-            title="Notes, decisions, and projects"
+            title="Notes and projects"
             subtitle="Internal CompanyCore context records."
             icon={FileText}
             nodes={[...projects, ...notes, ...decisions]}
@@ -627,181 +597,6 @@ function GraphNode({
         {node.count !== null && <span>{formatCount(node.count)}</span>}
       </div>
     </button>
-  );
-}
-
-function KnowledgeTree({
-  map,
-  nodes,
-  selectedNodeId,
-  onSelect,
-}: {
-  map?: CompanyCoreKnowledgeMap;
-  nodes: CompanyCoreKnowledgeMapNode[];
-  selectedNodeId: string | null;
-  onSelect: (nodeId: string) => void;
-}) {
-  const grouped = useMemo(() => groupByType(nodes), [nodes]);
-  if (!map) {
-    return <div className="p-4 text-sm text-muted-foreground">CompanyCore map is loading.</div>;
-  }
-  return (
-    <div className="h-full overflow-auto p-2">
-      {(["workspace", "domain", "area", "table", "record", "capability"] as CompanyCoreKnowledgeNodeType[]).map((type) => {
-        const rows = grouped[type] ?? [];
-        if (rows.length === 0) return null;
-        return (
-          <div key={type} className="mb-3">
-            <div className="mb-1 px-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              {typeStyles[type].label} ({rows.length})
-            </div>
-            <div className="space-y-1">
-              {rows.slice(0, type === "table" || type === "record" ? 50 : 20).map((node) => (
-                <button
-                  key={node.id}
-                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition ${
-                    selectedNodeId === node.id ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/70"
-                  }`}
-                  onClick={() => onSelect(node.id)}
-                >
-                  <ChevronRight className="h-3 w-3 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">{node.label}</span>
-                  {node.count !== null && <span className="text-[10px]">{node.count}</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function TreeDetail({
-  nodes,
-  selectedNodeId,
-  onSelect,
-}: {
-  nodes: CompanyCoreKnowledgeMapNode[];
-  selectedNodeId: string | null;
-  onSelect: (nodeId: string) => void;
-}) {
-  const grouped = groupByType(nodes);
-  return (
-    <div className="h-full overflow-auto p-4">
-      <div className="grid gap-3 lg:grid-cols-2">
-        {(["domain", "area", "table", "record"] as CompanyCoreKnowledgeNodeType[]).map((type) => (
-          <section key={type} className="border border-border">
-            <div className="border-b border-border px-3 py-2 text-sm font-semibold">{typeStyles[type].label}</div>
-            <div className="max-h-80 overflow-auto divide-y divide-border">
-              {(grouped[type] ?? []).slice(0, 80).map((node) => (
-                <button
-                  key={node.id}
-                  className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted/60 ${
-                    selectedNodeId === node.id ? "bg-muted" : ""
-                  }`}
-                  onClick={() => onSelect(node.id)}
-                >
-                  <span className="min-w-0 truncate">{node.label}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{node.syncedWith.join(", ") || "CompanyCore"}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function AccessDetail({
-  map,
-  onSelect,
-}: {
-  map?: CompanyCoreKnowledgeMap;
-  onSelect: (nodeId: string) => void;
-}) {
-  const capabilities = (map?.nodes ?? []).filter((node) => node.type === "capability");
-  const domains = (map?.nodes ?? []).filter((node) => node.type === "domain");
-  return (
-    <div className="h-full overflow-auto p-4">
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <Metric label="Read tools" value={formatCount(map?.summary.readCapabilityCount ?? 0)} icon={BookOpen} />
-        <Metric label="Write tools" value={formatCount(map?.summary.writeCapabilityCount ?? 0)} icon={GitBranch} />
-        <Metric label="Approval surfaces" value={formatCount(domains.filter((node) => node.agentAccess.approvalRequired).length)} icon={ShieldCheck} />
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="border border-border">
-          <div className="border-b border-border px-3 py-2 text-sm font-semibold">Agent-facing domains</div>
-          <div className="divide-y divide-border">
-            {domains.map((node) => (
-              <AccessRow key={node.id} node={node} onSelect={onSelect} />
-            ))}
-          </div>
-        </section>
-        <section className="border border-border">
-          <div className="border-b border-border px-3 py-2 text-sm font-semibold">CompanyCore capability groups</div>
-          <div className="max-h-[32rem] overflow-auto divide-y divide-border">
-            {capabilities.map((node) => (
-              <AccessRow key={node.id} node={node} onSelect={onSelect} />
-            ))}
-          </div>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function AccessRow({ node, onSelect }: { node: CompanyCoreKnowledgeMapNode; onSelect: (nodeId: string) => void }) {
-  return (
-    <button className="block w-full px-3 py-2 text-left hover:bg-muted/60" onClick={() => onSelect(node.id)}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium">{node.label}</span>
-        <span className="text-xs text-muted-foreground">{node.count !== null ? formatCount(node.count) : typeStyles[node.type].label}</span>
-      </div>
-      <div className="mt-1 flex flex-wrap gap-1.5">
-        <Badge tone={node.agentAccess.read ? "good" : "muted"}>read</Badge>
-        <Badge tone={node.agentAccess.write ? "warn" : "muted"}>write</Badge>
-        {node.agentAccess.approvalRequired && <Badge tone="danger">approval</Badge>}
-      </div>
-    </button>
-  );
-}
-
-function SyncDetail({ map }: { map?: CompanyCoreKnowledgeMap }) {
-  const syncedNodes = (map?.nodes ?? []).filter((node) => node.syncedWith.length > 0);
-  return (
-    <div className="h-full overflow-auto p-4">
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <Metric label="Source" value="CompanyCore" icon={BrainCircuit} />
-        <Metric label="Synced records" value={formatCount(syncedNodes.length)} icon={RefreshCw} />
-        <Metric label="Backings" value={map?.summary.syncedWith.join(", ") || "internal"} icon={CircleDot} />
-      </div>
-      {map?.errors.length ? (
-        <section className="mb-4 border border-destructive/40 bg-destructive/5 p-3">
-          <div className="text-sm font-semibold">Partial CompanyCore preview</div>
-          <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-            {map.errors.map((error) => (
-              <div key={`${error.surface}-${error.message}`}>{error.surface}: {error.message}</div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-      <section className="border border-border">
-        <div className="border-b border-border px-3 py-2 text-sm font-semibold">Synced with annotations</div>
-        <div className="max-h-[34rem] overflow-auto divide-y divide-border">
-          {syncedNodes.slice(0, 120).map((node) => (
-            <div key={node.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-              <div className="min-w-0">
-                <div className="truncate font-medium">{node.label}</div>
-                <div className="text-xs text-muted-foreground">Source: CompanyCore</div>
-              </div>
-              <div className="shrink-0 text-xs text-muted-foreground">Synced with: {node.syncedWith.join(", ")}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
   );
 }
 
