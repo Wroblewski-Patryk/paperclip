@@ -80,7 +80,7 @@ const typeStyles: Record<CompanyCoreKnowledgeNodeType, { label: string; classNam
 export function Knowledge() {
   const { selectedCompanyId, selectedCompany } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
-  const [view, setView] = useState<KnowledgeView>("library");
+  const [view, setView] = useState<KnowledgeView>("map");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
@@ -98,17 +98,12 @@ export function Knowledge() {
   );
   const selectedNode = useMemo(() => {
     if (!map) return null;
-    return map.nodes.find((node) => node.id === selectedNodeId) ?? map.nodes[0] ?? null;
+    return map.nodes.find((node) => node.id === selectedNodeId) ?? null;
   }, [map, selectedNodeId]);
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Knowledge" }]);
   }, [setBreadcrumbs]);
-
-  useEffect(() => {
-    if (!map || selectedNodeId) return;
-    setSelectedNodeId(map.nodes[0]?.id ?? null);
-  }, [map, selectedNodeId]);
 
   if (!selectedCompanyId) {
     return <EmptyState icon={BookOpen} message="Select a company to inspect its CompanyCore knowledge layer." />;
@@ -158,7 +153,7 @@ export function Knowledge() {
               />
             </div>
             <div className="flex items-center gap-1 rounded-md border border-border p-1">
-              {(["library", "map"] as KnowledgeView[]).map((item) => (
+              {(["map", "library"] as KnowledgeView[]).map((item) => (
                 <button
                   key={item}
                   className={`rounded-md px-2.5 py-1.5 text-xs font-medium capitalize transition-colors ${
@@ -166,7 +161,7 @@ export function Knowledge() {
                   }`}
                   onClick={() => setView(item)}
                 >
-                  {item}
+                  {item === "map" ? "Explore" : "All items"}
                 </button>
               ))}
             </div>
@@ -351,6 +346,16 @@ function DepartmentOrbit({
               </div>
               <div className="mt-2 text-xs text-muted-foreground">
                 {group.kind === "tasks" ? "Task list" : group.kind === "files" ? "Folder" : group.kind === "tables" ? "Table group" : "Records"}
+              </div>
+              <div className="mt-3 space-y-1 border-t border-border pt-2">
+                {group.nodes.slice(0, 3).map((node) => (
+                  <div key={node.id} className="truncate text-xs text-muted-foreground">
+                    {node.label}
+                  </div>
+                ))}
+                {group.nodes.length > 3 && (
+                  <div className="text-xs text-muted-foreground">+{formatCount(group.nodes.length - 3)} more</div>
+                )}
               </div>
             </button>
           ))
@@ -624,8 +629,14 @@ function KnowledgeRecordRow({
 function Inspector({ node, map }: { node: CompanyCoreKnowledgeMapNode | null; map?: CompanyCoreKnowledgeMap }) {
   if (!node) {
     return (
-      <aside className="border border-border p-4 text-sm text-muted-foreground">
-        Select a CompanyCore node to inspect agent access.
+      <aside className="border border-border bg-background p-4 text-sm text-muted-foreground">
+        <div className="text-xs font-medium uppercase tracking-wide">Details</div>
+        <div className="mt-2 text-foreground">Select a file, task, table, or note to preview its access details.</div>
+        {map && (
+          <div className="mt-4 border-t border-border pt-4 text-xs">
+            {formatCount(map.nodes.length)} knowledge nodes refreshed from CompanyCore.
+          </div>
+        )}
       </aside>
     );
   }
@@ -740,7 +751,7 @@ function buildKnowledgeDepartments(nodes: CompanyCoreKnowledgeMapNode[]): Knowle
   return Array.from(grouped.entries())
     .map(([key, departmentNodes]) => ({
       key,
-      label: labels.get(key) ?? `${key}. Department`,
+      label: canonicalDepartmentLabel(key) ?? labels.get(key) ?? `${key}. Department`,
       nodes: departmentNodes.sort(sortByLabel),
     }))
     .sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
@@ -785,11 +796,31 @@ function departmentKeyForNode(node: CompanyCoreKnowledgeMapNode) {
 }
 
 function departmentLabelForNode(node: CompanyCoreKnowledgeMapNode, key: string) {
+  const canonical = canonicalDepartmentLabel(key);
+  if (canonical) return canonical;
   for (const value of departmentSearchValues(node)) {
     const match = value.match(new RegExp(`\\b(${key})\\s*[.\\-]\\s*([^/|]+)`));
     if (match?.[2]) return `${key}. ${match[2].trim().split(/\s+-\s+/)[0]}`;
   }
   return `${key}. Department`;
+}
+
+function canonicalDepartmentLabel(key: string) {
+  return {
+    "00": "00. Główny",
+    "01": "01. Strategia",
+    "02": "02. Produkt",
+    "03": "03. Sprzedaż",
+    "04": "04. Operacje",
+    "05": "05. Relacje",
+    "06": "06. Kadry",
+    "07": "07. Finanse",
+    "08": "08. Zasoby",
+    "09": "09. Technologia",
+    "10": "10. Prawo",
+    "11": "11. Innowacje",
+    "12": "12. Zarządzanie",
+  }[key];
 }
 
 function departmentSearchValues(node: CompanyCoreKnowledgeMapNode) {
