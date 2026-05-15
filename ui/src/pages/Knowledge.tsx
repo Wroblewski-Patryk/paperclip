@@ -462,7 +462,7 @@ function KnowledgeLibrary({
             nodes={files}
             selectedNodeId={selectedNodeId}
             onSelect={onSelect}
-            groupBy={(node) => collectionGroup(node, "Files")}
+            groupBy={(node) => fileGroup(node)}
           />
           <KnowledgeSection
             title="Tasks and task lists"
@@ -564,7 +564,7 @@ function KnowledgeRecordRow({
   selected: boolean;
   onSelect: (nodeId: string) => void;
 }) {
-  const path = metadataString(node, "path") ?? metadataString(node, "folderPath") ?? node.subtitle;
+  const path = metadataString(node, "path") ?? metadataString(node, "folderPath") ?? metadataString(node, "folderName") ?? node.subtitle;
   const listName = metadataString(node, "listName");
   const webUrl = metadataString(node, "webUrl");
   return (
@@ -1004,6 +1004,14 @@ function collectionGroup(node: CompanyCoreKnowledgeMapNode, fallback: string) {
   const folder = metadataString(node, "folderName");
   if (folder) return folder;
   return fallback;
+}
+
+function fileGroup(node: CompanyCoreKnowledgeMapNode) {
+  const folder = metadataString(node, "folderName");
+  if (folder) return folder;
+  const area = metadataString(node, "areaName");
+  if (area) return area;
+  return collectionGroup(node, "Files");
 }
 
 function taskGroup(node: CompanyCoreKnowledgeMapNode) {

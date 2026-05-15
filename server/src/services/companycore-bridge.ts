@@ -510,6 +510,8 @@ function buildKnowledgeMap(input: {
   const edges: CompanyCoreKnowledgeMapEdge[] = [];
   const syncedWith = new Set<string>();
   const mappingProviderByTableId = new Map<string, string[]>();
+  const areaNameById = new Map<string, string>();
+  const fileNameByExternalId = new Map<string, string>();
 
   for (const mapping of mappings) {
     const record = asRecord(mapping);
@@ -631,6 +633,7 @@ function buildKnowledgeMap(input: {
     const areaId = asString(record.id) ?? `area-${nodes.length}`;
     const areaNodeId = `area-${areaId}`;
     const areaTables = asArray(record.tables);
+    areaNameById.set(areaId, labelFromRecord(record, "Operating area"));
     pushNode(nodes, {
       id: areaNodeId,
       type: "area",
@@ -650,6 +653,13 @@ function buildKnowledgeMap(input: {
       target: areaNodeId,
       label: "contains",
     });
+  }
+
+  for (const file of files) {
+    const record = asRecord(file);
+    const externalId = asString(record.externalId) ?? asString(asRecord(record.rawMetadata).id);
+    const name = labelFromRecord(record, "CompanyCore file");
+    if (externalId) fileNameByExternalId.set(externalId, name);
   }
 
   for (const table of tables) {
@@ -701,9 +711,13 @@ function buildKnowledgeMap(input: {
       const synced = normalizeSyncedWith(record[group.syncedBy]);
       for (const provider of synced) syncedWith.add(provider);
       const folder = asRecord(record.folder);
+      const rawMetadata = asRecord(record.rawMetadata);
       const list = asRecord(record.list);
+      const taskList = asRecord(record.taskList);
       const space = asRecord(record.space);
       const assignee = asRecord(record.assignee);
+      const operatingAreaId = asString(record.operatingAreaId);
+      const parentExternalId = asString(record.parentExternalId) ?? asStringArray(rawMetadata.parents)[0] ?? null;
       pushNode(nodes, {
         id: `${group.type}-${id}`,
         type: "record",
@@ -712,7 +726,9 @@ function buildKnowledgeMap(input: {
           record.path,
           record.folderPath,
           record.listName,
+          taskList.name,
           list.name,
+          parentExternalId ? fileNameByExternalId.get(parentExternalId) : null,
           folder.name,
           space.name,
           group.type,
@@ -727,11 +743,31 @@ function buildKnowledgeMap(input: {
           kind: group.type,
           path: firstString(record.path, record.fullPath, record.drivePath),
           folderPath: firstString(record.folderPath, record.parentPath, record.driveFolderPath),
-          folderName: firstString(record.folderName, folder.name),
-          listName: firstString(record.listName, record.taskList, list.name),
+          folderName: firstString(
+            record.folderName,
+            folder.name,
+            parentExternalId ? fileNameByExternalId.get(parentExternalId) : null,
+          ),
+          listName: firstString(record.listName, taskList.name, record.taskList, list.name),
           spaceName: firstString(record.spaceName, space.name),
-          areaName: firstString(record.areaName, record.area, record.department, record.domain),
-          webUrl: firstString(record.webUrl, record.url, record.alternateLink, record.externalUrl),
+          areaName: firstString(
+            record.areaName,
+            operatingAreaId ? areaNameById.get(operatingAreaId) : null,
+            record.area,
+            record.department,
+            record.domain,
+          ),
+          webUrl: firstString(
+            record.webUrl,
+            record.webViewLink,
+            record.webContentLink,
+            record.url,
+            record.alternateLink,
+            record.externalUrl,
+          ),
+          externalId: firstString(record.externalId, rawMetadata.id),
+          parentExternalId,
+          isFolder: typeof record.isFolder === "boolean" ? record.isFolder : null,
           priority: asString(record.priority),
           dueDate: asString(record.dueDate),
           mimeType: asString(record.mimeType),
