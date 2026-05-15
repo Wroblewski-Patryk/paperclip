@@ -201,7 +201,6 @@ async function requestCompanyCore<T>(config: CompanyCoreBridgeConfig, path: stri
     const response = await fetch(`${config.baseUrl}${path}`, {
       headers: {
         "Accept": "application/json",
-        "Authorization": `Bearer ${config.apiKey}`,
         "X-API-Key": config.apiKey,
       },
       signal: controller.signal,
