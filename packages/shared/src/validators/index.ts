@@ -27,6 +27,12 @@ export {
   type UpdateCompanyBranding,
 } from "./company.js";
 export {
+  companyCoreCommandModeSchema,
+  patchCompanyCoreSettingsSchema,
+  type CompanyCoreCommandMode,
+  type PatchCompanyCoreSettings,
+} from "./companycore.js";
+export {
   environmentDriverSchema,
   environmentStatusSchema,
   environmentLeaseStatusSchema,

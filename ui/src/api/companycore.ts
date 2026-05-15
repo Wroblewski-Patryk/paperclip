@@ -1,6 +1,50 @@
 import { api } from "./client";
 
 export type CompanyCoreBridgeStatus = "configured" | "not_configured" | "connected" | "degraded";
+export type CompanyCoreCommandMode =
+  | "read_only"
+  | "draft_only"
+  | "approval_required"
+  | "supervised_operator";
+
+export interface CompanyCoreSettingsSurface {
+  enabled: boolean;
+  apiKeyConfigured: boolean;
+  apiKeyPreview: string | null;
+  profileId: string | null;
+  capabilities: string[];
+}
+
+export interface CompanyCoreSettings {
+  provider: "companycore";
+  baseUrl: string | null;
+  workspace: {
+    id: string | null;
+    name: string | null;
+  };
+  knowledge: CompanyCoreSettingsSurface;
+  tools: CompanyCoreSettingsSurface & {
+    commandMode: CompanyCoreCommandMode;
+  };
+  updatedAt: string | null;
+}
+
+export interface CompanyCoreSettingsPatchSurface {
+  enabled?: boolean;
+  apiKey?: string | null;
+  profileId?: string | null;
+  capabilities?: string[];
+}
+
+export interface CompanyCoreSettingsPatch {
+  baseUrl?: string | null;
+  workspaceId?: string | null;
+  workspaceName?: string | null;
+  knowledge?: CompanyCoreSettingsPatchSurface;
+  tools?: CompanyCoreSettingsPatchSurface & {
+    commandMode?: CompanyCoreCommandMode;
+  };
+}
 
 export interface CompanyCoreConnectionSummary {
   provider: "companycore";
@@ -70,6 +114,10 @@ export interface CompanyCoreManifestSummary {
 }
 
 export const companyCoreApi = {
+  settings: (companyId: string) =>
+    api.get<CompanyCoreSettings>(`/companies/${companyId}/companycore/settings`),
+  updateSettings: (companyId: string, patch: CompanyCoreSettingsPatch) =>
+    api.patch<CompanyCoreSettings>(`/companies/${companyId}/companycore/settings`, patch),
   connection: (companyId: string) =>
     api.get<CompanyCoreConnectionSummary>(`/companies/${companyId}/knowledge/connection`),
   overview: (companyId: string) =>

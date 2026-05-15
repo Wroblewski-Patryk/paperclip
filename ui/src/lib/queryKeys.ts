@@ -14,6 +14,7 @@ export const queryKeys = {
   },
   companyCore: {
     connection: (companyId: string) => ["companycore", companyId, "connection"] as const,
+    settings: (companyId: string) => ["companycore", companyId, "settings"] as const,
     overview: (companyId: string) => ["companycore", companyId, "overview"] as const,
     health: (companyId: string) => ["companycore", companyId, "health"] as const,
     manifest: (companyId: string) => ["companycore", companyId, "manifest"] as const,

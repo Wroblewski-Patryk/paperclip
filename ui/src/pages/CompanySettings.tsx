@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   DEFAULT_COMPANY_ATTACHMENT_MAX_BYTES,
   MAX_COMPANY_ATTACHMENT_MAX_BYTES,
@@ -7,11 +7,12 @@ import {
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { companiesApi } from "../api/companies";
+import { companyCoreApi, type CompanyCoreCommandMode } from "../api/companycore";
 import { accessApi } from "../api/access";
 import { assetsApi } from "../api/assets";
 import { queryKeys } from "../lib/queryKeys";
 import { Button } from "@/components/ui/button";
-import { Settings, Check, Download, Upload } from "lucide-react";
+import { Settings, Check, Download, Upload, Database, Wrench } from "lucide-react";
 import { CompanyPatternIcon } from "../components/CompanyPatternIcon";
 import {
   Field,
@@ -28,6 +29,8 @@ type AgentSnippetInput = {
 const BYTES_PER_MIB = 1024 * 1024;
 const DEFAULT_COMPANY_ATTACHMENT_MAX_MIB = DEFAULT_COMPANY_ATTACHMENT_MAX_BYTES / BYTES_PER_MIB;
 const MAX_COMPANY_ATTACHMENT_MAX_MIB = MAX_COMPANY_ATTACHMENT_MAX_BYTES / BYTES_PER_MIB;
+const DEFAULT_COMPANYCORE_BASE_URL = "https://companycore.luckysparrow.ch";
+
 export function CompanySettings() {
   const {
     companies,
@@ -44,6 +47,25 @@ export function CompanySettings() {
   const [attachmentMaxMiB, setAttachmentMaxMiB] = useState(String(DEFAULT_COMPANY_ATTACHMENT_MAX_MIB));
   const [logoUrl, setLogoUrl] = useState("");
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [companyCoreBaseUrl, setCompanyCoreBaseUrl] = useState(DEFAULT_COMPANYCORE_BASE_URL);
+  const [companyCoreWorkspaceId, setCompanyCoreWorkspaceId] = useState("");
+  const [companyCoreWorkspaceName, setCompanyCoreWorkspaceName] = useState("");
+  const [companyCoreKnowledgeEnabled, setCompanyCoreKnowledgeEnabled] = useState(false);
+  const [companyCoreKnowledgeProfileId, setCompanyCoreKnowledgeProfileId] = useState("mcp_knowledge_reader");
+  const [companyCoreKnowledgeCapabilities, setCompanyCoreKnowledgeCapabilities] = useState("");
+  const [companyCoreKnowledgeApiKey, setCompanyCoreKnowledgeApiKey] = useState("");
+  const [companyCoreToolsEnabled, setCompanyCoreToolsEnabled] = useState(false);
+  const [companyCoreToolsProfileId, setCompanyCoreToolsProfileId] = useState("mcp_operator");
+  const [companyCoreToolsCommandMode, setCompanyCoreToolsCommandMode] =
+    useState<CompanyCoreCommandMode>("approval_required");
+  const [companyCoreToolsCapabilities, setCompanyCoreToolsCapabilities] = useState("");
+  const [companyCoreToolsApiKey, setCompanyCoreToolsApiKey] = useState("");
+
+  const companyCoreSettingsQuery = useQuery({
+    queryKey: queryKeys.companyCore.settings(selectedCompanyId ?? ""),
+    queryFn: () => companyCoreApi.settings(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+  });
 
   // Sync local state from selected company
   useEffect(() => {
@@ -54,6 +76,23 @@ export function CompanySettings() {
     setAttachmentMaxMiB(String(Math.round((selectedCompany.attachmentMaxBytes ?? DEFAULT_COMPANY_ATTACHMENT_MAX_BYTES) / BYTES_PER_MIB)));
     setLogoUrl(selectedCompany.logoUrl ?? "");
   }, [selectedCompany]);
+
+  useEffect(() => {
+    const settings = companyCoreSettingsQuery.data;
+    if (!settings) return;
+    setCompanyCoreBaseUrl(settings.baseUrl ?? DEFAULT_COMPANYCORE_BASE_URL);
+    setCompanyCoreWorkspaceId(settings.workspace.id ?? "");
+    setCompanyCoreWorkspaceName(settings.workspace.name ?? "");
+    setCompanyCoreKnowledgeEnabled(settings.knowledge.enabled);
+    setCompanyCoreKnowledgeProfileId(settings.knowledge.profileId ?? "mcp_knowledge_reader");
+    setCompanyCoreKnowledgeCapabilities(settings.knowledge.capabilities.join("\n"));
+    setCompanyCoreKnowledgeApiKey("");
+    setCompanyCoreToolsEnabled(settings.tools.enabled);
+    setCompanyCoreToolsProfileId(settings.tools.profileId ?? "mcp_operator");
+    setCompanyCoreToolsCommandMode(settings.tools.commandMode);
+    setCompanyCoreToolsCapabilities(settings.tools.capabilities.join("\n"));
+    setCompanyCoreToolsApiKey("");
+  }, [companyCoreSettingsQuery.data]);
 
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSnippet, setInviteSnippet] = useState<string | null>(null);
@@ -72,6 +111,24 @@ export function CompanySettings() {
       description !== (selectedCompany.description ?? "") ||
       brandColor !== (selectedCompany.brandColor ?? "") ||
       attachmentMaxBytes !== (selectedCompany.attachmentMaxBytes ?? DEFAULT_COMPANY_ATTACHMENT_MAX_BYTES));
+
+  const companyCoreSettings = companyCoreSettingsQuery.data;
+  const companyCoreKnowledgeCapabilitiesList = parseCapabilityInput(companyCoreKnowledgeCapabilities);
+  const companyCoreToolsCapabilitiesList = parseCapabilityInput(companyCoreToolsCapabilities);
+  const companyCoreDirty = !!companyCoreSettings && (
+    companyCoreBaseUrl !== (companyCoreSettings.baseUrl ?? DEFAULT_COMPANYCORE_BASE_URL) ||
+    companyCoreWorkspaceId !== (companyCoreSettings.workspace.id ?? "") ||
+    companyCoreWorkspaceName !== (companyCoreSettings.workspace.name ?? "") ||
+    companyCoreKnowledgeEnabled !== companyCoreSettings.knowledge.enabled ||
+    companyCoreKnowledgeProfileId !== (companyCoreSettings.knowledge.profileId ?? "mcp_knowledge_reader") ||
+    companyCoreKnowledgeCapabilitiesList.join("\n") !== companyCoreSettings.knowledge.capabilities.join("\n") ||
+    companyCoreKnowledgeApiKey.trim().length > 0 ||
+    companyCoreToolsEnabled !== companyCoreSettings.tools.enabled ||
+    companyCoreToolsProfileId !== (companyCoreSettings.tools.profileId ?? "mcp_operator") ||
+    companyCoreToolsCommandMode !== companyCoreSettings.tools.commandMode ||
+    companyCoreToolsCapabilitiesList.join("\n") !== companyCoreSettings.tools.capabilities.join("\n") ||
+    companyCoreToolsApiKey.trim().length > 0
+  );
 
   const generalMutation = useMutation({
     mutationFn: (data: {
@@ -93,6 +150,41 @@ export function CompanySettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
     }
+  });
+
+  const companyCoreMutation = useMutation({
+    mutationFn: () =>
+      companyCoreApi.updateSettings(selectedCompanyId!, {
+        baseUrl: companyCoreBaseUrl.trim() || null,
+        workspaceId: companyCoreWorkspaceId.trim() || null,
+        workspaceName: companyCoreWorkspaceName.trim() || null,
+        knowledge: {
+          enabled: companyCoreKnowledgeEnabled,
+          profileId: companyCoreKnowledgeProfileId.trim() || null,
+          capabilities: companyCoreKnowledgeCapabilitiesList,
+          ...(companyCoreKnowledgeApiKey.trim()
+            ? { apiKey: companyCoreKnowledgeApiKey.trim() }
+            : {}),
+        },
+        tools: {
+          enabled: companyCoreToolsEnabled,
+          profileId: companyCoreToolsProfileId.trim() || null,
+          commandMode: companyCoreToolsCommandMode,
+          capabilities: companyCoreToolsCapabilitiesList,
+          ...(companyCoreToolsApiKey.trim()
+            ? { apiKey: companyCoreToolsApiKey.trim() }
+            : {}),
+        },
+      }),
+    onSuccess: () => {
+      setCompanyCoreKnowledgeApiKey("");
+      setCompanyCoreToolsApiKey("");
+      void queryClient.invalidateQueries({ queryKey: queryKeys.companyCore.settings(selectedCompanyId!) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.companyCore.connection(selectedCompanyId!) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.companyCore.overview(selectedCompanyId!) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.companyCore.health(selectedCompanyId!) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.companyCore.manifest(selectedCompanyId!) });
+    },
   });
 
   const inviteMutation = useMutation({
@@ -237,7 +329,7 @@ export function CompanySettings() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-4xl space-y-6">
       <div className="flex items-center gap-2">
         <Settings className="h-5 w-5 text-muted-foreground" />
         <h1 className="text-lg font-semibold">Company Settings</h1>
@@ -415,6 +507,172 @@ export function CompanySettings() {
           )}
         </div>
       )}
+
+      {/* CompanyCore */}
+      <div className="space-y-4">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          CompanyCore
+        </div>
+        <div className="space-y-4 rounded-md border border-border px-4 py-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <Field label="Base URL" hint="CompanyCore API origin used by Paperclip server routes.">
+              <input
+                className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                type="url"
+                value={companyCoreBaseUrl}
+                onChange={(e) => setCompanyCoreBaseUrl(e.target.value)}
+              />
+            </Field>
+            <Field label="Workspace ID" hint="Optional CompanyCore workspace identifier.">
+              <input
+                className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                type="text"
+                value={companyCoreWorkspaceId}
+                onChange={(e) => setCompanyCoreWorkspaceId(e.target.value)}
+              />
+            </Field>
+            <Field label="Workspace name" hint="Optional label shown to operators.">
+              <input
+                className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                type="text"
+                value={companyCoreWorkspaceName}
+                onChange={(e) => setCompanyCoreWorkspaceName(e.target.value)}
+              />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="space-y-3 rounded-md border border-border/70 px-3 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4 text-muted-foreground" />
+                  <div className="text-sm font-medium">Knowledge</div>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {companyCoreSettings?.knowledge.apiKeyConfigured
+                    ? `key ${companyCoreSettings.knowledge.apiKeyPreview ?? "configured"}`
+                    : "no key"}
+                </span>
+              </div>
+              <ToggleField
+                label="Enable Knowledge bridge"
+                hint="Uses a read-scoped CompanyCore key for connection health and knowledge overview."
+                checked={companyCoreKnowledgeEnabled}
+                onChange={setCompanyCoreKnowledgeEnabled}
+              />
+              <Field label="Profile" hint="CompanyCore API key profile used for this surface.">
+                <input
+                  className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                  type="text"
+                  value={companyCoreKnowledgeProfileId}
+                  onChange={(e) => setCompanyCoreKnowledgeProfileId(e.target.value)}
+                />
+              </Field>
+              <Field label="API key" hint="Leave empty to keep the stored key.">
+                <input
+                  className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                  type="password"
+                  autoComplete="off"
+                  value={companyCoreKnowledgeApiKey}
+                  placeholder={companyCoreSettings?.knowledge.apiKeyConfigured ? "Stored key configured" : "Paste CompanyCore key"}
+                  onChange={(e) => setCompanyCoreKnowledgeApiKey(e.target.value)}
+                />
+              </Field>
+              <Field label="Capabilities" hint="One capability per line or comma separated.">
+                <textarea
+                  className="min-h-24 w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                  value={companyCoreKnowledgeCapabilities}
+                  onChange={(e) => setCompanyCoreKnowledgeCapabilities(e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <div className="space-y-3 rounded-md border border-border/70 px-3 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-muted-foreground" />
+                  <div className="text-sm font-medium">Tools</div>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {companyCoreSettings?.tools.apiKeyConfigured
+                    ? `key ${companyCoreSettings.tools.apiKeyPreview ?? "configured"}`
+                    : "no key"}
+                </span>
+              </div>
+              <ToggleField
+                label="Enable Tools bridge"
+                hint="Uses a tool-scoped CompanyCore key for MCP manifest and governed actions."
+                checked={companyCoreToolsEnabled}
+                onChange={setCompanyCoreToolsEnabled}
+              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label="Profile" hint="CompanyCore API key profile used for tools.">
+                  <input
+                    className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                    type="text"
+                    value={companyCoreToolsProfileId}
+                    onChange={(e) => setCompanyCoreToolsProfileId(e.target.value)}
+                  />
+                </Field>
+                <Field label="Command mode" hint="How Paperclip should treat CompanyCore tool writes.">
+                  <select
+                    className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                    value={companyCoreToolsCommandMode}
+                    onChange={(e) => setCompanyCoreToolsCommandMode(e.target.value as CompanyCoreCommandMode)}
+                  >
+                    <option value="read_only">Read only</option>
+                    <option value="draft_only">Draft only</option>
+                    <option value="approval_required">Approval required</option>
+                    <option value="supervised_operator">Supervised operator</option>
+                  </select>
+                </Field>
+              </div>
+              <Field label="API key" hint="Leave empty to keep the stored key.">
+                <input
+                  className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                  type="password"
+                  autoComplete="off"
+                  value={companyCoreToolsApiKey}
+                  placeholder={companyCoreSettings?.tools.apiKeyConfigured ? "Stored key configured" : "Paste CompanyCore key"}
+                  onChange={(e) => setCompanyCoreToolsApiKey(e.target.value)}
+                />
+              </Field>
+              <Field label="Capabilities" hint="One capability per line or comma separated.">
+                <textarea
+                  className="min-h-24 w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                  value={companyCoreToolsCapabilities}
+                  onChange={(e) => setCompanyCoreToolsCapabilities(e.target.value)}
+                />
+              </Field>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => companyCoreMutation.mutate()}
+              disabled={companyCoreMutation.isPending || !companyCoreDirty || !companyCoreBaseUrl.trim()}
+            >
+              {companyCoreMutation.isPending ? "Saving..." : "Save CompanyCore"}
+            </Button>
+            {companyCoreSettingsQuery.isLoading && (
+              <span className="text-xs text-muted-foreground">Loading CompanyCore settings...</span>
+            )}
+            {companyCoreMutation.isSuccess && (
+              <span className="text-xs text-muted-foreground">Saved</span>
+            )}
+            {(companyCoreSettingsQuery.isError || companyCoreMutation.isError) && (
+              <span className="text-xs text-destructive">
+                {companyCoreMutation.error instanceof Error
+                  ? companyCoreMutation.error.message
+                  : companyCoreSettingsQuery.error instanceof Error
+                  ? companyCoreSettingsQuery.error.message
+                  : "CompanyCore settings failed"}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Hiring */}
       <div className="space-y-4" data-testid="company-settings-team-section">
@@ -652,6 +910,17 @@ Before you do anything, please respond to your user that you understand the inst
 Then after you've connected to Paperclip (exchanged keys etc.) you MUST review and follow the onboarding instructions in onboarding.txt they give you.
 
 `;
+}
+
+function parseCapabilityInput(value: string): string[] {
+  return Array.from(
+    new Set(
+      value
+        .split(/[\n,]/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  );
 }
 
 function buildCandidateOnboardingUrls(input: AgentSnippetInput): string[] {
