@@ -1,22 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
-  Boxes,
-  BrainCircuit,
   ClipboardList,
   Database,
   ExternalLink,
   FileText,
   FolderOpen,
   Layers3,
-  Maximize2,
-  Minus,
-  Plus,
   RefreshCw,
   Search,
-  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,20 +27,22 @@ import { queryKeys } from "../lib/queryKeys";
 
 type KnowledgeView = "library" | "map";
 
-interface LayoutNode extends CompanyCoreKnowledgeMapNode {
-  x: number;
-  y: number;
+type KnowledgeExplorerFocus =
+  | { kind: "department"; departmentKey: string }
+  | { kind: "group"; departmentKey: string; groupKey: string };
+
+interface KnowledgeDepartment {
+  key: string;
+  label: string;
+  nodes: CompanyCoreKnowledgeMapNode[];
 }
 
-interface Point {
-  x: number;
-  y: number;
+interface KnowledgeGroup {
+  key: string;
+  label: string;
+  kind: "files" | "tasks" | "tables" | "notes";
+  nodes: CompanyCoreKnowledgeMapNode[];
 }
-
-const NODE_W = 190;
-const NODE_H = 76;
-const MIN_ZOOM = 0.35;
-const MAX_ZOOM = 1.8;
 
 const typeStyles: Record<CompanyCoreKnowledgeNodeType, { label: string; className: string; dot: string }> = {
   workspace: {
@@ -79,15 +75,6 @@ const typeStyles: Record<CompanyCoreKnowledgeNodeType, { label: string; classNam
     className: "border-rose-500/35 bg-rose-500/10",
     dot: "bg-rose-500",
   },
-};
-
-const nodeIcons: Record<CompanyCoreKnowledgeNodeType, typeof BookOpen> = {
-  workspace: BrainCircuit,
-  domain: Boxes,
-  area: Layers3,
-  table: Database,
-  record: FileText,
-  capability: ShieldCheck,
 };
 
 export function Knowledge() {
@@ -198,7 +185,7 @@ export function Knowledge() {
             />
           )}
           {view === "map" && (
-            <KnowledgeGraph
+            <KnowledgeExplorer
               map={map}
               nodes={filteredNodes}
               selectedNodeId={selectedNode?.id ?? null}
@@ -214,7 +201,7 @@ export function Knowledge() {
   );
 }
 
-function KnowledgeGraph({
+function KnowledgeExplorer({
   map,
   nodes,
   selectedNodeId,
@@ -227,126 +214,194 @@ function KnowledgeGraph({
   onSelect: (nodeId: string) => void;
   isLoading: boolean;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [pan, setPan] = useState({ x: 24, y: 24 });
-  const [zoom, setZoom] = useState(0.86);
-  const [dragging, setDragging] = useState(false);
-  const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
-  const layoutNodes = useMemo(() => layoutKnowledgeNodes(nodes), [nodes]);
-  const nodeMap = useMemo(() => new Map(layoutNodes.map((node) => [node.id, node])), [layoutNodes]);
-  const edges = useMemo(
-    () => (map?.edges ?? []).filter((edge) => nodeMap.has(edge.source) && nodeMap.has(edge.target)),
-    [map?.edges, nodeMap],
+  const departments = useMemo(() => buildKnowledgeDepartments(nodes), [nodes]);
+  const [focus, setFocus] = useState<KnowledgeExplorerFocus>({ kind: "department", departmentKey: "00" });
+  const selectedDepartment = departments.find((department) => department.key === focus.departmentKey) ?? departments[0] ?? null;
+  const groups = useMemo(
+    () => selectedDepartment ? buildDepartmentGroups(selectedDepartment.nodes) : [],
+    [selectedDepartment],
   );
-  const bounds = useMemo(() => graphBounds(layoutNodes), [layoutNodes]);
-
-  const fitToScreen = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const scaleX = (container.clientWidth - 60) / Math.max(bounds.width, 1);
-    const scaleY = (container.clientHeight - 60) / Math.max(bounds.height, 1);
-    const nextZoom = clamp(Math.min(scaleX, scaleY, 1), MIN_ZOOM, MAX_ZOOM);
-    setZoom(nextZoom);
-    setPan({
-      x: (container.clientWidth - bounds.width * nextZoom) / 2,
-      y: (container.clientHeight - bounds.height * nextZoom) / 2,
-    });
-  }, [bounds]);
+  const selectedGroup = focus.kind === "group"
+    ? groups.find((group) => group.key === focus.groupKey) ?? null
+    : null;
 
   useEffect(() => {
-    if (layoutNodes.length > 0) fitToScreen();
-  }, [fitToScreen, layoutNodes.length]);
+    if (departments.length === 0) return;
+    if (departments.some((department) => department.key === focus.departmentKey)) return;
+    setFocus({ kind: "department", departmentKey: departments[0].key });
+  }, [departments, focus.departmentKey]);
 
-  const handleMouseDown = useCallback((event: React.MouseEvent) => {
-    if (event.button !== 0) return;
-    if ((event.target as HTMLElement).closest("[data-knowledge-node]")) return;
-    setDragging(true);
-    dragStart.current = { x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
-  }, [pan]);
-
-  const handleMouseMove = useCallback((event: React.MouseEvent) => {
-    if (!dragging) return;
-    setPan({
-      x: dragStart.current.panX + event.clientX - dragStart.current.x,
-      y: dragStart.current.panY + event.clientY - dragStart.current.y,
-    });
-  }, [dragging]);
-
-  const zoomTowardCenter = useCallback((factor: number) => {
-    const container = containerRef.current;
-    if (!container) return;
-    const point = { x: container.clientWidth / 2, y: container.clientHeight / 2 };
-    const nextZoom = clamp(zoom * factor, MIN_ZOOM, MAX_ZOOM);
-    const scale = nextZoom / zoom;
-    setPan({
-      x: point.x - scale * (point.x - pan.x),
-      y: point.y - scale * (point.y - pan.y),
-    });
-    setZoom(nextZoom);
-  }, [pan, zoom]);
+  useEffect(() => {
+    if (focus.kind !== "group") return;
+    if (groups.some((group) => group.key === focus.groupKey)) return;
+    setFocus({ kind: "department", departmentKey: focus.departmentKey });
+  }, [focus, groups]);
 
   if (isLoading) {
-    return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading CompanyCore map...</div>;
+    return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading CompanyCore knowledge.</div>;
   }
 
-  if (!map || layoutNodes.length === 0) {
-    return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No CompanyCore knowledge nodes available.</div>;
+  if (!map || departments.length === 0 || !selectedDepartment) {
+    return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No CompanyCore knowledge departments available.</div>;
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="relative h-full overflow-hidden bg-muted/20"
-      style={{ cursor: dragging ? "grabbing" : "grab" }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={() => setDragging(false)}
-      onMouseLeave={() => setDragging(false)}
-      onWheel={(event) => {
-        event.preventDefault();
-        zoomTowardCenter(event.deltaY < 0 ? 1.08 : 0.92);
-      }}
-    >
-      <div className="absolute right-3 top-3 z-20 flex flex-col gap-1.5">
-        <IconButton label="Zoom in" onClick={() => zoomTowardCenter(1.15)} icon={Plus} />
-        <IconButton label="Zoom out" onClick={() => zoomTowardCenter(0.85)} icon={Minus} />
-        <IconButton label="Fit" onClick={fitToScreen} icon={Maximize2} />
+    <div className="grid h-full min-h-0 bg-muted/15 lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <aside className="min-h-0 overflow-auto border-r border-border bg-background p-3">
+        <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Departments</div>
+        <div className="space-y-1">
+          {departments.map((department) => (
+            <button
+              key={department.key}
+              className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition ${
+                selectedDepartment.key === department.key ? "bg-foreground text-background" : "hover:bg-muted"
+              }`}
+              onClick={() => setFocus({ kind: "department", departmentKey: department.key })}
+            >
+              <span className="min-w-0 truncate text-sm font-medium">{department.label}</span>
+              <span className="text-xs opacity-70">{formatCount(department.nodes.length)}</span>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      <section className="min-h-0 overflow-auto p-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {focus.kind === "group" ? selectedDepartment.label : "Selected department"}
+            </div>
+            <h2 className="mt-1 text-xl font-semibold">{selectedGroup?.label ?? selectedDepartment.label}</h2>
+          </div>
+          {focus.kind === "group" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFocus({ kind: "department", departmentKey: selectedDepartment.key })}
+            >
+              Back to {selectedDepartment.key}
+            </Button>
+          )}
+        </div>
+
+        {focus.kind === "department" ? (
+          <DepartmentOrbit
+            department={selectedDepartment}
+            groups={groups}
+            onOpenGroup={(groupKey) => setFocus({ kind: "group", departmentKey: selectedDepartment.key, groupKey })}
+          />
+        ) : selectedGroup ? (
+          <GroupChildren
+            group={selectedGroup}
+            selectedNodeId={selectedNodeId}
+            onSelect={onSelect}
+          />
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+function DepartmentOrbit({
+  department,
+  groups,
+  onOpenGroup,
+}: {
+  department: KnowledgeDepartment;
+  groups: KnowledgeGroup[];
+  onOpenGroup: (groupKey: string) => void;
+}) {
+  const totalFiles = groups.filter((group) => group.kind === "files").reduce((sum, group) => sum + group.nodes.length, 0);
+  const totalTasks = groups.filter((group) => group.kind === "tasks").reduce((sum, group) => sum + group.nodes.length, 0);
+  const totalTables = groups.filter((group) => group.kind === "tables").reduce((sum, group) => sum + group.nodes.length, 0);
+  return (
+    <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
+      <section className="border border-border bg-background p-4">
+        <div className="flex size-40 items-center justify-center rounded-full border border-border bg-muted/40 text-center">
+          <div>
+            <div className="text-3xl font-semibold">{department.key}</div>
+            <div className="mt-1 px-3 text-sm text-muted-foreground">{department.label.replace(/^\d{2}\.?\s*/, "")}</div>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+          <MiniStat label="Files" value={totalFiles} />
+          <MiniStat label="Tasks" value={totalTasks} />
+          <MiniStat label="Tables" value={totalTables} />
+        </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2">
+        {groups.length === 0 ? (
+          <div className="border border-dashed border-border p-6 text-sm text-muted-foreground">
+            No matching children in this department.
+          </div>
+        ) : (
+          groups.map((group) => (
+            <button
+              key={group.key}
+              className="border border-border bg-background p-3 text-left transition hover:bg-muted/60"
+              onClick={() => onOpenGroup(group.key)}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <GroupIcon kind={group.kind} />
+                  <span className="min-w-0 truncate text-sm font-semibold">{group.label}</span>
+                </div>
+                <Badge tone="muted">{formatCount(group.nodes.length)}</Badge>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                {group.kind === "tasks" ? "Task list" : group.kind === "files" ? "Folder" : group.kind === "tables" ? "Table group" : "Records"}
+              </div>
+            </button>
+          ))
+        )}
+      </section>
+    </div>
+  );
+}
+
+function GroupChildren({
+  group,
+  selectedNodeId,
+  onSelect,
+}: {
+  group: KnowledgeGroup;
+  selectedNodeId: string | null;
+  onSelect: (nodeId: string) => void;
+}) {
+  return (
+    <section className="border border-border bg-background">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <GroupIcon kind={group.kind} />
+          <span className="min-w-0 truncate text-sm font-semibold">{group.label}</span>
+        </div>
+        <span className="text-xs text-muted-foreground">{formatCount(group.nodes.length)}</span>
       </div>
-
-      <svg className="absolute inset-0 h-full w-full pointer-events-none">
-        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-          {edges.map((edge) => {
-            const source = nodeMap.get(edge.source)!;
-            const target = nodeMap.get(edge.target)!;
-            const sourcePoint = rightAnchor(source);
-            const targetPoint = leftAnchor(target);
-            const midX = (sourcePoint.x + targetPoint.x) / 2;
-            return (
-              <path
-                key={edge.id}
-                d={`M ${sourcePoint.x} ${sourcePoint.y} C ${midX} ${sourcePoint.y}, ${midX} ${targetPoint.y}, ${targetPoint.x} ${targetPoint.y}`}
-                fill="none"
-                stroke="var(--border)"
-                strokeWidth={1.4}
-              />
-            );
-          })}
-        </g>
-      </svg>
-
-      <div
-        className="absolute inset-0"
-        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: "0 0" }}
-      >
-        {layoutNodes.map((node) => (
-          <GraphNode
+      <div className="max-h-[42rem] overflow-auto divide-y divide-border">
+        {group.nodes.map((node) => (
+          <KnowledgeRecordRow
             key={node.id}
             node={node}
-            selected={node.id === selectedNodeId}
+            selected={selectedNodeId === node.id}
             onSelect={onSelect}
           />
         ))}
       </div>
+    </section>
+  );
+}
+
+function GroupIcon({ kind }: { kind: KnowledgeGroup["kind"] }) {
+  const Icon = kind === "tasks" ? ClipboardList : kind === "tables" ? Database : kind === "notes" ? FileText : FolderOpen;
+  return <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />;
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="border border-border bg-background p-2">
+      <div className="text-sm font-semibold">{formatCount(value)}</div>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -566,40 +621,6 @@ function KnowledgeRecordRow({
   );
 }
 
-function GraphNode({
-  node,
-  selected,
-  onSelect,
-}: {
-  node: LayoutNode;
-  selected: boolean;
-  onSelect: (nodeId: string) => void;
-}) {
-  const Icon = nodeIcons[node.type];
-  const style = typeStyles[node.type];
-  return (
-    <button
-      data-knowledge-node
-      className={`absolute flex flex-col items-start border px-3 py-2 text-left shadow-sm transition ${
-        style.className
-      } ${selected ? "ring-2 ring-foreground/40" : "hover:border-foreground/30"}`}
-      style={{ left: node.x, top: node.y, width: NODE_W, minHeight: NODE_H }}
-      onClick={() => onSelect(node.id)}
-    >
-      <div className="flex w-full items-center gap-2">
-        <span className={`h-2 w-2 rounded-full ${style.dot}`} />
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold">{node.label}</span>
-      </div>
-      <span className="mt-1 line-clamp-1 text-xs text-muted-foreground">{node.subtitle ?? style.label}</span>
-      <div className="mt-2 flex w-full items-center justify-between gap-2 text-[10px] text-muted-foreground">
-        <span>Source: CompanyCore</span>
-        {node.count !== null && <span>{formatCount(node.count)}</span>}
-      </div>
-    </button>
-  );
-}
-
 function Inspector({ node, map }: { node: CompanyCoreKnowledgeMapNode | null; map?: CompanyCoreKnowledgeMap }) {
   if (!node) {
     return (
@@ -706,69 +727,82 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: "good" | "
   return <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${className}`}>{children}</span>;
 }
 
-function IconButton({ label, icon: Icon, onClick }: { label: string; icon: typeof Plus; onClick: () => void }) {
-  return (
-    <button
-      className="flex size-8 items-center justify-center rounded border border-border bg-background hover:bg-muted"
-      title={label}
-      aria-label={label}
-      onClick={onClick}
-    >
-      <Icon className="h-4 w-4" />
-    </button>
-  );
-}
-
-function layoutKnowledgeNodes(nodes: CompanyCoreKnowledgeMapNode[]): LayoutNode[] {
-  const columns: CompanyCoreKnowledgeNodeType[] = ["workspace", "domain", "area", "table", "record", "capability"];
-  const xByType: Record<CompanyCoreKnowledgeNodeType, number> = {
-    workspace: 40,
-    domain: 300,
-    area: 560,
-    table: 820,
-    record: 1080,
-    capability: 560,
-  };
-  const result: LayoutNode[] = [];
-  for (const type of columns) {
-    const typedNodes = nodes.filter((node) => node.type === type);
-    typedNodes.forEach((node, index) => {
-      const yOffset = type === "capability" ? 520 : 40;
-      result.push({
-        ...node,
-        x: xByType[type],
-        y: yOffset + index * (NODE_H + 22),
-      });
-    });
+function buildKnowledgeDepartments(nodes: CompanyCoreKnowledgeMapNode[]): KnowledgeDepartment[] {
+  const labels = new Map<string, string>();
+  const grouped = new Map<string, CompanyCoreKnowledgeMapNode[]>();
+  for (const node of nodes) {
+    const key = departmentKeyForNode(node);
+    if (!key) continue;
+    const label = departmentLabelForNode(node, key);
+    if (!labels.has(key) || label.includes(".")) labels.set(key, label);
+    grouped.set(key, [...(grouped.get(key) ?? []), node]);
   }
-  return result;
+  return Array.from(grouped.entries())
+    .map(([key, departmentNodes]) => ({
+      key,
+      label: labels.get(key) ?? `${key}. Department`,
+      nodes: departmentNodes.sort(sortByLabel),
+    }))
+    .sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
 }
 
-function graphBounds(nodes: LayoutNode[]) {
-  if (nodes.length === 0) return { width: 1000, height: 700 };
-  return {
-    width: Math.max(...nodes.map((node) => node.x + NODE_W)) + 80,
-    height: Math.max(...nodes.map((node) => node.y + NODE_H)) + 80,
-  };
+function buildDepartmentGroups(nodes: CompanyCoreKnowledgeMapNode[]): KnowledgeGroup[] {
+  const records = nodes.filter((node) => node.type === "record");
+  const files = records.filter((node) => metadataString(node, "kind") === "file");
+  const tasks = records.filter((node) => metadataString(node, "kind") === "task");
+  const notes = records.filter((node) => ["note", "decision", "project"].includes(metadataString(node, "kind") ?? ""));
+  const tables = nodes.filter((node) => node.type === "table");
+  return [
+    ...groupNodes(files, "files", fileGroup),
+    ...groupNodes(tasks, "tasks", taskGroup),
+    ...groupNodes(tables, "tables", (node) => node.label),
+    ...groupNodes(notes, "notes", (node) => metadataString(node, "kind") ?? "Records"),
+  ].sort((a, b) => {
+    const order = { files: 0, tasks: 1, tables: 2, notes: 3 };
+    return order[a.kind] - order[b.kind] || a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" });
+  });
 }
 
-function leftAnchor(node: LayoutNode): Point {
-  return { x: node.x, y: node.y + NODE_H / 2 };
+function groupNodes(
+  nodes: CompanyCoreKnowledgeMapNode[],
+  kind: KnowledgeGroup["kind"],
+  groupBy: (node: CompanyCoreKnowledgeMapNode) => string,
+): KnowledgeGroup[] {
+  return groupByCollection(nodes, groupBy).map((group) => ({
+    key: `${kind}:${group.label}`,
+    label: group.label,
+    kind,
+    nodes: group.nodes,
+  }));
 }
 
-function rightAnchor(node: LayoutNode): Point {
-  return { x: node.x + NODE_W, y: node.y + NODE_H / 2 };
+function departmentKeyForNode(node: CompanyCoreKnowledgeMapNode) {
+  for (const value of departmentSearchValues(node)) {
+    const match = value.match(/\b(0[0-9]|1[0-2])\s*[.\-]\s*[^/|]+/);
+    if (match?.[1]) return match[1];
+  }
+  return null;
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
+function departmentLabelForNode(node: CompanyCoreKnowledgeMapNode, key: string) {
+  for (const value of departmentSearchValues(node)) {
+    const match = value.match(new RegExp(`\\b(${key})\\s*[.\\-]\\s*([^/|]+)`));
+    if (match?.[2]) return `${key}. ${match[2].trim().split(/\s+-\s+/)[0]}`;
+  }
+  return `${key}. Department`;
 }
 
-function groupByType(nodes: CompanyCoreKnowledgeMapNode[]) {
-  return nodes.reduce((groups, node) => {
-    groups[node.type] = [...(groups[node.type] ?? []), node];
-    return groups;
-  }, {} as Partial<Record<CompanyCoreKnowledgeNodeType, CompanyCoreKnowledgeMapNode[]>>);
+function departmentSearchValues(node: CompanyCoreKnowledgeMapNode) {
+  return [
+    node.label,
+    node.subtitle ?? "",
+    metadataString(node, "path") ?? "",
+    metadataString(node, "folderPath") ?? "",
+    metadataString(node, "folderName") ?? "",
+    metadataString(node, "listName") ?? "",
+    metadataString(node, "areaName") ?? "",
+    metadataString(node, "tableName") ?? "",
+  ];
 }
 
 function filterNodes(nodes: CompanyCoreKnowledgeMapNode[], query: string) {
