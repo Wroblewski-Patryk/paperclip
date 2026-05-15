@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
-import { companyCoreSettings } from "@paperclipai/db";
+import { agents, companyCoreSettings } from "@paperclipai/db";
 import type { CompanyCoreCommandMode, PatchCompanyCoreSettings } from "@paperclipai/shared";
-import { unprocessable } from "../errors.js";
+import { notFound, unprocessable } from "../errors.js";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
@@ -133,6 +133,41 @@ export interface CompanyCoreKnowledgeMap {
   status: CompanyCoreConnectionStatus;
   source: "CompanyCore";
   summary: CompanyCoreKnowledgeMapSummary;
+  nodes: CompanyCoreKnowledgeMapNode[];
+  edges: CompanyCoreKnowledgeMapEdge[];
+  errors: Array<{
+    surface: string;
+    message: string;
+  }>;
+}
+
+export interface CompanyCoreAgentKnowledgeContext {
+  provider: "companycore";
+  status: CompanyCoreConnectionStatus;
+  source: "CompanyCore";
+  agent: {
+    id: string;
+    name: string;
+    role: string;
+    title: string | null;
+    departmentKey: string | null;
+    departmentLabel: string | null;
+    knowledgeAgentLabel: string | null;
+  };
+  scope: {
+    mode: "department";
+    guidance: string[];
+    peerDepartments: Array<{
+      departmentKey: string;
+      departmentLabel: string;
+      knowledgeAgentLabel: string;
+      agentId: string | null;
+      agentName: string | null;
+    }>;
+  };
+  summary: CompanyCoreKnowledgeMapSummary & {
+    scopedNodeCount: number;
+  };
   nodes: CompanyCoreKnowledgeMapNode[];
   edges: CompanyCoreKnowledgeMapEdge[];
   errors: Array<{
@@ -445,6 +480,153 @@ function normalizeSyncedWith(value: unknown): string[] {
   if (provider === "google_drive") return ["Google Drive"];
   if (provider === "clickup") return ["ClickUp"];
   return [provider.replaceAll("_", " ")];
+}
+
+const DEPARTMENT_LABELS: Record<string, string> = {
+  "00": "00. Glowny",
+  "01": "01. Strategia",
+  "02": "02. Produkt",
+  "03": "03. Sprzedaz",
+  "04": "04. Operacje",
+  "05": "05. Relacje",
+  "06": "06. Kadry",
+  "07": "07. Finanse",
+  "08": "08. Zasoby",
+  "09": "09. Technologia",
+  "10": "10. Prawo",
+  "11": "11. Innowacje",
+  "12": "12. Zarzadzanie",
+};
+
+const DEPARTMENT_AGENT_LABELS: Record<string, string> = {
+  "00": "00 AIA",
+  "01": "01 CSO",
+  "02": "02 CPO",
+  "03": "03 CRO",
+  "04": "04 COO",
+  "05": "05 CCO",
+  "06": "06 CHRO",
+  "07": "07 CFO",
+  "08": "08 CAO",
+  "09": "09 CTO",
+  "10": "10 CLO",
+  "11": "11 CINO",
+  "12": "12 CEO",
+};
+
+const ROLE_DEPARTMENT_KEYS: Record<string, string> = {
+  ceo: "12",
+  cto: "09",
+  cfo: "07",
+  cmo: "05",
+  pm: "02",
+  designer: "02",
+  engineer: "09",
+  devops: "04",
+  security: "10",
+  qa: "02",
+  researcher: "11",
+};
+
+const AGENT_CODE_DEPARTMENT_KEYS: Record<string, string> = {
+  AIA: "00",
+  CSO: "01",
+  CPO: "02",
+  CRO: "03",
+  COO: "04",
+  CCO: "05",
+  CHRO: "06",
+  CFO: "07",
+  CAO: "08",
+  CTO: "09",
+  CLO: "10",
+  CINO: "11",
+  CEO: "12",
+};
+
+function metadataString(record: Record<string, unknown>, key: string): string | null {
+  const value = record[key];
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function departmentSearchValuesForNode(node: CompanyCoreKnowledgeMapNode) {
+  const metadata = node.metadata;
+  const structuredValues = [
+    metadataString(metadata, "path") ?? "",
+    metadataString(metadata, "folderPath") ?? "",
+    metadataString(metadata, "folderName") ?? "",
+    metadataString(metadata, "listName") ?? "",
+    metadataString(metadata, "areaName") ?? "",
+    metadataString(metadata, "tableName") ?? "",
+  ];
+  if (node.type !== "record") return [node.label, node.subtitle ?? "", ...structuredValues];
+  return [...structuredValues, node.subtitle ?? ""];
+}
+
+function departmentKeyForKnowledgeNode(node: CompanyCoreKnowledgeMapNode): string | null {
+  for (const value of departmentSearchValuesForNode(node)) {
+    const match = value.match(/\b(0[0-9]|1[0-2])\s*[.\-]\s*[^/|]+/);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+function departmentKeyForAgent(agent: Pick<typeof agents.$inferSelect, "name" | "role" | "title" | "capabilities" | "metadata">): string | null {
+  const metadata = asRecord(agent.metadata);
+  const candidates = [
+    agent.name,
+    agent.title,
+    agent.capabilities,
+    metadataString(metadata, "departmentKey"),
+    metadataString(metadata, "department"),
+    metadataString(metadata, "knowledgeDepartment"),
+    DEPARTMENT_AGENT_LABELS[ROLE_DEPARTMENT_KEYS[agent.role] ?? ""],
+  ].filter((value): value is string => Boolean(value));
+  for (const value of candidates) {
+    const match = value.match(/\b(0[0-9]|1[0-2])(?:\s*[.\-]|\s+)/);
+    if (match?.[1]) return match[1];
+    const codeMatch = value.match(/\b(AIA|CSO|CPO|CRO|COO|CCO|CHRO|CFO|CAO|CTO|CLO|CINO|CEO)\b/i);
+    if (codeMatch?.[1]) return AGENT_CODE_DEPARTMENT_KEYS[codeMatch[1].toUpperCase()] ?? null;
+  }
+  return ROLE_DEPARTMENT_KEYS[agent.role] ?? null;
+}
+
+function departmentLabel(key: string | null): string | null {
+  if (!key) return null;
+  return DEPARTMENT_LABELS[key] ?? `${key}. Department`;
+}
+
+function knowledgeAgentLabel(key: string | null): string | null {
+  if (!key) return null;
+  return DEPARTMENT_AGENT_LABELS[key] ?? `${key} agent`;
+}
+
+function scopedKnowledgeNodes(map: CompanyCoreKnowledgeMap, departmentKey: string | null): CompanyCoreKnowledgeMapNode[] {
+  if (!departmentKey) return [];
+  const selectedIds = new Set(
+    map.nodes
+      .filter((node) => departmentKeyForKnowledgeNode(node) === departmentKey)
+      .map((node) => node.id),
+  );
+  if (selectedIds.size === 0) return [];
+  selectedIds.add("companycore");
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const edge of map.edges) {
+      if (selectedIds.has(edge.target) && !selectedIds.has(edge.source)) {
+        selectedIds.add(edge.source);
+        changed = true;
+      }
+    }
+  }
+  return map.nodes.filter((node) => selectedIds.has(node.id));
+}
+
+function scopedKnowledgeEdges(map: CompanyCoreKnowledgeMap, nodes: CompanyCoreKnowledgeMapNode[]): CompanyCoreKnowledgeMapEdge[] {
+  const ids = new Set(nodes.map((node) => node.id));
+  return map.edges.filter((edge) => ids.has(edge.source) && ids.has(edge.target));
 }
 
 function toolAccessForDomain(
@@ -1101,6 +1283,83 @@ export function companyCoreBridgeService(db?: Db) {
         projectsData: projectsResult.data ?? [],
         errors,
       });
+    },
+
+    async agentKnowledge(
+      companyId: string,
+      agentId: string,
+    ): Promise<CompanyCoreAgentKnowledgeContext> {
+      if (!db) {
+        throw unprocessable("CompanyCore agent knowledge requires database access");
+      }
+      const [agent] = await db
+        .select()
+        .from(agents)
+        .where(and(eq(agents.id, agentId), eq(agents.companyId, companyId)))
+        .limit(1);
+      if (!agent) throw notFound("Agent not found");
+
+      const map = await this.knowledgeMap(companyId);
+      const departmentKey = departmentKeyForAgent(agent);
+      const nodes = scopedKnowledgeNodes(map, departmentKey);
+      const peerRows = await db
+        .select({
+          id: agents.id,
+          name: agents.name,
+          role: agents.role,
+          title: agents.title,
+          capabilities: agents.capabilities,
+          metadata: agents.metadata,
+        })
+        .from(agents)
+        .where(eq(agents.companyId, companyId));
+      const peersByDepartment = new Map<string, { id: string; name: string }>();
+      for (const peer of peerRows) {
+        const key = departmentKeyForAgent(peer);
+        if (!key || peersByDepartment.has(key)) continue;
+        peersByDepartment.set(key, { id: peer.id, name: peer.name });
+      }
+
+      return {
+        provider: "companycore",
+        status: map.status,
+        source: "CompanyCore",
+        agent: {
+          id: agent.id,
+          name: agent.name,
+          role: agent.role,
+          title: agent.title,
+          departmentKey,
+          departmentLabel: departmentLabel(departmentKey),
+          knowledgeAgentLabel: knowledgeAgentLabel(departmentKey),
+        },
+        scope: {
+          mode: "department",
+          guidance: [
+            "Use this endpoint as your primary CompanyCore knowledge resource before asking for broader context.",
+            "Treat returned nodes as your department-scoped knowledge inventory, not the full company memory.",
+            "When work needs knowledge from another department, create or comment on a Paperclip issue for that department's agent instead of importing all external context into your own working memory.",
+            "Use CompanyCore as the source of truth; Drive and ClickUp are synchronized systems behind CompanyCore.",
+          ],
+          peerDepartments: Object.keys(DEPARTMENT_LABELS).map((key) => {
+            const peer = peersByDepartment.get(key) ?? null;
+            return {
+              departmentKey: key,
+              departmentLabel: departmentLabel(key) ?? `${key}. Department`,
+              knowledgeAgentLabel: knowledgeAgentLabel(key) ?? `${key} agent`,
+              agentId: peer?.id ?? null,
+              agentName: peer?.name ?? null,
+            };
+          }),
+        },
+        summary: {
+          ...map.summary,
+          scopedNodeCount: nodes.length,
+        },
+        nodes,
+        edges: scopedKnowledgeEdges(map, nodes),
+        errors: map.errors,
+      };
     },
   };
 }

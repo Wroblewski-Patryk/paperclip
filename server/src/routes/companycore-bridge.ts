@@ -3,6 +3,7 @@ import type { Db } from "@paperclipai/db";
 import { patchCompanyCoreSettingsSchema } from "@paperclipai/shared";
 import { validate } from "../middleware/validate.js";
 import { logActivity } from "../services/index.js";
+import { forbidden } from "../errors.js";
 import { assertBoard, assertCompanyAccess, getActorInfo } from "./authz.js";
 import { companyCoreBridgeService } from "../services/companycore-bridge.js";
 
@@ -77,6 +78,13 @@ export function companyCoreBridgeRoutes(db: Db) {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
     res.json(await svc.knowledgeMap(companyId));
+  });
+
+  router.get("/agents/me/knowledge", async (req, res) => {
+    if (req.actor.type !== "agent" || !req.actor.companyId || !req.actor.agentId) {
+      throw forbidden("Agent access required");
+    }
+    res.json(await svc.agentKnowledge(req.actor.companyId, req.actor.agentId));
   });
 
   router.get("/companies/:companyId/tools/companycore/health", async (req, res) => {
