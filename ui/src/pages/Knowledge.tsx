@@ -289,20 +289,22 @@ function KnowledgeExplorer({
             </div>
             <h2 className="mt-1 text-xl font-semibold">{selectedGroup?.label ?? selectedDepartment.label}</h2>
           </div>
-          {focus.kind === "group" && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFocus({ kind: "department", departmentKey: selectedDepartment.key })}
-            >
-              Back to {selectedDepartment.key}
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Badge tone="muted">Agent: {agentLabelForDepartment(selectedDepartment.key)}</Badge>
+            {focus.kind === "group" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFocus({ kind: "department", departmentKey: selectedDepartment.key })}
+              >
+                Back to {selectedDepartment.key}
+              </Button>
+            )}
+          </div>
         </div>
 
         {focus.kind === "department" ? (
           <DepartmentOrbit
-            department={selectedDepartment}
             groups={groups}
             onOpenGroup={(groupKey) => setFocus({ kind: "group", departmentKey: selectedDepartment.key, groupKey })}
           />
@@ -319,80 +321,55 @@ function KnowledgeExplorer({
 }
 
 function DepartmentOrbit({
-  department,
   groups,
   onOpenGroup,
 }: {
-  department: KnowledgeDepartment;
   groups: KnowledgeGroup[];
   onOpenGroup: (groupKey: string) => void;
 }) {
-  const totalFiles = groups.filter((group) => group.kind === "files").reduce((sum, group) => sum + group.nodes.length, 0);
-  const totalTasks = groups.filter((group) => group.kind === "tasks").reduce((sum, group) => sum + group.nodes.length, 0);
-  const totalTables = groups.filter((group) => group.kind === "tables").reduce((sum, group) => sum + group.nodes.length, 0);
   return (
-    <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
-      <section className="border border-border bg-background p-4">
-        <div className="flex size-40 items-center justify-center rounded-full border border-border bg-muted/40 text-center">
-          <div>
-            <div className="text-3xl font-semibold">{department.key}</div>
-            <div className="mt-1 px-3 text-sm text-muted-foreground">{department.label.replace(/^\d{2}\.?\s*/, "")}</div>
-          </div>
+    <section className="grid gap-3 md:grid-cols-2">
+      {groups.length === 0 ? (
+        <div className="border border-dashed border-border p-6 text-sm text-muted-foreground">
+          No matching children in this department.
         </div>
-        <div className="mt-4 border border-border bg-muted/20 p-3">
-          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Agent counterpart</div>
-          <div className="mt-1 text-sm font-medium">{agentLabelForDepartment(department.key)}</div>
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-          <MiniStat label="Files" value={totalFiles} />
-          <MiniStat label="Tasks" value={totalTasks} />
-          <MiniStat label="Tables" value={totalTables} />
-        </div>
-      </section>
-
-      <section className="grid gap-3 md:grid-cols-2">
-        {groups.length === 0 ? (
-          <div className="border border-dashed border-border p-6 text-sm text-muted-foreground">
-            No matching children in this department.
-          </div>
-        ) : (
-          groups.map((group) => (
-            <button
-              key={group.key}
-              className="border border-border bg-background p-3 text-left transition hover:bg-muted/60"
-              onClick={() => onOpenGroup(group.key)}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2">
-                  <GroupIcon kind={group.kind} />
-                  <span className="min-w-0 truncate text-sm font-semibold">{group.label}</span>
+      ) : (
+        groups.map((group) => (
+          <button
+            key={group.key}
+            className="border border-border bg-background p-3 text-left transition hover:bg-muted/60"
+            onClick={() => onOpenGroup(group.key)}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <GroupIcon kind={group.kind} />
+                <span className="min-w-0 truncate text-sm font-semibold">{group.label}</span>
+              </div>
+              <Badge tone="muted">{formatCount(group.nodes.length)}</Badge>
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              {group.kind === "tasks" ? "Task list" : group.kind === "files" ? "Folder" : group.kind === "tables" ? "Table group" : "Records"}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Badge tone="muted">CompanyCore</Badge>
+              {syncedWithForNodes(group.nodes).map((provider) => (
+                <Badge key={provider} tone="muted">{provider}</Badge>
+              ))}
+            </div>
+            <div className="mt-3 space-y-1 border-t border-border pt-2">
+              {group.nodes.slice(0, 3).map((node) => (
+                <div key={node.id} className="truncate text-xs text-muted-foreground">
+                  {node.label}
                 </div>
-                <Badge tone="muted">{formatCount(group.nodes.length)}</Badge>
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">
-                {group.kind === "tasks" ? "Task list" : group.kind === "files" ? "Folder" : group.kind === "tables" ? "Table group" : "Records"}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <Badge tone="muted">CompanyCore</Badge>
-                {syncedWithForNodes(group.nodes).map((provider) => (
-                  <Badge key={provider} tone="muted">{provider}</Badge>
-                ))}
-              </div>
-              <div className="mt-3 space-y-1 border-t border-border pt-2">
-                {group.nodes.slice(0, 3).map((node) => (
-                  <div key={node.id} className="truncate text-xs text-muted-foreground">
-                    {node.label}
-                  </div>
-                ))}
-                {group.nodes.length > 3 && (
-                  <div className="text-xs text-muted-foreground">+{formatCount(group.nodes.length - 3)} more</div>
-                )}
-              </div>
-            </button>
-          ))
-        )}
-      </section>
-    </div>
+              ))}
+              {group.nodes.length > 3 && (
+                <div className="text-xs text-muted-foreground">+{formatCount(group.nodes.length - 3)} more</div>
+              )}
+            </div>
+          </button>
+        ))
+      )}
+    </section>
   );
 }
 
@@ -431,15 +408,6 @@ function GroupChildren({
 function GroupIcon({ kind }: { kind: KnowledgeGroup["kind"] }) {
   const Icon = kind === "tasks" ? ClipboardList : kind === "tables" ? Database : kind === "notes" ? FileText : FolderOpen;
   return <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />;
-}
-
-function MiniStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="border border-border bg-background p-2">
-      <div className="text-sm font-semibold">{formatCount(value)}</div>
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-    </div>
-  );
 }
 
 function KnowledgeLibrary({
