@@ -7,6 +7,10 @@ import {
   type ClaudeLoginResult,
   type AgentPermissionUpdate,
 } from "../api/agents";
+import {
+  companyCoreApi,
+  type CompanyCoreKnowledgeMapNode,
+} from "../api/companycore";
 import { companySkillsApi } from "../api/companySkills";
 import { budgetsApi } from "../api/budgets";
 import { heartbeatsApi } from "../api/heartbeats";
@@ -69,6 +73,9 @@ import {
   Eye,
   EyeOff,
   Copy,
+  ClipboardList,
+  Database,
+  FileText,
   ChevronRight,
   ChevronDown,
   ArrowLeft,
@@ -235,12 +242,13 @@ function scrollToContainerBottom(container: ScrollContainer, behavior: ScrollBeh
   container.scrollTo({ top: container.scrollHeight, behavior });
 }
 
-type AgentDetailView = "dashboard" | "instructions" | "configuration" | "skills" | "runs" | "budget";
+type AgentDetailView = "dashboard" | "instructions" | "configuration" | "skills" | "knowledge" | "runs" | "budget";
 
 function parseAgentDetailView(value: string | null): AgentDetailView {
   if (value === "instructions" || value === "prompts") return "instructions";
   if (value === "configure" || value === "configuration") return "configuration";
   if (value === "skills") return "skills";
+  if (value === "knowledge") return "knowledge";
   if (value === "budget") return "budget";
   if (value === "runs") return value;
   return "dashboard";
@@ -757,11 +765,13 @@ export function AgentDetail() {
           ? "configuration"
           : activeView === "skills"
             ? "skills"
-            : activeView === "runs"
-              ? "runs"
-              : activeView === "budget"
-                ? "budget"
-              : "dashboard";
+            : activeView === "knowledge"
+              ? "knowledge"
+              : activeView === "runs"
+                ? "runs"
+                : activeView === "budget"
+                  ? "budget"
+                : "dashboard";
     if (routeAgentRef !== canonicalAgentRef || urlTab !== canonicalTab) {
       navigate(`/agents/${canonicalAgentRef}/${canonicalTab}`, { replace: true });
       return;
@@ -879,8 +889,10 @@ export function AgentDetail() {
         crumbs.push({ label: "Instructions" });
       } else if (activeView === "configuration") {
         crumbs.push({ label: "Configuration" });
-      // } else if (activeView === "skills") { // TODO: bring back later
-      //   crumbs.push({ label: "Skills" });
+      } else if (activeView === "skills") {
+        crumbs.push({ label: "Skills" });
+      } else if (activeView === "knowledge") {
+        crumbs.push({ label: "Knowledge" });
       } else if (activeView === "runs") {
         crumbs.push({ label: "Runs" });
       } else if (activeView === "budget") {
@@ -1022,6 +1034,7 @@ export function AgentDetail() {
               { value: "dashboard", label: "Dashboard" },
               { value: "instructions", label: "Instructions" },
               { value: "skills", label: "Skills" },
+              { value: "knowledge", label: "Knowledge" },
               { value: "configuration", label: "Configuration" },
               { value: "runs", label: "Runs" },
               { value: "budget", label: "Budget" },
@@ -1135,6 +1148,13 @@ export function AgentDetail() {
 
       {activeView === "skills" && (
         <AgentSkillsTab
+          agent={agent}
+          companyId={resolvedCompanyId ?? undefined}
+        />
+      )}
+
+      {activeView === "knowledge" && (
+        <AgentKnowledgeTab
           agent={agent}
           companyId={resolvedCompanyId ?? undefined}
         />
@@ -2888,6 +2908,297 @@ export function AgentSkillsTab({
       )}
     </div>
   );
+}
+
+function AgentKnowledgeTab({
+  agent,
+  companyId,
+}: {
+  agent: Agent;
+  companyId?: string;
+}) {
+  const [filter, setFilter] = useState<"all" | "assigned">("all");
+  const [kindFilter, setKindFilter] = useState<"all" | "files" | "tasks" | "tables" | "notes">("all");
+  const agentDepartmentKey = departmentKeyForAgent(agent);
+  const agentDepartmentLabel = agentDepartmentKey ? canonicalKnowledgeDepartmentLabel(agentDepartmentKey) : null;
+
+  const { data: knowledgeMap, isLoading, error } = useQuery({
+    queryKey: queryKeys.companyCore.map(companyId ?? ""),
+    queryFn: () => companyCoreApi.map(companyId!),
+    enabled: Boolean(companyId),
+    refetchInterval: 60_000,
+  });
+
+  const rows = useMemo(() => {
+    const nodes = (knowledgeMap?.nodes ?? [])
+      .filter((node) => node.type === "record" || node.type === "table")
+      .sort(sortKnowledgeNode);
+    return nodes.map((node) => ({
+      node,
+      kind: knowledgeKind(node),
+      departmentKey: departmentKeyForKnowledgeNode(node),
+    }));
+  }, [knowledgeMap?.nodes]);
+  const assignedRows = useMemo(
+    () => rows.filter((row) => Boolean(agentDepartmentKey) && row.departmentKey === agentDepartmentKey),
+    [agentDepartmentKey, rows],
+  );
+  const visibleRows = useMemo(
+    () => rows.filter((row) => {
+      if (filter === "assigned" && row.departmentKey !== agentDepartmentKey) return false;
+      if (kindFilter !== "all" && row.kind !== kindFilter) return false;
+      return true;
+    }),
+    [agentDepartmentKey, filter, kindFilter, rows],
+  );
+
+  const kindCounts = useMemo(() => ({
+    files: rows.filter((row) => row.kind === "files").length,
+    tasks: rows.filter((row) => row.kind === "tasks").length,
+    tables: rows.filter((row) => row.kind === "tables").length,
+    notes: rows.filter((row) => row.kind === "notes").length,
+  }), [rows]);
+
+  return (
+    <div className="max-w-5xl space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-medium">CompanyCore knowledge access</div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            All CompanyCore knowledge is listed here. Checked rows are available to this agent through its operating department.
+          </p>
+        </div>
+        <Link
+          to="/knowledge"
+          className="text-sm font-medium text-foreground underline-offset-4 no-underline transition-colors hover:text-foreground/70 hover:underline"
+        >
+          View company knowledge
+        </Link>
+      </div>
+
+      <section className="grid gap-3 md:grid-cols-3">
+        <KnowledgeAccessMetric label="Agent department" value={agentDepartmentLabel ?? "Not detected"} />
+        <KnowledgeAccessMetric label="Accessible resources" value={formatKnowledgeCount(assignedRows.length)} />
+        <KnowledgeAccessMetric label="Company resources" value={formatKnowledgeCount(rows.length)} />
+      </section>
+
+      <section className="rounded-lg border border-border bg-background">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2">
+          <div className="flex flex-wrap gap-1">
+            {[
+              { key: "all", label: "All" },
+              { key: "assigned", label: "Assigned" },
+            ].map((item) => (
+              <button
+                key={item.key}
+                className={cn(
+                  "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  filter === item.key ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted",
+                )}
+                onClick={() => setFilter(item.key as "all" | "assigned")}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {[
+              { key: "all", label: "All types", count: rows.length },
+              { key: "files", label: "Files", count: kindCounts.files },
+              { key: "tasks", label: "Tasks", count: kindCounts.tasks },
+              { key: "tables", label: "Tables", count: kindCounts.tables },
+              { key: "notes", label: "Notes", count: kindCounts.notes },
+            ].map((item) => (
+              <button
+                key={item.key}
+                className={cn(
+                  "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  kindFilter === item.key ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted",
+                )}
+                onClick={() => setKindFilter(item.key as typeof kindFilter)}
+              >
+                {item.label} <span className="opacity-70">{formatKnowledgeCount(item.count)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <PageSkeleton variant="list" />
+        ) : error ? (
+          <div className="px-3 py-6 text-sm text-destructive">
+            {error instanceof Error ? error.message : "Failed to load CompanyCore knowledge."}
+          </div>
+        ) : visibleRows.length === 0 ? (
+          <div className="px-3 py-6 text-sm text-muted-foreground">
+            No knowledge resources match this filter.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {visibleRows.map(({ node, kind, departmentKey }) => {
+              const assigned = Boolean(agentDepartmentKey) && departmentKey === agentDepartmentKey;
+              const Icon = knowledgeKindIcon(kind);
+              return (
+                <div
+                  key={node.id}
+                  className={cn("flex items-start gap-3 px-3 py-3 text-sm", assigned ? "bg-muted/25" : "hover:bg-accent/20")}
+                >
+                  <input
+                    type="checkbox"
+                    checked={assigned}
+                    readOnly
+                    disabled
+                    className="mt-0.5 disabled:cursor-default disabled:opacity-80"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="truncate font-medium">{node.label}</span>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span>{knowledgeKindLabel(kind)}</span>
+                          {departmentKey && <span>{canonicalKnowledgeDepartmentLabel(departmentKey) ?? `${departmentKey}. Department`}</span>}
+                          {knowledgeMetadataString(node, "folderName") && <span>Folder: {knowledgeMetadataString(node, "folderName")}</span>}
+                          {knowledgeMetadataString(node, "listName") && <span>List: {knowledgeMetadataString(node, "listName")}</span>}
+                          {node.syncedWith.length > 0 && <span>Synced with: {node.syncedWith.join(", ")}</span>}
+                        </div>
+                      </div>
+                      <span className={cn(
+                        "shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium",
+                        assigned ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-muted/40 text-muted-foreground",
+                      )}>
+                        {assigned ? "assigned" : "available"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function KnowledgeAccessMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-border bg-background p-3">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-2 truncate text-lg font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function knowledgeKind(node: CompanyCoreKnowledgeMapNode): "files" | "tasks" | "tables" | "notes" {
+  if (node.type === "table") return "tables";
+  const kind = knowledgeMetadataString(node, "kind");
+  if (kind === "file") return "files";
+  if (kind === "task") return "tasks";
+  return "notes";
+}
+
+function knowledgeKindLabel(kind: "files" | "tasks" | "tables" | "notes") {
+  return {
+    files: "File",
+    tasks: "Task",
+    tables: "Table",
+    notes: "Knowledge record",
+  }[kind];
+}
+
+function knowledgeKindIcon(kind: "files" | "tasks" | "tables" | "notes") {
+  return {
+    files: FolderOpen,
+    tasks: ClipboardList,
+    tables: Database,
+    notes: FileText,
+  }[kind];
+}
+
+function departmentKeyForAgent(agent: Pick<Agent, "name" | "title" | "urlKey" | "role">) {
+  for (const value of [agent.name, agent.title ?? "", agent.urlKey ?? "", agent.role]) {
+    const match = value.match(/\b(0[0-9]|1[0-2])\b/);
+    if (match?.[1]) return match[1];
+  }
+  const roleMap: Record<string, string> = {
+    aia: "00",
+    cso: "01",
+    cpo: "02",
+    cro: "03",
+    coo: "04",
+    cco: "05",
+    chro: "06",
+    cfo: "07",
+    cao: "08",
+    cto: "09",
+    clo: "10",
+    cino: "11",
+    ceo: "12",
+  };
+  const searchable = `${agent.name} ${agent.title ?? ""} ${agent.urlKey ?? ""} ${agent.role}`.toLowerCase();
+  for (const [token, key] of Object.entries(roleMap)) {
+    if (searchable.includes(token)) return key;
+  }
+  return null;
+}
+
+function departmentKeyForKnowledgeNode(node: CompanyCoreKnowledgeMapNode) {
+  for (const value of knowledgeDepartmentSearchValues(node)) {
+    const match = value.match(/\b(0[0-9]|1[0-2])\s*[.\-]\s*[^/|]+/);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+function knowledgeDepartmentSearchValues(node: CompanyCoreKnowledgeMapNode) {
+  return [
+    node.label,
+    node.subtitle ?? "",
+    knowledgeMetadataString(node, "path") ?? "",
+    knowledgeMetadataString(node, "folderPath") ?? "",
+    knowledgeMetadataString(node, "folderName") ?? "",
+    knowledgeMetadataString(node, "listName") ?? "",
+    knowledgeMetadataString(node, "areaName") ?? "",
+    knowledgeMetadataString(node, "tableName") ?? "",
+  ];
+}
+
+function canonicalKnowledgeDepartmentLabel(key: string) {
+  return {
+    "00": "00. Glowny",
+    "01": "01. Strategia",
+    "02": "02. Produkt",
+    "03": "03. Sprzedaz",
+    "04": "04. Operacje",
+    "05": "05. Relacje",
+    "06": "06. Kadry",
+    "07": "07. Finanse",
+    "08": "08. Zasoby",
+    "09": "09. Technologia",
+    "10": "10. Prawo",
+    "11": "11. Innowacje",
+    "12": "12. Zarzadzanie",
+  }[key];
+}
+
+function knowledgeMetadataString(node: CompanyCoreKnowledgeMapNode, key: string) {
+  const value = node.metadata[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function sortKnowledgeNode(a: CompanyCoreKnowledgeMapNode, b: CompanyCoreKnowledgeMapNode) {
+  const leftDepartment = departmentKeyForKnowledgeNode(a) ?? "99";
+  const rightDepartment = departmentKeyForKnowledgeNode(b) ?? "99";
+  return leftDepartment.localeCompare(rightDepartment, undefined, { numeric: true })
+    || knowledgeKind(a).localeCompare(knowledgeKind(b))
+    || a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" });
+}
+
+function formatKnowledgeCount(value: number) {
+  return new Intl.NumberFormat().format(value);
 }
 
 /* ---- Runs Tab ---- */
