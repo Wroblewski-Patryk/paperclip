@@ -266,7 +266,7 @@ function KnowledgeExplorer({
           {departments.map((department) => (
             <button
               key={department.key}
-              className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition ${
+              className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-1.5 text-left transition ${
                 selectedDepartment.key === department.key ? "bg-foreground text-background" : "hover:bg-muted"
               }`}
               onClick={() => setFocus({ kind: "department", departmentKey: department.key })}
