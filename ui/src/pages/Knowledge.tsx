@@ -3,12 +3,14 @@ import { Link } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
+  ChevronDown,
+  ChevronRight,
   ClipboardList,
   Database,
   ExternalLink,
+  File,
   FileText,
   FolderOpen,
-  Layers3,
   RefreshCw,
   Search,
   Sparkles,
@@ -26,6 +28,7 @@ import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
 
 type KnowledgeView = "library" | "map";
+type KnowledgeLibraryTab = "files" | "tasks" | "tables" | "notes";
 
 type KnowledgeExplorerFocus =
   | { kind: "department"; departmentKey: string }
@@ -425,14 +428,33 @@ function KnowledgeLibrary({
   onSelect: (nodeId: string) => void;
   isLoading: boolean;
 }) {
+  const [activeTab, setActiveTab] = useState<KnowledgeLibraryTab>("files");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const records = nodes.filter((node) => node.type === "record");
-  const areas = nodes.filter((node) => node.type === "area").sort(sortByLabel);
   const tables = nodes.filter((node) => node.type === "table").sort(sortByLabel);
   const files = records.filter((node) => metadataString(node, "kind") === "file").sort(sortByLabel);
   const tasks = records.filter((node) => metadataString(node, "kind") === "task").sort(sortByLabel);
   const notes = records.filter((node) => metadataString(node, "kind") === "note").sort(sortByLabel);
   const decisions = records.filter((node) => metadataString(node, "kind") === "decision").sort(sortByLabel);
   const projects = records.filter((node) => metadataString(node, "kind") === "project").sort(sortByLabel);
+  const noteRecords = [...projects, ...notes, ...decisions].sort(sortByLabel);
+  const tabNodes: Record<KnowledgeLibraryTab, CompanyCoreKnowledgeMapNode[]> = {
+    files,
+    tasks,
+    tables,
+    notes: noteRecords,
+  };
+  const activeNodes = tabNodes[activeTab];
+  const filteredActiveNodes = departmentFilter === "all"
+    ? activeNodes
+    : activeNodes.filter((node) => departmentKeyForNode(node) === departmentFilter);
+  const departments = useMemo(() => buildKnowledgeDepartments(activeNodes), [activeNodes]);
+  const tabs: Array<{ key: KnowledgeLibraryTab; label: string; icon: typeof BookOpen; count: number }> = [
+    { key: "files", label: "Files", icon: FolderOpen, count: files.length },
+    { key: "tasks", label: "Tasks", icon: ClipboardList, count: tasks.length },
+    { key: "tables", label: "Tables", icon: Database, count: tables.length },
+    { key: "notes", label: "Notes", icon: FileText, count: noteRecords.length },
+  ];
 
   if (isLoading && !map) {
     return <div className="p-4 text-sm text-muted-foreground">Loading CompanyCore knowledge preview.</div>;
@@ -440,9 +462,9 @@ function KnowledgeLibrary({
 
   return (
     <div className="h-full min-h-0 overflow-auto p-4">
-      <section>
+      <section className="space-y-4">
         {map?.errors.length ? (
-          <div className="mb-4 border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          <div className="border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
             <div className="font-semibold">Partial CompanyCore preview</div>
             <div className="mt-1 text-muted-foreground">
               Some CompanyCore surfaces did not answer, so this catalog may be incomplete.
@@ -450,82 +472,500 @@ function KnowledgeLibrary({
           </div>
         ) : null}
 
-        <div className="mb-4 grid gap-3 md:grid-cols-4">
-          <Metric label="Files" value={formatCount(files.length)} icon={FolderOpen} />
-          <Metric label="Tasks" value={formatCount(tasks.length)} icon={ClipboardList} />
-          <Metric label="Tables" value={formatCount(tables.length)} icon={Database} />
-          <Metric label="Notes" value={formatCount(notes.length + decisions.length + projects.length)} icon={FileText} />
+        <div className="grid gap-2 md:grid-cols-4">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const selected = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                className={`border p-3 text-left transition ${
+                  selected ? "border-foreground bg-foreground text-background" : "border-border bg-background hover:bg-muted/60"
+                }`}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setDepartmentFilter("all");
+                }}
+              >
+                <div className={`flex items-center gap-2 text-xs font-medium uppercase tracking-wide ${selected ? "text-background/75" : "text-muted-foreground"}`}>
+                  <Icon className="h-3.5 w-3.5" />
+                  {tab.label}
+                </div>
+                <div className="mt-2 truncate text-lg font-semibold">{formatCount(tab.count)}</div>
+              </button>
+            );
+          })}
         </div>
 
-        {areas.length > 0 && (
-          <section className="mb-4 border border-border bg-background">
-            <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Layers3 className="h-4 w-4 text-muted-foreground" />
-                Areas
-              </div>
-              <span className="text-xs text-muted-foreground">{formatCount(areas.length)}</span>
-            </div>
-            <div className="flex gap-2 overflow-x-auto p-3">
-              {areas.map((area) => (
-                <button
-                  key={area.id}
-                  className={`shrink-0 rounded-md border px-3 py-2 text-left transition ${
-                    selectedNodeId === area.id ? "border-foreground bg-muted" : "border-border hover:bg-muted/60"
-                  }`}
-                  onClick={() => onSelect(area.id)}
-                >
-                  <div className="max-w-48 truncate text-sm font-medium">{area.label}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {area.count !== null ? `${formatCount(area.count)} tables` : "CompanyCore area"}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+        <DepartmentFilter
+          departments={departments}
+          activeNodes={activeNodes}
+          selectedKey={departmentFilter}
+          onSelect={setDepartmentFilter}
+        />
 
-        <div className="space-y-3">
-          <KnowledgeSection
-            title="Files"
-            subtitle="Documents indexed by CompanyCore."
-            icon={FolderOpen}
-            nodes={files}
+        {activeTab === "files" && (
+          <FileHierarchy
+            nodes={filteredActiveNodes}
             selectedNodeId={selectedNodeId}
             onSelect={onSelect}
-            groupBy={(node) => fileGroup(node)}
           />
-          <KnowledgeSection
-            title="Tasks"
-            subtitle="Grouped by CompanyCore task list."
-            icon={ClipboardList}
-            nodes={tasks}
+        )}
+        {activeTab === "tasks" && (
+          <TaskLists
+            nodes={filteredActiveNodes}
             selectedNodeId={selectedNodeId}
             onSelect={onSelect}
-            groupBy={(node) => taskGroup(node)}
           />
-          <KnowledgeSection
-            title="Tables"
-            subtitle="Structured CompanyCore data available to agents."
-            icon={Database}
-            nodes={tables}
+        )}
+        {activeTab === "tables" && (
+          <TableCatalog
+            nodes={filteredActiveNodes}
             selectedNodeId={selectedNodeId}
             onSelect={onSelect}
-            groupBy={(node) => collectionGroup(node, "Operating tables")}
           />
+        )}
+        {activeTab === "notes" && (
           <KnowledgeSection
-            title="Notes and projects"
+            title="Notes, projects, and decisions"
             subtitle="Internal CompanyCore context records."
             icon={FileText}
-            nodes={[...projects, ...notes, ...decisions]}
+            nodes={filteredActiveNodes}
             selectedNodeId={selectedNodeId}
             onSelect={onSelect}
             groupBy={(node) => metadataString(node, "kind") ?? "Records"}
           />
-        </div>
+        )}
       </section>
     </div>
   );
+}
+
+function DepartmentFilter({
+  departments,
+  activeNodes,
+  selectedKey,
+  onSelect,
+}: {
+  departments: KnowledgeDepartment[];
+  activeNodes: CompanyCoreKnowledgeMapNode[];
+  selectedKey: string;
+  onSelect: (key: string) => void;
+}) {
+  if (departments.length === 0) return null;
+  return (
+    <section className="border border-border bg-background">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
+        <div className="text-sm font-semibold">Department filter</div>
+        <span className="text-xs text-muted-foreground">{formatCount(activeNodes.length)} visible in this tab</span>
+      </div>
+      <div className="flex gap-2 overflow-x-auto p-3">
+        <button
+          className={`shrink-0 rounded-md border px-3 py-1.5 text-sm transition ${
+            selectedKey === "all" ? "border-foreground bg-foreground text-background" : "border-border hover:bg-muted/60"
+          }`}
+          onClick={() => onSelect("all")}
+        >
+          All
+        </button>
+        {departments.map((department) => (
+          <button
+            key={department.key}
+            className={`flex shrink-0 items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition ${
+              selectedKey === department.key ? "border-foreground bg-foreground text-background" : "border-border hover:bg-muted/60"
+            }`}
+            onClick={() => onSelect(department.key)}
+          >
+            <span>{department.label}</span>
+            <span className="text-xs opacity-70">{formatCount(department.nodes.length)}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+interface FileTreeNode {
+  key: string;
+  name: string;
+  folders: FileTreeNode[];
+  files: CompanyCoreKnowledgeMapNode[];
+  count: number;
+}
+
+function FileHierarchy({
+  nodes,
+  selectedNodeId,
+  onSelect,
+}: {
+  nodes: CompanyCoreKnowledgeMapNode[];
+  selectedNodeId: string | null;
+  onSelect: (nodeId: string) => void;
+}) {
+  const tree = useMemo(() => buildFileHierarchy(nodes), [nodes]);
+  const initialOpen = useMemo(() => new Set(tree.folders.map((folder) => folder.key)), [tree]);
+  const [openFolders, setOpenFolders] = useState<Set<string>>(initialOpen);
+
+  useEffect(() => {
+    setOpenFolders(initialOpen);
+  }, [initialOpen]);
+
+  const toggleFolder = (key: string) => {
+    setOpenFolders((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  return (
+    <section className="border border-border bg-background">
+      <LibraryPanelHeader
+        icon={FolderOpen}
+        title="Files"
+        count={nodes.length}
+        subtitle="Google Drive files grouped by CompanyCore folder path."
+      />
+      <div className="divide-y divide-border">
+        {nodes.length === 0 ? (
+          <EmptyLibraryMessage message="No matching files in this department." />
+        ) : (
+          <>
+            {tree.folders.map((folder) => (
+              <FileFolderBranch
+                key={folder.key}
+                folder={folder}
+                depth={0}
+                openFolders={openFolders}
+                onToggle={toggleFolder}
+                selectedNodeId={selectedNodeId}
+                onSelect={onSelect}
+              />
+            ))}
+            {tree.files.map((node) => (
+              <KnowledgeRecordRow
+                key={node.id}
+                node={node}
+                selected={selectedNodeId === node.id}
+                onSelect={onSelect}
+              />
+            ))}
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function FileFolderBranch({
+  folder,
+  depth,
+  openFolders,
+  onToggle,
+  selectedNodeId,
+  onSelect,
+}: {
+  folder: FileTreeNode;
+  depth: number;
+  openFolders: Set<string>;
+  onToggle: (key: string) => void;
+  selectedNodeId: string | null;
+  onSelect: (nodeId: string) => void;
+}) {
+  const open = openFolders.has(folder.key);
+  return (
+    <div>
+      <button
+        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-muted/60"
+        style={{ paddingLeft: `${12 + depth * 18}px` }}
+        onClick={() => onToggle(folder.key)}
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          {open ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+          <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 truncate text-sm font-medium">{folder.name}</span>
+        </div>
+        <span className="text-xs text-muted-foreground">{formatCount(folder.count)}</span>
+      </button>
+      {open && (
+        <div className="border-t border-border/60">
+          {folder.folders.map((child) => (
+            <FileFolderBranch
+              key={child.key}
+              folder={child}
+              depth={depth + 1}
+              openFolders={openFolders}
+              onToggle={onToggle}
+              selectedNodeId={selectedNodeId}
+              onSelect={onSelect}
+            />
+          ))}
+          {folder.files.map((node) => (
+            <div key={node.id} style={{ paddingLeft: `${18 + (depth + 1) * 18}px` }}>
+              <KnowledgeRecordRow
+                node={node}
+                selected={selectedNodeId === node.id}
+                onSelect={onSelect}
+                compact
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TaskLists({
+  nodes,
+  selectedNodeId,
+  onSelect,
+}: {
+  nodes: CompanyCoreKnowledgeMapNode[];
+  selectedNodeId: string | null;
+  onSelect: (nodeId: string) => void;
+}) {
+  const groups = useMemo(() => groupByCollection(nodes, taskGroup), [nodes]);
+  return (
+    <KnowledgeAccordion
+      title="Tasks"
+      subtitle="ClickUp-synced work grouped by CompanyCore task list."
+      icon={ClipboardList}
+      groups={groups}
+      selectedNodeId={selectedNodeId}
+      onSelect={onSelect}
+      emptyMessage="No matching tasks in this department."
+    />
+  );
+}
+
+function TableCatalog({
+  nodes,
+  selectedNodeId,
+  onSelect,
+}: {
+  nodes: CompanyCoreKnowledgeMapNode[];
+  selectedNodeId: string | null;
+  onSelect: (nodeId: string) => void;
+}) {
+  const groups = useMemo(() => groupByCollection(nodes, (node) => collectionGroup(node, "Operating tables")), [nodes]);
+  const [openTables, setOpenTables] = useState<Set<string>>(() => new Set(nodes.slice(0, 4).map((node) => node.id)));
+
+  useEffect(() => {
+    setOpenTables(new Set(nodes.slice(0, 4).map((node) => node.id)));
+  }, [nodes]);
+
+  const toggleTable = (nodeId: string) => {
+    setOpenTables((current) => {
+      const next = new Set(current);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return next;
+    });
+  };
+
+  return (
+    <section className="border border-border bg-background">
+      <LibraryPanelHeader
+        icon={Database}
+        title="Tables"
+        count={nodes.length}
+        subtitle="CompanyCore system tables exposed through backend API and MCP surfaces."
+      />
+      <div className="divide-y divide-border">
+        {nodes.length === 0 ? (
+          <EmptyLibraryMessage message="No matching tables in this department." />
+        ) : (
+          groups.map((group) => (
+            <div key={group.label}>
+              <div className="flex items-center justify-between gap-3 bg-muted/35 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <span className="min-w-0 truncate">{group.label}</span>
+                <span>{formatCount(group.nodes.length)}</span>
+              </div>
+              {group.nodes.map((node) => {
+                const open = openTables.has(node.id);
+                return (
+                  <div key={node.id} className="border-t border-border/60">
+                    <button
+                      className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition hover:bg-muted/60 ${
+                        selectedNodeId === node.id ? "bg-muted" : ""
+                      }`}
+                      onClick={() => {
+                        onSelect(node.id);
+                        toggleTable(node.id);
+                      }}
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                        <Database className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 truncate text-sm font-semibold">{node.label}</span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                        {metadataString(node, "apiSlug") && <span>{metadataString(node, "apiSlug")}</span>}
+                        <span>{open ? "Hide rows" : "Show rows"}</span>
+                      </div>
+                    </button>
+                    {open && <TablePreview node={node} />}
+                  </div>
+                );
+              })}
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function TablePreview({ node }: { node: CompanyCoreKnowledgeMapNode }) {
+  const columns = tableColumns(node);
+  const rows = tableRows(node);
+  const visibleColumns = columns.slice(0, 8);
+  return (
+    <div className="border-t border-border bg-muted/15 p-3">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <Badge tone="muted">Source: CompanyCore</Badge>
+        {node.syncedWith.map((provider) => <Badge key={provider} tone="muted">Synced with: {provider}</Badge>)}
+        {metadataString(node, "tableName") && <Badge tone="muted">{metadataString(node, "tableName")}</Badge>}
+      </div>
+      <div className="overflow-x-auto border border-border bg-background">
+        <table className="min-w-full text-left text-xs">
+          <thead className="bg-muted/45 text-muted-foreground">
+            <tr>
+              {visibleColumns.map((column) => (
+                <th key={column} className="whitespace-nowrap px-3 py-2 font-medium">{column}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.length > 0 ? (
+              rows.slice(0, 10).map((row, index) => (
+                <tr key={index}>
+                  {visibleColumns.map((column) => (
+                    <td key={column} className="max-w-56 truncate px-3 py-2">{String(row[column] ?? "")}</td>
+                  ))}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="px-3 py-5 text-muted-foreground" colSpan={Math.max(visibleColumns.length, 1)}>
+                  No records are included in this preview yet. The table is visible to agents through CompanyCore, and rows will render here when the bridge exposes sample records.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {columns.length > visibleColumns.length && (
+        <div className="mt-2 text-xs text-muted-foreground">+{formatCount(columns.length - visibleColumns.length)} more columns hidden in preview</div>
+      )}
+    </div>
+  );
+}
+
+function KnowledgeAccordion({
+  title,
+  subtitle,
+  icon,
+  groups,
+  selectedNodeId,
+  onSelect,
+  emptyMessage,
+}: {
+  title: string;
+  subtitle: string;
+  icon: typeof BookOpen;
+  groups: Array<{ label: string; nodes: CompanyCoreKnowledgeMapNode[] }>;
+  selectedNodeId: string | null;
+  onSelect: (nodeId: string) => void;
+  emptyMessage: string;
+}) {
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(groups.slice(0, 3).map((group) => group.label)));
+
+  useEffect(() => {
+    setOpenGroups(new Set(groups.slice(0, 3).map((group) => group.label)));
+  }, [groups]);
+
+  const toggleGroup = (label: string) => {
+    setOpenGroups((current) => {
+      const next = new Set(current);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
+
+  return (
+    <section className="border border-border bg-background">
+      <LibraryPanelHeader icon={icon} title={title} count={groups.reduce((sum, group) => sum + group.nodes.length, 0)} subtitle={subtitle} />
+      <div className="divide-y divide-border">
+        {groups.length === 0 ? (
+          <EmptyLibraryMessage message={emptyMessage} />
+        ) : (
+          groups.map((group) => {
+            const open = openGroups.has(group.label);
+            return (
+              <div key={group.label}>
+                <button
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition hover:bg-muted/60"
+                  onClick={() => toggleGroup(group.label)}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                    <span className="min-w-0 truncate text-sm font-semibold">{group.label}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{formatCount(group.nodes.length)}</span>
+                </button>
+                {open && (
+                  <div className="divide-y divide-border border-t border-border/60">
+                    {group.nodes.map((node) => (
+                      <KnowledgeRecordRow
+                        key={node.id}
+                        node={node}
+                        selected={selectedNodeId === node.id}
+                        onSelect={onSelect}
+                        compact
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </section>
+  );
+}
+
+function LibraryPanelHeader({
+  icon: Icon,
+  title,
+  count,
+  subtitle,
+}: {
+  icon: typeof BookOpen;
+  title: string;
+  count: number;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          {title}
+          <span className="text-xs font-normal text-muted-foreground">({formatCount(count)})</span>
+        </div>
+        <div className="mt-0.5 text-xs text-muted-foreground">{subtitle}</div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyLibraryMessage({ message }: { message: string }) {
+  return <div className="px-3 py-6 text-sm text-muted-foreground">{message}</div>;
 }
 
 function KnowledgeSection({
@@ -590,17 +1030,19 @@ function KnowledgeRecordRow({
   node,
   selected,
   onSelect,
+  compact = false,
 }: {
   node: CompanyCoreKnowledgeMapNode;
   selected: boolean;
   onSelect: (nodeId: string) => void;
+  compact?: boolean;
 }) {
   const path = metadataString(node, "path") ?? metadataString(node, "folderPath") ?? metadataString(node, "folderName") ?? node.subtitle;
   const listName = metadataString(node, "listName");
   const webUrl = metadataString(node, "webUrl");
   return (
     <button
-      className={`block w-full px-3 py-2.5 text-left transition hover:bg-muted/60 ${
+      className={`block w-full px-3 text-left transition hover:bg-muted/60 ${compact ? "py-2" : "py-2.5"} ${
         selected ? "bg-muted" : ""
       }`}
       onClick={() => onSelect(node.id)}
@@ -608,7 +1050,7 @@ function KnowledgeRecordRow({
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${typeStyles[node.type].dot}`} />
+            {metadataString(node, "kind") === "file" ? <File className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <span className={`h-2 w-2 rounded-full ${typeStyles[node.type].dot}`} />}
             <span className="min-w-0 truncate text-sm font-medium">{node.label}</span>
           </div>
           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -788,6 +1230,90 @@ function groupNodes(
   }));
 }
 
+function buildFileHierarchy(nodes: CompanyCoreKnowledgeMapNode[]): FileTreeNode {
+  const root: FileTreeNode = { key: "root", name: "Files", folders: [], files: [], count: 0 };
+  const folderMap = new Map<string, FileTreeNode>([["root", root]]);
+
+  const ensureFolder = (parent: FileTreeNode, name: string, key: string) => {
+    const existing = folderMap.get(key);
+    if (existing) return existing;
+    const folder: FileTreeNode = { key, name, folders: [], files: [], count: 0 };
+    folderMap.set(key, folder);
+    parent.folders.push(folder);
+    return folder;
+  };
+
+  for (const node of nodes) {
+    const segments = fileFolderSegments(node);
+    let current = root;
+    let key = "root";
+    for (const segment of segments) {
+      key = `${key}/${segment}`;
+      current = ensureFolder(current, segment, key);
+    }
+    current.files.push(node);
+  }
+
+  const finalize = (folder: FileTreeNode): number => {
+    folder.folders.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+    folder.files.sort(sortByLabel);
+    folder.count = folder.files.length + folder.folders.reduce((sum, child) => sum + finalize(child), 0);
+    return folder.count;
+  };
+  finalize(root);
+  return root;
+}
+
+function fileFolderSegments(node: CompanyCoreKnowledgeMapNode) {
+  const folderPath = metadataString(node, "folderPath");
+  const folderName = metadataString(node, "folderName");
+  const path = metadataString(node, "path");
+  const source = folderPath ?? path ?? folderName ?? "Unsorted files";
+  const parts = pathSegments(source);
+  if (!folderPath && path && parts.length > 1) {
+    const last = parts[parts.length - 1];
+    if (last && labelsMatch(last, node.label)) return parts.slice(0, -1);
+  }
+  return parts.length > 0 ? parts : ["Unsorted files"];
+}
+
+function tableColumns(node: CompanyCoreKnowledgeMapNode) {
+  const configured = metadataArray(node, "columns")
+    ?? metadataArray(node, "schemaColumns")
+    ?? metadataArray(node, "fields");
+  if (configured && configured.length > 0) {
+    return configured
+      .map((column) => typeof column === "string" ? column : recordFieldName(column))
+      .filter((column): column is string => Boolean(column));
+  }
+  const fallback = ["tableName", "apiSlug", "status", "folder", "syncedWith"];
+  return fallback.filter((column) => column === "status" || column === "syncedWith" || metadataString(node, column));
+}
+
+function tableRows(node: CompanyCoreKnowledgeMapNode) {
+  const rows = metadataArray(node, "rows")
+    ?? metadataArray(node, "records")
+    ?? metadataArray(node, "sampleRows");
+  return (rows ?? [])
+    .map((row) => row && typeof row === "object" && !Array.isArray(row) ? row as Record<string, unknown> : null)
+    .filter((row): row is Record<string, unknown> => Boolean(row));
+}
+
+function metadataArray(node: CompanyCoreKnowledgeMapNode, key: string) {
+  const value = node.metadata[key];
+  return Array.isArray(value) ? value : null;
+}
+
+function recordFieldName(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  for (const key of ["name", "key", "id", "label", "title"]) {
+    const candidate = record[key];
+    if (typeof candidate === "string" && candidate.trim()) return candidate;
+  }
+  return null;
+}
+
 function departmentKeyForNode(node: CompanyCoreKnowledgeMapNode) {
   for (const value of departmentSearchValues(node)) {
     const match = value.match(/\b(0[0-9]|1[0-2])\s*[.\-]\s*[^/|]+/);
@@ -907,12 +1433,21 @@ function taskGroup(node: CompanyCoreKnowledgeMapNode) {
 }
 
 function firstPathSegment(value: string) {
-  const normalized = value.replaceAll("\\", "/");
-  const parts = normalized
+  const parts = pathSegments(value);
+  return parts[0] ?? value;
+}
+
+function pathSegments(value: string) {
+  return value
+    .replaceAll("\\", "/")
     .split("/")
     .map((part) => part.trim())
     .filter(Boolean);
-  return parts[0] ?? value;
+}
+
+function labelsMatch(pathPart: string, label: string) {
+  const normalize = (value: string) => value.trim().toLowerCase();
+  return normalize(pathPart) === normalize(label);
 }
 
 function sortByLabel(a: CompanyCoreKnowledgeMapNode, b: CompanyCoreKnowledgeMapNode) {
