@@ -394,6 +394,36 @@ function GroupChildren({
   selectedNodeId: string | null;
   onSelect: (nodeId: string) => void;
 }) {
+  if (group.kind === "files") {
+    return (
+      <FileHierarchy
+        nodes={group.nodes}
+        selectedNodeId={selectedNodeId}
+        onSelect={onSelect}
+      />
+    );
+  }
+
+  if (group.kind === "tasks") {
+    return (
+      <TaskLists
+        nodes={group.nodes}
+        selectedNodeId={selectedNodeId}
+        onSelect={onSelect}
+      />
+    );
+  }
+
+  if (group.kind === "tables") {
+    return (
+      <TableCatalog
+        nodes={group.nodes}
+        selectedNodeId={selectedNodeId}
+        onSelect={onSelect}
+      />
+    );
+  }
+
   return (
     <section className="border border-border bg-background">
       <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
@@ -1258,6 +1288,7 @@ function buildFileHierarchy(nodes: CompanyCoreKnowledgeMapNode[]): FileTreeNode 
       key = `${key}/${segment}`;
       current = ensureFolder(current, segment, key);
     }
+    if (metadataBoolean(node, "isFolder")) continue;
     current.files.push(node);
   }
 
@@ -1277,6 +1308,7 @@ function fileFolderSegments(node: CompanyCoreKnowledgeMapNode) {
   const path = metadataString(node, "path");
   const source = folderPath ?? path ?? folderName ?? "Unsorted files";
   const parts = pathSegments(source);
+  if (metadataBoolean(node, "isFolder") && path) return parts;
   if (!folderPath && path && parts.length > 1) {
     const last = parts[parts.length - 1];
     if (last && labelsMatch(last, node.label)) return parts.slice(0, -1);
@@ -1422,6 +1454,10 @@ function filterNodesByResource(nodes: CompanyCoreKnowledgeMapNode[], filter: Kno
 function metadataString(node: CompanyCoreKnowledgeMapNode, key: string) {
   const value = node.metadata[key];
   return typeof value === "string" && value.trim() ? value : null;
+}
+
+function metadataBoolean(node: CompanyCoreKnowledgeMapNode, key: string) {
+  return node.metadata[key] === true;
 }
 
 function collectionGroup(node: CompanyCoreKnowledgeMapNode, fallback: string) {

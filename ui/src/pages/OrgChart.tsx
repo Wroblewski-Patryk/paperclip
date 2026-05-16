@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "@/lib/router";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { agentsApi, type OrgNode } from "../api/agents";
+import { companyCoreApi, type CompanyCoreKnowledgeMapNode } from "../api/companycore";
+import { companySkillsApi } from "../api/companySkills";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { queryKeys } from "../lib/queryKeys";
@@ -10,8 +12,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "../components/EmptyState";
 import { PageSkeleton } from "../components/PageSkeleton";
 import { AgentIcon } from "../components/AgentIconPicker";
-import { Download, Maximize2, Minus, Network, Plus, Upload } from "lucide-react";
-import { AGENT_ROLE_LABELS, type Agent } from "@paperclipai/shared";
+import { BookOpen, Download, GraduationCap, Maximize2, Minus, Network, Plus, Upload } from "lucide-react";
+import { AGENT_ROLE_LABELS, type Agent, type AgentSkillSnapshot, type CompanySkillListItem } from "@paperclipai/shared";
 
 // Layout constants
 const CARD_W = 200;
@@ -19,6 +21,10 @@ const CARD_H = 100;
 const GAP_X = 32;
 const GAP_Y = 80;
 const PADDING = 60;
+const RESOURCE_W = 220;
+const RESOURCE_H = 76;
+const RESOURCE_GAP = 14;
+const RESOURCE_SECTION_GAP = 44;
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
 const TOUCH_MOVE_THRESHOLD = 6;
@@ -33,6 +39,48 @@ interface LayoutNode {
   x: number;
   y: number;
   children: LayoutNode[];
+}
+
+type ResourceLayer = "skills" | "knowledge";
+
+interface ResourceNode {
+  id: string;
+  key: string;
+  layer: ResourceLayer;
+  label: string;
+  subtitle: string | null;
+  detail: string | null;
+  href: string | null;
+  agentIds: string[];
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface ResourceSectionLayout {
+  key: ResourceLayer;
+  label: string;
+  icon: typeof GraduationCap;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  count: number;
+}
+
+interface ResourceLayout {
+  sections: ResourceSectionLayout[];
+  nodes: ResourceNode[];
+  width: number;
+  height: number;
+}
+
+interface ResourceConnection {
+  id: string;
+  agentId: string;
+  resourceId: string;
+  layer: ResourceLayer;
 }
 
 interface Point {
@@ -174,6 +222,12 @@ export function OrgChart() {
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const navigate = useNavigate();
+  const [visibleLayers, setVisibleLayers] = useState<Record<ResourceLayer, boolean>>({
+    skills: true,
+    knowledge: true,
+  });
+  const [hoveredAgentId, setHoveredAgentId] = useState<string | null>(null);
+  const [hoveredResourceId, setHoveredResourceId] = useState<string | null>(null);
 
   const { data: orgTree, isLoading } = useQuery({
     queryKey: queryKeys.org(selectedCompanyId!),
@@ -187,11 +241,42 @@ export function OrgChart() {
     enabled: !!selectedCompanyId,
   });
 
+  const { data: companySkills } = useQuery({
+    queryKey: queryKeys.companySkills.list(selectedCompanyId ?? ""),
+    queryFn: () => companySkillsApi.list(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+  });
+
+  const { data: knowledgeMap } = useQuery({
+    queryKey: queryKeys.companyCore.map(selectedCompanyId ?? ""),
+    queryFn: () => companyCoreApi.map(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+    refetchInterval: 60_000,
+  });
+
+  const skillSnapshotResults = useQueries({
+    queries: (agents ?? []).map((agent) => ({
+      queryKey: queryKeys.agents.skills(agent.id),
+      queryFn: () => agentsApi.skills(agent.id, selectedCompanyId ?? undefined),
+      enabled: Boolean(selectedCompanyId),
+      staleTime: 30_000,
+    })),
+  });
+
   const agentMap = useMemo(() => {
     const m = new Map<string, Agent>();
     for (const a of agents ?? []) m.set(a.id, a);
     return m;
   }, [agents]);
+
+  const skillSnapshotByAgentId = useMemo(() => {
+    const m = new Map<string, AgentSkillSnapshot>();
+    (agents ?? []).forEach((agent, index) => {
+      const snapshot = skillSnapshotResults[index]?.data;
+      if (snapshot) m.set(agent.id, snapshot);
+    });
+    return m;
+  }, [agents, skillSnapshotResults]);
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Org Chart" }]);
@@ -202,8 +287,18 @@ export function OrgChart() {
   const allNodes = useMemo(() => flattenLayout(layout), [layout]);
   const edges = useMemo(() => collectEdges(layout), [layout]);
 
+  const resourceData = useMemo(
+    () => buildResourceData({
+      agents: agents ?? [],
+      companySkills: companySkills ?? [],
+      skillSnapshotByAgentId,
+      knowledgeNodes: knowledgeMap?.nodes ?? [],
+    }),
+    [agents, companySkills, knowledgeMap?.nodes, skillSnapshotByAgentId],
+  );
+
   // Compute SVG bounds
-  const bounds = useMemo(() => {
+  const agentBounds = useMemo(() => {
     if (allNodes.length === 0) return { width: 800, height: 600 };
     let maxX = 0, maxY = 0;
     for (const n of allNodes) {
@@ -212,6 +307,42 @@ export function OrgChart() {
     }
     return { width: maxX + PADDING, height: maxY + PADDING };
   }, [allNodes]);
+
+  const resourceLayout = useMemo(
+    () => layoutResources({
+      skills: visibleLayers.skills ? resourceData.skills : [],
+      knowledge: visibleLayers.knowledge ? resourceData.knowledge : [],
+      startY: agentBounds.height + 18,
+      minWidth: agentBounds.width,
+    }),
+    [agentBounds.height, agentBounds.width, resourceData.knowledge, resourceData.skills, visibleLayers.knowledge, visibleLayers.skills],
+  );
+
+  const resourceNodesById = useMemo(
+    () => new Map(resourceLayout.nodes.map((node) => [node.id, node])),
+    [resourceLayout.nodes],
+  );
+
+  const resourceConnections = useMemo<ResourceConnection[]>(
+    () =>
+      resourceLayout.nodes.flatMap((resource) =>
+        resource.agentIds.map((agentId) => ({
+          id: `${agentId}-${resource.id}`,
+          agentId,
+          resourceId: resource.id,
+          layer: resource.layer,
+        })),
+      ),
+    [resourceLayout.nodes],
+  );
+
+  const bounds = useMemo(
+    () => ({
+      width: Math.max(agentBounds.width, resourceLayout.width),
+      height: Math.max(agentBounds.height, resourceLayout.height),
+    }),
+    [agentBounds.height, agentBounds.width, resourceLayout.height, resourceLayout.width],
+  );
 
   // Pan & zoom state
   const containerRef = useRef<HTMLDivElement>(null);
@@ -455,6 +586,29 @@ export function OrgChart() {
             Export company
           </Button>
         </Link>
+        <div className="ml-0 flex flex-wrap items-center gap-1 rounded-md border border-border bg-background p-1 md:ml-2">
+          {[
+            { key: "skills" as const, label: `Skills ${resourceData.skills.length}`, icon: GraduationCap },
+            { key: "knowledge" as const, label: `Knowledge ${resourceData.knowledge.length}`, icon: BookOpen },
+          ].map((item) => {
+            const Icon = item.icon;
+            const active = visibleLayers[item.key];
+            return (
+              <button
+                key={item.key}
+                type="button"
+                aria-pressed={active}
+                className={`inline-flex h-7 items-center gap-1.5 rounded px-2 text-xs font-medium transition-colors ${
+                  active ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                onClick={() => setVisibleLayers((current) => ({ ...current, [item.key]: !current[item.key] }))}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div
         ref={containerRef}
@@ -545,6 +699,33 @@ export function OrgChart() {
                 />
               );
             })}
+            {resourceConnections.map((connection) => {
+              const agent = allNodes.find((node) => node.id === connection.agentId);
+              const resource = resourceNodesById.get(connection.resourceId);
+              if (!agent || !resource) return null;
+              const x1 = agent.x + CARD_W / 2;
+              const y1 = agent.y + CARD_H;
+              const x2 = resource.x + resource.width / 2;
+              const y2 = resource.y;
+              const c1y = y1 + Math.max(48, (y2 - y1) * 0.35);
+              const c2y = y2 - Math.max(32, (y2 - y1) * 0.18);
+              const active = isRelationshipActive({
+                hoveredAgentId,
+                hoveredResourceId,
+                agentId: connection.agentId,
+                resource,
+              });
+              return (
+                <path
+                  key={connection.id}
+                  d={`M ${x1} ${y1} C ${x1} ${c1y}, ${x2} ${c2y}, ${x2} ${y2}`}
+                  fill="none"
+                  stroke={connection.layer === "skills" ? "rgb(14 165 233)" : "rgb(16 185 129)"}
+                  strokeOpacity={active ? 0.9 : hoveredAgentId || hoveredResourceId ? 0.08 : 0.28}
+                  strokeWidth={active ? 2.4 : 1.5}
+                />
+              );
+            })}
           </g>
         </svg>
 
@@ -560,18 +741,27 @@ export function OrgChart() {
           {allNodes.map((node) => {
             const agent = agentMap.get(node.id);
             const dotColor = statusDotColor[node.status] ?? defaultDotColor;
+            const agentActive = isAgentActive({
+              hoveredAgentId,
+              hoveredResourceId,
+              agentId: node.id,
+              resource: hoveredResourceId ? resourceNodesById.get(hoveredResourceId) ?? null : null,
+            });
 
             return (
               <div
                 key={node.id}
                 data-org-card
-                className="absolute bg-card border border-border rounded-lg shadow-sm hover:shadow-md hover:border-foreground/20 transition-[box-shadow,border-color] duration-150 cursor-pointer select-none"
+                className="absolute bg-card border border-border rounded-lg shadow-sm hover:shadow-md hover:border-foreground/20 transition-[box-shadow,border-color,opacity,transform] duration-150 cursor-pointer select-none"
                 style={{
                   left: node.x,
                   top: node.y,
                   width: CARD_W,
                   minHeight: CARD_H,
+                  opacity: agentActive ? 1 : 0.24,
                 }}
+                onMouseEnter={() => setHoveredAgentId(node.id)}
+                onMouseLeave={() => setHoveredAgentId(null)}
                 onClick={() => navigate(agent ? agentUrl(agent) : `/agents/${node.id}`)}
                 onClickCapture={(e) => {
                   if (!suppressNextCardClick.current) return;
@@ -614,6 +804,75 @@ export function OrgChart() {
               </div>
             );
           })}
+
+          {resourceLayout.sections.map((section) => {
+            const Icon = section.icon;
+            return (
+              <div
+                key={section.key}
+                className="absolute flex items-center gap-2 border-b border-border/70 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                style={{
+                  left: section.x,
+                  top: section.y,
+                  width: section.width,
+                }}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{section.label}</span>
+                <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px] tabular-nums">
+                  {section.count}
+                </span>
+              </div>
+            );
+          })}
+
+          {resourceLayout.nodes.map((resource) => {
+            const active = isResourceActive({ hoveredAgentId, hoveredResourceId, resource });
+            const card = (
+              <div
+                key={resource.id}
+                className={`absolute border bg-background px-3 py-2 shadow-sm transition-[opacity,border-color,box-shadow] duration-150 ${
+                  resource.layer === "skills"
+                    ? "border-sky-300/70 hover:border-sky-500/80 dark:border-sky-700/60"
+                    : "border-emerald-300/70 hover:border-emerald-500/80 dark:border-emerald-700/60"
+                }`}
+                style={{
+                  left: resource.x,
+                  top: resource.y,
+                  width: resource.width,
+                  height: resource.height,
+                  opacity: active ? 1 : 0.22,
+                }}
+                onMouseEnter={() => setHoveredResourceId(resource.id)}
+                onMouseLeave={() => setHoveredResourceId(null)}
+                title={`${resource.label}${resource.detail ? ` - ${resource.detail}` : ""}`}
+              >
+                <div className="flex items-start gap-2">
+                  {resource.layer === "skills" ? (
+                    <GraduationCap className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+                  ) : (
+                    <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-semibold text-foreground">{resource.label}</div>
+                    {resource.subtitle ? (
+                      <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{resource.subtitle}</div>
+                    ) : null}
+                    {resource.detail ? (
+                      <div className="mt-1 truncate text-[10px] text-muted-foreground/80">{resource.detail}</div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+
+            if (!resource.href) return card;
+            return (
+              <Link key={resource.id} to={resource.href} className="contents">
+                {card}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -625,3 +884,334 @@ const roleLabels: Record<string, string> = AGENT_ROLE_LABELS;
 function roleLabel(role: string): string {
   return roleLabels[role] ?? role;
 }
+
+function buildResourceData(input: {
+  agents: Agent[];
+  companySkills: CompanySkillListItem[];
+  skillSnapshotByAgentId: Map<string, AgentSkillSnapshot>;
+  knowledgeNodes: CompanyCoreKnowledgeMapNode[];
+}) {
+  const skills = buildSkillResources(input.agents, input.companySkills, input.skillSnapshotByAgentId);
+  const knowledge = buildKnowledgeResources(input.agents, input.knowledgeNodes);
+  return { skills, knowledge };
+}
+
+function buildSkillResources(
+  agents: Agent[],
+  companySkills: CompanySkillListItem[],
+  skillSnapshotByAgentId: Map<string, AgentSkillSnapshot>,
+): ResourceNode[] {
+  const skillByKey = new Map(companySkills.map((skill) => [skill.key, skill]));
+  const agentIdsBySkill = new Map<string, Set<string>>();
+  const labelByMissingKey = new Map<string, string>();
+
+  for (const agent of agents) {
+    const snapshot = skillSnapshotByAgentId.get(agent.id);
+    if (!snapshot) continue;
+    const assignedKeys = new Set([
+      ...snapshot.desiredSkills,
+      ...snapshot.entries
+        .filter((entry) => entry.desired || entry.required)
+        .map((entry) => entry.key),
+    ]);
+    for (const key of assignedKeys) {
+      if (!key.trim()) continue;
+      const set = agentIdsBySkill.get(key) ?? new Set<string>();
+      set.add(agent.id);
+      agentIdsBySkill.set(key, set);
+      const entry = snapshot.entries.find((item) => item.key === key);
+      if (entry?.runtimeName) labelByMissingKey.set(key, entry.runtimeName);
+    }
+  }
+
+  return Array.from(agentIdsBySkill.entries())
+    .map(([key, agentIds]) => {
+      const skill = skillByKey.get(key);
+      return {
+        id: `skill:${key}`,
+        key,
+        layer: "skills" as const,
+        label: skill?.name ?? labelByMissingKey.get(key) ?? key,
+        subtitle: skill?.sourceLabel ?? (skill ? "Company skill" : "Runtime skill"),
+        detail: `${agentIds.size} agent${agentIds.size === 1 ? "" : "s"} attached`,
+        href: skill ? `/skills/${skill.id}` : null,
+        agentIds: Array.from(agentIds),
+        x: 0,
+        y: 0,
+        width: RESOURCE_W,
+        height: RESOURCE_H,
+      };
+    })
+    .sort((left, right) => left.label.localeCompare(right.label, undefined, { sensitivity: "base" }));
+}
+
+function buildKnowledgeResources(
+  agents: Agent[],
+  knowledgeNodes: CompanyCoreKnowledgeMapNode[],
+): ResourceNode[] {
+  const assignedByDepartment = new Map<string, Set<string>>();
+  for (const agent of agents) {
+    const key = departmentKeyForAgent(agent);
+    if (!key) continue;
+    const set = assignedByDepartment.get(key) ?? new Set<string>();
+    set.add(agent.id);
+    assignedByDepartment.set(key, set);
+  }
+
+  const scopedNodes = knowledgeNodes.filter((node) => node.type === "record" || node.type === "table");
+  const nodesByDepartment = new Map<string, CompanyCoreKnowledgeMapNode[]>();
+  for (const node of scopedNodes) {
+    const key = departmentKeyForKnowledgeNode(node);
+    if (!key || !assignedByDepartment.has(key)) continue;
+    nodesByDepartment.set(key, [...(nodesByDepartment.get(key) ?? []), node]);
+  }
+
+  return Array.from(nodesByDepartment.entries())
+    .map(([departmentKey, nodes]) => {
+      const agentIds = Array.from(assignedByDepartment.get(departmentKey) ?? []);
+      const kindCounts = knowledgeKindCounts(nodes);
+      return {
+        id: `knowledge:${departmentKey}`,
+        key: departmentKey,
+        layer: "knowledge" as const,
+        label: canonicalKnowledgeDepartmentLabel(departmentKey) ?? `${departmentKey}. Knowledge`,
+        subtitle: `${nodes.length} resource${nodes.length === 1 ? "" : "s"}`,
+        detail: formatKnowledgeSummary(kindCounts),
+        href: "/knowledge",
+        agentIds,
+        x: 0,
+        y: 0,
+        width: RESOURCE_W,
+        height: RESOURCE_H,
+      };
+    })
+    .sort((left, right) => left.key.localeCompare(right.key, undefined, { numeric: true }));
+}
+
+function layoutResources(input: {
+  skills: ResourceNode[];
+  knowledge: ResourceNode[];
+  startY: number;
+  minWidth: number;
+}): ResourceLayout {
+  const activeSections = [
+    { key: "skills" as const, label: "Skills", icon: GraduationCap, nodes: input.skills },
+    { key: "knowledge" as const, label: "Knowledge", icon: BookOpen, nodes: input.knowledge },
+  ].filter((section) => section.nodes.length > 0);
+
+  if (activeSections.length === 0) {
+    return { sections: [], nodes: [], width: input.minWidth, height: Math.max(0, input.startY - 18) };
+  }
+
+  const availableWidth = Math.max(input.minWidth - PADDING * 2, 680);
+  const sectionWidth = (availableWidth - RESOURCE_SECTION_GAP * (activeSections.length - 1)) / activeSections.length;
+  const sections: ResourceSectionLayout[] = [];
+  const nodes: ResourceNode[] = [];
+  let maxHeight = 0;
+
+  activeSections.forEach((section, sectionIndex) => {
+    const sectionX = PADDING + sectionIndex * (sectionWidth + RESOURCE_SECTION_GAP);
+    const sectionY = input.startY;
+    const columns = Math.max(1, Math.floor((sectionWidth + RESOURCE_GAP) / (RESOURCE_W + RESOURCE_GAP)));
+    const cardWidth = Math.min(
+      RESOURCE_W,
+      (sectionWidth - RESOURCE_GAP * (columns - 1)) / columns,
+    );
+    const cardsStartY = sectionY + 34;
+    section.nodes.forEach((node, index) => {
+      const column = index % columns;
+      const row = Math.floor(index / columns);
+      nodes.push({
+        ...node,
+        x: sectionX + column * (cardWidth + RESOURCE_GAP),
+        y: cardsStartY + row * (RESOURCE_H + RESOURCE_GAP),
+        width: cardWidth,
+        height: RESOURCE_H,
+      });
+    });
+    const rows = Math.max(1, Math.ceil(section.nodes.length / columns));
+    const height = 34 + rows * RESOURCE_H + (rows - 1) * RESOURCE_GAP;
+    maxHeight = Math.max(maxHeight, height);
+    sections.push({
+      key: section.key,
+      label: section.label,
+      icon: section.icon,
+      x: sectionX,
+      y: sectionY,
+      width: sectionWidth,
+      height,
+      count: section.nodes.length,
+    });
+  });
+
+  return {
+    sections,
+    nodes,
+    width: Math.max(input.minWidth, PADDING * 2 + availableWidth),
+    height: input.startY + maxHeight + PADDING,
+  };
+}
+
+function isRelationshipActive(input: {
+  hoveredAgentId: string | null;
+  hoveredResourceId: string | null;
+  agentId: string;
+  resource: ResourceNode;
+}) {
+  if (input.hoveredAgentId) return input.hoveredAgentId === input.agentId;
+  if (input.hoveredResourceId) return input.hoveredResourceId === input.resource.id;
+  return true;
+}
+
+function isResourceActive(input: {
+  hoveredAgentId: string | null;
+  hoveredResourceId: string | null;
+  resource: ResourceNode;
+}) {
+  if (input.hoveredAgentId) return input.resource.agentIds.includes(input.hoveredAgentId);
+  if (input.hoveredResourceId) return input.hoveredResourceId === input.resource.id;
+  return true;
+}
+
+function isAgentActive(input: {
+  hoveredAgentId: string | null;
+  hoveredResourceId: string | null;
+  agentId: string;
+  resource: ResourceNode | null;
+}) {
+  if (input.hoveredAgentId) return input.hoveredAgentId === input.agentId;
+  if (input.hoveredResourceId) return Boolean(input.resource?.agentIds.includes(input.agentId));
+  return true;
+}
+
+function departmentKeyForAgent(agent: Pick<Agent, "name" | "title" | "urlKey" | "role" | "capabilities" | "metadata">) {
+  const metadata = asRecord(agent.metadata);
+  const candidates = [
+    agent.name,
+    agent.title ?? "",
+    agent.capabilities ?? "",
+    metadataString(metadata, "departmentKey") ?? "",
+    metadataString(metadata, "department") ?? "",
+    metadataString(metadata, "knowledgeDepartment") ?? "",
+    roleDepartmentLabel(agent.role),
+    agent.urlKey,
+    agent.role,
+  ];
+  for (const value of candidates) {
+    const match = value.match(/\b(0[0-9]|1[0-2])(?:\s*[.\-]|\s+)/);
+    if (match?.[1]) return match[1];
+    const codeMatch = value.match(/\b(AIA|CSO|CPO|CRO|COO|CCO|CHRO|CFO|CAO|CTO|CLO|CINO|CEO)\b/i);
+    if (codeMatch?.[1]) return agentCodeDepartmentKeys[codeMatch[1].toUpperCase()] ?? null;
+  }
+  return roleDepartmentKeys[agent.role] ?? null;
+}
+
+function departmentKeyForKnowledgeNode(node: CompanyCoreKnowledgeMapNode) {
+  for (const value of knowledgeDepartmentSearchValues(node)) {
+    const match = value.match(/\b(0[0-9]|1[0-2])\s*[.\-]\s*[^/|]+/);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+function knowledgeDepartmentSearchValues(node: CompanyCoreKnowledgeMapNode) {
+  return [
+    node.label,
+    node.subtitle ?? "",
+    metadataString(node.metadata, "path") ?? "",
+    metadataString(node.metadata, "folderPath") ?? "",
+    metadataString(node.metadata, "folderName") ?? "",
+    metadataString(node.metadata, "listName") ?? "",
+    metadataString(node.metadata, "areaName") ?? "",
+    metadataString(node.metadata, "tableName") ?? "",
+  ];
+}
+
+function metadataString(record: Record<string, unknown> | null | undefined, key: string) {
+  const value = record?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function roleDepartmentLabel(role: string) {
+  const key = roleDepartmentKeys[role];
+  return key ? canonicalKnowledgeDepartmentLabel(key) ?? "" : "";
+}
+
+function canonicalKnowledgeDepartmentLabel(key: string) {
+  return {
+    "00": "00. Main",
+    "01": "01. Strategy",
+    "02": "02. Product",
+    "03": "03. Revenue",
+    "04": "04. Operations",
+    "05": "05. Customer",
+    "06": "06. People",
+    "07": "07. Finance",
+    "08": "08. Assets",
+    "09": "09. Technology",
+    "10": "10. Legal",
+    "11": "11. Innovation",
+    "12": "12. Management",
+  }[key];
+}
+
+function knowledgeKindCounts(nodes: CompanyCoreKnowledgeMapNode[]) {
+  return nodes.reduce(
+    (counts, node) => {
+      if (node.type === "table") counts.tables += 1;
+      else {
+        const kind = metadataString(node.metadata, "kind");
+        if (kind === "file") counts.files += 1;
+        else if (kind === "task") counts.tasks += 1;
+        else counts.notes += 1;
+      }
+      return counts;
+    },
+    { files: 0, tasks: 0, tables: 0, notes: 0 },
+  );
+}
+
+function formatKnowledgeSummary(counts: { files: number; tasks: number; tables: number; notes: number }) {
+  return [
+    counts.files ? `${counts.files} files` : null,
+    counts.tasks ? `${counts.tasks} tasks` : null,
+    counts.tables ? `${counts.tables} tables` : null,
+    counts.notes ? `${counts.notes} notes` : null,
+  ].filter(Boolean).join(" / ") || "Department knowledge";
+}
+
+const roleDepartmentKeys: Record<string, string> = {
+  ceo: "12",
+  cto: "09",
+  cpo: "02",
+  coo: "04",
+  cfo: "07",
+  cmo: "05",
+  pm: "02",
+  designer: "02",
+  engineer: "09",
+  devops: "04",
+  security: "10",
+  qa: "02",
+  researcher: "11",
+};
+
+const agentCodeDepartmentKeys: Record<string, string> = {
+  AIA: "00",
+  CSO: "01",
+  CPO: "02",
+  CRO: "03",
+  COO: "04",
+  CCO: "05",
+  CHRO: "06",
+  CFO: "07",
+  CAO: "08",
+  CTO: "09",
+  CLO: "10",
+  CINO: "11",
+  CEO: "12",
+};

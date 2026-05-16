@@ -694,6 +694,7 @@ function buildKnowledgeMap(input: {
   const mappingProviderByTableId = new Map<string, string[]>();
   const areaNameById = new Map<string, string>();
   const fileNameByExternalId = new Map<string, string>();
+  const fileInfoByExternalId = new Map<string, { name: string; parentExternalId: string | null; isFolder: boolean }>();
 
   for (const mapping of mappings) {
     const record = asRecord(mapping);
@@ -839,10 +840,34 @@ function buildKnowledgeMap(input: {
 
   for (const file of files) {
     const record = asRecord(file);
+    const rawMetadata = asRecord(record.rawMetadata);
     const externalId = asString(record.externalId) ?? asString(asRecord(record.rawMetadata).id);
     const name = labelFromRecord(record, "CompanyCore file");
     if (externalId) fileNameByExternalId.set(externalId, name);
+    if (externalId) {
+      fileInfoByExternalId.set(externalId, {
+        name,
+        parentExternalId: asString(record.parentExternalId) ?? asStringArray(rawMetadata.parents)[0] ?? null,
+        isFolder: typeof record.isFolder === "boolean"
+          ? record.isFolder
+          : asString(record.mimeType) === "application/vnd.google-apps.folder",
+      });
+    }
   }
+
+  const resolveFileAncestorLabels = (parentExternalId: string | null) => {
+    const labels: string[] = [];
+    const seen = new Set<string>();
+    let currentId = parentExternalId;
+    while (currentId && !seen.has(currentId)) {
+      seen.add(currentId);
+      const info = fileInfoByExternalId.get(currentId);
+      if (!info) break;
+      labels.unshift(info.name);
+      currentId = info.parentExternalId;
+    }
+    return labels;
+  };
 
   for (const table of tables) {
     const record = asRecord(table);
@@ -900,6 +925,15 @@ function buildKnowledgeMap(input: {
       const assignee = asRecord(record.assignee);
       const operatingAreaId = asString(record.operatingAreaId);
       const parentExternalId = asString(record.parentExternalId) ?? asStringArray(rawMetadata.parents)[0] ?? null;
+      const externalId = firstString(record.externalId, rawMetadata.id);
+      const isFolder = typeof record.isFolder === "boolean"
+        ? record.isFolder
+        : asString(record.mimeType) === "application/vnd.google-apps.folder";
+      const fileAncestorLabels = group.type === "file" ? resolveFileAncestorLabels(parentExternalId) : [];
+      const computedFolderPath = fileAncestorLabels.length > 0 ? fileAncestorLabels.join("/") : null;
+      const computedFilePath = group.type === "file"
+        ? [...fileAncestorLabels, labelFromRecord(record, "CompanyCore file")].join("/")
+        : null;
       pushNode(nodes, {
         id: `${group.type}-${id}`,
         type: "record",
@@ -923,8 +957,8 @@ function buildKnowledgeMap(input: {
         agentAccess: toolAccessForDomain(tools, group.prefixes),
         metadata: {
           kind: group.type,
-          path: firstString(record.path, record.fullPath, record.drivePath),
-          folderPath: firstString(record.folderPath, record.parentPath, record.driveFolderPath),
+          path: firstString(record.path, record.fullPath, record.drivePath, computedFilePath),
+          folderPath: firstString(record.folderPath, record.parentPath, record.driveFolderPath, computedFolderPath),
           folderName: firstString(
             record.folderName,
             folder.name,
@@ -947,9 +981,9 @@ function buildKnowledgeMap(input: {
             record.alternateLink,
             record.externalUrl,
           ),
-          externalId: firstString(record.externalId, rawMetadata.id),
+          externalId,
           parentExternalId,
-          isFolder: typeof record.isFolder === "boolean" ? record.isFolder : null,
+          isFolder,
           priority: asString(record.priority),
           dueDate: asString(record.dueDate),
           mimeType: asString(record.mimeType),
