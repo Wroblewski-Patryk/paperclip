@@ -9,6 +9,7 @@ import {
 } from "../api/agents";
 import {
   companyCoreApi,
+  type CompanyCoreAgentToolEntry,
   type CompanyCoreKnowledgeMapNode,
 } from "../api/companycore";
 import { companySkillsApi } from "../api/companySkills";
@@ -81,6 +82,7 @@ import {
   ArrowLeft,
   HelpCircle,
   FolderOpen,
+  Wrench,
 } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -242,13 +244,14 @@ function scrollToContainerBottom(container: ScrollContainer, behavior: ScrollBeh
   container.scrollTo({ top: container.scrollHeight, behavior });
 }
 
-type AgentDetailView = "dashboard" | "instructions" | "configuration" | "skills" | "knowledge" | "runs" | "budget";
+type AgentDetailView = "dashboard" | "instructions" | "configuration" | "skills" | "knowledge" | "tools" | "runs" | "budget";
 
 function parseAgentDetailView(value: string | null): AgentDetailView {
   if (value === "instructions" || value === "prompts") return "instructions";
   if (value === "configure" || value === "configuration") return "configuration";
   if (value === "skills") return "skills";
   if (value === "knowledge") return "knowledge";
+  if (value === "tools") return "tools";
   if (value === "budget") return "budget";
   if (value === "runs") return value;
   return "dashboard";
@@ -767,11 +770,13 @@ export function AgentDetail() {
             ? "skills"
             : activeView === "knowledge"
               ? "knowledge"
-              : activeView === "runs"
-                ? "runs"
-                : activeView === "budget"
-                  ? "budget"
-                : "dashboard";
+              : activeView === "tools"
+                ? "tools"
+                : activeView === "runs"
+                  ? "runs"
+                  : activeView === "budget"
+                    ? "budget"
+                    : "dashboard";
     if (routeAgentRef !== canonicalAgentRef || urlTab !== canonicalTab) {
       navigate(`/agents/${canonicalAgentRef}/${canonicalTab}`, { replace: true });
       return;
@@ -893,6 +898,8 @@ export function AgentDetail() {
         crumbs.push({ label: "Skills" });
       } else if (activeView === "knowledge") {
         crumbs.push({ label: "Knowledge" });
+      } else if (activeView === "tools") {
+        crumbs.push({ label: "Tools" });
       } else if (activeView === "runs") {
         crumbs.push({ label: "Runs" });
       } else if (activeView === "budget") {
@@ -1035,6 +1042,7 @@ export function AgentDetail() {
               { value: "instructions", label: "Instructions" },
               { value: "skills", label: "Skills" },
               { value: "knowledge", label: "Knowledge" },
+              { value: "tools", label: "Tools" },
               { value: "configuration", label: "Configuration" },
               { value: "runs", label: "Runs" },
               { value: "budget", label: "Budget" },
@@ -1155,6 +1163,13 @@ export function AgentDetail() {
 
       {activeView === "knowledge" && (
         <AgentKnowledgeTab
+          agent={agent}
+          companyId={resolvedCompanyId ?? undefined}
+        />
+      )}
+
+      {activeView === "tools" && (
+        <AgentToolsTab
           agent={agent}
           companyId={resolvedCompanyId ?? undefined}
         />
@@ -3199,6 +3214,295 @@ function sortKnowledgeNode(a: CompanyCoreKnowledgeMapNode, b: CompanyCoreKnowled
 
 function formatKnowledgeCount(value: number) {
   return new Intl.NumberFormat().format(value);
+}
+
+function AgentToolsTab({
+  agent,
+  companyId,
+}: {
+  agent: Agent;
+  companyId?: string;
+}) {
+  const queryClient = useQueryClient();
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "assigned" | "recommended" | "write" | "approval">("all");
+  const [toolDraft, setToolDraft] = useState<string[]>([]);
+  const [lastSavedTools, setLastSavedTools] = useState<string[]>([]);
+  const lastSavedToolsRef = useRef<string[]>([]);
+  const hasHydratedRef = useRef(false);
+  const skipNextAutosaveRef = useRef(true);
+
+  const { data: context, isLoading, error } = useQuery({
+    queryKey: queryKeys.companyCore.agentTools(agent.id),
+    queryFn: () => companyCoreApi.agentTools(agent.id, companyId!),
+    enabled: Boolean(companyId),
+    refetchInterval: 60_000,
+  });
+
+  const syncTools = useMutation({
+    mutationFn: (desiredTools: string[]) => companyCoreApi.syncAgentTools(agent.id, companyId!, desiredTools),
+    onSuccess: async (snapshot) => {
+      queryClient.setQueryData(queryKeys.companyCore.agentTools(agent.id), snapshot);
+      lastSavedToolsRef.current = snapshot.desiredTools;
+      setLastSavedTools(snapshot.desiredTools);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.companyCore.toolAssignments(companyId!) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.companyCore.manifest(companyId!) }),
+      ]);
+    },
+  });
+
+  useEffect(() => {
+    setToolDraft([]);
+    setLastSavedTools([]);
+    lastSavedToolsRef.current = [];
+    hasHydratedRef.current = false;
+    skipNextAutosaveRef.current = true;
+  }, [agent.id]);
+
+  useEffect(() => {
+    if (!context || hasHydratedRef.current) return;
+    hasHydratedRef.current = true;
+    skipNextAutosaveRef.current = true;
+    lastSavedToolsRef.current = context.desiredTools;
+    setLastSavedTools(context.desiredTools);
+    setToolDraft(context.desiredTools);
+  }, [context]);
+
+  useEffect(() => {
+    if (!context) return;
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false;
+      return;
+    }
+    if (syncTools.isPending) return;
+    if (arraysEqual(toolDraft, lastSavedToolsRef.current)) return;
+    const timeout = window.setTimeout(() => {
+      if (!arraysEqual(toolDraft, lastSavedToolsRef.current)) {
+        syncTools.mutate(toolDraft);
+      }
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [context, syncTools.isPending, syncTools.mutate, toolDraft]);
+
+  const draftSet = useMemo(() => new Set(toolDraft), [toolDraft]);
+  const rows = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return (context?.tools ?? [])
+      .filter((tool) => {
+        if (filter === "assigned" && !draftSet.has(tool.name)) return false;
+        if (filter === "recommended" && !tool.recommended) return false;
+        if (filter === "write" && toolRiskForAgent(tool) === "read") return false;
+        if (filter === "approval" && !tool.requiresApproval) return false;
+        if (!normalized) return true;
+        return [
+          tool.name,
+          tool.title ?? "",
+          tool.description ?? "",
+          tool.method ?? "",
+          tool.path ?? "",
+          tool.capability ?? "",
+          tool.group,
+        ].some((value) => value.toLowerCase().includes(normalized));
+      })
+      .sort((a, b) =>
+        Number(draftSet.has(b.name)) - Number(draftSet.has(a.name)) ||
+        Number(b.recommended) - Number(a.recommended) ||
+        a.group.localeCompare(b.group, undefined, { numeric: true, sensitivity: "base" }) ||
+        (a.title ?? a.name).localeCompare(b.title ?? b.name, undefined, { numeric: true, sensitivity: "base" }),
+      );
+  }, [context?.tools, draftSet, filter, query]);
+  const groups = useMemo(() => {
+    const map = new Map<string, CompanyCoreAgentToolEntry[]>();
+    for (const row of rows) map.set(row.group, [...(map.get(row.group) ?? []), row]);
+    return Array.from(map.entries())
+      .map(([key, tools]) => ({ key, label: toolGroupTitle(key), tools }))
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" }));
+  }, [rows]);
+  const recommendedSet = useMemo(() => new Set(context?.recommendedTools ?? []), [context?.recommendedTools]);
+  const hasUnsavedChanges = !arraysEqual(toolDraft, lastSavedTools);
+  const saveStatusLabel = syncTools.isPending
+    ? "Saving changes..."
+    : hasUnsavedChanges
+      ? "Saving soon..."
+      : null;
+
+  const toggleTool = (toolName: string, checked: boolean) => {
+    setToolDraft((current) => checked
+      ? Array.from(new Set([...current, toolName])).sort()
+      : current.filter((value) => value !== toolName));
+  };
+
+  return (
+    <div className="max-w-5xl space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-medium">CompanyCore tool access</div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            All CompanyCore tools are listed here. Checked tools are exposed to this agent through /api/agents/me/tools.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {saveStatusLabel ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {syncTools.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              <span>{saveStatusLabel}</span>
+            </div>
+          ) : null}
+          <Link
+            to="/tools"
+            className="text-sm font-medium text-foreground underline-offset-4 no-underline transition-colors hover:text-foreground/70 hover:underline"
+          >
+            View company tools
+          </Link>
+        </div>
+      </div>
+
+      <section className="grid gap-3 md:grid-cols-3">
+        <KnowledgeAccessMetric label="Agent department" value={context?.agent.departmentLabel ?? "Not detected"} />
+        <KnowledgeAccessMetric label="Assigned tools" value={formatKnowledgeCount(toolDraft.length)} />
+        <KnowledgeAccessMetric label="Recommended tools" value={formatKnowledgeCount(context?.recommendedTools.length ?? 0)} />
+      </section>
+
+      <section className="rounded-lg border border-border bg-background">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border px-3 py-2">
+          <div className="relative min-w-64 flex-1">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search tools, capabilities, routes..."
+              className="h-8 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {[
+              { key: "all", label: "All" },
+              { key: "assigned", label: "Assigned" },
+              { key: "recommended", label: "Recommended" },
+              { key: "write", label: "Write" },
+              { key: "approval", label: "Approval" },
+            ].map((item) => (
+              <button
+                key={item.key}
+                className={cn(
+                  "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  filter === item.key ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted",
+                )}
+                onClick={() => setFilter(item.key as typeof filter)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setToolDraft(Array.from(new Set([...(context?.desiredTools ?? []), ...(context?.recommendedTools ?? [])])).sort())}
+            disabled={!context || syncTools.isPending}
+          >
+            Add recommendations
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <PageSkeleton variant="list" />
+        ) : error ? (
+          <div className="px-3 py-6 text-sm text-destructive">
+            {error instanceof Error ? error.message : "Failed to load CompanyCore tools."}
+          </div>
+        ) : groups.length === 0 ? (
+          <div className="px-3 py-6 text-sm text-muted-foreground">No tools match this filter.</div>
+        ) : (
+          <div className="divide-y divide-border">
+            {groups.map((group) => (
+              <div key={group.key}>
+                <div className="flex items-center justify-between gap-3 bg-muted/30 px-3 py-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Wrench className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="truncate text-sm font-semibold">{group.label}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{formatKnowledgeCount(group.tools.length)}</span>
+                </div>
+                <div className="divide-y divide-border">
+                  {group.tools.map((tool) => {
+                    const checked = draftSet.has(tool.name);
+                    const risk = toolRiskForAgent(tool);
+                    return (
+                      <label
+                        key={tool.name}
+                        className={cn("flex items-start gap-3 px-3 py-3 text-sm", checked ? "bg-muted/25" : "hover:bg-accent/20")}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => toggleTool(tool.name, event.target.checked)}
+                          className="mt-0.5"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">{tool.title ?? tool.name}</span>
+                            <span className={cn(
+                              "rounded border px-1.5 py-0.5 text-[10px] font-medium",
+                              risk === "read"
+                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+                            )}>
+                              {risk}
+                            </span>
+                            {tool.requiresApproval && (
+                              <span className="rounded border border-rose-500/40 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-700 dark:text-rose-300">
+                                approval
+                              </span>
+                            )}
+                            {recommendedSet.has(tool.name) && (
+                              <span className="rounded border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                recommended
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                            {tool.description ?? `${tool.method ?? "TOOL"} ${tool.path ?? ""}`.trim()}
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                            <span>{tool.capability ?? "uncategorized"}</span>
+                            {tool.path && <span className="font-mono">{tool.method ?? "TOOL"} {tool.path}</span>}
+                          </div>
+                          {tool.recommendationReason && (
+                            <p className="mt-1 text-xs text-muted-foreground">{tool.recommendationReason}</p>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {syncTools.isError && (
+        <p className="text-xs text-destructive">
+          {syncTools.error instanceof Error ? syncTools.error.message : "Failed to update tools"}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function toolRiskForAgent(tool: Pick<CompanyCoreAgentToolEntry, "riskLevel">) {
+  return tool.riskLevel === "destructive" ? "destructive" : tool.riskLevel === "write" ? "write" : "read";
+}
+
+function toolGroupTitle(key: string) {
+  return key
+    .replace(/^mcp_/, "mcp-")
+    .replaceAll("_", "-")
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 /* ---- Runs Tab ---- */

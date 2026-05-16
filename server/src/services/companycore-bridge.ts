@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
-import { agents, companyCoreSettings } from "@paperclipai/db";
+import { agentCompanyCoreTools, agents, companyCoreSettings } from "@paperclipai/db";
 import type { CompanyCoreCommandMode, PatchCompanyCoreSettings } from "@paperclipai/shared";
 import { notFound, unprocessable } from "../errors.js";
 
@@ -76,6 +76,58 @@ export interface CompanyCoreManifestSummary {
     code: string;
     message: string;
   } | null;
+}
+
+export interface CompanyCoreAgentToolEntry extends CompanyCoreToolEntry {
+  group: string;
+  assigned: boolean;
+  recommended: boolean;
+  recommendationReason: string | null;
+}
+
+export interface CompanyCoreAgentToolsContext {
+  provider: "companycore";
+  status: CompanyCoreConnectionStatus;
+  source: "CompanyCore";
+  agent: {
+    id: string;
+    name: string;
+    role: string;
+    title: string | null;
+    departmentKey: string | null;
+    departmentLabel: string | null;
+  };
+  desiredTools: string[];
+  recommendedTools: string[];
+  tools: CompanyCoreAgentToolEntry[];
+  guidance: string[];
+  error: {
+    code: string;
+    message: string;
+  } | null;
+}
+
+export interface CompanyCoreToolAssignmentSummary {
+  provider: "companycore";
+  status: CompanyCoreConnectionStatus;
+  toolCount: number;
+  assignedToolCount: number;
+  agentCount: number;
+  assignments: Array<{
+    toolName: string;
+    agentIds: string[];
+    agentNames: string[];
+  }>;
+  agents: Array<{
+    id: string;
+    name: string;
+    role: string;
+    title: string | null;
+    departmentKey: string | null;
+    departmentLabel: string | null;
+    desiredTools: string[];
+    recommendedTools: string[];
+  }>;
 }
 
 export type CompanyCoreKnowledgeNodeType =
@@ -644,6 +696,133 @@ function toolAccessForDomain(
     approvalRequired: matchingTools.some((tool) => tool.requiresApproval),
     capabilities,
   };
+}
+
+function toolGroupKey(tool: CompanyCoreToolEntry) {
+  const capability = tool.capability ?? "";
+  if (capability.includes(":")) return capability.split(":")[0] || "other";
+  const path = tool.path ?? "";
+  const [, first, second] = path.split("/");
+  return second && first === "v1" ? second : first || "other";
+}
+
+function normalizeToolNames(values: string[]) {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
+  );
+}
+
+function toolSearchText(tool: CompanyCoreToolEntry) {
+  return [
+    tool.name,
+    tool.title ?? "",
+    tool.description ?? "",
+    tool.method ?? "",
+    tool.path ?? "",
+    tool.capability ?? "",
+    tool.riskLevel ?? "",
+  ].join(" ").toLowerCase();
+}
+
+function recommendedToolReason(
+  agent: Pick<typeof agents.$inferSelect, "name" | "role" | "title" | "capabilities" | "metadata">,
+  tool: CompanyCoreToolEntry,
+) {
+  const text = toolSearchText(tool);
+  const departmentKey = departmentKeyForAgent(agent);
+  const agentText = `${agent.name} ${agent.title ?? ""} ${agent.role} ${agent.capabilities ?? ""}`.toLowerCase();
+
+  if (tool.riskLevel === "destructive") return null;
+  if (
+    text.includes("connection:read") ||
+    text.includes("mcp:read") ||
+    text.includes("company-os:read") ||
+    text.includes("relationships:read")
+  ) {
+    return "Baseline CompanyCore awareness for every agent.";
+  }
+  if (departmentKey === "00" && (text.includes(":read") || text.includes("knowledge") || text.includes("company-os"))) {
+    return "AIA needs broad read access to route work and answer company-level context questions.";
+  }
+  if (departmentKey === "12" && (text.includes(":read") || text.includes("approval") || text.includes("company-os"))) {
+    return "CEO needs company-wide operating context and governed approval visibility.";
+  }
+  if (departmentKey === "01" && (text.includes("strategy") || text.includes("governance") || text.includes("company-os"))) {
+    return "Strategy agents manage operating model and governance context.";
+  }
+  if (departmentKey === "02" && (text.includes("product") || text.includes("project") || text.includes("task") || text.includes("file"))) {
+    return "Product agents need product files, projects, and task context.";
+  }
+  if (departmentKey === "03" && (text.includes("sales") || text.includes("crm") || text.includes("relationship") || text.includes("task"))) {
+    return "Sales agents need CRM, relationships, and task workflow tools.";
+  }
+  if (departmentKey === "04" && (text.includes("operation") || text.includes("workflow") || text.includes("pipeline") || text.includes("task"))) {
+    return "Operations agents coordinate workflows, pipelines, and task delivery.";
+  }
+  if (departmentKey === "05" && (text.includes("relationship") || text.includes("customer") || text.includes("crm") || text.includes("task"))) {
+    return "Relationship agents need customer context, CRM, and follow-up workflows.";
+  }
+  if (departmentKey === "06" && (text.includes("people") || text.includes("role") || text.includes("hr") || text.includes("task"))) {
+    return "People agents need role, people, and internal task context.";
+  }
+  if (departmentKey === "07" && (text.includes("finance") || text.includes("billing") || text.includes("metric") || text.includes("read"))) {
+    return "Finance agents need billing, finance, and metric visibility.";
+  }
+  if (departmentKey === "08" && (text.includes("asset") || text.includes("storage") || text.includes("file") || text.includes("drive"))) {
+    return "Asset agents need storage and file inventory tools.";
+  }
+  if (departmentKey === "09" && (text.includes("tech") || text.includes("deployment") || text.includes("runtime") || text.includes("file") || text.includes("task") || text.includes("pipeline"))) {
+    return "Technology agents need implementation files, delivery tasks, and runtime workflow tools.";
+  }
+  if (departmentKey === "10" && (text.includes("legal") || text.includes("security") || text.includes("privacy") || text.includes("approval") || text.includes("read"))) {
+    return "Legal and security agents need compliance context and approval visibility.";
+  }
+  if (departmentKey === "11" && (text.includes("innovation") || text.includes("project") || text.includes("product") || text.includes("workflow") || text.includes("file") || text.includes("task"))) {
+    return "Innovation agents need product, project, file, and workflow tools.";
+  }
+  if (agentText.includes("qa") && (text.includes("task") || text.includes("file") || text.includes("project") || text.includes("read"))) {
+    return "QA agents need task, file, and project evidence for verification.";
+  }
+  if (agentText.includes("security") && (text.includes("security") || text.includes("privacy") || text.includes("approval") || text.includes("read"))) {
+    return "Security agents need risk and approval context.";
+  }
+  return null;
+}
+
+function recommendedToolNamesForAgent(
+  agent: Pick<typeof agents.$inferSelect, "name" | "role" | "title" | "capabilities" | "metadata">,
+  tools: CompanyCoreToolEntry[],
+) {
+  return normalizeToolNames(
+    tools
+      .filter((tool) => Boolean(recommendedToolReason(agent, tool)))
+      .map((tool) => tool.name),
+  );
+}
+
+function annotateAgentTools(
+  agent: Pick<typeof agents.$inferSelect, "name" | "role" | "title" | "capabilities" | "metadata">,
+  tools: CompanyCoreToolEntry[],
+  desiredTools: string[],
+): CompanyCoreAgentToolEntry[] {
+  const desired = new Set(desiredTools);
+  return tools
+    .map((tool) => {
+      const reason = recommendedToolReason(agent, tool);
+      return {
+        ...tool,
+        group: toolGroupKey(tool),
+        assigned: desired.has(tool.name),
+        recommended: Boolean(reason),
+        recommendationReason: reason,
+      };
+    })
+    .sort((a, b) =>
+      Number(b.assigned) - Number(a.assigned) ||
+      Number(b.recommended) - Number(a.recommended) ||
+      a.group.localeCompare(b.group, undefined, { numeric: true, sensitivity: "base" }) ||
+      (a.title ?? a.name).localeCompare(b.title ?? b.name, undefined, { numeric: true, sensitivity: "base" }),
+    );
 }
 
 function pushNode(
@@ -1244,6 +1423,193 @@ export function companyCoreBridgeService(db?: Db) {
           ),
         };
       }
+    },
+
+    async toolAssignments(companyId: string): Promise<CompanyCoreToolAssignmentSummary> {
+      if (!db) {
+        throw unprocessable("CompanyCore tool assignments require database access");
+      }
+      const [manifest, agentRows, assignmentRows] = await Promise.all([
+        this.manifest(companyId),
+        db
+          .select({
+            id: agents.id,
+            name: agents.name,
+            role: agents.role,
+            title: agents.title,
+            capabilities: agents.capabilities,
+            metadata: agents.metadata,
+          })
+          .from(agents)
+          .where(eq(agents.companyId, companyId)),
+        db
+          .select({
+            agentId: agentCompanyCoreTools.agentId,
+            toolName: agentCompanyCoreTools.toolName,
+          })
+          .from(agentCompanyCoreTools)
+          .where(eq(agentCompanyCoreTools.companyId, companyId)),
+      ]);
+      const agentNameById = new Map(agentRows.map((agent) => [agent.id, agent.name]));
+      const toolToAgentIds = new Map<string, string[]>();
+      const desiredByAgentId = new Map<string, string[]>();
+      for (const row of assignmentRows) {
+        toolToAgentIds.set(row.toolName, [...(toolToAgentIds.get(row.toolName) ?? []), row.agentId]);
+        desiredByAgentId.set(row.agentId, [...(desiredByAgentId.get(row.agentId) ?? []), row.toolName]);
+      }
+
+      return {
+        provider: "companycore",
+        status: manifest.status,
+        toolCount: manifest.tools.length,
+        assignedToolCount: toolToAgentIds.size,
+        agentCount: agentRows.length,
+        assignments: Array.from(toolToAgentIds.entries())
+          .map(([toolName, agentIds]) => ({
+            toolName,
+            agentIds,
+            agentNames: agentIds.map((id) => agentNameById.get(id)).filter((name): name is string => Boolean(name)),
+          }))
+          .sort((a, b) => a.toolName.localeCompare(b.toolName, undefined, { numeric: true, sensitivity: "base" })),
+        agents: agentRows
+          .map((agent) => {
+            const departmentKey = departmentKeyForAgent(agent);
+            return {
+              id: agent.id,
+              name: agent.name,
+              role: agent.role,
+              title: agent.title,
+              departmentKey,
+              departmentLabel: departmentLabel(departmentKey),
+              desiredTools: normalizeToolNames(desiredByAgentId.get(agent.id) ?? []),
+              recommendedTools: recommendedToolNamesForAgent(agent, manifest.tools),
+            };
+          })
+          .sort((a, b) =>
+            (a.departmentKey ?? "99").localeCompare(b.departmentKey ?? "99", undefined, { numeric: true }) ||
+            a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }),
+          ),
+      };
+    },
+
+    async agentTools(
+      companyId: string,
+      agentId: string,
+    ): Promise<CompanyCoreAgentToolsContext> {
+      if (!db) {
+        throw unprocessable("CompanyCore agent tools require database access");
+      }
+      const [agent] = await db
+        .select()
+        .from(agents)
+        .where(and(eq(agents.id, agentId), eq(agents.companyId, companyId)))
+        .limit(1);
+      if (!agent) throw notFound("Agent not found");
+
+      const [manifest, rows] = await Promise.all([
+        this.manifest(companyId),
+        db
+          .select({ toolName: agentCompanyCoreTools.toolName })
+          .from(agentCompanyCoreTools)
+          .where(and(eq(agentCompanyCoreTools.companyId, companyId), eq(agentCompanyCoreTools.agentId, agentId))),
+      ]);
+      const desiredTools = normalizeToolNames(rows.map((row) => row.toolName));
+      const recommendedTools = recommendedToolNamesForAgent(agent, manifest.tools);
+      const departmentKey = departmentKeyForAgent(agent);
+
+      return {
+        provider: "companycore",
+        status: manifest.status,
+        source: "CompanyCore",
+        agent: {
+          id: agent.id,
+          name: agent.name,
+          role: agent.role,
+          title: agent.title,
+          departmentKey,
+          departmentLabel: departmentLabel(departmentKey),
+        },
+        desiredTools,
+        recommendedTools,
+        tools: annotateAgentTools(agent, manifest.tools, desiredTools),
+        guidance: [
+          "Use only assigned CompanyCore tools for external company actions.",
+          "CompanyCore is the source of truth; Drive, ClickUp, and other systems are synchronized behind CompanyCore.",
+          "Read tools may be used for context. Write, workflow, pipeline, and destructive tools must honor CompanyCore and Paperclip approval guardrails.",
+          "If a needed tool is not assigned, ask the board or create a Paperclip issue for the responsible department instead of bypassing CompanyCore.",
+        ],
+        error: manifest.error,
+      };
+    },
+
+    async syncAgentTools(
+      companyId: string,
+      agentId: string,
+      desiredTools: string[],
+    ): Promise<CompanyCoreAgentToolsContext> {
+      if (!db) {
+        throw unprocessable("CompanyCore agent tools require database access");
+      }
+      const [agent] = await db
+        .select({ id: agents.id })
+        .from(agents)
+        .where(and(eq(agents.id, agentId), eq(agents.companyId, companyId)))
+        .limit(1);
+      if (!agent) throw notFound("Agent not found");
+
+      const manifest = await this.manifest(companyId);
+      const validToolNames = new Set(manifest.tools.map((tool) => tool.name));
+      const nextTools = normalizeToolNames(desiredTools).filter((toolName) => validToolNames.has(toolName));
+      const now = new Date();
+      await db.delete(agentCompanyCoreTools)
+        .where(and(eq(agentCompanyCoreTools.companyId, companyId), eq(agentCompanyCoreTools.agentId, agentId)));
+      if (nextTools.length > 0) {
+        await db.insert(agentCompanyCoreTools).values(
+          nextTools.map((toolName) => ({
+            companyId,
+            agentId,
+            toolName,
+            createdAt: now,
+            updatedAt: now,
+          })),
+        ).onConflictDoNothing();
+      }
+
+      return this.agentTools(companyId, agentId);
+    },
+
+    async applyRecommendedTools(companyId: string): Promise<CompanyCoreToolAssignmentSummary> {
+      if (!db) {
+        throw unprocessable("CompanyCore tool assignments require database access");
+      }
+      const [manifest, agentRows] = await Promise.all([
+        this.manifest(companyId),
+        db
+          .select({
+            id: agents.id,
+            name: agents.name,
+            role: agents.role,
+            title: agents.title,
+            capabilities: agents.capabilities,
+            metadata: agents.metadata,
+          })
+          .from(agents)
+          .where(eq(agents.companyId, companyId)),
+      ]);
+      const now = new Date();
+      const values = agentRows.flatMap((agent) =>
+        recommendedToolNamesForAgent(agent, manifest.tools).map((toolName) => ({
+          companyId,
+          agentId: agent.id,
+          toolName,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      );
+      if (values.length > 0) {
+        await db.insert(agentCompanyCoreTools).values(values).onConflictDoNothing();
+      }
+      return this.toolAssignments(companyId);
     },
 
     async knowledgeMap(companyId: string): Promise<CompanyCoreKnowledgeMap> {

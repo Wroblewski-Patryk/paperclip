@@ -603,6 +603,13 @@
       "when": 1778864400000,
       "tag": "0085_company_core_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1778897785448,
+      "tag": "0086_even_stryfe",
+      "breakpoints": true
     }
   ]
 }

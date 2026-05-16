@@ -19,6 +19,8 @@ export const queryKeys = {
     map: (companyId: string) => ["companycore", companyId, "map"] as const,
     health: (companyId: string) => ["companycore", companyId, "health"] as const,
     manifest: (companyId: string) => ["companycore", companyId, "manifest"] as const,
+    toolAssignments: (companyId: string) => ["companycore", companyId, "tool-assignments"] as const,
+    agentTools: (agentId: string) => ["companycore", "agent-tools", agentId] as const,
   },
   agents: {
     list: (companyId: string) => ["agents", companyId] as const,

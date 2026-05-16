@@ -113,6 +113,58 @@ export interface CompanyCoreManifestSummary {
   } | null;
 }
 
+export interface CompanyCoreAgentToolEntry extends CompanyCoreToolEntry {
+  group: string;
+  assigned: boolean;
+  recommended: boolean;
+  recommendationReason: string | null;
+}
+
+export interface CompanyCoreAgentToolsContext {
+  provider: "companycore";
+  status: CompanyCoreBridgeStatus;
+  source: "CompanyCore";
+  agent: {
+    id: string;
+    name: string;
+    role: string;
+    title: string | null;
+    departmentKey: string | null;
+    departmentLabel: string | null;
+  };
+  desiredTools: string[];
+  recommendedTools: string[];
+  tools: CompanyCoreAgentToolEntry[];
+  guidance: string[];
+  error: {
+    code: string;
+    message: string;
+  } | null;
+}
+
+export interface CompanyCoreToolAssignmentSummary {
+  provider: "companycore";
+  status: CompanyCoreBridgeStatus;
+  toolCount: number;
+  assignedToolCount: number;
+  agentCount: number;
+  assignments: Array<{
+    toolName: string;
+    agentIds: string[];
+    agentNames: string[];
+  }>;
+  agents: Array<{
+    id: string;
+    name: string;
+    role: string;
+    title: string | null;
+    departmentKey: string | null;
+    departmentLabel: string | null;
+    desiredTools: string[];
+    recommendedTools: string[];
+  }>;
+}
+
 export type CompanyCoreKnowledgeNodeType =
   | "workspace"
   | "domain"
@@ -189,4 +241,17 @@ export const companyCoreApi = {
     api.get<CompanyCoreConnectionSummary>(`/companies/${companyId}/tools/companycore/health`),
   manifest: (companyId: string) =>
     api.get<CompanyCoreManifestSummary>(`/companies/${companyId}/tools/companycore/manifest`),
+  toolAssignments: (companyId: string) =>
+    api.get<CompanyCoreToolAssignmentSummary>(`/companies/${companyId}/tools/companycore/assignments`),
+  applyToolRecommendations: (companyId: string) =>
+    api.post<CompanyCoreToolAssignmentSummary>(`/companies/${companyId}/tools/companycore/recommendations/apply`, {}),
+  agentTools: (agentId: string, companyId: string) =>
+    api.get<CompanyCoreAgentToolsContext>(
+      `/agents/${encodeURIComponent(agentId)}/tools/companycore?companyId=${encodeURIComponent(companyId)}`,
+    ),
+  syncAgentTools: (agentId: string, companyId: string, desiredTools: string[]) =>
+    api.post<CompanyCoreAgentToolsContext>(
+      `/agents/${encodeURIComponent(agentId)}/tools/companycore/sync?companyId=${encodeURIComponent(companyId)}`,
+      { desiredTools },
+    ),
 };

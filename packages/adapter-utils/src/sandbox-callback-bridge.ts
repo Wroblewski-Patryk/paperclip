@@ -34,6 +34,7 @@ export const DEFAULT_SANDBOX_CALLBACK_BRIDGE_ROUTE_ALLOWLIST: readonly SandboxCa
   // Identity, inbox, agent self-management
   { method: "GET", path: /^\/api\/agents\/me$/ },
   { method: "GET", path: /^\/api\/agents\/me\/knowledge$/ },
+  { method: "GET", path: /^\/api\/agents\/me\/tools$/ },
   { method: "GET", path: /^\/api\/agents\/me\/inbox-lite$/ },
   { method: "GET", path: /^\/api\/agents\/me\/inbox\/mine$/ },
   { method: "GET", path: /^\/api\/agents\/[^/]+$/ },
