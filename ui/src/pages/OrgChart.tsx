@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "@/lib/router";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { agentsApi, type OrgNode } from "../api/agents";
-import { companyCoreApi, type CompanyCoreKnowledgeMapNode } from "../api/companycore";
+import { companyCoreApi, type CompanyCoreKnowledgeMapNode, type CompanyCoreToolAssignmentSummary } from "../api/companycore";
 import { companySkillsApi } from "../api/companySkills";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "../components/EmptyState";
 import { PageSkeleton } from "../components/PageSkeleton";
 import { AgentIcon } from "../components/AgentIconPicker";
-import { BookOpen, Download, GraduationCap, Maximize2, Minus, Network, Plus, Upload } from "lucide-react";
+import { BookOpen, Download, GraduationCap, Maximize2, Minus, Network, Plus, Upload, Wrench } from "lucide-react";
 import { AGENT_ROLE_LABELS, type Agent, type AgentSkillSnapshot, type CompanySkillListItem } from "@paperclipai/shared";
 
 // Layout constants
@@ -41,7 +41,7 @@ interface LayoutNode {
   children: LayoutNode[];
 }
 
-type ResourceLayer = "skills" | "knowledge";
+type ResourceLayer = "skills" | "knowledge" | "tools";
 
 interface ResourceNode {
   id: string;
@@ -225,6 +225,7 @@ export function OrgChart() {
   const [visibleLayers, setVisibleLayers] = useState<Record<ResourceLayer, boolean>>({
     skills: true,
     knowledge: true,
+    tools: true,
   });
   const [hoveredAgentId, setHoveredAgentId] = useState<string | null>(null);
   const [hoveredResourceId, setHoveredResourceId] = useState<string | null>(null);
@@ -250,6 +251,13 @@ export function OrgChart() {
   const { data: knowledgeMap } = useQuery({
     queryKey: queryKeys.companyCore.map(selectedCompanyId ?? ""),
     queryFn: () => companyCoreApi.map(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+    refetchInterval: 60_000,
+  });
+
+  const { data: toolAssignments } = useQuery({
+    queryKey: queryKeys.companyCore.toolAssignments(selectedCompanyId ?? ""),
+    queryFn: () => companyCoreApi.toolAssignments(selectedCompanyId!),
     enabled: !!selectedCompanyId,
     refetchInterval: 60_000,
   });
@@ -293,8 +301,9 @@ export function OrgChart() {
       companySkills: companySkills ?? [],
       skillSnapshotByAgentId,
       knowledgeNodes: knowledgeMap?.nodes ?? [],
+      toolAssignments: toolAssignments ?? null,
     }),
-    [agents, companySkills, knowledgeMap?.nodes, skillSnapshotByAgentId],
+    [agents, companySkills, knowledgeMap?.nodes, skillSnapshotByAgentId, toolAssignments],
   );
 
   // Compute SVG bounds
@@ -312,10 +321,20 @@ export function OrgChart() {
     () => layoutResources({
       skills: visibleLayers.skills ? resourceData.skills : [],
       knowledge: visibleLayers.knowledge ? resourceData.knowledge : [],
+      tools: visibleLayers.tools ? resourceData.tools : [],
       startY: agentBounds.height + 18,
       minWidth: agentBounds.width,
     }),
-    [agentBounds.height, agentBounds.width, resourceData.knowledge, resourceData.skills, visibleLayers.knowledge, visibleLayers.skills],
+    [
+      agentBounds.height,
+      agentBounds.width,
+      resourceData.knowledge,
+      resourceData.skills,
+      resourceData.tools,
+      visibleLayers.knowledge,
+      visibleLayers.skills,
+      visibleLayers.tools,
+    ],
   );
 
   const resourceNodesById = useMemo(
@@ -590,6 +609,7 @@ export function OrgChart() {
           {[
             { key: "skills" as const, label: `Skills ${resourceData.skills.length}`, icon: GraduationCap },
             { key: "knowledge" as const, label: `Knowledge ${resourceData.knowledge.length}`, icon: BookOpen },
+            { key: "tools" as const, label: `Tools ${resourceData.tools.length}`, icon: Wrench },
           ].map((item) => {
             const Icon = item.icon;
             const active = visibleLayers[item.key];
@@ -720,7 +740,7 @@ export function OrgChart() {
                   key={connection.id}
                   d={`M ${x1} ${y1} C ${x1} ${c1y}, ${x2} ${c2y}, ${x2} ${y2}`}
                   fill="none"
-                  stroke={connection.layer === "skills" ? "rgb(14 165 233)" : "rgb(16 185 129)"}
+                  stroke={resourceLayerColor(connection.layer)}
                   strokeOpacity={active ? 0.9 : hoveredAgentId || hoveredResourceId ? 0.08 : 0.28}
                   strokeWidth={active ? 2.4 : 1.5}
                 />
@@ -832,9 +852,7 @@ export function OrgChart() {
               <div
                 key={resource.id}
                 className={`absolute border bg-background px-3 py-2 shadow-sm transition-[opacity,border-color,box-shadow] duration-150 ${
-                  resource.layer === "skills"
-                    ? "border-sky-300/70 hover:border-sky-500/80 dark:border-sky-700/60"
-                    : "border-emerald-300/70 hover:border-emerald-500/80 dark:border-emerald-700/60"
+                  resourceLayerBorderClass(resource.layer)
                 }`}
                 style={{
                   left: resource.x,
@@ -848,11 +866,7 @@ export function OrgChart() {
                 title={`${resource.label}${resource.detail ? ` - ${resource.detail}` : ""}`}
               >
                 <div className="flex items-start gap-2">
-                  {resource.layer === "skills" ? (
-                    <GraduationCap className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
-                  ) : (
-                    <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
-                  )}
+                  <ResourceIcon layer={resource.layer} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs font-semibold text-foreground">{resource.label}</div>
                     {resource.subtitle ? (
@@ -890,10 +904,12 @@ function buildResourceData(input: {
   companySkills: CompanySkillListItem[];
   skillSnapshotByAgentId: Map<string, AgentSkillSnapshot>;
   knowledgeNodes: CompanyCoreKnowledgeMapNode[];
+  toolAssignments: CompanyCoreToolAssignmentSummary | null;
 }) {
   const skills = buildSkillResources(input.agents, input.companySkills, input.skillSnapshotByAgentId);
   const knowledge = buildKnowledgeResources(input.agents, input.knowledgeNodes);
-  return { skills, knowledge };
+  const tools = buildToolResources(input.toolAssignments);
+  return { skills, knowledge, tools };
 }
 
 function buildSkillResources(
@@ -988,15 +1004,49 @@ function buildKnowledgeResources(
     .sort((left, right) => left.key.localeCompare(right.key, undefined, { numeric: true }));
 }
 
+function buildToolResources(
+  toolAssignments: CompanyCoreToolAssignmentSummary | null,
+): ResourceNode[] {
+  if (!toolAssignments) return [];
+
+  return toolAssignments.assignments
+    .filter((assignment) => assignment.agentIds.length > 0)
+    .map((assignment) => {
+      const toolName = assignment.toolName;
+      const group = toolName.includes(".")
+        ? toolName.split(".")[0] ?? "tools"
+        : toolName.includes("_")
+          ? toolName.split("_")[0] ?? "tools"
+          : "tools";
+      return {
+        id: `tool:${toolName}`,
+        key: toolName,
+        layer: "tools" as const,
+        label: titleFromToolName(toolName),
+        subtitle: titleFromToolName(group),
+        detail: `${assignment.agentIds.length} agent${assignment.agentIds.length === 1 ? "" : "s"} assigned`,
+        href: "/tools",
+        agentIds: assignment.agentIds,
+        x: 0,
+        y: 0,
+        width: RESOURCE_W,
+        height: RESOURCE_H,
+      };
+    })
+    .sort((left, right) => left.label.localeCompare(right.label, undefined, { numeric: true, sensitivity: "base" }));
+}
+
 function layoutResources(input: {
   skills: ResourceNode[];
   knowledge: ResourceNode[];
+  tools: ResourceNode[];
   startY: number;
   minWidth: number;
 }): ResourceLayout {
   const activeSections = [
     { key: "skills" as const, label: "Skills", icon: GraduationCap, nodes: input.skills },
     { key: "knowledge" as const, label: "Knowledge", icon: BookOpen, nodes: input.knowledge },
+    { key: "tools" as const, label: "Tools", icon: Wrench, nodes: input.tools },
   ].filter((section) => section.nodes.length > 0);
 
   if (activeSections.length === 0) {
@@ -1182,6 +1232,43 @@ function formatKnowledgeSummary(counts: { files: number; tasks: number; tables: 
     counts.tables ? `${counts.tables} tables` : null,
     counts.notes ? `${counts.notes} notes` : null,
   ].filter(Boolean).join(" / ") || "Department knowledge";
+}
+
+function titleFromToolName(value: string) {
+  return value
+    .replace(/^mcp_/, "mcp-")
+    .replaceAll("_", "-")
+    .replaceAll(".", "-")
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function resourceLayerColor(layer: ResourceLayer) {
+  return {
+    skills: "rgb(14 165 233)",
+    knowledge: "rgb(16 185 129)",
+    tools: "rgb(168 85 247)",
+  }[layer];
+}
+
+function resourceLayerBorderClass(layer: ResourceLayer) {
+  return {
+    skills: "border-sky-300/70 hover:border-sky-500/80 dark:border-sky-700/60",
+    knowledge: "border-emerald-300/70 hover:border-emerald-500/80 dark:border-emerald-700/60",
+    tools: "border-violet-300/70 hover:border-violet-500/80 dark:border-violet-700/60",
+  }[layer];
+}
+
+function ResourceIcon({ layer }: { layer: ResourceLayer }) {
+  if (layer === "skills") {
+    return <GraduationCap className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />;
+  }
+  if (layer === "knowledge") {
+    return <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />;
+  }
+  return <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-violet-600 dark:text-violet-300" />;
 }
 
 const roleDepartmentKeys: Record<string, string> = {

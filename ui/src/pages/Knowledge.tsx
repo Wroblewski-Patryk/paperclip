@@ -151,11 +151,6 @@ export function Knowledge() {
         </div>
       </header>
 
-      <section className="grid shrink-0 gap-3 md:grid-cols-2">
-        <Metric label="Files" value={formatCount(map?.summary.fileCount ?? 0)} icon={FolderOpen} />
-        <Metric label="Tasks" value={formatCount(map?.summary.taskCount ?? 0)} icon={ClipboardList} />
-      </section>
-
       <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <main className="flex min-h-0 flex-col overflow-hidden border border-border bg-background">
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2">
@@ -1184,18 +1179,6 @@ function Inspector({ node, map }: { node: CompanyCoreKnowledgeMapNode | null; ma
         )}
       </div>
     </aside>
-  );
-}
-
-function Metric({ label, value, icon: Icon }: { label: string; value: string; icon: typeof BookOpen }) {
-  return (
-    <div className="border border-border bg-background p-3">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" />
-        {label}
-      </div>
-      <div className="mt-2 truncate text-lg font-semibold">{value}</div>
-    </div>
   );
 }
 

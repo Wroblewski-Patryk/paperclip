@@ -2,17 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Activity,
   Bot,
   ChevronDown,
   ChevronRight,
   KeyRound,
-  LockKeyhole,
   Loader2,
   Network,
   Search,
-  ShieldCheck,
-  SlidersHorizontal,
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,25 +19,6 @@ import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
 
 type ToolFilter = "all" | "read" | "write" | "approval";
-
-const commandModes = [
-  {
-    name: "read_only",
-    description: "Agents can inspect CompanyCore state and MCP metadata without external writes.",
-  },
-  {
-    name: "draft_only",
-    description: "Agents can prepare proposals and Paperclip issues, but not write to CompanyCore.",
-  },
-  {
-    name: "approval_required",
-    description: "CompanyCore writes require a Paperclip approval before execution.",
-  },
-  {
-    name: "supervised_operator",
-    description: "High-trust mode for deliberate, human-supervised operating sessions.",
-  },
-];
 
 const futureToolIdeas = [
   "CompanyCore table row CRUD with schema-aware validation.",
@@ -143,7 +120,7 @@ export function Tools() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-7rem)] min-h-[680px] flex-col gap-4">
+    <div className="flex h-[calc(100dvh-7rem)] min-h-[680px] flex-col gap-3">
       <header className="shrink-0 border-b border-border pb-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
@@ -154,6 +131,12 @@ export function Tools() {
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
               CompanyCore MCP tools available to Paperclip agents. Drive, ClickUp, and company data stay hidden behind CompanyCore.
             </p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <StatusPill label="Gateway" value={health?.status ?? (healthQuery.isLoading ? "checking" : "CompanyCore")} />
+              <StatusPill label="Catalog" value={`${formatCount(tools.length)} tools`} />
+              <StatusPill label="Writes" value={`${formatCount(counts.write)} write / ${formatCount(counts.approval)} approval`} />
+              <StatusPill label="Assignments" value={`${formatCount(assignments?.assignedToolCount ?? 0)} tools / ${formatCount(assignments?.agentCount ?? 0)} agents`} />
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
@@ -165,33 +148,6 @@ export function Tools() {
           </div>
         </div>
       </header>
-
-      <section className="grid shrink-0 gap-3 md:grid-cols-4">
-        <SummaryPanel
-          icon={ShieldCheck}
-          label="Gateway"
-          value={health?.status ?? (healthQuery.isLoading ? "checking" : "CompanyCore")}
-          description={health?.error?.message ?? "Agents receive CompanyCore tools, not separate provider credentials."}
-        />
-        <SummaryPanel
-          icon={LockKeyhole}
-          label="Catalog"
-          value={`${formatCount(tools.length)} tools`}
-          description={manifest?.schemaVersion ? `Schema ${manifest.schemaVersion}` : "Waiting for CompanyCore manifest."}
-        />
-        <SummaryPanel
-          icon={Activity}
-          label="Writes"
-          value={formatCount(counts.write)}
-          description={`${formatCount(counts.approval)} tools require explicit approval.`}
-        />
-        <SummaryPanel
-          icon={Bot}
-          label="Agent policy"
-          value={`${formatCount(assignments?.assignedToolCount ?? 0)} assigned`}
-          description={`${formatCount(assignments?.agentCount ?? 0)} agents have CompanyCore tool recommendations and assignments.`}
-        />
-      </section>
 
       <section className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <main className="flex min-h-0 flex-col overflow-hidden border border-border bg-background">
@@ -274,21 +230,6 @@ export function Tools() {
                     {agent.departmentLabel ?? agent.role}
                   </div>
                 </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="border border-border bg-background p-4">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Command modes</h2>
-            </div>
-            <div className="mt-3 space-y-3">
-              {commandModes.map((mode) => (
-                <div key={mode.name}>
-                  <code className="text-xs">{mode.name}</code>
-                  <p className="mt-1 text-sm leading-5 text-muted-foreground">{mode.description}</p>
-                </div>
               ))}
             </div>
           </div>
@@ -447,26 +388,12 @@ function ToolRow({ tool, assignedAgentNames }: { tool: CompanyCoreToolEntry; ass
   );
 }
 
-function SummaryPanel({
-  icon: Icon,
-  label,
-  value,
-  description,
-}: {
-  icon: typeof Wrench;
-  label: string;
-  value: string;
-  description: string;
-}) {
+function StatusPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-border bg-background p-3">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" />
-        {label}
-      </div>
-      <div className="mt-2 truncate text-lg font-semibold">{value}</div>
-      <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{description}</p>
-    </div>
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className="min-w-0 truncate font-medium">{value}</span>
+    </span>
   );
 }
 
