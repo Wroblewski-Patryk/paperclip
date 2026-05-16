@@ -13,7 +13,6 @@ import {
   FolderOpen,
   RefreshCw,
   Search,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,8 +26,8 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
 
-type KnowledgeView = "library" | "map";
 type KnowledgeLibraryTab = "files" | "tasks" | "tables" | "notes";
+type KnowledgeResourceFilter = "all" | "folders" | "task_lists" | "tables" | "notes";
 
 type KnowledgeExplorerFocus =
   | { kind: "department"; departmentKey: string }
@@ -46,6 +45,18 @@ interface KnowledgeGroup {
   kind: "files" | "tasks" | "tables" | "notes";
   nodes: CompanyCoreKnowledgeMapNode[];
 }
+
+const resourceFilterOptions: Array<{
+  key: KnowledgeResourceFilter;
+  label: string;
+  resultLabel: string;
+}> = [
+  { key: "all", label: "All", resultLabel: "objects" },
+  { key: "folders", label: "Folders", resultLabel: "files" },
+  { key: "task_lists", label: "Task lists", resultLabel: "tasks" },
+  { key: "tables", label: "Tables", resultLabel: "tables" },
+  { key: "notes", label: "Notes", resultLabel: "records" },
+];
 
 const typeStyles: Record<CompanyCoreKnowledgeNodeType, { label: string; className: string; dot: string }> = {
   workspace: {
@@ -83,9 +94,9 @@ const typeStyles: Record<CompanyCoreKnowledgeNodeType, { label: string; classNam
 export function Knowledge() {
   const { selectedCompanyId, selectedCompany } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
-  const [view, setView] = useState<KnowledgeView>("map");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [resourceFilter, setResourceFilter] = useState<KnowledgeResourceFilter>("all");
 
   const mapQuery = useQuery({
     queryKey: queryKeys.companyCore.map(selectedCompanyId ?? ""),
@@ -96,10 +107,12 @@ export function Knowledge() {
 
   const map = mapQuery.data;
   const filteredNodes = useMemo(
-    () => filterNodes(map?.nodes ?? [], query),
-    [map?.nodes, query],
+    () => filterNodesByResource(filterNodes(map?.nodes ?? [], query), resourceFilter),
+    [map?.nodes, query, resourceFilter],
   );
   const isSearching = query.trim().length > 0;
+  const selectedResourceFilter = resourceFilterOptions.find((option) => option.key === resourceFilter) ?? resourceFilterOptions[0];
+  const isResourceFiltering = resourceFilter !== "all";
   const selectedNode = useMemo(() => {
     if (!map) return null;
     return map.nodes.find((node) => node.id === selectedNodeId) ?? null;
@@ -138,8 +151,7 @@ export function Knowledge() {
         </div>
       </header>
 
-      <section className="grid shrink-0 gap-3 md:grid-cols-3">
-        <Metric label="Objects" value={formatCount(totalKnowledgeObjects(map))} icon={Sparkles} />
+      <section className="grid shrink-0 gap-3 md:grid-cols-2">
         <Metric label="Files" value={formatCount(map?.summary.fileCount ?? 0)} icon={FolderOpen} />
         <Metric label="Tasks" value={formatCount(map?.summary.taskCount ?? 0)} icon={ClipboardList} />
       </section>
@@ -164,22 +176,22 @@ export function Knowledge() {
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-1 rounded-md border border-border p-1">
-              {(["map", "library"] as KnowledgeView[]).map((item) => (
+            <div className="flex flex-wrap items-center gap-1 rounded-md border border-border p-1">
+              {resourceFilterOptions.map((item) => (
                 <button
-                  key={item}
+                  key={item.key}
                   className={`rounded-md px-2.5 py-1.5 text-xs font-medium capitalize transition-colors ${
-                    view === item ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"
+                    resourceFilter === item.key ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"
                   }`}
-                  onClick={() => setView(item)}
+                  onClick={() => setResourceFilter(item.key)}
                 >
-                  {item === "map" ? "Explore" : "All items"}
+                  {item.label}
                 </button>
               ))}
             </div>
             <div className="basis-full text-xs text-muted-foreground sm:basis-auto">
-              {isSearching
-                ? `${formatCount(filteredNodes.length)} matching objects`
+              {isSearching || isResourceFiltering
+                ? `${formatCount(filteredNodes.length)} matching ${selectedResourceFilter.resultLabel}`
                 : map?.summary.generatedAt
                   ? `Synced preview ${formatDateTime(map.summary.generatedAt)}`
                   : "Live CompanyCore preview"}
@@ -187,25 +199,15 @@ export function Knowledge() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-hidden">
-            {view === "library" && (
-              <KnowledgeLibrary
-                map={map}
-                nodes={filteredNodes}
-                selectedNodeId={selectedNode?.id ?? null}
-                onSelect={setSelectedNodeId}
-                isLoading={mapQuery.isLoading}
-              />
-            )}
-            {view === "map" && (
-              <KnowledgeExplorer
-                map={map}
-                nodes={filteredNodes}
-                selectedNodeId={selectedNode?.id ?? null}
-                onSelect={setSelectedNodeId}
-                isLoading={mapQuery.isLoading}
-                searchQuery={query}
-              />
-            )}
+            <KnowledgeExplorer
+              map={map}
+              nodes={filteredNodes}
+              selectedNodeId={selectedNode?.id ?? null}
+              onSelect={setSelectedNodeId}
+              isLoading={mapQuery.isLoading}
+              searchQuery={query}
+              resourceFilterLabel={isResourceFiltering ? selectedResourceFilter.label : null}
+            />
           </div>
         </main>
 
@@ -222,6 +224,7 @@ function KnowledgeExplorer({
   onSelect,
   isLoading,
   searchQuery,
+  resourceFilterLabel,
 }: {
   map?: CompanyCoreKnowledgeMap;
   nodes: CompanyCoreKnowledgeMapNode[];
@@ -229,6 +232,7 @@ function KnowledgeExplorer({
   onSelect: (nodeId: string) => void;
   isLoading: boolean;
   searchQuery: string;
+  resourceFilterLabel: string | null;
 }) {
   const departments = useMemo(() => buildKnowledgeDepartments(nodes), [nodes]);
   const [focus, setFocus] = useState<KnowledgeExplorerFocus>({ kind: "department", departmentKey: "00" });
@@ -282,9 +286,12 @@ function KnowledgeExplorer({
       </aside>
 
       <section className="min-h-0 overflow-auto p-4">
-        {searchQuery.trim() && (
+        {(searchQuery.trim() || resourceFilterLabel) && (
           <div className="mb-3 border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-            Filtering departments and children by "{searchQuery.trim()}". Clear search to return to the full knowledge map.
+            {searchQuery.trim()
+              ? `Filtering departments and children by "${searchQuery.trim()}".`
+              : "Filtering departments and children."}
+            {resourceFilterLabel ? ` Showing ${resourceFilterLabel.toLowerCase()} resources.` : " Clear search to return to the full knowledge map."}
           </div>
         )}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -1398,6 +1405,18 @@ function filterNodes(nodes: CompanyCoreKnowledgeMapNode[], query: string) {
       Object.values(node.metadata).map((value) => String(value ?? "")).join(" "),
     ].some((value) => value.toLowerCase().includes(normalized)),
   );
+}
+
+function filterNodesByResource(nodes: CompanyCoreKnowledgeMapNode[], filter: KnowledgeResourceFilter) {
+  if (filter === "all") return nodes;
+  return nodes.filter((node) => {
+    const kind = metadataString(node, "kind");
+    if (filter === "folders") return node.type === "record" && kind === "file";
+    if (filter === "task_lists") return node.type === "record" && kind === "task";
+    if (filter === "tables") return node.type === "table";
+    if (filter === "notes") return node.type === "record" && ["note", "decision", "project"].includes(kind ?? "");
+    return true;
+  });
 }
 
 function metadataString(node: CompanyCoreKnowledgeMapNode, key: string) {
