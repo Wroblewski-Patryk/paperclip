@@ -142,7 +142,7 @@ export function Knowledge() {
       </section>
 
       <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_21rem]">
-        <main className="min-h-0 overflow-hidden border border-border bg-background">
+        <main className="flex min-h-0 flex-col overflow-hidden border border-border bg-background">
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2">
             <div className="relative min-w-64 flex-1">
               <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -183,25 +183,27 @@ export function Knowledge() {
             </div>
           </div>
 
-          {view === "library" && (
-            <KnowledgeLibrary
-              map={map}
-              nodes={filteredNodes}
-              selectedNodeId={selectedNode?.id ?? null}
-              onSelect={setSelectedNodeId}
-              isLoading={mapQuery.isLoading}
-            />
-          )}
-          {view === "map" && (
-            <KnowledgeExplorer
-              map={map}
-              nodes={filteredNodes}
-              selectedNodeId={selectedNode?.id ?? null}
-              onSelect={setSelectedNodeId}
-              isLoading={mapQuery.isLoading}
-              searchQuery={query}
-            />
-          )}
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {view === "library" && (
+              <KnowledgeLibrary
+                map={map}
+                nodes={filteredNodes}
+                selectedNodeId={selectedNode?.id ?? null}
+                onSelect={setSelectedNodeId}
+                isLoading={mapQuery.isLoading}
+              />
+            )}
+            {view === "map" && (
+              <KnowledgeExplorer
+                map={map}
+                nodes={filteredNodes}
+                selectedNodeId={selectedNode?.id ?? null}
+                onSelect={setSelectedNodeId}
+                isLoading={mapQuery.isLoading}
+                searchQuery={query}
+              />
+            )}
+          </div>
         </main>
 
         <Inspector node={selectedNode} map={map} />
@@ -257,10 +259,10 @@ function KnowledgeExplorer({
   }
 
   return (
-    <div className="grid h-full min-h-0 bg-muted/15 lg:grid-cols-[16rem_minmax(0,1fr)]">
-      <aside className="min-h-0 overflow-auto border-r border-border bg-background p-3">
-        <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Departments</div>
-        <div className="space-y-1">
+    <div className="grid h-full min-h-0 max-h-full overflow-hidden bg-muted/15 lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <aside className="flex min-h-0 flex-col overflow-hidden border-r border-border bg-background p-3">
+        <div className="mb-3 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">Departments</div>
+        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pb-4 pr-1">
           {departments.map((department) => (
             <button
               key={department.key}
