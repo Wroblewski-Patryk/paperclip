@@ -105,8 +105,8 @@ function resolveHindsightPluginConfig(): Record<string, unknown> {
       process.env.HINDSIGHT_API_URL?.trim() ||
       resolveDefaultHindsightApiUrl(),
     bankGranularity: ["company", "agent"],
-    recallBudget: process.env.PAPERCLIP_HINDSIGHT_RECALL_BUDGET?.trim() || "mid",
-    autoRetain: envFlag("PAPERCLIP_HINDSIGHT_AUTO_RETAIN", true),
+    recallBudget: process.env.PAPERCLIP_HINDSIGHT_RECALL_BUDGET?.trim() || "low",
+    autoRetain: envFlag("PAPERCLIP_HINDSIGHT_AUTO_RETAIN", false),
   };
 
   const secretRef = process.env.PAPERCLIP_HINDSIGHT_API_KEY_REF?.trim();

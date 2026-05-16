@@ -48,15 +48,15 @@ const manifest: PaperclipPluginManifestV1 = {
       recallBudget: {
         type: "string",
         title: "Recall Budget",
-        description: "'low' is fastest, 'mid' balances speed and depth, 'high' is most thorough.",
+        description: "'low' is fastest and cheapest, 'mid' balances speed and depth, 'high' is most thorough.",
         enum: ["low", "mid", "high"],
-        default: "mid",
+        default: "low",
       },
       autoRetain: {
         type: "boolean",
         title: "Auto-retain Comments",
         description: "Automatically retain full issue comments to Hindsight.",
-        default: true,
+        default: false,
       },
     },
   },

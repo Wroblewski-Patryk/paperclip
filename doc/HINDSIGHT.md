@@ -13,7 +13,7 @@ instead of depending on a manually installed package in `~/.paperclip`.
 - `agent.run.started`: fetches the assigned issue and recalls relevant memories
   into run-scoped plugin state as `recalled-memories`.
 - `issue.comment.created`: retains the full comment body to Hindsight when the
-  comment can be attributed to an agent.
+  comment can be attributed to an agent and auto-retain is explicitly enabled.
 - `agent.run.finished`: no-op; retention is comment-driven.
 - Agent tools:
   - `hindsight_recall`
@@ -29,8 +29,8 @@ Set these in local shell, Docker, or Coolify environment variables:
 ```sh
 PAPERCLIP_HINDSIGHT_AUTO_INSTALL=true
 PAPERCLIP_HINDSIGHT_API_URL=http://localhost:8888
-PAPERCLIP_HINDSIGHT_RECALL_BUDGET=mid
-PAPERCLIP_HINDSIGHT_AUTO_RETAIN=true
+PAPERCLIP_HINDSIGHT_RECALL_BUDGET=low
+PAPERCLIP_HINDSIGHT_AUTO_RETAIN=false
 PAPERCLIP_HINDSIGHT_API_KEY_REF=HINDSIGHT_API_KEY
 ```
 
@@ -96,7 +96,7 @@ After Paperclip starts:
 curl http://localhost:3100/api/plugins/paperclip-plugin-hindsight
 curl -X POST http://localhost:3100/api/plugins/paperclip-plugin-hindsight/config/test \
   -H "Content-Type: application/json" \
-  -d '{"configJson":{"hindsightApiUrl":"http://localhost:8888","bankGranularity":["company","agent"],"recallBudget":"mid","autoRetain":true}}'
+  -d '{"configJson":{"hindsightApiUrl":"http://localhost:8888","bankGranularity":["company","agent"],"recallBudget":"low","autoRetain":false}}'
 ```
 
 Expected result:

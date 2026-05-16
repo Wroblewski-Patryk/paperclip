@@ -76,7 +76,7 @@ const plugin = definePlugin({
         const apiKey = await resolveApiKey(ctx, config);
         const client = new HindsightClient(config.hindsightApiUrl, apiKey);
         const bankId = deriveBankId({ companyId, agentId }, config);
-        const response = await client.recall(bankId, query, config.recallBudget ?? "mid");
+        const response = await client.recall(bankId, query, config.recallBudget ?? "low");
         const memories = formatMemories(response.results);
         if (memories) {
           await ctx.state.set(
@@ -99,7 +99,7 @@ const plugin = definePlugin({
 
     ctx.events.on("issue.comment.created", async (event) => {
       const config = await getConfig(ctx);
-      if (config.autoRetain === false) return;
+      if (config.autoRetain !== true) return;
 
       const companyId = event.companyId;
       const issueId = event.entityId;
@@ -202,7 +202,7 @@ const plugin = definePlugin({
         try {
           const apiKey = await resolveApiKey(ctx, config);
           const client = new HindsightClient(config.hindsightApiUrl, apiKey);
-          const response = await client.recall(bankId, query, config.recallBudget ?? "mid");
+          const response = await client.recall(bankId, query, config.recallBudget ?? "low");
           const memories = formatMemories(response.results);
           return { content: memories || "No relevant memories found." };
         } catch (err) {
