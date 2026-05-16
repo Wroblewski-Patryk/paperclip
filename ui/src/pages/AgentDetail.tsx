@@ -3168,10 +3168,10 @@ function knowledgeDepartmentSearchValues(node: CompanyCoreKnowledgeMapNode) {
 
 function canonicalKnowledgeDepartmentLabel(key: string) {
   return {
-    "00": "00. Glowny",
+    "00": "00. Główny",
     "01": "01. Strategia",
     "02": "02. Produkt",
-    "03": "03. Sprzedaz",
+    "03": "03. Sprzedaż",
     "04": "04. Operacje",
     "05": "05. Relacje",
     "06": "06. Kadry",
@@ -3180,7 +3180,7 @@ function canonicalKnowledgeDepartmentLabel(key: string) {
     "09": "09. Technologia",
     "10": "10. Prawo",
     "11": "11. Innowacje",
-    "12": "12. Zarzadzanie",
+    "12": "12. Zarządzanie",
   }[key];
 }
 
