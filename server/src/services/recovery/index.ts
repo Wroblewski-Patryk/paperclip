@@ -56,9 +56,7 @@ export {
   buildSuccessfulRunHandoffRequiredNotice,
   decideSuccessfulRunHandoff,
   findExistingFinishSuccessfulRunHandoffWake,
-  hasExplicitFinalDispositionText,
   isSuccessfulRunHandoffRequiredNoticeBody,
-  readExplicitFinalDispositionText,
 } from "./successful-run-handoff.js";
 export type {
   SuccessfulRunHandoffNotice,

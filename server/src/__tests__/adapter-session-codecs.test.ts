@@ -7,7 +7,7 @@ import {
 } from "@paperclipai/adapter-cursor-local/server";
 import {
   sessionCodec as geminiSessionCodec,
-  isGeminiSessionUnrecoverableError,
+  isGeminiUnknownSessionError,
 } from "@paperclipai/adapter-gemini-local/server";
 import {
   sessionCodec as opencodeSessionCodec,
@@ -220,19 +220,19 @@ describe("cursor resume recovery detection", () => {
 describe("gemini resume recovery detection", () => {
   it("detects unknown session errors from gemini output", () => {
     expect(
-      isGeminiSessionUnrecoverableError(
+      isGeminiUnknownSessionError(
         "",
         "unknown session id abc",
       ),
     ).toBe(true);
     expect(
-      isGeminiSessionUnrecoverableError(
+      isGeminiUnknownSessionError(
         "",
         "checkpoint latest not found",
       ),
     ).toBe(true);
     expect(
-      isGeminiSessionUnrecoverableError(
+      isGeminiUnknownSessionError(
         "{\"type\":\"result\",\"subtype\":\"success\"}",
         "",
       ),

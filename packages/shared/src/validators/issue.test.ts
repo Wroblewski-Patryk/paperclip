@@ -139,14 +139,6 @@ describe("issue validators", () => {
     expect(parsed.body).toBe("Progress update\n\nNext action.");
   });
 
-  it("strips NUL bytes from issue comment bodies", () => {
-    const parsed = addIssueCommentSchema.parse({
-      body: "A\u0000B\\nC",
-    });
-
-    expect(parsed.body).toBe("AB\nC");
-  });
-
   it("accepts structured issue comment presentation and metadata", () => {
     const parsed = addIssueCommentSchema.parse({
       body: "Paperclip needs a disposition before this issue can continue.",
@@ -339,7 +331,7 @@ describe("issue validators", () => {
             enabled: true,
             label: "Cheap Codex",
             adapterConfig: {
-              model: "gpt-5.5",
+              model: "gpt-5.3-codex-spark",
             },
           },
         },
@@ -347,7 +339,7 @@ describe("issue validators", () => {
     });
 
     expect(parsed.runtimeConfig.modelProfiles?.cheap?.adapterConfig).toEqual({
-      model: "gpt-5.5",
+      model: "gpt-5.3-codex-spark",
     });
     expect(parsed.runtimeConfig.heartbeat).toEqual({ enabled: true });
   });

@@ -2,7 +2,6 @@ import { asBoolean, asString, asStringArray } from "@paperclipai/adapter-utils/s
 import {
   CODEX_LOCAL_FAST_MODE_SUPPORTED_MODELS,
   isCodexLocalFastModeSupported,
-  resolveCodexLocalModel,
 } from "../index.js";
 
 export type BuildCodexExecArgsResult = {
@@ -11,7 +10,6 @@ export type BuildCodexExecArgsResult = {
   fastModeRequested: boolean;
   fastModeApplied: boolean;
   fastModeIgnoredReason: string | null;
-  droppedUnsafeArgs: string[];
 };
 
 function readExtraArgs(config: unknown): string[] {
@@ -30,33 +28,6 @@ function formatFastModeSupportedModels(): string {
   return `${CODEX_LOCAL_FAST_MODE_SUPPORTED_MODELS.join(", ")} or manually configured model IDs`;
 }
 
-function filterUnsafeExtraArgs(extraArgs: string[]): { safeArgs: string[]; droppedUnsafeArgs: string[] } {
-  if (process.platform !== "win32") {
-    return { safeArgs: extraArgs, droppedUnsafeArgs: [] };
-  }
-
-  const safeArgs: string[] = [];
-  const droppedUnsafeArgs: string[] = [];
-  for (const arg of extraArgs) {
-    const normalized = arg.trim().toLowerCase();
-    const isUnsafe =
-      normalized === "browser"
-      || normalized === "computer-use"
-      || normalized === "--browser"
-      || normalized === "--computer-use"
-      || normalized.includes("codex-computer-use")
-      || normalized.includes("computer-use")
-      || normalized.includes("cua_node");
-    if (isUnsafe) {
-      droppedUnsafeArgs.push(arg);
-      continue;
-    }
-    safeArgs.push(arg);
-  }
-
-  return { safeArgs, droppedUnsafeArgs };
-}
-
 export function buildCodexExecArgs(
   config: unknown,
   options: {
@@ -65,7 +36,7 @@ export function buildCodexExecArgs(
   } = {},
 ): BuildCodexExecArgsResult {
   const record = asRecord(config);
-  const model = resolveCodexLocalModel(asString(record.model, "").trim());
+  const model = asString(record.model, "").trim();
   const modelReasoningEffort = asString(
     record.modelReasoningEffort,
     asString(record.reasoningEffort, ""),
@@ -77,8 +48,7 @@ export function buildCodexExecArgs(
     record.dangerouslyBypassApprovalsAndSandbox,
     asBoolean(record.dangerouslyBypassSandbox, false),
   );
-  const unsafeArgsFilter = filterUnsafeExtraArgs(readExtraArgs(record));
-  const extraArgs = unsafeArgsFilter.safeArgs;
+  const extraArgs = readExtraArgs(record);
 
   const args = ["exec", "--json"];
   if (options.skipGitRepoCheck) args.push("--skip-git-repo-check");
@@ -100,7 +70,6 @@ export function buildCodexExecArgs(
     model,
     fastModeRequested,
     fastModeApplied,
-    droppedUnsafeArgs: unsafeArgsFilter.droppedUnsafeArgs,
     fastModeIgnoredReason:
       fastModeRequested && !fastModeApplied
         ? `Configured fast mode is currently only supported on ${formatFastModeSupportedModels()}; Paperclip will ignore it for model ${model || "(default)"}.`

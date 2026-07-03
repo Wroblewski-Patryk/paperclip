@@ -470,9 +470,6 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
     const activeRunCount = latestRuns.filter((run) =>
       ACTIVE_RUN_STATUSES.includes(run.status as (typeof ACTIVE_RUN_STATUSES)[number]),
     ).length;
-    if (sourceIssue.status === "in_progress" && activeRunCount === 0) {
-      return null;
-    }
     const activeStartedAt = sourceIssue.startedAt ?? sourceIssue.executionLockedAt ?? null;
     const elapsedMs = sourceIssue.status === "in_progress" && activeStartedAt
       ? Math.max(0, now.getTime() - activeStartedAt.getTime())

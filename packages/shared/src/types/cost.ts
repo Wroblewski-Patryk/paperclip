@@ -23,23 +23,9 @@ export interface CostEvent {
 
 export interface CostSummary {
   companyId: string;
-  /** Backward-compatible alias for exact billed spend in cents. */
   spendCents: number;
-  /** Exact billed spend in cents from cost_events.cost_cents. */
-  billedSpendCents: number;
   budgetCents: number;
   utilizationPercent: number;
-  meteringState: "none" | "metered" | "subscription_included" | "unknown" | "mixed" | "zero_billed";
-  eventCount: number;
-  meteredApiRunCount: number;
-  subscriptionIncludedRunCount: number;
-  subscriptionIncludedInputTokens: number;
-  subscriptionIncludedCachedInputTokens: number;
-  subscriptionIncludedOutputTokens: number;
-  unknownCostRunCount: number;
-  unknownCostInputTokens: number;
-  unknownCostCachedInputTokens: number;
-  unknownCostOutputTokens: number;
 }
 
 export interface IssueCostSummary {

@@ -7,12 +7,6 @@ const GENERIC_ATTACHMENT_CONTENT_TYPES = new Set([
   "application/x-binary",
 ]);
 
-type AttachmentPathLike = {
-  contentPath: string;
-  openPath?: string;
-  downloadPath?: string;
-};
-
 function normalizedContentType(attachment: Pick<IssueAttachment, "contentType">) {
   return attachment.contentType.toLowerCase().split(";")[0]?.trim() ?? "";
 }
@@ -21,11 +15,15 @@ export function attachmentFilename(attachment: Pick<IssueAttachment, "id" | "ori
   return attachment.originalFilename ?? attachment.id;
 }
 
-export function attachmentOpenPath(attachment: AttachmentPathLike) {
+export function attachmentOpenPath(
+  attachment: Pick<IssueAttachment, "contentPath" | "openPath">,
+) {
   return attachment.openPath ?? attachment.contentPath;
 }
 
-export function attachmentDownloadPath(attachment: AttachmentPathLike) {
+export function attachmentDownloadPath(
+  attachment: Pick<IssueAttachment, "contentPath" | "downloadPath">,
+) {
   return attachment.downloadPath ?? `${attachment.contentPath}?download=1`;
 }
 

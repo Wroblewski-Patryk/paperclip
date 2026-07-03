@@ -594,7 +594,6 @@ describe("optimistic issue comments", () => {
           leadAgentId: null,
           targetDate: null,
           color: null,
-          icon: null,
           env: null,
           pauseReason: null,
           pausedAt: null,

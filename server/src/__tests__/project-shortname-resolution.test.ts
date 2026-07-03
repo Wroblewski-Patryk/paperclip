@@ -36,13 +36,6 @@ describe("resolveProjectNameForUniqueShortname", () => {
     expect(resolved).toBe("Growth Team");
   });
 
-  it("ignores archived projects when choosing active shortnames", () => {
-    const resolved = resolveProjectNameForUniqueShortname("Aviary", [
-      { id: "p1", name: "Aviary", archivedAt: new Date("2026-05-25T20:35:07.516Z") },
-    ]);
-    expect(resolved).toBe("Aviary");
-  });
-
   it("keeps non-normalizable names unchanged", () => {
     const resolved = resolveProjectNameForUniqueShortname("!!!", [
       { id: "p1", name: "growth" },

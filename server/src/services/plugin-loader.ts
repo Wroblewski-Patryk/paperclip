@@ -1932,7 +1932,7 @@ export function pluginLoader(
       // ------------------------------------------------------------------
       const toolDeclarations = manifest.tools ?? [];
       if (toolDeclarations.length > 0) {
-        toolDispatcher.registerPluginTools(pluginKey, manifest, pluginId);
+        toolDispatcher.registerPluginTools(pluginKey, manifest);
         registered.tools = toolDeclarations.length;
 
         log.info(

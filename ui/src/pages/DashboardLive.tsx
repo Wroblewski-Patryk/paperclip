@@ -41,7 +41,7 @@ export function DashboardLive() {
           </Link>
           <h1 className="mt-2 text-2xl font-semibold tracking-normal text-foreground">Live agent runs</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Currently queued or running agent work.
+            Active runs first, followed by the most recent completed runs.
           </p>
         </div>
         <div className="text-sm text-muted-foreground">Showing up to {DASHBOARD_LIVE_RUN_LIMIT}</div>
@@ -49,13 +49,13 @@ export function DashboardLive() {
 
       <ActiveAgentsPanel
         companyId={selectedCompanyId}
-        title="Active"
-        minRunCount={0}
+        title="Active / recent"
+        minRunCount={DASHBOARD_LIVE_RUN_LIMIT}
         fetchLimit={DASHBOARD_LIVE_RUN_LIMIT}
         cardLimit={DASHBOARD_LIVE_RUN_LIMIT}
         gridClassName="gap-3 md:grid-cols-2 2xl:grid-cols-3"
         cardClassName="h-[420px]"
-        emptyMessage="No active agent runs."
+        emptyMessage="No active or recent agent runs."
         queryScope="dashboard-live"
         showMoreLink={false}
       />

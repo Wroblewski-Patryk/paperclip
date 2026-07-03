@@ -102,21 +102,8 @@ async function createEmbeddedPostgresTestInstance(tempDirPrefix: string) {
   return { dataDir, port, instance };
 }
 
-async function cleanupEmbeddedPostgresTestDirs(dataDir: string) {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    try {
-      await fs.promises.rm(dataDir, { recursive: true, force: true });
-      return;
-    } catch (error) {
-      const busy =
-        error instanceof Error &&
-        (error.message.includes("EBUSY") ||
-          error.message.includes("ENOTEMPTY") ||
-          error.message.includes("EPERM"));
-      if (!busy || attempt === 19) throw error;
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  }
+function cleanupEmbeddedPostgresTestDirs(dataDir: string) {
+  fs.rmSync(dataDir, { recursive: true, force: true });
 }
 
 function formatEmbeddedPostgresError(error: unknown): string {
@@ -145,7 +132,7 @@ async function probeEmbeddedPostgresSupport(): Promise<EmbeddedPostgresTestSuppo
     };
   } finally {
     await instance?.stop().catch(() => {});
-    if (dataDir) await cleanupEmbeddedPostgresTestDirs(dataDir);
+    if (dataDir) cleanupEmbeddedPostgresTestDirs(dataDir);
   }
 }
 
@@ -179,12 +166,12 @@ export async function startEmbeddedPostgresTestDatabase(
       connectionString,
       cleanup: async () => {
         await instance?.stop().catch(() => {});
-        if (dataDir) await cleanupEmbeddedPostgresTestDirs(dataDir);
+        if (dataDir) cleanupEmbeddedPostgresTestDirs(dataDir);
       },
     };
   } catch (error) {
     await instance?.stop().catch(() => {});
-    if (dataDir) await cleanupEmbeddedPostgresTestDirs(dataDir);
+    if (dataDir) cleanupEmbeddedPostgresTestDirs(dataDir);
     throw new Error(
       `Failed to start embedded PostgreSQL test database: ${formatEmbeddedPostgresError(error)}`,
     );

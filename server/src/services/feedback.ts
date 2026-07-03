@@ -1,6 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import { and, asc, desc, eq, getTableColumns, gte, isNull, lte, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, gte, lte, ne, or } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   agents,
@@ -805,7 +805,6 @@ async function resolveFeedbackTarget(
         metadata: issueComments.metadata,
         createdByRunId: issueComments.createdByRunId,
         body: issueComments.body,
-        deletedAt: issueComments.deletedAt,
         createdAt: issueComments.createdAt,
       })
       .from(issueComments)
@@ -813,9 +812,6 @@ async function resolveFeedbackTarget(
       .then((rows) => rows[0] ?? null);
 
     if (!targetComment || targetComment.issueId !== issue.id || targetComment.companyId !== issue.companyId) {
-      throw notFound("Feedback target not found");
-    }
-    if (targetComment.deletedAt) {
       throw notFound("Feedback target not found");
     }
     if (!targetComment.authorAgentId) {
@@ -938,14 +934,9 @@ async function listIssueContextItems(
         presentation: issueComments.presentation,
         metadata: issueComments.metadata,
         createdByRunId: issueComments.createdByRunId,
-        deletedAt: issueComments.deletedAt,
       })
       .from(issueComments)
-      .where(and(
-        eq(issueComments.companyId, issue.companyId),
-        eq(issueComments.issueId, issue.id),
-        isNull(issueComments.deletedAt),
-      )),
+      .where(and(eq(issueComments.companyId, issue.companyId), eq(issueComments.issueId, issue.id))),
     db
       .select({
         targetId: documentRevisions.id,

@@ -15,23 +15,6 @@ import { assertBoard, assertCompanyAccess } from "./authz.js";
 import { logActivity, secretService } from "../services/index.js";
 import { getConfiguredSecretProvider } from "../secrets/configured-provider.js";
 
-function toSecretMetadata(secret: Record<string, unknown>) {
-  return {
-    id: secret.id,
-    companyId: secret.companyId,
-    key: secret.key,
-    name: secret.name,
-    status: secret.status,
-    managedMode: secret.managedMode,
-    latestVersion: secret.latestVersion,
-    lastResolvedAt: secret.lastResolvedAt,
-    lastRotatedAt: secret.lastRotatedAt,
-    createdAt: secret.createdAt,
-    updatedAt: secret.updatedAt,
-    referenceCount: secret.referenceCount,
-  };
-}
-
 export function secretRoutes(db: Db) {
   const router = Router();
   const svc = secretService(db);
@@ -284,13 +267,6 @@ export function secretRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
     const secrets = await svc.list(companyId);
     res.json(secrets);
-  });
-
-  router.get("/companies/:companyId/secrets/metadata", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertCompanyAccess(req, companyId);
-    const secrets = await svc.list(companyId);
-    res.json(secrets.map(toSecretMetadata));
   });
 
   router.post("/companies/:companyId/secrets", validate(createSecretSchema), async (req, res) => {

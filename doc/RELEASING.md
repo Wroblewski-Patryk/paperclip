@@ -52,43 +52,6 @@ Canaries only cover the first two surfaces plus an internal traceability tag.
 - canaries never create GitHub Releases
 - canaries never require changelog generation
 
-## Deployment Governance Gate
-
-Treat deploy as a governed release operation, not a routine follow-up.
-
-Before any production-impacting action (deploy/restart/rollback/env change/migration):
-
-1. Confirm source integrity
-- target commit/tag is explicit and reviewable
-- worktree is clean (no uncommitted local changes in shipped source)
-
-2. Confirm target scope
-- environment is explicit (`staging` or `production`)
-- exact resource(s) are named; do not use ambiguous "whole stack" language
-- for Coolify-style topology, record `project -> environment -> resources`
-
-3. Confirm rollback path
-- known previous-good version or commit exists
-- rollback command/procedure is known and executable
-- owner for rollback decision is named
-
-4. Confirm smoke plan
-- health check endpoint(s)
-- auth-sensitive path(s) (login/session or equivalent)
-- one critical user journey for the target surface
-- where logs will be read if smoke fails
-
-5. Confirm approvals and evidence
-- required approver/reviewer is known for the release lane
-- pre-deploy checklist and post-deploy result are recorded in issue comments
-
-Hard stop rules:
-
-- Do not deploy from a dirty worktree.
-- If smoke fails, stop further deploy actions, preserve failure evidence, and either:
-  - execute rollback, or
-  - record why rollback is unsafe and who approved the exception.
-
 ## TL;DR
 
 ### Canary

@@ -58,7 +58,6 @@ For a verification task, deliver:
 - The console log, filtered to warnings/errors.
 - Any non-2xx network response with the URL, status, and a short response body excerpt.
 - A short narration: "Navigated to X, observed Y, clicked Z, observed W."
-- For frontend/design implementation, state the intended reference or acceptance criteria and whether the rendered screenshot matches it. If it does not match, send the task back with the concrete visual delta instead of passing it.
 
 For a UI bug repro, also record:
 

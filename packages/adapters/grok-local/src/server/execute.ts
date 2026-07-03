@@ -75,9 +75,7 @@ function renderApiAccessNote(env: Record<string, string>): string {
   if (!hasNonEmptyEnvValue(env, "PAPERCLIP_API_URL") || !hasNonEmptyEnvValue(env, "PAPERCLIP_API_KEY")) return "";
   return [
     "Paperclip API access note:",
-    "Prefer native helpers or a small fetch-based script for Paperclip API requests.",
-    "On Windows, avoid ad-hoc powershell/curl command chains for issue updates, comments, uploads, or work-product mutations.",
-    "If the repo contains the Paperclip skill helpers, prefer: node skills/paperclip/scripts/paperclip-issue-update.mjs ... and node skills/paperclip/scripts/paperclip-upload-artifact.mjs ...",
+    "Use shell commands with curl to make Paperclip API requests when needed.",
     "Include X-Paperclip-Run-Id on mutating requests.",
     "",
     "",

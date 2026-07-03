@@ -70,7 +70,6 @@ function createProject(): Project {
     leadAgentId: null,
     targetDate: null,
     color: "#22c55e",
-    icon: null,
     env: null,
     pauseReason: null,
     pausedAt: null,

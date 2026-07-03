@@ -21,7 +21,7 @@ interface ProviderQuotaCardProps {
   rows: CostByProviderModel[];
   /** company monthly budget in cents (0 means unlimited) */
   budgetMonthlyCents: number;
-  /** total company billed spend in this period in cents, all providers */
+  /** total company spend in this period in cents, all providers */
   totalCompanySpendCents: number;
   /** spend in the current calendar week in cents, this provider only */
   weekSpendCents: number;
@@ -94,7 +94,7 @@ export function ProviderQuotaCard({
     subSharePct,
   } = totals;
 
-  // budget bars: use this provider's own billed spend vs its pro-rata share of budget
+  // budget bars: use this provider's own spend vs its pro-rata share of budget
   // pro-rata: if a provider is 40% of total spend, it gets 40% of the budget allocated.
   // falls back to raw provider spend vs total budget when totalCompanySpend is 0.
   const providerBudgetShare =
@@ -153,7 +153,7 @@ export function ProviderQuotaCard({
             </CardDescription>
           </div>
           <span className="text-xl font-bold tabular-nums shrink-0">
-            {formatCents(totalCostCents)} billed
+            {formatCents(totalCostCents)}
           </span>
         </div>
       </CardHeader>
@@ -162,7 +162,7 @@ export function ProviderQuotaCard({
         {hasBudget && (
           <div className="space-y-3">
             <QuotaBar
-              label="Billed period spend"
+              label="Period spend"
               percentUsed={budgetPct}
               leftLabel={formatCents(totalCostCents)}
               rightLabel={`${Math.round(budgetPct)}% of allocation`}
@@ -201,7 +201,7 @@ export function ProviderQuotaCard({
                         <span className="text-muted-foreground font-mono flex-1">
                           {formatTokens(tokens)} tok
                         </span>
-                        <span className="font-medium tabular-nums">{formatCents(cents)} billed</span>
+                        <span className="font-medium tabular-nums">{formatCents(cents)}</span>
                       </div>
                       <div className="h-2 w-full border border-border overflow-hidden">
                         <div
@@ -280,7 +280,7 @@ export function ProviderQuotaCard({
                         <span className="text-muted-foreground">
                           {formatTokens(rowTokens)} tok
                         </span>
-                        <span className="font-medium">{formatCents(row.costCents)} billed</span>
+                        <span className="font-medium">{formatCents(row.costCents)}</span>
                       </div>
                     </div>
                     {/* token share bar */}

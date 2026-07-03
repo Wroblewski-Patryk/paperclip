@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -408,16 +407,10 @@ type PendingRequest = {
 };
 
 class CodexRpcClient {
-  private command = resolveCodexRpcCommand();
-
   private proc = spawn(
-    this.command,
+    "codex",
     ["-s", "read-only", "-a", "untrusted", "app-server"],
-    {
-      stdio: ["pipe", "pipe", "pipe"],
-      env: process.env,
-      shell: shouldSpawnViaShell(this.command),
-    },
+    { stdio: ["pipe", "pipe", "pipe"], env: process.env },
   );
 
   private nextId = 1;
@@ -516,19 +509,6 @@ class CodexRpcClient {
   async shutdown() {
     this.proc.kill("SIGTERM");
   }
-}
-
-function shouldSpawnViaShell(command: string): boolean {
-  return process.platform === "win32" && /\.(?:cmd|bat)$/i.test(command);
-}
-
-function resolveCodexRpcCommand(): string {
-  const explicit = process.env.PAPERCLIP_CODEX_COMMAND ?? process.env.CODEX_COMMAND;
-  if (typeof explicit === "string" && explicit.trim().length > 0) return explicit.trim();
-
-  const repoWrapper = path.join(process.cwd(), "scripts", process.platform === "win32" ? "codex.cmd" : "codex");
-  if (fsSync.existsSync(repoWrapper)) return repoWrapper;
-  return "codex";
 }
 
 export async function fetchCodexRpcQuota(): Promise<CodexRpcQuotaSnapshot> {

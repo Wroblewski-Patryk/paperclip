@@ -28,11 +28,4 @@ describe("approval validators", () => {
     expect(requestApprovalRevisionSchema.parse({ decisionNote: "Decision\\r\\nRevise." }).decisionNote)
       .toBe("Decision\nRevise.");
   });
-
-  it("strips NUL bytes from approval text fields", () => {
-    expect(addApprovalCommentSchema.parse({ body: "Looks\u0000 good" }).body)
-      .toBe("Looks good");
-    expect(resolveApprovalSchema.parse({ decisionNote: "Deci\u0000sion" }).decisionNote)
-      .toBe("Decision");
-  });
 });

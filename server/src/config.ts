@@ -68,8 +68,6 @@ export interface Config {
   databaseBackupEnabled: boolean;
   databaseBackupIntervalMinutes: number;
   databaseBackupRetentionDays: number;
-  databaseBackupMaxTotalBytes: number | null;
-  databaseBackupMinFreeBytes: number | null;
   databaseBackupDir: string;
   serveUi: boolean;
   uiDevMiddleware: boolean;
@@ -262,26 +260,6 @@ export function loadConfig(): Config {
       fileDatabaseBackup?.retentionDays ||
       7,
   );
-  const databaseBackupMaxTotalBytesRaw =
-    process.env.PAPERCLIP_DB_BACKUP_MAX_TOTAL_BYTES !== undefined
-      ? Number(process.env.PAPERCLIP_DB_BACKUP_MAX_TOTAL_BYTES)
-      : fileDatabaseBackup?.maxTotalBytes;
-  const databaseBackupMaxTotalBytes =
-    typeof databaseBackupMaxTotalBytesRaw === "number" &&
-      Number.isFinite(databaseBackupMaxTotalBytesRaw) &&
-      databaseBackupMaxTotalBytesRaw >= 0
-      ? Math.trunc(databaseBackupMaxTotalBytesRaw)
-      : null;
-  const databaseBackupMinFreeBytesRaw =
-    process.env.PAPERCLIP_DB_BACKUP_MIN_FREE_BYTES !== undefined
-      ? Number(process.env.PAPERCLIP_DB_BACKUP_MIN_FREE_BYTES)
-      : fileDatabaseBackup?.minFreeBytes;
-  const databaseBackupMinFreeBytes =
-    typeof databaseBackupMinFreeBytesRaw === "number" &&
-      Number.isFinite(databaseBackupMinFreeBytesRaw) &&
-      databaseBackupMinFreeBytesRaw > 0
-      ? Math.trunc(databaseBackupMinFreeBytesRaw)
-      : null;
   const databaseBackupDir = resolveHomeAwarePath(
     process.env.PAPERCLIP_DB_BACKUP_DIR ??
       fileDatabaseBackup?.dir ??
@@ -328,8 +306,6 @@ export function loadConfig(): Config {
     databaseBackupEnabled,
     databaseBackupIntervalMinutes,
     databaseBackupRetentionDays,
-    databaseBackupMaxTotalBytes,
-    databaseBackupMinFreeBytes,
     databaseBackupDir,
     serveUi:
       process.env.SERVE_UI !== undefined

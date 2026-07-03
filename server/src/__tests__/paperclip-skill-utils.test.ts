@@ -27,10 +27,7 @@ describe("paperclip skill utils", () => {
     await fs.mkdir(moduleDir, { recursive: true });
     await fs.mkdir(path.join(root, "skills", "paperclip"), { recursive: true });
     await fs.mkdir(path.join(root, "skills", "paperclip-create-agent"), { recursive: true });
-    await fs.mkdir(path.join(root, ".agents", "skills", "diagnose-why-work-stopped"), { recursive: true });
-    await fs.mkdir(path.join(root, ".agents", "skills", "paperclip-create-plugin"), { recursive: true });
     await fs.mkdir(path.join(root, ".agents", "skills", "release"), { recursive: true });
-    await fs.mkdir(path.join(root, ".agents", "skills", "terminal-bench-loop"), { recursive: true });
 
     const entries = await listPaperclipSkillEntries(moduleDir);
 
@@ -54,36 +51,14 @@ describe("paperclip skill utils", () => {
     expect(skillBody).toContain("references/artifacts.md");
     expect(skillBody).not.toContain("/api/companies/$PAPERCLIP_COMPANY_ID/issues/$PAPERCLIP_TASK_ID/attachments");
     expect(referenceBody).toContain("Generated Artifacts and Work Products");
-    expect(referenceBody).toContain("scripts/paperclip-upload-artifact.mjs");
-    expect(skillBody).toContain("scripts/paperclip-issue-update.mjs");
+    expect(referenceBody).toContain("scripts/paperclip-upload-artifact.sh");
     expect(referenceBody).toContain("POST");
     expect(referenceBody).toContain("/api/companies/$PAPERCLIP_COMPANY_ID/issues/$PAPERCLIP_TASK_ID/attachments");
     expect(referenceBody).toContain("/api/issues/$PAPERCLIP_TASK_ID/work-products");
     await expect(
-      fs.access(path.resolve("skills/paperclip/scripts/paperclip-upload-artifact.mjs")),
-    ).resolves.toBeUndefined();
-    await expect(
       fs.access(path.resolve("skills/paperclip/scripts/paperclip-upload-artifact.sh")),
     ).resolves.toBeUndefined();
-    await expect(
-      fs.access(path.resolve("skills/paperclip/scripts/paperclip-issue-update.mjs")),
-    ).resolves.toBeUndefined();
     await expect(fs.access(path.resolve("scripts/paperclip-upload-artifact.sh"))).rejects.toThrow();
-  });
-
-  it("keeps the create-issue-interaction-ui guide as a maintainer-only skill", async () => {
-    const skillPath = path.resolve(".agents/skills/create-issue-interaction-ui/SKILL.md");
-    const skillBody = await fs.readFile(skillPath, "utf8");
-    const normalizedSkillBody = skillBody.replace(/\s+/g, " ");
-
-    expect(skillBody).toContain("name: create-issue-interaction-ui");
-    expect(skillBody).toContain("Developer/maintainer skill");
-    expect(normalizedSkillBody).toContain("Do NOT install this on production Paperclip agents");
-    expect(skillBody).toContain("packages/shared/src/constants.ts");
-    expect(skillBody).toContain("server/src/services/issue-thread-interactions.ts");
-    expect(skillBody).toContain("ui/src/components/IssueThreadInteractionCard.tsx");
-    expect(skillBody).toContain("packages/plugins/sdk/src/testing.ts");
-    await expect(fs.access(path.resolve("skills/create-issue-interaction-ui/SKILL.md"))).rejects.toThrow();
   });
 
   it("marks skills with required: false in SKILL.md frontmatter as optional", async () => {
@@ -127,10 +102,9 @@ describe("paperclip skill utils", () => {
     await fs.mkdir(runtimeSkill, { recursive: true });
     await fs.mkdir(customSkill, { recursive: true });
 
-    const symlinkType = process.platform === "win32" ? "junction" : undefined;
-    await fs.symlink(runtimeSkill, path.join(skillsHome, "paperclip"), symlinkType);
-    await fs.symlink(customSkill, path.join(skillsHome, "release-notes"), symlinkType);
-    await fs.symlink(staleMaintainerSkill, path.join(skillsHome, "release"), symlinkType);
+    await fs.symlink(runtimeSkill, path.join(skillsHome, "paperclip"));
+    await fs.symlink(customSkill, path.join(skillsHome, "release-notes"));
+    await fs.symlink(staleMaintainerSkill, path.join(skillsHome, "release"));
 
     const removed = await removeMaintainerOnlySkillSymlinks(skillsHome, ["paperclip"]);
 

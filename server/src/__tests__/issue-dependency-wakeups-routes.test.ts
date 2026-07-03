@@ -3,7 +3,6 @@ import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockWakeup = vi.hoisted(() => vi.fn(async () => undefined));
-const mockCompanyName = vi.hoisted(() => ({ value: "Acme" }));
 const mockIssueService = vi.hoisted(() => ({
   getAncestors: vi.fn(),
   getById: vi.fn(),
@@ -19,7 +18,7 @@ const mockIssueService = vi.hoisted(() => ({
 
 vi.mock("../services/index.js", () => ({
   companyService: () => ({
-    getById: vi.fn(async () => ({ id: "company-1", name: mockCompanyName.value, attachmentMaxBytes: 10 * 1024 * 1024 })),
+    getById: vi.fn(async () => ({ id: "company-1", attachmentMaxBytes: 10 * 1024 * 1024 })),
   }),
   accessService: () => ({
     canUser: vi.fn(),
@@ -115,7 +114,6 @@ describe("issue dependency wakeups in issue routes", () => {
     vi.doUnmock("../routes/authz.js");
     vi.doUnmock("../middleware/index.js");
     vi.clearAllMocks();
-    mockCompanyName.value = "Acme";
     mockIssueService.getAncestors.mockResolvedValue([]);
     mockIssueService.getComment.mockResolvedValue(null);
     mockIssueService.getCommentCursor.mockResolvedValue({
@@ -182,61 +180,6 @@ describe("issue dependency wakeups in issue routes", () => {
             issueId: "issue-2",
             resolvedBlockerIssueId: "issue-1",
           }),
-        }),
-      );
-    });
-  });
-
-  it("limits dependency wake fanout for single-lane softwarehouse companies", async () => {
-    mockCompanyName.value = "LuckySparrow Software House";
-    mockIssueService.getById.mockResolvedValue({
-      id: "issue-1",
-      companyId: "company-1",
-      identifier: "LUC-179",
-      title: "Finish blocker",
-      description: null,
-      status: "blocked",
-      priority: "critical",
-      parentId: null,
-      assigneeAgentId: "agent-1",
-      assigneeUserId: null,
-      createdByAgentId: null,
-      createdByUserId: null,
-      executionWorkspaceId: null,
-      labels: [],
-      labelIds: [],
-    });
-    mockIssueService.update.mockResolvedValue({
-      id: "issue-1",
-      companyId: "company-1",
-      identifier: "LUC-179",
-      title: "Finish blocker",
-      description: null,
-      status: "done",
-      priority: "critical",
-      parentId: null,
-      assigneeAgentId: "agent-1",
-      assigneeUserId: null,
-      createdByAgentId: null,
-      createdByUserId: null,
-      executionWorkspaceId: null,
-      labels: [],
-      labelIds: [],
-    });
-    mockIssueService.listWakeableBlockedDependents.mockResolvedValue([
-      { id: "issue-2", assigneeAgentId: "agent-2", blockerIssueIds: ["issue-1"] },
-      { id: "issue-3", assigneeAgentId: "agent-3", blockerIssueIds: ["issue-1"] },
-    ]);
-
-    const res = await request(await createApp()).patch("/api/issues/issue-1").send({ status: "done" });
-    expect(res.status).toBe(200);
-    await vi.waitFor(() => {
-      expect(mockWakeup).toHaveBeenCalledTimes(1);
-      expect(mockWakeup).toHaveBeenCalledWith(
-        "agent-2",
-        expect.objectContaining({
-          reason: "issue_blockers_resolved",
-          payload: expect.objectContaining({ issueId: "issue-2" }),
         }),
       );
     });

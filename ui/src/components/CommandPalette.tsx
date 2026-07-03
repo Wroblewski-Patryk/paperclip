@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useLocation, useNavigate } from "@/lib/router";
+import { useNavigate } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
@@ -7,7 +7,6 @@ import { useSidebar } from "../context/SidebarContext";
 import { issuesApi } from "../api/issues";
 import { agentsApi } from "../api/agents";
 import { projectsApi } from "../api/projects";
-import { instanceSettingsApi } from "../api/instanceSettings";
 import { queryKeys } from "../lib/queryKeys";
 import {
   CommandDialog,
@@ -28,10 +27,8 @@ import {
   DollarSign,
   History,
   SquarePen,
-  FileCode2,
   Plus,
   Search,
-  BrainCircuit,
 } from "lucide-react";
 import { Identity } from "./Identity";
 import { agentUrl, projectUrl } from "../lib/utils";
@@ -43,28 +40,14 @@ export function buildFullSearchPath(query: string) {
   return trimmed.length === 0 ? "/search" : `/search?q=${encodeURIComponent(trimmed)}`;
 }
 
-const ISSUE_DETAIL_PATH_RE = /\/issues\/[^/?#]+(?:$|\?|#|\/)/;
-
-function isOnIssueDetail(pathname: string): boolean {
-  return ISSUE_DETAIL_PATH_RE.test(pathname);
-}
-
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
-  const location = useLocation();
   const { selectedCompanyId } = useCompany();
   const { openNewIssue, openNewAgent } = useDialogActions();
   const { isMobile, setSidebarOpen } = useSidebar();
   const searchQuery = query.trim();
-  const onIssueDetail = isOnIssueDetail(location.pathname);
-  const { data: experimentalSettings } = useQuery({
-    queryKey: queryKeys.instance.experimentalSettings,
-    queryFn: () => instanceSettingsApi.getExperimental(),
-    retry: false,
-  });
-  const fileViewerEnabled = experimentalSettings?.enableExperimentalFileViewer === true;
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -123,10 +106,6 @@ export function CommandPalette() {
     if (!id) return null;
     return agents.find((a) => a.id === id)?.name ?? null;
   };
-  const agentIcon = (id: string | null) => {
-    if (!id) return null;
-    return agents.find((a) => a.id === id)?.icon ?? null;
-  };
 
   const visibleIssues = useMemo(
     () => (searchQuery.length > 0 ? searchedIssues : issues),
@@ -142,7 +121,7 @@ export function CommandPalette() {
         if (v && isMobile) setSidebarOpen(false);
       }}>
       <CommandInput
-        placeholder="Search tasks, agents, projects..."
+        placeholder="Search issues, agents, projects..."
         value={query}
         onValueChange={setQuery}
         onKeyDown={(event) => {
@@ -156,7 +135,7 @@ export function CommandPalette() {
         <CommandEmpty>
           {showSearchAll ? (
             <span>
-              No quick task matches. Press{" "}
+              No quick issue matches. Press{" "}
               <kbd className="rounded border border-border bg-muted px-1 py-0.5 text-[10px]">↵</kbd>{" "}
               to <span className="font-medium">search all</span> or keep typing to refine.
             </span>
@@ -195,21 +174,9 @@ export function CommandPalette() {
             }}
           >
             <SquarePen className="mr-2 h-4 w-4" />
-            Create new task
+            Create new issue
             <span className="ml-auto text-xs text-muted-foreground">C</span>
           </CommandItem>
-          {onIssueDetail && fileViewerEnabled && (
-            <CommandItem
-              onSelect={() => {
-                setOpen(false);
-                window.dispatchEvent(new CustomEvent("paperclip:open-file-viewer"));
-              }}
-            >
-              <FileCode2 className="mr-2 h-4 w-4" />
-              Open file in this issue...
-              <span className="ml-auto text-xs text-muted-foreground">g f</span>
-            </CommandItem>
-          )}
           <CommandItem
             onSelect={() => {
               setOpen(false);
@@ -238,7 +205,7 @@ export function CommandPalette() {
           </CommandItem>
           <CommandItem onSelect={() => go("/issues")}>
             <CircleDot className="mr-2 h-4 w-4" />
-            Tasks
+            Issues
           </CommandItem>
           <CommandItem onSelect={() => go("/projects")}>
             <Hexagon className="mr-2 h-4 w-4" />
@@ -251,10 +218,6 @@ export function CommandPalette() {
           <CommandItem onSelect={() => go("/agents")}>
             <Bot className="mr-2 h-4 w-4" />
             Agents
-          </CommandItem>
-          <CommandItem onSelect={() => go("/softwarehouse")}>
-            <BrainCircuit className="mr-2 h-4 w-4" />
-            Softwarehouse
           </CommandItem>
           <CommandItem onSelect={() => go("/costs")}>
             <DollarSign className="mr-2 h-4 w-4" />
@@ -269,7 +232,7 @@ export function CommandPalette() {
         {visibleIssues.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Tasks">
+            <CommandGroup heading="Issues">
               {visibleIssues.slice(0, 10).map((issue) => (
                 <CommandItem
                   key={issue.id}
@@ -287,14 +250,7 @@ export function CommandPalette() {
                   <span className="flex-1 truncate">{issue.title}</span>
                   {issue.assigneeAgentId && (() => {
                     const name = agentName(issue.assigneeAgentId);
-                    return name ? (
-                      <Identity
-                        name={name}
-                        agentIcon={agentIcon(issue.assigneeAgentId)}
-                        size="sm"
-                        className="ml-2 hidden sm:inline-flex"
-                      />
-                    ) : null;
+                    return name ? <Identity name={name} size="sm" className="ml-2 hidden sm:inline-flex" /> : null;
                   })()}
                 </CommandItem>
               ))}

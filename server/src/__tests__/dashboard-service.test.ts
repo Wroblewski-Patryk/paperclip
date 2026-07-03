@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { agents, companies, createDb, heartbeatRuns, issues } from "@paperclipai/db";
+import { agents, companies, createDb, heartbeatRuns } from "@paperclipai/db";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
@@ -48,7 +48,6 @@ describeEmbeddedPostgres("dashboard service", () => {
 
   afterEach(async () => {
     await db.delete(heartbeatRuns);
-    await db.delete(issues);
     await db.delete(agents);
     await db.delete(companies);
   });
@@ -165,66 +164,6 @@ describeEmbeddedPostgres("dashboard service", () => {
       failed: 2,
       other: 1,
       total: 3,
-    });
-  });
-
-  it("excludes hidden issues from dashboard task counts", async () => {
-    const companyId = randomUUID();
-
-    await db.insert(companies).values({
-      id: companyId,
-      name: "Paperclip",
-      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
-      requireBoardApprovalForNewAgents: false,
-    });
-
-    await db.insert(issues).values([
-      {
-        id: randomUUID(),
-        companyId,
-        title: "Visible todo",
-        status: "todo",
-        priority: "medium",
-      },
-      {
-        id: randomUUID(),
-        companyId,
-        title: "Visible blocked",
-        status: "blocked",
-        priority: "medium",
-      },
-      {
-        id: randomUUID(),
-        companyId,
-        title: "Visible done",
-        status: "done",
-        priority: "medium",
-      },
-      {
-        id: randomUUID(),
-        companyId,
-        title: "Hidden blocked",
-        status: "blocked",
-        priority: "medium",
-        hiddenAt: new Date(),
-      },
-      {
-        id: randomUUID(),
-        companyId,
-        title: "Hidden done",
-        status: "done",
-        priority: "medium",
-        hiddenAt: new Date(),
-      },
-    ]);
-
-    const summary = await dashboardService(db).summary(companyId);
-
-    expect(summary.tasks).toMatchObject({
-      open: 2,
-      inProgress: 0,
-      blocked: 1,
-      done: 1,
     });
   });
 });

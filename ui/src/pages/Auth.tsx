@@ -19,7 +19,6 @@ export function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const errorId = "auth-error";
 
   const nextPath = useMemo(
     () => searchParams.get("next") || getRememberedInvitePath() || "/",
@@ -116,10 +115,6 @@ export function AuthPage() {
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   autoComplete="name"
-                  required
-                  aria-required="true"
-                  aria-invalid={error ? true : undefined}
-                  aria-describedby={error ? errorId : undefined}
                   autoFocus
                 />
               </div>
@@ -133,11 +128,7 @@ export function AuthPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                autoComplete="username"
-                required
-                aria-required="true"
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? errorId : undefined}
+                autoComplete="email"
                 autoFocus={mode === "sign_in"}
               />
             </div>
@@ -151,17 +142,9 @@ export function AuthPage() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete={mode === "sign_in" ? "current-password" : "new-password"}
-                required
-                aria-required="true"
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? errorId : undefined}
               />
             </div>
-            {error && (
-              <p id={errorId} role="alert" className="text-xs text-destructive">
-                {error}
-              </p>
-            )}
+            {error && <p className="text-xs text-destructive">{error}</p>}
             <Button
               type="submit"
               disabled={mutation.isPending}

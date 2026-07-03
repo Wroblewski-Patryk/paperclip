@@ -1,5 +1,6 @@
 /**
- * Adapter types shipped with Paperclip. External plugins must not replace these.
+ * Adapter types shipped with Paperclip. External plugins may override these;
+ * removing the override restores the built-in version.
  */
 export const BUILTIN_ADAPTER_TYPES = new Set([
   "acpx_local",
@@ -12,6 +13,7 @@ export const BUILTIN_ADAPTER_TYPES = new Set([
   "openclaw_gateway",
   "opencode_local",
   "pi_local",
+  "hermes_local",
   "process",
   "http",
 ]);

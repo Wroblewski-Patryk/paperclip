@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { generateKeyPairSync, randomUUID } from "node:crypto";
 import path from "node:path";
 import type { Db } from "@paperclipai/db";
-import { agents as agentsTable, companies, heartbeatRuns, issues as issuesTable, projects as projectsTable } from "@paperclipai/db";
+import { agents as agentsTable, companies, heartbeatRuns, issues as issuesTable } from "@paperclipai/db";
 import { and, desc, eq, inArray, not, sql } from "drizzle-orm";
 import {
   agentSkillSyncSchema,
@@ -25,7 +25,6 @@ import {
   wakeAgentSchema,
   updateAgentSchema,
   supportedEnvironmentDriversForAdapter,
-  LOW_TRUST_REVIEW_PRESET,
 } from "@paperclipai/shared";
 import {
   readPaperclipSkillSyncPreference,
@@ -33,7 +32,6 @@ import {
 } from "@paperclipai/adapter-utils/server-utils";
 import { trackAgentCreated } from "@paperclipai/shared/telemetry";
 import { validate } from "../middleware/validate.js";
-import { logger } from "../middleware/logger.js";
 import {
   agentService,
   agentInstructionsService,
@@ -51,7 +49,7 @@ import {
   workspaceOperationService,
 } from "../services/index.js";
 import { conflict, forbidden, notFound, unprocessable } from "../errors.js";
-import { assertBoard, assertBoardOrAgent, assertCompanyAccess, assertInstanceAdmin, getActorInfo } from "./authz.js";
+import { assertBoard, assertCompanyAccess, assertInstanceAdmin, getActorInfo } from "./authz.js";
 import {
   assertNoAgentHostWorkspaceCommandMutation,
   collectAgentAdapterWorkspaceCommandPaths,
@@ -101,9 +99,6 @@ import {
 import { getTelemetryClient } from "../telemetry.js";
 import { assertEnvironmentSelectionForCompany } from "./environment-selection.js";
 import { recoveryService } from "../services/recovery/service.js";
-import { resolveCoreTrustPreset } from "../services/trust-preset-resolver.js";
-import { readObject } from "../lib/objects.js";
-import { listInvalidOrgChainDescendantIds } from "../services/agent-invokability.js";
 
 const RUN_LOG_DEFAULT_LIMIT_BYTES = 256_000;
 const RUN_LOG_MAX_LIMIT_BYTES = 1024 * 1024;
@@ -119,73 +114,6 @@ function readLiveRunsQueryInt(value: unknown, max: number, fallback = 0) {
   if (!Number.isFinite(parsed)) return fallback;
   if (parsed <= 0) return fallback;
   return Math.min(max, Math.trunc(parsed));
-}
-
-const CONTROL_PLANE_SLOW_ROUTE_MS = Number(process.env.PAPERCLIP_CONTROL_PLANE_SLOW_ROUTE_MS ?? 1500);
-const CONTROL_PLANE_SLOW_SEGMENT_MS = Number(process.env.PAPERCLIP_CONTROL_PLANE_SLOW_SEGMENT_MS ?? 750);
-
-function controlPlaneActorContext(req: Request) {
-  const actor = getActorInfo(req);
-  return {
-    actorType: actor.actorType,
-    actorId: actor.actorId,
-    actorAgentId: actor.agentId,
-    actorRunId: actor.runId,
-  };
-}
-
-function logSlowControlPlaneRoute(input: {
-  req: Request;
-  routePath: string;
-  companyId: string | null;
-  startedAtMs: number;
-  context?: Record<string, unknown>;
-}) {
-  const durationMs = Date.now() - input.startedAtMs;
-  if (durationMs < CONTROL_PLANE_SLOW_ROUTE_MS) return;
-  logger.warn({
-    routePath: input.routePath,
-    companyId: input.companyId,
-    durationMs,
-    thresholdMs: CONTROL_PLANE_SLOW_ROUTE_MS,
-    ...controlPlaneActorContext(input.req),
-    ...(input.context ?? {}),
-  }, "slow control-plane route");
-}
-
-async function measureControlPlaneSegment<T>(input: {
-  req: Request;
-  routePath: string;
-  segment: string;
-  companyId: string | null;
-  context?: Record<string, unknown>;
-  fn: () => Promise<T>;
-}): Promise<T> {
-  const startedAtMs = Date.now();
-  try {
-    return await input.fn();
-  } finally {
-    const durationMs = Date.now() - startedAtMs;
-    if (durationMs >= CONTROL_PLANE_SLOW_SEGMENT_MS) {
-      logger.warn({
-        routePath: input.routePath,
-        segment: input.segment,
-        companyId: input.companyId,
-        durationMs,
-        thresholdMs: CONTROL_PLANE_SLOW_SEGMENT_MS,
-        ...controlPlaneActorContext(input.req),
-        ...(input.context ?? {}),
-      }, "slow control-plane route segment");
-    }
-  }
-}
-
-function readRunIssueId(context: Record<string, unknown> | null) {
-  const directIssueId = context?.issueId;
-  if (typeof directIssueId === "string" && isUuidLike(directIssueId)) return directIssueId;
-  const paperclipIssue = readObject(context?.paperclipIssue);
-  const nestedIssueId = paperclipIssue?.id;
-  return typeof nestedIssueId === "string" && isUuidLike(nestedIssueId) ? nestedIssueId : null;
 }
 
 export function agentRoutes(
@@ -261,35 +189,6 @@ export function agentRoutes(
     await assertEnvironmentSelectionForCompany(environmentService(db), companyId, environmentId, {
       allowedDrivers: allowedEnvironmentDriversForAgent(adapterType),
     });
-  }
-
-  async function decideAgentRead(req: Request, agent: { id: string; companyId: string }) {
-    return access.decide({
-      actor: req.actor,
-      action: "agent:read",
-      resource: { type: "agent", companyId: agent.companyId, agentId: agent.id },
-    });
-  }
-
-  async function assertAgentReadAllowed(req: Request, res: Response, agent: { id: string; companyId: string }) {
-    const decision = await decideAgentRead(req, agent);
-    if (decision.allowed) return true;
-    res.status(403).json({ error: "Agent is outside this actor's authorization boundary" });
-    return false;
-  }
-
-  async function filterAgentsForActor<T extends Record<string, unknown>>(
-    req: Request,
-    rows: T[],
-    fallbackCompanyId?: string,
-  ) {
-    const decisions = await Promise.all(rows.map((agent) => {
-      const id = typeof agent.id === "string" ? agent.id : null;
-      const companyId = typeof agent.companyId === "string" ? agent.companyId : fallbackCompanyId ?? null;
-      if (!id || !companyId) return Promise.resolve({ allowed: false });
-      return decideAgentRead(req, { id, companyId });
-    }));
-    return rows.filter((_, index) => decisions[index]?.allowed);
   }
 
   /**
@@ -632,69 +531,6 @@ export function agentRoutes(
       ...(options?.restricted ? redactForRestrictedAgentView(agent) : agent),
       chainOfCommand,
       access: accessState,
-    };
-  }
-
-  async function resolveAgentSelfTrustPreset(req: Request, agent: NonNullable<Awaited<ReturnType<typeof svc.getById>>>) {
-    if (req.actor.type !== "agent" || req.actor.agentId !== agent.id) {
-      return { kind: "standard" as const };
-    }
-    const run = req.actor.type === "agent" && req.actor.runId
-      ? await db
-          .select({
-            companyId: heartbeatRuns.companyId,
-            agentId: heartbeatRuns.agentId,
-            contextSnapshot: heartbeatRuns.contextSnapshot,
-          })
-          .from(heartbeatRuns)
-          .where(and(eq(heartbeatRuns.id, req.actor.runId), eq(heartbeatRuns.companyId, agent.companyId)))
-          .then((rows) => rows[0] ?? null)
-      : null;
-    const runContext = run?.agentId === agent.id ? readObject(run.contextSnapshot) : null;
-    const runExecutionPolicy = readObject(runContext?.executionPolicy);
-    const runIssueId = readRunIssueId(runContext);
-    const runScopedIssue = runIssueId
-      ? await db
-          .select({
-            companyId: issuesTable.companyId,
-            projectId: issuesTable.projectId,
-            executionPolicy: issuesTable.executionPolicy,
-            projectExecutionWorkspacePolicy: projectsTable.executionWorkspacePolicy,
-          })
-          .from(issuesTable)
-          .leftJoin(projectsTable, and(eq(projectsTable.id, issuesTable.projectId), eq(projectsTable.companyId, issuesTable.companyId)))
-          .where(and(eq(issuesTable.id, runIssueId), eq(issuesTable.companyId, agent.companyId)))
-          .then((rows) => rows[0] ?? null)
-      : null;
-
-    return resolveCoreTrustPreset({
-      companyId: agent.companyId,
-      agent,
-      project: runScopedIssue?.projectId
-        ? {
-            companyId: runScopedIssue.companyId,
-            executionWorkspacePolicy: runScopedIssue.projectExecutionWorkspacePolicy,
-          }
-        : null,
-      issue: runScopedIssue
-        ? {
-            companyId: runScopedIssue.companyId,
-            executionPolicy: runScopedIssue.executionPolicy,
-          }
-        : null,
-      run: runExecutionPolicy ? { companyId: agent.companyId, executionPolicy: runExecutionPolicy } : null,
-    });
-  }
-
-  function buildLowTrustSelfView(agent: NonNullable<Awaited<ReturnType<typeof svc.getById>>>) {
-    return {
-      id: agent.id,
-      companyId: agent.companyId,
-      name: agent.name,
-      role: agent.role,
-      title: agent.title,
-      status: agent.status,
-      trustPreset: LOW_TRUST_REVIEW_PRESET,
     };
   }
 
@@ -1566,32 +1402,15 @@ export function agentRoutes(
         typeof req.body?.environmentId === "string" && req.body.environmentId.trim().length > 0
           ? (req.body.environmentId as string)
           : null;
-      let runtimeAdapterConfig: Record<string, unknown>;
-      try {
-        const normalizedAdapterConfig = await secretsSvc.normalizeAdapterConfigForPersistence(
-          companyId,
-          inputAdapterConfig,
-          { strictMode: strictSecretsMode },
-        );
-        const resolved = await secretsSvc.resolveAdapterConfigForRuntime(
-          companyId,
-          normalizedAdapterConfig,
-        );
-        runtimeAdapterConfig = resolved.config;
-      } catch (err) {
-        res.json({
-          adapterType: type,
-          status: "fail",
-          checks: [{
-            level: "error",
-            code: "adapter_config_resolution_failed",
-            message: "Adapter configuration could not be resolved for environment testing.",
-            detail: err instanceof Error ? err.message : String(err),
-          }],
-          testedAt: new Date().toISOString(),
-        } satisfies AdapterEnvironmentTestResult);
-        return;
-      }
+      const normalizedAdapterConfig = await secretsSvc.normalizeAdapterConfigForPersistence(
+        companyId,
+        inputAdapterConfig,
+        { strictMode: strictSecretsMode },
+      );
+      const { config: runtimeAdapterConfig } = await secretsSvc.resolveAdapterConfigForRuntime(
+        companyId,
+        normalizedAdapterConfig,
+      );
 
       const { executionTarget, environmentName, fallbackChecks, release } =
         await resolveAdapterTestExecutionContext({
@@ -1622,28 +1441,13 @@ export function agentRoutes(
           return;
         }
 
-        let result: AdapterEnvironmentTestResult;
-        try {
-          result = await adapter.testEnvironment({
-            companyId,
-            adapterType: type,
-            config: runtimeAdapterConfig,
-            executionTarget,
-            environmentName,
-          });
-        } catch (err) {
-          result = {
-            adapterType: type,
-            status: "fail",
-            checks: [{
-              level: "error",
-              code: "adapter_environment_test_failed",
-              message: "Adapter environment test failed before returning diagnostics.",
-              detail: err instanceof Error ? err.message : String(err),
-            }],
-            testedAt: new Date().toISOString(),
-          };
-        }
+        const result = await adapter.testEnvironment({
+          companyId,
+          adapterType: type,
+          config: runtimeAdapterConfig,
+          executionTarget,
+          environmentName,
+        });
 
         if (result.status === "fail") releaseStatus = "failed";
         res.json(result);
@@ -1793,8 +1597,6 @@ export function agentRoutes(
   );
 
   router.get("/companies/:companyId/agents", async (req, res) => {
-    const routeStartedAtMs = Date.now();
-    const routePath = "GET /api/companies/:companyId/agents";
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
     const unsupportedQueryParams = Object.keys(req.query).sort();
@@ -1804,48 +1606,13 @@ export function agentRoutes(
       });
       return;
     }
-    const rows = await measureControlPlaneSegment({
-      req,
-      routePath,
-      segment: "agent_list",
-      companyId,
-      fn: () => svc.list(companyId),
-    });
-    const result = await measureControlPlaneSegment({
-      req,
-      routePath,
-      segment: "agent_read_filter",
-      companyId,
-      context: { agentCount: rows.length },
-      fn: () => filterAgentsForActor(req, rows),
-    });
-    const canReadConfigs = await measureControlPlaneSegment({
-      req,
-      routePath,
-      segment: "agent_configuration_access",
-      companyId,
-      fn: () => actorCanReadConfigurationsForCompany(req, companyId),
-    });
+    const result = await svc.list(companyId);
+    const canReadConfigs = await actorCanReadConfigurationsForCompany(req, companyId);
     if (canReadConfigs) {
       res.json(result);
-      logSlowControlPlaneRoute({
-        req,
-        routePath,
-        companyId,
-        startedAtMs: routeStartedAtMs,
-        context: { agentCount: result.length, restrictedView: false },
-      });
       return;
     }
-    const restrictedRows = result.map((agent) => redactForRestrictedAgentView(agent));
-    res.json(restrictedRows);
-    logSlowControlPlaneRoute({
-      req,
-      routePath,
-      companyId,
-      startedAtMs: routeStartedAtMs,
-      context: { agentCount: restrictedRows.length, restrictedView: true },
-    });
+    res.json(result.map((agent) => redactForRestrictedAgentView(agent)));
   });
 
   router.get("/instance/scheduler-heartbeats", async (req, res) => {
@@ -1914,7 +1681,7 @@ export function agentRoutes(
   router.get("/companies/:companyId/org", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
-    const tree = await filterAgentsForActor(req, await svc.orgForCompany(companyId), companyId);
+    const tree = await svc.orgForCompany(companyId);
     const leanTree = tree.map((node) => toLeanOrgNode(node as Record<string, unknown>));
     res.json(leanTree);
   });
@@ -1923,7 +1690,7 @@ export function agentRoutes(
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
     const style = (ORG_CHART_STYLES.includes(req.query.style as OrgChartStyle) ? req.query.style : "warmth") as OrgChartStyle;
-    const tree = await filterAgentsForActor(req, await svc.orgForCompany(companyId), companyId);
+    const tree = await svc.orgForCompany(companyId);
     const leanTree = tree.map((node) => toLeanOrgNode(node as Record<string, unknown>));
     const svg = renderOrgChartSvg(leanTree as unknown as OrgNode[], style);
     res.setHeader("Content-Type", "image/svg+xml");
@@ -1935,7 +1702,7 @@ export function agentRoutes(
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
     const style = (ORG_CHART_STYLES.includes(req.query.style as OrgChartStyle) ? req.query.style : "warmth") as OrgChartStyle;
-    const tree = await filterAgentsForActor(req, await svc.orgForCompany(companyId), companyId);
+    const tree = await svc.orgForCompany(companyId);
     const leanTree = tree.map((node) => toLeanOrgNode(node as Record<string, unknown>));
     const png = await renderOrgChartPng(leanTree as unknown as OrgNode[], style);
     res.setHeader("Content-Type", "image/png");
@@ -1951,69 +1718,19 @@ export function agentRoutes(
   });
 
   router.get("/agents/me", async (req, res) => {
-    const routeStartedAtMs = Date.now();
-    const routePath = "GET /api/agents/me";
     if (req.actor.type !== "agent" || !req.actor.agentId) {
       res.status(401).json({ error: "Agent authentication required" });
       return;
     }
-    const companyId = req.actor.companyId ?? null;
-    const agent = await measureControlPlaneSegment({
-      req,
-      routePath,
-      segment: "agent_detail_lookup",
-      companyId,
-      context: { targetAgentId: req.actor.agentId },
-      fn: () => svc.getById(req.actor.agentId as string),
-    });
+    const agent = await svc.getById(req.actor.agentId);
     if (!agent) {
       res.status(404).json({ error: "Agent not found" });
       return;
     }
-    const trustPreset = await measureControlPlaneSegment({
-      req,
-      routePath,
-      segment: "agent_trust_preset",
-      companyId: agent.companyId,
-      context: { targetAgentId: agent.id },
-      fn: () => resolveAgentSelfTrustPreset(req, agent),
-    });
-    if (trustPreset.kind === "denied") {
-      res.status(403).json({ error: trustPreset.detail });
-      return;
-    }
-    if (trustPreset.kind === "low_trust_review") {
-      res.json(buildLowTrustSelfView(agent));
-      logSlowControlPlaneRoute({
-        req,
-        routePath,
-        companyId: agent.companyId,
-        startedAtMs: routeStartedAtMs,
-        context: { targetAgentId: agent.id, trustPreset: trustPreset.kind },
-      });
-      return;
-    }
-    const detail = await measureControlPlaneSegment({
-      req,
-      routePath,
-      segment: "agent_detail_build",
-      companyId: agent.companyId,
-      context: { targetAgentId: agent.id },
-      fn: () => buildAgentDetail(agent),
-    });
-    res.json(detail);
-    logSlowControlPlaneRoute({
-      req,
-      routePath,
-      companyId: agent.companyId,
-      startedAtMs: routeStartedAtMs,
-      context: { targetAgentId: agent.id, trustPreset: trustPreset.kind },
-    });
+    res.json(await buildAgentDetail(agent));
   });
 
   router.get("/agents/me/inbox-lite", async (req, res) => {
-    const routeStartedAtMs = Date.now();
-    const routePath = "GET /api/agents/me/inbox-lite";
     if (req.actor.type !== "agent" || !req.actor.agentId || !req.actor.companyId) {
       res.status(401).json({ error: "Agent authentication required" });
       return;
@@ -2021,41 +1738,20 @@ export function agentRoutes(
 
     const issuesSvc = issueService(db);
     const recoveryActionsSvc = issueRecoveryActionService(db);
-    const companyId = req.actor.companyId;
-    const rows = await measureControlPlaneSegment({
-      req,
-      routePath,
-      segment: "issue_list",
-      companyId,
-      context: { assigneeAgentId: req.actor.agentId },
-      fn: () => issuesSvc.list(companyId, {
-        assigneeAgentId: req.actor.agentId as string,
-        status: "todo,in_progress,blocked",
-        includeRoutineExecutions: true,
-        limit: ISSUE_LIST_DEFAULT_LIMIT,
-      }),
+    const rows = await issuesSvc.list(req.actor.companyId, {
+      assigneeAgentId: req.actor.agentId,
+      status: "todo,in_progress,blocked",
+      includeRoutineExecutions: true,
+      limit: ISSUE_LIST_DEFAULT_LIMIT,
     });
     const issueIds = rows.map((issue) => issue.id);
     const [dependencyReadiness, recoveryActionByIssue] = await Promise.all([
-      measureControlPlaneSegment({
-        req,
-        routePath,
-        segment: "dependency_readiness",
-        companyId,
-        context: { issueCount: issueIds.length },
-        fn: () => issuesSvc.listDependencyReadiness(companyId, issueIds),
-      }),
-      measureControlPlaneSegment({
-        req,
-        routePath,
-        segment: "recovery_action_listing",
-        companyId,
-        context: { issueCount: issueIds.length },
-        fn: () => recoveryActionsSvc.listActiveForIssues(companyId, issueIds),
-      }),
+      issuesSvc.listDependencyReadiness(req.actor.companyId, issueIds),
+      recoveryActionsSvc.listActiveForIssues(req.actor.companyId, issueIds),
     ]);
 
-    const response = rows.map((issue) => ({
+    res.json(
+      rows.map((issue) => ({
         id: issue.id,
         identifier: issue.identifier,
         title: issue.title,
@@ -2070,19 +1766,8 @@ export function agentRoutes(
         dependencyReady: dependencyReadiness.get(issue.id)?.isDependencyReady ?? true,
         unresolvedBlockerCount: dependencyReadiness.get(issue.id)?.unresolvedBlockerCount ?? 0,
         unresolvedBlockerIssueIds: dependencyReadiness.get(issue.id)?.unresolvedBlockerIssueIds ?? [],
-      }));
-    res.json(response);
-    logSlowControlPlaneRoute({
-      req,
-      routePath,
-      companyId,
-      startedAtMs: routeStartedAtMs,
-      context: {
-        issueCount: response.length,
-        activeRunCount: response.filter((issue) => issue.activeRun).length,
-        blockedIssueCount: response.filter((issue) => issue.status === "blocked").length,
-      },
-    });
+      })),
+    );
   });
 
   router.get("/agents/me/inbox/mine", async (req, res) => {
@@ -2111,19 +1796,7 @@ export function agentRoutes(
       return;
     }
     assertCompanyAccess(req, agent.companyId);
-    if (!(await assertAgentReadAllowed(req, res, agent))) return;
     const isSelf = req.actor.type === "agent" && req.actor.agentId === id;
-    if (isSelf) {
-      const trustPreset = await resolveAgentSelfTrustPreset(req, agent);
-      if (trustPreset.kind === "denied") {
-        res.status(403).json({ error: trustPreset.detail });
-        return;
-      }
-      if (trustPreset.kind === "low_trust_review") {
-        res.json(buildLowTrustSelfView(agent));
-        return;
-      }
-    }
     const canReadSensitiveDetail = isSelf
       ? true
       : await actorCanReadConfigurationsForCompany(req, agent.companyId);
@@ -2221,14 +1894,7 @@ export function agentRoutes(
     assertCompanyAccess(req, agent.companyId);
 
     const state = await heartbeat.getRuntimeState(id);
-    res.json(
-      state
-        ? {
-            ...state,
-            sessionParamsJson: redactEventPayload(state.sessionParamsJson ?? null),
-          }
-        : state,
-    );
+    res.json(state);
   });
 
   router.get("/agents/:id/task-sessions", async (req, res) => {
@@ -2628,7 +2294,6 @@ export function agentRoutes(
       details: {
         canCreateAgents: agent.permissions?.canCreateAgents ?? false,
         canAssignTasks: effectiveCanAssignTasks,
-        trustPreset: agent.permissions?.trustPreset ?? "standard",
       },
     });
 
@@ -3060,14 +2725,7 @@ export function agentRoutes(
   router.post("/agents/:id/resume", async (req, res) => {
     assertBoard(req);
     const id = req.params.id as string;
-    const existing = await getAccessibleAgent(req, res, id);
-    if (!existing) {
-      return;
-    }
-    if (existing.orgChainHealth?.status === "invalid_org_chain") {
-      res.status(409).json({
-        error: existing.orgChainHealth?.repairGuidance ?? "Repair this agent's reporting chain before resuming it",
-      });
+    if (!(await getAccessibleAgent(req, res, id))) {
       return;
     }
     const agent = await svc.resume(id);
@@ -3081,38 +2739,6 @@ export function agentRoutes(
       actorType: "user",
       actorId: req.actor.userId ?? "board",
       action: "agent.resumed",
-      entityType: "agent",
-      entityId: agent.id,
-    });
-
-    res.json(agent);
-  });
-
-  router.post("/agents/:id/clear-error", async (req, res) => {
-    assertBoard(req);
-    const id = req.params.id as string;
-    const existing = await getAccessibleAgent(req, res, id);
-    if (!existing) {
-      return;
-    }
-    if (existing.orgChainHealth?.status === "invalid_org_chain") {
-      res.status(409).json({
-        error: existing.orgChainHealth?.repairGuidance ?? "Repair this agent's reporting chain before clearing its error",
-      });
-      return;
-    }
-
-    const agent = await svc.clearError(id);
-    if (!agent) {
-      res.status(404).json({ error: "Agent not found" });
-      return;
-    }
-
-    await logActivity(db, {
-      companyId: agent.companyId,
-      actorType: "user",
-      actorId: req.actor.userId ?? "board",
-      action: "agent.error_cleared",
       entityType: "agent",
       entityId: agent.id,
     });
@@ -3167,21 +2793,7 @@ export function agentRoutes(
       return;
     }
 
-    const companyAgentRows = await db
-      .select({
-        id: agentsTable.id,
-        companyId: agentsTable.companyId,
-        name: agentsTable.name,
-        reportsTo: agentsTable.reportsTo,
-        status: agentsTable.status,
-      })
-      .from(agentsTable)
-      .where(eq(agentsTable.companyId, agent.companyId));
-    const invalidOrgChainDescendantIds = listInvalidOrgChainDescendantIds(id, companyAgentRows);
-    const cancellation = await heartbeat.cancelInvocationsForAgents(
-      [id, ...invalidOrgChainDescendantIds],
-      "Cancelled because the agent was terminated or became invalid-org-chain under a terminated manager",
-    );
+    await heartbeat.cancelActiveForAgent(id);
 
     await logActivity(db, {
       companyId: agent.companyId,
@@ -3190,18 +2802,6 @@ export function agentRoutes(
       action: "agent.terminated",
       entityType: "agent",
       entityId: agent.id,
-      details: {
-        invalidOrgChain: {
-          descendantCount: invalidOrgChainDescendantIds.length,
-          descendantIds: invalidOrgChainDescendantIds,
-          state: invalidOrgChainDescendantIds.length > 0 ? "descendants_invalid_under_terminated_manager" : "none",
-        },
-        cancellation: {
-          agentIds: cancellation.agentIds,
-          runsCancelled: cancellation.runsCancelled,
-          wakeupsCancelled: cancellation.wakeupsCancelled,
-        },
-      },
     });
 
     res.json(agent);
@@ -3333,12 +2933,6 @@ export function agentRoutes(
     } else {
       await assertBoardCanManageAgentsForCompany(req, agent.companyId);
     }
-    if (agent.orgChainHealth?.status === "invalid_org_chain") {
-      res.status(409).json({
-        error: agent.orgChainHealth?.repairGuidance ?? "Repair this agent's reporting chain before starting runs",
-      });
-      return;
-    }
 
     const run = await heartbeat.wakeup(id, {
       source: opts.source,
@@ -3406,12 +3000,6 @@ export function agentRoutes(
       }
     } else {
       await assertBoardCanManageAgentsForCompany(req, agent.companyId);
-    }
-    if (agent.orgChainHealth?.status === "invalid_org_chain") {
-      res.status(409).json({
-        error: agent.orgChainHealth?.repairGuidance ?? "Repair this agent's reporting chain before starting runs",
-      });
-      return;
     }
 
     const body = (req.body ?? {}) as Partial<{
@@ -3510,8 +3098,6 @@ export function agentRoutes(
   });
 
   router.get("/companies/:companyId/live-runs", async (req, res) => {
-    const routeStartedAtMs = Date.now();
-    const routePath = "GET /api/companies/:companyId/live-runs";
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
 
@@ -3536,7 +3122,6 @@ export function agentRoutes(
       createdAt: heartbeatRuns.createdAt,
       agentId: heartbeatRuns.agentId,
       agentName: agentsTable.name,
-      agentIcon: agentsTable.icon,
       adapterType: agentsTable.adapterType,
       logBytes: heartbeatRuns.logBytes,
       livenessState: heartbeatRuns.livenessState,
@@ -3564,72 +3149,37 @@ export function agentRoutes(
       )
       .orderBy(desc(heartbeatRuns.createdAt));
 
-    const liveRuns = await measureControlPlaneSegment({
-      req,
-      routePath,
-      segment: "live_runs_query",
-      companyId,
-      context: { limit },
-      fn: () => liveRunsQuery.limit(limit),
-    });
+    const liveRuns = await liveRunsQuery.limit(limit);
     const targetRunCount = Math.min(minCount, limit);
-
-    const withOutputSilence = (runs: typeof liveRuns) =>
-      Promise.all(runs.map(async (run) => ({
-        ...run,
-        outputSilence: await measureControlPlaneSegment({
-          req,
-          routePath,
-          segment: "run_output_silence",
-          companyId,
-          context: { runId: run.id, issueId: run.issueId, runStatus: run.status },
-          fn: () => heartbeat.buildRunOutputSilence(run),
-        }),
-      })));
 
     if (targetRunCount > 0 && liveRuns.length < targetRunCount) {
       const activeIds = liveRuns.map((r) => r.id);
-      const recentRuns = await measureControlPlaneSegment({
-        req,
-        routePath,
-        segment: "recent_runs_padding_query",
-        companyId,
-        context: { targetRunCount, liveRunCount: liveRuns.length },
-        fn: () => db
-          .select(columns)
-          .from(heartbeatRuns)
-          .innerJoin(agentsTable, eq(heartbeatRuns.agentId, agentsTable.id))
-          .where(
-            and(
-              eq(heartbeatRuns.companyId, companyId),
-              not(inArray(heartbeatRuns.status, ["queued", "running"])),
-              ...(activeIds.length > 0 ? [not(inArray(heartbeatRuns.id, activeIds))] : []),
-            ),
-          )
-          .orderBy(desc(heartbeatRuns.createdAt))
-          .limit(targetRunCount - liveRuns.length),
-      });
+      const recentRuns = await db
+        .select(columns)
+        .from(heartbeatRuns)
+        .innerJoin(agentsTable, eq(heartbeatRuns.agentId, agentsTable.id))
+        .where(
+          and(
+            eq(heartbeatRuns.companyId, companyId),
+            not(inArray(heartbeatRuns.status, ["queued", "running"])),
+            ...(activeIds.length > 0 ? [not(inArray(heartbeatRuns.id, activeIds))] : []),
+          ),
+        )
+        .orderBy(desc(heartbeatRuns.createdAt))
+        .limit(targetRunCount - liveRuns.length);
 
       const rows = [...liveRuns, ...recentRuns];
-      res.json(await withOutputSilence(rows));
-      logSlowControlPlaneRoute({
-        req,
-        routePath,
-        companyId,
-        startedAtMs: routeStartedAtMs,
-        context: { liveRunCount: liveRuns.length, paddedRunCount: recentRuns.length, minCount, limit },
-      });
+      res.json(await Promise.all(rows.map(async (run) => ({
+        ...run,
+        outputSilence: await heartbeat.buildRunOutputSilence(run),
+      }))));
       return;
     }
 
-    res.json(await withOutputSilence(liveRuns));
-    logSlowControlPlaneRoute({
-      req,
-      routePath,
-      companyId,
-      startedAtMs: routeStartedAtMs,
-      context: { liveRunCount: liveRuns.length, paddedRunCount: 0, minCount, limit },
-    });
+    res.json(await Promise.all(liveRuns.map(async (run) => ({
+      ...run,
+      outputSilence: await heartbeat.buildRunOutputSilence(run),
+    }))));
   });
 
   router.get("/heartbeat-runs/:runId", async (req, res) => {
@@ -3650,27 +3200,23 @@ export function agentRoutes(
   });
 
   router.post("/heartbeat-runs/:runId/cancel", async (req, res) => {
-    assertBoardOrAgent(req);
+    assertBoard(req);
     const runId = req.params.runId as string;
     const existing = await heartbeat.getRun(runId);
     if (existing) {
       assertCompanyAccess(req, existing.companyId);
     }
-    const suppressAutomaticRecovery = req.body?.suppressAutomaticRecovery === true;
-    const run = await heartbeat.cancelRun(runId, undefined, { suppressAutomaticRecovery });
+    const run = await heartbeat.cancelRun(runId);
 
     if (run) {
-      const actor = getActorInfo(req);
       await logActivity(db, {
         companyId: run.companyId,
-        actorType: actor.actorType,
-        actorId: actor.actorId,
-        agentId: actor.agentId,
-        runId: actor.runId,
+        actorType: "user",
+        actorId: req.actor.userId ?? "board",
         action: "heartbeat.cancelled",
         entityType: "heartbeat_run",
         entityId: run.id,
-        details: { agentId: run.agentId, suppressAutomaticRecovery },
+        details: { agentId: run.agentId },
       });
     }
 
@@ -3814,7 +3360,6 @@ export function agentRoutes(
         createdAt: heartbeatRuns.createdAt,
         agentId: heartbeatRuns.agentId,
         agentName: agentsTable.name,
-        agentIcon: agentsTable.icon,
         adapterType: agentsTable.adapterType,
         logBytes: heartbeatRuns.logBytes,
         livenessState: heartbeatRuns.livenessState,
@@ -3889,7 +3434,6 @@ export function agentRoutes(
       ...run,
       agentId: agent.id,
       agentName: agent.name,
-      agentIcon: agent.icon,
       adapterType: agent.adapterType,
       outputSilence: await heartbeat.buildRunOutputSilence({ ...run, companyId: issue.companyId }),
     });

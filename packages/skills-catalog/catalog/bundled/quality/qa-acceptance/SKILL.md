@@ -66,7 +66,6 @@ Each criterion needs evidence on the verification pass:
 - Copied console / network output for API behavior.
 - Log snippet or activity row for telemetry.
 - Timing measurement for performance criteria.
-- For frontend/design changes, include desktop and mobile viewport evidence when the surface is responsive, and compare the rendered UI to the design/reference or stated acceptance criteria.
 
 "Looks good to me" without evidence is not a pass.
 

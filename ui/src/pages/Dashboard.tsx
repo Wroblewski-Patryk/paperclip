@@ -170,10 +170,6 @@ export function Dashboard() {
     if (!id || !agents) return null;
     return agents.find((a) => a.id === id)?.name ?? null;
   };
-  const agentIcon = (id: string | null) => {
-    if (!id || !agents) return null;
-    return agents.find((a) => a.id === id)?.icon ?? null;
-  };
 
   if (!selectedCompanyId) {
     if (companies.length === 0) {
@@ -299,10 +295,10 @@ export function Dashboard() {
             <ChartCard title="Run Activity" subtitle="Last 14 days">
               <RunActivityChart activity={data.runActivity} />
             </ChartCard>
-            <ChartCard title="Tasks by Priority" subtitle="Last 14 days">
+            <ChartCard title="Issues by Priority" subtitle="Last 14 days">
               <PriorityChart issues={issues ?? []} />
             </ChartCard>
-            <ChartCard title="Tasks by Status" subtitle="Last 14 days">
+            <ChartCard title="Issues by Status" subtitle="Last 14 days">
               <IssueStatusChart issues={issues ?? []} />
             </ChartCard>
             <ChartCard title="Success Rate" subtitle="Last 14 days">
@@ -376,7 +372,7 @@ export function Dashboard() {
                             {issue.assigneeAgentId && (() => {
                               const name = agentName(issue.assigneeAgentId);
                               return name
-                                ? <span className="hidden sm:inline-flex"><Identity name={name} agentIcon={agentIcon(issue.assigneeAgentId)} size="sm" /></span>
+                                ? <span className="hidden sm:inline-flex"><Identity name={name} size="sm" /></span>
                                 : null;
                             })()}
                             <span className="text-xs text-muted-foreground sm:hidden">&middot;</span>

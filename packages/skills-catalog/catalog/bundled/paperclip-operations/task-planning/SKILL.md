@@ -38,19 +38,6 @@ Produce implementation plans that the Paperclip executor can actually run: expli
 
 Do not create implementation subtasks until the plan is accepted.
 
-## Delegation standard
-
-Use this standard whenever a plan will be executed by more than one agent, a manager will hand work to reports, or the issue is large enough that responsibility can blur.
-
-1. Start from the business process, not the org chart. Frame the work as an APQC-style value chain: trigger, inputs, transformation steps, controls, outputs, customer/user outcome, and feedback loop. This prevents teams from creating issues that are internally neat but do not move the real process.
-2. Split MECE where practical. Child issues should be mutually exclusive in ownership and collectively sufficient for the parent acceptance bar. If two children can edit the same file, own the same decision, or claim the same proof, redraw the boundary.
-3. Assign one directly responsible owner per child. Use RACI/DACI language when helpful, but never let it weaken the single-assignee model: one owner decides or delivers, named reviewers advise/verify, and blockers name the next owner/action.
-4. Separate decision work from execution work. Strategy, product acceptance, architecture, implementation, QA, security, ops, docs, and source-control closure are different lanes unless the task is genuinely tiny.
-5. Keep WIP visible. Managers may coordinate many queued issues, but each active execution lane should have one live owner and one live next action. Do not create a swarm of vague `in_progress` children.
-6. Define Definition of Ready for every child: context, owner specialty, input artifacts, allowed scope, dependencies, and the first action the assignee can take without re-asking.
-7. Define Definition of Done for every child: deliverable, proof command or evidence, review/gate owner if needed, and the status/comment/work-product update required before handoff.
-8. Escalate missing capability instead of hiding it. If no current agent owns the specialty, create a hire/request/board decision lane rather than assigning the work to the nearest manager.
-
 ## Plan structure
 
 Required sections, in order:
@@ -64,8 +51,6 @@ Required sections, in order:
    - Owner specialty (Engineer, QA, Designer, Security, DevRel, Manager, etc.).
    - Scope and deliverables.
    - Acceptance criteria.
-   - Definition of Ready and Definition of Done.
-   - Directly responsible owner plus reviewers/consulted roles where relevant.
    - Blocks/blocked-by relationships expressed by phase letter or child title.
 6. **Acceptance** — the bar for the parent issue. How the user knows the whole thing is done.
 7. **Risks and mitigations** — short list. Skip if there are none.
@@ -78,19 +63,6 @@ Required sections, in order:
 - A child must be checkout-able by the owner from its title and description alone. Reviewers should not have to re-read the parent plan to understand a child.
 - Order children by real blocker chains, not by author preference. Parallel children should explicitly say `blockers: none`.
 - Avoid `polish` or `cleanup` child issues without acceptance criteria — they never close.
-
-- Avoid responsibility fog: `coordinate`, `support`, `assist`, and `review later` must resolve into either a named owner action, a reviewer/gate, or a blocker.
-- Prefer a broad-to-narrow-to-broad loop for complex work: map the process and risks, create narrow owned lanes, execute, verify, then integrate evidence back into the parent.
-
-## Manager checklist before filing
-
-- [ ] The parent goal and user/company outcome are explicit.
-- [ ] The child set is MECE enough that no two children own the same decision, file surface, acceptance proof, or final handoff.
-- [ ] Every child has one directly responsible owner, one owner specialty, Definition of Ready, Definition of Done, and acceptance proof.
-- [ ] Blockers use first-class `blockedByIssueIds` in the task graph after filing, not only prose.
-- [ ] Review, QA, security, ops, docs, and source-control closure are separate lanes when risk or evidence requires them.
-- [ ] Missing agents, permissions, credentials, product decisions, or external inputs are surfaced as explicit blockers or follow-up issues.
-- [ ] The parent can be closed only after child evidence is integrated, not merely after children were created.
 
 ## Filing the plan
 

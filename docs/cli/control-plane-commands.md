@@ -35,7 +35,6 @@ pnpm paperclipai issue release <issue-id>
 ```sh
 pnpm paperclipai company list
 pnpm paperclipai company get <company-id>
-pnpm paperclipai company current [--company-id <company-id>]
 
 # Export to portable folder package (writes manifest + markdown files)
 pnpm paperclipai company export <company-id> --out ./exports/acme --include company,agents
@@ -56,13 +55,6 @@ pnpm paperclipai company import \
   --new-company-name "Acme Imported" \
   --include company,agents
 ```
-
-With agent authentication, use `company list` or `company current` to resolve
-the scoped company. `company list` first tries the board-wide list; if that is
-forbidden, it falls back to `--company-id`, `PAPERCLIP_COMPANY_ID`, context, or
-`/api/agents/me` and returns only that scoped company. `company create` requires
-board/instance-admin authentication because it is an instance-wide setup
-command.
 
 ## Agent Commands
 
@@ -139,29 +131,3 @@ pnpm paperclipai dashboard get
 ```sh
 pnpm paperclipai heartbeat run --agent-id <agent-id> [--api-base http://localhost:3100]
 ```
-
-## Softwarehouse Gate Commands
-
-```sh
-# Refresh the canonical control signal used by Paperclip Softwarehouse agents.
-pnpm softwarehouse:control-tick
-
-# Export the redacted unblock packet and operator action cards.
-pnpm softwarehouse:unblock-packet
-
-# Preview safe organizational escalation for stale blocked gate owners.
-pnpm softwarehouse:stale-gate-escalation
-
-# Apply at most one stale gate owner escalation when no live runs are active.
-pnpm softwarehouse:stale-gate-escalation:apply
-
-# Preview the exact approval comment for a blocked gate. This is safe and read-only.
-node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-241
-node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-261
-
-# Apply only after explicit operator approval for one narrow recheck.
-node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-241 --apply
-node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-261 --apply
-```
-
-Gate approval is not permission to commit, push, deploy, restart production, mutate runtime state, print secrets, or broaden scope. It only permits one responsible recheck lane with evidence.

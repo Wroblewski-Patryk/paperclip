@@ -112,9 +112,10 @@ import {
   AvatarGroup,
   AvatarGroupCount,
 } from "@/components/ui/avatar";
-import { StatusBadge, AgentStatusBadge, AgentStatusCapsule } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
 import { StatusIcon } from "@/components/StatusIcon";
 import { PriorityIcon } from "@/components/PriorityIcon";
+import { agentStatusDot, agentStatusDotDefault } from "@/lib/status-colors";
 import { EntityRow } from "@/components/EntityRow";
 import { EmptyState } from "@/components/EmptyState";
 import { MetricCard } from "@/components/MetricCard";
@@ -125,25 +126,6 @@ import { Identity } from "@/components/Identity";
 import { IssueReferencePill } from "@/components/IssueReferencePill";
 import { MembershipAction } from "@/components/MembershipAction";
 import { IssueOutputSection } from "@/components/issue-output/IssueOutputSection";
-import {
-  EnvInputsList,
-  ExternalSourcesList,
-  RequiredSkillsList,
-  StepSkillPlan,
-  StepSourcePolicy,
-  TeamCard,
-  TeamHierarchyPreview,
-  TeamRow,
-} from "@/pages/TeamCatalog";
-import {
-  currentInstalledState,
-  onboardingTeams,
-  optionalTeam,
-  outOfDateInstalledState,
-  sampleSkillPreparations,
-  sampleTeam,
-  warnTeam,
-} from "@/pages/TeamCatalog.fixtures";
 import type { IssueWorkProduct } from "@paperclipai/shared";
 
 /* ------------------------------------------------------------------ */
@@ -239,24 +221,6 @@ function SubSection({ title, children }: { title: string; children: React.ReactN
   );
 }
 
-// Onboarding seam (design §6 + §12.5): the TeamCard tile in its "Pick a starter
-// team" 3-col grid, with the first defaultInstall tile selected.
-function TeamCardShowcase() {
-  const [selectedId, setSelectedId] = useState(onboardingTeams[0]?.id ?? null);
-  return (
-    <div className="grid max-w-2xl gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {onboardingTeams.map((team) => (
-        <TeamCard
-          key={team.id}
-          team={team}
-          selected={team.id === selectedId}
-          onSelect={() => setSelectedId(team.id)}
-        />
-      ))}
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /*  Color swatch                                                       */
 /* ------------------------------------------------------------------ */
@@ -295,9 +259,6 @@ export function DesignGuide() {
     { key: "status", label: "Status", value: "Active" },
     { key: "priority", label: "Priority", value: "High" },
   ]);
-  const [allowExternal, setAllowExternal] = useState(false);
-  const [allowUnpinned, setAllowUnpinned] = useState(false);
-  const [allowLocalPath, setAllowLocalPath] = useState(false);
 
   return (
     <div className="space-y-10 max-w-4xl">
@@ -470,7 +431,7 @@ export function DesignGuide() {
 
         <SubSection title="With icons">
           <div className="flex items-center gap-2 flex-wrap">
-            <Button><Plus /> New Task</Button>
+            <Button><Plus /> New Issue</Button>
             <Button variant="outline"><Upload /> Upload</Button>
             <Button variant="destructive"><Trash2 /> Delete</Button>
             <Button size="sm"><Plus /> Add</Button>
@@ -550,18 +511,14 @@ export function DesignGuide() {
           </div>
         </SubSection>
 
-        <SubSection title="Agent status (capsule + chip)">
-          <p className="text-xs text-muted-foreground mb-3 max-w-prose">
-            The agents section uses a brand heartbeat capsule (8×16) plus a brand
-            <code className="mx-1">.task-chip</code>. Four states only: idle (gray),
-            running (blue, pulses), paused (amber), error (red, blinks). Motion
-            honors <code>prefers-reduced-motion</code>.
-          </p>
-          <div className="flex items-center gap-6 flex-wrap">
-            {(["idle", "running", "paused", "error"] as const).map((label) => (
+        <SubSection title="Agent status dots">
+          <div className="flex items-center gap-4 flex-wrap">
+            {(["running", "active", "paused", "error", "archived"] as const).map((label) => (
               <div key={label} className="flex items-center gap-2">
-                <AgentStatusCapsule status={label} />
-                <AgentStatusBadge status={label} />
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className={`inline-flex h-full w-full rounded-full ${agentStatusDot[label] ?? agentStatusDotDefault}`} />
+                </span>
+                <span className="text-xs text-muted-foreground">{label}</span>
               </div>
             ))}
           </div>
@@ -727,11 +684,11 @@ export function DesignGuide() {
               checked={menuChecked}
               onCheckedChange={(value) => setMenuChecked(value === true)}
             >
-              Watch task
+              Watch issue
             </DropdownMenuCheckboxItem>
             <DropdownMenuItem variant="destructive">
               <Trash2 className="h-4 w-4" />
-              Delete task
+              Delete issue
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -784,7 +741,7 @@ export function DesignGuide() {
           </SheetTrigger>
           <SheetContent side="right">
             <SheetHeader>
-              <SheetTitle>Task Properties</SheetTitle>
+              <SheetTitle>Issue Properties</SheetTitle>
               <SheetDescription>Edit metadata without leaving the current page.</SheetDescription>
             </SheetHeader>
             <div className="space-y-4 px-4">
@@ -836,7 +793,7 @@ export function DesignGuide() {
                 </CommandItem>
                 <CommandItem>
                   <CircleDot className="h-4 w-4" />
-                  Tasks
+                  Issues
                 </CommandItem>
               </CommandGroup>
               <CommandSeparator />
@@ -847,7 +804,7 @@ export function DesignGuide() {
                 </CommandItem>
                 <CommandItem>
                   <Plus className="h-4 w-4" />
-                  Create new task
+                  Create new issue
                 </CommandItem>
               </CommandGroup>
             </CommandList>
@@ -870,7 +827,7 @@ export function DesignGuide() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Task List</BreadcrumbPage>
+              <BreadcrumbPage>Issue List</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -899,7 +856,7 @@ export function DesignGuide() {
         <SubSection title="Metric Cards">
           <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
             <MetricCard icon={Bot} value={12} label="Active Agents" description="+3 this week" />
-            <MetricCard icon={CircleDot} value={48} label="Open Tasks" />
+            <MetricCard icon={CircleDot} value={48} label="Open Issues" />
             <MetricCard icon={DollarSign} value="$1,234" label="Monthly Cost" description="Under budget" />
             <MetricCard icon={Zap} value="99.9%" label="Uptime" />
           </div>
@@ -1298,7 +1255,7 @@ export function DesignGuide() {
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground cursor-pointer">
               <CircleDot className="h-4 w-4" />
-              Tasks
+              Issues
               <span className="ml-auto text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">
                 12
               </span>
@@ -1331,7 +1288,7 @@ export function DesignGuide() {
       {/* ============================================================ */}
       {/*  GROUPED LIST (Issues pattern)                                */}
       {/* ============================================================ */}
-      <Section title="Grouped List (Tasks pattern)">
+      <Section title="Grouped List (Issues pattern)">
         <div>
           <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-t-md">
             <StatusIcon status="in_progress" />
@@ -1461,94 +1418,6 @@ export function DesignGuide() {
       {/* ============================================================ */}
       {/*  ICON REFERENCE                                               */}
       {/* ============================================================ */}
-      {/*  TEAM CATALOG                                                 */}
-      {/* ============================================================ */}
-      <Section title="Team Catalog">
-        <p className="text-sm text-muted-foreground">
-          Components from the Team Catalog browse/install surface (<code className="font-mono text-xs">/teams-catalog</code>).
-          Fixtures are shared with the Storybook stories.
-        </p>
-
-        <SubSection title="TeamRow (browse list)">
-          <div className="w-[28rem] rounded-md border border-border">
-            <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Bundled · 1
-            </div>
-            <TeamRow team={sampleTeam} selected onSelect={() => {}} />
-            <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Optional · 2
-            </div>
-            <TeamRow team={optionalTeam} selected={false} onSelect={() => {}} />
-            <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Installed · 2
-            </div>
-            <TeamRow team={sampleTeam} selected={false} onSelect={() => {}} installed={outOfDateInstalledState} />
-            <TeamRow team={warnTeam} selected={false} onSelect={() => {}} installed={currentInstalledState} />
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Installed teams collapse under <code className="font-mono">INSTALLED · N</code>; an out-of-date
-            install (server <code className="font-mono">originHash</code> ≠ catalog <code className="font-mono">contentHash</code>)
-            shows the amber <code className="font-mono">↑</code> badge (PAP-10256).
-          </p>
-        </SubSection>
-
-        <SubSection title="TeamCard (onboarding grid)">
-          <p className="text-xs text-muted-foreground">
-            Square tile for the onboarding &ldquo;Pick a starter team&rdquo; grid. Selected tile gets{" "}
-            <code className="font-mono">ring-2 ring-ring</code>. Drives the{" "}
-            <code className="font-mono">useInstallTeamCatalogEntry</code> simplified flow.
-          </p>
-          <TeamCardShowcase />
-        </SubSection>
-
-        <SubSection title="TeamHierarchyPreview">
-          <div className="max-w-md">
-            <TeamHierarchyPreview team={sampleTeam} />
-          </div>
-        </SubSection>
-
-        <SubSection title="RequiredSkillsList">
-          <div className="max-w-xl">
-            <RequiredSkillsList skills={sampleTeam.requiredSkills} />
-          </div>
-        </SubSection>
-
-        <SubSection title="EnvInputsList">
-          <div className="max-w-xl">
-            <EnvInputsList inputs={sampleTeam.envInputs} />
-          </div>
-        </SubSection>
-
-        <SubSection title="ExternalSourcesList">
-          <div className="max-w-xl">
-            <ExternalSourcesList sources={sampleTeam.sourceRefs} />
-          </div>
-        </SubSection>
-
-        <SubSection title="Source policy step (StepSourcePolicy)">
-          <div className="max-w-xl rounded-md border border-border p-4">
-            <StepSourcePolicy
-              team={warnTeam}
-              allowExternalSources={allowExternal}
-              allowUnpinnedOptionalSources={allowUnpinned}
-              allowLocalPathSources={allowLocalPath}
-              onChange={(key, value) => {
-                if (key === "external") setAllowExternal(value);
-                if (key === "unpinned") setAllowUnpinned(value);
-                if (key === "localPath") setAllowLocalPath(value);
-              }}
-            />
-          </div>
-        </SubSection>
-
-        <SubSection title="Skill plan step (StepSkillPlan)">
-          <div className="max-w-xl rounded-md border border-border p-4">
-            <StepSkillPlan team={sampleTeam} preparations={sampleSkillPreparations} />
-          </div>
-        </SubSection>
-      </Section>
-
-      {/* ============================================================ */}
       <Section title="Common Icons (Lucide)">
         <div className="grid grid-cols-4 md:grid-cols-6 gap-4">
           {[
@@ -1588,7 +1457,7 @@ export function DesignGuide() {
         <div className="border border-border rounded-md divide-y divide-border text-sm">
           {[
             ["Cmd+K / Ctrl+K", "Open Command Palette"],
-            ["C", "New Task (outside inputs)"],
+            ["C", "New Issue (outside inputs)"],
             ["[", "Toggle Sidebar"],
             ["]", "Toggle Properties Panel"],
 
@@ -1604,7 +1473,7 @@ export function DesignGuide() {
         </div>
       </Section>
 
-      <Section title="Task Output Surface">
+      <Section title="Issue Output Surface">
         <SubSection title="Multiple outputs (primary video + 'Also produced')">
           <IssueOutputSection workProducts={DESIGN_GUIDE_OUTPUTS} />
         </SubSection>
@@ -1613,7 +1482,7 @@ export function DesignGuide() {
         </SubSection>
         <SubSection title="Empty state">
           <p className="text-xs text-muted-foreground">
-            When a task has produced no artifact work products, the Output section renders nothing
+            When an issue has produced no artifact work products, the Output section renders nothing
             at all (no placeholder card).
           </p>
         </SubSection>

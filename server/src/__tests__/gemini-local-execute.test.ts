@@ -4,21 +4,6 @@ import os from "node:os";
 import path from "node:path";
 import { execute } from "@paperclipai/adapter-gemini-local/server";
 
-function geminiCommandPath(root: string): string {
-  return path.join(root, process.platform === "win32" ? "gemini.cmd" : "gemini");
-}
-
-async function writeNodeCommand(commandPath: string, script: string): Promise<void> {
-  if (process.platform === "win32") {
-    const jsPath = commandPath.replace(/\.cmd$/i, ".js");
-    await fs.writeFile(jsPath, script, "utf8");
-    await fs.writeFile(commandPath, `@echo off\r\nnode "%~dp0${path.basename(jsPath)}" %*\r\n`, "utf8");
-    return;
-  }
-  await fs.writeFile(commandPath, `#!/usr/bin/env node\n${script}`, "utf8");
-  await fs.chmod(commandPath, 0o755);
-}
-
 async function writeFakeGeminiCommand(commandPath: string): Promise<void> {
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
@@ -50,7 +35,8 @@ console.log(JSON.stringify({
   result: "ok",
 }));
 `;
-  await writeNodeCommand(commandPath, script.replace(/^#!\/usr\/bin\/env node\r?\n/, ""));
+  await fs.writeFile(commandPath, script, "utf8");
+  await fs.chmod(commandPath, 0o755);
 }
 
 async function writeFailingGeminiCommand(
@@ -66,7 +52,7 @@ async function writeFailingGeminiCommand(
   const stdout = options.stdout ?? "";
   const stderr = options.stderr ?? "";
   const exit = options.exitCode ?? 1;
-  const script = `
+  const script = `#!/usr/bin/env node
 for (const line of ${JSON.stringify(stdoutLines.map((line) => JSON.stringify(line)))}) {
   console.log(line);
 }
@@ -78,7 +64,8 @@ if (${JSON.stringify(stderr)}) {
 }
 process.exit(${exit});
 `;
-  await writeNodeCommand(commandPath, script);
+  await fs.writeFile(commandPath, script, "utf8");
+  await fs.chmod(commandPath, 0o755);
 }
 
 type CapturePayload = {
@@ -86,19 +73,11 @@ type CapturePayload = {
   paperclipEnvKeys: string[];
 };
 
-function readPromptArg(argv: string[]): string {
-  const promptFlagIndex = argv.indexOf("--prompt");
-  if (promptFlagIndex < 0) return "";
-  return process.platform === "win32"
-    ? argv.slice(promptFlagIndex + 1).join(" ")
-    : argv[promptFlagIndex + 1] ?? "";
-}
-
 describe("gemini execute", () => {
   it("passes prompt via --prompt and injects paperclip env vars", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-gemini-execute-"));
     const workspace = path.join(root, "workspace");
-    const commandPath = geminiCommandPath(root);
+    const commandPath = path.join(root, "gemini");
     const capturePath = path.join(root, "capture.json");
     await fs.mkdir(workspace, { recursive: true });
     await writeFakeGeminiCommand(commandPath);
@@ -149,7 +128,8 @@ describe("gemini execute", () => {
       expect(capture.argv).toContain("--prompt");
       expect(capture.argv).toContain("--approval-mode");
       expect(capture.argv).toContain("yolo");
-      const promptArg = readPromptArg(capture.argv);
+      const promptFlagIndex = capture.argv.indexOf("--prompt");
+      const promptArg = promptFlagIndex >= 0 ? capture.argv[promptFlagIndex + 1] : "";
       expect(promptArg).toContain("Follow the paperclip heartbeat.");
       expect(promptArg).toContain("Paperclip runtime note:");
       expect(capture.paperclipEnvKeys).toEqual(
@@ -164,7 +144,7 @@ describe("gemini execute", () => {
       expect(invocationPrompt).toContain("Paperclip runtime note:");
       expect(invocationPrompt).toContain("PAPERCLIP_API_URL");
       expect(invocationPrompt).toContain("Paperclip API access note:");
-      expect(invocationPrompt).toContain("paperclip-issue-update.mjs");
+      expect(invocationPrompt).toContain("run_shell_command");
       expect(result.question).toBeNull();
     } finally {
       if (previousHome === undefined) {
@@ -179,7 +159,7 @@ describe("gemini execute", () => {
   it("always passes --approval-mode yolo", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-gemini-yolo-"));
     const workspace = path.join(root, "workspace");
-    const commandPath = geminiCommandPath(root);
+    const commandPath = path.join(root, "gemini");
     const capturePath = path.join(root, "capture.json");
     await fs.mkdir(workspace, { recursive: true });
     await writeFakeGeminiCommand(commandPath);
@@ -221,7 +201,7 @@ describe("gemini execute", () => {
   it("normalizes turn-limit exhaustion into scheduler stop metadata", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-gemini-max-turns-"));
     const workspace = path.join(root, "workspace");
-    const commandPath = geminiCommandPath(root);
+    const commandPath = path.join(root, "gemini");
     await fs.mkdir(workspace, { recursive: true });
     await writeFailingGeminiCommand(commandPath, {
       stdoutLines: [
@@ -269,7 +249,7 @@ describe("gemini execute", () => {
   it("normalizes Gemini exit code 53 as max-turn exhaustion", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-gemini-exit-53-"));
     const workspace = path.join(root, "workspace");
-    const commandPath = geminiCommandPath(root);
+    const commandPath = path.join(root, "gemini");
     await fs.mkdir(workspace, { recursive: true });
     await writeFailingGeminiCommand(commandPath, {
       stderr: "Gemini stopped because the max turns limit was reached.",
@@ -310,7 +290,7 @@ describe("gemini execute", () => {
   it("does not normalize unstructured turn-limit text into scheduler stop metadata", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-gemini-max-turn-text-"));
     const workspace = path.join(root, "workspace");
-    const commandPath = geminiCommandPath(root);
+    const commandPath = path.join(root, "gemini");
     await fs.mkdir(workspace, { recursive: true });
     await writeFailingGeminiCommand(commandPath, {
       stdoutLines: [
@@ -359,7 +339,7 @@ describe("gemini execute", () => {
   it("uses a compact wake delta instead of the full heartbeat prompt when resuming a session", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-gemini-resume-wake-"));
     const workspace = path.join(root, "workspace");
-    const commandPath = geminiCommandPath(root);
+    const commandPath = path.join(root, "gemini");
     const capturePath = path.join(root, "capture.json");
     await fs.mkdir(workspace, { recursive: true });
     await writeFakeGeminiCommand(commandPath);
@@ -435,7 +415,8 @@ describe("gemini execute", () => {
       expect(result.errorMessage).toBeNull();
 
       const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
-      const promptArg = readPromptArg(capture.argv);
+      const promptFlagIndex = capture.argv.indexOf("--prompt");
+      const promptArg = promptFlagIndex >= 0 ? capture.argv[promptFlagIndex + 1] : "";
       expect(capture.argv).toContain("--resume");
       expect(capture.argv).toContain("gemini-session-1");
       expect(promptArg).toContain("## Paperclip Resume Delta");

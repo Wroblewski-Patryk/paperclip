@@ -70,12 +70,7 @@ export function ApprovalCard({
                 {requesterAgent && (
                   <div className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Requested by</span>
-                    <Identity
-                      name={requesterAgent.name}
-                      agentIcon={requesterAgent.icon}
-                      size="sm"
-                      className="inline-flex"
-                    />
+                    <Identity name={requesterAgent.name} size="sm" className="inline-flex" />
                   </div>
                 )}
               </div>

@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildSkillMentionHref } from "@paperclipai/shared";
 import {
-  LOW_TRUST_REVIEW_PRESET,
   applyRunScopedMentionedSkillKeys,
   extractMentionedSkillIdsFromSources,
   resolveExecutionRunAdapterConfig,
@@ -105,103 +104,6 @@ describe("resolveExecutionRunAdapterConfig", () => {
     });
   });
 
-  it("overlays issue and run secret-bound env after project and routine env", async () => {
-    const resolveAdapterConfigForRuntime = vi.fn().mockResolvedValue({
-      config: {
-        env: {
-          SHARED_KEY: "agent",
-          AGENT_ONLY: "agent-only",
-        },
-      },
-      secretKeys: new Set<string>(),
-      manifest: [],
-    });
-    const resolveEnvBindings = vi
-      .fn()
-      .mockResolvedValueOnce({
-        env: {
-          SHARED_KEY: "project",
-          PROJECT_ONLY: "project-only",
-        },
-        secretKeys: new Set(["PROJECT_SECRET"]),
-        manifest: [{ secretId: "secret-project" }],
-      })
-      .mockResolvedValueOnce({
-        env: {
-          SHARED_KEY: "routine",
-          ROUTINE_ONLY: "routine-only",
-        },
-        secretKeys: new Set(["ROUTINE_SECRET"]),
-        manifest: [{ secretId: "secret-routine" }],
-      })
-      .mockResolvedValueOnce({
-        env: {
-          SHARED_KEY: "issue",
-          ISSUE_ONLY: "issue-only",
-        },
-        secretKeys: new Set(["ISSUE_SECRET"]),
-        manifest: [{ secretId: "secret-issue" }],
-      })
-      .mockResolvedValueOnce({
-        env: {
-          SHARED_KEY: "run",
-          RUN_ONLY: "run-only",
-        },
-        secretKeys: new Set(["RUN_SECRET"]),
-        manifest: [{ secretId: "secret-run" }],
-      });
-
-    const result = await resolveExecutionRunAdapterConfig({
-      companyId: "company-1",
-      agentId: "agent-1",
-      issueId: "issue-1",
-      heartbeatRunId: "run-1",
-      executionRunConfig: { env: { SHARED_KEY: "agent" } },
-      projectEnv: { SHARED_KEY: "project" },
-      routineEnv: { SHARED_KEY: "routine" },
-      issueEnv: { SHARED_KEY: "issue" },
-      runEnv: { SHARED_KEY: "run" },
-      routineId: "routine-1",
-      secretsSvc: {
-        resolveAdapterConfigForRuntime,
-        resolveEnvBindings,
-      } as any,
-    });
-
-    expect(result.resolvedConfig.env).toEqual({
-      SHARED_KEY: "run",
-      AGENT_ONLY: "agent-only",
-      PROJECT_ONLY: "project-only",
-      ROUTINE_ONLY: "routine-only",
-      ISSUE_ONLY: "issue-only",
-      RUN_ONLY: "run-only",
-    });
-    expect(Array.from(result.secretKeys).sort()).toEqual([
-      "ISSUE_SECRET",
-      "PROJECT_SECRET",
-      "ROUTINE_SECRET",
-      "RUN_SECRET",
-    ]);
-    expect(result.secretManifest.map((entry) => entry.secretId)).toEqual([
-      "secret-project",
-      "secret-routine",
-      "secret-issue",
-      "secret-run",
-    ]);
-    expect(resolveEnvBindings.mock.calls[2]?.[2]).toMatchObject({
-      consumerType: "issue",
-      consumerId: "issue-1",
-      issueId: "issue-1",
-      heartbeatRunId: "run-1",
-    });
-    expect(resolveEnvBindings.mock.calls[3]?.[2]).toMatchObject({
-      consumerType: "run",
-      consumerId: "run-1",
-      issueId: "issue-1",
-      heartbeatRunId: "run-1",
-    });
-  });
-
   it("drops Paperclip runtime-owned env before resolving agent, project, and routine overlays", async () => {
     const resolveAdapterConfigForRuntime = vi.fn(async (_companyId, config: Record<string, unknown>) => ({
       config: {
@@ -287,95 +189,12 @@ describe("resolveExecutionRunAdapterConfig", () => {
     expect(result.secretManifest).toEqual([]);
     expect(resolveEnvBindings).not.toHaveBeenCalled();
   });
-
-  it("passes low-trust allowed secret binding ids into all runtime secret contexts", async () => {
-    const resolveAdapterConfigForRuntime = vi.fn().mockResolvedValue({
-      config: { env: {} },
-      secretKeys: new Set<string>(),
-      manifest: [],
-    });
-    const resolveEnvBindings = vi.fn().mockResolvedValue({
-      env: {},
-      secretKeys: new Set<string>(),
-      manifest: [],
-    });
-
-    await resolveExecutionRunAdapterConfig({
-      companyId: "company-1",
-      agentId: "agent-1",
-      issueId: "issue-1",
-      heartbeatRunId: "run-1",
-      projectId: "project-1",
-      routineId: "routine-1",
-      executionRunConfig: { env: {} },
-      projectEnv: { PROJECT_FLAG: "plain" },
-      routineEnv: { ROUTINE_FLAG: "plain" },
-      trustPreset: {
-        kind: "low_trust_review",
-        preset: LOW_TRUST_REVIEW_PRESET,
-        boundary: {
-          mode: LOW_TRUST_REVIEW_PRESET,
-          companyId: "company-1",
-          issueIds: ["issue-1"],
-          allowedSecretBindingIds: ["binding-1"],
-        },
-        sourcePresets: {},
-      },
-      secretsSvc: {
-        resolveAdapterConfigForRuntime,
-        resolveEnvBindings,
-      } as any,
-    });
-
-    expect(resolveAdapterConfigForRuntime.mock.calls[0]?.[2]).toMatchObject({
-      allowedBindingIds: ["binding-1"],
-    });
-    expect(resolveEnvBindings.mock.calls[0]?.[2]).toMatchObject({
-      allowedBindingIds: ["binding-1"],
-    });
-    expect(resolveEnvBindings.mock.calls[1]?.[2]).toMatchObject({
-      allowedBindingIds: ["binding-1"],
-    });
-  });
-
-  it("rejects inline sensitive env values for low-trust runs", async () => {
-    await expect(resolveExecutionRunAdapterConfig({
-      companyId: "company-1",
-      agentId: "agent-1",
-      issueId: "issue-1",
-      executionRunConfig: {
-        env: {
-          OPENAI_API_KEY: "inline-secret",
-        },
-      },
-      projectEnv: null,
-      trustPreset: {
-        kind: "low_trust_review",
-        preset: LOW_TRUST_REVIEW_PRESET,
-        boundary: {
-          mode: LOW_TRUST_REVIEW_PRESET,
-          companyId: "company-1",
-          issueIds: ["issue-1"],
-        },
-        sourcePresets: {},
-      },
-      secretsSvc: {
-        resolveAdapterConfigForRuntime: vi.fn(),
-        resolveEnvBindings: vi.fn(),
-      } as any,
-    })).rejects.toMatchObject({
-      status: 422,
-      details: { code: "low_trust_inline_sensitive_env_denied" },
-    });
-  });
 });
 
 describe("extractMentionedSkillIdsFromSources", () => {
-  it("collects UUID skill mention ids across issue sources", () => {
-    const releaseSkillId = "11111111-1111-4111-8111-111111111111";
-    const browserSkillId = "22222222-2222-4222-8222-222222222222";
-    const releaseHref = buildSkillMentionHref(releaseSkillId, "release-changelog");
-    const browserHref = buildSkillMentionHref(browserSkillId, "agent-browser");
+  it("collects explicit skill mention ids across issue sources", () => {
+    const releaseHref = buildSkillMentionHref("skill-1", "release-changelog");
+    const browserHref = buildSkillMentionHref("skill-2", "agent-browser");
 
     expect(
       extractMentionedSkillIdsFromSources([
@@ -383,19 +202,7 @@ describe("extractMentionedSkillIdsFromSources", () => {
         `And also [/agent-browser](${browserHref})`,
         `Duplicate mention [/release-changelog](${releaseHref})`,
       ]),
-    ).toEqual([releaseSkillId, browserSkillId]);
-  });
-
-  it("ignores legacy non-UUID skill mention ids before runtime database lookup", () => {
-    const validSkillId = "33333333-3333-4333-8333-333333333333";
-    const validHref = buildSkillMentionHref(validSkillId, "greploop");
-    const legacyHref = buildSkillMentionHref("skill-greploop", "greploop");
-
-    expect(
-      extractMentionedSkillIdsFromSources([
-        `Use [/greploop](${legacyHref}) and [/prcheckloop](${validHref})`,
-      ]),
-    ).toEqual([validSkillId]);
+    ).toEqual(["skill-1", "skill-2"]);
   });
 });
 

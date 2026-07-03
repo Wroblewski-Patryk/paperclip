@@ -26,11 +26,6 @@ function stringifyError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function redactToken(value: string | null | undefined): string | null {
-  if (!value) return null;
-  return `<redacted:${value.length}>`;
-}
-
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.rpcOnly && args.whamOnly) {
@@ -42,17 +37,7 @@ async function main() {
 
   const result: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
-    auth: auth
-      ? {
-          accountId: auth.accountId,
-          email: auth.email,
-          planType: auth.planType,
-          lastRefresh: auth.lastRefresh,
-          accessToken: redactToken(auth.accessToken),
-          refreshToken: redactToken(auth.refreshToken),
-          idToken: redactToken(auth.idToken),
-        }
-      : null,
+    auth,
     tokenAvailable: token != null,
   };
 

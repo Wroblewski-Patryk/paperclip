@@ -84,23 +84,15 @@ export function buildCompanyUserMentionOptions(
   }));
 }
 
-export function isAgentTaskTarget(agent: Pick<Agent, "status" | "orgChainHealth">): boolean {
-  return (
-    agent.status !== "terminated" &&
-    agent.status !== "pending_approval" &&
-    agent.orgChainHealth?.status !== "invalid_org_chain"
-  );
-}
-
 export function buildMarkdownMentionOptions(args: {
-  agents?: Array<Pick<Agent, "id" | "name" | "status" | "icon" | "orgChainHealth">> | null | undefined;
+  agents?: Array<Pick<Agent, "id" | "name" | "status" | "icon">> | null | undefined;
   projects?: Array<Pick<Project, "id" | "name" | "color">> | null | undefined;
   members?: CompanyUserRecord[] | null | undefined;
 }): MentionOption[] {
   const options: MentionOption[] = [
     ...buildCompanyUserMentionOptions(args.members),
     ...[...(args.agents ?? [])]
-      .filter(isAgentTaskTarget)
+      .filter((agent) => agent.status !== "terminated")
       .sort((left, right) => left.name.localeCompare(right.name))
       .map((agent) => ({
         id: `agent:${agent.id}`,

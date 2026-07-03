@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { cpSync, existsSync, lstatSync, mkdirSync, realpathSync, rmSync, symlinkSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { existsSync, mkdirSync, lstatSync, rmSync, symlinkSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -19,21 +19,7 @@ mkdirSync(scopeDir, { recursive: true });
 
 try {
   const stat = lstatSync(linkTarget);
-  const resolvedTarget = (() => {
-    try {
-      return realpathSync.native(linkTarget);
-    } catch {
-      return null;
-    }
-  })();
-  const resolvedSdkDir = (() => {
-    try {
-      return realpathSync.native(sdkDir);
-    } catch {
-      return sdkDir;
-    }
-  })();
-  if (stat.isSymbolicLink() || resolvedTarget === resolvedSdkDir) {
+  if (stat.isSymbolicLink()) {
     rmSync(linkTarget, { force: true });
   } else {
     console.log("  i Keeping existing installed @paperclipai/plugin-sdk directory in place");
@@ -44,22 +30,6 @@ try {
 }
 
 const relativeSdkDir = relative(scopeDir, sdkDir);
-try {
-  symlinkSync(relativeSdkDir, linkTarget, "dir");
-} catch (error) {
-  if (process.platform !== "win32" || error?.code !== "EPERM") {
-    throw error;
-  }
-
-  try {
-    symlinkSync(sdkDir, linkTarget, "junction");
-  } catch {
-    cpSync(sdkDir, linkTarget, {
-      recursive: true,
-      force: true,
-      filter: (source) => !source.includes(`${sep}node_modules${sep}`),
-    });
-  }
-}
+symlinkSync(relativeSdkDir, linkTarget, "dir");
 
 console.log(`  ✓ Linked local @paperclipai/plugin-sdk for ${packageDir}`);

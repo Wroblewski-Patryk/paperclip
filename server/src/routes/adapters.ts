@@ -296,16 +296,18 @@ export function adapterRoutes() {
       // Load and register the adapter (use canonicalName for path resolution)
       const adapterModule = await loadExternalAdapterPackage(canonicalName, moduleLocalPath);
 
-      // External adapters may intentionally override built-in adapter types.
-      // registerServerAdapter preserves the built-in as a fallback so pausing or
-      // removing the override restores the original implementation.
+      // Load and register the adapter — but don't allow installing an adapter
+      // whose type is one of the core built-ins (e.g. process, http) that must
+      // never be shadowed. Types listed in BUILTIN_ADAPTER_TYPES that already
+      // have a builtin implementation are allowed as overrides (removing the
+      // override restores the builtin).
+      // We only block types that have no builtin registration at all (shouldn't
+      // happen in practice since the set only contains real builtins), OR we
+      // allow overrides freely — unregisterServerAdapter restores the fallback.
 
-      // Check if already registered (indicates a reinstall/update).
-      // For built-in types the registry always returns the built-in, so we
-      // additionally require an existing external plugin record to
-      // distinguish a true reinstall from a first-time override.
+      // Check if already registered (indicates a reinstall/update)
       const existing = findServerAdapter(adapterModule.type);
-      const isReinstall = existing !== null && !!getAdapterPluginByType(adapterModule.type);
+      const isReinstall = existing !== null;
       if (existing) {
         unregisterServerAdapter(adapterModule.type);
         logger.info({ type: adapterModule.type }, "Unregistered existing adapter for replacement");
@@ -347,21 +349,6 @@ export function adapterRoutes() {
         res.status(500).json({ error: `Failed to install adapter: ${message}` });
       }
     }
-  });
-
-  router.get("/adapters/:type", async (req, res) => {
-    assertBoardOrgAccess(req);
-
-    const adapterType = req.params.type;
-    const adapter = findServerAdapter(adapterType);
-    if (!adapter) {
-      res.status(404).json({ error: `Adapter "${adapterType}" is not registered.` });
-      return;
-    }
-
-    const externalRecord = getAdapterPluginByType(adapterType);
-    const disabledSet = new Set(getDisabledAdapterTypes());
-    res.json(buildAdapterInfo(adapter, externalRecord, disabledSet));
   });
 
   /**
@@ -433,7 +420,9 @@ export function adapterRoutes() {
   /**
    * DELETE /api/adapters/:type
    *
-   * Unregister an external adapter. Built-in adapters cannot be removed.
+   * Unregister an external adapter. Built-in adapters cannot be removed,
+   * but an external override of a built-in type can be removed (which
+   * restores the built-in version).
    */
   router.delete("/adapters/:type", async (req, res) => {
     assertInstanceAdmin(req);
@@ -442,15 +431,6 @@ export function adapterRoutes() {
 
     if (!adapterType) {
       res.status(400).json({ error: "Adapter type is required." });
-      return;
-    }
-
-    // Prevent removal of built-in adapters, unless this built-in type is
-    // currently backed by an external adapter plugin override.
-    if (BUILTIN_ADAPTER_TYPES.has(adapterType) && !getAdapterPluginByType(adapterType)) {
-      res.status(403).json({
-        error: `Cannot remove built-in adapter "${adapterType}".`,
-      });
       return;
     }
 
@@ -463,9 +443,15 @@ export function adapterRoutes() {
       return;
     }
 
-    // Check that it's an external adapter
+    // Check that it's an external adapter (or an external override of a built-in)
     const externalRecord = getAdapterPluginByType(adapterType);
     if (!externalRecord) {
+      if (BUILTIN_ADAPTER_TYPES.has(adapterType)) {
+        res.status(403).json({
+          error: `Cannot remove built-in adapter "${adapterType}" — no external override is installed.`,
+        });
+        return;
+      }
       res.status(404).json({
         error: `Adapter "${adapterType}" is not an externally installed adapter.`,
       });

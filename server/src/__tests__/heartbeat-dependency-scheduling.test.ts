@@ -288,19 +288,6 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
       dependencyBlockedInteraction: true,
       unresolvedBlockerIssueIds: [blockerId],
     });
-    const blockedIssueAfterInteraction = await db
-      .select({
-        status: issues.status,
-        checkoutRunId: issues.checkoutRunId,
-        executionRunId: issues.executionRunId,
-      })
-      .from(issues)
-      .where(eq(issues.id, blockedIssueId))
-      .then((rows) => rows[0] ?? null);
-    expect(blockedIssueAfterInteraction).toMatchObject({
-      status: "todo",
-      checkoutRunId: null,
-    });
 
     let finishReadyRun!: () => void;
     const readyRunCanFinish = new Promise<void>((resolve) => {
@@ -412,7 +399,7 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     expect(noActiveRuns).toBe(true);
   });
 
-  it("honors maxConcurrentRuns 1 by leaving a second assignment wakeup unmaterialized until capacity opens", async () => {
+  it("honors maxConcurrentRuns 1 by leaving a second assignment wake queued", async () => {
     const companyId = randomUUID();
     const agentId = randomUUID();
     const firstIssueId = randomUUID();
@@ -503,6 +490,9 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
         return run?.status === "running";
       });
       expect(firstRunStarted).toBe(true);
+      const firstAdapterStarted = await waitForCondition(async () => mockAdapterExecute.mock.calls.length === 1, 30_000);
+      expect(firstAdapterStarted).toBe(true);
+
       const secondWake = await heartbeat.wakeup(agentId, {
         source: "assignment",
         triggerDetail: "system",
@@ -510,32 +500,23 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
         payload: { issueId: secondIssueId },
         contextSnapshot: { issueId: secondIssueId, wakeReason: "issue_assigned" },
       });
-      expect(secondWake).toBeNull();
-
-      const secondWakeupWhileFirstRunning = await db
-        .select()
-        .from(agentWakeupRequests)
-        .where(
-          and(
-            eq(agentWakeupRequests.agentId, agentId),
-            eq(agentWakeupRequests.status, "queued"),
-            sql`${agentWakeupRequests.payload} ->> 'issueId' = ${secondIssueId}`,
-          ),
-        )
-        .then((rows) => rows[0] ?? null);
-      expect(secondWakeupWhileFirstRunning?.runId).toBeNull();
+      expect(secondWake).not.toBeNull();
+      await db.insert(issueComments).values({
+        companyId,
+        issueId: secondIssueId,
+        authorAgentId: agentId,
+        authorType: "agent",
+        createdByRunId: secondWake!.id,
+        body: "Second assignment run completed.",
+      });
 
       const secondRunWhileFirstRunning = await db
-        .select({ id: heartbeatRuns.id })
+        .select({ status: heartbeatRuns.status })
         .from(heartbeatRuns)
-        .where(
-          and(
-            eq(heartbeatRuns.agentId, agentId),
-            sql`${heartbeatRuns.contextSnapshot} ->> 'issueId' = ${secondIssueId}`,
-          ),
-        )
+        .where(eq(heartbeatRuns.id, secondWake!.id))
         .then((rows) => rows[0] ?? null);
-      expect(secondRunWhileFirstRunning).toBeNull();
+      expect(secondRunWhileFirstRunning?.status).toBe("queued");
+      expect(mockAdapterExecute).toHaveBeenCalledTimes(1);
 
       finishFirstRun();
 
@@ -549,19 +530,11 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
       });
       expect(firstRunSucceeded).toBe(true);
 
-      const firstAdapterStarted = await waitForCondition(async () => mockAdapterExecute.mock.calls.length >= 1, 10_000);
-      expect(firstAdapterStarted).toBe(true);
-
       const secondRunSucceeded = await waitForCondition(async () => {
         const run = await db
           .select({ status: heartbeatRuns.status })
           .from(heartbeatRuns)
-          .where(
-            and(
-              eq(heartbeatRuns.agentId, agentId),
-              sql`${heartbeatRuns.contextSnapshot} ->> 'issueId' = ${secondIssueId}`,
-            ),
-          )
+          .where(eq(heartbeatRuns.id, secondWake!.id))
           .then((rows) => rows[0] ?? null);
         return run?.status === "succeeded";
       }, 10_000);

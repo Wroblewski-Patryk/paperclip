@@ -27,7 +27,7 @@ function RunCardRecoveryChip({ action }: { action: IssueRecoveryAction }) {
       data-recovery-state={state}
       role="status"
       aria-label={tone.label}
-      title={`${tone.label} — open the source task to act.`}
+      title={`${tone.label} — open the source issue to act.`}
       className={cn(
         "inline-flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
         tone.className,
@@ -39,7 +39,7 @@ function RunCardRecoveryChip({ action }: { action: IssueRecoveryAction }) {
   );
 }
 
-const MIN_DASHBOARD_RUNS = 0;
+const MIN_DASHBOARD_RUNS = 4;
 const DASHBOARD_RUN_CARD_LIMIT = 4;
 const DASHBOARD_LOG_POLL_INTERVAL_MS = 15_000;
 const DASHBOARD_LOG_READ_LIMIT_BYTES = 64_000;
@@ -71,7 +71,7 @@ export function ActiveAgentsPanel({
   cardLimit = DASHBOARD_RUN_CARD_LIMIT,
   gridClassName,
   cardClassName,
-  emptyMessage = "No active agent runs.",
+  emptyMessage = "No recent agent runs.",
   queryScope = "dashboard",
   showMoreLink = true,
 }: ActiveAgentsPanelProps) {
@@ -143,7 +143,7 @@ export function ActiveAgentsPanel({
       {showMoreLink && hiddenRunCount > 0 && (
         <div className="mt-3 flex justify-end text-xs text-muted-foreground">
           <Link to="/dashboard/live" className="hover:text-foreground hover:underline">
-            {hiddenRunCount} more active run{hiddenRunCount === 1 ? "" : "s"}
+            {hiddenRunCount} more active/recent run{hiddenRunCount === 1 ? "" : "s"}
           </Link>
         </div>
       )}
@@ -188,12 +188,7 @@ const AgentRunCard = memo(function AgentRunCard({
               ) : (
                 <span className="inline-flex h-2.5 w-2.5 rounded-full bg-muted-foreground/35" />
               )}
-              <Identity
-                name={run.agentName}
-                agentIcon={run.agentIcon}
-                size="sm"
-                className="[&>span:last-child]:!text-[11px]"
-              />
+              <Identity name={run.agentName} size="sm" className="[&>span:last-child]:!text-[11px]" />
             </div>
             <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
               <span>{isActive ? "Live now" : run.finishedAt ? `Finished ${relativeTime(run.finishedAt)}` : `Started ${relativeTime(run.createdAt)}`}</span>

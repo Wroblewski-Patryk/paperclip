@@ -8,11 +8,9 @@ import {
   buildSuccessfulRunHandoffExhaustedNotice,
   buildSuccessfulRunHandoffRequiredNotice,
   decideSuccessfulRunHandoff,
-  hasExplicitFinalDispositionText,
   isIdempotentFinishSuccessfulRunHandoffWakeStatus,
   isSuccessfulRunHandoffRequiredNoticeBody,
   noticeMetadataReferencesRecoveryAction,
-  readExplicitFinalDispositionText,
 } from "./successful-run-handoff.js";
 
 const run = {
@@ -54,7 +52,6 @@ function decide(overrides: Partial<Parameters<typeof decideSuccessfulRunHandoff>
     hasExplicitBlockerPath: false,
     hasOpenRecoveryIssue: false,
     hasPauseHold: false,
-    hasExplicitFinalDispositionComment: false,
     budgetBlocked: false,
     idempotentWakeExists: false,
     ...overrides,
@@ -130,29 +127,6 @@ describe("successful run handoff decision", () => {
     expect(decide({ hasExplicitBlockerPath: true })).toEqual({
       kind: "skip",
       reason: "explicit blocker path owns the next action",
-    });
-  });
-
-  it("does not queue when the run already recorded an explicit final disposition comment", () => {
-    expect(hasExplicitFinalDispositionText("Final disposition: `blocked` with named owner/action.")).toBe(true);
-    expect(hasExplicitFinalDispositionText("Final disposition: - `blocked` with named owner/action.")).toBe(true);
-    expect(hasExplicitFinalDispositionText("Finalna dyspozycja: - `blocked` with named owner/action.")).toBe(true);
-    expect(hasExplicitFinalDispositionText("Final disposition for `ABC-123`: `done`.")).toBe(true);
-    expect(hasExplicitFinalDispositionText("Final disposition dla `LUC-49`: `done`.")).toBe(true);
-    expect(hasExplicitFinalDispositionText("Final disposition for this heartbeat: `LUC-1120 -> done`")).toBe(true);
-    expect(readExplicitFinalDispositionText("Final disposition:\n- `LUC-1122`: `done`\n- push: not needed")).toBe("done");
-    expect(readExplicitFinalDispositionText("Closure status for this heartbeat: `done` (no push).")).toBe("done");
-    expect(hasExplicitFinalDispositionText("Disposition issue: `done`.")).toBe(true);
-    expect(readExplicitFinalDispositionText("Disposition issue: `done`.")).toBe("done");
-    expect(readExplicitFinalDispositionText("Completed `LUC-943` as `done` with test evidence.")).toBe("done");
-    expect(readExplicitFinalDispositionText("Final disposition: **`blocked`** (unchanged owner/action).")).toBe("blocked");
-    expect(hasExplicitFinalDispositionText("Final disposition: done")).toBe(true);
-    expect(readExplicitFinalDispositionText("Final disposition: canceled")).toBe("cancelled");
-    expect(readExplicitFinalDispositionText("Final disposition: in review")).toBe("in_review");
-    expect(hasExplicitFinalDispositionText("I found evidence but need more work.")).toBe(false);
-    expect(decide({ hasExplicitFinalDispositionComment: true })).toEqual({
-      kind: "skip",
-      reason: "run recorded an explicit final disposition comment",
     });
   });
 

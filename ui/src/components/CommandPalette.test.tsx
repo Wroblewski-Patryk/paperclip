@@ -1,20 +1,11 @@
 // @vitest-environment jsdom
 
+import { act } from "react";
 import type { KeyboardEventHandler, ReactNode } from "react";
-import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CommandPalette } from "./CommandPalette";
-import { queryKeys } from "../lib/queryKeys";
-
-function act(callback: () => void | Promise<void>) {
-  let result: void | Promise<void> | undefined;
-  flushSync(() => {
-    result = callback();
-  });
-  return result;
-}
 
 const companyState = vi.hoisted(() => ({
   selectedCompanyId: "company-1",
@@ -42,10 +33,6 @@ const mockProjectsApi = vi.hoisted(() => ({
   list: vi.fn(),
 }));
 
-const mockInstanceSettingsApi = vi.hoisted(() => ({
-  getExperimental: vi.fn(),
-}));
-
 vi.mock("../context/CompanyContext", () => ({
   useCompany: () => companyState,
 }));
@@ -62,13 +49,9 @@ vi.mock("../context/SidebarContext", () => ({
 const navigateState = vi.hoisted(() => ({
   navigate: vi.fn(),
 }));
-const locationState = vi.hoisted(() => ({
-  location: { pathname: "/", search: "", hash: "" },
-}));
 
 vi.mock("@/lib/router", () => ({
   useNavigate: () => navigateState.navigate,
-  useLocation: () => locationState.location,
 }));
 
 vi.mock("../api/issues", () => ({
@@ -81,10 +64,6 @@ vi.mock("../api/agents", () => ({
 
 vi.mock("../api/projects", () => ({
   projectsApi: mockProjectsApi,
-}));
-
-vi.mock("../api/instanceSettings", () => ({
-  instanceSettingsApi: mockInstanceSettingsApi,
 }));
 
 vi.mock("./Identity", () => ({
@@ -154,11 +133,7 @@ async function waitForAssertion(assertion: () => void, attempts = 20) {
   throw lastError;
 }
 
-function renderWithQueryClient(
-  node: ReactNode,
-  container: HTMLDivElement,
-  seedQueryClient?: (queryClient: QueryClient) => void,
-) {
+function renderWithQueryClient(node: ReactNode, container: HTMLDivElement) {
   const root = createRoot(container);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -167,7 +142,6 @@ function renderWithQueryClient(
       },
     },
   });
-  seedQueryClient?.(queryClient);
 
   act(() => {
     root.render(
@@ -192,17 +166,10 @@ describe("CommandPalette", () => {
     mockIssuesApi.list.mockReset();
     mockAgentsApi.list.mockReset();
     mockProjectsApi.list.mockReset();
-    mockInstanceSettingsApi.getExperimental.mockReset();
     navigateState.navigate.mockReset();
-    locationState.location.pathname = "/";
-    locationState.location.search = "";
-    locationState.location.hash = "";
     mockIssuesApi.list.mockResolvedValue([]);
     mockAgentsApi.list.mockResolvedValue([]);
     mockProjectsApi.list.mockResolvedValue([]);
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
-      enableExperimentalFileViewer: false,
-    });
   });
 
   afterEach(() => {
@@ -229,52 +196,6 @@ describe("CommandPalette", () => {
         limit: 10,
         includeRoutineExecutions: true,
       });
-    });
-
-    act(() => {
-      root.unmount();
-    });
-  });
-
-  it("hides the issue file viewer command by default", async () => {
-    locationState.location.pathname = "/issues/PAP-1";
-    const { root } = renderWithQueryClient(<CommandPalette />, container);
-
-    act(() => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
-    });
-
-    await waitForAssertion(() => {
-      expect(container.textContent).toContain("Create new task");
-    });
-    expect(container.textContent).not.toContain("Open file in this issue");
-
-    act(() => {
-      root.unmount();
-    });
-  });
-
-  it("shows the issue file viewer command when the experimental flag is enabled", async () => {
-    locationState.location.pathname = "/issues/PAP-1";
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
-      enableExperimentalFileViewer: true,
-    });
-    const { root } = renderWithQueryClient(
-      <CommandPalette />,
-      container,
-      (queryClient) => {
-        queryClient.setQueryData(queryKeys.instance.experimentalSettings, {
-          enableExperimentalFileViewer: true,
-        });
-      },
-    );
-
-    act(() => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
-    });
-
-    await waitForAssertion(() => {
-      expect(container.textContent).toContain("Open file in this issue");
     });
 
     act(() => {

@@ -46,7 +46,6 @@ const overridingConfigSchemaAdapter: ServerAdapterModule = {
 let registerServerAdapter: typeof import("../adapters/registry.js").registerServerAdapter;
 let unregisterServerAdapter: typeof import("../adapters/registry.js").unregisterServerAdapter;
 let findServerAdapter: typeof import("../adapters/registry.js").findServerAdapter;
-let findActiveServerAdapter: typeof import("../adapters/registry.js").findActiveServerAdapter;
 let setOverridePaused: typeof import("../adapters/registry.js").setOverridePaused;
 let adapterRoutes: typeof import("../routes/adapters.js").adapterRoutes;
 let errorHandler: typeof import("../middleware/index.js").errorHandler;
@@ -110,7 +109,6 @@ describe("adapter routes", () => {
     registerServerAdapter = registry.registerServerAdapter;
     unregisterServerAdapter = registry.unregisterServerAdapter;
     findServerAdapter = registry.findServerAdapter;
-    findActiveServerAdapter = registry.findActiveServerAdapter;
     setOverridePaused = registry.setOverridePaused;
     adapterRoutes = routes.adapterRoutes;
     errorHandler = middleware.errorHandler;
@@ -185,10 +183,17 @@ describe("adapter routes", () => {
       requiresMaterializedRuntimeSkills: true,
     });
 
-    // Hermes is external-only in this fork. It should appear only when
-    // installed through the adapter plugin manager.
+    // hermes_local currently supports skills + local JWT, but not the managed
+    // instructions bundle flow because the bundled adapter does not consume
+    // instructionsFilePath at runtime.
     const hermesAdapter = res.body.find((a: any) => a.type === "hermes_local");
-    expect(hermesAdapter).toBeUndefined();
+    expect(hermesAdapter).toBeDefined();
+    expect(hermesAdapter.capabilities).toMatchObject({
+      supportsInstructionsBundle: false,
+      supportsSkills: true,
+      supportsLocalAgentJwt: true,
+      requiresMaterializedRuntimeSkills: false,
+    });
   });
 
   it("GET /api/adapters derives supportsSkills from listSkills/syncSkills presence", async () => {
@@ -333,55 +338,5 @@ describe("adapter routes", () => {
     expect(registered?.sessionManagement).toEqual(declaredSessionManagement);
 
     unregisterServerAdapter(HOT_INSTALL_TYPE);
-  });
-
-  it("POST /api/adapters/install allows an external adapter to override a builtin type", async () => {
-    const builtin = findServerAdapter("codex_local");
-    expect(builtin).not.toBeNull();
-
-    const externalModule: ServerAdapterModule = {
-      type: "codex_local",
-      execute: async () => ({ exitCode: 0, signal: null, timedOut: false }),
-      testEnvironment: async () => ({
-        adapterType: "codex_local",
-        status: "pass",
-        checks: [],
-        testedAt: new Date(0).toISOString(),
-      }),
-      models: [{ id: "plugin-codex", label: "Plugin Codex" }],
-    };
-    mockPluginLoader.loadExternalAdapterPackage.mockResolvedValue(externalModule);
-
-    const app = createApp({ isInstanceAdmin: true });
-    const res = await request(app)
-      .post("/api/adapters/install")
-      .send({ packageName: "/tmp/fake-codex-override", isLocalPath: true });
-
-    expect(res.status, JSON.stringify(res.body)).toBe(201);
-    expect(res.body.type).toBe("codex_local");
-    const registeredOverride = findServerAdapter("codex_local");
-    expect(registeredOverride).toMatchObject({
-      type: "codex_local",
-      models: [{ id: "plugin-codex", label: "Plugin Codex" }],
-    });
-
-    setOverridePaused("codex_local", true);
-    expect(findActiveServerAdapter("codex_local")).toBe(builtin);
-
-    mockAdapterPluginStore.getAdapterPluginByType.mockReturnValue({
-      type: "codex_local",
-      packageName: undefined,
-      localPath: "/tmp/fake-codex-override",
-      installedAt: new Date(0).toISOString(),
-    });
-    mockAdapterPluginStore.removeAdapterPlugin.mockReturnValue(true);
-
-    const removed = await request(app).delete("/api/adapters/codex_local");
-    expect(removed.status, JSON.stringify(removed.body)).toBe(200);
-    expect(removed.body).toMatchObject({ type: "codex_local", removed: true });
-
-    unregisterServerAdapter("codex_local");
-    expect(findServerAdapter("codex_local")).toBe(builtin);
-    setOverridePaused("codex_local", false);
   });
 });

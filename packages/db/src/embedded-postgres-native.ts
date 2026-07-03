@@ -5,34 +5,22 @@ import path from "node:path";
 const require = createRequire(import.meta.url);
 
 function resolveNativePackageName(): string | null {
-  const arch = process.arch;
-  if (process.platform === "linux") {
-    switch (arch) {
-      case "arm64":
-        return "linux-arm64";
-      case "arm":
-        return "linux-arm";
-      case "ia32":
-        return "linux-ia32";
-      case "ppc64":
-        return "linux-ppc64";
-      case "x64":
-        return "linux-x64";
-      default:
-        return null;
-    }
+  if (process.platform !== "linux") return null;
+
+  switch (process.arch) {
+    case "arm64":
+      return "linux-arm64";
+    case "arm":
+      return "linux-arm";
+    case "ia32":
+      return "linux-ia32";
+    case "ppc64":
+      return "linux-ppc64";
+    case "x64":
+      return "linux-x64";
+    default:
+      return null;
   }
-  if (process.platform === "win32") {
-    switch (arch) {
-      case "arm64":
-        return "windows-arm64";
-      case "x64":
-        return "windows-x64";
-      default:
-        return null;
-    }
-  }
-  return null;
 }
 
 async function pathExists(value: string): Promise<boolean> {
@@ -90,16 +78,8 @@ export async function prepareEmbeddedPostgresNativeRuntime(): Promise<void> {
 
   const nativeRoot = path.resolve(packageRoot, "..", "@embedded-postgres", nativePackageName);
   const libDir = path.join(nativeRoot, "native", "lib");
-  if (process.platform === "linux") {
-    if (!(await pathExists(libDir))) return;
-    prependPathEnv("LD_LIBRARY_PATH", libDir);
-    await ensureLinuxSharedLibraryAliases(libDir);
-    return;
-  }
+  if (!(await pathExists(libDir))) return;
 
-  if (process.platform === "win32") {
-    const binDir = path.join(nativeRoot, "native", "bin");
-    if (await pathExists(binDir)) prependPathEnv("PATH", binDir);
-    if (await pathExists(libDir)) prependPathEnv("PATH", libDir);
-  }
+  prependPathEnv("LD_LIBRARY_PATH", libDir);
+  await ensureLinuxSharedLibraryAliases(libDir);
 }

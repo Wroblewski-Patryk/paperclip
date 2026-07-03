@@ -126,18 +126,6 @@ async function prepareCodexHelloProbe(input: {
   }
 
   if (input.probeApiKey) {
-    if (!input.targetIsRemote) {
-      const managedHome = await prepareManagedCodexHome(process.env, async () => {}, input.companyId, {
-        apiKey: input.probeApiKey,
-      });
-      return {
-        command: input.command,
-        args: input.args,
-        env: { ...input.env, CODEX_HOME: managedHome },
-        cleanup,
-      };
-    }
-
     const probeHome = input.targetIsRemote
       ? path.posix.join(input.cwd, ".paperclip-runtime", "codex", `probe-home-${input.runId}`)
       : path.join(os.tmpdir(), `paperclip-codex-probe-${input.runId}`);
@@ -295,14 +283,6 @@ export async function testEnvironment(
           level: "warn",
           message: execArgs.fastModeIgnoredReason,
           hint: "Switch the agent model to GPT-5.4 or enter a manual model ID to enable Codex Fast mode.",
-        });
-      }
-      if (execArgs.droppedUnsafeArgs.length > 0) {
-        checks.push({
-          code: "codex_unsafe_extra_args_removed",
-          level: "warn",
-          message: `Removed unsafe Codex extraArgs on this host: ${execArgs.droppedUnsafeArgs.join(", ")}`,
-          hint: "Use standard Codex exec mode without browser/computer-use helper flags on Windows.",
         });
       }
       if (targetIsSandbox) {

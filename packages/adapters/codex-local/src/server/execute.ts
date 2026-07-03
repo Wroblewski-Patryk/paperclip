@@ -690,11 +690,6 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       execArgs.fastModeIgnoredReason == null
         ? commandNotes
         : [...commandNotes, execArgs.fastModeIgnoredReason];
-    if (execArgs.droppedUnsafeArgs.length > 0) {
-      commandNotesWithFastMode.push(
-        `Paperclip removed unsafe Codex extraArgs on this host: ${execArgs.droppedUnsafeArgs.join(", ")}`,
-      );
-    }
     if (onMeta) {
       await onMeta({
         adapterType: "codex_local",
@@ -710,12 +705,6 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         promptMetrics,
         context,
       });
-    }
-    if (execArgs.droppedUnsafeArgs.length > 0) {
-      await onLog(
-        "stdout",
-        `[paperclip] Removed unsafe Codex extraArgs on this host: ${execArgs.droppedUnsafeArgs.join(", ")}\n`,
-      );
     }
 
     const proc = await runAdapterExecutionTargetProcess(runId, runtimeExecutionTarget, command, args, {

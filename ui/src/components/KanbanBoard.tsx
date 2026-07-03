@@ -56,7 +56,6 @@ export function resolveKanbanTargetStatus(overId: string, issues: Issue[]): Issu
 interface Agent {
   id: string;
   name: string;
-  icon?: string | null;
 }
 
 interface KanbanBoardProps {
@@ -208,10 +207,6 @@ function KanbanCard({
     if (!id || !agents) return null;
     return agents.find((a) => a.id === id)?.name ?? null;
   };
-  const agentIcon = (id: string | null) => {
-    if (!id || !agents) return null;
-    return agents.find((a) => a.id === id)?.icon ?? null;
-  };
 
   return (
     <div
@@ -241,7 +236,7 @@ function KanbanCard({
           {isSuccessfulRunHandoffRequired(issue) ? (
             <span
               className="inline-flex items-center gap-1 rounded-full border border-amber-400/45 bg-amber-50/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-amber-300/35 dark:bg-amber-400/10 dark:text-amber-300"
-              title="This task needs a next step"
+              title="This issue needs a next step"
               aria-label="Needs next step"
             >
               <AlertTriangle className="h-3 w-3" />
@@ -264,7 +259,7 @@ function KanbanCard({
           {issue.assigneeAgentId && (() => {
             const name = agentName(issue.assigneeAgentId);
             return name ? (
-              <Identity name={name} agentIcon={agentIcon(issue.assigneeAgentId)} size="xs" />
+              <Identity name={name} size="xs" />
             ) : (
               <span className="text-xs text-muted-foreground font-mono">
                 {issue.assigneeAgentId.slice(0, 8)}

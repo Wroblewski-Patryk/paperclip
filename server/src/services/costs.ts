@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, isNotNull, isNull, lt, lte, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Db } from "@paperclipai/db";
-import { activityLog, agents, budgetPolicies, companies, costEvents, heartbeatRuns, issues, projects } from "@paperclipai/db";
+import { activityLog, agents, companies, costEvents, heartbeatRuns, issues, projects } from "@paperclipai/db";
 import { notFound, unprocessable } from "../errors.js";
 import { budgetService, type BudgetServiceHooks } from "./budgets.js";
 
@@ -11,9 +11,7 @@ export interface CostDateRange {
 }
 
 const METERED_BILLING_TYPE = "metered_api";
-const SUBSCRIPTION_INCLUDED_BILLING_TYPE = "subscription_included";
 const SUBSCRIPTION_BILLING_TYPES = ["subscription_included", "subscription_overage"] as const;
-const UNKNOWN_BILLING_TYPE = "unknown";
 
 function sumAsNumber(column: typeof costEvents.costCents | typeof costEvents.inputTokens | typeof costEvents.cachedInputTokens | typeof costEvents.outputTokens) {
   return sql<number>`coalesce(sum(${column}), 0)::double precision`;
@@ -26,50 +24,6 @@ function currentUtcMonthWindow(now = new Date()) {
     start: new Date(Date.UTC(year, month, 1, 0, 0, 0, 0)),
     end: new Date(Date.UTC(year, month + 1, 1, 0, 0, 0, 0)),
   };
-}
-
-async function getPolicyBudgetCents(db: Db, companyId: string) {
-  const [row] = await db
-    .select({ amount: budgetPolicies.amount })
-    .from(budgetPolicies)
-    .where(
-      and(
-        eq(budgetPolicies.companyId, companyId),
-        eq(budgetPolicies.scopeType, "company"),
-        eq(budgetPolicies.scopeId, companyId),
-        eq(budgetPolicies.metric, "billed_cents"),
-        eq(budgetPolicies.windowKind, "calendar_month_utc"),
-        eq(budgetPolicies.isActive, true),
-      ),
-    )
-    .orderBy(desc(budgetPolicies.updatedAt));
-  return typeof row?.amount === "number" && row.amount > 0 ? row.amount : null;
-}
-
-function resolveMeteringState(input: {
-  eventCount: number;
-  billedSpendCents: number;
-  meteredApiRunCount: number;
-  subscriptionIncludedRunCount: number;
-  unknownCostRunCount: number;
-}) {
-  if (input.eventCount <= 0) return "none" as const;
-  if (input.unknownCostRunCount > 0) return "unknown" as const;
-  if (input.meteredApiRunCount > 0 && input.subscriptionIncludedRunCount > 0) return "mixed" as const;
-  if (input.meteredApiRunCount > 0 || input.billedSpendCents > 0) return "metered" as const;
-  if (input.subscriptionIncludedRunCount > 0) return "subscription_included" as const;
-  return "zero_billed" as const;
-}
-
-function distinctUsageCountForBillingType(billingType: string) {
-  return sql<number>`count(distinct case when ${costEvents.billingType} = ${billingType} then coalesce((${costEvents.heartbeatRunId})::text, (${costEvents.id})::text) end)::int`;
-}
-
-function tokenSumForBillingType(
-  billingType: string,
-  column: typeof costEvents.inputTokens | typeof costEvents.cachedInputTokens | typeof costEvents.outputTokens,
-) {
-  return sql<number>`coalesce(sum(case when ${costEvents.billingType} = ${billingType} then ${column} else 0 end), 0)::double precision`;
 }
 
 async function getMonthlySpendTotal(
@@ -160,56 +114,24 @@ export function costService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       if (range?.from) conditions.push(gte(costEvents.occurredAt, range.from));
       if (range?.to) conditions.push(lte(costEvents.occurredAt, range.to));
 
-      const [{ total, eventCount, meteredApiRunCount, subscriptionIncludedRunCount, subscriptionIncludedInputTokens, subscriptionIncludedCachedInputTokens, subscriptionIncludedOutputTokens, unknownCostRunCount, unknownCostInputTokens, unknownCostCachedInputTokens, unknownCostOutputTokens }] = await db
+      const [{ total }] = await db
         .select({
           total: sumAsNumber(costEvents.costCents),
-          eventCount: sql<number>`count(*)::int`,
-          meteredApiRunCount: distinctUsageCountForBillingType(METERED_BILLING_TYPE),
-          subscriptionIncludedRunCount: distinctUsageCountForBillingType(SUBSCRIPTION_INCLUDED_BILLING_TYPE),
-          subscriptionIncludedInputTokens: tokenSumForBillingType(SUBSCRIPTION_INCLUDED_BILLING_TYPE, costEvents.inputTokens),
-          subscriptionIncludedCachedInputTokens: tokenSumForBillingType(SUBSCRIPTION_INCLUDED_BILLING_TYPE, costEvents.cachedInputTokens),
-          subscriptionIncludedOutputTokens: tokenSumForBillingType(SUBSCRIPTION_INCLUDED_BILLING_TYPE, costEvents.outputTokens),
-          unknownCostRunCount: distinctUsageCountForBillingType(UNKNOWN_BILLING_TYPE),
-          unknownCostInputTokens: tokenSumForBillingType(UNKNOWN_BILLING_TYPE, costEvents.inputTokens),
-          unknownCostCachedInputTokens: tokenSumForBillingType(UNKNOWN_BILLING_TYPE, costEvents.cachedInputTokens),
-          unknownCostOutputTokens: tokenSumForBillingType(UNKNOWN_BILLING_TYPE, costEvents.outputTokens),
         })
         .from(costEvents)
         .where(and(...conditions));
 
-      const billedSpendCents = Number(total);
-      const budgetCents = await getPolicyBudgetCents(db, companyId) ?? company.budgetMonthlyCents;
+      const spendCents = Number(total);
       const utilization =
-        budgetCents > 0
-          ? (billedSpendCents / budgetCents) * 100
+        company.budgetMonthlyCents > 0
+          ? (spendCents / company.budgetMonthlyCents) * 100
           : 0;
-      const normalized = {
-        eventCount: Number(eventCount ?? 0),
-        meteredApiRunCount: Number(meteredApiRunCount ?? 0),
-        subscriptionIncludedRunCount: Number(subscriptionIncludedRunCount ?? 0),
-        unknownCostRunCount: Number(unknownCostRunCount ?? 0),
-      };
 
       return {
         companyId,
-        spendCents: billedSpendCents,
-        billedSpendCents,
-        budgetCents,
+        spendCents,
+        budgetCents: company.budgetMonthlyCents,
         utilizationPercent: Number(utilization.toFixed(2)),
-        meteringState: resolveMeteringState({
-          ...normalized,
-          billedSpendCents,
-        }),
-        eventCount: normalized.eventCount,
-        meteredApiRunCount: normalized.meteredApiRunCount,
-        subscriptionIncludedRunCount: normalized.subscriptionIncludedRunCount,
-        subscriptionIncludedInputTokens: Number(subscriptionIncludedInputTokens ?? 0),
-        subscriptionIncludedCachedInputTokens: Number(subscriptionIncludedCachedInputTokens ?? 0),
-        subscriptionIncludedOutputTokens: Number(subscriptionIncludedOutputTokens ?? 0),
-        unknownCostRunCount: normalized.unknownCostRunCount,
-        unknownCostInputTokens: Number(unknownCostInputTokens ?? 0),
-        unknownCostCachedInputTokens: Number(unknownCostCachedInputTokens ?? 0),
-        unknownCostOutputTokens: Number(unknownCostOutputTokens ?? 0),
       };
     },
 

@@ -48,8 +48,6 @@ const additionalSerializedServerTests = new Set([
   "server/src/__tests__/routines-e2e.test.ts",
 ]);
 let invocationIndex = 0;
-const isWindows = process.platform === "win32";
-const pnpmCommand = isWindows ? "pnpm.cmd" : "pnpm";
 const serializedModeName = "serialized";
 const generalModeName = "general";
 const allModeName = "all";
@@ -62,6 +60,7 @@ const generalGroupNames = [generalServerGroupName, generalWorkspacesAGroupName, 
 const serializedServerVitestArgs = [
   "--no-file-parallelism",
   "--maxWorkers=1",
+  "--minWorkers=1",
 ];
 
 function walk(dir) {
@@ -256,10 +255,9 @@ function runVitest(args, label) {
   };
   mkdirSync(env.PAPERCLIP_HOME, { recursive: true });
   mkdirSync(env.TMPDIR, { recursive: true });
-  const result = spawnSync(pnpmCommand, ["exec", "vitest", "run", ...args], {
+  const result = spawnSync("pnpm", ["exec", "vitest", "run", ...args], {
     cwd: repoRoot,
     env,
-    shell: isWindows,
     stdio: "inherit",
   });
   if (result.error) {
@@ -324,7 +322,7 @@ function runSerializedSuites(routeTests, shardIndex, shardCount) {
         "@paperclipai/server",
         routeTest.repoPath,
         "--pool=forks",
-        "--isolate",
+        "--poolOptions.forks.isolate=true",
       ],
       routeTest.repoPath,
     );

@@ -31,27 +31,15 @@ export function resolveIssueChatTranscriptRuns(args: {
   }
 
   for (const run of linkedRuns) {
+    if (combined.has(run.runId)) continue;
     const adapterType = run.adapterType;
     if (!adapterType) continue;
-    const existing = combined.get(run.runId);
-    if (!existing) {
-      combined.set(run.runId, {
-        id: run.runId,
-        status: run.status,
-        adapterType,
-        hasStoredOutput: run.hasStoredOutput,
-        logBytes: run.logBytes,
-      });
-      continue;
-    }
     combined.set(run.runId, {
-      ...existing,
-      // Prefer terminal status from linked history so cancelled/succeeded tails
-      // can hydrate even if live endpoints lag.
+      id: run.runId,
       status: run.status,
-      adapterType: existing.adapterType || adapterType,
-      hasStoredOutput: existing.hasStoredOutput || run.hasStoredOutput,
-      logBytes: existing.logBytes ?? run.logBytes ?? undefined,
+      adapterType,
+      hasStoredOutput: run.hasStoredOutput,
+      logBytes: run.logBytes,
     });
   }
 

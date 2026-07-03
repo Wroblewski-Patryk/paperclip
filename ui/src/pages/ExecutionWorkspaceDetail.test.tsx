@@ -155,7 +155,6 @@ function project(overrides: Partial<Project> = {}): Project {
     leadAgentId: null,
     targetDate: null,
     color: "#14b8a6",
-    icon: null,
     env: null,
     pauseReason: null,
     pausedAt: null,
@@ -293,7 +292,7 @@ describe("ExecutionWorkspaceDetail plugin slots", () => {
     await render();
 
     expect(container.textContent).toContain("Workspace plugin tab is not available.");
-    expect(container.querySelector('a[href="/execution-workspaces/workspace-1/issues"]')?.textContent).toBe("Back to tasks");
+    expect(container.querySelector('a[href="/execution-workspaces/workspace-1/issues"]')?.textContent).toBe("Back to issues");
     expect(container.textContent).not.toContain("Workspace routines");
     expect(container.querySelector('[data-testid="plugin-slot-mount"]')).toBeNull();
   });
@@ -309,7 +308,7 @@ describe("ExecutionWorkspaceDetail plugin slots", () => {
 
     const tabLabels = Array.from(container.querySelectorAll("[data-tab-value]")).map((tab) => tab.textContent);
     expect(tabLabels).toEqual([
-      "Tasks",
+      "Issues",
       "Services",
       "Changes",
       "Configuration",

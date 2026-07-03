@@ -14,7 +14,7 @@ function makeValues(overrides: Partial<CreateConfigValues> = {}): CreateConfigVa
     dangerouslySkipPermissions: true,
     search: false,
     fastMode: false,
-    dangerouslyBypassSandbox: false,
+    dangerouslyBypassSandbox: true,
     command: "",
     args: "",
     extraArgs: "",
@@ -48,7 +48,7 @@ describe("buildCodexLocalConfig", () => {
       model: "gpt-5.4",
       search: true,
       fastMode: true,
-      dangerouslyBypassApprovalsAndSandbox: false,
+      dangerouslyBypassApprovalsAndSandbox: true,
     });
   });
 });

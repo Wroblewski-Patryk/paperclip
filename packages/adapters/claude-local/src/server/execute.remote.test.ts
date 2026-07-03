@@ -229,12 +229,12 @@ describe("claude remote execution", () => {
         adapterConfig: {},
       },
       runtime: {
-        sessionId: "12345678-1234-4abc-9def-123456789012",
+        sessionId: "session-123",
         sessionParams: {
-          sessionId: "12345678-1234-4abc-9def-123456789012",
+          sessionId: "session-123",
           cwd: "/remote/workspace",
         },
-        sessionDisplayId: "12345678-1234-4abc-9def-123456789012",
+        sessionDisplayId: "session-123",
         taskKey: null,
       },
       config: {
@@ -283,9 +283,9 @@ describe("claude remote execution", () => {
         adapterConfig: {},
       },
       runtime: {
-        sessionId: "12345678-1234-4abc-9def-123456789012",
+        sessionId: "session-123",
         sessionParams: {
-          sessionId: "12345678-1234-4abc-9def-123456789012",
+          sessionId: "session-123",
           cwd: managedRemoteWorkspace,
           remoteExecution: {
             transport: "ssh",
@@ -295,7 +295,7 @@ describe("claude remote execution", () => {
             remoteCwd: managedRemoteWorkspace,
           },
         },
-        sessionDisplayId: "12345678-1234-4abc-9def-123456789012",
+        sessionDisplayId: "session-123",
         taskKey: null,
       },
       config: {
@@ -325,7 +325,7 @@ describe("claude remote execution", () => {
     expect(runChildProcess).toHaveBeenCalledTimes(1);
     const call = runChildProcess.mock.calls[0] as unknown as [string, string, string[]] | undefined;
     expect(call?.[2]).toContain("--resume");
-    expect(call?.[2]).toContain("12345678-1234-4abc-9def-123456789012");
+    expect(call?.[2]).toContain("session-123");
   });
 
 });

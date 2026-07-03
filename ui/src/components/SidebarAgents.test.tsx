@@ -7,7 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Agent, ResourceMemberships } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarAgents } from "./SidebarAgents";
-import { TooltipProvider } from "@/components/ui/tooltip";
 
 const mockAgentsApi = vi.hoisted(() => ({
   list: vi.fn(),
@@ -31,7 +30,6 @@ const mockResourceMembershipsApi = vi.hoisted(() => ({
 const mockOpenNewAgent = vi.hoisted(() => vi.fn());
 const mockPushToast = vi.hoisted(() => vi.fn());
 const mockSetSidebarOpen = vi.hoisted(() => vi.fn());
-const mockSidebarState = vi.hoisted(() => ({ collapsed: false, peeking: false }));
 
 vi.mock("@/lib/router", () => ({
   Link: ({ children, to, ...props }: { children: ReactNode; to: string }) => (
@@ -77,8 +75,6 @@ vi.mock("../context/SidebarContext", () => ({
   useSidebar: () => ({
     isMobile: false,
     setSidebarOpen: mockSetSidebarOpen,
-    collapsed: mockSidebarState.collapsed,
-    peeking: mockSidebarState.peeking,
   }),
 }));
 
@@ -190,17 +186,8 @@ async function chooseSortMode(label: string) {
 
 function agentLinkLabels(container: HTMLElement) {
   return Array.from(container.querySelectorAll('a[href^="/agents/"]'))
-    .filter((anchor) => anchor.getAttribute("href") !== "/agents/all")
     .map((anchor) => anchor.textContent?.trim())
     .filter(Boolean);
-}
-
-function seeAllAgentsLink(container: HTMLElement) {
-  return (
-    Array.from(container.querySelectorAll('a[href="/agents/all"]')).find((anchor) =>
-      anchor.textContent?.includes("See all agents"),
-    ) ?? null
-  );
 }
 
 describe("SidebarAgents", () => {
@@ -210,8 +197,6 @@ describe("SidebarAgents", () => {
   let memberships: ResourceMemberships;
 
   beforeEach(() => {
-    mockSidebarState.collapsed = false;
-    mockSidebarState.peeking = false;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = null;
@@ -264,21 +249,7 @@ describe("SidebarAgents", () => {
     vi.clearAllMocks();
   });
 
-  async function renderSidebarAgents(streamlined = true) {
-    const currentRoot = createRoot(container);
-    root = currentRoot;
-
-    await act(async () => {
-      currentRoot.render(
-        <QueryClientProvider client={queryClient}>
-          <SidebarAgents streamlined={streamlined} />
-        </QueryClientProvider>,
-      );
-    });
-    await flushReact();
-  }
-
-  async function renderSidebarAgentsWithDefaultProps() {
+  async function renderSidebarAgents() {
     const currentRoot = createRoot(container);
     root = currentRoot;
 
@@ -292,43 +263,6 @@ describe("SidebarAgents", () => {
     await flushReact();
   }
 
-  async function renderRailSidebarAgents() {
-    mockSidebarState.collapsed = true;
-    const currentRoot = createRoot(container);
-    root = currentRoot;
-
-    await act(async () => {
-      currentRoot.render(
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <SidebarAgents streamlined />
-          </TooltipProvider>
-        </QueryClientProvider>,
-      );
-    });
-    await flushReact();
-  }
-
-  it("renders icon-only agent rows with tooltips and no row actions in the rail", async () => {
-    mockAgentsApi.list.mockResolvedValue([makeAgent({ id: "agent-a", name: "Alpha", urlKey: "alpha" })]);
-
-    await renderRailSidebarAgents();
-
-    // The agent name is preserved in the a11y tree but kept in flow (zero-width,
-    // clipped) so the row stays 1:1 tall with the expanded state (PAP-10676); the
-    // row links become tooltip triggers and the per-row actions dropdown is dropped.
-    const nameSpan = Array.from(container.querySelectorAll("span")).find((el) => el.textContent === "Alpha");
-    expect(nameSpan?.className).not.toContain("sr-only");
-    expect(nameSpan?.className).toContain("w-0");
-    expect(nameSpan?.className).toContain("overflow-hidden");
-    const agentLink = container.querySelector('a[href^="/agents/"]:not([href="/agents/all"])');
-    expect(agentLink?.parentElement?.getAttribute("data-slot")).toBe("tooltip-trigger");
-    expect(container.querySelector('button[aria-label="Open actions for Alpha"]')).toBeNull();
-
-    // The section header collapses to a divider (no caret / section menu).
-    expect(container.querySelector('button[aria-label="Agents section actions"]')).toBeNull();
-  });
-
   it("keeps top mode in stored org-aware order", async () => {
     localStorage.setItem("paperclip.agentOrder:company-1:user-1", JSON.stringify(["agent-b", "agent-a", "agent-c"]));
     mockAgentsApi.list.mockResolvedValue([
@@ -340,105 +274,6 @@ describe("SidebarAgents", () => {
     await renderSidebarAgents();
 
     expect(agentLinkLabels(container)).toEqual(["Bravo", "Alpha", "Charlie"]);
-  });
-
-  it("renders top mode as a collapsible reporting hierarchy", async () => {
-    mockAgentsApi.list.mockResolvedValue([
-      makeAgent({
-        id: "agent-portfolio",
-        name: "Portfolio Director",
-        urlKey: "portfolio",
-        reportsTo: null,
-        title: "Company Direction",
-        capabilities: "Owns portfolio priority.",
-        icon: "briefcase",
-      }),
-      makeAgent({
-        id: "agent-innovations",
-        name: "11 Innovations Director",
-        urlKey: "innovations",
-        reportsTo: "agent-portfolio",
-        title: "Innovation Department",
-        capabilities: "Owns application incubation.",
-        icon: "network",
-      }),
-      makeAgent({
-        id: "agent-soar",
-        name: "Soar Project Manager",
-        urlKey: "soar-pm",
-        reportsTo: "agent-innovations",
-        title: "Soar Delivery",
-        capabilities: "Owns Soar v1 coordination.",
-        icon: "rocket",
-      }),
-    ]);
-
-    await renderSidebarAgents();
-
-    expect(agentLinkLabels(container)).toEqual(["Portfolio Director", "11 Innovations Director"]);
-    expect(container.querySelector('a[href="/agents/soar-pm"]')).toBeNull();
-
-    const innovationsToggle = container.querySelector('button[aria-label="Expand 11 Innovations Director"]');
-    expect(innovationsToggle).not.toBeNull();
-    await act(async () => {
-      innovationsToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    await flushReact();
-
-    expect(agentLinkLabels(container)).toEqual([
-      "Portfolio Director",
-      "11 Innovations Director",
-      "Soar Project Manager",
-    ]);
-
-    const portfolioToggle = container.querySelector('button[aria-label="Collapse Portfolio Director"]');
-    expect(portfolioToggle).not.toBeNull();
-    await act(async () => {
-      portfolioToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    await flushReact();
-
-    expect(agentLinkLabels(container)).toEqual(["Portfolio Director"]);
-  });
-
-  it("marks agents with incomplete operating profile data", async () => {
-    mockAgentsApi.list.mockResolvedValue([
-      makeAgent({
-        id: "agent-incomplete",
-        name: "Sparse Agent",
-        urlKey: "sparse",
-        title: null,
-        capabilities: null,
-        icon: null,
-      }),
-    ]);
-
-    await renderSidebarAgents();
-
-    expect(container.querySelector('[aria-label="Profile data missing: title, capabilities, icon, manager"]'))
-      .not.toBeNull();
-  });
-
-  it("treats the root CEO profile as complete without a manager", async () => {
-    mockAgentsApi.list.mockResolvedValue([
-      makeAgent({
-        id: "agent-portfolio",
-        name: "Portfolio Director",
-        urlKey: "portfolio",
-        role: "ceo",
-        reportsTo: null,
-        title: "Company Direction",
-        capabilities: "Owns portfolio priority.",
-        icon: "briefcase",
-      }),
-    ]);
-
-    await renderSidebarAgents();
-
-    expect(container.querySelector('[aria-label="Profile data looks complete"]'))
-      .not.toBeNull();
-    expect(container.querySelector('[aria-label^="Profile data missing"]'))
-      .toBeNull();
   });
 
   it("uses the heading for section menu and the plus button for agent creation", async () => {
@@ -478,47 +313,6 @@ describe("SidebarAgents", () => {
 
     expect(agentLinkLabels(container)).toEqual(["Alpha", "Bravo", "Charlie"]);
     expect(localStorage.getItem("paperclip.agentSortMode:company-1:user-1")).toBe("alphabetical");
-  });
-
-  it("keeps the reporting hierarchy when a non-hierarchy sort mode is selected", async () => {
-    mockAgentsApi.list.mockResolvedValue([
-      makeAgent({
-        id: "agent-portfolio",
-        name: "Portfolio Director",
-        urlKey: "portfolio",
-      }),
-      makeAgent({
-        id: "agent-innovations",
-        name: "11 Innovations Director",
-        urlKey: "innovations",
-        reportsTo: "agent-portfolio",
-      }),
-      makeAgent({
-        id: "agent-soar",
-        name: "Soar Project Manager",
-        urlKey: "soar-pm",
-        reportsTo: "agent-innovations",
-      }),
-      makeAgent({
-        id: "agent-cto",
-        name: "CTO Architect",
-        urlKey: "cto",
-        reportsTo: "agent-portfolio",
-      }),
-    ]);
-
-    await renderSidebarAgents();
-    await openAgentsSectionMenu();
-    await chooseSortMode("Alphabetical");
-
-    expect(agentLinkLabels(container)).toEqual([
-      "Portfolio Director",
-      "11 Innovations Director",
-      "CTO Architect",
-    ]);
-    expect(container.querySelector('button[aria-label="Collapse Portfolio Director"]')).not.toBeNull();
-    expect(container.querySelector('button[aria-label="Expand 11 Innovations Director"]')).not.toBeNull();
-    expect(container.querySelector('a[href="/agents/soar-pm"]')).toBeNull();
   });
 
   it("sorts recent agents by heartbeat, updated time, and created time descending", async () => {
@@ -671,103 +465,6 @@ describe("SidebarAgents", () => {
       .find((element) => element.textContent?.includes("Pause agent"));
     expect(betaPauseItem).toBeTruthy();
     expect(document.body.textContent).not.toContain("Updating...");
-  });
-
-  it("shows only active agents when any agent has a live run", async () => {
-    mockAgentsApi.list.mockResolvedValue([
-      makeAgent({ id: "agent-a", name: "Alpha", urlKey: "alpha" }),
-      makeAgent({ id: "agent-b", name: "Bravo", urlKey: "bravo" }),
-      makeAgent({ id: "agent-c", name: "Charlie", urlKey: "charlie" }),
-    ]);
-    mockHeartbeatsApi.liveRunsForCompany.mockResolvedValue([
-      { id: "run-1", agentId: "agent-b", status: "running" },
-    ]);
-
-    await renderSidebarAgents();
-
-    const labels = agentLinkLabels(container);
-    expect(labels).toHaveLength(1);
-    expect(labels[0]).toContain("Bravo");
-    // PAP-76: the full-list entry point stays visible even when only active
-    // agents are shown.
-    expect(seeAllAgentsLink(container)?.getAttribute("href")).toBe("/agents/all");
-  });
-
-  it("shows up to 5 recently-active agents plus a See all link when none are running", async () => {
-    mockAgentsApi.list.mockResolvedValue(
-      Array.from({ length: 7 }, (_, index) =>
-        makeAgent({
-          id: `agent-${index}`,
-          name: `Agent ${index}`,
-          urlKey: `agent-${index}`,
-        }),
-      ),
-    );
-    mockHeartbeatsApi.liveRunsForCompany.mockResolvedValue([]);
-
-    await renderSidebarAgents();
-
-    expect(agentLinkLabels(container)).toHaveLength(5);
-    expect(seeAllAgentsLink(container)?.getAttribute("href")).toBe("/agents/all");
-  });
-
-  it("classic mode (flag OFF) shows all agents and no See all link even when one is running", async () => {
-    mockAgentsApi.list.mockResolvedValue([
-      makeAgent({ id: "agent-a", name: "Alpha", urlKey: "alpha" }),
-      makeAgent({ id: "agent-b", name: "Bravo", urlKey: "bravo" }),
-      makeAgent({ id: "agent-c", name: "Charlie", urlKey: "charlie" }),
-    ]);
-    mockHeartbeatsApi.liveRunsForCompany.mockResolvedValue([
-      { id: "run-1", agentId: "agent-b", status: "running" },
-    ]);
-
-    await renderSidebarAgents(false);
-
-    // Show-all: every agent is listed regardless of live-run state. (Bravo's
-    // label includes its live-run badge text, so match by prefix.)
-    const labels = agentLinkLabels(container);
-    expect(labels).toHaveLength(3);
-    expect(labels[0]).toBe("Alpha");
-    expect(labels[1]).toContain("Bravo");
-    expect(labels[2]).toBe("Charlie");
-    // No recent-5 truncation, so no "See all agents" link in classic mode.
-    expect(seeAllAgentsLink(container)).toBeNull();
-  });
-
-  it("classic mode (flag OFF) shows more than 5 agents without truncation", async () => {
-    mockAgentsApi.list.mockResolvedValue(
-      Array.from({ length: 7 }, (_, index) =>
-        makeAgent({
-          id: `agent-${index}`,
-          name: `Agent ${index}`,
-          urlKey: `agent-${index}`,
-        }),
-      ),
-    );
-    mockHeartbeatsApi.liveRunsForCompany.mockResolvedValue([]);
-
-    await renderSidebarAgents(false);
-
-    expect(agentLinkLabels(container)).toHaveLength(7);
-    expect(seeAllAgentsLink(container)).toBeNull();
-  });
-
-  it("defaults to classic mode when rendered outside the Sidebar flag path", async () => {
-    mockAgentsApi.list.mockResolvedValue(
-      Array.from({ length: 7 }, (_, index) =>
-        makeAgent({
-          id: `agent-${index}`,
-          name: `Agent ${index}`,
-          urlKey: `agent-${index}`,
-        }),
-      ),
-    );
-    mockHeartbeatsApi.liveRunsForCompany.mockResolvedValue([]);
-
-    await renderSidebarAgentsWithDefaultProps();
-
-    expect(agentLinkLabels(container)).toHaveLength(7);
-    expect(seeAllAgentsLink(container)).toBeNull();
   });
 
   it("does not offer sidebar resume for budget-paused agents", async () => {

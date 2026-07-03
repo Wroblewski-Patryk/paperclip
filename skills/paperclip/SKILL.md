@@ -13,10 +13,6 @@ description: >
 
 You run in **heartbeats** — short execution windows triggered by Paperclip. Each heartbeat, you wake up, check your work, do something useful, and exit. You do not run continuously.
 
-## Terminology
-
-In Paperclip, **task** and **issue** refer to the same work item. The UI may use "task" while APIs, database fields, route names, and older docs may still say "issue"; treat them as the same entity unless a local context explicitly distinguishes them.
-
 ## Authentication
 
 Env vars auto-injected: `PAPERCLIP_AGENT_ID`, `PAPERCLIP_COMPANY_ID`, `PAPERCLIP_API_URL`, `PAPERCLIP_RUN_ID`. Optional wake-context vars may also be present: `PAPERCLIP_TASK_ID` (issue/task that triggered this wake), `PAPERCLIP_WAKE_REASON` (why this run was triggered), `PAPERCLIP_WAKE_COMMENT_ID` (specific comment that triggered this wake), `PAPERCLIP_APPROVAL_ID`, `PAPERCLIP_APPROVAL_STATUS`, and `PAPERCLIP_LINKED_ISSUE_IDS` (comma-separated). For local adapters, `PAPERCLIP_API_KEY` is auto-injected as a short-lived run JWT. For non-local adapters, your operator should set `PAPERCLIP_API_KEY` in adapter config. All requests use `Authorization: Bearer $PAPERCLIP_API_KEY`. All endpoints under `/api`, all JSON. Never hard-code the API URL.
@@ -25,7 +21,7 @@ Some adapters also inject `PAPERCLIP_WAKE_PAYLOAD_JSON` on comment-driven wakes.
 
 Manual local CLI mode (outside heartbeat runs): use `paperclipai agent local-cli <agent-id-or-shortname> --company-id <company-id>` to install Paperclip skills for Claude/Codex and print/export the required `PAPERCLIP_*` environment variables for that agent identity.
 
-**Run audit trail:** You MUST include the `X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID` header on ALL API requests that modify issues (checkout, update, comment, create subtask, release). This links your actions to the current heartbeat run for traceability.
+**Run audit trail:** You MUST include `-H 'X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID'` on ALL API requests that modify issues (checkout, update, comment, create subtask, release). This links your actions to the current heartbeat run for traceability.
 
 ## The Heartbeat Procedure
 
@@ -92,7 +88,6 @@ If `currentParticipant` does not match you, do not try to advance the stage — 
 
 - If the issue is actionable, start concrete work in the same heartbeat. Do not stop at a plan unless the issue specifically asks for planning.
 - Leave durable progress in comments, issue documents, or work products, then update the issue state/path to a clear final disposition before you exit.
-- If you change repository files, complete source-control closure before final disposition. First identify the affected repo: Paperclip control plane or a separate application repo under `C:/Personal/Projekty/Aplikacje/<Application>`. Inspect `git status --short` in that repo; separate your own changes from unrelated user/agent work; run the smallest meaningful verification; commit coherent completed changes when the issue or project expects durable source changes; and record application/repo path, commit SHA, push status, deploy impact, residual risk, and next owner. Push only when the issue, project policy, Delivery/Ops gate, or active PR workflow explicitly expects a remote source ref. Never push from a dirty, behind, divergent, protected, or unclear branch. For Coolify-bound app repos, treat push as a production redeploy trigger: record expected resource/SHA/smoke before push, then verify redeploy and production smoke or create a blocker diagnosing why redeploy did not happen.
 - Treat comments, documents, screenshots, work products, and `Remaining` bullets as evidence. They are not valid liveness paths by themselves.
 - Use child issues for parallel or long delegated work; do not busy-poll agents, sessions, child issues, or processes waiting for completion.
 - If your heartbeat creates a pending board/user interaction or approval before more work can proceed, leave the source issue in an explicit waiting posture before you exit. Prefer `in_review` for review, approval, `request_confirmation`, `ask_user_questions`, and `suggest_tasks` waits. Use `blocked` with `blockedByIssueIds` when another issue is the blocker.
@@ -101,11 +96,7 @@ If `currentParticipant` does not match you, do not try to advance the stage — 
 
 ### Generated Artifacts and Work Products
 
-When work produces a user-inspectable file, upload true deliverables to the current issue before final disposition and create an artifact work product. Local filesystem paths are not enough because board users, reviewers, and cloud operators may not have access to the agent workspace.
-
-On Windows, do not generate ad-hoc `powershell.exe -Command ... curl.exe ...` chains for Paperclip API mutations such as issue updates, comments, attachment uploads, work-product creation, or runtime-service controls. Prefer bundled Node helpers (`node scripts/paperclip-issue-update.mjs ...`, `node scripts/paperclip-upload-artifact.mjs ...`), repo scripts, `paperclipai` CLI commands, or another native `fetch`-based script. Use raw shell `curl` only as a fallback on trusted systems when no safer helper exists.
-
-If an important file intentionally remains in the project or execution workspace instead of being uploaded, annotate a work product with `metadata.resourceRef.kind: "workspace_file"` so the board can open it from the issue when the workspace is available. Treat browse/search as a recovery path for locating workspace files, not as the primary completion path for deliverables.
+When work produces a user-inspectable file, upload it to the current issue before final disposition. Local filesystem paths are not enough because board users, reviewers, and cloud operators may not have access to the agent workspace.
 
 For technical upload instructions, read `references/artifacts.md`.
 
@@ -115,13 +106,10 @@ If you are blocked at any point, you MUST update the issue to `blocked` before e
 Before ending any heartbeat, apply this final-disposition checklist:
 
 - `done`: the requested work is complete, verification is recorded, and no follow-up remains on this issue.
-- Source-control closure: code/docs-producing work records application/repo path, files changed, verification command/result, commit SHA or `not committed` with reason, push status (`not needed`, `pending`, `pushed`, or `blocked`), deploy impact, Coolify/resource evidence or redeploy blocker when production is affected, residual risk, and next owner.
 - `in_review`: a real reviewer path exists, such as a typed execution participant, board/user owner, linked approval, pending interaction, or an explicit monitor that will wake the assignee later. Assignment to yourself plus a "please review" comment is not a review path.
 - `blocked`: work cannot continue until first-class `blockedByIssueIds` resolve or a named owner takes a concrete unblock action.
 - Delegated follow-up: create the follow-up issue directly, link it with `parentId`/`goalId`, and use blockers when the current issue must wait for that work.
 - Explicit continuation: keep the issue `in_progress` only when there is an active run, queued continuation, or monitor/recovery path that will wake the responsible assignee. Successful artifact work left in `in_progress` with no live path is invalid; update the status/path instead.
-- Resolved blocker readback: when all first-class blockers are terminal or the owner-path children that justified a blocked state are done, re-read the source issue before exiting. If no real blocker remains, move it to `todo` or `done` with evidence instead of leaving a stale `blocked` issue behind.
-- Resume discipline: use comment `resume` only when a new run is intentionally required. Do not set `resume` on informational comments, already-done issues with no follow-up, or an issue that already has a healthy active run. Duplicate resume comments can create noisy redundant runs.
 
 When writing issue descriptions or comments, follow the ticket-linking rule in **Comment Style** below.
 
@@ -134,7 +122,7 @@ Headers: X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID
 For multiline markdown comments, do **not** hand-inline the markdown into a one-line JSON string — that is how comments get "smooshed" together. Use the helper below (or an equivalent `jq --arg` pattern reading from a heredoc/file) so literal newlines survive JSON encoding:
 
 ```bash
-node scripts/paperclip-issue-update.mjs --issue-id "$PAPERCLIP_TASK_ID" --status done <<'MD'
+scripts/paperclip-issue-update.sh --issue-id "$PAPERCLIP_TASK_ID" --status done <<'MD'
 Done
 
 - Fixed the newline-preserving issue update path
@@ -201,67 +189,6 @@ POST /api/companies/{companyId}/approvals
 ```
 
 `issueIds` links the approval into the issue thread. When approved, Paperclip wakes the requester with `PAPERCLIP_APPROVAL_ID`/`PAPERCLIP_APPROVAL_STATUS`. Keep the payload concise and decision-ready.
-
-## Issue-Thread Interactions
-
-Issue-thread interactions are first-class cards that render in the issue thread and capture a typed board/user response. Use them instead of asking the board to type yes/no or a checklist in markdown — interactions create audit trails, drive idempotency, and wake the assignee through a structured continuation path.
-
-Four kinds are supported. Pick the smallest kind that fits the decision shape:
-
-| Kind                            | When to use                                                                                  | When **not** to use                                                                                |
-| ------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `request_confirmation`          | Single yes/no decision bound to a target (e.g. accept a plan revision, approve a launch).    | Multi-select choices, free-form answers, or proposing tasks the board can pick from.               |
-| `request_checkbox_confirmation` | Board must select any subset of a known list (up to 200 options) and then confirm or reject. | Yes/no decisions (use `request_confirmation`), or proposing new tasks (use `suggest_tasks`).        |
-| `ask_user_questions`            | Short structured form: a handful of typed questions, each with answers/options/text.         | Selecting many items from a long list, or single accept/reject decisions.                          |
-| `suggest_tasks`                 | Proposing concrete tasks for the board to accept; accepted tasks become real subtasks.       | Asking the board to confirm a plan or arbitrary selection. Tasks are the unit; not arbitrary ids.  |
-
-Key shared semantics:
-
-- **Continuation policy.** `request_checkbox_confirmation` defaults to `wake_assignee`, which wakes you after the board resolves the selection. `request_confirmation` defaults to `none`, so set `wake_assignee` or `wake_assignee_on_accept` when you need to resume after a yes/no decision. `none` never wakes you — only use it when you truly do not need to resume.
-- **Target binding and staleness.** `request_confirmation` and `request_checkbox_confirmation` both accept a `target` (typically `{ type: "issue_document", key, revisionId, … }`). When a newer revision lands, Paperclip expires the pending interaction with `outcome: "stale_target"`. Rebuild against the latest revision and create a fresh interaction.
-- **Supersede on user comment.** Both confirmation kinds default `supersedeOnUserComment: true`, so a later board/user comment cancels the pending request with `outcome: "superseded_by_comment"`. On the wake, address the comment and create a new interaction if approval is still required.
-- **Idempotency.** Use a deterministic `idempotencyKey` such as `confirmation:${issueId}:plan:${revisionId}` or `checkbox:${issueId}:${decisionKey}:${revisionId}` so retries do not stack duplicate cards.
-- **Source issue posture.** After creating a pending interaction, move the source issue to `in_review` with a comment that names what the board must decide. The pending interaction is the explicit waiting path.
-
-Create a `request_checkbox_confirmation` (board selects any subset, then confirms):
-
-```json
-POST /api/issues/{issueId}/interactions
-{
-  "kind": "request_checkbox_confirmation",
-  "idempotencyKey": "checkbox:{issueId}:cleanup-files:{planRevisionId}",
-  "title": "Confirm files to delete",
-  "summary": "Pick the files you want removed before I run the cleanup.",
-  "continuationPolicy": "wake_assignee",
-  "payload": {
-    "version": 1,
-    "prompt": "Check the files you want deleted.",
-    "detailsMarkdown": "I will run the deletion against everything you check, then report back here.",
-    "options": [
-      { "id": "draft-report-march", "label": "Old draft report", "description": "QA test pass, March." },
-      { "id": "tmp-export-2025", "label": "tmp/export-2025.csv" }
-    ],
-    "defaultSelectedOptionIds": ["draft-report-march"],
-    "minSelected": 0,
-    "maxSelected": null,
-    "acceptLabel": "Delete selected",
-    "rejectLabel": "Request changes",
-    "rejectRequiresReason": true,
-    "rejectReasonLabel": "What should change?",
-    "supersedeOnUserComment": true,
-    "target": {
-      "type": "issue_document",
-      "issueId": "{issueId}",
-      "key": "plan",
-      "revisionId": "{latestPlanRevisionId}"
-    }
-  }
-}
-```
-
-When the board accepts, your wake delivers `result.selectedOptionIds` — the option ids they picked (which may be empty if `minSelected: 0`). Rejection delivers `result.reason` and a `commentId`.
-
-For full payload schemas, validation limits (option count, label lengths, min/max rules), accept/reject route bodies, and result fields, see `references/api-reference.md` -> **Checkbox confirmations**.
 
 ## Niche Workflow Pointers
 

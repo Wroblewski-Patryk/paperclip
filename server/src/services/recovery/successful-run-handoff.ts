@@ -145,34 +145,6 @@ export function isSuccessfulRunHandoffRequiredNoticeBody(body: string) {
     LEGACY_SUCCESSFUL_RUN_HANDOFF_NOTICE_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
 }
 
-export function readExplicitFinalDispositionText(body: string) {
-  const normalizedDispositionPatterns = [
-    /final(?:na)?\s+(?:disposition|dyspozycja)(?:\s+(?:for|dla)\s+[^:\n]+)?\s*:\s*(?:[-–]\s*)?(?:[*`_\s]*LUC-\d+[*`_\s]*\s*(?:->|=>|:)\s*)?[*`_\s]*(done|cancelled|canceled|blocked|in_review|in review)[*`_\s]*/i,
-    /final(?:na)?\s+(?:disposition|dyspozycja)[\s\S]{0,180}[*`_\s]*LUC-\d+[*`_\s]*\s*:\s*[*`_\s]*(done|cancelled|canceled|blocked|in_review|in review)[*`_\s]*/i,
-    /closure\s+status[\s\S]{0,180}[*`_\s]*(done|cancelled|canceled|blocked|in_review|in review)[*`_\s]*/i,
-  ];
-  for (const pattern of normalizedDispositionPatterns) {
-    const value = pattern.exec(body)?.[1]?.toLowerCase().replace(/\s+/g, "_");
-    if (value === "canceled") return "cancelled";
-    if (value === "done" || value === "cancelled" || value === "blocked" || value === "in_review") return value;
-  }
-  const patterns = [
-    /final(?:na)?\s+(?:disposition|dyspozycja)(?:\s+(?:for|dla)\s+[^:\n]+)?\s*:\s*(?:[-–]\s*)?[*`_\s]*(done|cancelled|canceled|blocked|in_review|in review)[*`_\s]*/i,
-    /disposition\s+(?:issue|for|dla)(?:\s+[^:\n]+)?\s*:\s*(?:[-–]\s*)?[*`_\s]*(done|cancelled|canceled|blocked|in_review|in review)[*`_\s]*/i,
-    /completed\s+`?[\w-]+`?\s+as\s+`?(done|cancelled|canceled|blocked|in_review|in review)`?/i,
-  ];
-  for (const pattern of patterns) {
-    const value = pattern.exec(body)?.[1]?.toLowerCase().replace(/\s+/g, "_");
-    if (value === "canceled") return "cancelled";
-    if (value === "done" || value === "cancelled" || value === "blocked" || value === "in_review") return value;
-  }
-  return null;
-}
-
-export function hasExplicitFinalDispositionText(body: string) {
-  return readExplicitFinalDispositionText(body) !== null;
-}
-
 export function buildSuccessfulRunHandoffRequiredNotice(input: {
   issue: NoticeIssue;
   run: NoticeRun;
@@ -370,7 +342,6 @@ export function decideSuccessfulRunHandoff(input: {
   hasExplicitBlockerPath: boolean;
   hasOpenRecoveryIssue: boolean;
   hasPauseHold: boolean;
-  hasExplicitFinalDispositionComment: boolean;
   budgetBlocked: boolean;
   idempotentWakeExists: boolean;
 }): SuccessfulRunHandoffDecision {
@@ -403,9 +374,6 @@ export function decideSuccessfulRunHandoff(input: {
   if (input.hasQueuedWake) return { kind: "skip", reason: "issue already has a queued or deferred wake" };
   if (input.hasPendingInteractionOrApproval) {
     return { kind: "skip", reason: "pending interaction or approval owns the next action" };
-  }
-  if (input.hasExplicitFinalDispositionComment) {
-    return { kind: "skip", reason: "run recorded an explicit final disposition comment" };
   }
   if (input.hasExplicitBlockerPath) return { kind: "skip", reason: "explicit blocker path owns the next action" };
   if (input.hasOpenRecoveryIssue) return { kind: "skip", reason: "open recovery issue owns the ambiguity" };

@@ -296,7 +296,6 @@ const storybookProject: Project = {
   leadAgentId: "agent-codex",
   targetDate: null,
   color: "#0f766e",
-  icon: null,
   env: null,
   pauseReason: null,
   pausedAt: null,

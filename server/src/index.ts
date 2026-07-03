@@ -385,82 +385,70 @@ export async function startServer(): Promise<StartedServer> {
       }
     };
   
-    const configuredAdminConnectionString = `postgres://paperclip:paperclip@127.0.0.1:${configuredPort}/postgres`;
     const runningPid = getRunningPid();
-    let embeddedPostgresReachable = false;
-    try {
-      const actualDataDir = await getPostgresDataDirectory(configuredAdminConnectionString);
-      if (
-        typeof actualDataDir !== "string" ||
-        resolve(actualDataDir) !== resolve(dataDir)
-      ) {
-        throw new Error("reachable postgres does not use the expected embedded data directory");
-      }
-      await ensurePostgresDatabase(configuredAdminConnectionString, "paperclip");
-      embeddedPostgresReachable = true;
-    } catch (error) {
-      if (runningPid) {
-        logger.warn(
-          { runningPid, port: configuredPort, err: error },
-          "Embedded PostgreSQL pid file points at a live PID, but the configured instance is not reachable; treating postmaster.pid as stale",
-        );
-      }
-    }
-
-    if (embeddedPostgresReachable) {
-      if (runningPid) {
-        logger.warn(`Embedded PostgreSQL already running; reusing existing process (pid=${runningPid}, port=${port})`);
-      } else {
+    if (runningPid) {
+      logger.warn(`Embedded PostgreSQL already running; reusing existing process (pid=${runningPid}, port=${port})`);
+    } else {
+      const configuredAdminConnectionString = `postgres://paperclip:paperclip@127.0.0.1:${configuredPort}/postgres`;
+      try {
+        const actualDataDir = await getPostgresDataDirectory(configuredAdminConnectionString);
+        if (
+          typeof actualDataDir !== "string" ||
+          resolve(actualDataDir) !== resolve(dataDir)
+        ) {
+          throw new Error("reachable postgres does not use the expected embedded data directory");
+        }
+        await ensurePostgresDatabase(configuredAdminConnectionString, "paperclip");
         logger.warn(
           `Embedded PostgreSQL appears to already be reachable without a pid file; reusing existing server on configured port ${configuredPort}`,
         );
-      }
-    } else {
-      const detectedPort = await detectPort(configuredPort);
-      if (detectedPort !== configuredPort) {
-        logger.warn(`Embedded PostgreSQL port is in use; using next free port (requestedPort=${configuredPort}, selectedPort=${detectedPort})`);
-      }
-      port = detectedPort;
-      logger.info(`Using embedded PostgreSQL because no DATABASE_URL set (dataDir=${dataDir}, port=${port})`);
-      embeddedPostgres = new EmbeddedPostgres({
-        databaseDir: dataDir,
-        user: "paperclip",
-        password: "paperclip",
-        port,
-        persistent: true,
-        initdbFlags: ["--encoding=UTF8", "--locale=C", "--lc-messages=C"],
-        onLog: appendEmbeddedPostgresLog,
-        onError: appendEmbeddedPostgresLog,
-      });
+      } catch {
+        const detectedPort = await detectPort(configuredPort);
+        if (detectedPort !== configuredPort) {
+          logger.warn(`Embedded PostgreSQL port is in use; using next free port (requestedPort=${configuredPort}, selectedPort=${detectedPort})`);
+        }
+        port = detectedPort;
+        logger.info(`Using embedded PostgreSQL because no DATABASE_URL set (dataDir=${dataDir}, port=${port})`);
+        embeddedPostgres = new EmbeddedPostgres({
+          databaseDir: dataDir,
+          user: "paperclip",
+          password: "paperclip",
+          port,
+          persistent: true,
+          initdbFlags: ["--encoding=UTF8", "--locale=C", "--lc-messages=C"],
+          onLog: appendEmbeddedPostgresLog,
+          onError: appendEmbeddedPostgresLog,
+        });
 
-      if (!clusterAlreadyInitialized) {
+        if (!clusterAlreadyInitialized) {
+          try {
+            await embeddedPostgres.initialise();
+          } catch (err) {
+            logEmbeddedPostgresFailure("initialise", err);
+            throw formatEmbeddedPostgresError(err, {
+              fallbackMessage: `Failed to initialize embedded PostgreSQL cluster in ${dataDir} on port ${port}`,
+              recentLogs: logBuffer.getRecentLogs(),
+            });
+          }
+        } else {
+          logger.info(`Embedded PostgreSQL cluster already exists (${clusterVersionFile}); skipping init`);
+        }
+
+        if (existsSync(postmasterPidFile)) {
+          logger.warn("Removing stale embedded PostgreSQL lock file");
+          rmSync(postmasterPidFile, { force: true });
+        }
         try {
-          await embeddedPostgres.initialise();
+          await embeddedPostgres.start();
         } catch (err) {
-          logEmbeddedPostgresFailure("initialise", err);
+          logEmbeddedPostgresFailure("start", err);
           throw formatEmbeddedPostgresError(err, {
-            fallbackMessage: `Failed to initialize embedded PostgreSQL cluster in ${dataDir} on port ${port}`,
+            fallbackMessage: `Failed to start embedded PostgreSQL on port ${port}`,
             recentLogs: logBuffer.getRecentLogs(),
           });
         }
-      } else {
-        logger.info(`Embedded PostgreSQL cluster already exists (${clusterVersionFile}); skipping init`);
+        embeddedPostgresStartedByThisProcess = true;
       }
-
-      if (existsSync(postmasterPidFile)) {
-        logger.warn("Removing stale embedded PostgreSQL lock file");
-        rmSync(postmasterPidFile, { force: true });
-      }
-      try {
-        await embeddedPostgres.start();
-      } catch (err) {
-        logEmbeddedPostgresFailure("start", err);
-        throw formatEmbeddedPostgresError(err, {
-          fallbackMessage: `Failed to start embedded PostgreSQL on port ${port}`,
-          recentLogs: logBuffer.getRecentLogs(),
-        });
-      }
-      embeddedPostgresStartedByThisProcess = true;
     }
   
     const embeddedAdminConnectionString = `postgres://paperclip:paperclip@127.0.0.1:${port}/postgres`;
@@ -600,19 +588,13 @@ export async function startServer(): Promise<StartedServer> {
       logger.info({ backupDir: config.databaseBackupDir, trigger }, `${label} database backup starting`);
       // Read retention from Instance Settings (DB) so changes take effect without restart.
       const generalSettings = await backupSettingsSvc.getGeneral();
-      const retention = {
-        ...generalSettings.backupRetention,
-        maxTotalBytes: config.databaseBackupMaxTotalBytes,
-      };
+      const retention = generalSettings.backupRetention;
 
       const result = await runDatabaseBackup({
         connectionString: activeDatabaseConnectionString,
         backupDir: config.databaseBackupDir,
         retention,
         filenamePrefix: "paperclip",
-        diskSpaceGuard: config.databaseBackupMinFreeBytes === null
-          ? undefined
-          : { minFreeBytes: config.databaseBackupMinFreeBytes },
       });
       const finishedAt = new Date();
       const response: InstanceDatabaseBackupRunResult = {
@@ -773,12 +755,6 @@ export async function startServer(): Promise<StartedServer> {
         }
       })
       .then(async () => {
-        const swept = await heartbeat.sweepStaleIssueLocks();
-        if (swept.cleared > 0) {
-          logger.warn({ ...swept }, "startup stale-lock sweeper cleared issue locks");
-        }
-      })
-      .then(async () => {
         const reviewed = await heartbeat.reconcileProductivityReviews();
         if (reviewed.created > 0 || reviewed.updated > 0 || reviewed.failed > 0) {
           logger.warn({ ...reviewed }, "startup productivity reconciliation created or updated review work");
@@ -842,12 +818,6 @@ export async function startServer(): Promise<StartedServer> {
           const scanned = await heartbeat.scanSilentActiveRuns();
           if (scanned.created > 0 || scanned.escalated > 0) {
             logger.warn({ ...scanned }, "periodic active-run output watchdog created review work");
-          }
-        })
-        .then(async () => {
-          const swept = await heartbeat.sweepStaleIssueLocks();
-          if (swept.cleared > 0) {
-            logger.warn({ ...swept }, "periodic stale-lock sweeper cleared issue locks");
           }
         })
         .then(async () => {

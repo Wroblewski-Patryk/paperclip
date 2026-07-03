@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type ComponentType } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   BudgetPolicySummary,
-  CostSummary,
   CostByAgentModel,
   CostByBiller,
   CostByProviderModel,
@@ -93,71 +92,6 @@ function MetricTile({
         </div>
       </div>
     </div>
-  );
-}
-
-function usageTokenTotal(summary: CostSummary | undefined, prefix: "subscriptionIncluded" | "unknownCost") {
-  if (!summary) return 0;
-  if (prefix === "subscriptionIncluded") {
-    return summary.subscriptionIncludedInputTokens
-      + summary.subscriptionIncludedCachedInputTokens
-      + summary.subscriptionIncludedOutputTokens;
-  }
-  return summary.unknownCostInputTokens
-    + summary.unknownCostCachedInputTokens
-    + summary.unknownCostOutputTokens;
-}
-
-function meteringStateLabel(state: CostSummary["meteringState"] | undefined) {
-  switch (state) {
-    case "metered":
-      return "Metered API only";
-    case "subscription_included":
-      return "Subscription included";
-    case "mixed":
-      return "Mixed billing";
-    case "unknown":
-      return "Unknown cost present";
-    case "zero_billed":
-      return "Zero billed";
-    case "none":
-    default:
-      return "No usage";
-  }
-}
-
-function UsageAccountingCard({ summary }: { summary: CostSummary | undefined }) {
-  const subscriptionTokens = usageTokenTotal(summary, "subscriptionIncluded");
-  const unknownTokens = usageTokenTotal(summary, "unknownCost");
-  return (
-    <Card>
-      <CardHeader className="px-5 pt-5 pb-2">
-        <CardTitle className="text-base">Usage accounting</CardTitle>
-        <CardDescription>
-          Separates invoice-impacting billed usage from subscription-included and unknown-cost usage.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-3 px-5 pb-5 pt-2 sm:grid-cols-3">
-        <MetricTile
-          label="Billed"
-          value={formatCents(summary?.billedSpendCents ?? 0)}
-          subtitle={`${summary?.meteredApiRunCount ?? 0} metered API run${summary?.meteredApiRunCount === 1 ? "" : "s"}`}
-          icon={DollarSign}
-        />
-        <MetricTile
-          label="Subscription"
-          value={formatTokens(subscriptionTokens)}
-          subtitle={`${summary?.subscriptionIncludedRunCount ?? 0} included run${summary?.subscriptionIncludedRunCount === 1 ? "" : "s"} not counted against budget`}
-          icon={Coins}
-        />
-        <MetricTile
-          label="Unknown"
-          value={formatTokens(unknownTokens)}
-          subtitle={`${summary?.unknownCostRunCount ?? 0} run${summary?.unknownCostRunCount === 1 ? "" : "s"} need billing classification`}
-          icon={ReceiptText}
-        />
-      </CardContent>
-    </Card>
   );
 }
 
@@ -647,9 +581,9 @@ export function Costs() {
 
           <div className="grid gap-3 lg:grid-cols-4">
             <MetricTile
-              label="Billed inference"
-              value={formatCents(spendData?.summary.billedSpendCents ?? 0)}
-              subtitle={`${formatTokens(inferenceTokenTotal)} request tokens - ${meteringStateLabel(spendData?.summary.meteringState)}`}
+              label="Inference spend"
+              value={formatCents(spendData?.summary.spendCents ?? 0)}
+              subtitle={`${formatTokens(inferenceTokenTotal)} tokens across request-scoped events`}
               icon={DollarSign}
             />
             <MetricTile
@@ -663,7 +597,7 @@ export function Costs() {
                 activeBudgetIncidents.length > 0
                   ? `${budgetData?.pausedAgentCount ?? 0} agents paused · ${budgetData?.pausedProjectCount ?? 0} projects paused`
                   : spendData?.summary.budgetCents && spendData.summary.budgetCents > 0
-                    ? `${formatCents(spendData.summary.billedSpendCents)} billed of ${formatCents(spendData.summary.budgetCents)}`
+                    ? `${formatCents(spendData.summary.spendCents)} of ${formatCents(spendData.summary.budgetCents)}`
                     : "No monthly cap configured"
               }
               icon={Coins}
@@ -725,18 +659,18 @@ export function Costs() {
                   <CardHeader className="px-5 pt-5 pb-2">
                     <CardTitle className="text-base">Inference ledger</CardTitle>
                     <CardDescription>
-                      Request-scoped billed inference for the selected period.
+                      Request-scoped inference spend for the selected period.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 px-5 pb-5 pt-2">
                     <div className="flex flex-wrap items-end justify-between gap-3">
                       <div>
                         <div className="text-3xl font-semibold tabular-nums">
-                          {formatCents(spendData?.summary.billedSpendCents ?? 0)}
+                          {formatCents(spendData?.summary.spendCents ?? 0)}
                         </div>
                         <div className="mt-1 text-sm text-muted-foreground">
                           {spendData?.summary.budgetCents && spendData.summary.budgetCents > 0
-                            ? `Billed budget ${formatCents(spendData.summary.budgetCents)}`
+                            ? `Budget ${formatCents(spendData.summary.budgetCents)}`
                             : "Unlimited budget"}
                         </div>
                       </div>
@@ -763,7 +697,7 @@ export function Costs() {
                           />
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {spendData.summary.utilizationPercent}% of monthly billed budget consumed in this range.
+                          {spendData.summary.utilizationPercent}% of monthly budget consumed in this range.
                         </div>
                       </div>
                     ) : null}
@@ -779,13 +713,11 @@ export function Costs() {
                 />
               </div>
 
-              <UsageAccountingCard summary={spendData?.summary} />
-
               <div className="grid gap-4 xl:grid-cols-[1.25fr,0.95fr]">
                 <Card>
                   <CardHeader className="px-5 pt-5 pb-2">
                     <CardTitle className="text-base">By agent</CardTitle>
-                    <CardDescription>Billed amount plus subscription-covered runs by agent.</CardDescription>
+                    <CardDescription>What each agent consumed in the selected period.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2 px-5 pb-5 pt-2">
                     {(spendData?.byAgent.length ?? 0) === 0 ? (
@@ -813,13 +745,13 @@ export function Costs() {
                                 {row.agentStatus === "terminated" ? <StatusBadge status="terminated" /> : null}
                               </div>
                               <div className="text-right text-sm tabular-nums">
-                                <div className="font-medium">{formatCents(row.costCents)} billed</div>
+                                <div className="font-medium">{formatCents(row.costCents)}</div>
                                 <div className="text-xs text-muted-foreground">
                                   in {formatTokens(row.inputTokens + row.cachedInputTokens)} · out {formatTokens(row.outputTokens)}
                                 </div>
                                 {(row.apiRunCount > 0 || row.subscriptionRunCount > 0) ? (
                                   <div className="text-xs text-muted-foreground">
-                                    {row.apiRunCount > 0 ? `${row.apiRunCount} metered` : "0 metered"}
+                                    {row.apiRunCount > 0 ? `${row.apiRunCount} api` : "0 api"}
                                     {" · "}
                                     {row.subscriptionRunCount > 0
                                       ? `${row.subscriptionRunCount} subscription`
@@ -873,7 +805,7 @@ export function Costs() {
                   <Card>
                     <CardHeader className="px-5 pt-5 pb-2">
                       <CardTitle className="text-base">By project</CardTitle>
-                      <CardDescription>Billed run costs attributed through project-linked tasks.</CardDescription>
+                      <CardDescription>Run costs attributed through project-linked issues.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 px-5 pb-5 pt-2">
                       {(spendData?.byProject.length ?? 0) === 0 ? (
@@ -885,7 +817,7 @@ export function Costs() {
                             className="flex items-center justify-between gap-3 border border-border px-3 py-2 text-sm"
                           >
                             <span className="truncate">{row.projectName ?? row.projectId ?? "Unattributed"}</span>
-                            <span className="font-medium tabular-nums">{formatCents(row.costCents)} billed</span>
+                            <span className="font-medium tabular-nums">{formatCents(row.costCents)}</span>
                           </div>
                         ))
                       )}
@@ -978,10 +910,10 @@ export function Costs() {
                         <h2 className="text-lg font-semibold capitalize">{scopeType} budgets</h2>
                         <p className="text-sm text-muted-foreground">
                           {scopeType === "company"
-                            ? "Company-wide monthly policy enforced against billed cents."
+                            ? "Company-wide monthly policy."
                             : scopeType === "agent"
-                              ? "Recurring monthly billed-spend policies for individual agents."
-                              : "Lifetime billed-spend policies for execution-bound projects."}
+                              ? "Recurring monthly spend policies for individual agents."
+                              : "Lifetime spend policies for execution-bound projects."}
                         </p>
                       </div>
                       <div className="grid gap-4 xl:grid-cols-2">

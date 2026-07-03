@@ -117,9 +117,8 @@ export function PluginSettings() {
   useEffect(() => {
     setBreadcrumbs([
       { label: selectedCompany?.name ?? "Company", href: "/dashboard" },
-      { label: "Settings", href: "/company/settings" },
-      { label: "Instance settings", href: "/company/settings/instance/general" },
-      { label: "Plugins", href: "/company/settings/instance/plugins" },
+      { label: "Settings", href: "/instance/settings/heartbeats" },
+      { label: "Plugins", href: "/instance/settings/plugins" },
       { label: plugin?.manifestJson?.displayName ?? plugin?.packageName ?? "Plugin Details" },
     ]);
   }, [selectedCompany?.name, setBreadcrumbs, companyPrefix, plugin]);
@@ -133,7 +132,7 @@ export function PluginSettings() {
   }
 
   if (!plugin) {
-    return <Navigate to="/company/settings/instance/plugins" replace />;
+    return <Navigate to="/instance/settings/plugins" replace />;
   }
 
   const displayStatus = plugin.status;
@@ -156,7 +155,7 @@ export function PluginSettings() {
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-center gap-4">
-        <Link to="/company/settings/instance/plugins">
+        <Link to="/instance/settings/plugins">
           <Button variant="outline" size="icon" className="h-8 w-8">
             <ArrowLeft className="h-4 w-4" />
           </Button>

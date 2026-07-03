@@ -9,16 +9,9 @@ import type {
   CompanyMembership,
   PrincipalPermissionGrant,
 } from "./access.js";
-import type {
-  TrustAuthorizationPolicy,
-  TrustPreset,
-} from "../trust-policy.js";
-import type { AgentOrgChainHealth } from "../agent-eligibility.js";
 
-export interface AgentPermissions extends Record<string, unknown> {
+export interface AgentPermissions {
   canCreateAgents: boolean;
-  trustPreset?: TrustPreset;
-  authorizationPolicy?: TrustAuthorizationPolicy;
 }
 
 export interface AgentModelProfileConfig {
@@ -99,7 +92,6 @@ export interface Agent {
   permissions: AgentPermissions;
   lastHeartbeatAt: Date | null;
   metadata: Record<string, unknown> | null;
-  orgChainHealth?: AgentOrgChainHealth;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -108,8 +100,6 @@ export interface AgentDetail extends Agent {
   chainOfCommand: AgentChainOfCommandEntry[];
   access: AgentAccessState;
 }
-
-export type ClearAgentErrorResponse = Agent;
 
 export interface AgentKeyCreated {
   id: string;

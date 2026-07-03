@@ -180,7 +180,7 @@ describe("acpx_local runtime skill isolation", () => {
     expect(await pathExists(path.join(skillsHome, legacy.runtimeName))).toBe(false);
   });
 
-  it("replaces stale managed Codex auth files with source credentials", async () => {
+  it.skipIf(process.platform === "win32")("replaces stale managed Codex auth files with source symlinks", async () => {
     const root = await makeTempRoot();
     const sourceCodexHome = path.join(root, "source-codex-home");
     const paperclipHome = path.join(root, "paperclip-home");
@@ -223,11 +223,8 @@ describe("acpx_local runtime skill isolation", () => {
     }
 
     const authStat = await fs.lstat(managedAuth);
-    const contents = await fs.readFile(managedAuth, "utf8");
-    expect(contents).toBe("{\"source\":true}");
-    if (authStat.isSymbolicLink()) {
-      expect(path.resolve(path.dirname(managedAuth), await fs.readlink(managedAuth))).toBe(sourceAuth);
-    }
+    expect(authStat.isSymbolicLink()).toBe(true);
+    expect(path.resolve(path.dirname(managedAuth), await fs.readlink(managedAuth))).toBe(sourceAuth);
   });
 
   it("keeps fresh credential wrapper scripts across ACPX agent changes", async () => {
@@ -258,10 +255,8 @@ describe("acpx_local runtime skill isolation", () => {
     const envPath = path.join(stateDir, "wrappers", wrappers.find((name) => name.startsWith("custom-b-") && name.endsWith(".env"))!);
     const wrapper = await fs.readFile(wrapperPath, "utf8");
     const env = await fs.readFile(envPath, "utf8");
-    if (process.platform !== "win32") {
-      expect((await fs.stat(envPath)).mode & 0o777).toBe(0o600);
-      expect((await fs.stat(wrapperPath)).mode & 0o777).toBe(0o700);
-    }
+    expect((await fs.stat(envPath)).mode & 0o777).toBe(0o600);
+    expect((await fs.stat(wrapperPath)).mode & 0o777).toBe(0o700);
     expect(wrapper).toContain("node ./fake-acp.js");
     expect(wrapper).not.toContain("PAPERCLIP_API_KEY");
     expect(wrapper).not.toContain("new-key");

@@ -62,11 +62,6 @@ export function ApprovalDetail() {
     for (const agent of agents ?? []) map.set(agent.id, agent.name);
     return map;
   }, [agents]);
-  const agentIconById = useMemo(() => {
-    const map = new Map<string, string | null>();
-    for (const agent of agents ?? []) map.set(agent.id, agent.icon ?? null);
-    return map;
-  }, [agents]);
 
   useEffect(() => {
     setBreadcrumbs([
@@ -161,8 +156,8 @@ export function ApprovalDetail() {
       ? {
           label:
             (linkedIssues?.length ?? 0) > 1
-              ? "Review linked tasks"
-              : "Review linked task",
+              ? "Review linked issues"
+              : "Review linked issue",
           to: `/issues/${primaryLinkedIssue.identifier ?? primaryLinkedIssue.id}`,
         }
       : linkedAgentId
@@ -188,7 +183,7 @@ export function ApprovalDetail() {
               <div>
                 <p className="text-sm text-green-800 dark:text-green-100 font-medium">Approval confirmed</p>
                 <p className="text-xs text-green-700 dark:text-green-200/90">
-                  Requesting agent was notified to review this approval and linked tasks.
+                  Requesting agent was notified to review this approval and linked issues.
                 </p>
               </div>
             </div>
@@ -220,7 +215,6 @@ export function ApprovalDetail() {
               <span className="text-muted-foreground text-xs">Requested by</span>
               <Identity
                 name={agentNameById.get(approval.requestedByAgentId) ?? approval.requestedByAgentId.slice(0, 8)}
-                agentIcon={agentIconById.get(approval.requestedByAgentId) ?? null}
                 size="sm"
               />
             </div>
@@ -246,7 +240,7 @@ export function ApprovalDetail() {
         {error && <p className="text-sm text-destructive">{error}</p>}
         {linkedIssues && linkedIssues.length > 0 && (
           <div className="pt-2 border-t border-border/60">
-            <p className="text-xs text-muted-foreground mb-1.5">Linked Tasks</p>
+            <p className="text-xs text-muted-foreground mb-1.5">Linked Issues</p>
             <div className="space-y-1.5">
               {linkedIssues.map((issue) => (
                 <Link
@@ -262,7 +256,7 @@ export function ApprovalDetail() {
               ))}
             </div>
             <p className="text-[11px] text-muted-foreground mt-2">
-              Linked tasks remain open until the requesting agent follows up and closes them.
+              Linked issues remain open until the requesting agent follows up and closes them.
             </p>
           </div>
         )}
@@ -339,7 +333,6 @@ export function ApprovalDetail() {
                   <Link to={`/agents/${comment.authorAgentId}`} className="hover:underline">
                     <Identity
                       name={agentNameById.get(comment.authorAgentId) ?? comment.authorAgentId.slice(0, 8)}
-                      agentIcon={agentIconById.get(comment.authorAgentId) ?? null}
                       size="sm"
                     />
                   </Link>

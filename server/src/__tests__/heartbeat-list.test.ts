@@ -145,50 +145,6 @@ describeEmbeddedPostgres("heartbeat list", () => {
     });
   });
 
-  it("omits result json from broad list queries to avoid oversized history scans", async () => {
-    const companyId = randomUUID();
-    const agentId = randomUUID();
-    const runId = randomUUID();
-
-    await db.insert(companies).values({
-      id: companyId,
-      name: "Paperclip",
-      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
-      requireBoardApprovalForNewAgents: false,
-    });
-
-    await db.insert(agents).values({
-      id: agentId,
-      companyId,
-      name: "CodexCoder",
-      role: "engineer",
-      status: "running",
-      adapterType: "codex_local",
-      adapterConfig: {},
-      runtimeConfig: {},
-      permissions: {},
-    });
-
-    await db.insert(heartbeatRuns).values({
-      id: runId,
-      companyId,
-      agentId,
-      invocationSource: "assignment",
-      status: "failed",
-      error: "run failed",
-      resultJson: {
-        summary: "huge payload hidden from list",
-        stdout: "x".repeat(50_000),
-      },
-    });
-
-    const runs = await heartbeatService(db).list(companyId, undefined, 200);
-
-    expect(runs).toHaveLength(1);
-    expect(runs[0]?.id).toBe(runId);
-    expect(runs[0]?.resultJson).toBeNull();
-  });
-
   it("bounds oversized legacy result json payloads on getRun", async () => {
     const companyId = randomUUID();
     const agentId = randomUUID();

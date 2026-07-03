@@ -1,4 +1,4 @@
-import { closeSync, createReadStream, createWriteStream, existsSync, mkdirSync, openSync, readdirSync, readFileSync, statfsSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { spawn } from "node:child_process";
@@ -11,7 +11,6 @@ export type BackupRetentionPolicy = {
   dailyDays: number;
   weeklyWeeks: number;
   monthlyMonths: number;
-  maxTotalBytes?: number | null;
 };
 
 export type RunDatabaseBackupOptions = {
@@ -20,7 +19,6 @@ export type RunDatabaseBackupOptions = {
   retention: BackupRetentionPolicy;
   filenamePrefix?: string;
   connectTimeoutSeconds?: number;
-  diskSpaceGuard?: false | BackupDiskSpaceGuard;
   /**
    * @deprecated Migration-journal schemas are included with the normal backup
    * scope. This option is kept for compatibility and no longer changes backup
@@ -36,18 +34,6 @@ export type RunDatabaseBackupResult = {
   backupFile: string;
   sizeBytes: number;
   prunedCount: number;
-  diskSpace?: BackupDiskSpaceSnapshot;
-};
-
-export type BackupDiskSpaceSnapshot = {
-  path: string;
-  availableBytes: number;
-  totalBytes: number | null;
-};
-
-export type BackupDiskSpaceGuard = {
-  minFreeBytes?: number;
-  getDiskSpace?: (backupDir: string) => BackupDiskSpaceSnapshot | null;
 };
 
 export type RunDatabaseRestoreOptions = {
@@ -84,10 +70,6 @@ const DEFAULT_BACKUP_WRITE_BUFFER_BYTES = 1024 * 1024;
 const BACKUP_DATA_CURSOR_ROWS = 100;
 const BACKUP_CLI_STDERR_BYTES = 64 * 1024;
 const BACKUP_BREAKPOINT_DETECT_BYTES = 64 * 1024;
-const MAX_DAILY_BACKUPS_PER_DAY = 6;
-const DEFAULT_MIN_BACKUP_FREE_BYTES = 256 * 1024 * 1024;
-const BACKUP_HISTORY_FREE_SPACE_MULTIPLIER = 2;
-const BACKUP_LOCK_STALE_MS = 6 * 60 * 60 * 1000;
 
 const STATEMENT_BREAKPOINT = "-- paperclip statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900";
 
@@ -125,162 +107,9 @@ function monthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function acquireBackupDirectoryLock(backupDir: string, filenamePrefix: string): () => void {
-  const lockFile = resolve(backupDir, `.${filenamePrefix}.backup.lock`);
-  const payload = JSON.stringify({
-    pid: process.pid,
-    createdAt: new Date().toISOString(),
-  });
-
-  const tryAcquire = () => {
-    const fd = openSync(lockFile, "wx");
-    try {
-      writeFileSync(fd, payload);
-    } finally {
-      closeSync(fd);
-    }
-  };
-
-  try {
-    tryAcquire();
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code !== "EEXIST") throw error;
-
-    let stale = false;
-    try {
-      const stat = statSync(lockFile);
-      stale = Date.now() - stat.mtimeMs > BACKUP_LOCK_STALE_MS;
-    } catch {
-      stale = true;
-    }
-
-    if (stale) {
-      try {
-        unlinkSync(lockFile);
-      } catch {
-        // Another process may have won the stale-lock cleanup race.
-      }
-      try {
-        tryAcquire();
-      } catch {
-        throw new Error(`Database backup already in progress for ${backupDir}`);
-      }
-    } else {
-      let details = "";
-      try {
-        details = readFileSync(lockFile, "utf8").trim();
-      } catch {
-        details = "";
-      }
-      throw new Error(
-        `Database backup already in progress for ${backupDir}${details ? ` (${details})` : ""}`,
-      );
-    }
-  }
-
-  let released = false;
-  return () => {
-    if (released) return;
-    released = true;
-    try {
-      unlinkSync(lockFile);
-    } catch {
-      // Best-effort cleanup; stale lock recovery handles old files.
-    }
-  };
-}
-
-function asPositiveFiniteNumber(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  return value > 0 ? value : null;
-}
-
-function asNonNegativeFiniteNumber(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  return value >= 0 ? value : null;
-}
-
-function resolveDefaultMinBackupFreeBytes(): number {
-  const envValue = process.env.PAPERCLIP_DB_BACKUP_MIN_FREE_BYTES;
-  const parsed = envValue ? Number(envValue) : null;
-  return asPositiveFiniteNumber(parsed) ?? DEFAULT_MIN_BACKUP_FREE_BYTES;
-}
-
-function resolveMaxRetainedBackupBytes(retention: BackupRetentionPolicy): number | null {
-  const envValue = process.env.PAPERCLIP_DB_BACKUP_MAX_TOTAL_BYTES;
-  const envMaxBytes = envValue !== undefined ? asNonNegativeFiniteNumber(Number(envValue)) : null;
-  return envMaxBytes ?? asNonNegativeFiniteNumber(retention.maxTotalBytes) ?? null;
-}
-
-function inspectBackupDiskSpace(backupDir: string): BackupDiskSpaceSnapshot | null {
-  try {
-    const stats = statfsSync(backupDir);
-    const blockSize = Number(stats.bsize);
-    const availableBlocks = Number(stats.bavail);
-    const totalBlocks = Number(stats.blocks);
-    const availableBytes = availableBlocks * blockSize;
-    const totalBytes = totalBlocks * blockSize;
-    if (!Number.isFinite(availableBytes) || availableBytes < 0) return null;
-    return {
-      path: backupDir,
-      availableBytes,
-      totalBytes: Number.isFinite(totalBytes) && totalBytes >= 0 ? totalBytes : null,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function largestExistingBackupBytes(backupDir: string, filenamePrefix: string): number {
-  if (!existsSync(backupDir)) return 0;
-  let largest = 0;
-  for (const name of readdirSync(backupDir)) {
-    if (!name.startsWith(`${filenamePrefix}-`)) continue;
-    if (!name.endsWith(".sql") && !name.endsWith(".sql.gz")) continue;
-    const size = statSync(resolve(backupDir, name)).size;
-    if (size > largest) largest = size;
-  }
-  return largest;
-}
-
-export function assertSufficientBackupDiskSpace(input: {
-  backupDir: string;
-  filenamePrefix: string;
-  guard?: false | BackupDiskSpaceGuard;
-}): BackupDiskSpaceSnapshot | null {
-  if (input.guard === false) return null;
-
-  const snapshot = input.guard?.getDiskSpace
-    ? input.guard.getDiskSpace(input.backupDir)
-    : inspectBackupDiskSpace(input.backupDir);
-  if (!snapshot) return null;
-
-  const configuredMinFreeBytes = asPositiveFiniteNumber(input.guard?.minFreeBytes)
-    ?? resolveDefaultMinBackupFreeBytes();
-  const historyBasedMinFreeBytes =
-    largestExistingBackupBytes(input.backupDir, input.filenamePrefix) * BACKUP_HISTORY_FREE_SPACE_MULTIPLIER;
-  const requiredFreeBytes = Math.max(configuredMinFreeBytes, historyBasedMinFreeBytes);
-
-  if (snapshot.availableBytes < requiredFreeBytes) {
-    throw new Error(
-      `Refusing database backup: backup volume has ${formatBackupSize(snapshot.availableBytes)} free, ` +
-        `requires at least ${formatBackupSize(requiredFreeBytes)} after retention pruning. ` +
-        `Free space or lower the configured database backup minimum-free-space threshold before retrying.`,
-    );
-  }
-
-  return snapshot;
-}
-
-function dayKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
 /**
  * Tiered backup pruning:
- * - Daily tier: keep the newest backups from the last `dailyDays` days,
- *   capped per calendar day so frequent local backups cannot fill the disk
+ * - Daily tier: keep ALL backups from the last `dailyDays` days
  * - Weekly tier: keep the NEWEST backup per calendar week for `weeklyWeeks` weeks
  * - Monthly tier: keep the NEWEST backup per calendar month for `monthlyMonths` months
  * - Everything else is deleted
@@ -293,7 +122,7 @@ function pruneOldBackups(backupDir: string, retention: BackupRetentionPolicy, fi
   const weeklyCutoff = now - Math.max(1, retention.weeklyWeeks) * 7 * 24 * 60 * 60 * 1000;
   const monthlyCutoff = now - Math.max(1, retention.monthlyMonths) * 30 * 24 * 60 * 60 * 1000;
 
-  type BackupEntry = { name: string; fullPath: string; mtimeMs: number; sizeBytes: number };
+  type BackupEntry = { name: string; fullPath: string; mtimeMs: number };
   const entries: BackupEntry[] = [];
 
   for (const name of readdirSync(backupDir)) {
@@ -301,7 +130,7 @@ function pruneOldBackups(backupDir: string, retention: BackupRetentionPolicy, fi
     if (!name.endsWith(".sql") && !name.endsWith(".sql.gz")) continue;
     const fullPath = resolve(backupDir, name);
     const stat = statSync(fullPath);
-    entries.push({ name, fullPath, mtimeMs: stat.mtimeMs, sizeBytes: stat.size });
+    entries.push({ name, fullPath, mtimeMs: stat.mtimeMs });
   }
 
   // Sort newest first so the first entry per week/month bucket is the one we keep
@@ -309,35 +138,20 @@ function pruneOldBackups(backupDir: string, retention: BackupRetentionPolicy, fi
 
   const keepWeekBuckets = new Set<string>();
   const keepMonthBuckets = new Set<string>();
-  const keepDayBucketCounts = new Map<string, number>();
-  const toDelete = new Set<string>();
+  const toDelete: string[] = [];
 
   for (const entry of entries) {
-    if (entry.sizeBytes <= 0) {
-      toDelete.add(entry.fullPath);
-      continue;
-    }
+    // Daily tier — keep everything within dailyDays
+    if (entry.mtimeMs >= dailyCutoff) continue;
 
-    // Daily tier - keep the newest backups per day within dailyDays.
     const date = new Date(entry.mtimeMs);
-    const day = dayKey(date);
     const week = isoWeekKey(date);
     const month = monthKey(date);
-
-    if (entry.mtimeMs >= dailyCutoff) {
-      const keepCount = keepDayBucketCounts.get(day) ?? 0;
-      if (keepCount < MAX_DAILY_BACKUPS_PER_DAY) {
-        keepDayBucketCounts.set(day, keepCount + 1);
-      } else {
-        toDelete.add(entry.fullPath);
-      }
-      continue;
-    }
 
     // Weekly tier — keep newest per calendar week
     if (entry.mtimeMs >= weeklyCutoff) {
       if (keepWeekBuckets.has(week)) {
-        toDelete.add(entry.fullPath);
+        toDelete.push(entry.fullPath);
       } else {
         keepWeekBuckets.add(week);
       }
@@ -347,7 +161,7 @@ function pruneOldBackups(backupDir: string, retention: BackupRetentionPolicy, fi
     // Monthly tier — keep newest per calendar month
     if (entry.mtimeMs >= monthlyCutoff) {
       if (keepMonthBuckets.has(month)) {
-        toDelete.add(entry.fullPath);
+        toDelete.push(entry.fullPath);
       } else {
         keepMonthBuckets.add(month);
       }
@@ -355,29 +169,14 @@ function pruneOldBackups(backupDir: string, retention: BackupRetentionPolicy, fi
     }
 
     // Beyond all retention tiers — delete
-    toDelete.add(entry.fullPath);
-  }
-
-  const maxTotalBytes = resolveMaxRetainedBackupBytes(retention);
-  if (maxTotalBytes !== null && maxTotalBytes > 0) {
-    const keptEntries = entries.filter((entry) => entry.sizeBytes > 0 && !toDelete.has(entry.fullPath));
-    let retainedBytes = keptEntries.reduce((sum, entry) => sum + entry.sizeBytes, 0);
-    let retainedCount = keptEntries.length;
-
-    // Keep at least the newest non-empty backup, even if it is larger than the budget.
-    for (const entry of [...keptEntries].sort((a, b) => a.mtimeMs - b.mtimeMs)) {
-      if (retainedBytes <= maxTotalBytes || retainedCount <= 1) break;
-      toDelete.add(entry.fullPath);
-      retainedBytes -= entry.sizeBytes;
-      retainedCount -= 1;
-    }
+    toDelete.push(entry.fullPath);
   }
 
   for (const filePath of toDelete) {
     unlinkSync(filePath);
   }
 
-  return toDelete.size;
+  return toDelete.length;
 }
 
 function formatBackupSize(sizeBytes: number): string {
@@ -735,21 +534,11 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
     await sql.end();
   };
   mkdirSync(opts.backupDir, { recursive: true });
-  const releaseBackupLock = acquireBackupDirectoryLock(opts.backupDir, filenamePrefix);
-  let prunedCount = 0;
-  let diskSpace: BackupDiskSpaceSnapshot | undefined;
   const sqlFile = resolve(opts.backupDir, `${filenamePrefix}-${timestamp()}.sql`);
   const backupFile = `${sqlFile}.gz`;
-  let writer: ReturnType<typeof createBufferedTextFileWriter> | null = null;
+  const writer = createBufferedTextFileWriter(sqlFile);
 
   try {
-    prunedCount = pruneOldBackups(opts.backupDir, retention, filenamePrefix);
-    diskSpace = assertSufficientBackupDiskSpace({
-      backupDir: opts.backupDir,
-      filenamePrefix,
-      guard: opts.diskSpaceGuard,
-    }) ?? undefined;
-
     if (backupEngine === "pg_dump" || (backupEngine === "auto" && canUsePgDump)) {
       await sql`SELECT 1`;
       try {
@@ -759,13 +548,13 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
           backupFile,
           connectTimeout,
         });
+        await writer.abort();
         const sizeBytes = statSync(backupFile).size;
-        prunedCount += pruneOldBackups(opts.backupDir, retention, filenamePrefix);
+        const prunedCount = pruneOldBackups(opts.backupDir, retention, filenamePrefix);
         return {
           backupFile,
           sizeBytes,
           prunedCount,
-          ...(diskSpace ? { diskSpace } : {}),
         };
       } catch (error) {
         if (existsSync(backupFile)) {
@@ -781,9 +570,7 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
 
     await sql`SELECT 1`;
 
-    writer = createBufferedTextFileWriter(sqlFile);
-    const activeWriter = writer;
-    const emit = (line: string) => activeWriter.emit(line);
+    const emit = (line: string) => writer.emit(line);
     const emitStatement = (statement: string) => {
       emit(statement);
       emit(STATEMENT_BREAKPOINT);
@@ -1111,19 +898,19 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
       const nullifiedColumns = nullifiedColumnsByTable.get(currentTableKey) ?? new Set<string>();
       if (backupEngine !== "javascript" && nullifiedColumns.size === 0) {
         emit(`COPY ${qualifiedTableName} (${colNames}) FROM stdin;`);
-        await activeWriter.writeRaw("\n");
+        await writer.writeRaw("\n");
         const copySql = postgres(opts.connectionString, { max: 1, connect_timeout: connectTimeout });
         try {
           const copyStream = await copySql
             .unsafe(`COPY ${qualifiedTableName} (${colNames}) TO STDOUT`)
             .readable();
           for await (const chunk of copyStream) {
-            await activeWriter.writeRaw(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+            await writer.writeRaw(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
           }
         } finally {
           await copySql.end();
         }
-        await activeWriter.writeRaw("\\.\n");
+        await writer.writeRaw("\\.\n");
         emitStatementBoundary();
         emit("");
         continue;
@@ -1140,7 +927,7 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
           );
           emitStatement(`INSERT INTO ${qualifiedTableName} (${colNames}) VALUES (${values.join(", ")});`);
         }
-        await activeWriter.drain();
+        await writer.drain();
       }
       emit("");
     }
@@ -1166,7 +953,7 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
     emitStatement("COMMIT;");
     emit("");
 
-    await activeWriter.close();
+    await writer.close();
 
     // Compress the SQL file with gzip
     const sqlReadStream = createReadStream(sqlFile);
@@ -1175,16 +962,15 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
     unlinkSync(sqlFile);
 
     const sizeBytes = statSync(backupFile).size;
-    prunedCount += pruneOldBackups(opts.backupDir, retention, filenamePrefix);
+    const prunedCount = pruneOldBackups(opts.backupDir, retention, filenamePrefix);
 
     return {
       backupFile,
       sizeBytes,
       prunedCount,
-      ...(diskSpace ? { diskSpace } : {}),
     };
   } catch (error) {
-    await writer?.abort();
+    await writer.abort();
     if (existsSync(backupFile)) {
       try { unlinkSync(backupFile); } catch { /* ignore */ }
     }
@@ -1193,7 +979,6 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
     }
     throw error;
   } finally {
-    releaseBackupLock();
     await closeSql();
   }
 }

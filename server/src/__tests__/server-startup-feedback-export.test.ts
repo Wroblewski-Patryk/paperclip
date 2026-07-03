@@ -16,7 +16,6 @@ const {
   feedbackServiceFactoryMock,
   fakeServer,
   loadConfigMock,
-  runDatabaseBackupMock,
 } = vi.hoisted(() => {
   const createAppMock = vi.fn(async () => ((_: unknown, __: unknown) => {}) as never);
   const createBetterAuthInstanceMock = vi.fn(() => ({}));
@@ -37,7 +36,6 @@ const {
     close: vi.fn(),
   };
   const loadConfigMock = vi.fn();
-  const runDatabaseBackupMock = vi.fn();
 
   return {
     createAppMock,
@@ -49,7 +47,6 @@ const {
     feedbackServiceFactoryMock,
     fakeServer,
     loadConfigMock,
-    runDatabaseBackupMock,
   };
 });
 
@@ -72,8 +69,6 @@ function buildTestConfig(overrides: Record<string, unknown> = {}) {
     databaseBackupEnabled: false,
     databaseBackupIntervalMinutes: 60,
     databaseBackupRetentionDays: 30,
-    databaseBackupMaxTotalBytes: null,
-    databaseBackupMinFreeBytes: null,
     databaseBackupDir: "/tmp/paperclip-test-backups",
     serveUi: false,
     uiDevMiddleware: false,
@@ -112,7 +107,7 @@ vi.mock("@paperclipai/db", () => ({
   applyPendingMigrations: vi.fn(),
   reconcilePendingMigrationHistory: vi.fn(async () => ({ repairedMigrations: [] })),
   formatDatabaseBackupResult: vi.fn(() => "ok"),
-  runDatabaseBackup: runDatabaseBackupMock,
+  runDatabaseBackup: vi.fn(),
   authUsers: {},
   companies: {},
   companyMemberships: {},
@@ -224,44 +219,6 @@ describe("startServer feedback export wiring", () => {
       feedbackExportService: feedbackExportServiceMock,
       storageService: { id: "storage-service" },
       serverPort: 3210,
-    });
-  });
-
-  it("passes configured database backup disk-space guard into manual backups", async () => {
-    runDatabaseBackupMock.mockResolvedValueOnce({
-      backupFile: "/tmp/paperclip-test-backups/paperclip-test.sql.gz",
-      sizeBytes: 123,
-      prunedCount: 0,
-      diskSpace: {
-        path: "/tmp/paperclip-test-backups",
-        availableBytes: 2048,
-        totalBytes: 4096,
-      },
-    });
-    loadConfigMock.mockReturnValue(buildTestConfig({
-      databaseBackupMaxTotalBytes: 4096,
-      databaseBackupMinFreeBytes: 1024,
-    }));
-
-    await startServer();
-
-    const databaseBackupService = createAppMock.mock.calls[0]?.[1]?.databaseBackupService;
-    const result = await databaseBackupService.runManualBackup();
-
-    expect(runDatabaseBackupMock).toHaveBeenCalledWith(expect.objectContaining({
-      backupDir: "/tmp/paperclip-test-backups",
-      retention: {
-        dailyDays: 7,
-        weeklyWeeks: 4,
-        monthlyMonths: 1,
-        maxTotalBytes: 4096,
-      },
-      diskSpaceGuard: { minFreeBytes: 1024 },
-    }));
-    expect(result.diskSpace).toEqual({
-      path: "/tmp/paperclip-test-backups",
-      availableBytes: 2048,
-      totalBytes: 4096,
     });
   });
 

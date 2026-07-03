@@ -11,10 +11,14 @@ coverage/
 **/coverage/
 .turbo/
 *.tsbuildinfo
+.pnpm-store/
 .vite/
 **/.vite/
 ui/dist/
+ui/storybook-static/
 server/ui-dist/
+diagnostics/
+feedback-export-*
 
 # Local Paperclip runtime state
 .paperclip/*
@@ -37,6 +41,7 @@ server/ui-dist/
 !.codex/PROJECT_CONTEXT.md
 .codex/logs/
 .codex/paperclip-dev/
+.paperclip-local/
 
 # Local logs and temporary files
 *.log
@@ -44,6 +49,7 @@ server/ui-dist/
 .tmp/
 tmp/
 tmp-*
+cli/tmp/
 *.tmp
 
 # Local env and secrets
@@ -74,3 +80,9 @@ Thumbs.db
 desktop.ini
 .idea/
 .vscode/
+.claude/settings.local.json
+.claude/worktrees/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+tests/release-smoke/test-results/
+tests/release-smoke/playwright-report/

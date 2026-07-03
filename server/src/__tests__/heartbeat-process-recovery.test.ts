@@ -32,8 +32,6 @@ import {
   issueTreeHolds,
   issueWorkProducts,
   issues,
-  projects,
-  projectWorkspaces,
   workspaceOperations,
 } from "@paperclipai/db";
 import {
@@ -43,7 +41,6 @@ import {
 import { runningProcesses } from "../adapters/index.ts";
 const mockTelemetryClient = vi.hoisted(() => ({ track: vi.fn() }));
 const mockTrackAgentFirstHeartbeat = vi.hoisted(() => vi.fn());
-const mockTerminateLocalService = vi.hoisted(() => vi.fn());
 const mockAdapterExecute = vi.hoisted(() =>
   vi.fn(async () => ({
     exitCode: 0,
@@ -59,17 +56,6 @@ const mockAdapterExecute = vi.hoisted(() =>
 vi.mock("../telemetry.ts", () => ({
   getTelemetryClient: () => mockTelemetryClient,
 }));
-
-vi.mock("../services/local-service-supervisor.js", async () => {
-  const actual = await vi.importActual<typeof import("../services/local-service-supervisor.js")>(
-    "../services/local-service-supervisor.js",
-  );
-  mockTerminateLocalService.mockImplementation(actual.terminateLocalService);
-  return {
-    ...actual,
-    terminateLocalService: mockTerminateLocalService,
-  };
-});
 
 vi.mock("@paperclipai/shared/telemetry", async () => {
   const actual = await vi.importActual<typeof import("@paperclipai/shared/telemetry")>(
@@ -181,22 +167,6 @@ async function waitForHeartbeatIdle(
   }
 }
 
-async function cleanupTempDbWithRetry(
-  tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null,
-  attempts = 5,
-) {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      await tempDb?.cleanup();
-      return;
-    } catch (error) {
-      const busy = error instanceof Error && error.message.includes("EBUSY");
-      if (!busy || attempt === attempts - 1) throw error;
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-  }
-}
-
 async function cancelActiveRunsForCleanup(
   db: ReturnType<typeof createDb>,
   timeoutMs = 3_000,
@@ -301,14 +271,10 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("paperclip-heartbeat-recovery-");
     db = createDb(tempDb.connectionString);
-  }, 60_000);
+  }, 20_000);
 
   afterEach(async () => {
     vi.clearAllMocks();
-    const localServiceSupervisor = await vi.importActual<typeof import("../services/local-service-supervisor.js")>(
-      "../services/local-service-supervisor.js",
-    );
-    mockTerminateLocalService.mockImplementation(localServiceSupervisor.terminateLocalService);
     mockAdapterExecute.mockImplementation(async () => ({
       exitCode: 0,
       signal: null,
@@ -417,8 +383,6 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       await db.delete(companySkills);
       await db.delete(workspaceOperations);
       await db.delete(executionWorkspaces);
-      await db.delete(projectWorkspaces);
-      await db.delete(projects);
       await db.delete(issuePlanDecompositions);
       await db.delete(issueThreadInteractions);
       await db.delete(documentAnnotationComments);
@@ -451,7 +415,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     }
     cleanupPids.clear();
     runningProcesses.clear();
-    await cleanupTempDbWithRetry(tempDb);
+    await tempDb?.cleanup();
   });
 
   async function seedRunFixture(input?: {
@@ -460,13 +424,11 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     runStatus?: "running" | "queued" | "failed";
     processPid?: number | null;
     processGroupId?: number | null;
-    processStartedAt?: Date | null;
     processLossRetryCount?: number;
     includeIssue?: boolean;
     runErrorCode?: string | null;
     runError?: string | null;
     contextSnapshot?: Record<string, unknown>;
-    issueStatus?: "todo" | "in_progress" | "blocked" | "done" | "cancelled";
   }) {
     const companyId = randomUUID();
     const agentId = randomUUID();
@@ -521,7 +483,6 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
         : { ...(input?.contextSnapshot ?? {}), issueId },
       processPid: input?.processPid ?? null,
       processGroupId: input?.processGroupId ?? null,
-      processStartedAt: input?.processStartedAt ?? null,
       processLossRetryCount: input?.processLossRetryCount ?? 0,
       errorCode: input?.runErrorCode ?? null,
       error: input?.runError ?? null,
@@ -534,7 +495,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
         id: issueId,
         companyId,
         title: "Recover local adapter after lost process",
-        status: input?.issueStatus ?? "in_progress",
+        status: "in_progress",
         priority: "medium",
         assigneeAgentId: agentId,
         checkoutRunId: runId,
@@ -990,34 +951,8 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(wakeup?.status).toBe("claimed");
   });
 
-  it("reaps a detached run without killing a recycled recorded pid", async () => {
-    const child = spawnAliveProcess();
-    childProcesses.add(child);
-    expect(child.pid).toBeTypeOf("number");
-    mockTerminateLocalService.mockClear();
-
-    const { runId } = await seedRunFixture({
-      processPid: child.pid ?? null,
-      processStartedAt: new Date("2020-01-01T00:00:00.000Z"),
-      includeIssue: false,
-    });
-    const heartbeat = heartbeatService(db);
-
-    const result = await heartbeat.reapOrphanedRuns();
-    expect(result.reaped).toBe(1);
-    expect(result.runIds).toEqual([runId]);
-
-    const run = await heartbeat.getRun(runId);
-    expect(run?.status).toBe("failed");
-    expect(run?.errorCode).toBe("process_lost");
-    expect(run?.error).toContain("different OS process");
-    expect(isPidAlive(child.pid)).toBe(true);
-    expect(mockTerminateLocalService).not.toHaveBeenCalled();
-  });
-
   it("queues exactly one retry when the recorded local pid is dead", async () => {
     const { agentId, runId, issueId } = await seedRunFixture({
-      agentStatus: "idle",
       processPid: 999_999_999,
       contextSnapshot: {
         modelProfile: "cheap",
@@ -1039,9 +974,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(runs).toHaveLength(2);
 
     const failedRun = runs.find((row) => row.id === runId);
-    const retryRuns = runs.filter((row) => row.retryOfRunId === runId);
-    expect(retryRuns).toHaveLength(1);
-    const retryRun = retryRuns[0];
+    const retryRun = runs.find((row) => row.id !== runId);
     expect(failedRun?.status).toBe("failed");
     expect(failedRun?.errorCode).toBe("process_lost");
     expect(failedRun?.livenessState).toBe("failed");
@@ -1051,99 +984,18 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       timeoutConfigured: false,
       timeoutFired: false,
     });
-    expect(["queued", "running"]).toContain(retryRun?.status);
+    expect(retryRun?.status).toBe("queued");
     expect(retryRun?.retryOfRunId).toBe(runId);
     expect(retryRun?.processLossRetryCount).toBe(1);
     expect(retryRun?.contextSnapshot as Record<string, unknown>).not.toHaveProperty("modelProfile");
 
-    const issue = await waitForValue(async () =>
-      db
-        .select()
-        .from(issues)
-        .where(eq(issues.id, issueId))
-        .then((rows) => {
-          const row = rows[0] ?? null;
-          return row?.executionRunId === retryRun?.id ? row : null;
-        })
-    );
+    const issue = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.id, issueId))
+      .then((rows) => rows[0] ?? null);
     expect(issue?.executionRunId).toBe(retryRun?.id ?? null);
-    // Terminal run cleanup releases the old checkout lock; if the retry has
-    // already started, it may claim checkout with the new run id.
-    expect(issue?.checkoutRunId === null || issue?.checkoutRunId === retryRun?.id).toBe(true);
-  });
-
-  it("queues a process-loss retry when run context stores issue identifier instead of UUID", async () => {
-    const { agentId, runId, issueId, companyId } = await seedRunFixture({
-      agentStatus: "idle",
-      processPid: 999_999_999,
-    });
-    const issue = await db
-      .select({ identifier: issues.identifier })
-      .from(issues)
-      .where(eq(issues.id, issueId))
-      .then((rows) => rows[0] ?? null);
-    expect(issue?.identifier).toBeTruthy();
-
-    await db
-      .update(heartbeatRuns)
-      .set({
-        contextSnapshot: { issueId: issue?.identifier, wakeReason: "issue_assigned" },
-      })
-      .where(and(eq(heartbeatRuns.id, runId), eq(heartbeatRuns.companyId, companyId)));
-
-    const heartbeat = heartbeatService(db);
-    const result = await heartbeat.reapOrphanedRuns();
-    expect(result.reaped).toBe(1);
-    expect(result.runIds).toEqual([runId]);
-
-    const runs = await db
-      .select()
-      .from(heartbeatRuns)
-      .where(eq(heartbeatRuns.agentId, agentId));
-    expect(runs).toHaveLength(2);
-
-    const retryRun = runs.find((row) => row.id !== runId);
-    expect(["queued", "running", "succeeded"]).toContain(retryRun?.status);
-    expect(retryRun?.retryOfRunId).toBe(runId);
-    expect(retryRun?.contextSnapshot).toMatchObject({ issueId, taskId: issueId });
-
-    const refreshedIssue = await db
-      .select({ executionRunId: issues.executionRunId })
-      .from(issues)
-      .where(eq(issues.id, issueId))
-      .then((rows) => rows[0] ?? null);
-    expect(refreshedIssue?.executionRunId).toBe(retryRun?.id ?? null);
-  });
-
-  it("does not queue a process-loss retry when the linked issue is already done", async () => {
-    const { agentId, runId, issueId } = await seedRunFixture({
-      processPid: 999_999_999,
-      issueStatus: "done",
-    });
-    const heartbeat = heartbeatService(db);
-
-    const result = await heartbeat.reapOrphanedRuns();
-    expect(result.reaped).toBe(1);
-    expect(result.runIds).toEqual([runId]);
-
-    const runs = await db
-      .select()
-      .from(heartbeatRuns)
-      .where(eq(heartbeatRuns.agentId, agentId));
-    expect(runs).toHaveLength(1);
-
-    const failedRun = runs[0];
-    expect(failedRun?.id).toBe(runId);
-    expect(failedRun?.status).toBe("failed");
-    expect(failedRun?.errorCode).toBe("process_lost");
-
-    const issue = await db
-      .select()
-      .from(issues)
-      .where(eq(issues.id, issueId))
-      .then((rows) => rows[0] ?? null);
-    expect(issue?.status).toBe("done");
-    expect(issue?.executionRunId).toBeNull();
+    expect(issue?.checkoutRunId).toBe(runId);
   });
 
   it("releases active environment leases when an orphaned run is reaped", async () => {
@@ -1176,7 +1028,6 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(isPidAlive(orphan.descendantPid)).toBe(true);
 
     const { agentId, runId, issueId } = await seedRunFixture({
-      agentStatus: "idle",
       processPid: orphan.processPid,
       processGroupId: orphan.processGroupId,
     });
@@ -1200,7 +1051,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(failedRun?.error).toContain("descendant process group");
 
     const retryRun = runs.find((row) => row.id !== runId);
-    expect(["queued", "running"]).toContain(retryRun?.status);
+    expect(retryRun?.status).toBe("queued");
 
     const issue = await db
       .select()
@@ -1390,8 +1241,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     const issue = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0] ?? null);
     expect(issue?.status).toBe("in_progress");
     expect(issue?.executionRunId).toBeNull();
-    // Terminal run cleanup releases the checkout lock even when paused-tree recovery is suppressed.
-    expect(issue?.checkoutRunId).toBeNull();
+    expect(issue?.checkoutRunId).toBe(runId);
 
     const recoveryIssues = await db
       .select()
@@ -1401,32 +1251,6 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
     expect(comments).toHaveLength(0);
-  });
-
-  it("normalizes unsigned Windows adapter exit codes before persisting a failed run", async () => {
-    mockAdapterExecute.mockResolvedValueOnce({
-      exitCode: 3221225794,
-      signal: null,
-      timedOut: false,
-      errorCode: "adapter_exit_code",
-      errorMessage: "Process exited with code 3221225794",
-      provider: "test",
-      model: "test-model",
-    });
-
-    const { runId } = await seedQueuedIssueRunFixture();
-    const heartbeat = heartbeatService(db);
-
-    await heartbeat.resumeQueuedRuns();
-    await waitForRunToSettle(heartbeat, runId);
-
-    const run = await db
-      .select()
-      .from(heartbeatRuns)
-      .where(eq(heartbeatRuns.id, runId))
-      .then((rows) => rows[0] ?? null);
-    expect(run?.status).toBe("failed");
-    expect(run?.exitCode).toBe(-1073741502);
   });
 
   it("schedules a bounded retry for codex transient upstream failures instead of blocking the issue immediately", async () => {
@@ -1482,99 +1306,6 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
     expect(comments).toHaveLength(0);
-  });
-
-  it("blocks a git-sensitive local adapter before launch when a project-workspace-linked issue is missing its project id", async () => {
-    const { companyId, agentId, runId, issueId } = await seedQueuedIssueRunFixture();
-    const projectId = randomUUID();
-    const projectWorkspaceId = randomUUID();
-    const issuePrefix = `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
-
-    await db.insert(projects).values({
-      id: projectId,
-      companyId,
-      name: "Paperclip App",
-      status: "in_progress",
-    });
-    await db.insert(projectWorkspaces).values({
-      id: projectWorkspaceId,
-      companyId,
-      projectId,
-      name: "Primary workspace",
-      sourceType: "local_path",
-      cwd: `/tmp/paperclip-missing-workspace-${randomUUID()}`,
-      isPrimary: true,
-    });
-    await db
-      .update(issues)
-      .set({
-        title: "Launch from linked workspace without project id",
-        identifier: `${issuePrefix}-1`,
-        projectId: null,
-        projectWorkspaceId,
-      })
-      .where(eq(issues.id, issueId));
-
-    const heartbeat = heartbeatService(db);
-
-    await heartbeat.resumeQueuedRuns();
-    await waitForRunToSettle(heartbeat, runId, 5_000);
-
-    expect(mockAdapterExecute).not.toHaveBeenCalled();
-
-    const failedRun = await db
-      .select()
-      .from(heartbeatRuns)
-      .where(eq(heartbeatRuns.id, runId))
-      .then((rows) => rows[0] ?? null);
-    expect(failedRun).toMatchObject({
-      status: "failed",
-      errorCode: "workspace_validation_failed",
-    });
-    expect(failedRun?.error).toContain("linked to a project workspace but has no project id");
-    expect(failedRun?.resultJson).toMatchObject({
-      workspaceValidation: {
-        reason: "missing_project_id",
-        adapterType: "codex_local",
-        issueId,
-        issueProjectId: null,
-        issueProjectWorkspaceId: projectWorkspaceId,
-      },
-    });
-
-    const issue = await waitForValue(async () =>
-      db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => {
-        const row = rows[0] ?? null;
-        return row?.status === "blocked" ? row : null;
-      }),
-    );
-    expect(issue?.executionRunId).toBeNull();
-
-    const recoveryAction = await db
-      .select()
-      .from(issueRecoveryActions)
-      .where(and(eq(issueRecoveryActions.companyId, companyId), eq(issueRecoveryActions.sourceIssueId, issueId)))
-      .then((rows) => rows[0] ?? null);
-    expect(recoveryAction).toMatchObject({
-      kind: "workspace_validation",
-      cause: "workspace_validation_failed",
-      status: "active",
-      ownerAgentId: agentId,
-      recoveryIssueId: null,
-    });
-    expect(recoveryAction?.evidence).toMatchObject({
-      sourceIssueId: issueId,
-      latestRunId: runId,
-      latestRunErrorCode: "workspace_validation_failed",
-      recoveryCause: "workspace_validation_failed",
-    });
-    expect(recoveryAction?.nextAction).toContain("Repair the source issue workspace link");
-
-    const workspaceValidationComment = await waitForValue(async () => {
-      const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
-      return comments.find((comment) => comment.body.includes("workspace failed validation")) ?? null;
-    });
-    expect(workspaceValidationComment).not.toBeNull();
   });
 
   it("queues one finish-handoff wake when a successful run leaves in-progress work without a next action", async () => {
@@ -2059,35 +1790,6 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     );
   });
 
-  it("terminates the in-memory process before persisting cancellation status", async () => {
-    const { runId } = await seedRunFixture({
-      agentStatus: "running",
-      includeIssue: false,
-    });
-    const heartbeat = heartbeatService(db);
-    runningProcesses.set(runId, {
-      child: { pid: 12345 } as ChildProcess,
-      graceSec: 1,
-      processGroupId: null,
-    });
-    mockTerminateLocalService.mockResolvedValueOnce(undefined);
-    const updateSpy = vi.spyOn(db, "update");
-    updateSpy.mockImplementationOnce((() => {
-      throw new Error("db update unavailable");
-    }) as typeof db.update);
-
-    try {
-      await expect(heartbeat.cancelRun(runId)).rejects.toThrow("db update unavailable");
-      expect(mockTerminateLocalService).toHaveBeenCalledWith(
-        expect.objectContaining({ pid: 12345, processGroupId: null }),
-        { forceAfterMs: 1000 },
-      );
-      expect(runningProcesses.has(runId)).toBe(false);
-    } finally {
-      updateSpy.mockRestore();
-    }
-  });
-
   it("records manual cancellation stop metadata", async () => {
     const { runId } = await seedRunFixture({
       agentStatus: "running",
@@ -2102,86 +1804,6 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       effectiveTimeoutSec: 0,
       timeoutConfigured: false,
       timeoutFired: false,
-    });
-  });
-
-  it("does not recreate a live run when duplicate cleanup suppresses cancellation recovery", async () => {
-    const { agentId, issueId, runId } = await seedRunFixture({
-      agentStatus: "running",
-      includeIssue: true,
-      issueStatus: "in_progress",
-    });
-    const heartbeat = heartbeatService(db);
-
-    const cancelled = await heartbeat.cancelRun(runId, "Duplicate live-run cleanup", {
-      suppressAutomaticRecovery: true,
-    });
-
-    expect(cancelled?.status).toBe("cancelled");
-
-    const runs = await db
-      .select()
-      .from(heartbeatRuns)
-      .where(eq(heartbeatRuns.agentId, agentId));
-    expect(runs).toHaveLength(1);
-
-    const wakeups = await db
-      .select()
-      .from(agentWakeupRequests)
-      .where(eq(agentWakeupRequests.agentId, agentId));
-    expect(wakeups).toHaveLength(1);
-    expect(wakeups[0]?.status).toBe("cancelled");
-
-    const issue = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0] ?? null);
-    expect(issue?.executionRunId).toBeNull();
-    expect(issue?.checkoutRunId).toBeNull();
-  });
-
-  it("records operator interrupt cancellation metadata without changing terminal status", async () => {
-    const { runId, issueId } = await seedRunFixture({
-      agentStatus: "running",
-      includeIssue: true,
-    });
-    const heartbeat = heartbeatService(db);
-
-    const cancelled = await heartbeat.cancelRun(runId, "Interrupted by board comment", {
-      errorCode: "operator_interrupted",
-      resultJson: {
-        operatorInterrupted: true,
-        interruptionSource: "issue_comment_interrupt",
-        interruptedIssueId: issueId,
-      },
-      eventMessage: "run interrupted by board comment",
-      eventPayload: {
-        issueId,
-        source: "issue_comment_interrupt",
-      },
-    });
-
-    expect(cancelled?.status).toBe("cancelled");
-    expect(cancelled?.errorCode).toBe("operator_interrupted");
-    expect(cancelled?.error).toBe("Interrupted by board comment");
-    expect(cancelled?.resultJson).toMatchObject({
-      stopReason: "cancelled",
-      operatorInterrupted: true,
-      interruptionSource: "issue_comment_interrupt",
-      interruptedIssueId: issueId,
-    });
-
-    const events = await db
-      .select()
-      .from(heartbeatRunEvents)
-      .where(eq(heartbeatRunEvents.runId, runId));
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
-      eventType: "lifecycle",
-      stream: "system",
-      level: "warn",
-      message: "run interrupted by board comment",
-      payload: expect.objectContaining({
-        issueId,
-        source: "issue_comment_interrupt",
-      }),
     });
   });
 

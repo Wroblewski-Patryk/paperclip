@@ -1797,18 +1797,8 @@ export function writePaperclipSkillSyncPreference(
 export async function ensurePaperclipSkillSymlink(
   source: string,
   target: string,
-  linkSkill: (source: string, target: string) => Promise<void> = async (linkSource, linkTarget) => {
-    try {
-      await fs.symlink(linkSource, linkTarget, process.platform === "win32" ? "junction" : undefined);
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code;
-      if (process.platform === "win32" && (code === "EPERM" || code === "EACCES")) {
-        await fs.cp(linkSource, linkTarget, { recursive: true, force: true });
-        return;
-      }
-      throw error;
-    }
-  },
+  linkSkill: (source: string, target: string) => Promise<void> = (linkSource, linkTarget) =>
+    fs.symlink(linkSource, linkTarget),
 ): Promise<"created" | "repaired" | "skipped"> {
   const existing = await fs.lstat(target).catch(() => null);
   if (!existing) {
@@ -2131,7 +2121,6 @@ export async function runChildProcess(
           cwd: target.cwd ?? opts.cwd,
           env: mergedEnv,
           detached: process.platform !== "win32",
-          windowsHide: process.platform === "win32",
           shell: false,
           stdio: [opts.stdin != null ? "pipe" : "ignore", "pipe", "pipe"],
         }) as ChildProcessWithEvents;

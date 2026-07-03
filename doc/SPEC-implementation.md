@@ -45,10 +45,6 @@ These decisions close open questions from `SPEC.md` for V1.
 | Budget enforcement | Soft alerts + hard limit auto-pause |
 | Deployment modes | Canonical model is `local_trusted` + `authenticated` with `private/public` exposure policy (see `doc/DEPLOYMENT-MODES.md`) |
 
-Low-trust agent presets are containment controls for hostile automated work, not
-general project or issue privacy controls. The core preset resolver contract is
-documented in `doc/LOW-TRUST-PRESETS.md`.
-
 ## 4. Current Baseline (Repo Snapshot)
 
 As of 2026-02-17, the repo already includes:
@@ -402,7 +398,6 @@ Operational policy:
   - Inline-safe responses use `Content-Disposition: inline`; unsafe types and explicit download requests use `attachment`.
   - Video attachments are inline-safe and support single `Range: bytes=start-end` requests with `206`, `Content-Range`, and `Accept-Ranges: bytes` for browser playback/seeking.
 - Attachment-backed artifact work products use `type: "artifact"`, `provider: "paperclip"`, and metadata with `attachmentId`, `contentType`, `byteSize`, `contentPath`, `openPath`, `downloadPath`, and optional `originalFilename`.
-- Workspace-only file references use work product `metadata.resourceRef` with `kind: "workspace_file"`, `issueId`, `workspaceKind` (`execution_workspace` or `project_workspace`), `workspaceId`, `relativePath`, optional `line`/`column`, and `displayPath`. These references point at files in a workspace; they do not replace attachment-backed artifacts for deliverables that must be inspectable without workspace access.
 
 ## 7.15 `documents` + `document_revisions` + `issue_documents`
 
@@ -881,41 +876,6 @@ Validation:
 Read-time aggregate queries are acceptable for V1.
 Materialized rollups can be added later if query latency exceeds targets.
 
-## 13.5 Budget Incident Lifecycle (V1 Acceptance Contract)
-
-When a hard budget limit is reached for company/agent/project scope, Paperclip must create or update a company-scoped budget incident with deterministic lifecycle behavior:
-
-1. Incident open
-   - one `open` incident per `(company_id, scope_type, scope_id, budget_period)` at a time
-   - links the triggering cost event and current utilization snapshot
-   - records the affected execution scope (`company | agent | project`) and the auto-pause action
-2. Incident dedupe while open
-   - additional over-limit events in the same scope/period append evidence to the existing open incident; they must not create parallel open incidents
-3. Incident governance linkage
-   - if override requires governance approval, incident must reference the `approval.id` (`budget_override_required`)
-   - approval decisions must be traceable from incident details and activity log
-4. Incident close conditions
-   - closes only when board action has produced a valid resume path: raise applicable budget above current spend for the period, or explicit board resume with documented override rationale
-   - closure records `closed_by`, `closed_at`, and `resolution_type` (`budget_raised | explicit_resume`)
-5. Incident auditability
-   - lifecycle transitions (`open`, `updated`, `approval_linked`, `closed`) emit activity log entries with company scope and actor metadata
-
-## 13.6 Board Override and Resume Path (V1 Acceptance Contract)
-
-Board override semantics for hard-stop incidents must be explicit and reproducible:
-
-1. Preconditions for resume
-   - affected agent remains non-runnable while incident is open and hard-stop condition is unresolved
-   - resume attempts without budget raise or explicit override decision return conflict (`409`) with incident reference
-2. Allowed board actions
-   - raise budget at the correct scope and period to clear overage
-   - explicitly resume with governance record (direct board action or approved `budget_override_required`)
-3. Consistency requirements
-   - once resolved, agent becomes schedulable and checkout/invocation gates reopen atomically with incident closure
-   - resolution must not reopen historical incidents for the same period unless a new post-resolution hard-stop event occurs
-4. Traceability
-   - board actor, decision note, and linked approval (when present) are visible from both incident view and activity log
-
 ## 14. UI Requirements (Board App)
 
 V1 UI routes:
@@ -1052,12 +1012,9 @@ V1 is complete only when all criteria are true:
 4. Agents can update tasks/comments and report costs with API keys only.
 5. Board can approve/reject hire and CEO strategy requests in UI.
 6. Budget hard limit auto-pauses an agent and prevents new invocations.
-7. Hard-stop creates (or updates) exactly one open budget incident per scope/period and links triggering evidence.
-8. Override path is reproducible: unresolved hard-stop incident blocks resume with `409`; budget raise or explicit board override closes the incident and restores schedulability.
-9. Incident lifecycle and override actions are auditable end-to-end in activity log, including actor and approval linkage when used.
-10. Dashboard shows accurate counts/spend from live DB data.
-11. Every mutation is auditable in activity log.
-12. App runs with embedded PostgreSQL by default and with external Postgres via `DATABASE_URL`.
+7. Dashboard shows accurate counts/spend from live DB data.
+8. Every mutation is auditable in activity log.
+9. App runs with embedded PostgreSQL by default and with external Postgres via `DATABASE_URL`.
 
 ## 20. Post-V1 Backlog (Explicitly Deferred)
 

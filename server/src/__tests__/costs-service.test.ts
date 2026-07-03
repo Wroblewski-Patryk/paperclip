@@ -9,7 +9,6 @@ import {
   agents,
   activityLog,
   costEvents,
-  budgetPolicies,
   financeEvents,
   heartbeatRuns,
   issues,
@@ -67,24 +66,7 @@ const mockLogActivity = vi.hoisted(() => vi.fn());
 const mockFetchAllQuotaWindows = vi.hoisted(() => vi.fn());
 const mockCostService = vi.hoisted(() => ({
   createEvent: vi.fn(),
-  summary: vi.fn().mockResolvedValue({
-    companyId: "company-1",
-    spendCents: 0,
-    billedSpendCents: 0,
-    budgetCents: 0,
-    utilizationPercent: 0,
-    meteringState: "none",
-    eventCount: 0,
-    meteredApiRunCount: 0,
-    subscriptionIncludedRunCount: 0,
-    subscriptionIncludedInputTokens: 0,
-    subscriptionIncludedCachedInputTokens: 0,
-    subscriptionIncludedOutputTokens: 0,
-    unknownCostRunCount: 0,
-    unknownCostInputTokens: 0,
-    unknownCostCachedInputTokens: 0,
-    unknownCostOutputTokens: 0,
-  }),
+  summary: vi.fn().mockResolvedValue({ spendCents: 0 }),
   byAgent: vi.fn().mockResolvedValue([]),
   byAgentModel: vi.fn().mockResolvedValue([]),
   byProvider: vi.fn().mockResolvedValue([]),
@@ -122,13 +104,9 @@ const mockBudgetService = vi.hoisted(() => ({
   upsertPolicy: vi.fn(),
   resolveIncident: vi.fn(),
 }));
-const mockAccessService = vi.hoisted(() => ({
-  decide: vi.fn(),
-}));
 
 function registerModuleMocks() {
   vi.doMock("../services/index.js", () => ({
-    accessService: () => mockAccessService,
     budgetService: () => mockBudgetService,
     costService: () => mockCostService,
     financeService: () => mockFinanceService,
@@ -189,13 +167,6 @@ beforeEach(() => {
   vi.doUnmock("../middleware/index.js");
   registerModuleMocks();
   vi.clearAllMocks();
-  mockAccessService.decide.mockReset();
-  mockAccessService.decide.mockResolvedValue({
-    allowed: true,
-    action: "company_scope:read",
-    reason: "allow_test",
-    explanation: "Allowed by test mock.",
-  });
   mockCompanyService.update.mockResolvedValue({
     id: "company-1",
     name: "Paperclip",
@@ -436,7 +407,6 @@ describeEmbeddedPostgres("cost and finance aggregate overflow handling", () => {
   }, 20_000);
 
   afterEach(async () => {
-    await db.delete(budgetPolicies);
     await db.delete(financeEvents);
     await db.delete(costEvents);
     await db.delete(activityLog);
@@ -524,112 +494,6 @@ describeEmbeddedPostgres("cost and finance aggregate overflow handling", () => {
     expect(byAgentRow?.inputTokens).toBe(4_000_000_000);
     expect(byProjectRow?.costCents).toBe(4_000_000_000);
     expect(byAgentModelRow?.costCents).toBe(4_000_000_000);
-  });
-
-  it("separates billed spend from subscription-included usage in company summaries", async () => {
-    const companyId = randomUUID();
-    const agentId = randomUUID();
-    const subscriptionRunId = randomUUID();
-    const meteredRunId = randomUUID();
-
-    await db.insert(companies).values({
-      id: companyId,
-      name: "Paperclip",
-      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
-      budgetMonthlyCents: 1_000,
-      requireBoardApprovalForNewAgents: false,
-    });
-    await db.insert(agents).values({
-      id: agentId,
-      companyId,
-      name: "Cost Agent",
-      role: "engineer",
-      status: "active",
-      adapterType: "codex_local",
-      adapterConfig: {},
-      runtimeConfig: {},
-      permissions: {},
-    });
-    await db.insert(heartbeatRuns).values([
-      {
-        id: subscriptionRunId,
-        companyId,
-        agentId,
-        invocationSource: "on_demand",
-        status: "succeeded",
-      },
-      {
-        id: meteredRunId,
-        companyId,
-        agentId,
-        invocationSource: "on_demand",
-        status: "succeeded",
-      },
-    ]);
-    await db.insert(budgetPolicies).values({
-      companyId,
-      scopeType: "company",
-      scopeId: companyId,
-      metric: "billed_cents",
-      windowKind: "calendar_month_utc",
-      amount: 500,
-      isActive: true,
-    });
-
-    await db.insert(costEvents).values([
-      {
-        companyId,
-        agentId,
-        heartbeatRunId: subscriptionRunId,
-        provider: "openai",
-        biller: "openai",
-        billingType: "subscription_included",
-        model: "gpt-5",
-        inputTokens: 10_000,
-        cachedInputTokens: 2_000,
-        outputTokens: 1_000,
-        costCents: 0,
-        occurredAt: new Date("2026-04-10T00:00:00.000Z"),
-      },
-      {
-        companyId,
-        agentId,
-        heartbeatRunId: meteredRunId,
-        provider: "openai",
-        biller: "openai",
-        billingType: "metered_api",
-        model: "gpt-5",
-        inputTokens: 1_000,
-        cachedInputTokens: 100,
-        outputTokens: 500,
-        costCents: 125,
-        occurredAt: new Date("2026-04-10T00:01:00.000Z"),
-      },
-    ]);
-
-    const summary = await costs.summary(companyId, {
-      from: new Date("2026-04-01T00:00:00.000Z"),
-      to: new Date("2026-04-30T23:59:59.999Z"),
-    });
-
-    expect(summary).toMatchObject({
-      companyId,
-      spendCents: 125,
-      billedSpendCents: 125,
-      budgetCents: 500,
-      utilizationPercent: 25,
-      meteringState: "mixed",
-      eventCount: 2,
-      meteredApiRunCount: 1,
-      subscriptionIncludedRunCount: 1,
-      subscriptionIncludedInputTokens: 10_000,
-      subscriptionIncludedCachedInputTokens: 2_000,
-      subscriptionIncludedOutputTokens: 1_000,
-      unknownCostRunCount: 0,
-      unknownCostInputTokens: 0,
-      unknownCostCachedInputTokens: 0,
-      unknownCostOutputTokens: 0,
-    });
   });
 
   it("aggregates issue costs across recursive descendants only", async () => {

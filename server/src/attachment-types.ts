@@ -35,7 +35,6 @@ export const DEFAULT_ALLOWED_TYPES: readonly string[] = [
   "video/mp4",
   "video/webm",
   "video/quicktime",
-  "video/x-m4v",
 ];
 
 export const DEFAULT_ATTACHMENT_CONTENT_TYPE = "application/octet-stream";
@@ -50,7 +49,6 @@ export const INLINE_ATTACHMENT_TYPES: readonly string[] = [
   "video/mp4",
   "video/webm",
   "video/quicktime",
-  "video/x-m4v",
 ];
 
 /**

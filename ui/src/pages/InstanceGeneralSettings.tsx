@@ -37,8 +37,7 @@ export function InstanceGeneralSettings() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Settings", href: "/company/settings" },
-      { label: "Instance settings" },
+      { label: "Instance Settings" },
       { label: "General" },
     ]);
   }, [setBreadcrumbs]);
@@ -159,7 +158,7 @@ export function InstanceGeneralSettings() {
           <div className="space-y-1.5">
             <h2 className="text-sm font-semibold">Keyboard shortcuts</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Enable app keyboard shortcuts, including inbox navigation and global shortcuts like creating tasks or
+              Enable app keyboard shortcuts, including inbox navigation and global shortcuts like creating issues or
               toggling panels. This is off by default.
             </p>
           </div>

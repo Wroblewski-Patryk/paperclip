@@ -175,10 +175,10 @@ describe("plugin UI slot validators", () => {
   it("prevents company settings page slots from shadowing core settings routes", () => {
     const parsed = pluginUiSlotDeclarationSchema.safeParse({
       type: "companySettingsPage",
-      id: "instance-settings",
-      displayName: "Instance",
-      exportName: "InstanceSettingsPage",
-      routePath: "instance",
+      id: "access-settings",
+      displayName: "Access",
+      exportName: "AccessSettingsPage",
+      routePath: "access",
     });
 
     expect(parsed.success).toBe(false);

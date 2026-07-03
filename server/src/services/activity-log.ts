@@ -62,14 +62,6 @@ export interface LogActivityInput {
   details?: Record<string, unknown> | null;
 }
 
-function isRunIdForeignKeyError(err: unknown) {
-  if (!err || typeof err !== "object") return false;
-  const maybeErr = err as { code?: unknown; message?: unknown };
-  const code = typeof maybeErr.code === "string" ? maybeErr.code : null;
-  const message = typeof maybeErr.message === "string" ? maybeErr.message : "";
-  return code === "23503" && /run_id/i.test(message);
-}
-
 export async function logActivity(db: Db, input: LogActivityInput) {
   const currentUserRedactionOptions = {
     enabled: (await instanceSettingsService(db).getGeneral()).censorUsernameInLogs,
@@ -78,29 +70,17 @@ export async function logActivity(db: Db, input: LogActivityInput) {
   const redactedDetails = sanitizedDetails
     ? redactCurrentUserValue(sanitizedDetails, currentUserRedactionOptions)
     : null;
-  const writeActivity = async (runId: string | null) =>
-    db.insert(activityLog).values({
-      companyId: input.companyId,
-      actorType: input.actorType,
-      actorId: input.actorId,
-      action: input.action,
-      entityType: input.entityType,
-      entityId: input.entityId,
-      agentId: input.agentId ?? null,
-      runId,
-      details: redactedDetails,
-    });
-
-  let persistedRunId = input.runId ?? null;
-  try {
-    await writeActivity(persistedRunId);
-  } catch (err) {
-    if (!persistedRunId || !isRunIdForeignKeyError(err)) throw err;
-    // Run rows may be cleaned up while delayed writes are still emitted.
-    // Preserve the activity row by retrying without run linkage.
-    persistedRunId = null;
-    await writeActivity(null);
-  }
+  await db.insert(activityLog).values({
+    companyId: input.companyId,
+    actorType: input.actorType,
+    actorId: input.actorId,
+    action: input.action,
+    entityType: input.entityType,
+    entityId: input.entityId,
+    agentId: input.agentId ?? null,
+    runId: input.runId ?? null,
+    details: redactedDetails,
+  });
 
   publishLiveEvent({
     companyId: input.companyId,
@@ -112,7 +92,7 @@ export async function logActivity(db: Db, input: LogActivityInput) {
       entityType: input.entityType,
       entityId: input.entityId,
       agentId: input.agentId ?? null,
-      runId: persistedRunId,
+      runId: input.runId ?? null,
       details: redactedDetails,
     },
   });
@@ -131,7 +111,7 @@ export async function logActivity(db: Db, input: LogActivityInput) {
       payload: {
         ...redactedDetails,
         agentId: input.agentId ?? null,
-        runId: persistedRunId,
+        runId: input.runId ?? null,
       },
     };
     publishPluginDomainEvent(event);

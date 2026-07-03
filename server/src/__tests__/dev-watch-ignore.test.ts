@@ -4,10 +4,6 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveServerDevWatchIgnorePaths } from "../dev-watch-ignore.js";
 
-function symlinkDirectorySync(target: string, linkPath: string): void {
-  fs.symlinkSync(target, linkPath, process.platform === "win32" ? "junction" : "dir");
-}
-
 describe("resolveServerDevWatchIgnorePaths", () => {
   it("includes both the worktree UI paths and their real shared targets", () => {
     const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-dev-watch-"));
@@ -22,9 +18,9 @@ describe("resolveServerDevWatchIgnorePaths", () => {
     fs.mkdirSync(serverRoot, { recursive: true });
     fs.mkdirSync(worktreeUiRoot, { recursive: true });
 
-    symlinkDirectorySync(path.join(sharedUiRoot, "node_modules"), path.join(worktreeUiRoot, "node_modules"));
-    symlinkDirectorySync(path.join(sharedUiRoot, ".vite"), path.join(worktreeUiRoot, ".vite"));
-    symlinkDirectorySync(path.join(sharedUiRoot, "dist"), path.join(worktreeUiRoot, "dist"));
+    fs.symlinkSync(path.join(sharedUiRoot, "node_modules"), path.join(worktreeUiRoot, "node_modules"));
+    fs.symlinkSync(path.join(sharedUiRoot, ".vite"), path.join(worktreeUiRoot, ".vite"));
+    fs.symlinkSync(path.join(sharedUiRoot, "dist"), path.join(worktreeUiRoot, "dist"));
 
     const ignorePaths = resolveServerDevWatchIgnorePaths(serverRoot);
 
@@ -42,7 +38,5 @@ describe("resolveServerDevWatchIgnorePaths", () => {
     expect(ignorePaths).toContain(fs.realpathSync(path.join(sharedUiRoot, "dist")));
     expect(ignorePaths).toContain("**/{node_modules,bower_components,vendor}/**");
     expect(ignorePaths).toContain("**/.vite-temp/**");
-    expect(ignorePaths).toContain("**/{dist,coverage}/**");
-    expect(ignorePaths).toContain("**/.turbo/**");
   });
 });

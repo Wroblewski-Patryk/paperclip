@@ -4,12 +4,11 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { OrgChart, sortOrgTreeByName } from "./OrgChart";
+import { OrgChart } from "./OrgChart";
 
 const navigateMock = vi.fn();
 const orgMock = vi.fn();
 const listMock = vi.fn();
-const liveRunsMock = vi.fn();
 
 vi.mock("@/lib/router", () => ({
   Link: ({ to, children }: { to: string; children: React.ReactNode }) => <a href={to}>{children}</a>,
@@ -28,12 +27,6 @@ vi.mock("../api/agents", () => ({
   agentsApi: {
     org: () => orgMock(),
     list: () => listMock(),
-  },
-}));
-
-vi.mock("../api/heartbeats", () => ({
-  heartbeatsApi: {
-    liveRunsForCompany: () => liveRunsMock(),
   },
 }));
 
@@ -144,7 +137,6 @@ describe("OrgChart mobile gestures", () => {
     });
     orgMock.mockResolvedValue(orgTree);
     listMock.mockResolvedValue(agents);
-    liveRunsMock.mockResolvedValue([]);
 
     Object.defineProperty(HTMLElement.prototype, "clientWidth", {
       configurable: true,
@@ -224,7 +216,7 @@ describe("OrgChart mobile gestures", () => {
       viewport.dispatchEvent(createTouchEvent("touchend", []));
     });
 
-    expect(layer.style.transform).toBe("translate(50px, 175.54545454545453px) scale(0.7272727272727273)");
+    expect(layer.style.transform).toBe("translate(50px, 105px) scale(1)");
   });
 
   it("suppresses card navigation after a touch pan", async () => {
@@ -241,289 +233,18 @@ describe("OrgChart mobile gestures", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("allows card expansion after a touch tap without movement", async () => {
+  it("allows card navigation after a touch tap without movement", async () => {
     const { viewport } = await renderOrgChart();
     const card = container.querySelector("[data-org-card]") as HTMLDivElement;
-    const toggle = card.querySelector("button") as HTMLButtonElement;
 
     await act(async () => {
       viewport.dispatchEvent(createTouchEvent("touchstart", [{ clientX: 100, clientY: 100 }]));
       viewport.dispatchEvent(createTouchEvent("touchend", []));
-      toggle.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     });
 
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(navigateMock).not.toHaveBeenCalled();
+    expect(navigateMock).toHaveBeenCalledWith("/agents/ceo");
   });
-
-  it("reserves vertical space for expanded cards before laying out reports", async () => {
-    await renderOrgChart();
-    const cardsBefore = Array.from(container.querySelectorAll("[data-org-card]")) as HTMLDivElement[];
-    expect(cardsBefore[0]?.style.height).toBe("82px");
-    expect(cardsBefore[1]?.style.top).toBe("214px");
-
-    const toggle = cardsBefore[0]?.querySelector("button") as HTMLButtonElement;
-    await act(async () => {
-      toggle.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-    });
-    await flushReact();
-
-    const cardsAfter = Array.from(container.querySelectorAll("[data-org-card]")) as HTMLDivElement[];
-    expect(cardsAfter[0]?.style.height).toBe("166px");
-    expect(cardsAfter[1]?.style.top).toBe("298px");
-  });
-
-  it("highlights live agents and animates their reporting line", async () => {
-    liveRunsMock.mockResolvedValue([
-      {
-        id: "run-1",
-        status: "running",
-        invocationSource: "assignment",
-        triggerDetail: null,
-        startedAt: "2026-05-31T00:00:00.000Z",
-        finishedAt: null,
-        createdAt: "2026-05-31T00:00:00.000Z",
-        agentId: "agent-2",
-        agentName: "Engineer",
-        adapterType: "codex_local",
-        issueId: "issue-1",
-      },
-    ]);
-
-    await renderOrgChart();
-
-    expect(container.querySelector('[data-org-card][data-live="true"]')?.textContent).toContain("Live");
-    expect(container.querySelector('[data-testid="org-chart-live-edge"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="org-chart-live-edge"]')?.getAttribute("d"))
-      .toBe(container.querySelector('[data-testid="org-chart-edge"]')?.getAttribute("d"));
-  });
-
-  it("animates only the active branch to a live descendant", async () => {
-    orgMock.mockResolvedValue([
-      {
-        id: "agent-1",
-        name: "CEO",
-        role: "ceo",
-        status: "active",
-        reports: [
-          {
-            id: "agent-2",
-            name: "Engineer",
-            role: "engineer",
-            status: "active",
-            reports: [
-              {
-                id: "agent-4",
-                name: "Runtime",
-                role: "engineer",
-                status: "active",
-                reports: [],
-              },
-            ],
-          },
-          {
-            id: "agent-3",
-            name: "Designer",
-            role: "designer",
-            status: "active",
-            reports: [],
-          },
-        ],
-      },
-    ]);
-    liveRunsMock.mockResolvedValue([
-      {
-        id: "run-1",
-        status: "running",
-        invocationSource: "assignment",
-        triggerDetail: null,
-        startedAt: "2026-05-31T00:00:00.000Z",
-        finishedAt: null,
-        createdAt: "2026-05-31T00:00:00.000Z",
-        agentId: "agent-4",
-        agentName: "Runtime",
-        adapterType: "codex_local",
-        issueId: "issue-1",
-      },
-    ]);
-
-    await renderOrgChart();
-
-    expect(container.querySelectorAll('[data-testid="org-chart-edge"]')).toHaveLength(3);
-    expect(container.querySelectorAll('[data-testid="org-chart-live-edge"]')).toHaveLength(2);
-  });
-
-  it("animates every active sibling branch instead of stopping at the first live child", async () => {
-    orgMock.mockResolvedValue([
-      {
-        id: "agent-1",
-        name: "CEO",
-        role: "ceo",
-        status: "active",
-        reports: [
-          {
-            id: "agent-2",
-            name: "Innovation",
-            role: "director",
-            status: "active",
-            reports: [
-              {
-                id: "agent-4",
-                name: "Soar PM",
-                role: "manager",
-                status: "active",
-                reports: [],
-              },
-            ],
-          },
-          {
-            id: "agent-3",
-            name: "CTO",
-            role: "architect",
-            status: "active",
-            reports: [],
-          },
-        ],
-      },
-    ]);
-    liveRunsMock.mockResolvedValue([
-      {
-        id: "run-1",
-        status: "running",
-        invocationSource: "assignment",
-        triggerDetail: null,
-        startedAt: "2026-05-31T00:00:00.000Z",
-        finishedAt: null,
-        createdAt: "2026-05-31T00:00:00.000Z",
-        agentId: "agent-4",
-        agentName: "Soar PM",
-        adapterType: "codex_local",
-        issueId: "issue-1",
-      },
-      {
-        id: "run-2",
-        status: "running",
-        invocationSource: "assignment",
-        triggerDetail: null,
-        startedAt: "2026-05-31T00:00:00.000Z",
-        finishedAt: null,
-        createdAt: "2026-05-31T00:00:00.000Z",
-        agentId: "agent-3",
-        agentName: "CTO",
-        adapterType: "codex_local",
-        issueId: "issue-2",
-      },
-    ]);
-
-    await renderOrgChart();
-
-    expect(container.querySelectorAll('[data-testid="org-chart-edge"]')).toHaveLength(3);
-    expect(container.querySelectorAll('[data-testid="org-chart-live-edge"]')).toHaveLength(3);
-  });
-
-  it("keeps cards collapsed by default even when their branch is active", async () => {
-    liveRunsMock.mockResolvedValue([
-      {
-        id: "run-1",
-        status: "running",
-        invocationSource: "assignment",
-        triggerDetail: null,
-        startedAt: "2026-05-31T00:00:00.000Z",
-        finishedAt: null,
-        createdAt: "2026-05-31T00:00:00.000Z",
-        agentId: "agent-2",
-        agentName: "Engineer",
-        adapterType: "codex_local",
-        issueId: "issue-1",
-      },
-    ]);
-
-    await renderOrgChart();
-    const rootToggle = container.querySelector("[data-org-card] button") as HTMLButtonElement;
-    expect(rootToggle.getAttribute("aria-expanded")).toBe("false");
-  });
-
-  it("keeps manual expansion stable when live activity changes", async () => {
-    liveRunsMock.mockResolvedValue([]);
-
-    await renderOrgChart();
-    const rootToggle = container.querySelector("[data-org-card] button") as HTMLButtonElement;
-    expect(rootToggle.getAttribute("aria-expanded")).toBe("false");
-
-    await act(async () => {
-      rootToggle.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-    });
-    await flushReact();
-
-    expect(rootToggle.getAttribute("aria-expanded")).toBe("true");
-
-    liveRunsMock.mockResolvedValue([
-      {
-        id: "run-1",
-        status: "running",
-        invocationSource: "assignment",
-        triggerDetail: null,
-        startedAt: "2026-05-31T00:00:00.000Z",
-        finishedAt: null,
-        createdAt: "2026-05-31T00:00:00.000Z",
-        agentId: "agent-2",
-        agentName: "Engineer",
-        adapterType: "codex_local",
-        issueId: "issue-1",
-      },
-    ]);
-
-    await act(async () => {
-      await queryClient.invalidateQueries({ queryKey: ["live-runs"] });
-    });
-    await flushReact();
-
-    expect(rootToggle.getAttribute("aria-expanded")).toBe("true");
-  });
-
-  it("sorts roots and reports by name at every hierarchy level", () => {
-    expect(sortOrgTreeByName([
-      {
-        id: "root-b",
-        name: "08 CAO (Chief Assets Officer)",
-        role: "pm",
-        status: "idle",
-        reports: [],
-      },
-      {
-        id: "root-a",
-        name: "02 CPO (Chief Product Officer)",
-        role: "pm",
-        status: "idle",
-        reports: [
-          {
-            id: "child-b",
-            name: "02 UXW (UX Web Designer)",
-            role: "designer",
-            status: "idle",
-            reports: [],
-          },
-          {
-            id: "child-a",
-            name: "02 UID (UI Visual Designer)",
-            role: "designer",
-            status: "idle",
-            reports: [],
-          },
-        ],
-      },
-    ])).toMatchObject([
-      {
-        id: "root-a",
-        reports: [
-          { id: "child-a" },
-          { id: "child-b" },
-        ],
-      },
-      { id: "root-b" },
-    ]);
-  });
-
   it("pinch-zooms toward the touch center", async () => {
     const { viewport, layer } = await renderOrgChart();
 
@@ -539,6 +260,6 @@ describe("OrgChart mobile gestures", () => {
       viewport.dispatchEvent(createTouchEvent("touchend", []));
     });
 
-    expect(layer.style.transform).toBe("translate(-44.99999999999997px, 145.81818181818178px) scale(1.0909090909090908)");
+    expect(layer.style.transform).toBe("translate(-45px, 40px) scale(1.5)");
   });
 });

@@ -83,7 +83,6 @@ export async function configure(opts: {
   if (!configExists(opts.config)) {
     p.log.error("No config file found. Run `paperclipai onboard` first.");
     p.outro("");
-    process.exitCode = 1;
     return;
   }
 
@@ -104,7 +103,6 @@ export async function configure(opts: {
   if (section && !SECTION_LABELS[section]) {
     p.log.error(`Unknown section: ${section}. Choose from: ${Object.keys(SECTION_LABELS).join(", ")}`);
     p.outro("");
-    process.exitCode = 1;
     return;
   }
 

@@ -32,10 +32,6 @@ Ship a PR a reviewer can land without follow-up clarifying questions. The aim is
 - Squash WIP commits into reviewable units. Prefer one commit per logical change; do not force one-commit-per-PR if the work is genuinely multi-step.
 - Confirm tests, typecheck, and lint pass locally. Note any deliberate skips in the PR body.
 - Remove debug prints, commented-out code, and `TODO` markers that are not tracked.
-- Confirm `git status --short` contains only the intended change set before committing, pushing, or opening a PR. If unrelated dirty files exist, leave them unstaged and call them out in the issue closure.
-- If the branch is behind, divergent, protected, or has no known upstream, stop before pushing and name the blocker, branch, remote, and current SHA in the issue.
-- When the work is for an application managed by Paperclip, run all git checks in that app repo, not the Paperclip control-plane repo. Record the application name and absolute repo path in the handoff.
-- If that app repo is wired to Coolify auto-redeploy, treat the push as a production-impacting action. Record the expected Coolify project/environment/resource set, source SHA, rollback path, and smoke plan before push; after push, record redeploy status and production smoke or a blocker explaining why redeploy did not happen.
 
 ## PR title
 
@@ -71,23 +67,8 @@ Skip the `Risk and rollback` section only for clearly trivial PRs (typos, docs).
 
 - Tests passing in CI is necessary, not sufficient. Reviewers also need to know the change behaves correctly end to end.
 - For UI work, include screenshots of the golden path and one edge case. Tag dark and light mode if the project supports both.
-- For frontend implementation, verify the rendered surface in a real browser at relevant desktop and mobile viewports. Compare the screenshot against the intended design/reference and iterate until the visual result matches the acceptance criteria; code inspection alone is not a UI pass.
 - For migrations, include a dry-run plan and reversal steps.
 - For performance changes, include a before/after measurement, not adjectives.
-
-## Source-control closure
-
-Every code/docs-producing PR handoff or issue closure must include:
-
-- files changed;
-- verification commands and results;
-- commit SHA, or `not committed` with reason;
-- push status: `not needed`, `pending`, `pushed`, or `blocked`;
-- deploy impact: `none`, `requires Ops`, `blocked`, or `completed by Ops`;
-- application/repo path and Coolify redeploy evidence when production is affected;
-- residual risk and next owner.
-
-Push only when the issue, project policy, Delivery/Ops gate, or active PR workflow explicitly expects a remote source ref. Do not push from a dirty, behind, divergent, protected, or unclear branch.
 
 ## Replying to review comments
 

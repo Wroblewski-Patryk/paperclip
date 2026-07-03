@@ -1,6 +1,7 @@
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
+  agents,
   companyMemberships,
   instanceUserRoles,
   issues,
@@ -8,7 +9,6 @@ import {
 } from "@paperclipai/db";
 import type { PermissionKey, PrincipalType } from "@paperclipai/shared";
 import { conflict } from "../errors.js";
-import { assertAssignableAgent } from "./agent-assignability.js";
 import { authorizationService, type AuthorizationActor, type AuthorizationResource } from "./authorization.js";
 import { ensureHumanRoleDefaultGrants } from "./principal-access-compatibility.js";
 
@@ -315,7 +315,21 @@ export function accessService(db: Db) {
       return;
     }
 
-    await assertAssignableAgent(tx as Db, companyId, input.assigneeAgentId, { kind: "work" });
+    const agent = await tx
+      .select({
+        id: agents.id,
+        companyId: agents.companyId,
+        status: agents.status,
+      })
+      .from(agents)
+      .where(eq(agents.id, input.assigneeAgentId!))
+      .then((rows) => rows[0] ?? null);
+    if (!agent || agent.companyId !== companyId) {
+      throw conflict("Replacement agent must belong to the same company");
+    }
+    if (agent.status === "pending_approval" || agent.status === "terminated") {
+      throw conflict("Replacement agent must be assignable");
+    }
   }
 
   async function archiveMember(companyId: string, memberId: string, input: MemberArchiveInput = {}) {

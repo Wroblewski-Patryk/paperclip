@@ -949,11 +949,6 @@ export function Inbox() {
     for (const agent of agents ?? []) map.set(agent.id, agent.name);
     return map;
   }, [agents]);
-  const agentIconById = useMemo(() => {
-    const map = new Map<string, string | null>();
-    for (const agent of agents ?? []) map.set(agent.id, agent.icon ?? null);
-    return map;
-  }, [agents]);
 
   const issueById = useMemo(() => {
     const map = new Map<string, Issue>();
@@ -1324,10 +1319,6 @@ export function Inbox() {
     if (!id) return null;
     return agentById.get(id) ?? null;
   };
-  const agentIcon = (id: string | null) => {
-    if (!id) return null;
-    return agentIconById.get(id) ?? null;
-  };
   const setIssueColumns = useCallback((next: InboxIssueColumn[]) => {
     const normalized = normalizeInboxIssueColumns(next);
     setVisibleIssueColumns(normalized);
@@ -1504,7 +1495,7 @@ export function Inbox() {
       return { previousData };
     },
     onError: (err, id, context) => {
-      setActionError(err instanceof Error ? err.message : "Failed to archive task");
+      setActionError(err instanceof Error ? err.message : "Failed to archive issue");
       setArchivingIssueIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
@@ -2217,7 +2208,7 @@ export function Inbox() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="everything">All categories</SelectItem>
-              <SelectItem value="issues_i_touched">My recent tasks</SelectItem>
+              <SelectItem value="issues_i_touched">My recent issues</SelectItem>
               <SelectItem value="join_requests">Join requests</SelectItem>
               <SelectItem value="approvals">Approvals</SelectItem>
               <SelectItem value="failed_runs">Failed runs</SelectItem>
@@ -2251,7 +2242,6 @@ export function Inbox() {
           companyId={selectedCompanyId!}
           searchQuery={searchQuery}
           agentNameById={agentById}
-          agentIconById={agentIconById}
           userLabelById={companyUserLabelMap}
           issueLinkState={issueLinkState}
           groupBy={blockedGroupBy}
@@ -2397,7 +2387,6 @@ export function Inbox() {
                               defaultProjectWorkspaceIdByProjectId,
                             })}
                             assigneeName={agentName(issue.assigneeAgentId)}
-                            assigneeAgentIcon={agentIcon(issue.assigneeAgentId)}
                             assigneeUserName={
                               formatAssigneeUserLabel(issue.assigneeUserId, currentUserId, companyUserLabelMap)
                               ?? assigneeUserProfile?.label
@@ -2465,8 +2454,8 @@ export function Inbox() {
                               variant="ghost"
                               size="icon-xs"
                               className="-mr-2 text-muted-foreground"
-                              title={`New task in ${group.label}`}
-                              aria-label={`New task in ${group.label}`}
+                              title={`New issue in ${group.label}`}
+                              aria-label={`New issue in ${group.label}`}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 openCreateIssueForGroup(group);

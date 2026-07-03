@@ -7,8 +7,7 @@ import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "./dev-runner-output.ts";
 import { collectWatchedSnapshot as collectDevServerWatchedSnapshot, diffSnapshots } from "./dev-runner-snapshot.mjs";
-import { createDevServiceIdentity, repoRoot, resolveDevRunnerPort } from "./dev-service-profile.ts";
-import { readConfigFile } from "../server/src/config-file.ts";
+import { createDevServiceIdentity, repoRoot } from "./dev-service-profile.ts";
 import { bootstrapDevRunnerWorktreeEnv } from "../server/src/dev-runner-worktree.ts";
 import {
   findAdoptableLocalService,
@@ -183,12 +182,7 @@ if (tailscaleAuth || bindMode) {
   console.log("[paperclip] dev mode: local_trusted (default)");
 }
 
-const configuredServerPort = readConfigFile()?.server.port;
-const serverPort = resolveDevRunnerPort({
-  envPort: env.PORT,
-  processEnvPort: process.env.PORT,
-  configuredPort: configuredServerPort,
-});
+const serverPort = Number.parseInt(env.PORT ?? process.env.PORT ?? "3100", 10) || 3100;
 const devService = createDevServiceIdentity({
   mode,
   forwardedArgs,

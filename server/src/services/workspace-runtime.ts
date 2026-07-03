@@ -31,22 +31,11 @@ import { readExecutionWorkspaceConfig } from "./execution-workspaces.js";
 import { readProjectWorkspaceRuntimeConfig } from "./project-workspace-runtime-config.js";
 
 export function resolveShell(): string {
-  const fallback = process.platform === "win32" ? resolveWindowsShellFallback() : "/bin/sh";
+  const fallback = process.platform === "win32" ? "sh" : "/bin/sh";
   const shell = process.env.SHELL?.trim();
   if (!shell) return fallback;
   if (path.isAbsolute(shell) && !existsSync(shell)) return fallback;
   return shell;
-}
-
-function resolveWindowsShellFallback(): string {
-  const candidates = [
-    process.env.GIT_BASH_PATH,
-    "C:\\Program Files\\Git\\bin\\bash.exe",
-    "C:\\Program Files\\Git\\usr\\bin\\bash.exe",
-    "C:\\Program Files\\Git\\usr\\bin\\sh.exe",
-  ].filter((value): value is string => typeof value === "string" && value.trim().length > 0);
-
-  return candidates.find((candidate) => existsSync(candidate)) ?? "sh";
 }
 
 export interface ExecutionWorkspaceInput {
@@ -499,7 +488,6 @@ async function executeProcess(input: {
       cwd: input.cwd,
       stdio: ["ignore", "pipe", "pipe"],
       env: input.env ?? process.env,
-      windowsHide: process.platform === "win32",
     });
     const stdout = createProcessOutputCapture(input.maxStdoutBytes ?? DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES);
     const stderr = createProcessOutputCapture(input.maxStderrBytes ?? DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES);
@@ -1128,24 +1116,7 @@ export async function realizeExecutionWorkspace(input: {
     };
   }
 
-  let repoRoot: string;
-  try {
-    repoRoot = await resolveGitOwnerRepoRoot(input.base.baseCwd);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return {
-      ...input.base,
-      strategy: "project_primary",
-      cwd: input.base.baseCwd,
-      branchName: null,
-      worktreePath: null,
-      warnings: [
-        `Git worktree workspace strategy skipped because base cwd "${input.base.baseCwd}" could not be resolved as a git checkout: ${message}`,
-      ],
-      created: false,
-      baseRefSha: null,
-    };
-  }
+  const repoRoot = await resolveGitOwnerRepoRoot(input.base.baseCwd);
   const branchTemplate = asString(rawStrategy.branchTemplate, "{{issue.identifier}}-{{slug}}");
   const renderedBranch = renderWorkspaceTemplate(branchTemplate, {
     issue: input.issue,
@@ -1930,44 +1901,10 @@ async function waitForReadiness(input: {
   throw new Error(`Readiness check failed for ${input.url}: ${lastError}`);
 }
 
-function isPaperclipDevRuntimeService(input: { serviceName?: string | null; command?: string | null }) {
-  const serviceName = (input.serviceName ?? "").trim().toLowerCase();
-  const command = (input.command ?? "").trim().toLowerCase();
-  return (
-    serviceName === "paperclip-dev"
-    || serviceName === "paperclip-dev-once"
-    || (command.includes("dev:once") && command.includes("tailscale-auth"))
-  );
-}
-
-function resolveRuntimeServiceHealthUrl(
-  url: string | null,
-  input?: { serviceName?: string | null; command?: string | null },
-) {
-  if (!url || !isPaperclipDevRuntimeService(input ?? {})) return url;
-  try {
-    const parsed = new URL(url);
-    if (parsed.pathname === "/" || parsed.pathname === "") {
-      parsed.pathname = "/api/health";
-      parsed.search = "";
-      parsed.hash = "";
-      return parsed.toString();
-    }
-  } catch {
-    return url;
-  }
-  return url;
-}
-
-async function isRuntimeServiceUrlHealthy(
-  url: string | null,
-  input?: { serviceName?: string | null; command?: string | null },
-) {
+async function isRuntimeServiceUrlHealthy(url: string | null) {
   if (!url) return true;
-  const healthUrl = resolveRuntimeServiceHealthUrl(url, input);
-  if (!healthUrl) return true;
   try {
-    const response = await fetch(healthUrl, { signal: AbortSignal.timeout(2_000) });
+    const response = await fetch(url, { signal: AbortSignal.timeout(2_000) });
     return response.ok;
   } catch {
     return false;
@@ -2186,11 +2123,12 @@ async function startLocalRuntimeService(input: {
     companyId: input.agent.companyId,
     reuseKey: input.reuseKey,
   });
-  let reusableStoppedPort: number | null = null;
-  if (asString(portConfig.type, "") === "auto" && stoppedReuseCandidate?.port) {
-    const ownerPid = await readLocalServicePortOwner(stoppedReuseCandidate.port);
-    reusableStoppedPort = ownerPid ? null : stoppedReuseCandidate.port;
-  }
+  const reusableStoppedPort =
+    asString(portConfig.type, "") === "auto" && stoppedReuseCandidate?.port
+      ? (await readLocalServicePortOwner(stoppedReuseCandidate.port))
+        ? null
+        : stoppedReuseCandidate.port
+      : null;
   const port =
     asString(portConfig.type, "") === "auto"
       ? (reusableStoppedPort ?? await allocatePort())
@@ -2243,57 +2181,48 @@ async function startLocalRuntimeService(input: {
   });
   const adoptedRecord = await findAdoptableLocalService({
     serviceKey,
-    profileKind: "workspace-runtime",
-    serviceName,
     command,
     cwd: serviceCwd,
     envFingerprint: serviceIdentityFingerprint,
-    port: port ?? identityPort,
-    url,
+    port: identityPort,
   });
   if (adoptedRecord) {
-    const adoptedUrl = adoptedRecord.url ?? url;
-    if (!(await isRuntimeServiceUrlHealthy(adoptedUrl, { serviceName, command }))) {
-      await terminateLocalService(adoptedRecord);
-      await removeLocalServiceRegistryRecord(adoptedRecord.serviceKey);
-    } else {
-      return {
-        id: adoptedRecord.runtimeServiceId ?? randomUUID(),
-        companyId: input.agent.companyId,
-        projectId: input.workspace.projectId,
-        projectWorkspaceId: input.workspace.workspaceId,
-        executionWorkspaceId: input.executionWorkspaceId ?? null,
-        issueId: input.issue?.id ?? null,
-        serviceName,
-        status: "running",
-        lifecycle,
-        scopeType: input.scopeType,
-        scopeId: input.scopeId,
-        reuseKey: input.reuseKey,
-        command,
-        cwd: serviceCwd,
-        port: adoptedRecord.port ?? port,
-        url: adoptedRecord.url ?? url,
-        provider: "local_process",
-        providerRef: String(adoptedRecord.pid),
-        ownerAgentId: input.agent.id ?? null,
-        startedByRunId,
-        lastUsedAt: new Date().toISOString(),
-        startedAt: adoptedRecord.startedAt,
-        stoppedAt: null,
-        stopPolicy,
-        healthStatus: "healthy",
-        reused: true,
-        db: input.db,
-        child: null,
-        leaseRunIds: leaseRunId ? new Set([leaseRunId]) : new Set(),
-        idleTimer: null,
-        envFingerprint,
-        serviceKey,
-        profileKind: "workspace-runtime",
-        processGroupId: adoptedRecord.processGroupId ?? null,
-      };
-    }
+    return {
+      id: adoptedRecord.runtimeServiceId ?? randomUUID(),
+      companyId: input.agent.companyId,
+      projectId: input.workspace.projectId,
+      projectWorkspaceId: input.workspace.workspaceId,
+      executionWorkspaceId: input.executionWorkspaceId ?? null,
+      issueId: input.issue?.id ?? null,
+      serviceName,
+      status: "running",
+      lifecycle,
+      scopeType: input.scopeType,
+      scopeId: input.scopeId,
+      reuseKey: input.reuseKey,
+      command,
+      cwd: serviceCwd,
+      port: adoptedRecord.port ?? port,
+      url: adoptedRecord.url ?? url,
+      provider: "local_process",
+      providerRef: String(adoptedRecord.pid),
+      ownerAgentId: input.agent.id ?? null,
+      startedByRunId,
+      lastUsedAt: new Date().toISOString(),
+      startedAt: adoptedRecord.startedAt,
+      stoppedAt: null,
+      stopPolicy,
+      healthStatus: "healthy",
+      reused: true,
+      db: input.db,
+      child: null,
+      leaseRunIds: leaseRunId ? new Set([leaseRunId]) : new Set(),
+      idleTimer: null,
+      envFingerprint,
+      serviceKey,
+      profileKind: "workspace-runtime",
+      processGroupId: adoptedRecord.processGroupId ?? null,
+    };
   }
   if (identityPort) {
     const ownerPid = await readLocalServicePortOwner(identityPort);
@@ -2313,7 +2242,6 @@ async function startLocalRuntimeService(input: {
     cwd: serviceCwd,
     env,
     detached: process.platform !== "win32",
-    windowsHide: process.platform === "win32",
     stdio: ["ignore", "pipe", "pipe"],
   });
   const spawnErrorPromise = new Promise<never>((_, reject) => {
@@ -2912,38 +2840,13 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
   let adopted = 0;
   let stopped = 0;
   for (const row of rows) {
-    let adoptedRecord = await findLocalServiceRegistryRecordByRuntimeServiceId({
+    const adoptedRecord = await findLocalServiceRegistryRecordByRuntimeServiceId({
       runtimeServiceId: row.id,
       profileKind: "workspace-runtime",
     });
-    if (!adoptedRecord && row.command && row.cwd) {
-      adoptedRecord = await findAdoptableLocalService({
-        serviceKey: createLocalServiceKey({
-          profileKind: "workspace-runtime",
-          serviceName: row.serviceName,
-          cwd: row.cwd,
-          command: row.command,
-          envFingerprint: row.reuseKey ?? "",
-          port: null,
-          scope: {
-            scopeType: row.scopeType as RuntimeServiceRecord["scopeType"],
-            scopeId: row.scopeId ?? null,
-            executionWorkspaceId: row.executionWorkspaceId ?? null,
-            reuseKey: row.reuseKey ?? null,
-          },
-        }),
-        profileKind: "workspace-runtime",
-        serviceName: row.serviceName,
-        command: row.command,
-        cwd: row.cwd,
-        envFingerprint: row.reuseKey ?? "",
-        port: row.port ?? null,
-        url: row.url ?? null,
-      });
-    }
     if (adoptedRecord) {
       const adoptedUrl = adoptedRecord.url ?? row.url ?? null;
-      if (!(await isRuntimeServiceUrlHealthy(adoptedUrl, { serviceName: row.serviceName, command: row.command }))) {
+      if (!(await isRuntimeServiceUrlHealthy(adoptedUrl))) {
         await removeLocalServiceRegistryRecord(adoptedRecord.serviceKey);
       } else {
         const record: RuntimeServiceRecord = {

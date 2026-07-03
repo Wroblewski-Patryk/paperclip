@@ -26,26 +26,12 @@ For the **mechanics** of recording a plan (issue document with key `plan`, comme
 - **Order, then parallelize.** Sequence work by real dependencies, not by personal preference. Independent branches of the graph should start in parallel. Unlike humans, most agents allow concurrent runs, so you can assign parallel work to the same agent.
 - **Enough is enough.** Plans exist to unblock execution, not replace it. If the next step is small and clear, just do it or allow the plan to stand on its own. Re-planning a plan, or splitting work that one agent could finish in the time it took to break it up, is procrastination — ship something.
 
-## Delegation quality bar
-
-Use these management standards before creating assigned Paperclip issues:
-
-- **APQC-style process framing.** Name the trigger, inputs, process steps, controls, outputs, user/company outcome, and feedback loop. Do not split work only by org chart.
-- **MECE-enough split.** Children should be mutually exclusive in ownership and collectively sufficient for the parent acceptance bar. If two issues own the same file surface, decision, final proof, or handoff, redraw the boundary.
-- **One directly responsible owner.** RACI/DACI language is useful for reviewers and consulted roles, but each child still needs one accountable assignee and one next action.
-- **Definition of Ready.** Each child needs context, owner specialty, allowed scope, dependencies, input artifacts, and a first action the assignee can take without re-asking.
-- **Definition of Done.** Each child needs a deliverable, proof/evidence, review or gate owner when needed, and the Paperclip state/comment/work-product update required before handoff.
-- **Broad-to-narrow-to-broad loop.** Managers map process and risk, create narrow owned lanes, specialists execute, reviewers verify, and managers integrate evidence back into the parent.
-- **Capability gaps are explicit.** Missing skills, permissions, credentials, product decisions, external inputs, or agent capacity become blockers, hire requests, board decisions, or follow-up issues.
-
 ## Quick checklist before you publish a plan
 
 - [ ] Enough detail that assignees can act without re-asking.
 - [ ] Every concrete deliverable is an issue (or named as a known follow-up).
 - [ ] Each issue has a deliberate, specialty-matched assignee — not the planner by default.
 - [ ] Each issue's real blockers are declared via `blockedByIssueIds`.
-- [ ] Each issue has Definition of Ready, Definition of Done, and one proof contract.
-- [ ] The child set is MECE enough to avoid duplicate ownership or responsibility fog.
 - [ ] Independent branches can start in parallel.
 - [ ] Gaps (missing skills, hires, decisions, external inputs) are surfaced, not hidden.
 

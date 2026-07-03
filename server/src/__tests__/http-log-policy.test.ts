@@ -31,20 +31,6 @@ describe("shouldSilenceHttpSuccessLog", () => {
     ).toBe(true);
     expect(
       shouldSilenceHttpSuccessLog(
-        "GET",
-        "/companies/5cbe79ee-acb3-4597-896e-7662742593cd/live-runs?minCount=3",
-        200,
-      ),
-    ).toBe(true);
-    expect(
-      shouldSilenceHttpSuccessLog(
-        "GET",
-        "/companies/5cbe79ee-acb3-4597-896e-7662742593cd/heartbeat-runs?limit=200",
-        200,
-      ),
-    ).toBe(true);
-    expect(
-      shouldSilenceHttpSuccessLog(
         "HEAD",
         "/api/companies/5cbe79ee-acb3-4597-896e-7662742593cd/sidebar-badges",
         200,

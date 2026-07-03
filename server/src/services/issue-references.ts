@@ -221,11 +221,10 @@ export function issueReferenceService(db: Db) {
         companyId: issueComments.companyId,
         issueId: issueComments.issueId,
         body: issueComments.body,
-        deletedAt: issueComments.deletedAt,
       })
       .from(issueComments)
       .where(eq(issueComments.id, commentId))
-      .then((rows: Array<{ id: string; companyId: string; issueId: string; body: string; deletedAt: Date | null }>) => rows[0] ?? null);
+      .then((rows: Array<{ id: string; companyId: string; issueId: string; body: string }>) => rows[0] ?? null);
     if (!comment) throw notFound("Issue comment not found");
 
     await replaceSourceMentions({
@@ -234,7 +233,7 @@ export function issueReferenceService(db: Db) {
       sourceKind: "comment",
       sourceRecordId: comment.id,
       documentKey: null,
-      text: comment.deletedAt ? null : comment.body,
+      text: comment.body,
     }, dbOrTx);
   }
 
@@ -296,12 +295,6 @@ export function issueReferenceService(db: Db) {
     await dbOrTx
       .delete(issueReferenceMentions)
       .where(and(eq(issueReferenceMentions.sourceKind, "document"), eq(issueReferenceMentions.sourceRecordId, documentId)));
-  }
-
-  async function deleteCommentSource(commentId: string, dbOrTx: any = db) {
-    await dbOrTx
-      .delete(issueReferenceMentions)
-      .where(and(eq(issueReferenceMentions.sourceKind, "comment"), eq(issueReferenceMentions.sourceRecordId, commentId)));
   }
 
   async function syncAllForIssue(issueId: string, dbOrTx: any = db) {
@@ -436,7 +429,6 @@ export function issueReferenceService(db: Db) {
     syncAnnotationComment,
     syncDocument,
     deleteDocumentSource,
-    deleteCommentSource,
     syncAllForIssue,
     syncAllForCompany,
     listIssueReferenceSummary,

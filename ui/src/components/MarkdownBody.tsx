@@ -1,20 +1,17 @@
 import { isValidElement, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Copy, ExternalLink, Github, WrapText } from "lucide-react";
+import { Check, Copy, ExternalLink, FileText, Github, WrapText } from "lucide-react";
 import Markdown, { defaultUrlTransform, type Components, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "../lib/utils";
 import { Link } from "@/lib/router";
 import { useTheme } from "../context/ThemeContext";
-import { useOptionalCompany } from "../context/CompanyContext";
 import { mentionChipInlineStyle, parseMentionChipHref } from "../lib/mention-chips";
 import { issuesApi } from "../api/issues";
 import { queryKeys } from "../lib/queryKeys";
 import { parseIssueReferenceFromHref, remarkLinkIssueReferences } from "../lib/issue-reference";
-import { parseWorkspaceFileHref, remarkWorkspaceFileRefs, WORKSPACE_FILE_HREF_PREFIX } from "../lib/remark-workspace-file-refs";
 import { remarkSoftBreaks } from "../lib/remark-soft-breaks";
 import { StatusIcon } from "./StatusIcon";
-import { WorkspaceFileLink } from "./WorkspaceFileLink";
 
 interface MarkdownBodyProps {
   children: string;
@@ -32,8 +29,6 @@ interface MarkdownBodyProps {
   resolveImageSrc?: (src: string) => string | null;
   /** Called when a user clicks an inline image */
   onImageClick?: (src: string) => void;
-  /** Link inline-code workspace file paths to the issue file viewer. */
-  linkWorkspaceFileRefs?: boolean;
 }
 
 let mermaidLoaderPromise: Promise<typeof import("mermaid").default> | null = null;
@@ -163,8 +158,80 @@ function extractMermaidSource(children: ReactNode): string | null {
   return flattenText(childProps.children).replace(/\n$/, "");
 }
 
+const localFileReferencePattern = /(file:\/\/\/[^\s<>"')\]]+|(?:\/mnt\/[A-Za-z]\/|\/home\/|\/tmp\/|\/workspace\/)[^\s<>"')\]]*)/g;
+
+function isLocalFileHref(href: string | null | undefined): boolean {
+  if (!href) return false;
+  if (href.startsWith("file:///")) return true;
+  return /^(?:\/mnt\/[A-Za-z]\/|\/home\/|\/tmp\/|\/workspace\/)/.test(href);
+}
+
+function normalizeLocalFileHref(raw: string): string {
+  if (raw.startsWith("file:///")) {
+    try {
+      return new URL(raw).href;
+    } catch {
+      return raw.replace(/ /g, "%20");
+    }
+  }
+
+  const encodedPath = raw
+    .split("/")
+    .map((segment, index) => (index === 0 ? "" : encodeURIComponent(segment)))
+    .join("/");
+  return `file://${encodedPath}`;
+}
+
+function decodeLocalFilePath(href: string): string {
+  const withoutScheme = href.startsWith("file://") ? href.slice("file://".length) : href;
+  try {
+    return decodeURIComponent(withoutScheme);
+  } catch {
+    return withoutScheme;
+  }
+}
+
+function formatLocalFileLabel(hrefOrPath: string): string {
+  const path = decodeLocalFilePath(hrefOrPath);
+  const projectMatch = path.match(/^\/mnt\/[A-Za-z]\/Projects\/([^/]+)\/(.+)$/);
+  if (projectMatch) return `${projectMatch[1]}/${projectMatch[2]}`;
+
+  const driveMatch = path.match(/^\/mnt\/([A-Za-z])\/(.+)$/);
+  if (driveMatch) return `${driveMatch[1].toUpperCase()}:/${driveMatch[2]}`;
+
+  return path;
+}
+
+function escapeMarkdownLinkLabel(label: string): string {
+  return label.replace(/\\/g, "\\\\").replace(/]/g, "\\]").replace(/\[/g, "\\[");
+}
+
+function linkifyLocalFileReferences(markdown: string): string {
+  let inFence = false;
+  return markdown
+    .split("\n")
+    .map((line) => {
+      if (/^\s*(?:```|~~~)/.test(line)) {
+        inFence = !inFence;
+        return line;
+      }
+      if (inFence || line.includes("](")) return line;
+
+      return line.replace(localFileReferencePattern, (match) => {
+        const trailing = match.match(/[.,;:]+$/)?.[0] ?? "";
+        const raw = trailing ? match.slice(0, -trailing.length) : match;
+        if (!raw || !isLocalFileHref(raw)) return match;
+
+        const href = normalizeLocalFileHref(raw);
+        const label = formatLocalFileLabel(href);
+        return `[${escapeMarkdownLinkLabel(label)}](${href})${trailing}`;
+      });
+    })
+    .join("\n");
+}
+
 function safeMarkdownUrlTransform(url: string): string {
-  if (url.startsWith(WORKSPACE_FILE_HREF_PREFIX)) return url;
+  if (isLocalFileHref(url)) return normalizeLocalFileHref(url);
   return parseMentionChipHref(url) ? url : defaultUrlTransform(url);
 }
 
@@ -574,25 +641,14 @@ export function MarkdownBody({
   resolveWikiLinkHref,
   resolveImageSrc,
   onImageClick,
-  linkWorkspaceFileRefs = false,
 }: MarkdownBodyProps) {
   const { theme } = useTheme();
-  // Read company prefixes non-throwingly: MarkdownBody renders in surfaces that
-  // may lack a CompanyProvider. A null context (or no companies yet) leaves
-  // knownPrefixes undefined, which keeps issue auto-linking permissive.
-  const company = useOptionalCompany();
-  const knownPrefixes = company?.companies.length
-    ? company.companies.map((c) => c.issuePrefix)
-    : undefined;
   const remarkPlugins: NonNullable<Options["remarkPlugins"]> = [remarkGfm];
   if (enableWikiLinks) {
     remarkPlugins.push(createRemarkWikiLinks({ wikiLinkRoot, resolveWikiLinkHref }));
   }
-  if (linkWorkspaceFileRefs) {
-    remarkPlugins.push(remarkWorkspaceFileRefs);
-  }
   if (linkIssueReferences) {
-    remarkPlugins.push([remarkLinkIssueReferences, { knownPrefixes }]);
+    remarkPlugins.push(remarkLinkIssueReferences);
   }
   if (softBreaks) {
     remarkPlugins.push(remarkSoftBreaks);
@@ -643,17 +699,6 @@ export function MarkdownBody({
       </code>
     ),
     a: ({ node: _node, href, style: linkStyle, children: linkChildren, ...anchorProps }) => {
-      const workspaceFileRef = parseWorkspaceFileHref(href);
-      if (workspaceFileRef) {
-        return (
-          <WorkspaceFileLink
-            workspaceFileRef={workspaceFileRef}
-            label={linkChildren}
-            className={typeof anchorProps.className === "string" ? anchorProps.className : undefined}
-          />
-        );
-      }
-
       const dataProps = anchorProps as Record<string, unknown>;
       const isWikiLink = dataProps["data-paperclip-wiki-link"] === "true";
       if (isWikiLink && href && !/^[a-z][a-z\d+.-]*:/i.test(href) && !href.startsWith("//")) {
@@ -703,6 +748,23 @@ export function MarkdownBody({
             style={{ ...mergeWrapStyle(linkStyle as React.CSSProperties | undefined), ...mentionChipInlineStyle(parsed) }}
           >
             {linkChildren}
+          </a>
+        );
+      }
+      if (isLocalFileHref(href)) {
+        const targetHref = normalizeLocalFileHref(href ?? "");
+        const label = formatLocalFileLabel(targetHref);
+        return (
+          <a
+            href={targetHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={decodeLocalFilePath(targetHref)}
+            className="inline-flex max-w-full items-center gap-1 rounded-md border border-border/70 bg-muted/60 px-1.5 py-0.5 align-baseline font-mono text-[0.9em] leading-tight text-sky-700 no-underline hover:bg-muted dark:text-sky-300"
+            style={mergeWrapStyle(linkStyle as React.CSSProperties | undefined)}
+          >
+            <FileText aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 truncate">{label}</span>
           </a>
         );
       }
@@ -757,7 +819,7 @@ export function MarkdownBody({
         components={components}
         urlTransform={safeMarkdownUrlTransform}
       >
-        {children}
+        {linkifyLocalFileReferences(children)}
       </Markdown>
     </div>
   );

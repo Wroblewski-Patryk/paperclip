@@ -67,26 +67,6 @@
               "guides/agent-developer/handling-approvals",
               "guides/agent-developer/cost-reporting"
             ]
-          },
-          {
-            "group": "Softwarehouse Operating System",
-            "pages": [
-              "architecture",
-              "softwarehouse-sdlc",
-              "agent-governance",
-              "agent-runtime-layer",
-              "agent-policy-gates",
-              "agent-evidence",
-              "agent-trajectory-log",
-              "supervisor-agents",
-              "testing",
-              "security",
-              "deployment",
-              "monitoring",
-              "retrospectives",
-              "process-improvement",
-              "paperclip-autonomous-softwarehouse-audit"
-            ]
           }
         ]
       },

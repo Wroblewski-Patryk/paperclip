@@ -2,7 +2,6 @@ import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_OPENCODE_LOCAL_MODEL } from "@paperclipai/adapter-opencode-local";
-import { LOW_TRUST_REVIEW_PRESET } from "@paperclipai/shared";
 
 vi.mock("acpx/runtime", () => ({
   createAcpRuntime: vi.fn(),
@@ -397,11 +396,6 @@ describe.sequential("agent permission routes", () => {
 
   it("redacts agent detail for authenticated company members without agent admin permission", async () => {
     mockAccessService.canUser.mockResolvedValue(false);
-    mockAccessService.decide.mockImplementation(async (input: { action?: string }) => ({
-      allowed: input.action === "agent:read",
-      reason: input.action === "agent:read" ? "allow_test_read" : "deny_missing_grant",
-      explanation: input.action === "agent:read" ? "Allowed by test read grant." : "Missing test grant.",
-    }));
 
     const app = await createApp({
       type: "board",
@@ -418,54 +412,8 @@ describe.sequential("agent permission routes", () => {
     expect(res.body.runtimeConfig).toEqual({});
   }, 20_000);
 
-  it("keeps board agent detail unredacted for low-trust agents", async () => {
-    mockAgentService.getById.mockResolvedValue({
-      ...baseAgent,
-      permissions: {
-        ...baseAgent.permissions,
-        trustPreset: LOW_TRUST_REVIEW_PRESET,
-      },
-      adapterConfig: {
-        command: "pnpm agent:run",
-        env: { PAPERCLIP_API_KEY: "secret-test-key" },
-      },
-      runtimeConfig: {
-        modelProfiles: {
-          default: { enabled: true, adapterConfig: { model: "openai/gpt-5.4-mini" } },
-        },
-      },
-    });
-
-    const app = await createApp({
-      type: "board",
-      userId: "board-user",
-      source: "local_implicit",
-      isInstanceAdmin: true,
-      companyIds: [companyId],
-    });
-
-    const res = await requestApp(app, (baseUrl) => request(baseUrl).get(`/api/agents/${agentId}`));
-
-    expect(res.status).toBe(200);
-    expect(res.body.adapterConfig).toMatchObject({
-      command: "pnpm agent:run",
-      env: { PAPERCLIP_API_KEY: "secret-test-key" },
-    });
-    expect(res.body.runtimeConfig).toMatchObject({
-      modelProfiles: {
-        default: { enabled: true, adapterConfig: { model: "openai/gpt-5.4-mini" } },
-      },
-    });
-    expect(res.body.permissions).toMatchObject({ trustPreset: LOW_TRUST_REVIEW_PRESET });
-  }, 20_000);
-
   it("redacts company agent list for authenticated company members without agent admin permission", async () => {
     mockAccessService.canUser.mockResolvedValue(false);
-    mockAccessService.decide.mockImplementation(async (input: { action?: string }) => ({
-      allowed: input.action === "agent:read",
-      reason: input.action === "agent:read" ? "allow_test_read" : "deny_missing_grant",
-      explanation: input.action === "agent:read" ? "Allowed by test read grant." : "Missing test grant.",
-    }));
 
     const app = await createApp({
       type: "board",
@@ -678,7 +626,7 @@ describe.sequential("agent permission routes", () => {
           modelProfiles: {
             cheap: {
               adapterConfig: {
-                model: "gpt-5.5",
+                model: "gpt-5.3-codex-spark",
                 env: {
                   API_TOKEN: {
                     type: "secret_ref",
@@ -696,7 +644,7 @@ describe.sequential("agent permission routes", () => {
     expect(mockSecretService.normalizeAdapterConfigForPersistence).toHaveBeenCalledWith(
       companyId,
       expect.objectContaining({
-        model: "gpt-5.5",
+        model: "gpt-5.3-codex-spark",
         env: expect.any(Object),
       }),
       { strictMode: false },
@@ -708,7 +656,7 @@ describe.sequential("agent permission routes", () => {
           modelProfiles: {
             cheap: {
               adapterConfig: {
-                model: "gpt-5.5",
+                model: "gpt-5.3-codex-spark",
                 env: {
                   API_TOKEN: {
                     type: "secret_ref",
@@ -1492,51 +1440,6 @@ describe.sequential("agent permission routes", () => {
     });
   });
 
-  it("allows agent heartbeat cancellation inside the caller company scope", async () => {
-    mockHeartbeatService.getRun.mockResolvedValue({
-      id: "run-1",
-      companyId,
-      agentId,
-      status: "running",
-    });
-    mockHeartbeatService.cancelRun.mockResolvedValue({
-      id: "run-1",
-      companyId,
-      agentId,
-      status: "cancelled",
-      finishedAt: "2026-06-20T00:00:00.000Z",
-    });
-
-    const app = await createApp({
-      type: "agent",
-      agentId,
-      companyId,
-      runId: "janitor-run",
-      source: "agent_key",
-    });
-
-    const res = await requestApp(app, (baseUrl) => request(baseUrl)
-      .post("/api/heartbeat-runs/run-1/cancel")
-      .send({ suppressAutomaticRecovery: true }));
-
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ id: "run-1", status: "cancelled" });
-    expect(mockHeartbeatService.cancelRun).toHaveBeenCalledWith("run-1", undefined, {
-      suppressAutomaticRecovery: true,
-    });
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      companyId,
-      actorType: "agent",
-      actorId: agentId,
-      agentId,
-      runId: "janitor-run",
-      action: "heartbeat.cancelled",
-      entityType: "heartbeat_run",
-      entityId: "run-1",
-      details: { agentId, suppressAutomaticRecovery: true },
-    }));
-  });
-
   it("rejects heartbeat cancellation outside the caller company scope", async () => {
     mockHeartbeatService.getRun.mockResolvedValue({
       id: "run-1",
@@ -1546,10 +1449,11 @@ describe.sequential("agent permission routes", () => {
     });
 
     const app = await createApp({
-      type: "agent",
-      agentId,
-      companyId,
-      source: "agent_key",
+      type: "board",
+      userId: "board-user",
+      source: "session",
+      isInstanceAdmin: false,
+      companyIds: [companyId],
     });
 
     const res = await requestApp(app, (baseUrl) => request(baseUrl).post("/api/heartbeat-runs/run-1/cancel").send({}));

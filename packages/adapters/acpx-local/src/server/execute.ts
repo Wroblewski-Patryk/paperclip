@@ -182,78 +182,27 @@ async function writeFileAtomically(input: {
 
 async function ensureSymlink(target: string, source: string): Promise<void> {
   const resolvedSource = path.resolve(source);
-  const sourceStat = await fs.stat(resolvedSource);
-  const symlinkType = process.platform === "win32" ? "file" : undefined;
-  const replaceMaxRetries = 3;
-  const hasExpectedTarget = async (): Promise<boolean> => {
-    const existing = await fs.lstat(target).catch(() => null);
-    if (!existing) return false;
-    if (existing.isSymbolicLink()) {
-      const linkedPath = await fs.readlink(target).catch(() => null);
-      if (!linkedPath) return false;
-      const resolvedLinkedPath = path.resolve(path.dirname(target), linkedPath);
-      return resolvedLinkedPath === resolvedSource;
-    }
-    if (existing.isFile()) {
-      const targetStat = await fs.stat(target).catch(() => null);
-      return Boolean(
-        targetStat &&
-        targetStat.dev === sourceStat.dev &&
-        targetStat.ino === sourceStat.ino &&
-        targetStat.size === sourceStat.size,
-      );
-    }
-    return false;
-  };
-
-  const createLinkOrCopy = async () => {
-    let replaceAttempts = 0;
-    while (true) {
-      try {
-        await fs.symlink(resolvedSource, target, symlinkType);
-        return;
-      } catch (err) {
-        const code = err && typeof err === "object" && "code" in err ? String((err as { code?: unknown }).code ?? "") : "";
-        if (code === "EEXIST") {
-          if (await hasExpectedTarget()) return;
-          if (replaceAttempts >= replaceMaxRetries) throw err;
-          replaceAttempts += 1;
-          await fs.rm(target, { recursive: true, force: true }).catch(() => {});
-          continue;
-        }
-        if (process.platform !== "win32" || !["EPERM", "EACCES", "EINVAL", "UNKNOWN"].includes(code)) throw err;
-        break;
-      }
-    }
-
-    try {
-      await fs.link(resolvedSource, target);
-      return;
-    } catch {}
-
-    await fs.copyFile(resolvedSource, target);
-  };
-
   const existing = await fs.lstat(target).catch(() => null);
   if (!existing) {
     await ensureParentDir(target);
-    await createLinkOrCopy();
+    await fs.symlink(resolvedSource, target);
     return;
   }
 
-  if (existing.isSymbolicLink()) {
-    const linkedPath = await fs.readlink(target).catch(() => null);
-    if (linkedPath) {
-      const resolvedLinkedPath = path.resolve(path.dirname(target), linkedPath);
-      if (resolvedLinkedPath === resolvedSource) return;
-    }
-  } else if (existing.isFile()) {
-    if (await hasExpectedTarget()) return;
+  if (!existing.isSymbolicLink()) {
+    await fs.rm(target, { recursive: true, force: true });
+    await fs.symlink(resolvedSource, target);
+    return;
   }
 
-  await fs.rm(target, { recursive: true, force: true });
-  await ensureParentDir(target);
-  await createLinkOrCopy();
+  const linkedPath = await fs.readlink(target).catch(() => null);
+  if (!linkedPath) return;
+
+  const resolvedLinkedPath = path.resolve(path.dirname(target), linkedPath);
+  if (resolvedLinkedPath === resolvedSource) return;
+
+  await fs.unlink(target);
+  await fs.symlink(resolvedSource, target);
 }
 
 async function ensureCopiedFile(target: string, source: string): Promise<void> {

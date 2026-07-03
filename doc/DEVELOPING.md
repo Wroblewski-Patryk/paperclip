@@ -214,15 +214,14 @@ pnpm paperclipai configure --section storage
 
 ## Agent Artifact Uploads
 
-When an agent generates a file that a board user or reviewer should inspect as
-a deliverable, attach it to the issue before marking the task complete. Do not
-rely on a local workspace path as the only access path.
+When an agent generates a file that a board user or reviewer should inspect,
+attach it to the issue before marking the task complete. Do not rely on a local
+workspace path as the only access path.
 
-Use the helper bundled with the Paperclip skill from the repo root. Prefer the
-Node helper, especially on Windows:
+Use the helper bundled with the Paperclip skill from the repo root:
 
 ```sh
-node skills/paperclip/scripts/paperclip-upload-artifact.mjs dist/demo.mp4 \
+skills/paperclip/scripts/paperclip-upload-artifact.sh dist/demo.mp4 \
   --title "Demo video render" \
   --summary "MP4 render for board review"
 ```
@@ -230,7 +229,7 @@ node skills/paperclip/scripts/paperclip-upload-artifact.mjs dist/demo.mp4 \
 For WebM output:
 
 ```sh
-node skills/paperclip/scripts/paperclip-upload-artifact.mjs out/walkthrough.webm \
+skills/paperclip/scripts/paperclip-upload-artifact.sh out/walkthrough.webm \
   --title "Walkthrough video" \
   --summary "WebM walkthrough render"
 ```
@@ -238,12 +237,6 @@ node skills/paperclip/scripts/paperclip-upload-artifact.mjs out/walkthrough.webm
 The helper uploads the file as an issue attachment, creates an artifact work
 product by default, and prints markdown links for the final issue comment. See
 `doc/AGENT-ARTIFACTS.md` for the full completion pattern and direct API shape.
-If a file intentionally remains workspace-only, create a work product with
-`metadata.resourceRef.kind: "workspace_file"` and include the workspace-relative
-path in the final comment. Use browse/search only as the fallback for recovering
-that file, not as the main completion path for deliverables. For issue status
-and comment mutations, prefer `node skills/paperclip/scripts/paperclip-issue-update.mjs`
-instead of ad-hoc Windows PowerShell/curl chains.
 
 ## Default Agent Workspaces
 
@@ -509,38 +502,6 @@ CI runs `pnpm --filter @paperclipai/skills-catalog validate` and the package's
 vitest suite, so always regenerate the manifest in the same commit as the
 catalog change.
 
-## App-Shipped Teams Catalog
-
-The team catalog package mirrors the skills catalog workflow for
-agentcompanies/v1 team packages:
-
-```text
-packages/teams-catalog/
-  catalog/
-    bundled/<category>/<slug>/TEAM.md
-    optional/<category>/<slug>/TEAM.md
-  generated/catalog.json
-  scripts/
-    build-catalog-manifest.ts
-    validate-catalog.ts
-```
-
-Validate without writing the manifest:
-
-```sh
-pnpm --filter @paperclipai/teams-catalog validate
-```
-
-Regenerate `generated/catalog.json` after editing catalog team files:
-
-```sh
-pnpm --filter @paperclipai/teams-catalog build:manifest
-```
-
-Team install/preview APIs enforce source policy. External skill sources require
-explicit approval flags, and local-path skill sources are development-only
-unless `allowLocalPathSources` is set by the caller.
-
 ## Quick Health Checks
 
 In another terminal:
@@ -593,27 +554,12 @@ pnpm paperclipai db:backup
 pnpm db:backup
 ```
 
-Manual backups accept the same retention guard knobs as config/env. For example:
-
-```sh
-pnpm paperclipai db:backup --max-total-bytes 10737418240 --min-free-bytes 1073741824
-```
-
 Environment overrides:
 
 - `PAPERCLIP_DB_BACKUP_ENABLED=true|false`
 - `PAPERCLIP_DB_BACKUP_INTERVAL_MINUTES=<minutes>`
 - `PAPERCLIP_DB_BACKUP_RETENTION_DAYS=<days>`
 - `PAPERCLIP_DB_BACKUP_DIR=/absolute/or/~/path`
-- `PAPERCLIP_DB_BACKUP_MAX_TOTAL_BYTES=<bytes>` (optional retained-backup size cap; `0` disables)
-- `PAPERCLIP_DB_BACKUP_MIN_FREE_BYTES=<bytes>` (default: 268435456 / 256 MiB)
-
-Before writing a new backup, Paperclip prunes expired/empty backups from the
-target backup directory, applies the optional retained-backup byte cap, and
-checks available disk space on that volume. The size cap always preserves at
-least the newest non-empty backup. The backup is refused if available space is
-below the larger of `PAPERCLIP_DB_BACKUP_MIN_FREE_BYTES` and twice the largest
-retained backup file.
 
 DB backups are not full instance filesystem backups. For full local disaster
 recovery, also back up local storage files and the local encrypted secrets key if

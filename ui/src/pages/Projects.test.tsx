@@ -76,7 +76,6 @@ function makeProject(overrides: Partial<Project>): Project {
     leadAgentId: null,
     targetDate: null,
     color: "#ef4444",
-    icon: null,
     env: null,
     pauseReason: null,
     pausedAt: null,
@@ -240,32 +239,5 @@ describe("Projects", () => {
 
     expect(hiddenDescriptionLine).not.toBeNull();
     expect(hiddenDescriptionLine?.className).toContain("min-h-4");
-  });
-
-  it("hides archived projects until the archived toggle is enabled", async () => {
-    mockProjectsApi.list.mockResolvedValue([
-      project({ id: "active-aviary", urlKey: "aviary", name: "Aviary" }),
-      project({
-        id: "archived-aviary",
-        urlKey: "aviary-archived",
-        name: "Aviary (archived legacy)",
-        archivedAt: new Date("2026-05-25T20:35:07.516Z"),
-      }),
-    ]);
-
-    root = await renderProjects(container);
-
-    expect(projectLinkNames(container)).toEqual(["Aviary"]);
-
-    const archivedButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find((button) =>
-      button.textContent?.includes("Archived (1)"),
-    );
-    expect(archivedButton).not.toBeNull();
-
-    await act(async () => {
-      archivedButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(projectLinkNames(container)).toEqual(["Aviary", "Aviary (archived legacy)"]);
   });
 });

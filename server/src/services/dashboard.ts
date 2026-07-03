@@ -1,9 +1,8 @@
-import { and, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
-import { agents, approvals, companies, heartbeatRuns, issues } from "@paperclipai/db";
+import { agents, approvals, companies, costEvents, heartbeatRuns, issues } from "@paperclipai/db";
 import { notFound } from "../errors.js";
 import { budgetService } from "./budgets.js";
-import { costService } from "./costs.js";
 
 const DASHBOARD_RUN_ACTIVITY_DAYS = 14;
 
@@ -25,7 +24,6 @@ function getRecentUtcDateKeys(now: Date, days: number): string[] {
 
 export function dashboardService(db: Db) {
   const budgets = budgetService(db);
-  const costs = costService(db);
   return {
     summary: async (companyId: string) => {
       const company = await db
@@ -45,7 +43,7 @@ export function dashboardService(db: Db) {
       const taskRows = await db
         .select({ status: issues.status, count: sql<number>`count(*)` })
         .from(issues)
-        .where(and(eq(issues.companyId, companyId), isNull(issues.hiddenAt)))
+        .where(eq(issues.companyId, companyId))
         .groupBy(issues.status);
 
       const pendingApprovals = await db
@@ -85,7 +83,19 @@ export function dashboardService(db: Db) {
       const monthStart = getUtcMonthStart(now);
       const runActivityDays = getRecentUtcDateKeys(now, DASHBOARD_RUN_ACTIVITY_DAYS);
       const runActivityStart = new Date(`${runActivityDays[0]}T00:00:00.000Z`);
-      const costSummary = await costs.summary(companyId, { from: monthStart });
+      const [{ monthSpend }] = await db
+        .select({
+          monthSpend: sql<number>`coalesce(sum(${costEvents.costCents}), 0)::double precision`,
+        })
+        .from(costEvents)
+        .where(
+          and(
+            eq(costEvents.companyId, companyId),
+            gte(costEvents.occurredAt, monthStart),
+          ),
+        );
+
+      const monthSpendCents = Number(monthSpend);
       const runActivityDayExpr = sql<string>`to_char(${heartbeatRuns.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
       const runActivityRows = await db
         .select({
@@ -118,6 +128,10 @@ export function dashboardService(db: Db) {
         bucket.total += count;
       }
 
+      const utilization =
+        company.budgetMonthlyCents > 0
+          ? (monthSpendCents / company.budgetMonthlyCents) * 100
+          : 0;
       const budgetOverview = await budgets.overview(companyId);
 
       return {
@@ -130,21 +144,9 @@ export function dashboardService(db: Db) {
         },
         tasks: taskCounts,
         costs: {
-          monthSpendCents: costSummary.spendCents,
-          monthBilledSpendCents: costSummary.billedSpendCents,
-          monthBudgetCents: costSummary.budgetCents,
-          monthUtilizationPercent: costSummary.utilizationPercent,
-          meteringState: costSummary.meteringState,
-          eventCount: costSummary.eventCount,
-          meteredApiRunCount: costSummary.meteredApiRunCount,
-          subscriptionIncludedRunCount: costSummary.subscriptionIncludedRunCount,
-          subscriptionIncludedInputTokens: costSummary.subscriptionIncludedInputTokens,
-          subscriptionIncludedCachedInputTokens: costSummary.subscriptionIncludedCachedInputTokens,
-          subscriptionIncludedOutputTokens: costSummary.subscriptionIncludedOutputTokens,
-          unknownCostRunCount: costSummary.unknownCostRunCount,
-          unknownCostInputTokens: costSummary.unknownCostInputTokens,
-          unknownCostCachedInputTokens: costSummary.unknownCostCachedInputTokens,
-          unknownCostOutputTokens: costSummary.unknownCostOutputTokens,
+          monthSpendCents,
+          monthBudgetCents: company.budgetMonthlyCents,
+          monthUtilizationPercent: Number(utilization.toFixed(2)),
         },
         pendingApprovals,
         budgets: {

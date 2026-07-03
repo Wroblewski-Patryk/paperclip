@@ -43,7 +43,6 @@ import { fileURLToPath } from "node:url";
 import type {
   AskUserQuestionsInteraction,
   PaperclipPluginManifestV1,
-  RequestCheckboxConfirmationInteraction,
   RequestConfirmationInteraction,
   SuggestTasksInteraction,
 } from "@paperclipai/shared";
@@ -912,23 +911,6 @@ export function startWorkerRpcHost(options: WorkerRpcHostOptions): WorkerRpcHost
             },
             authorAgentId: options?.authorAgentId,
           }) as Promise<RequestConfirmationInteraction>;
-        },
-
-        async requestCheckboxConfirmation(
-          issueId: string,
-          interaction,
-          companyId: string,
-          options?: { authorAgentId?: string },
-        ): Promise<RequestCheckboxConfirmationInteraction> {
-          return callHost("issues.createInteraction", {
-            issueId,
-            companyId,
-            interaction: {
-              ...interaction,
-              kind: "request_checkbox_confirmation",
-            },
-            authorAgentId: options?.authorAgentId,
-          }) as Promise<RequestCheckboxConfirmationInteraction>;
         },
 
         documents: {

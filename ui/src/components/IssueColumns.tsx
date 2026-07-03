@@ -28,19 +28,19 @@ const issueColumnLabels: Record<InboxIssueColumn, string> = {
   assignee: "Assignee",
   project: "Project",
   workspace: "Workspace",
-  parent: "Parent task",
+  parent: "Parent issue",
   labels: "Tags",
   updated: "Last updated",
 };
 
 const issueColumnDescriptions: Record<InboxIssueColumn, string> = {
-  status: "Task state chip on the left edge.",
+  status: "Issue state chip on the left edge.",
   id: "Ticket identifier like PAP-1009.",
   assignee: "Assigned agent or board user.",
   project: "Linked project pill with its color.",
-  workspace: "Execution or project workspace used for the task.",
-  parent: "Parent task identifier and title.",
-  labels: "Task labels and tags.",
+  workspace: "Execution or project workspace used for the issue.",
+  parent: "Parent issue identifier and title.",
+  labels: "Issue labels and tags.",
   updated: "Latest visible activity time.",
 };
 
@@ -94,7 +94,7 @@ export function IssueColumnPicker({
         <DropdownMenuLabel className="px-2 pb-1 pt-1.5">
           <div className="space-y-1">
             <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Desktop task rows
+              Desktop issue rows
             </div>
             <div className="text-sm font-medium text-foreground">
               {title}
@@ -203,7 +203,6 @@ export function InboxIssueTrailingColumns({
   workspaceId,
   workspaceName,
   assigneeName,
-  assigneeAgentIcon,
   assigneeUserName,
   assigneeUserAvatarUrl,
   currentUserId,
@@ -219,7 +218,6 @@ export function InboxIssueTrailingColumns({
   workspaceId?: string | null;
   workspaceName: string | null;
   assigneeName: string | null;
-  assigneeAgentIcon?: string | null;
   assigneeUserName?: string | null;
   assigneeUserAvatarUrl?: string | null;
   currentUserId: string | null;
@@ -247,7 +245,6 @@ export function InboxIssueTrailingColumns({
               <span key={column} className="min-w-0 text-xs text-foreground">
                 <Identity
                   name={assigneeName ?? issue.assigneeAgentId.slice(0, 8)}
-                  agentIcon={assigneeAgentIcon}
                   size="sm"
                   className="min-w-0"
                 />
@@ -372,7 +369,7 @@ export function InboxIssueTrailingColumns({
               {parentIdentifier ? (
                 <span className="font-mono">{parentIdentifier}</span>
               ) : (
-                <span className="italic">Sub-task</span>
+                <span className="italic">Sub-issue</span>
               )}
             </span>
           );

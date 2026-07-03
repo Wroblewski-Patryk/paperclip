@@ -8,11 +8,7 @@ import {
   withIssueDetailHeaderSeed,
 } from "../lib/issueDetailBreadcrumb";
 import { cn } from "../lib/utils";
-import {
-  deriveActiveRecoveryDisplayState,
-  RECOVERY_CHIP_DEFAULT_TONE,
-  recoveryChipLabel,
-} from "../lib/recovery-display";
+import { deriveActiveRecoveryDisplayState, RECOVERY_CHIP_DEFAULT_TONE } from "../lib/recovery-display";
 import { StatusIcon } from "./StatusIcon";
 import { productivityReviewTriggerLabel } from "./ProductivityReviewBadge";
 import { hasAssignedBacklogBlocker } from "../lib/issue-blockers";
@@ -237,23 +233,21 @@ function renderRecoveryChip(action: IssueRecoveryAction, selected: boolean): Rea
   if (!state) return null;
   const tone = RECOVERY_CHIP_DEFAULT_TONE[state];
   const Icon = tone.icon;
-  const label = recoveryChipLabel(state, action.kind);
   return (
     <span
       data-testid="issue-row-recovery-indicator"
       data-recovery-state={state}
-      data-recovery-kind={action.kind}
       role="status"
-      aria-label={label}
+      aria-label={tone.label}
       className={cn(
         "ml-1.5 inline-flex shrink-0 items-center gap-0.5 rounded-full border px-2 py-0.5 text-[10px] font-medium",
         tone.className,
         selected ? "!border-muted-foreground !text-muted-foreground" : null,
       )}
-      title={`${label} — open the source task to act.`}
+      title={`${tone.label} — open the source issue to act.`}
     >
       <Icon className="h-2.5 w-2.5" aria-hidden />
-      {label}
+      {tone.label}
     </span>
   );
 }

@@ -15,8 +15,6 @@ type PartialConfig = {
     backup?: {
       dir?: string;
       retentionDays?: number;
-      maxTotalBytes?: number;
-      minFreeBytes?: number;
     };
   };
 };
@@ -66,48 +64,23 @@ function resolveRetentionDays(config: PartialConfig | null): number {
   return asPositiveInt(config?.database?.backup?.retentionDays) ?? 7;
 }
 
-function resolveBackupMaxTotalBytes(config: PartialConfig | null): number | null {
-  const envValue = process.env.PAPERCLIP_DB_BACKUP_MAX_TOTAL_BYTES;
-  const raw = envValue !== undefined ? Number(envValue) : config?.database?.backup?.maxTotalBytes;
-  if (typeof raw !== "number" || !Number.isFinite(raw)) return null;
-  const rounded = Math.trunc(raw);
-  return rounded >= 0 ? rounded : null;
-}
-
-function resolveBackupMinFreeBytes(config: PartialConfig | null): number | null {
-  const envValue = process.env.PAPERCLIP_DB_BACKUP_MIN_FREE_BYTES;
-  const raw = envValue !== undefined ? Number(envValue) : config?.database?.backup?.minFreeBytes;
-  if (typeof raw !== "number" || !Number.isFinite(raw)) return null;
-  const rounded = Math.trunc(raw);
-  return rounded > 0 ? rounded : null;
-}
-
 async function main() {
   const configPath = resolvePaperclipConfigPathForInstance();
   const config = readConfig(configPath);
   const connectionString = resolveConnectionString(config);
   const backupDir = resolveBackupDir(config);
   const retentionDays = resolveRetentionDays(config);
-  const maxTotalBytes = resolveBackupMaxTotalBytes(config);
-  const minFreeBytes = resolveBackupMinFreeBytes(config);
 
   console.log(`Config path: ${configPath}`);
   console.log(`Backing up database to: ${backupDir}`);
   console.log(`Retention window: ${retentionDays} day(s)`);
-  if (maxTotalBytes !== null) {
-    console.log(`Retention size cap: ${maxTotalBytes} byte(s)`);
-  }
-  if (minFreeBytes !== null) {
-    console.log(`Minimum free space: ${minFreeBytes} byte(s)`);
-  }
 
   try {
     const result = await runDatabaseBackup({
       connectionString,
       backupDir,
-      retention: { dailyDays: retentionDays, weeklyWeeks: 4, monthlyMonths: 1, maxTotalBytes },
+      retention: { dailyDays: retentionDays, weeklyWeeks: 4, monthlyMonths: 1 },
       filenamePrefix: "paperclip",
-      diskSpaceGuard: minFreeBytes === null ? undefined : { minFreeBytes },
     });
 
     console.log(`Backup saved: ${formatDatabaseBackupResult(result)}`);

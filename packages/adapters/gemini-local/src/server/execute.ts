@@ -51,9 +51,8 @@ import { DEFAULT_GEMINI_LOCAL_MODEL, SANDBOX_INSTALL_COMMAND } from "../index.js
 import {
   describeGeminiFailure,
   detectGeminiAuthRequired,
-  isGeminiTransientNetworkError,
   isGeminiTurnLimitResult,
-  isGeminiSessionUnrecoverableError,
+  isGeminiUnknownSessionError,
   parseGeminiJsonl,
 } from "./parse.js";
 import { firstNonEmptyLine } from "./utils.js";
@@ -89,10 +88,11 @@ function renderApiAccessNote(env: Record<string, string>): string {
   if (!hasNonEmptyEnvValue(env, "PAPERCLIP_API_URL") || !hasNonEmptyEnvValue(env, "PAPERCLIP_API_KEY")) return "";
   return [
     "Paperclip API access note:",
-    "Prefer native helpers or a small fetch-based script for Paperclip API requests.",
-    "On Windows, do not generate ad-hoc powershell/curl command chains for issue updates, comments, uploads, or work-product mutations.",
-    "If the repo contains the Paperclip skill helpers, prefer: node skills/paperclip/scripts/paperclip-issue-update.mjs ... and node skills/paperclip/scripts/paperclip-upload-artifact.mjs ...",
-    "If you must call the API directly, use a minimal Node script with fetch/FormData and include X-Paperclip-Run-Id on mutating requests.",
+    "Use run_shell_command with curl to make Paperclip API requests.",
+    "GET example:",
+    `  run_shell_command({ command: "curl -s -H \\"Authorization: Bearer $PAPERCLIP_API_KEY\\" \\"$PAPERCLIP_API_URL/api/agents/me\\"" })`,
+    "POST/PATCH example:",
+    `  run_shell_command({ command: "curl -s -X POST -H \\"Authorization: Bearer $PAPERCLIP_API_KEY\\" -H 'Content-Type: application/json' -H \\"X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID\\" -d '{...}' \\"$PAPERCLIP_API_URL/api/issues/{id}/checkout\\"" })`,
     "",
     "",
   ].join("\n");
@@ -504,10 +504,6 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   };
 
   const buildArgs = (resumeSessionId: string | null) => {
-    const promptArg =
-      process.platform === "win32" && /\.(cmd|bat)$/i.test(command)
-        ? prompt.replace(/\r?\n/g, "\\n")
-        : prompt;
     const args = ["--output-format", "stream-json"];
     if (resumeSessionId) args.push("--resume", resumeSessionId);
     if (model && model !== DEFAULT_GEMINI_LOCAL_MODEL) args.push("--model", model);
@@ -518,7 +514,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       args.push("--sandbox=none");
     }
     if (extraArgs.length > 0) args.push(...extraArgs);
-    args.push("--prompt", promptArg);
+    args.push("--prompt", prompt);
     return args;
   };
 
@@ -573,7 +569,6 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       stdout: attempt.proc.stdout,
       stderr: attempt.proc.stderr,
     });
-    const networkUnavailable = isGeminiTransientNetworkError(attempt.proc.stdout, attempt.proc.stderr);
 
     if (attempt.proc.timedOut) {
       return {
@@ -581,11 +576,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         signal: attempt.proc.signal,
         timedOut: true,
         errorMessage: `Timed out after ${timeoutSec}s`,
-        errorCode: authMeta.requiresAuth
-          ? "gemini_auth_required"
-          : networkUnavailable
-            ? "gemini_network_unavailable"
-            : null,
+        errorCode: authMeta.requiresAuth ? "gemini_auth_required" : null,
         clearSession: clearSessionOnMissingSession,
       };
     }
@@ -641,8 +632,6 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         ? "gemini_auth_required"
         : failed && clearSessionForTurnLimit
         ? "max_turns_exhausted"
-        : failed && networkUnavailable
-        ? "gemini_network_unavailable"
         : null,
       usage: attempt.parsed.usage,
       sessionId: resolvedSessionId,
@@ -666,7 +655,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       sessionId &&
       !initial.proc.timedOut &&
       (initial.proc.exitCode ?? 0) !== 0 &&
-      isGeminiSessionUnrecoverableError(initial.proc.stdout, initial.proc.stderr)
+      isGeminiUnknownSessionError(initial.proc.stdout, initial.proc.stderr)
     ) {
       await onLog(
         "stdout",

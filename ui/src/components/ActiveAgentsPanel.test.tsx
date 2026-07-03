@@ -132,7 +132,7 @@ describe("ActiveAgentsPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("links hidden active runs to the full live dashboard", async () => {
+  it("links hidden active/recent runs to the full live dashboard", async () => {
     const root = createRoot(container);
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -148,12 +148,12 @@ describe("ActiveAgentsPanel", () => {
     await flushReact();
 
     expect(mockHeartbeatsApi.liveRunsForCompany).toHaveBeenCalledWith("company-1", {
-      minCount: 0,
+      minCount: 4,
       limit: undefined,
     });
 
     const moreLink = [...container.querySelectorAll("a")].find((anchor) =>
-      anchor.textContent?.includes("more active"),
+      anchor.textContent?.includes("more active/recent"),
     );
     expect(moreLink?.getAttribute("href")).toBe("/dashboard/live");
 

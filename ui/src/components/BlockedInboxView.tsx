@@ -27,7 +27,6 @@ interface BlockedInboxViewProps {
   companyId: string;
   searchQuery: string;
   agentNameById: ReadonlyMap<string, string>;
-  agentIconById?: ReadonlyMap<string, string | null>;
   userLabelById?: ReadonlyMap<string, string>;
   issueLinkState: unknown;
   groupBy: BlockedInboxGroupBy;
@@ -47,7 +46,6 @@ export function BlockedInboxView({
   companyId,
   searchQuery,
   agentNameById,
-  agentIconById,
   userLabelById,
   issueLinkState,
   groupBy,
@@ -180,7 +178,7 @@ export function BlockedInboxView({
         <div className="space-y-1">
           <p className="text-sm font-medium text-foreground">No work is stopped.</p>
           <p className="text-xs text-muted-foreground">
-            Tasks that need a decision, recovery, or external action will appear here.
+            Issues that need a decision, recovery, or external action will appear here.
           </p>
         </div>
       </div>
@@ -237,7 +235,6 @@ export function BlockedInboxView({
                         row={row}
                         issueLinkState={issueLinkState}
                         agentNameById={agentNameById}
-                        agentIconById={agentIconById}
                         userLabelById={userLabelById}
                         showStatusColumn={showStatusColumn}
                         showIdentifierColumn={showIdentifierColumn}
@@ -259,7 +256,6 @@ interface BlockedInboxRowProps {
   row: BlockedInboxIssueRow;
   issueLinkState: unknown;
   agentNameById: ReadonlyMap<string, string>;
-  agentIconById?: ReadonlyMap<string, string | null>;
   userLabelById?: ReadonlyMap<string, string>;
   showStatusColumn: boolean;
   showIdentifierColumn: boolean;
@@ -286,16 +282,12 @@ function BlockedInboxRow({
   row,
   issueLinkState,
   agentNameById,
-  agentIconById,
   userLabelById,
   showStatusColumn,
   showIdentifierColumn,
   showUpdatedColumn,
 }: BlockedInboxRowProps) {
   const { label: ownerName, isAgent } = resolveOwnerName(row, agentNameById, userLabelById);
-  const ownerAgentIcon = isAgent && row.attention.owner.agentId
-    ? agentIconById?.get(row.attention.owner.agentId) ?? null
-    : null;
   const stoppedAge = formatStoppedAge(row.attention.stoppedSinceAt);
 
   const desktopTrailing = (
@@ -314,7 +306,6 @@ function BlockedInboxRow({
         <span className="hidden w-[150px] min-w-0 items-center text-muted-foreground sm:inline-flex">
           <Identity
             name={ownerName}
-            agentIcon={ownerAgentIcon}
             size="xs"
             className="max-w-full"
           />
