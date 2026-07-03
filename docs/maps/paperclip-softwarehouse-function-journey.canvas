@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "atlas",
+      "type": "file",
+      "x": -760,
+      "y": -80,
+      "width": 340,
+      "height": 150,
+      "file": "obsidian/code-to-docs-atlas.md"
+    },
+    {
+      "id": "nodes",
+      "type": "file",
+      "x": -300,
+      "y": -220,
+      "width": 330,
+      "height": 150,
+      "file": "architecture/registry/nodes.csv"
+    },
+    {
+      "id": "chains",
+      "type": "file",
+      "x": -300,
+      "y": 20,
+      "width": 330,
+      "height": 150,
+      "file": "architecture/chains/chains.csv"
+    },
+    {
+      "id": "hotlist",
+      "type": "file",
+      "x": 180,
+      "y": -80,
+      "width": 340,
+      "height": 150,
+      "file": "obsidian/function-journey-hotlist.md"
+    },
+    {
+      "id": "proof",
+      "type": "text",
+      "x": 650,
+      "y": -80,
+      "width": 360,
+      "height": 150,
+      "text": "Proof levels must stay explicit: local tests, browser proof, production readback, and external-service proof are different claims."
+    }
+  ],
+  "edges": [
+    {
+      "id": "f1",
+      "fromNode": "atlas",
+      "fromSide": "right",
+      "toNode": "nodes",
+      "toSide": "left",
+      "label": "registry"
+    },
+    {
+      "id": "f2",
+      "fromNode": "atlas",
+      "fromSide": "right",
+      "toNode": "chains",
+      "toSide": "left",
+      "label": "journeys"
+    },
+    {
+      "id": "f3",
+      "fromNode": "nodes",
+      "fromSide": "right",
+      "toNode": "hotlist",
+      "toSide": "left",
+      "label": "status"
+    },
+    {
+      "id": "f4",
+      "fromNode": "chains",
+      "fromSide": "right",
+      "toNode": "hotlist",
+      "toSide": "left",
+      "label": "gaps"
+    },
+    {
+      "id": "f5",
+      "fromNode": "hotlist",
+      "fromSide": "right",
+      "toNode": "proof",
+      "toSide": "left",
+      "label": "interpret"
+    }
+  ]
+}

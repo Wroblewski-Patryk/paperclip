@@ -1,0 +1,3 @@
+id,name,status,layer,module,feature,description,file_path,route_path,primary_components,risk_level,completion_percent,last_verified_at,verification_status,notes
+PAGE-DASHBOARD,Company dashboard,verified_local,frontend,ui,FEATURE-COMPANY-SCOPING,Top-level board view for company metrics and status,ui/src/pages/DashboardPage.tsx,/companies/:id/dashboard,COMP-COMPANY-SWITCHER,medium,86,2026-05-27,verified_local,Depends on correct company context wiring.
+PAGE-ISSUE-DETAIL,Issue detail,partially_verified,frontend,ui,FEATURE-ISSUE-ORCHESTRATION,Issue execution lifecycle and collaboration surface,ui/src/pages/IssueDetailPage.tsx,/companies/:id/issues/:issueId,COMP-ISSUE-DETAIL-PAGE,high,80,2026-05-27,partially_verified,Dense state transitions require ongoing proof.

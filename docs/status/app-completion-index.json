@@ -1,0 +1,4351 @@
+{
+  "generatedAt": "2026-07-03T01:26:03.470Z",
+  "project": "Paperclip",
+  "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
+  "sourceGraph": "docs/graphs/architecture-awareness.json",
+  "counts": {
+    "items": 14205,
+    "flows": 8,
+    "needsBrowserReview": 425,
+    "missingTestLink": 10858,
+    "missingDocLink": 2870,
+    "implementedNeedsProof": 21,
+    "blocked": 0,
+    "riskItems": 14174,
+    "appCompletionRiskItems": 14174,
+    "priorityReviewItems": 200,
+    "priorityReviewLimit": 200,
+    "priorityReviewTruncated": true
+  },
+  "flows": [
+    {
+      "userFlow": "Account access",
+      "total": 561,
+      "risks": {
+        "ok": 9,
+        "missing_test_link": 370,
+        "missing_doc_link": 172,
+        "implemented_needs_proof": 1,
+        "needs_browser_review": 9
+      },
+      "gates": {
+        "auth": 561,
+        "configuration": 37,
+        "subscription": 1
+      }
+    },
+    {
+      "userFlow": "Admin operation",
+      "total": 17,
+      "risks": {
+        "ok": 3,
+        "missing_test_link": 9,
+        "missing_doc_link": 5
+      },
+      "gates": {
+        "auth": 6
+      }
+    },
+    {
+      "userFlow": "Dashboard overview",
+      "total": 123,
+      "risks": {
+        "missing_test_link": 93,
+        "missing_doc_link": 23,
+        "needs_browser_review": 7
+      },
+      "gates": {
+        "configuration": 21,
+        "auth": 3
+      }
+    },
+    {
+      "userFlow": "Exchange connection and configuration",
+      "total": 9,
+      "risks": {
+        "missing_test_link": 5,
+        "missing_doc_link": 4
+      },
+      "gates": {
+        "configuration": 9
+      }
+    },
+    {
+      "userFlow": "Subscription and entitlement",
+      "total": 49,
+      "risks": {
+        "missing_test_link": 37,
+        "missing_doc_link": 9,
+        "needs_browser_review": 3
+      },
+      "gates": {
+        "subscription": 49,
+        "configuration": 1
+      }
+    },
+    {
+      "userFlow": "Trading operation",
+      "total": 143,
+      "risks": {
+        "missing_test_link": 126,
+        "missing_doc_link": 13,
+        "needs_browser_review": 4
+      },
+      "gates": {
+        "auth": 2
+      }
+    },
+    {
+      "userFlow": "Unclassified user workflow",
+      "total": 12426,
+      "risks": {
+        "ok": 19,
+        "missing_test_link": 9517,
+        "missing_doc_link": 2497,
+        "implemented_needs_proof": 19,
+        "needs_browser_review": 374
+      },
+      "gates": {
+        "auth": 87,
+        "configuration": 311
+      }
+    },
+    {
+      "userFlow": "User configuration",
+      "total": 877,
+      "risks": {
+        "missing_doc_link": 147,
+        "missing_test_link": 701,
+        "implemented_needs_proof": 1,
+        "needs_browser_review": 28
+      },
+      "gates": {
+        "configuration": 807,
+        "auth": 31
+      }
+    }
+  ],
+  "priorityReviewItems": [
+    {
+      "id": "api_endpoint:post-agents-id-claude-login:8b13b9757d",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /agents/:id/claude-login",
+      "path": "server/src/routes/agents.ts#/agents/:id/claude-login",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:post-agents-id-runtime-state-reset-session:4f9efc9d6c",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /agents/:id/runtime-state/reset-session",
+      "path": "server/src/routes/agents.ts#/agents/:id/runtime-state/reset-session",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:get-agents-id-task-sessions:326fbda0b5",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /agents/:id/task-sessions",
+      "path": "server/src/routes/agents.ts#/agents/:id/task-sessions",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:patch-profile:b979c11b08",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "PATCH /profile",
+      "path": "server/src/routes/auth.ts#/profile",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:jsonresponse:341a86c945",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "jsonResponse",
+      "path": "cli/src/__tests__/auth-command-registration.test.ts#jsonResponse",
+      "owner": "Developer Experience Lead",
+      "status": "tested",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:run:242c4cff71",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "run",
+      "path": "cli/src/__tests__/auth-command-registration.test.ts#run",
+      "owner": "Developer Experience Lead",
+      "status": "tested",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:createtempauthpath:8a322a4721",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "createTempAuthPath",
+      "path": "cli/src/__tests__/board-auth.test.ts#createTempAuthPath",
+      "owner": "Developer Experience Lead",
+      "status": "tested",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "feature:deployment-auth-check-ts:73d1448928",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "deployment-auth-check.ts",
+      "path": "cli/src/checks/deployment-auth-check.ts",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 5,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:deploymentauthcheck:5e77481a12",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "deploymentAuthCheck",
+      "path": "cli/src/checks/deployment-auth-check.ts#deploymentAuthCheck",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "feature:board-auth-ts:c657c310c6",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "board-auth.ts",
+      "path": "cli/src/client/board-auth.ts",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 32,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:defaultboardauthstore:c258a0d61c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "defaultBoardAuthStore",
+      "path": "cli/src/client/board-auth.ts#defaultBoardAuthStore",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 4,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:getstoredboardcredential:9b0fbec1ee",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "getStoredBoardCredential",
+      "path": "cli/src/client/board-auth.ts#getStoredBoardCredential",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:loginboardcli:9efd5ea536",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "loginBoardCli",
+      "path": "cli/src/client/board-auth.ts#loginBoardCli",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:normalizeapibase:76c16d3665",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "normalizeApiBase",
+      "path": "cli/src/client/board-auth.ts#normalizeApiBase",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:openurl:e46883bab1",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "openUrl",
+      "path": "cli/src/client/board-auth.ts#openUrl",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readboardauthstore:083fd329dc",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readBoardAuthStore",
+      "path": "cli/src/client/board-auth.ts#readBoardAuthStore",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:removestoredboardcredential:097329f2b0",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "removeStoredBoardCredential",
+      "path": "cli/src/client/board-auth.ts#removeStoredBoardCredential",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:requestjson:cc8b4ed4ed",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "requestJson",
+      "path": "cli/src/client/board-auth.ts#requestJson",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolveboardauthstorepath:4dd1df9c68",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveBoardAuthStorePath",
+      "path": "cli/src/client/board-auth.ts#resolveBoardAuthStorePath",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:revokestoredboardcredential:5d22f725c0",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "revokeStoredBoardCredential",
+      "path": "cli/src/client/board-auth.ts#revokeStoredBoardCredential",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:setstoredboardcredential:70840ddc83",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "setStoredBoardCredential",
+      "path": "cli/src/client/board-auth.ts#setStoredBoardCredential",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:sleep:8c9d4bf149",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "sleep",
+      "path": "cli/src/client/board-auth.ts#sleep",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:tostringornull:65ee38930d",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "toStringOrNull",
+      "path": "cli/src/client/board-auth.ts#toStringOrNull",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 4,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:writeboardauthstore:4e85c8ea5e",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "writeBoardAuthStore",
+      "path": "cli/src/client/board-auth.ts#writeBoardAuthStore",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:auth-bootstrap-ceo-ts:9db7e34dc6",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "auth-bootstrap-ceo.ts",
+      "path": "cli/src/commands/auth-bootstrap-ceo.ts",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 11,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:bootstrapceoinvite:c548c57f31",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "bootstrapCeoInvite",
+      "path": "cli/src/commands/auth-bootstrap-ceo.ts#bootstrapCeoInvite",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:createinvitetoken:fb9a243e0e",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "createInviteToken",
+      "path": "cli/src/commands/auth-bootstrap-ceo.ts#createInviteToken",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:hashtoken:1a8e192282",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "hashToken",
+      "path": "cli/src/commands/auth-bootstrap-ceo.ts#hashToken",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolvebaseurl:0790e952bb",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveBaseUrl",
+      "path": "cli/src/commands/auth-bootstrap-ceo.ts#resolveBaseUrl",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolvedburl:416284b28c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveDbUrl",
+      "path": "cli/src/commands/auth-bootstrap-ceo.ts#resolveDbUrl",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registeraccesscommands:d89021cd56",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerAccessCommands",
+      "path": "cli/src/commands/client/access.ts#registerAccessCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registeractivitycommands:9fe1660bf9",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerActivityCommands",
+      "path": "cli/src/commands/client/activity.ts#registerActivityCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registeradaptercommands:e43d05209c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerAdapterCommands",
+      "path": "cli/src/commands/client/adapter.ts#registerAdapterCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registeragentcommands:b0f163f4ef",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerAgentCommands",
+      "path": "cli/src/commands/client/agent.ts#registerAgentCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerapprovalcommands:dd913b711a",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerApprovalCommands",
+      "path": "cli/src/commands/client/approval.ts#registerApprovalCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:registerassetcommands:8a9c46e404",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerAssetCommands",
+      "path": "cli/src/commands/client/asset.ts#registerAssetCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:auth-ts:00013c6fb7",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "auth.ts",
+      "path": "cli/src/commands/client/auth.ts",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": true,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 9,
+      "risk": "implemented_needs_proof"
+    },
+    {
+      "id": "function:parsejson:3af5b93cba",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "parseJson",
+      "path": "cli/src/commands/client/auth.ts#parseJson",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerclientauthcommands:eb20971acd",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerClientAuthCommands",
+      "path": "cli/src/commands/client/auth.ts#registerClientAuthCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolvechallengetoken:f2b55c11c2",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveChallengeToken",
+      "path": "cli/src/commands/client/auth.ts#resolveChallengeToken",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:authorizeconnection:3e59fc4ea2",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "authorizeConnection",
+      "path": "cli/src/commands/client/cloud.ts#authorizeConnection",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:authorizewithbrowser:2d46d773f4",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "authorizeWithBrowser",
+      "path": "cli/src/commands/client/cloud.ts#authorizeWithBrowser",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:authorizewithdevicecode:64cb7b8f23",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "authorizeWithDeviceCode",
+      "path": "cli/src/commands/client/cloud.ts#authorizeWithDeviceCode",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registercloudcommands:408e15ce3c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerCloudCommands",
+      "path": "cli/src/commands/client/cloud.ts#registerCloudCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:canattemptinteractiveboardauth:6591b1d1c9",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "canAttemptInteractiveBoardAuth",
+      "path": "cli/src/commands/client/common.ts#canAttemptInteractiveBoardAuth",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:shouldrecoverboardauth:47a97b21c1",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "shouldRecoverBoardAuth",
+      "path": "cli/src/commands/client/common.ts#shouldRecoverBoardAuth",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registercompanycommands:f05aa2e645",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerCompanyCommands",
+      "path": "cli/src/commands/client/company.ts#registerCompanyCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerconnectcommand:082e73577a",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerConnectCommand",
+      "path": "cli/src/commands/client/connect.ts#registerConnectCommand",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:registercontextcommands:b750a1afdd",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerContextCommands",
+      "path": "cli/src/commands/client/context.ts#registerContextCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registercostcommands:2fe27ff6e9",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerCostCommands",
+      "path": "cli/src/commands/client/cost.ts#registerCostCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerdashboardcommands:c0ad946074",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerDashboardCommands",
+      "path": "cli/src/commands/client/dashboard.ts#registerDashboardCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerfeedbackcommands:61b1aad7b9",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerFeedbackCommands",
+      "path": "cli/src/commands/client/feedback.ts#registerFeedbackCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:registergoalcommands:8675668f66",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerGoalCommands",
+      "path": "cli/src/commands/client/goal.ts#registerGoalCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerissuecommands:2630f36e28",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerIssueCommands",
+      "path": "cli/src/commands/client/issue.ts#registerIssueCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerplugincommands:f3cb12276a",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerPluginCommands",
+      "path": "cli/src/commands/client/plugin.ts#registerPluginCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerprojectcommands:2635b583da",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerProjectCommands",
+      "path": "cli/src/commands/client/project.ts#registerProjectCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerpromptcommands:f10b82dd0b",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerPromptCommands",
+      "path": "cli/src/commands/client/prompt.ts#registerPromptCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:registerroutineapicommands:58fdf83a95",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerRoutineApiCommands",
+      "path": "cli/src/commands/client/routine-api.ts#registerRoutineApiCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:registerruncommands:cfa9ba1499",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerRunCommands",
+      "path": "cli/src/commands/client/run.ts#registerRunCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registersecretcommands:5f682228f0",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerSecretCommands",
+      "path": "cli/src/commands/client/secrets.ts#registerSecretCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerskillcommands:598a012262",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerSkillCommands",
+      "path": "cli/src/commands/client/skill.ts#registerSkillCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:printcataloginstallresult:b4109182c7",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "printCatalogInstallResult",
+      "path": "cli/src/commands/client/skills.ts#printCatalogInstallResult",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registeragentskillcommands:0fef093888",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerAgentSkillCommands",
+      "path": "cli/src/commands/client/skills.ts#registerAgentSkillCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:registerskillscommands:31b8f0a275",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerSkillsCommands",
+      "path": "cli/src/commands/client/skills.ts#registerSkillsCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:registerteamcommands:fab5b0866f",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerTeamCommands",
+      "path": "cli/src/commands/client/teams.ts#registerTeamCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:registertokencommands:4659333e11",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerTokenCommands",
+      "path": "cli/src/commands/client/token.ts#registerTokenCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerworkspacecommands:d9f198fab7",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerWorkspaceCommands",
+      "path": "cli/src/commands/client/workspace.ts#registerWorkspaceCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerenvlabcommands:c0a4700e9a",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerEnvLabCommands",
+      "path": "cli/src/commands/env-lab.ts#registerEnvLabCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerroutinecommands:a019048cd9",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerRoutineCommands",
+      "path": "cli/src/commands/routines.ts#registerRoutineCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerworktreecommands:0b5bd116ba",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerWorktreeCommands",
+      "path": "cli/src/commands/worktree.ts#registerWorktreeCommands",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolvedefaultcliauthpath:684c85285f",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveDefaultCliAuthPath",
+      "path": "cli/src/config/home.ts#resolveDefaultCliAuthPath",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolveoperationauthlevel:e18245ef2c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveOperationAuthLevel",
+      "path": "doc/plans/2026-05-23-cli-api-parity-openapi-reference.ts#resolveOperationAuthLevel",
+      "owner": "Docs Memory Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:adapterexecutiontargetsessionidentity:c98abf839b",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "adapterExecutionTargetSessionIdentity",
+      "path": "packages/adapter-utils/src/execution-target.ts#adapterExecutionTargetSessionIdentity",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:adapterexecutiontargetsessionmatches:eeb099d612",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "adapterExecutionTargetSessionMatches",
+      "path": "packages/adapter-utils/src/execution-target.ts#adapterExecutionTargetSessionMatches",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildremoteexecutionsessionidentity:e98619b873",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildRemoteExecutionSessionIdentity",
+      "path": "packages/adapter-utils/src/remote-managed-runtime.ts#buildRemoteExecutionSessionIdentity",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:remoteexecutionsessionmatches:41effffea7",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "remoteExecutionSessionMatches",
+      "path": "packages/adapter-utils/src/remote-managed-runtime.ts#remoteExecutionSessionMatches",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:authorizesandboxcallbackbridgerequestwithroutes:9ee7ed64c8",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "authorizeSandboxCallbackBridgeRequestWithRoutes",
+      "path": "packages/adapter-utils/src/sandbox-callback-bridge.ts#authorizeSandboxCallbackBridgeRequestWithRoutes",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildsandboxexecutionsessionidentity:8d5128fdc8",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildSandboxExecutionSessionIdentity",
+      "path": "packages/adapter-utils/src/sandbox-managed-runtime.ts#buildSandboxExecutionSessionIdentity",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:sandboxexecutionsessionmatches:90864d3b8a",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "sandboxExecutionSessionMatches",
+      "path": "packages/adapter-utils/src/sandbox-managed-runtime.ts#sandboxExecutionSessionMatches",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:session-compaction-ts:5c60bdfae5",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "session-compaction.ts",
+      "path": "packages/adapter-utils/src/session-compaction.ts",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 16,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:getadaptersessionmanagement:8c6c037246",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "getAdapterSessionManagement",
+      "path": "packages/adapter-utils/src/session-compaction.ts#getAdapterSessionManagement",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:hassessioncompactionthresholds:766e2bcf15",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "hasSessionCompactionThresholds",
+      "path": "packages/adapter-utils/src/session-compaction.ts#hasSessionCompactionThresholds",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:isrecord:c3cb7a2fac",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isRecord",
+      "path": "packages/adapter-utils/src/session-compaction.ts#isRecord",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:readboolean:a8346bc3c6",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readBoolean",
+      "path": "packages/adapter-utils/src/session-compaction.ts#readBoolean",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:readnumber:e84110c8ea",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readNumber",
+      "path": "packages/adapter-utils/src/session-compaction.ts#readNumber",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:readsessioncompactionoverride:b18e869407",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readSessionCompactionOverride",
+      "path": "packages/adapter-utils/src/session-compaction.ts#readSessionCompactionOverride",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolvesessioncompactionpolicy:62f0dcc92e",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveSessionCompactionPolicy",
+      "path": "packages/adapter-utils/src/session-compaction.ts#resolveSessionCompactionPolicy",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:createsshauthargs:02723ea6ae",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "createSshAuthArgs",
+      "path": "packages/adapter-utils/src/ssh.ts#createSshAuthArgs",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:applysessionconfigoptions:17bb7264f3",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "applySessionConfigOptions",
+      "path": "packages/adapters/acpx-local/src/server/execute.ts#applySessionConfigOptions",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildsessionparams:bbc49fd4b9",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildSessionParams",
+      "path": "packages/adapters/acpx-local/src/server/execute.ts#buildSessionParams",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:iscompatiblesession:e1b337b951",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isCompatibleSession",
+      "path": "packages/adapters/acpx-local/src/server/execute.ts#isCompatibleSession",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:sessionconfigoptions:6a9588be99",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "sessionConfigOptions",
+      "path": "packages/adapters/acpx-local/src/server/execute.ts#sessionConfigOptions",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:session-codec-ts:6e433f4b3a",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "session-codec.ts",
+      "path": "packages/adapters/acpx-local/src/server/session-codec.ts",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 5,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readrecord:b2b96fbe4f",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readRecord",
+      "path": "packages/adapters/acpx-local/src/server/session-codec.ts#readRecord",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readstring:2bbfcb0e32",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readString",
+      "path": "packages/adapters/acpx-local/src/server/session-codec.ts#readString",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildloginresult:5f3e0432b8",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildLoginResult",
+      "path": "packages/adapters/claude-local/src/server/execute.ts#buildLoginResult",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:claudesessioncwdmatchesexecutiontarget:27a2f2875b",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "claudeSessionCwdMatchesExecutionTarget",
+      "path": "packages/adapters/claude-local/src/server/execute.ts#claudeSessionCwdMatchesExecutionTarget",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:isbedrockauth:e3e30d89a7",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isBedrockAuth",
+      "path": "packages/adapters/claude-local/src/server/execute.ts#isBedrockAuth",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:runclaudelogin:3df0164ffb",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "runClaudeLogin",
+      "path": "packages/adapters/claude-local/src/server/execute.ts#runClaudeLogin",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:detectclaudeloginrequired:4697a9e39a",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "detectClaudeLoginRequired",
+      "path": "packages/adapters/claude-local/src/server/parse.ts#detectClaudeLoginRequired",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:extractclaudeloginurl:f3d07fcb84",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "extractClaudeLoginUrl",
+      "path": "packages/adapters/claude-local/src/server/parse.ts#extractClaudeLoginUrl",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:isclaudeunknownsessionerror:950f5c2762",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isClaudeUnknownSessionError",
+      "path": "packages/adapters/claude-local/src/server/parse.ts#isClaudeUnknownSessionError",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:describeclaudesubscriptionauth:93e70426e2",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "describeClaudeSubscriptionAuth",
+      "path": "packages/adapters/claude-local/src/server/quota.ts#describeClaudeSubscriptionAuth",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "subscription"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readclaudeauthstatus:f6b1fea3d5",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readClaudeAuthStatus",
+      "path": "packages/adapters/claude-local/src/server/quota.ts#readClaudeAuthStatus",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:istransientwindowsauthreplaceerror:a87d122ddf",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isTransientWindowsAuthReplaceError",
+      "path": "packages/adapters/codex-local/src/server/codex-home.ts#isTransientWindowsAuthReplaceError",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:withauthreplaceretry:003cbf60ab",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "withAuthReplaceRetry",
+      "path": "packages/adapters/codex-local/src/server/codex-home.ts#withAuthReplaceRetry",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:writeapikeyauthjson:ba88f61c3d",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "writeApiKeyAuthJson",
+      "path": "packages/adapters/codex-local/src/server/codex-home.ts#writeApiKeyAuthJson",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:fallbackmodeusesfreshsession:795ca62e47",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "fallbackModeUsesFreshSession",
+      "path": "packages/adapters/codex-local/src/server/execute.ts#fallbackModeUsesFreshSession",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:iscodexunknownsessionerror:c23f912b53",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isCodexUnknownSessionError",
+      "path": "packages/adapters/codex-local/src/server/parse.ts#isCodexUnknownSessionError",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readcodexauthinfo:0bfb53c04d",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readCodexAuthInfo",
+      "path": "packages/adapters/codex-local/src/server/quota.ts#readCodexAuthInfo",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readsession:e03247076c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readSession",
+      "path": "packages/adapters/cursor-cloud/src/server/execute.ts#readSession",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:sessionmatches:05a2a5d7f6",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "sessionMatches",
+      "path": "packages/adapters/cursor-cloud/src/server/execute.ts#sessionMatches",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:session-ts:b347563bc8",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "session.ts",
+      "path": "packages/adapters/cursor-cloud/src/server/session.ts",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 9,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:asrecord:bf069aace2",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "asRecord",
+      "path": "packages/adapters/cursor-cloud/src/server/session.ts#asRecord",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:normalize:1d1307addd",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "normalize",
+      "path": "packages/adapters/cursor-cloud/src/server/session.ts#normalize",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readrepos:e6f161e5a7",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readRepos",
+      "path": "packages/adapters/cursor-cloud/src/server/session.ts#readRepos",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readstring:9fd7201196",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readString",
+      "path": "packages/adapters/cursor-cloud/src/server/session.ts#readString",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:iscursorunknownsessionerror:05a571d6bd",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isCursorUnknownSessionError",
+      "path": "packages/adapters/cursor-local/src/server/parse.ts#isCursorUnknownSessionError",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readsessionid:37656d341b",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readSessionId",
+      "path": "packages/adapters/cursor-local/src/server/parse.ts#readSessionId",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readcursorauthinfo:611bf92265",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readCursorAuthInfo",
+      "path": "packages/adapters/cursor-local/src/server/test.ts#readCursorAuthInfo",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:detectgeminiauthrequired:f2b0bc3cd9",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "detectGeminiAuthRequired",
+      "path": "packages/adapters/gemini-local/src/server/parse.ts#detectGeminiAuthRequired",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:isgeminisessionunrecoverableerror:3b528c6337",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isGeminiSessionUnrecoverableError",
+      "path": "packages/adapters/gemini-local/src/server/parse.ts#isGeminiSessionUnrecoverableError",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readsessionid:f1a626a7c5",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readSessionId",
+      "path": "packages/adapters/gemini-local/src/server/parse.ts#readSessionId",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readsessionid:2e7ae085ed",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readSessionId",
+      "path": "packages/adapters/gemini-local/src/ui/parse-stdout.ts#readSessionId",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:isgrokunknownsessionerror:4a421ba449",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isGrokUnknownSessionError",
+      "path": "packages/adapters/grok-local/src/server/parse.ts#isGrokUnknownSessionError",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:builddeviceauthpayloadv3:1f7ff356ef",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildDeviceAuthPayloadV3",
+      "path": "packages/adapters/openclaw-gateway/src/server/execute.ts#buildDeviceAuthPayloadV3",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:normalizesessionkeystrategy:80137e3b6f",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "normalizeSessionKeyStrategy",
+      "path": "packages/adapters/openclaw-gateway/src/server/execute.ts#normalizeSessionKeyStrategy",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:prefixsessionkeyforagent:897347bd2e",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "prefixSessionKeyForAgent",
+      "path": "packages/adapters/openclaw-gateway/src/server/execute.ts#prefixSessionKeyForAgent",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolveauthtoken:49bbdc938a",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveAuthToken",
+      "path": "packages/adapters/openclaw-gateway/src/server/execute.ts#resolveAuthToken",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolvesessionkey:145ca2238c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveSessionKey",
+      "path": "packages/adapters/openclaw-gateway/src/server/execute.ts#resolveSessionKey",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:toauthorizationheadervalue:4f00f85bd8",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "toAuthorizationHeaderValue",
+      "path": "packages/adapters/openclaw-gateway/src/server/execute.ts#toAuthorizationHeaderValue",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:tokenfromauthheader:022c2d00d6",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "tokenFromAuthHeader",
+      "path": "packages/adapters/openclaw-gateway/src/server/execute.ts#tokenFromAuthHeader",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolveauthtoken:b2495769f8",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveAuthToken",
+      "path": "packages/adapters/openclaw-gateway/src/server/test.ts#resolveAuthToken",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:tokenfromauthheader:2a131a8e96",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "tokenFromAuthHeader",
+      "path": "packages/adapters/openclaw-gateway/src/server/test.ts#tokenFromAuthHeader",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:isopencodeunknownsessionerror:e212f70b9c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isOpenCodeUnknownSessionError",
+      "path": "packages/adapters/opencode-local/src/server/parse.ts#isOpenCodeUnknownSessionError",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildremotesessionpath:4b63e0850f",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildRemoteSessionPath",
+      "path": "packages/adapters/pi-local/src/server/execute.ts#buildRemoteSessionPath",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildsessionpath:56830abc89",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildSessionPath",
+      "path": "packages/adapters/pi-local/src/server/execute.ts#buildSessionPath",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:ensuresessionsdir:207f176ba0",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "ensureSessionsDir",
+      "path": "packages/adapters/pi-local/src/server/execute.ts#ensureSessionsDir",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readsavedsessioncwd:786e1b53df",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readSavedSessionCwd",
+      "path": "packages/adapters/pi-local/src/server/execute.ts#readSavedSessionCwd",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readsessionheadercwd:6db98c9b48",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readSessionHeaderCwd",
+      "path": "packages/adapters/pi-local/src/server/execute.ts#readSessionHeaderCwd",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:ispiunknownsessionerror:df4f555fb0",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isPiUnknownSessionError",
+      "path": "packages/adapters/pi-local/src/server/parse.ts#isPiUnknownSessionError",
+      "owner": "Adapters Runtime Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:clean-poisoned-claude-sessions-ts:491d2df442",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "clean-poisoned-claude-sessions.ts",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 26,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:classifyjsonltext:1787cfabef",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "classifyJsonlText",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#classifyJsonlText",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:classifyrow:2e7059cee4",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "classifyRow",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#classifyRow",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:defaultconfigpath:cd47c81a6c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "defaultConfigPath",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#defaultConfigPath",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:encodeclaudecwd:85d78ecb16",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "encodeClaudeCwd",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#encodeClaudeCwd",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:extractsessionparams:dbba779786",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "extractSessionParams",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#extractSessionParams",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:jsonlpathfor:b3d6b5d3c9",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "jsonlPathFor",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#jsonlPathFor",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:log:6ae302f391",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "log",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#log",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:main:9870aa1930",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "main",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#main",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:parseargs:36ac80be3d",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "parseArgs",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#parseArgs",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readdatabaseurlfromconfig:054183004a",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readDatabaseUrlFromConfig",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#readDatabaseUrlFromConfig",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readjsonlsafe:2ffb33a079",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readJsonlSafe",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#readJsonlSafe",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolveclaudeconfigdir:6c5e99f67e",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveClaudeConfigDir",
+      "path": "packages/db/scripts/clean-poisoned-claude-sessions.ts#resolveClaudeConfigDir",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "feature:create-auth-bootstrap-invite-ts:a0522c2538",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "create-auth-bootstrap-invite.ts",
+      "path": "packages/db/scripts/create-auth-bootstrap-invite.ts",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 9,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:createinvitetoken:95d2c8b121",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "createInviteToken",
+      "path": "packages/db/scripts/create-auth-bootstrap-invite.ts#createInviteToken",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:hashtoken:0376240385",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "hashToken",
+      "path": "packages/db/scripts/create-auth-bootstrap-invite.ts#hashToken",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:main:d3981d4adb",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "main",
+      "path": "packages/db/scripts/create-auth-bootstrap-invite.ts#main",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readarg:7bb30bed66",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readArg",
+      "path": "packages/db/scripts/create-auth-bootstrap-invite.ts#readArg",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:agent-task-sessions-ts:8ffb1f560f",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "agent_task_sessions.ts",
+      "path": "packages/db/src/schema/agent_task_sessions.ts",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:auth-ts:66bb89a01c",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "auth.ts",
+      "path": "packages/db/src/schema/auth.ts",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:cli-auth-challenges-ts:2e5386b39b",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "cli_auth_challenges.ts",
+      "path": "packages/db/src/schema/cli_auth_challenges.ts",
+      "owner": "Data Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:esbuild-config-mjs:4f9e5ff5a1",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "esbuild.config.mjs",
+      "path": "packages/plugins/examples/plugin-authoring-smoke-example/esbuild.config.mjs",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:rollup-config-mjs:9a30901ac2",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "rollup.config.mjs",
+      "path": "packages/plugins/examples/plugin-authoring-smoke-example/rollup.config.mjs",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:withplugins:ba36fdc2d2",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "withPlugins",
+      "path": "packages/plugins/examples/plugin-authoring-smoke-example/rollup.config.mjs#withPlugins",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:manifest-ts:550f3462e2",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "manifest.ts",
+      "path": "packages/plugins/examples/plugin-authoring-smoke-example/src/manifest.ts",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:dashboardwidget:403a555d8e",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "DashboardWidget",
+      "path": "packages/plugins/examples/plugin-authoring-smoke-example/src/ui/index.tsx#DashboardWidget",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:worker-ts:9c7a093137",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "worker.ts",
+      "path": "packages/plugins/examples/plugin-authoring-smoke-example/src/worker.ts",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:vitest-config-ts:542f1fbd4e",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "vitest.config.ts",
+      "path": "packages/plugins/examples/plugin-authoring-smoke-example/vitest.config.ts",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:registeractionhandlers:e24495bdfa",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerActionHandlers",
+      "path": "packages/plugins/examples/plugin-kitchen-sink-example/src/worker.ts#registerActionHandlers",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerdatahandlers:ab0ffbf7cb",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerDataHandlers",
+      "path": "packages/plugins/examples/plugin-kitchen-sink-example/src/worker.ts#registerDataHandlers",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registereventhandlers:df783fbf7c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerEventHandlers",
+      "path": "packages/plugins/examples/plugin-kitchen-sink-example/src/worker.ts#registerEventHandlers",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerjobs:ca8aefd946",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerJobs",
+      "path": "packages/plugins/examples/plugin-kitchen-sink-example/src/worker.ts#registerJobs",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registertoolhandlers:b19c36cc34",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerToolHandlers",
+      "path": "packages/plugins/examples/plugin-kitchen-sink-example/src/worker.ts#registerToolHandlers",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:isterminalsessionevent:323ba7e69f",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isTerminalSessionEvent",
+      "path": "packages/plugins/plugin-llm-wiki/src/wiki/core.ts#isTerminalSessionEvent",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:registerwikitools:e51d258bac",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "registerWikiTools",
+      "path": "packages/plugins/plugin-llm-wiki/src/wiki/core.ts#registerWikiTools",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:startwikiquerysession:55efcab34e",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "startWikiQuerySession",
+      "path": "packages/plugins/plugin-llm-wiki/src/wiki/core.ts#startWikiQuerySession",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:auth-ts:f31f08ba90",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "auth.ts",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/auth.ts",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 7,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:isauthorizedrequest:20e7b3cb22",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isAuthorizedRequest",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/auth.ts#isAuthorizedRequest",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:readbearertoken:2f07505b23",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readBearerToken",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/auth.ts#readBearerToken",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:timingsafestringequal:e3ef01fda2",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "timingSafeStringEqual",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/auth.ts#timingSafeStringEqual",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildloginshellscript:515e566719",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildLoginShellScript",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/exec.ts#buildLoginShellScript",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 2,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "function:readsessionstrategy:302e25ab68",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "readSessionStrategy",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/routes.ts#readSessionStrategy",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:sessions-ts:5f68e2551e",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "sessions.ts",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/sessions.ts",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 9,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:cleanuptimedoutexecution:d8d4d50432",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "cleanupTimedOutExecution",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/sessions.ts#cleanupTimedOutExecution",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:getnamedsession:a82525c35e",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "getNamedSession",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/sessions.ts#getNamedSession",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:issessionnotfounderror:0feb25359c",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "isSessionNotFoundError",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/sessions.ts#isSessionNotFoundError",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolveexecutiontarget:0a6546623f",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveExecutionTarget",
+      "path": "packages/plugins/sandbox-providers/cloudflare/bridge-template/src/sessions.ts#resolveExecutionTarget",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolveexecutesession:816fc676ab",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveExecuteSession",
+      "path": "packages/plugins/sandbox-providers/cloudflare/src/plugin.ts#resolveExecuteSession",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildloginshellscript:1563b5ac00",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildLoginShellScript",
+      "path": "packages/plugins/sandbox-providers/daytona/src/plugin.ts#buildLoginShellScript",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildloginshellscript:068a234843",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildLoginShellScript",
+      "path": "packages/plugins/sandbox-providers/e2b/src/plugin.ts#buildLoginShellScript",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildloginshellscript:03e0afe36e",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildLoginShellScript",
+      "path": "packages/plugins/sandbox-providers/exe-dev/src/plugin.ts#buildLoginShellScript",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:buildloginshellscript:019d0a1fc2",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "buildLoginShellScript",
+      "path": "packages/plugins/sandbox-providers/modal/src/plugin.ts#buildLoginShellScript",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolveauth:5e584e8c03",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveAuth",
+      "path": "packages/plugins/sandbox-providers/modal/src/plugin.ts#resolveAuth",
+      "owner": "Plugin Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:ensurenpmauth:c1b6dd33f7",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "ensureNpmAuth",
+      "path": "scripts/bootstrap-npm-package.mjs#ensureNpmAuth",
+      "owner": "Engineering Delivery Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:configure-softwarehouse-local-codex-auth-mjs:5c6ea2dd68",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "configure-softwarehouse-local-codex-auth.mjs",
+      "path": "scripts/configure-softwarehouse-local-codex-auth.mjs",
+      "owner": "Engineering Delivery Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 7,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:request:5b498a80b2",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "request",
+      "path": "scripts/configure-softwarehouse-local-codex-auth.mjs#request",
+      "owner": "Engineering Delivery Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:resolvecompany:7d05d3d1df",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "resolveCompany",
+      "path": "scripts/configure-softwarehouse-local-codex-auth.mjs#resolveCompany",
+      "owner": "Engineering Delivery Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:withoutopenaikeyenv:eba9fd47b0",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "withoutOpenAiKeyEnv",
+      "path": "scripts/configure-softwarehouse-local-codex-auth.mjs#withoutOpenAiKeyEnv",
+      "owner": "Engineering Delivery Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth",
+        "configuration"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "function:findboardauthorizationwaitchain:97bf38ac36",
+      "type": "function",
+      "kind": "feature_or_capability",
+      "name": "findBoardAuthorizationWaitChain",
+      "path": "scripts/lib/softwarehouse-learning-loop.mjs#findBoardAuthorizationWaitChain",
+      "owner": "Engineering Delivery Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    }
+  ]
+}

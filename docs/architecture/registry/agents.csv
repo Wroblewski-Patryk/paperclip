@@ -1,0 +1,3 @@
+id,name,status,layer,module,feature,description,file_path,invocation_mode,risk_level,completion_percent,last_verified_at,verification_status,notes
+AGENT-BOARD-OPERATOR,Board operator context,verified_local,agent-system,server,FEATURE-COMPANY-SCOPING,Human board principal with full company control in instance,doc/PRODUCT.md,session,high,90,2026-05-27,verified_local,Auth mode determines login requirements.
+AGENT-CODEX-LOCAL,Codex local adapter agent,implemented_not_verified,agent-system,packages/adapters,FEATURE-ISSUE-ORCHESTRATION,Local coding assistant heartbeat worker via codex_local adapter,packages/adapters/src/codex-local.ts,local_cli,high,74,2026-05-27,implemented_not_verified,Runtime proof depends on local codex availability.

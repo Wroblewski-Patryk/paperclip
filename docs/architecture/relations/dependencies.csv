@@ -1,0 +1,11 @@
+from_id,to_id,relation_type,status,notes
+FEATURE-COMPANY-SCOPING,API-COMPANIES-LIST,owns,verified_local,Company feature owns canonical list route.
+FEATURE-ISSUE-ORCHESTRATION,API-ISSUE-CHECKOUT,owns,verified_local,Issue orchestration feature owns checkout transition route.
+FEATURE-ISSUE-ORCHESTRATION,API-ISSUES-LIST,owns,partially_verified,Issue orchestration feature owns scoped issue listing route.
+API-ISSUE-CHECKOUT,NODE-TEST-ISSUE-CHECKOUT-CONFLICT,verified_by,verified_local,Checkout conflict integration test proves race contract.
+API-ISSUES-LIST,NODE-TEST-ISSUES-LIST-SCOPE,verified_by,partially_verified,Scope tests exist with remaining edge-case backlog.
+API-COMPANIES-LIST,NODE-TEST-COMPANIES-API,verified_by,verified_local,Route health and shape test covers baseline.
+UI-COMPANY-SELECTOR,API-COMPANIES-LIST,reads,verified_local,Company selector hydrates from companies route.
+UI-ISSUE-CHECKOUT-ACTION,API-ISSUE-CHECKOUT,invokes,partially_verified,Issue UI action invokes checkout endpoint.
+WORKFLOW-ISSUE-LIFECYCLE,EVENT-ISSUE-CHECKED-OUT,emits,verified_local,Checkout workflow creates state transition event.
+WORKFLOW-ISSUE-LIFECYCLE,WORKFLOW-COMPANY-CONTEXT,depends_on,verified_local,Issue workflow depends on active company context.

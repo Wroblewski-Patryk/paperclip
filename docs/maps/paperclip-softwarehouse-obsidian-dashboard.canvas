@@ -1,0 +1,117 @@
+{
+  "nodes": [
+    {
+      "id": "vault",
+      "type": "file",
+      "x": -760,
+      "y": -80,
+      "width": 360,
+      "height": 180,
+      "file": "obsidian/project-vault-dashboard.md"
+    },
+    {
+      "id": "docmap",
+      "type": "file",
+      "x": -280,
+      "y": -230,
+      "width": 320,
+      "height": 150,
+      "file": "documentation-map.md"
+    },
+    {
+      "id": "atlas",
+      "type": "file",
+      "x": 160,
+      "y": -230,
+      "width": 340,
+      "height": 150,
+      "file": "obsidian/code-to-docs-atlas.md"
+    },
+    {
+      "id": "hotlist",
+      "type": "file",
+      "x": 160,
+      "y": 0,
+      "width": 340,
+      "height": 150,
+      "file": "obsidian/function-journey-hotlist.md"
+    },
+    {
+      "id": "ai",
+      "type": "file",
+      "x": 600,
+      "y": -230,
+      "width": 320,
+      "height": 150,
+      "file": "obsidian/ai-navigation-brief.md"
+    },
+    {
+      "id": "paperclip",
+      "type": "file",
+      "x": 600,
+      "y": 0,
+      "width": 320,
+      "height": 150,
+      "file": "obsidian/paperclip-cleanup-brief.md"
+    },
+    {
+      "id": "rule",
+      "type": "text",
+      "x": -280,
+      "y": 220,
+      "width": 760,
+      "height": 130,
+      "text": "Current truth belongs in docs. Historical evidence belongs in history. Generated graph/index files must be refreshed after structural changes."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "fromNode": "vault",
+      "fromSide": "right",
+      "toNode": "docmap",
+      "toSide": "left",
+      "label": "start"
+    },
+    {
+      "id": "e2",
+      "fromNode": "docmap",
+      "fromSide": "right",
+      "toNode": "atlas",
+      "toSide": "left",
+      "label": "sources"
+    },
+    {
+      "id": "e3",
+      "fromNode": "atlas",
+      "fromSide": "right",
+      "toNode": "hotlist",
+      "toSide": "left",
+      "label": "gaps"
+    },
+    {
+      "id": "e4",
+      "fromNode": "hotlist",
+      "fromSide": "right",
+      "toNode": "ai",
+      "toSide": "left",
+      "label": "work route"
+    },
+    {
+      "id": "e5",
+      "fromNode": "ai",
+      "fromSide": "right",
+      "toNode": "paperclip",
+      "toSide": "left",
+      "label": "delegate"
+    },
+    {
+      "id": "e6",
+      "fromNode": "rule",
+      "fromSide": "right",
+      "toNode": "atlas",
+      "toSide": "left",
+      "label": "govern"
+    }
+  ]
+}

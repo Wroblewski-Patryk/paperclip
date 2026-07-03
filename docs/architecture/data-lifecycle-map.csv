@@ -1,0 +1,2 @@
+Entity,Source of truth,Create owner,Update owner,Archive/delete owner,Readers,Retention,Export/reset behavior,Tests,Evidence,Risk,Last updated,Notes
+ExampleEntity,database,example service,example service,example service,web;api,,,,,medium,YYYY-MM-DD,Example only.

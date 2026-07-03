@@ -1,0 +1,55 @@
+{
+  "$meta": {
+    "version": 1,
+    "source": "luckysparrow-softwarehouse-template"
+  },
+  "database": {
+    "mode": "embedded-postgres",
+    "embeddedPostgresDataDir": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/home/instances/default/db",
+    "embeddedPostgresPort": 54329,
+    "backup": {
+      "enabled": true,
+      "intervalMinutes": 60,
+      "retentionDays": 14,
+      "maxTotalBytes": 10737418240,
+      "dir": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/home/instances/default/data/backups"
+    }
+  },
+  "logging": {
+    "mode": "file",
+    "logDir": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/logs"
+  },
+  "server": {
+    "deploymentMode": "local_trusted",
+    "exposure": "private",
+    "bind": "loopback",
+    "host": "127.0.0.1",
+    "port": 3200,
+    "allowedHostnames": [
+      "localhost",
+      "127.0.0.1"
+    ],
+    "serveUi": true
+  },
+  "auth": {
+    "baseUrlMode": "explicit",
+    "publicBaseUrl": "http://127.0.0.1:3200",
+    "disableSignUp": false
+  },
+  "storage": {
+    "provider": "local_disk",
+    "localDisk": {
+      "baseDir": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/storage"
+    }
+  },
+  "secrets": {
+    "provider": "local_encrypted",
+    "strictMode": false,
+    "localEncrypted": {
+      "keyFilePath": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/secrets/master.key"
+    }
+  },
+  "telemetry": {
+    "enabled": false
+  }
+}

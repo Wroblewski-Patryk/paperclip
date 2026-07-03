@@ -1,0 +1,3 @@
+id,name,status,layer,module,feature,description,file_path,parent_component,risk_level,completion_percent,last_verified_at,verification_status,notes
+UI-COMPANY-SELECTOR,Company selector control,verified_local,frontend,ui,FEATURE-COMPANY-SCOPING,Switches active company context across pages,ui/src/components/navigation/CompanySwitcher.tsx,COMP-COMPANY-SWITCHER,medium,85,2026-05-27,verified_local,Must stay consistent with company-scoped API data.
+UI-ISSUE-CHECKOUT-ACTION,Issue checkout action,partially_verified,frontend,ui,FEATURE-ISSUE-ORCHESTRATION,Invokes checkout and handles conflicts in issue view,ui/src/pages/IssueDetailPage.tsx,COMP-ISSUE-DETAIL-PAGE,high,79,2026-05-27,partially_verified,Conflict-state UX still evolving.

@@ -1,0 +1,3 @@
+id,name,status,layer,module,feature,description,file_path,used_by,risk_level,completion_percent,last_verified_at,verification_status,notes
+PROMPT-AGENTS-MD-ROOT,Repository AGENTS instructions,verified_local,agent-system,docs,FEATURE-ISSUE-ORCHESTRATION,Primary contributor and agent operating rules,AGENTS.md,coding agents and contributors,high,90,2026-05-27,verified_local,Contract for repo work behavior.
+PROMPT-ISSUE-WAKE-PAYLOAD,Issue wake payload contract,verified_local,agent-system,server,FEATURE-ISSUE-ORCHESTRATION,Execution contract for issue heartbeat actions,issue thread wake payload,harness-managed wake,high,88,2026-05-27,verified_local,Defines required issue disposition semantics.

@@ -1,0 +1,2 @@
+ID,Title,Status,Capability IDs,Feature IDs,Chain IDs,Risk,Owner,Package file,Next task,Evidence,Last updated,Notes
+WP-000,Example work package,proposed,CAP-000,FEATURE-000,CHAIN-000,medium,Owner,docs/planning/work-packages/WP-000-example.md,Replace this row.,,YYYY-MM-DD,Example only.

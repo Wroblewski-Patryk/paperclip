@@ -1,0 +1,14 @@
+# Risk Register
+
+Last updated: 2026-07-03
+
+| ID | Area | Risk | Likelihood | Impact | Mitigation | Status | Last Updated |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| RISK-PSH-001 | Portfolio/routines | Parked apps such as Aviary/Nest/Featherly could be reawakened by default scripts or routines and consume agent capacity. | medium | high | Keep defaults to `Paperclip,Soar,Roost` for architecture lifecycle and Soar/Roost for active app routines; require board activation for future apps. | mitigating | 2026-07-03 |
+| RISK-PSH-002 | App completion | Agents can mark backend or frontend work done while the end-user subscription/configuration/browser flow remains broken or unverified. | high | high | Require app-completion index, browser/clickthrough proof, and PM/QA review handoff for user-visible work. | mitigating | 2026-07-03 |
+| RISK-PSH-003 | Runtime/restart | Restarting the active Paperclip process while live runs are active can interrupt agent work or leave issue state confusing. | medium | high | Check `/api/health` and live-runs; wait for idle unless owner explicitly approves interruption. | mitigating | 2026-07-03 |
+| RISK-PSH-004 | Port confusion | Local dev port `3100` and Softwarehouse port `3200` can be confused, causing checks or restarts against the wrong process. | medium | medium | Treat `.paperclip/config.json` and `http://127.0.0.1:3200` as the active Softwarehouse source unless explicitly changed. | mitigating | 2026-07-03 |
+| RISK-PSH-005 | Process overgrowth | Adding standards/frameworks can create bureaucracy instead of useful autonomous execution. | medium | medium | Weekly standards review must score proposals by value, fit, complexity, risk, minimal step, and owner approval. Limit recommendations to practical, low-churn changes. | mitigating | 2026-07-03 |
+| RISK-PSH-006 | Memory drift | Future agents may miss this conversation if memory is not in the expected `.agents/state` convention or the memory skill is not used. | medium | medium | Use `.agents/skills/paperclip-project-memory/SKILL.md`; store concise state files in `.agents/state/` and update `project-journal.md` for archived threads. | mitigating | 2026-07-03 |
+| RISK-PSH-007 | Queue churn | Repeated stale queued wakeups can create `issue_assignee_changed` cancellation noise and make the dashboard look broken even when ownership changes are legitimate. | medium | medium | Coalesce duplicate issue/agent wakeups, inspect live-runs and fresh heartbeat-runs before acting, and avoid manual retry storms. | mitigating | 2026-07-03 |
+| RISK-PSH-008 | Mechanical unblocking | Blocked issues can be incorrectly reopened if future agents remove blockers without checking whether they are terminal/resolved or still active dependencies like `LUC-6331`. | medium | high | Remove blockers only when the blocker is terminal/resolved; treat Soar lanes blocked by `LUC-6331` as real until fresh evidence resolves it. | mitigating | 2026-07-03 |

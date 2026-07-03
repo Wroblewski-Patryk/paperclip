@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-07-02T16:46:27.036Z",
+  "project": "Paperclip",
+  "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
+  "status": "truth_incomplete",
+  "gates": [
+    {
+      "gate": "architecture_exports",
+      "status": "present",
+      "evidence": "docs/graphs/architecture-awareness.json",
+      "requiredFor": "cross-layer ownership and dependency tracing"
+    },
+    {
+      "gate": "app_completion_index",
+      "status": "present",
+      "evidence": "docs/status/app-completion-index.json",
+      "requiredFor": "user-flow works/fails/unknown classification"
+    },
+    {
+      "gate": "event_chain_index",
+      "status": "incomplete",
+      "evidence": "docs/status/event-chain-index.json",
+      "requiredFor": "backend/frontend/worker impact analysis"
+    },
+    {
+      "gate": "runtime_error_index",
+      "status": "covered",
+      "evidence": "docs/status/runtime-error-index.json",
+      "requiredFor": "agent-owned bug discovery and repair routing"
+    },
+    {
+      "gate": "app_completion_risk_index",
+      "status": "gaps_indexed",
+      "evidence": "docs/status/app-completion-index.json",
+      "requiredFor": "user-facing flow verification across frontend, backend, tests, docs, auth/config, and browser proof"
+    },
+    {
+      "gate": "public_runtime_probe",
+      "status": "unknown",
+      "evidence": [],
+      "requiredFor": "production parity with local behavior"
+    }
+  ],
+  "nextAction": "Use the first failing gate to create or wake the smallest owner-scoped repair/proof lane; do not rely on narrative status."
+}

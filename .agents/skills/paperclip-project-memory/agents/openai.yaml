@@ -1,0 +1,3 @@
+display_name: Paperclip Project Memory
+short_description: Maintain Paperclip project memory.
+default_prompt: Analyze this Paperclip conversation or change and update the durable project memory, journal, and operating context.

@@ -1,0 +1,17 @@
+{
+    "types":  {
+                  "aliases":  "aliases",
+                  "cssclasses":  "multitext",
+                  "tags":  "tags",
+                  "status":  "text",
+                  "owner":  "text",
+                  "priority":  "text",
+                  "project":  "text",
+                  "area":  "text",
+                  "created":  "date",
+                  "updated":  "date",
+                  "due":  "date",
+                  "source":  "text",
+                  "links":  "multitext"
+              }
+}

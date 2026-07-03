@@ -1,0 +1,492 @@
+{
+  "excludePaths": [
+    "docs/graphs/architecture-awareness.json",
+    "docs/graphs/architecture-awareness.csv",
+    "docs/graphs/architecture-proof-register.csv",
+    "docs/graphs/architecture-graph.md",
+    "docs/graphs/architecture-graph.mmd",
+    "docs/graphs/architecture-health.json",
+    "docs/status/architecture-awareness-report.md",
+    "docs/status/architecture-dependency-report.md",
+    "docs/status/architecture-ownership-report.md",
+    "docs/status/task-synchronization-report.md"
+  ],
+  "excludePathPrefixes": [
+    "server/ui-dist"
+  ],
+  "entityOverrides": [
+    {
+      "path": "server/src/routes/issues.ts",
+      "type": "route",
+      "name": "Issue Routes",
+      "description": "Primary issue lifecycle routes: assignment, status transitions, blockers, and execution safeguards.",
+      "owner": "Backend Platform Lead",
+      "status": "implemented",
+      "critical": true,
+      "evidence": [
+        "LUC-278 critical-entity override"
+      ]
+    },
+    {
+      "path": "server/src/services/heartbeat.ts",
+      "type": "feature",
+      "name": "Heartbeat Orchestration",
+      "description": "Core heartbeat orchestration and run-state control loop for agent execution.",
+      "owner": "Backend Platform Lead",
+      "status": "implemented",
+      "critical": true,
+      "evidence": [
+        "LUC-278 critical-entity override"
+      ]
+    },
+    {
+      "path": "packages/db/src/schema/issues.ts",
+      "type": "model",
+      "name": "Issue Schema",
+      "description": "Canonical issue data model and persistence invariants for issue lifecycle control.",
+      "owner": "Data Platform Lead",
+      "status": "implemented",
+      "critical": true,
+      "evidence": [
+        "LUC-278 critical-entity override"
+      ]
+    },
+    {
+      "path": "packages/shared/src/validators/issue.ts",
+      "type": "model",
+      "name": "Issue Validator Contracts",
+      "description": "Shared issue request/response validator contracts used by server and UI layers.",
+      "owner": "Shared Contracts Lead",
+      "status": "implemented",
+      "critical": true,
+      "evidence": [
+        "LUC-278 critical-entity override"
+      ]
+    },
+    {
+      "path": "ui/src/components/IssueProperties.tsx",
+      "type": "component",
+      "name": "Issue Properties Panel",
+      "description": "Board-side issue controls for assignee adapter overrides and execution settings.",
+      "owner": "Frontend Experience Lead",
+      "status": "implemented",
+      "critical": true,
+      "evidence": [
+        "LUC-278 critical-entity override"
+      ]
+    }
+  ],
+  "relationOverrides": [
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/cli-auth-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/cli-auth/challenges",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/cli-auth-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/cli-auth/challenges/:id",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/cli-auth-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/cli-auth/challenges/:id/approve",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/cli-auth-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/cli-auth/challenges/:id/cancel",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/cli-auth-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/cli-auth/me",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/cli-auth-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/cli-auth/revoke-current",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/auth-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/app.ts#/api/auth",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/auth-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/auth.ts#/get-session",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/auth-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/auth.ts#/profile",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/auth-routes.test.ts",
+      "fromType": "test",
+      "toId": "api_endpoint:patch-profile:b979c11b08",
+      "evidence": "LUC-7192 method-specific PATCH profile proof"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/agent-runtime-routes.test.ts",
+      "fromType": "test",
+      "toId": "api_endpoint:post-agents-id-claude-login:8b13b9757d",
+      "evidence": "LUC-7192 account/agent runtime route proof"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/agent-runtime-routes.test.ts",
+      "fromType": "test",
+      "toId": "api_endpoint:post-agents-id-runtime-state-reset-session:4f9efc9d6c",
+      "evidence": "LUC-7192 account/agent runtime route proof"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/agent-runtime-routes.test.ts",
+      "fromType": "test",
+      "toId": "api_endpoint:get-agents-id-task-sessions:326fbda0b5",
+      "evidence": "LUC-7192 account/agent runtime route proof"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/agent-runtime-routes.test.ts",
+      "fromType": "test",
+      "toId": "api_endpoint:get-agents-id-runtime-state:901571eae9",
+      "evidence": "LUC-7192 account/agent runtime route proof"
+    },
+    {
+      "type": "tests",
+      "fromPath": "cli/src/__tests__/auth-command-registration.test.ts",
+      "fromType": "test",
+      "toPath": "cli/src/commands/client/auth.ts",
+      "toType": "feature",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "cli/src/__tests__/access-parity.test.ts",
+      "fromType": "test",
+      "toPath": "cli/src/commands/client/access.ts",
+      "toType": "feature",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "cli/src/__tests__/access-parity.test.ts",
+      "fromType": "test",
+      "toPath": "cli/src/commands/client/agent.ts",
+      "toType": "feature",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "cli/src/__tests__/agent-lifecycle.test.ts",
+      "fromType": "test",
+      "toPath": "cli/src/commands/client/agent.ts",
+      "toType": "feature",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/invite-create-route.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/companies/:companyId/invites",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/invite-list-route.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/companies/:companyId/invites",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/company-user-directory-route.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/companies/:companyId/user-directory",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/openclaw-invite-prompt-route.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/companies/:companyId/openclaw/invite-prompt",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/access-routes-permissions-upgrade.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/companies/:companyId/members/:memberId",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/invite-summary-route.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/invites/:token",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/invite-logo-route.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/invites/:token/logo",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/invite-accept-existing-member.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/invites/:token/accept",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/invite-test-resolution-route.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/invites/:token/test-resolution",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/cli-auth-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/access.ts#/skills/index",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/activity-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/activity.ts#/companies/:companyId/activity",
+      "toType": "api_endpoint",
+      "evidence": "LUC-275 priority backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/issues-checkout-wakeup.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/issues.ts",
+      "toType": "route",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/issue-agent-mutation-ownership-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/issues.ts",
+      "toType": "route",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/issue-execution-policy-routes.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/routes/issues.ts",
+      "toType": "route",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/heartbeat-auto-checkout-policy.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/services/heartbeat.ts",
+      "toType": "feature",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/heartbeat-start-lock.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/services/heartbeat.ts",
+      "toType": "feature",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/heartbeat-model-profile.test.ts",
+      "fromType": "test",
+      "toPath": "server/src/services/heartbeat.ts",
+      "toType": "feature",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/issues-service.test.ts",
+      "fromType": "test",
+      "toPath": "packages/db/src/schema/issues.ts",
+      "toType": "model",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "server/src/__tests__/issue-tree-control-service.test.ts",
+      "fromType": "test",
+      "toPath": "packages/db/src/schema/issues.ts",
+      "toType": "model",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "packages/shared/src/validators/issue.test.ts",
+      "fromType": "test",
+      "toPath": "packages/shared/src/validators/issue.ts",
+      "toType": "model",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "ui/src/components/IssueProperties.test.tsx",
+      "fromType": "test",
+      "toPath": "ui/src/components/IssueProperties.tsx",
+      "toType": "component",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "tests",
+      "fromPath": "ui/src/lib/issue-properties-panel-key.test.ts",
+      "fromType": "test",
+      "toPath": "ui/src/components/IssueProperties.tsx",
+      "toType": "component",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "doc/SPEC-implementation.md",
+      "fromType": "document",
+      "toPath": "server/src/app.ts#/api/auth",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "docs/api/authentication.md",
+      "fromType": "document",
+      "toPath": "server/src/app.ts#/api/auth",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "doc/plans/2026-05-23-cli-api-parity.md",
+      "fromType": "document",
+      "toPath": "server/src/routes/access.ts#/cli-auth/challenges/:id/cancel",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "doc/plans/2026-05-23-cli-api-parity.md",
+      "fromType": "document",
+      "toPath": "server/src/routes/access.ts#/cli-auth/me",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "doc/plans/2026-05-23-cli-api-parity.md",
+      "fromType": "document",
+      "toPath": "server/src/routes/auth.ts#/get-session",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "doc/plans/2026-05-23-cli-api-parity.md",
+      "fromType": "document",
+      "toPath": "server/src/routes/auth.ts#/profile",
+      "toType": "api_endpoint",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "doc/CLI.md",
+      "fromType": "document",
+      "toPath": "cli/src/commands/client/agent.ts",
+      "toType": "feature",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "doc/CLI.md",
+      "fromType": "document",
+      "toPath": "cli/src/commands/client/auth.ts",
+      "toType": "feature",
+      "evidence": "LUC-6627 account access proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "doc/SPEC-implementation.md",
+      "fromType": "document",
+      "toPath": "server/src/routes/issues.ts",
+      "toType": "route",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "doc/SPEC-implementation.md",
+      "fromType": "document",
+      "toPath": "server/src/services/heartbeat.ts",
+      "toType": "feature",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "doc/SPEC-implementation.md",
+      "fromType": "document",
+      "toPath": "packages/db/src/schema/issues.ts",
+      "toType": "model",
+      "evidence": "LUC-6627 critical proof backfill"
+    },
+    {
+      "type": "documents",
+      "fromPath": "softwarehouse/architectural-awareness-layer.md",
+      "fromType": "document",
+      "toPath": "ui/src/components/IssueProperties.tsx",
+      "toType": "component",
+      "evidence": "LUC-6627 critical proof backfill"
+    }
+  ]
+}

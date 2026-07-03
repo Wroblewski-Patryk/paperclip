@@ -1,0 +1,212 @@
+entity_path,doc_path,note
+server/src/app.ts#/api,doc/SPEC-implementation.md,API base and routing contract
+server/src/app.ts#/api/auth,doc/SPEC-implementation.md,auth surface
+server/src/app.ts#/assets,doc/SPEC-implementation.md,assets exposure
+server/src/routes/access.ts#/admin/users,doc/SPEC-implementation.md,instance access administration
+server/src/routes/access.ts#/admin/users/:userId/company-access,doc/SPEC-implementation.md,company access management
+server/src/routes/access.ts#/admin/users/:userId/demote-instance-admin,docs/api/authentication.md,priority API route documentation mapping
+server/src/routes/access.ts#/admin/users/:userId/promote-instance-admin,docs/api/authentication.md,priority API route documentation mapping
+server/src/routes/access.ts#/board-claim/:token,doc/SPEC-implementation.md,board claim flow
+server/src/routes/access.ts#/board-claim/:token/claim,doc/SPEC-implementation.md,board claim flow
+server/src/routes/access.ts#/cli-auth/challenges,doc/SPEC-implementation.md,cli auth challenge lifecycle
+server/src/routes/access.ts#/cli-auth/challenges/:id,doc/SPEC-implementation.md,cli auth challenge lifecycle
+server/src/routes/access.ts#/cli-auth/challenges/:id/approve,doc/SPEC-implementation.md,cli auth challenge lifecycle
+server/src/routes/access.ts#/cli-auth/challenges/:id/cancel,doc/SPEC-implementation.md,cli auth challenge lifecycle
+server/src/routes/access.ts#/cli-auth/me,doc/SPEC-implementation.md,cli auth identity endpoint
+server/src/routes/access.ts#/cli-auth/revoke-current,doc/SPEC-implementation.md,cli auth token revocation
+server/src/routes/access.ts#/companies/:companyId/invites,doc/SPEC-implementation.md,company invite management
+server/src/routes/access.ts#/companies/:companyId/join-requests,doc/SPEC-implementation.md,join request management
+server/src/routes/access.ts#/companies/:companyId/join-requests/:requestId/approve,doc/SPEC-implementation.md,join request resolution
+server/src/routes/access.ts#/companies/:companyId/join-requests/:requestId/reject,doc/SPEC-implementation.md,join request resolution
+server/src/routes/access.ts#/companies/:companyId/members,doc/SPEC-implementation.md,membership lifecycle
+server/src/routes/access.ts#/companies/:companyId/members/:memberId,doc/SPEC-implementation.md,membership update
+server/src/routes/access.ts#/companies/:companyId/members/:memberId/archive,doc/SPEC-implementation.md,membership archive
+server/src/routes/access.ts#/companies/:companyId/members/:memberId/permissions,doc/SPEC-implementation.md,member permission grants
+server/src/routes/access.ts#/companies/:companyId/members/:memberId/role-and-grants,doc/SPEC-implementation.md,member role and grants
+server/src/routes/access.ts#/companies/:companyId/openclaw/invite-prompt,doc/SPEC-implementation.md,invite prompt generation
+server/src/routes/access.ts#/companies/:companyId/user-directory,doc/SPEC-implementation.md,company user directory
+server/src/routes/access.ts#/invites/:inviteId/revoke,doc/SPEC-implementation.md,invite revocation
+server/src/routes/access.ts#/invites/:token,doc/SPEC-implementation.md,invite landing and resolution
+server/src/routes/access.ts#/invites/:token/accept,doc/SPEC-implementation.md,invite acceptance
+server/src/routes/access.ts#/invites/:token/logo,doc/SPEC-implementation.md,invite branding
+server/src/routes/access.ts#/invites/:token/onboarding,doc/SPEC-implementation.md,invite onboarding payload
+server/src/routes/access.ts#/invites/:token/onboarding.txt,doc/SPEC-implementation.md,invite onboarding text
+server/src/routes/access.ts#/invites/:token/skills/:skillName,doc/SPEC-implementation.md,invite skill content
+server/src/routes/access.ts#/invites/:token/skills/index,doc/SPEC-implementation.md,invite skill index
+server/src/routes/access.ts#/invites/:token/test-resolution,doc/SPEC-implementation.md,invite dns resolution diagnostics
+server/src/routes/access.ts#/join-requests/:requestId/claim-api-key,doc/SPEC-implementation.md,join request api key claim
+server/src/routes/access.ts#/skills/:skillName,doc/SPEC-implementation.md,skill markdown access
+server/src/routes/access.ts#/skills/available,doc/SPEC-implementation.md,available skills listing
+server/src/routes/access.ts#/skills/index,doc/SPEC-implementation.md,skills index
+server/src/routes/activity.ts#/companies/:companyId/activity,docs/api/activity.md,priority API route documentation mapping
+server/src/routes/activity.ts#/heartbeat-runs/:runId/issues,docs/api/activity.md,priority API route documentation mapping
+server/src/routes/activity.ts#/issues/:id/activity,docs/api/activity.md,priority API route documentation mapping
+server/src/routes/activity.ts#/issues/:id/runs,docs/api/activity.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/approve,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/claude-login,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/config-revisions,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/config-revisions/:revisionId,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/config-revisions/:revisionId/rollback,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/configuration,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/heartbeat/invoke,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/instructions-bundle,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/instructions-bundle/file,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/instructions-path,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/keys,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/keys/:keyId,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/pause,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/permissions,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/resume,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/runtime-state,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/runtime-state/reset-session,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/skills,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/skills/sync,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/task-sessions,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/terminate,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/:id/wakeup,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/me,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/me/inbox-lite,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/agents/me/inbox/mine,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/adapters/:type/detect-model,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/adapters/:type/model-profiles,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/adapters/:type/models,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/adapters/:type/test-environment,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/agent-configurations,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/agent-hires,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/agents,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/heartbeat-runs,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/live-runs,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/org,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/org.png,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/companies/:companyId/org.svg,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/heartbeat-runs/:runId,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/heartbeat-runs/:runId/cancel,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/heartbeat-runs/:runId/events,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/heartbeat-runs/:runId/log,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/heartbeat-runs/:runId/watchdog-decisions,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/heartbeat-runs/:runId/workspace-operations,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/instance/scheduler-heartbeats,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/issues/:issueId/active-run,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/issues/:issueId/live-runs,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/agents.ts#/workspace-operations/:operationId/log,docs/api/agents.md,priority API route documentation mapping
+server/src/routes/approvals.ts#/approvals/:id,docs/api/approvals.md,priority API route documentation mapping
+server/src/routes/approvals.ts#/approvals/:id/approve,docs/api/approvals.md,priority API route documentation mapping
+server/src/routes/approvals.ts#/approvals/:id/comments,docs/api/approvals.md,priority API route documentation mapping
+server/src/routes/approvals.ts#/approvals/:id/issues,docs/api/approvals.md,priority API route documentation mapping
+server/src/routes/approvals.ts#/approvals/:id/reject,docs/api/approvals.md,priority API route documentation mapping
+server/src/routes/approvals.ts#/approvals/:id/request-revision,docs/api/approvals.md,priority API route documentation mapping
+server/src/routes/approvals.ts#/approvals/:id/resubmit,docs/api/approvals.md,priority API route documentation mapping
+server/src/routes/approvals.ts#/companies/:companyId/approvals,docs/api/approvals.md,priority API route documentation mapping
+server/src/routes/auth.ts#/get-session,docs/api/authentication.md,priority API route documentation mapping
+server/src/routes/auth.ts#/profile,docs/api/authentication.md,priority API route documentation mapping
+server/src/routes/companies.ts#/,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/:companyId,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/:companyId/archive,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/:companyId/branding,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/:companyId/export,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/:companyId/exports,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/:companyId/exports/preview,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/:companyId/feedback-traces,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/:companyId/imports/apply,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/:companyId/imports/preview,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/import/jobs/:jobId,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/import/preview,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/issues,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/companies.ts#/stats,docs/api/companies.md,priority API route documentation mapping
+server/src/routes/costs.ts#/agents/:agentId/budgets,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/budget-incidents/:incidentId/resolve,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/budgets,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/budgets/overview,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/budgets/policies,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/cost-events,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/by-agent-model,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/by-agent,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/by-biller,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/by-project,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/by-provider,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/finance-by-biller,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/finance-by-kind,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/finance-events,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/finance-summary,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/quota-windows,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/summary,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/costs/window-spend,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/companies/:companyId/finance-events,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/costs.ts#/issues/:id/cost-summary,docs/api/costs.md,priority API route documentation mapping
+server/src/routes/dashboard.ts#/companies/:companyId/dashboard,docs/api/dashboard.md,priority API route documentation mapping
+server/src/routes/goals.ts#/companies/:companyId/goals,docs/api/goals-and-projects.md,priority API route documentation mapping
+server/src/routes/goals.ts#/goals/:id,docs/api/goals-and-projects.md,priority API route documentation mapping
+server/src/routes/issues.ts#/attachments/:attachmentId,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/attachments/:attachmentId/content,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/companies/:companyId/issues,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/companies/:companyId/issues/:issueId/attachments,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/companies/:companyId/issues/count,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/companies/:companyId/labels,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/companies/:companyId/search,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/feedback-traces/:traceId,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/feedback-traces/:traceId/bundle,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/admin/force-release,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/approvals,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/approvals/:approvalId,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/attachments,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/checkout,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/children,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/comments,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/comments/:commentId,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/documents,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/documents/:key,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/documents/:key/lock,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/documents/:key/revisions,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/documents/:key/revisions/:revisionId/restore,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/documents/:key/unlock,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/feedback-traces,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/feedback-votes,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/heartbeat-context,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/inbox-archive,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/interactions,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/interactions/:interactionId/accept,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/interactions/:interactionId/cancel,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/interactions/:interactionId/reject,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/interactions/:interactionId/respond,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/monitor/check-now,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/read,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/recovery-actions,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/recovery-actions/resolve,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/release,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/scheduled-retry/retry-now,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/issues/:id/work-products,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/labels/:labelId,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/issues.ts#/work-products/:id,docs/api/issues.md,priority API route documentation mapping
+server/src/routes/projects.ts#/companies/:companyId/projects,docs/api/goals-and-projects.md,priority API route documentation mapping
+server/src/routes/projects.ts#/projects/:id,docs/api/goals-and-projects.md,priority API route documentation mapping
+server/src/routes/projects.ts#/projects/:id/workspaces,docs/api/goals-and-projects.md,priority API route documentation mapping
+server/src/routes/projects.ts#/projects/:id/workspaces/:workspaceId,docs/api/goals-and-projects.md,priority API route documentation mapping
+server/src/routes/projects.ts#/projects/:id/workspaces/:workspaceId/runtime-commands/:action,docs/api/goals-and-projects.md,priority API route documentation mapping
+server/src/routes/projects.ts#/projects/:id/workspaces/:workspaceId/runtime-services/:action,docs/api/goals-and-projects.md,priority API route documentation mapping
+server/src/routes/routines.ts#/companies/:companyId/routines,docs/api/routines.md,priority API route documentation mapping
+server/src/routes/routines.ts#/routine-triggers/:id,docs/api/routines.md,priority API route documentation mapping
+server/src/routes/routines.ts#/routine-triggers/:id/rotate-secret,docs/api/routines.md,priority API route documentation mapping
+server/src/routes/routines.ts#/routine-triggers/public/:publicId/fire,docs/api/routines.md,priority API route documentation mapping
+server/src/routes/routines.ts#/routines/:id,docs/api/routines.md,priority API route documentation mapping
+server/src/routes/routines.ts#/routines/:id/revisions,docs/api/routines.md,priority API route documentation mapping
+server/src/routes/routines.ts#/routines/:id/revisions/:revisionId/restore,docs/api/routines.md,priority API route documentation mapping
+server/src/routes/routines.ts#/routines/:id/run,docs/api/routines.md,priority API route documentation mapping
+server/src/routes/routines.ts#/routines/:id/runs,docs/api/routines.md,priority API route documentation mapping
+server/src/routes/routines.ts#/routines/:id/triggers,docs/api/routines.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/companies/:companyId/secret-provider-configs,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/companies/:companyId/secret-provider-configs/discovery/preview,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/companies/:companyId/secret-providers,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/companies/:companyId/secret-providers/health,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/companies/:companyId/secrets,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/companies/:companyId/secrets/remote-import,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/companies/:companyId/secrets/remote-import/preview,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/secret-provider-configs/:id,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/secret-provider-configs/:id/default,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/secret-provider-configs/:id/health,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/secrets/:id,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/secrets/:id/access-events,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/secrets/:id/rotate,docs/api/secrets.md,priority API route documentation mapping
+server/src/routes/secrets.ts#/secrets/:id/usage,docs/api/secrets.md,priority API route documentation mapping

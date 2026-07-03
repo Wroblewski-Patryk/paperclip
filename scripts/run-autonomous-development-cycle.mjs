@@ -1,0 +1,450 @@
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+
+const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
+const apiBase = (process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200").replace(/\/$/, "");
+const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow Software House";
+const preferredCompanyNames = [
+  companyName,
+  process.env.PAPERCLIP_COMPANY_NAME,
+  "LuckySparrow",
+  "LuckySparrow Software House",
+].filter(Boolean);
+const skipControlTick = process.argv.includes("--skip-control-tick")
+  || process.env.SOFTWAREHOUSE_AUTONOMOUS_CYCLE_SKIP_CONTROL_TICK === "1";
+const skipValidation = process.argv.includes("--skip-validation")
+  || process.env.SOFTWAREHOUSE_AUTONOMOUS_CYCLE_SKIP_VALIDATION === "1";
+const now = new Date();
+const cycleId = `cycle-${now.toISOString().replace(/[:.]/g, "-")}`;
+const generatedAt = now.toISOString();
+
+function run(command, args, options = {}) {
+  const result = spawnSync(command, args, {
+    cwd: options.cwd ?? process.cwd(),
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: options.timeoutMs ?? 900_000,
+    shell: process.platform === "win32" && command.endsWith(".cmd"),
+  });
+  return {
+    ok: result.status === 0,
+    exitCode: result.status,
+    timedOut: result.error?.code === "ETIMEDOUT",
+    stdout: (result.stdout ?? "").trim(),
+    stderr: (result.stderr ?? "").trim(),
+  };
+}
+
+async function request(method, route) {
+  try {
+    const response = await fetch(`${apiBase}${route}`, {
+      method,
+      headers: { "content-type": "application/json" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+    return {
+      ok: response.ok,
+      status: response.status,
+      data,
+      error: response.ok ? null : text,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: null,
+      data: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function readJsonIfExists(filePath) {
+  if (!existsSync(filePath)) return null;
+  try {
+    return JSON.parse(await readFile(filePath, "utf8"));
+  } catch (error) {
+    return {
+      parseError: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function summarizeCommand(result) {
+  if (!result) return null;
+  return {
+    ok: result.ok,
+    exitCode: result.exitCode,
+    timedOut: result.timedOut,
+    stdoutTail: result.stdout.slice(-2000),
+    stderrTail: result.stderr.slice(-2000),
+  };
+}
+
+function gitStatusFor(repoPath) {
+  if (!existsSync(repoPath)) {
+    return {
+      exists: false,
+      clean: null,
+      lines: [],
+    };
+  }
+  const result = run("git", ["status", "--short"], { cwd: repoPath, timeoutMs: 60_000 });
+  const lines = result.ok ? result.stdout.split(/\r?\n/).filter(Boolean) : [];
+  return {
+    exists: true,
+    clean: result.ok ? lines.length === 0 : null,
+    lines,
+    error: result.ok ? null : result.stderr || result.stdout,
+  };
+}
+
+function deliveryPermission(controlTick) {
+  return controlTick?.controlBrief?.deliveryPermission ?? {};
+}
+
+function phaseStatus(ok, reason = null) {
+  return {
+    ok,
+    reason,
+  };
+}
+
+function dispatchDecisionFor(controlTick) {
+  const permission = deliveryPermission(controlTick);
+  const allowedTypes = permission.allowedLaneTypes ?? [];
+  const activeRunCount = Number(controlTick?.activeRunCount ?? 0);
+  const decision = controlTick?.controlDecision ?? "unknown";
+  const projectTruthGapDispatcher = controlTick?.projectTruthGapDispatcher ?? {};
+  const projectTruthGapAction = (projectTruthGapDispatcher.actions ?? [])[0] ?? null;
+  const projectTruthAudit = controlTick?.projectTruthAudit ?? {};
+
+  if ((projectTruthAudit.totalGaps ?? 0) > 0 && projectTruthGapAction?.identifier) {
+    return {
+      action: activeRunCount > 0 ? "supervise_existing_project_truth_run" : "project_truth_gap_dispatched",
+      startedRuns: [],
+      issueIdentifier: projectTruthGapAction.identifier,
+      issueStatus: projectTruthGapAction.status ?? null,
+      issueTitle: projectTruthGapAction.title ?? null,
+      assignee: projectTruthGapAction.assignee ?? null,
+      projectTruthFirstGap: projectTruthAudit.firstGap ?? null,
+      reason: "The first indexed project-truth gap has an owner-scoped Paperclip issue; supervise it instead of starting duplicate work.",
+      allowedLaneTypes: allowedTypes,
+    };
+  }
+
+  if ((projectTruthAudit.totalGaps ?? 0) > 0 && allowedTypes.includes("project_truth_gap_dispatch")) {
+    return {
+      action: "project_truth_gap_dispatch_required",
+      startedRuns: [],
+      projectTruthFirstGap: projectTruthAudit.firstGap ?? null,
+      reason: "Project-truth gaps exist but no owner-scoped dispatch issue is visible in the control tick.",
+      allowedLaneTypes: allowedTypes,
+    };
+  }
+
+  if (activeRunCount > 0) {
+    return {
+      action: "supervise_existing_runs",
+      startedRuns: [],
+      reason: "Active runs exist; cycle must not start duplicate work.",
+      allowedLaneTypes: allowedTypes,
+    };
+  }
+
+  if (!permission.canStartNewLane) {
+    return {
+      action: "blocked_by_delivery_permission",
+      startedRuns: [],
+      reason: permission.reason ?? `Control decision ${decision} does not allow new lanes.`,
+      allowedLaneTypes: allowedTypes,
+    };
+  }
+
+  if (decision === "operating_source_control_closure_needed") {
+    return {
+      action: "paperclip_os_closure_required",
+      startedRuns: [],
+      reason: "Paperclip OS worktree must be classified/committed before broad delivery.",
+      allowedLaneTypes: allowedTypes,
+    };
+  }
+
+  return {
+    action: "ready_for_next_paperclip_dispatch",
+    startedRuns: [],
+    reason: "Cycle is ready for future work-packet dispatch; this safe bootstrap version records readiness without starting an unbounded run.",
+    allowedLaneTypes: allowedTypes,
+  };
+}
+
+function releaseDecisionFor(controlTick, validation) {
+  const permission = deliveryPermission(controlTick);
+  if (!validation.ok) {
+    return {
+      action: "release_blocked",
+      reason: "Validation failed.",
+    };
+  }
+  if (!permission.protectedDeliveryAllowed) {
+    return {
+      action: "release_not_allowed",
+      reason: permission.reason ?? "Protected delivery is not allowed in current operating posture.",
+    };
+  }
+  return {
+    action: "release_ready_for_future_release_ledger",
+    reason: "Protected delivery is allowed, but this cycle runner does not deploy until project release ledgers are implemented.",
+  };
+}
+
+function monitorDecisionFor(release) {
+  if (release.action !== "release_ready_for_future_release_ledger") {
+    return {
+      action: "monitoring_not_started",
+      reason: "No deployment occurred in this cycle.",
+    };
+  }
+  return {
+    action: "monitoring_ready_for_future_deployment_continuation",
+    reason: "Deployment monitor hook is ready to be attached once release ledger writes are implemented.",
+  };
+}
+
+function learningFor(controlTick, validation, repositories) {
+  const proposals = [];
+  const suggestions = [];
+  const missing = [];
+  const paperclipOsDirty = repositories.Paperclip_Softwarehouse?.clean === false;
+
+  if (paperclipOsDirty) {
+    proposals.push({
+      title: "Close Paperclip OS source-control state before broad delivery",
+      safetyClass: "safe-local",
+      expectedAutonomyGain: "prevents stale local OS work from blocking every autonomous cycle",
+      retirementCondition: "Paperclip_Softwarehouse git status is clean after a successful cycle",
+    });
+  }
+  if (!validation.ok) {
+    proposals.push({
+      title: "Repair autonomous cycle validation failures",
+      safetyClass: "safe-local",
+      expectedAutonomyGain: "keeps the operating loop verifiable before dispatching delivery work",
+      retirementCondition: "cycle validation command passes in two consecutive cycles",
+    });
+  }
+  suggestions.push({
+    title: "Promote work-packet dispatch from recorded readiness to bounded agent execution",
+    condition: "only after Paperclip OS is clean and each candidate issue has owner, scope, validation commands, and release impact",
+  });
+  suggestions.push({
+    title: "Persist autonomous cycle records as the current durable ledger",
+    condition: "keep `report/autonomous-cycles/latest.*` generated by every scheduled cycle and migrate the same schema to Roost later",
+  });
+
+  return {
+    improvementProposals: proposals,
+    architectureSuggestions: suggestions,
+    missingCapabilities: missing,
+  };
+}
+
+function renderMarkdown(cycle) {
+  const rows = Object.entries(cycle.phases)
+    .map(([name, phase]) => `| ${name} | ${phase.status?.ok ? "pass" : "hold"} | ${(phase.status?.reason ?? phase.summary ?? "").replace(/\|/g, "\\|")} |`)
+    .join("\n");
+  return [
+    "# Autonomous Development Cycle",
+    "",
+    `Cycle: ${cycle.cycleId}`,
+    `Generated: ${cycle.generatedAt}`,
+    "",
+    "## Decision",
+    "",
+    `- Control decision: ${cycle.controlDecision}`,
+    `- Operating posture: ${cycle.effectiveOperatingPosture}`,
+    `- Outcome: ${cycle.outcome}`,
+    "",
+    "## Phases",
+    "",
+    "| Phase | Status | Summary |",
+    "| --- | --- | --- |",
+    rows,
+    "",
+    "## Next Actions",
+    "",
+    cycle.nextActions.map((action) => `- ${action}`).join("\n") || "- none",
+    "",
+    "## Improvement Proposals",
+    "",
+    cycle.learning.improvementProposals.map((item) => `- ${item.title}: ${item.retirementCondition}`).join("\n") || "- none",
+    "",
+    "## Missing Capabilities",
+    "",
+    cycle.learning.missingCapabilities.map((item) => `- ${item.capability}: ${item.impact}`).join("\n") || "- none",
+    "",
+  ].join("\n");
+}
+
+const preflight = {
+  paperclipApi: await request("GET", "/api/health"),
+};
+
+let companySnapshot = {
+  ok: false,
+  company: null,
+  issueCount: null,
+  projectCount: null,
+  agentCount: null,
+};
+const companies = await request("GET", "/api/companies");
+if (companies.ok) {
+  const company = companies.data?.find((candidate) => preferredCompanyNames.includes(candidate.name));
+  if (company) {
+    const [issues, projects, agents] = await Promise.all([
+      request("GET", `/api/companies/${company.id}/issues?limit=2000`),
+      request("GET", `/api/companies/${company.id}/projects`),
+      request("GET", `/api/companies/${company.id}/agents`),
+    ]);
+    companySnapshot = {
+      ok: issues.ok && projects.ok && agents.ok,
+      company: {
+        id: company.id,
+        name: company.name,
+      },
+      issueCount: Array.isArray(issues.data) ? issues.data.length : null,
+      projectCount: Array.isArray(projects.data) ? projects.data.length : null,
+      agentCount: Array.isArray(agents.data) ? agents.data.length : null,
+    };
+  }
+}
+
+const controlTickRun = skipControlTick
+  ? null
+  : run(process.execPath, ["scripts/run-softwarehouse-control-tick.mjs"], {
+    timeoutMs: Number(process.env.SOFTWAREHOUSE_AUTONOMOUS_CYCLE_CONTROL_TICK_TIMEOUT_MS ?? 900_000),
+  });
+const controlTick = await readJsonIfExists("report/softwarehouse-control-tick.latest.json");
+const repositories = {
+  Paperclip_Softwarehouse: gitStatusFor(process.cwd()),
+  Soar: gitStatusFor(path.join(appsRoot, "Soar")),
+  Roost: gitStatusFor(path.join(appsRoot, "Roost")),
+  Aviary: gitStatusFor(path.join(appsRoot, "Aviary")),
+  Nest: gitStatusFor(path.join(appsRoot, "Nest")),
+};
+
+const dispatch = dispatchDecisionFor(controlTick);
+const validationRun = skipValidation
+  ? null
+  : run(process.execPath, ["--test", "scripts/softwarehouse-gate-specs.test.mjs"], {
+    timeoutMs: Number(process.env.SOFTWAREHOUSE_AUTONOMOUS_CYCLE_VALIDATION_TIMEOUT_MS ?? 120_000),
+  });
+const validation = skipValidation
+  ? {
+    ok: true,
+    command: "skipped",
+    result: null,
+  }
+  : {
+    ok: validationRun?.ok === true,
+    command: "node --test scripts/softwarehouse-gate-specs.test.mjs",
+    result: summarizeCommand(validationRun),
+  };
+const release = releaseDecisionFor(controlTick, validation);
+const monitoring = monitorDecisionFor(release);
+const learning = learningFor(controlTick, validation, repositories);
+
+const controlTickHealthy = skipControlTick ? controlTick?.ok === true : controlTickRun?.ok === true && controlTick?.ok === true;
+const outcome = controlTickHealthy && validation.ok && dispatch.action !== "blocked_by_delivery_permission"
+  && dispatch.action !== "project_truth_gap_dispatch_required"
+  ? "cycle_recorded"
+  : "cycle_recorded_with_holds";
+
+const cycle = {
+  cycleId,
+  generatedAt,
+  apiBase,
+  companyName,
+  outcome,
+  controlDecision: controlTick?.controlDecision ?? null,
+  effectiveOperatingPosture: controlTick?.effectiveOperatingPosture ?? null,
+  phases: {
+    preconditions: {
+      status: phaseStatus(preflight.paperclipApi.ok, preflight.paperclipApi.ok ? "Paperclip API reachable." : preflight.paperclipApi.error),
+      paperclipApi: {
+        ok: preflight.paperclipApi.ok,
+        status: preflight.paperclipApi.status,
+      },
+      companySnapshot,
+    },
+    activityAnalysis: {
+      status: phaseStatus(controlTickHealthy, controlTickHealthy ? "Control tick completed and activity snapshot is available." : "Control tick failed or is missing."),
+      controlTickRun: summarizeCommand(controlTickRun),
+      activeRunCount: controlTick?.activeRunCount ?? null,
+      liveRunCount: controlTick?.liveRunCount ?? null,
+      sourceControlClean: controlTick?.sourceControlClean ?? null,
+      repositories,
+    },
+    progressEvaluation: {
+      status: phaseStatus(Boolean(controlTick), controlTick?.recommendedAction ?? "No control tick recommendation."),
+      controlDecision: controlTick?.controlDecision ?? null,
+      recommendedAction: controlTick?.recommendedAction ?? null,
+      nextControlActions: controlTick?.nextControlActions ?? [],
+      deliveryPermission: deliveryPermission(controlTick),
+    },
+    workDispatch: {
+      status: phaseStatus(
+        [
+          "ready_for_next_paperclip_dispatch",
+          "project_truth_gap_dispatched",
+          "supervise_existing_project_truth_run",
+          "supervise_existing_runs",
+        ].includes(dispatch.action),
+        dispatch.reason,
+      ),
+      ...dispatch,
+    },
+    validation: {
+      status: phaseStatus(validation.ok, validation.ok ? "Validation passed or was explicitly skipped." : "Validation command failed."),
+      ...validation,
+    },
+    release: {
+      status: phaseStatus(release.action === "release_ready_for_future_release_ledger", release.reason),
+      ...release,
+    },
+    monitoring: {
+      status: phaseStatus(monitoring.action !== "monitoring_failed", monitoring.reason),
+      ...monitoring,
+    },
+    selfImprovement: {
+      status: phaseStatus(true, "Cycle learning outputs recorded."),
+      ...learning,
+    },
+  },
+  learning,
+  nextActions: [
+    ...(controlTick?.nextControlActions ?? []),
+    ...learning.improvementProposals.map((proposal) => proposal.title),
+    ...learning.missingCapabilities.map((capability) => `Implement missing capability: ${capability.capability}`),
+  ],
+};
+
+const dateDir = generatedAt.slice(0, 10);
+const cycleDir = path.join("report", "autonomous-cycles", dateDir);
+await mkdir(cycleDir, { recursive: true });
+await mkdir(path.join("report", "autonomous-cycles"), { recursive: true });
+const json = `${JSON.stringify(cycle, null, 2)}\n`;
+const markdown = renderMarkdown(cycle);
+await writeFile(path.join(cycleDir, `${cycleId}.json`), json);
+await writeFile(path.join(cycleDir, `${cycleId}.md`), markdown);
+await writeFile(path.join("report", "autonomous-cycles", "latest.json"), json);
+await writeFile(path.join("report", "autonomous-cycles", "latest.md"), markdown);
+
+console.log(JSON.stringify(cycle, null, 2));
+
+if (!controlTickHealthy || !validation.ok) {
+  process.exitCode = 1;
+}

@@ -1,0 +1,76 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs and caches
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+.turbo/
+*.tsbuildinfo
+.vite/
+**/.vite/
+ui/dist/
+server/ui-dist/
+
+# Local Paperclip runtime state
+.paperclip/*
+!.paperclip/config.json
+.paperclip/.env
+.paperclip/runtime/
+.paperclip/worktrees/
+.paperclip/worktrees.to-delete-*/
+.paperclip/**/*.log
+.paperclip/**/*.pid
+.paperclip/**/*.sqlite
+.paperclip/**/*.db
+.paperclip/**/*.sql
+.paperclip/**/*.sql.gz
+.paperclip/**/*.dump
+.paperclip/**/*.bak
+
+# Keep durable project memory, skip transient Codex logs
+.codex/*
+!.codex/PROJECT_CONTEXT.md
+.codex/logs/
+.codex/paperclip-dev/
+
+# Local logs and temporary files
+*.log
+*.pid
+.tmp/
+tmp/
+tmp-*
+*.tmp
+
+# Local env and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.cookies.txt
+cookies.txt
+coolify.*
+
+# Generated work products
+artifacts/
+report/
+screenshots/
+
+# Local Obsidian plugin/theme installs for the docs vault
+docs/.obsidian/plugins/
+docs/.obsidian/themes/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

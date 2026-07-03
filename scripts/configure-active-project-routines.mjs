@@ -1,0 +1,216 @@
+import {
+  activeApplicationRoutineSpecs,
+  softwarehouseActiveApplicationProjectNames,
+} from "./lib/softwarehouse-active-routines.mjs";
+import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
+
+const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
+const companyNames = ["LuckySparrow", "LuckySparrow Software House"];
+const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
+const apply = process.argv.includes("--apply");
+const allowActiveRuns = process.argv.includes("--allow-active-runs");
+
+const projectManagerByProject = new Map([
+  ["Soar", "Soar Project Manager"],
+  ["Roost", "Roost Project Manager"],
+  ["Aviary", "Aviary Project Manager"],
+  ["Nest", "Nest Project Manager"],
+]);
+
+const cadenceByKind = new Map([
+  ["status", "45 9 * * *"],
+  ["no-stall", "*/30 * * * *"],
+  ["known-state", "20 */6 * * *"],
+  ["source-control", "10 */2 * * *"],
+]);
+
+async function request(method, route, body) {
+  const response = await fetch(`${apiBase}${route}`, {
+    method,
+    headers: { "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!response.ok) throw new Error(`${method} ${route} failed with ${response.status}: ${text}`);
+  return data;
+}
+
+function byName(items, name) {
+  return items.find((item) => item.name === name);
+}
+
+function routineKind(title) {
+  if (title.includes("[PM] No-stall")) return "no-stall";
+  if (title.includes("Known-state")) return "known-state";
+  if (title.includes("Source-control")) return "source-control";
+  return "status";
+}
+
+function descriptionFor(projectName, kind) {
+  if (kind === "no-stall") {
+    return [
+      `Strict ${projectName} project-manager no-stall loop.`,
+      "Inspect open project issues, live-run state, blockers, stale ownership, and missing worker-ready decomposition.",
+      "Produce one clear action: wake a safe owner, split smaller, reassign, defer, block with owner/action/evidence, or create the next narrow Paperclip issue.",
+      "Do not implement code, push, deploy, restart, touch secrets, or mutate live accounts from this routine.",
+    ].join(" ");
+  }
+  if (kind === "known-state") {
+    return [
+      `${projectName} known-state and architecture/map drift guard.`,
+      "Refresh what works, fails, is unknown, or is blocked; compare docs, repository shape, architecture exports, tests, and current target.",
+      "Create narrow follow-up issues for missing proof, stale docs, and safe architecture planning.",
+      "Protected production actions remain gated.",
+    ].join(" ");
+  }
+  if (kind === "source-control") {
+    return [
+      `${projectName} source-control closure sweep.`,
+      "Use the generated source-control packet to classify dirty groups, ownership, evidence, verification needs, commit/no-commit decision, and push/deploy impact.",
+      "This routine may record Paperclip issue comments and route owner-scoped follow-ups.",
+      "It must not push, deploy, restart, or overwrite project work without explicit approval and a clean evidence contract.",
+    ].join(" ");
+  }
+  return [
+    `Refresh ${projectName} project-manager status, target version, blockers, evidence ledger, next decisions, and specialist lane order.`,
+    "Keep the project active in Paperclip while preserving protected gates for production, secrets, paid/live accounts, and irreversible mutation.",
+  ].join(" ");
+}
+
+async function ensureGoal(companyId, goalsByTitle, input) {
+  const existing = goalsByTitle.get(input.title);
+  if (existing) {
+    if (!apply) return { ...existing, plannedUpdate: input };
+    const updated = await request("PATCH", `/api/goals/${existing.id}`, input);
+    goalsByTitle.set(input.title, updated);
+    return updated;
+  }
+  if (!apply) return { id: `preview-goal:${input.title}`, ...input, preview: true };
+  const created = await request("POST", `/api/companies/${companyId}/goals`, input);
+  goalsByTitle.set(input.title, created);
+  return created;
+}
+
+async function ensureRoutine(companyId, routinesByTitle, input) {
+  const existing = routinesByTitle.get(input.title);
+  if (existing) {
+    if (!apply) return { ...existing, plannedUpdate: input };
+    const updated = await request("PATCH", `/api/routines/${existing.id}`, input);
+    routinesByTitle.set(input.title, updated);
+    return updated;
+  }
+  if (!apply) return { id: `preview-routine:${input.title}`, ...input, preview: true };
+  const created = await request("POST", `/api/companies/${companyId}/routines`, input);
+  routinesByTitle.set(input.title, created);
+  return created;
+}
+
+async function ensureScheduleTrigger(routineId, input) {
+  if (!apply) return { routineId, ...input, preview: true };
+  const detail = await request("GET", `/api/routines/${routineId}`);
+  const existing = detail.triggers?.find((trigger) => trigger.kind === "schedule" && trigger.label === input.label);
+  if (existing) return request("PATCH", `/api/routine-triggers/${existing.id}`, input);
+  return request("POST", `/api/routines/${routineId}/triggers`, {
+    kind: "schedule",
+    ...input,
+  });
+}
+
+async function resolveCompany() {
+  if (companyId) return { id: companyId, source: "PAPERCLIP_COMPANY_ID" };
+
+  const companies = await request("GET", "/api/companies");
+  const company = companies.find((candidate) => companyNames.includes(candidate.name));
+  if (!company) throw new Error(`Company not found: ${companyNames.join(" or ")}`);
+  return { id: company.id, source: "company_name" };
+}
+
+const company = await resolveCompany();
+
+const [health, liveRuns, agents, projects, goals, routines] = await Promise.all([
+  request("GET", "/api/health"),
+  request("GET", `/api/companies/${company.id}/live-runs`),
+  request("GET", `/api/companies/${company.id}/agents`),
+  request("GET", `/api/companies/${company.id}/projects`),
+  request("GET", `/api/companies/${company.id}/goals`),
+  request("GET", `/api/companies/${company.id}/routines`),
+]);
+
+const liveRunCount = Array.isArray(liveRuns) ? liveRuns.length : 0;
+const activeRunCount = Math.max(Number(health.devServer?.activeRunCount ?? 0), liveRunCount);
+if (apply && activeRunCount > 0 && !allowActiveRuns) {
+  console.error(`Refusing to configure active project routines while ${activeRunCount} run(s) are active.`);
+  process.exit(2);
+}
+
+const goalsByTitle = new Map(goals.map((goal) => [goal.title, goal]));
+const routinesByTitle = new Map(routines.map((routine) => [routine.title, routine]));
+const configured = [];
+const skipped = [];
+
+for (const projectName of softwarehouseActiveApplicationProjectNames) {
+  const project = byName(projects, projectName);
+  const pmName = projectManagerByProject.get(projectName);
+  const pm = findAgentByNameOrAlias(agents, pmName);
+  if (!project) {
+    skipped.push({ project: projectName, reason: "project_not_found" });
+    continue;
+  }
+  if (project.archivedAt || project.status === "archived") {
+    skipped.push({ project: projectName, reason: "project_archived" });
+    continue;
+  }
+
+  const goal = await ensureGoal(company.id, goalsByTitle, {
+    title: `${projectName} autonomous delivery and takeover`,
+    description: [
+      `${projectName} is an active LuckySparrow Software House application lane.`,
+      "Paperclip owns project-manager control, known-state refresh, source-control closure, and safe specialist routing.",
+      "Production, secrets, paid/live accounts, push, deploy, restart, and irreversible mutation stay behind explicit gates.",
+    ].join("\n"),
+    level: "team",
+    status: "active",
+    ownerAgentId: pm?.id ?? project.leadAgentId ?? null,
+  });
+
+  const specs = activeApplicationRoutineSpecs.filter((routine) => routine.title.startsWith(`[${projectName}]`));
+  for (const spec of specs) {
+    const kind = routineKind(spec.title);
+    const routine = await ensureRoutine(company.id, routinesByTitle, {
+      title: spec.title,
+      description: descriptionFor(projectName, kind),
+      projectId: project.id,
+      goalId: goal.id,
+      assigneeAgentId: pm?.id ?? project.leadAgentId ?? null,
+      priority: kind === "no-stall" ? "critical" : "high",
+      status: "active",
+      concurrencyPolicy: "coalesce_if_active",
+      catchUpPolicy: "skip_missed",
+    });
+    const trigger = await ensureScheduleTrigger(routine.id, {
+      label: spec.scheduleLabel,
+      enabled: true,
+      cronExpression: cadenceByKind.get(kind),
+      timezone: "Europe/Berlin",
+    });
+    configured.push({
+      project: projectName,
+      routine: spec.title,
+      schedule: trigger.label,
+      cronExpression: trigger.cronExpression,
+      assignee: pm?.name ?? null,
+      applied: apply,
+    });
+  }
+}
+
+console.log(JSON.stringify({
+  apiBase,
+  apply,
+  activeRunCount,
+  liveRunCount,
+  company: { id: company.id, name: company.name },
+  configured,
+  skipped,
+}, null, 2));

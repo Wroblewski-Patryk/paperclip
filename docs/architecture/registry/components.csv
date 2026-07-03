@@ -1,0 +1,3 @@
+id,name,status,layer,module,feature,description,file_path,used_by,risk_level,completion_percent,last_verified_at,verification_status,notes
+COMP-COMPANY-SWITCHER,CompanySwitcher,verified_local,frontend,ui,FEATURE-COMPANY-SCOPING,Company selector shown in app navigation,ui/src/components/navigation/CompanySwitcher.tsx,ui routes requiring company context,medium,85,2026-05-27,verified_local,Primary company-scope control in UI.
+COMP-ISSUE-DETAIL-PAGE,IssueDetailPage,partially_verified,frontend,ui,FEATURE-ISSUE-ORCHESTRATION,Issue details and workflow operations surface,ui/src/pages/IssueDetailPage.tsx,issue lifecycle workflows,high,80,2026-05-27,partially_verified,Complex state needs broader UI regression coverage.

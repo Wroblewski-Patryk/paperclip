@@ -1,0 +1,844 @@
+import {
+  buildOpenIssueTitles,
+  collectTransitiveBlockerRelatedIssues,
+  findActiveRunCoveredOpsReleaseBlockerChain,
+  findBoardAuthorizationWaitChain,
+  findCompletedBlockerDelegatedRecoveryChain,
+  findCompliantFailedReleasePermitRecoveryChain,
+  findCompliantOpsReleaseBlockerChain,
+  findControlPlaneWriteBoundaryRecoveryChain,
+  findPausedOwnerDelegatedRoutingRepairChain,
+  findProjectMutationSourceControlGuardChain,
+  findProtectedCoolifyVpsBindingWaitChain,
+  findQaToolingProofBlockedChain,
+  findStaleNonReleaseRootProtectedBacklogChain,
+  findSuppressibleV1LearningDuplicate,
+  findSuppressibleV2ReviewDecisionPathDuplicate,
+  findSuppressibleV2WorkerFanoutDuplicate,
+  resolveLearningOwner,
+} from "./lib/softwarehouse-learning-loop.mjs";
+
+const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
+const companyName = "LuckySparrow Software House";
+const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
+const apply = process.argv.includes("--apply");
+const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_LEARNING_REQUEST_TIMEOUT_MS ?? 30_000);
+const minRepeatedBlocked = Number(process.env.SOFTWAREHOUSE_LEARNING_MIN_REPEATED_BLOCKED ?? 3);
+const maxBlockedGroups = Number(process.env.SOFTWAREHOUSE_LEARNING_MAX_BLOCKED_GROUPS ?? 2);
+const maxEnrichmentSourceIssues = Number(process.env.SOFTWAREHOUSE_LEARNING_MAX_ENRICHMENT_SOURCE_ISSUES ?? 25);
+const terminalStatuses = new Set(["done", "cancelled"]);
+const activeIssueStatuses = ["backlog", "todo", "in_progress", "in_review", "blocked"];
+const plannedStatuses = new Set(["todo", "backlog"]);
+const workerRosterKeys = new Set([
+  "frontend-web-engineer",
+  "core-backend-engineer",
+  "data-persistence-engineer",
+  "integration-domain-engineer",
+  "runtime-adapter-engineer",
+  "test-automation-engineer",
+  "security-privacy-auditor",
+  "deployment-reliability-engineer",
+  "documentation-steward",
+  "ux-web-designer",
+  "ui-visual-designer",
+  "code-review-specialist",
+  "qa-verification-engineer",
+]);
+const supervisorRosterKeys = new Set([
+  "innovation-portfolio-manager",
+  "chief-innovation-officer",
+  "chief-technology-officer",
+  "chief-product-officer",
+  "web-product-manager",
+  "soar-product-manager",
+  "roost-product-manager",
+  "aviary-project-manager",
+  "featherly-platform-manager",
+  "nest-product-manager",
+  "delivery-project-manager",
+  "technical-solution-architect",
+  "chief-operating-officer",
+]);
+
+async function request(method, route, body) {
+  const signal = AbortSignal.timeout(requestTimeoutMs);
+  const response = await fetch(`${apiBase}${route}`, {
+    method,
+    headers: { "content-type": "application/json" },
+    signal,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!response.ok) throw new Error(`${method} ${route} failed with ${response.status}: ${text}`);
+  return data;
+}
+
+function isRequestTimeoutError(error) {
+  return error instanceof Error && error.name === "TimeoutError";
+}
+
+function byName(items, name) {
+  return items.find((item) => item.name === name);
+}
+
+function rootBlockerKey(issue) {
+  if (issue.terminalBlockers?.[0]?.identifier) return issue.terminalBlockers[0].identifier;
+  if (issue.blockedBy?.[0]?.identifier) return issue.blockedBy[0].identifier;
+  if (issue.blockedBy?.[0]?.terminalBlockers?.[0]?.identifier) {
+    return issue.blockedBy[0].terminalBlockers[0].identifier;
+  }
+  if (issue.blockerAttention?.sampleBlockerIdentifier) return issue.blockerAttention.sampleBlockerIdentifier;
+  return issue.identifier;
+}
+
+function classifyGap(key, issues) {
+  const text = issues.map((issue) => `${issue.title}\n${issue.description ?? ""}`).join("\n").toLowerCase();
+  if (/deploy|coolify|vps|smoke|runtime|restart/.test(text)) return {
+    area: "ops-release",
+    owner: "Ops Release Lead",
+    title: `[Softwarehouse][Learning] Ops/release blocker pattern ${key}`,
+    boundary: "release/deploy evidence, rollback, and protected gate contract",
+  };
+  if (/auth|secret|credential|token|permission|account|security/.test(text)) return {
+    area: "security-credentials",
+    owner: "Security Review Lead",
+    title: `[Softwarehouse][Learning] Security/credential blocker pattern ${key}`,
+    boundary: "credential/account proof and least-privilege unblock path",
+  };
+  if (/test|qa|regression|e2e|smoke|proof|evidence/.test(text)) return {
+    area: "qa-proof",
+    owner: "QA Regression Lead",
+    title: `[Softwarehouse][Learning] QA/evidence blocker pattern ${key}`,
+    boundary: "repeatable proof command and regression guard ownership",
+  };
+  if (/architecture|graph|map|trace|dependency|entity/.test(text)) return {
+    area: "architecture-awareness",
+    owner: "CTO Architect",
+    title: `[Softwarehouse][Learning] Architecture-awareness blocker pattern ${key}`,
+    boundary: "canonical graph/entity/status mapping and task linkage",
+  };
+  return {
+    area: "project-management",
+    owner: "Portfolio Director",
+    title: `[Softwarehouse][Learning] Project-management blocker pattern ${key}`,
+    boundary: "smaller ownership, clearer handoff, and issue disposition rules",
+  };
+}
+
+function rosterKey(agent) {
+  return agent?.metadata?.rosterKey ?? agent?.urlKey ?? agent?.name ?? null;
+}
+
+function isWorker(agent) {
+  return workerRosterKeys.has(rosterKey(agent));
+}
+
+function isSupervisor(agent) {
+  return supervisorRosterKeys.has(rosterKey(agent));
+}
+
+async function ensureLabel(companyId, labelsByName, name, color) {
+  const existing = labelsByName.get(name);
+  if (existing) return existing;
+  const created = await request("POST", `/api/companies/${companyId}/labels`, { name, color });
+  labelsByName.set(name, created);
+  return created;
+}
+
+async function resolveCompany() {
+  if (companyId) return { id: companyId, source: "PAPERCLIP_COMPANY_ID" };
+
+  const companies = await request("GET", "/api/companies");
+  const company = companies.find((candidate) => candidate.name === companyName);
+  if (!company) throw new Error(`Company not found: ${companyName}`);
+  return { id: company.id, source: "company_name" };
+}
+
+const company = await resolveCompany();
+
+let agents;
+let projects;
+let initialIssues;
+let labels;
+let goals;
+try {
+  [agents, projects, initialIssues, labels, goals] = await Promise.all([
+    request("GET", `/api/companies/${company.id}/agents`),
+    request("GET", `/api/companies/${company.id}/projects`),
+    request("GET", `/api/companies/${company.id}/issues?status=${activeIssueStatuses.join(",")}&limit=2000`),
+    request("GET", `/api/companies/${company.id}/labels`),
+    request("GET", `/api/companies/${company.id}/goals`),
+  ]);
+} catch (error) {
+  if (!isRequestTimeoutError(error)) throw error;
+  console.log(JSON.stringify({
+    apiBase,
+    company: { id: company.id, name: company.name ?? companyName },
+    mode: apply ? "apply" : "dry-run",
+    requestTimeoutMs,
+    candidateScanStatus: "timed_out",
+    minRepeatedBlocked,
+    blockedGroupCount: null,
+    eligibleBlockedGroupCount: null,
+    processedBlockedGroupCount: 0,
+    skippedBlockedGroupCount: 0,
+    actionCount: 1,
+    actions: [{
+      action: "skip_learning_loop_candidate_scan_timeout",
+      status: "degraded",
+      reason: "candidate_scan_timeout",
+      ownerAction: "Restore local Paperclip API issue-list responsiveness, then rerun node scripts/run-softwarehouse-learning-loop.mjs --apply or pnpm softwarehouse:control-tick.",
+    }],
+  }, null, 2));
+  process.exit(0);
+}
+
+let issues = initialIssues;
+const targetedLearningIssues = await Promise.all([
+  request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent("[Softwarehouse][Learning] Worker queue fan-out capability gap")}&limit=50`),
+  request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent("[Softwarehouse][Learning] In-review decision path capability gap")}&limit=50`),
+]);
+const issueById = new Map(issues.map((issue) => [issue.id, issue]));
+for (const issue of targetedLearningIssues.flat()) issueById.set(issue.id, issue);
+issues = [...issueById.values()];
+
+const activeAgents = agents.filter((agent) => agent.status !== "terminated");
+const agentByName = new Map(activeAgents.map((agent) => [agent.name, agent]));
+const projectByName = new Map(projects.map((project) => [project.name, project]));
+const operating = byName(projects, "Softwarehouse Operating System")
+  ?? byName(projects, "Paperclip")
+  ?? byName(projects, "Softwarehouse")
+  ?? projects.find((project) => !project.archivedAt)
+  ?? null;
+if (!operating) throw new Error("No active project found for Softwarehouse learning issues.");
+const goal = goals.find((candidate) => candidate.title === "Softwarehouse operating cadence") ?? null;
+
+const labelsByName = new Map(labels.map((label) => [label.name, label]));
+for (const [name, color] of [
+  ["learning", "#65a30d"],
+  ["capability-gap", "#ca8a04"],
+  ["softwarehouse", "#334155"],
+]) {
+  await ensureLabel(company.id, labelsByName, name, color);
+}
+const labelIds = ["learning", "capability-gap", "softwarehouse"]
+  .map((name) => labelsByName.get(name)?.id)
+  .filter(Boolean);
+
+const openIssues = issues.filter((issue) => !terminalStatuses.has(issue.status));
+const activeProjectIds = new Set(projects.filter((project) => !project.archivedAt).map((project) => project.id));
+const agentById = new Map(activeAgents.map((agent) => [agent.id, agent]));
+const plannedIssues = openIssues.filter((issue) =>
+  activeProjectIds.has(issue.projectId)
+  && plannedStatuses.has(issue.status)
+  && issue.assigneeAgentId
+);
+const plannedWorkerIssues = plannedIssues.filter((issue) => isWorker(agentById.get(issue.assigneeAgentId)));
+const plannedSupervisorIssues = plannedIssues.filter((issue) => isSupervisor(agentById.get(issue.assigneeAgentId)));
+const blockedGroups = new Map();
+for (const issue of openIssues.filter((issue) => issue.status === "blocked")) {
+  const key = rootBlockerKey(issue);
+  if (!blockedGroups.has(key)) blockedGroups.set(key, []);
+  blockedGroups.get(key).push(issue);
+}
+const eligibleBlockedGroups = [...blockedGroups.entries()]
+  .filter(([, groupedIssues]) => groupedIssues.length >= minRepeatedBlocked)
+  .sort(([leftKey, leftIssues], [rightKey, rightIssues]) =>
+    rightIssues.length - leftIssues.length || leftKey.localeCompare(rightKey)
+  );
+const processedBlockedGroups = maxBlockedGroups > 0
+  ? eligibleBlockedGroups.slice(0, maxBlockedGroups)
+  : eligibleBlockedGroups;
+const skippedBlockedGroupCount = eligibleBlockedGroups.length - processedBlockedGroups.length;
+
+const existingLearningTitles = buildOpenIssueTitles(issues, terminalStatuses);
+const actions = [];
+async function createLearningIssue(input, action) {
+  if (existingLearningTitles.has(input.title)) {
+    actions.push({
+      ...action,
+      action: "noop_existing_learning_issue",
+      title: input.title,
+    });
+    return null;
+  }
+  actions.push({
+    ...action,
+    action: apply ? action.action : action.action.replace(/^created_/, "would_create_"),
+    title: input.title,
+  });
+  if (!apply) return null;
+  const created = await request("POST", `/api/companies/${company.id}/issues`, input);
+  actions.at(-1).identifier = created.identifier;
+  actions.at(-1).status = created.status;
+  existingLearningTitles.add(input.title);
+  return created;
+}
+
+async function searchIssues(query) {
+  return request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent(query)}&limit=50`)
+    .then((result) => result?.value ?? result ?? [])
+    .catch(() => []);
+}
+
+async function getIssue(key) {
+  return request("GET", `/api/issues/${encodeURIComponent(key)}`)
+    .catch(() => null);
+}
+
+function blockerRefs(issue) {
+  return [
+    ...(issue?.blockedBy ?? []),
+    ...(issue?.terminalBlockers ?? []),
+    ...(issue?.blockedBy ?? []).flatMap((blocker) => blocker.terminalBlockers ?? []),
+  ];
+}
+
+async function enrichIssuesForBlockerChain(baseIssues, rootKey, sourceIssues) {
+  const byId = new Map(baseIssues.map((issue) => [issue.id, issue]));
+  const byIdentifier = new Map(baseIssues.filter((issue) => issue.identifier).map((issue) => [issue.identifier, issue]));
+  const addIssue = (issue) => {
+    if (!issue?.id) return;
+    byId.set(issue.id, issue);
+    if (issue.identifier) byIdentifier.set(issue.identifier, issue);
+  };
+  const pending = [
+    rootKey,
+    ...(sourceIssues ?? []).flatMap((issue) => [issue.identifier, issue.id]),
+    ...(sourceIssues ?? []).flatMap((issue) => blockerRefs(issue).flatMap((blocker) => [blocker.identifier, blocker.id])),
+  ].filter(Boolean);
+  const seen = new Set();
+  while (pending.length > 0) {
+    const key = pending.shift();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    let issue = byIdentifier.get(key) ?? byId.get(key);
+    const needsExactIssue = !issue
+      || !Array.isArray(issue.blockedBy)
+      || (issue.status === "blocked" && blockerRefs(issue).length === 0);
+    if (needsExactIssue) {
+      issue = await getIssue(key);
+      if (!issue) {
+        const matches = await searchIssues(key);
+        issue = matches.find((candidate) => candidate.identifier === key || candidate.id === key) ?? null;
+      }
+      if (issue) addIssue(issue);
+    }
+    for (const blocker of blockerRefs(issue)) {
+      if (blocker.identifier) pending.push(blocker.identifier);
+      if (blocker.id) pending.push(blocker.id);
+    }
+  }
+  return [...byId.values()];
+}
+
+for (const [key, groupedIssues] of processedBlockedGroups) {
+  const gap = classifyGap(key, groupedIssues);
+  const owner = resolveLearningOwner(activeAgents, gap.owner, ["Portfolio Director"]);
+  const sourceProjects = [...new Set(groupedIssues.map((issue) => projectByName.get(issue.projectId)?.name ?? "unknown"))];
+  const sourceList = groupedIssues
+    .slice(0, 12)
+    .map((issue) => `- ${issue.identifier}: ${issue.title} (${projectByName.get(issue.projectId)?.name ?? "unknown"})`)
+    .join("\n");
+  const input = {
+    title: gap.title,
+    description: [
+      "softwarehouse-learning-loop:v1",
+      "",
+      "Observed repeated blocker pattern. This is not implementation work; it is an organizational learning task.",
+      "",
+      `Root/blocker key: ${key}`,
+      `Area: ${gap.area}`,
+      `Smallest responsibility boundary: ${gap.boundary}`,
+      `Observed issue count: ${groupedIssues.length}`,
+      `Projects: ${sourceProjects.join(", ")}`,
+      "",
+      "Observed issues:",
+      sourceList,
+      "",
+      "Required output:",
+      "- state the failure signal in one sentence;",
+      "- decide whether this needs a role instruction update, routine update, guardrail command, project template feedback, or no change;",
+      "- create at most one follow-up process/instruction issue if needed;",
+      "- record the retirement/merge-back condition so learning does not become permanent noise.",
+      "",
+      "Do not modify application code, push, deploy, restart, mutate production, or access secrets from this issue.",
+    ].join("\n"),
+    status: "todo",
+    priority: groupedIssues.some((issue) => issue.priority === "critical") ? "critical" : "high",
+    projectId: operating.id,
+    goalId: goal?.id ?? null,
+    assigneeAgentId: owner?.id ?? null,
+    requestDepth: 2,
+    labelIds,
+    acceptanceCriteria: [
+      "The repeated failure signal is named with evidence.",
+      "The smallest useful process/instruction/template change is proposed or explicitly rejected.",
+      "No application production mutation occurs.",
+      "The learning has a retirement or merge-back condition.",
+    ],
+  };
+
+  const duplicate = findSuppressibleV1LearningDuplicate({
+    issues,
+    terminalStatuses,
+    rootBlocker: key,
+    area: gap.area,
+    boundary: gap.boundary,
+    sourceIssues: groupedIssues,
+  });
+  if (duplicate) {
+    actions.push({
+      action: "suppressed_duplicate_learning_issue",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      duplicateOf: duplicate.identifier ?? duplicate.id ?? null,
+      duplicateStatus: duplicate.status,
+    });
+    continue;
+  }
+
+  let enrichedIssues = issues;
+  let enrichedGroupedIssues = groupedIssues;
+  let relatedIssues = [];
+  const blockerAttentionGroup = groupedIssues.some((issue) =>
+    issue?.blockerAttention?.sampleBlockerIdentifier === key
+  );
+  if (
+    gap.area === "ops-release"
+    && (groupedIssues.length <= maxEnrichmentSourceIssues || blockerAttentionGroup)
+  ) {
+    enrichedIssues = await enrichIssuesForBlockerChain(issues, key, groupedIssues);
+    const enrichedIssueById = new Map(enrichedIssues.map((issue) => [issue.id, issue]));
+    const enrichedIssueByIdentifier = new Map(enrichedIssues.filter((issue) => issue.identifier).map((issue) => [issue.identifier, issue]));
+    enrichedGroupedIssues = groupedIssues.map((issue) =>
+      enrichedIssueById.get(issue.id) ?? enrichedIssueByIdentifier.get(issue.identifier) ?? issue
+    );
+    relatedIssues = collectTransitiveBlockerRelatedIssues({
+      issues: enrichedIssues,
+      rootKey: key,
+      sourceIssues: enrichedGroupedIssues,
+    });
+  }
+  const activeRunCoveredOpsReleaseRoot = gap.area === "ops-release"
+    ? findActiveRunCoveredOpsReleaseBlockerChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+      })
+    : null;
+  if (activeRunCoveredOpsReleaseRoot) {
+    actions.push({
+      action: "suppressed_active_run_covered_ops_release_blocker_chain",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      rootStatus: activeRunCoveredOpsReleaseRoot.status,
+      rootExecutionRunId: activeRunCoveredOpsReleaseRoot.executionRunId ?? null,
+      rootCheckoutRunId: activeRunCoveredOpsReleaseRoot.checkoutRunId ?? null,
+    });
+    continue;
+  }
+  const completedBlockerRecoverySearchIssues = gap.area === "ops-release"
+    ? await searchIssues(key)
+    : [];
+  const completedBlockerRecovery = gap.area === "ops-release"
+    ? findCompletedBlockerDelegatedRecoveryChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        allIssues: [...enrichedIssues, ...completedBlockerRecoverySearchIssues],
+        terminalStatuses,
+      })
+    : null;
+  if (completedBlockerRecovery) {
+    actions.push({
+      action: "suppressed_completed_blocker_delegated_recovery_chain",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      rootStatus: completedBlockerRecovery.rootIssue.status,
+      completedBlockers: completedBlockerRecovery.completedBlockers
+        .map((issue) => issue.identifier ?? issue.id ?? null)
+        .filter(Boolean),
+      delegatedRecoveryIssue: completedBlockerRecovery.recoveryIssue.identifier
+        ?? completedBlockerRecovery.recoveryIssue.id
+        ?? null,
+      delegatedRecoveryStatus: completedBlockerRecovery.recoveryIssue.status,
+    });
+    continue;
+  }
+  const pausedOwnerRoutingRepair = gap.area === "ops-release"
+    ? findPausedOwnerDelegatedRoutingRepairChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        allIssues: [...enrichedIssues, ...completedBlockerRecoverySearchIssues],
+        terminalStatuses,
+      })
+    : null;
+  if (pausedOwnerRoutingRepair) {
+    actions.push({
+      action: "suppressed_paused_owner_delegated_routing_repair",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      rootStatus: pausedOwnerRoutingRepair.rootIssue.status,
+      delegatedRepairIssue: pausedOwnerRoutingRepair.repairIssue.identifier
+        ?? pausedOwnerRoutingRepair.repairIssue.id
+        ?? null,
+      delegatedRepairStatus: pausedOwnerRoutingRepair.repairIssue.status,
+    });
+    continue;
+  }
+  const compliantOpsReleaseRoot = gap.area === "ops-release"
+    ? findCompliantOpsReleaseBlockerChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        terminalStatuses,
+      })
+    : null;
+  if (compliantOpsReleaseRoot) {
+    actions.push({
+      action: "suppressed_compliant_ops_release_blocker_chain",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      rootStatus: compliantOpsReleaseRoot.status,
+    });
+    continue;
+  }
+  const compliantFailedReleasePermitRoot = gap.area === "ops-release"
+    ? findCompliantFailedReleasePermitRecoveryChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        terminalStatuses,
+      })
+    : null;
+  if (compliantFailedReleasePermitRoot) {
+    actions.push({
+      action: "suppressed_compliant_failed_release_permit_recovery_chain",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      rootStatus: compliantFailedReleasePermitRoot.status,
+    });
+    continue;
+  }
+  const staleNonReleaseRootProtectedBacklog = gap.area === "ops-release"
+    ? findStaleNonReleaseRootProtectedBacklogChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        terminalStatuses,
+      })
+    : null;
+  if (staleNonReleaseRootProtectedBacklog) {
+    actions.push({
+      action: "suppressed_non_release_root_protected_backlog_chain",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      protectedBacklogRoot: staleNonReleaseRootProtectedBacklog.identifier
+        ?? staleNonReleaseRootProtectedBacklog.id
+        ?? null,
+      protectedBacklogStatus: staleNonReleaseRootProtectedBacklog.status,
+    });
+    continue;
+  }
+  const projectMutationSourceControlGuardRoot = gap.area === "ops-release"
+    ? findProjectMutationSourceControlGuardChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        terminalStatuses,
+      })
+    : null;
+  if (projectMutationSourceControlGuardRoot) {
+    actions.push({
+      action: "suppressed_project_mutation_source_control_guard",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      guardRoot: projectMutationSourceControlGuardRoot.identifier
+        ?? projectMutationSourceControlGuardRoot.id
+        ?? null,
+      guardRootStatus: projectMutationSourceControlGuardRoot.status,
+      routedArea: "source-control",
+    });
+    continue;
+  }
+  const qaToolingProofRoot = gap.area === "ops-release"
+    ? findQaToolingProofBlockedChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        terminalStatuses,
+      })
+    : null;
+  if (qaToolingProofRoot) {
+    actions.push({
+      action: "suppressed_qa_tooling_proof_blocker_chain",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      proofRoot: qaToolingProofRoot.identifier
+        ?? qaToolingProofRoot.id
+        ?? null,
+      proofRootStatus: qaToolingProofRoot.status,
+      routedArea: "qa-proof",
+    });
+    continue;
+  }
+  const boardAuthorizationWaitRoot = gap.area === "ops-release"
+    ? findBoardAuthorizationWaitChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        terminalStatuses,
+      })
+    : null;
+  if (boardAuthorizationWaitRoot) {
+    actions.push({
+      action: "suppressed_board_authorization_wait_chain",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      authorizationRoot: boardAuthorizationWaitRoot.identifier
+        ?? boardAuthorizationWaitRoot.id
+        ?? null,
+      authorizationRootStatus: boardAuthorizationWaitRoot.status,
+      routedArea: "control-plane-authorization",
+    });
+    continue;
+  }
+  const controlPlaneWriteBoundaryRecoveryRoot = gap.area === "ops-release"
+    ? findControlPlaneWriteBoundaryRecoveryChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        terminalStatuses,
+      })
+    : null;
+  if (controlPlaneWriteBoundaryRecoveryRoot) {
+    actions.push({
+      action: "suppressed_control_plane_write_boundary_recovery_chain",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      recoveryRoot: controlPlaneWriteBoundaryRecoveryRoot.identifier
+        ?? controlPlaneWriteBoundaryRecoveryRoot.id
+        ?? null,
+      recoveryRootStatus: controlPlaneWriteBoundaryRecoveryRoot.status,
+      routedArea: "control-plane-recovery",
+    });
+    continue;
+  }
+  const protectedCoolifyVpsBindingWaitRoot = gap.area === "ops-release"
+    ? findProtectedCoolifyVpsBindingWaitChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        terminalStatuses,
+      })
+    : null;
+  if (protectedCoolifyVpsBindingWaitRoot) {
+    actions.push({
+      action: "suppressed_protected_coolify_vps_binding_wait_chain",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      bindingRoot: protectedCoolifyVpsBindingWaitRoot.identifier
+        ?? protectedCoolifyVpsBindingWaitRoot.id
+        ?? null,
+      bindingRootStatus: protectedCoolifyVpsBindingWaitRoot.status,
+      routedArea: "protected-runtime-binding",
+    });
+    continue;
+  }
+
+  await createLearningIssue(input, {
+    action: "created_learning_issue",
+    rootBlocker: key,
+    assignee: owner?.name ?? null,
+    observedIssueCount: groupedIssues.length,
+  });
+}
+
+const engineeringLead = agentByName.get("Engineering Delivery Lead") ?? agentByName.get("CTO Architect") ?? null;
+const workerFanoutWeak =
+  plannedSupervisorIssues.length > plannedWorkerIssues.length
+  && plannedWorkerIssues.length < Math.min(3, Math.max(1, plannedIssues.length));
+if (workerFanoutWeak) {
+  const duplicate = findSuppressibleV2WorkerFanoutDuplicate({
+    issues,
+    terminalStatuses,
+    plannedWorkerIssueCount: plannedWorkerIssues.length,
+    plannedSupervisorIssueCount: plannedSupervisorIssues.length,
+    plannedIssueCount: plannedIssues.length,
+    sourceIssues: plannedIssues,
+  });
+  if (duplicate) {
+    actions.push({
+      action: "suppressed_duplicate_learning_issue",
+      area: "worker-fanout",
+      assignee: engineeringLead?.name ?? null,
+      plannedWorkerIssueCount: plannedWorkerIssues.length,
+      plannedSupervisorIssueCount: plannedSupervisorIssues.length,
+      plannedIssueCount: plannedIssues.length,
+      title: "[Softwarehouse][Learning] Worker queue fan-out capability gap",
+      duplicateOf: duplicate.identifier ?? duplicate.id ?? null,
+      duplicateStatus: duplicate.status,
+    });
+  } else {
+    await createLearningIssue({
+      title: "[Softwarehouse][Learning] Worker queue fan-out capability gap",
+      description: [
+        "softwarehouse-learning-loop:v2",
+        "",
+        "Observed process gap: runnable work is concentrated above the leaf worker layer.",
+        "",
+        `Planned supervisor issue count: ${plannedSupervisorIssues.length}`,
+        `Planned worker issue count: ${plannedWorkerIssues.length}`,
+        `Planned issue count: ${plannedIssues.length}`,
+        "",
+        "Capability gap:",
+        "- managers/leads are not consistently turning parent intent into narrow worker-ready issues;",
+        "- this can make the softwarehouse look busy while implementation workers remain idle.",
+        "",
+        "Required proposal:",
+        "- decide whether this needs a role instruction update, dispatch routine, or measured new role proposal;",
+        "- define the smallest repeatable fan-out rule: how many worker-ready issues must exist per active version track, with what evidence fields;",
+        "- name the approving owner: CTO Architect for technical delivery/process roles, Portfolio Director for company/project roles;",
+        "- create at most one follow-up process/instruction issue if needed;",
+        "- do not create active agents silently.",
+        "",
+        "Trial proof:",
+        "- for one active project, create or verify at least three legal worker-ready lanes, or record exact blockers for each missing lane.",
+        "",
+        "Retirement condition:",
+        "- remove or narrow this learning rule after three consecutive control ticks show worker backlog depth is sufficient or all missing lanes have legal blockers.",
+      ].join("\n"),
+      status: "todo",
+      priority: "high",
+      projectId: operating.id,
+      goalId: goal?.id ?? null,
+      assigneeAgentId: engineeringLead?.id ?? null,
+      requestDepth: 2,
+      labelIds,
+      acceptanceCriteria: [
+        "The fan-out gap is described with current worker/supervisor queue counts.",
+        "The proposal selects instruction update, routine update, role proposal, or no-change with evidence.",
+        "Any new role remains a proposal until the correct approver accepts it.",
+        "A measured trial and retirement condition are recorded.",
+      ],
+    }, {
+      action: "created_learning_issue",
+      area: "worker-fanout",
+      assignee: engineeringLead?.name ?? null,
+      plannedWorkerIssueCount: plannedWorkerIssues.length,
+      plannedSupervisorIssueCount: plannedSupervisorIssues.length,
+    });
+  }
+}
+
+const reviewIssuesWithoutDecision = openIssues.filter((issue) =>
+  issue.status === "in_review"
+  && !/decision|reviewer|approve|reject|return|block|delegate/i.test(`${issue.description ?? ""}\n${issue.title ?? ""}`)
+);
+if (reviewIssuesWithoutDecision.length > 0) {
+  const portfolioDirector = agentByName.get("Portfolio Director") ?? null;
+  const sourceIssueIdentifiers = reviewIssuesWithoutDecision
+    .map((issue) => issue.identifier)
+    .filter(Boolean)
+    .sort();
+  const reviewDuplicateSearchIssues = await searchIssues("[Softwarehouse][Learning] In-review decision path capability gap");
+  const duplicate = findSuppressibleV2ReviewDecisionPathDuplicate({
+    issues: [...issues, ...reviewDuplicateSearchIssues],
+    terminalStatuses,
+    sourceIssueIdentifiers,
+  });
+  if (duplicate) {
+    actions.push({
+      action: "suppressed_duplicate_learning_issue",
+      area: "review-decision-path",
+      assignee: portfolioDirector?.name ?? null,
+      observedIssueCount: reviewIssuesWithoutDecision.length,
+      sourceIssueIdentifiers,
+      title: "[Softwarehouse][Learning] In-review decision path capability gap",
+      duplicateOf: duplicate.identifier ?? duplicate.id ?? null,
+      duplicateStatus: duplicate.status,
+    });
+  } else {
+    await createLearningIssue({
+    title: "[Softwarehouse][Learning] In-review decision path capability gap",
+    description: [
+      "softwarehouse-learning-loop:v2",
+      "",
+      "Observed process gap: issues reached in_review without a clear structured decision path.",
+      "",
+      `Observed issue count: ${reviewIssuesWithoutDecision.length}`,
+      "",
+      "Observed issues:",
+      ...reviewIssuesWithoutDecision.slice(0, 12).map((issue) =>
+        `- ${issue.identifier}: ${issue.title} (${projectByName.get(issue.projectId)?.name ?? "unknown"})`
+      ),
+      "",
+      "Required proposal:",
+      "- define the minimum review handoff fields: reviewer, decision options, evidence, deadline/cooldown, and next owner;",
+      "- decide whether to update role instructions, issue templates, janitor behavior, or no-change;",
+      "- do not close or mutate the source issues from this learning task.",
+      "",
+      "Retirement condition:",
+      "- three consecutive audits report zero in_review issues without a decision path.",
+    ].join("\n"),
+    status: "todo",
+    priority: "high",
+    projectId: operating.id,
+    goalId: goal?.id ?? null,
+    assigneeAgentId: portfolioDirector?.id ?? null,
+    requestDepth: 2,
+    labelIds,
+    acceptanceCriteria: [
+      "The missing review-decision fields are named.",
+      "The proposed process change has a single owner.",
+      "No source issue is closed by this learning task.",
+      "A retirement condition is recorded.",
+    ],
+  }, {
+    action: "created_learning_issue",
+    area: "review-decision-path",
+    assignee: portfolioDirector?.name ?? null,
+    observedIssueCount: reviewIssuesWithoutDecision.length,
+  });
+  }
+}
+
+console.log(JSON.stringify({
+  apiBase,
+  company: { id: company.id, name: company.name },
+  mode: apply ? "apply" : "dry-run",
+  minRepeatedBlocked,
+  blockedGroupCount: blockedGroups.size,
+  eligibleBlockedGroupCount: eligibleBlockedGroups.length,
+  processedBlockedGroupCount: processedBlockedGroups.length,
+  skippedBlockedGroupCount,
+  actionCount: actions.length,
+  actions,
+}, null, 2));

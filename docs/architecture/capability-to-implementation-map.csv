@@ -1,0 +1,2 @@
+Capability ID,Capability,Feature IDs,Chain IDs,Modules,Primary code paths,Tests,Evidence,Status,Risk,Owner,Last updated,Notes
+CAP-000,Example capability,FEATURE-000,CHAIN-000,example,src/README.md,tests/README.md,,missing,medium,Owner,YYYY-MM-DD,Example only.

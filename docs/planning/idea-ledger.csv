@@ -1,0 +1,2 @@
+ID,Summary,Value,Affected modules,Affected layers,Expected chain,Code status,Proof status,Risk,Owner,Next smallest task,Evidence,Last updated,Notes
+IDEA-000,Example idea,Explain the user or operator value.,example,UI;API;data,"trigger -> UI -> API -> service -> data -> readback -> tests -> docs",missing,not_proven,medium,Product,Replace this sample row with real ideas.,,YYYY-MM-DD,Example only.

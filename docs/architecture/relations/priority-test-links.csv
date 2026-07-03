@@ -1,0 +1,24 @@
+entity_path,test_path,note
+server/src/app.ts#/api,server/src/__tests__/auth-routes.test.ts,API base path exercised by authenticated route tests
+server/src/routes/access.ts#/admin/users,server/src/__tests__/access-routes-permissions-upgrade.test.ts,Admin access control routes
+server/src/routes/access.ts#/admin/users/:userId/company-access,server/src/__tests__/access-routes-permissions-upgrade.test.ts,Company access grant and listing paths
+server/src/routes/access.ts#/board-claim/:token,server/src/__tests__/auth-session-route.test.ts,Board claim token session handling
+server/src/routes/access.ts#/board-claim/:token/claim,server/src/__tests__/auth-session-route.test.ts,Board claim completion path
+server/src/routes/access.ts#/cli-auth/challenges,server/src/__tests__/cli-auth-routes.test.ts,CLI auth challenge creation
+server/src/routes/access.ts#/cli-auth/challenges/:id,server/src/__tests__/cli-auth-routes.test.ts,CLI auth challenge status lookup
+server/src/routes/access.ts#/cli-auth/challenges/:id/approve,server/src/__tests__/cli-auth-routes.test.ts,CLI auth challenge approval
+server/src/routes/access.ts#/cli-auth/challenges/:id/cancel,server/src/__tests__/cli-auth-routes.test.ts,CLI auth challenge cancellation
+server/src/routes/access.ts#/cli-auth/me,server/src/__tests__/cli-auth-routes.test.ts,CLI auth identity lookup
+server/src/routes/access.ts#/cli-auth/revoke-current,server/src/__tests__/cli-auth-routes.test.ts,CLI auth token revocation
+server/src/routes/access.ts#/companies/:companyId/invites,server/src/__tests__/invite-create-route.test.ts,Invite create/list company routes
+server/src/routes/access.ts#/companies/:companyId/invites,server/src/__tests__/invite-list-route.test.ts,Invite list path
+server/src/routes/access.ts#/companies/:companyId/join-requests,server/src/__tests__/join-request-dedupe.test.ts,Join request creation/dedupe path
+server/src/routes/access.ts#/companies/:companyId/members,server/src/__tests__/access-routes-permissions-upgrade.test.ts,Membership listing and permissions updates
+server/src/routes/access.ts#/companies/:companyId/openclaw/invite-prompt,server/src/__tests__/openclaw-invite-prompt-route.test.ts,OpenClaw invite prompt generation path
+server/src/routes/access.ts#/invites/:token,server/src/__tests__/invite-summary-route.test.ts,Invite summary endpoint
+server/src/routes/access.ts#/invites/:token/accept,server/src/__tests__/invite-accept-replay.test.ts,Invite accept replay and idempotency
+server/src/routes/access.ts#/invites/:token/logo,server/src/__tests__/invite-logo-route.test.ts,Invite logo endpoint
+server/src/routes/access.ts#/invites/:token/test-resolution,server/src/__tests__/invite-test-resolution-route.test.ts,Invite test-resolution diagnostics
+server/src/routes/access.ts#/join-requests/:requestId/claim-api-key,server/src/__tests__/invite-join-grants.test.ts,Join request API key claim and grants
+server/src/routes/access.ts#/skills/:skillName,server/src/__tests__/invite-onboarding-text.test.ts,Invite skill/onboarding content paths
+server/src/routes/access.ts#/skills/index,server/src/__tests__/invite-onboarding-text.test.ts,Invite skills index path

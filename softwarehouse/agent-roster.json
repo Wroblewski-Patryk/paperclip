@@ -1,0 +1,481 @@
+{
+  "company": {
+    "name": "LuckySparrow Software House",
+    "description": "Local agentic software house for taking over, maintaining, and evolving the applications under C:/Personal/Projekty/Aplikacje."
+  },
+  "operatingPrinciple": "Minimum responsibility per agent. Leads coordinate, decompose, review, and decide; specialist agents implement or verify only inside their layer.",
+  "talentPolicy": {
+    "canProposeRoleSplits": true,
+    "approvalRequiredForNewActiveAgents": true,
+    "companyAndProjectRoleApprover": "chief-human-resources-officer",
+    "technicalRoleApprover": "chief-technology-officer",
+    "memoryOwner": "documentation-steward",
+    "sourceOfTruth": "softwarehouse/talent-and-capability-system.md",
+    "rule": "Repeated failure becomes a capability gap and measured role/process proposal, not silent broad-agent expansion. CHRO owns agent creation authority; AID designs AI-agent role/process improvements but does not create agents directly.",
+    "agentCreationAuthority": "chief-human-resources-officer",
+    "agentRoleDesignOwner": "ai-agent-development-partner"
+  },
+  "modelPolicy": {
+    "defaultAdapter": "codex_local",
+    "codingStrong": {
+      "model": "gpt-5.5",
+      "modelReasoningEffort": "high"
+    },
+    "codingDeep": {
+      "model": "gpt-5.5",
+      "modelReasoningEffort": "xhigh"
+    },
+    "fastTriage": {
+      "model": "gpt-5.5",
+      "modelReasoningEffort": "low",
+      "note": "Use the low-effort Codex lane for bounded triage/doc/status-only work. Primary coding and continuation work stays on the agent's normal lane, and Spark is intentionally not used because it has been unreliable in local Paperclip runs."
+    },
+    "generalReasoning": {
+      "model": "gpt-5.5",
+      "modelReasoningEffort": "high"
+    },
+    "visualAndMedia": {
+      "model": "gpt-5.5",
+      "modelReasoningEffort": "high",
+      "note": "Use this for visual direction, image/audio prompts, UX briefs, and handoff to Codex/image tools when available."
+    },
+    "securityDeep": {
+      "model": "gpt-5.5",
+      "modelReasoningEffort": "xhigh"
+    }
+  },
+  "agents": [
+    {
+      "key": "ai-assistant",
+      "name": "00 AIA (AI Assistant)",
+      "role": "general",
+      "title": "LuckySparrow Softwarehouse Operating Assistant",
+      "icon": "brain",
+      "modelLane": "generalReasoning",
+      "capabilities": "Root operating assistant for the softwarehouse scope. Owns company-wide visibility, routing, portfolio truth, board-facing synthesis, and escalation across strategy, product, operations, technology, innovation, and executive ownership.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-strategy-officer",
+      "name": "01 CSO (Chief Strategy Officer)",
+      "role": "pm",
+      "title": "Softwarehouse Strategy and Prioritization Lead",
+      "icon": "target",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns softwarehouse strategy, portfolio prioritization, operating tradeoffs, and alignment between board intent and delivery capacity. Does not own finance, marketing, or sales execution.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-product-officer",
+      "name": "02 CPO (Chief Product Officer)",
+      "role": "pm",
+      "title": "Product and Experience Director",
+      "icon": "gem",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns product shape, acceptance quality, UX direction, and product handoff standards for applications maintained or built by the softwarehouse.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-revenue-officer",
+      "name": "03 CRO (Chief Revenue Officer)",
+      "role": "cmo",
+      "title": "Chief Revenue Officer",
+      "icon": "gem",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns revenue strategy for sellable apps: pricing hypotheses, subscription packaging, billing/access readiness, sales funnel readiness, and conversion evidence. Keeps Soar-first and Roost-second commercial work grounded in product proof.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "web-product-manager",
+      "name": "02 WPM (Web Product Manager)",
+      "role": "pm",
+      "title": "Web Product Manager",
+      "icon": "target",
+      "modelLane": "generalReasoning",
+      "reportsTo": "chief-product-officer",
+      "capabilities": "Owns web product requirements, user value, acceptance criteria, non-goals, release slices, and product-quality handoffs for softwarehouse applications.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "ux-web-designer",
+      "name": "02 UXW (UX Web Designer)",
+      "role": "designer",
+      "title": "UX Web Designer",
+      "icon": "gem",
+      "modelLane": "visualAndMedia",
+      "reportsTo": "chief-product-officer",
+      "capabilities": "Owns UX flows, interaction quality, view maps, interface evidence, design acceptance notes, and handoff clarity for implementation.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "ui-visual-designer",
+      "name": "02 UID (UI Visual Designer)",
+      "role": "designer",
+      "title": "UI Visual Designer",
+      "icon": "bot",
+      "modelLane": "visualAndMedia",
+      "reportsTo": "chief-product-officer",
+      "capabilities": "Owns visual interface quality, component polish, layout evidence, UI screenshots, and visual consistency for softwarehouse applications.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-operating-officer",
+      "name": "04 COO (Chief Operating Officer)",
+      "role": "pm",
+      "title": "Softwarehouse Operations Director",
+      "icon": "cog",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns delivery operations, queue hygiene, coordination rituals, documentation stewardship, blocker routing, and execution visibility across softwarehouse work.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "delivery-project-manager",
+      "name": "04 DPM (Delivery Project Manager)",
+      "role": "pm",
+      "title": "Delivery Project Manager",
+      "icon": "target",
+      "modelLane": "generalReasoning",
+      "reportsTo": "chief-operating-officer",
+      "capabilities": "Owns cross-project delivery planning, issue routing, status integration, delivery cadence, dependency tracking, and manager-level blocker escalation.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "documentation-steward",
+      "name": "04 DSM (Documentation Steward)",
+      "role": "researcher",
+      "title": "Documentation Steward",
+      "icon": "file-code",
+      "modelLane": "fastTriage",
+      "reportsTo": "delivery-project-manager",
+      "capabilities": "Owns documentation maps, status history, evidence hygiene, repo/project indexes, decision notes, and durable memory for softwarehouse delivery.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-customer-officer",
+      "name": "05 CCO (Chief Customer Officer)",
+      "role": "pm",
+      "title": "Chief Customer Officer",
+      "icon": "heart",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns customer experience after access is granted: onboarding, activation, support workflow, feedback intake, customer-facing quality bar, and incident communication for paid/private users.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "client-success-manager",
+      "name": "05 CSM (Client Success Manager)",
+      "role": "pm",
+      "title": "Client Success Manager",
+      "icon": "heart",
+      "modelLane": "generalReasoning",
+      "reportsTo": "chief-customer-officer",
+      "capabilities": "Executes customer-success loops: owner-as-first-paid-user walkthroughs, support ticket triage, feedback classification, onboarding checklist validation, and handoff of bugs/features to product/engineering.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-human-resources-officer",
+      "name": "06 CHRO (Chief Human Resources Officer)",
+      "role": "pm",
+      "title": "Chief Human Resources Officer",
+      "icon": "sparkles",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns people and AI-agent staffing, role clarity, responsibility boundaries, unhealthy-agent follow-up, onboarding/offboarding of roles, and workload/WIP hygiene for the app-building company. Delegates human people-ops work to POP when activated and AI-agent development work to AID.",
+      "canCreateAgents": true,
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "people-operations-partner",
+      "name": "06 POP (People Operations Partner)",
+      "role": "pm",
+      "title": "People Operations Partner",
+      "icon": "heart",
+      "modelLane": "fastTriage",
+      "reportsTo": "chief-human-resources-officer",
+      "capabilities": "Reserved CHRO report for human people-operations work: operator onboarding notes, contributor collaboration process, human review expectations, and board handoff clarity. Stays inactive unless the board opens human people-ops work; does not own AI-agent prompt, skill, routine, or adapter improvement.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "ai-agent-development-partner",
+      "name": "06 AID (AI Agent Development Partner)",
+      "role": "pm",
+      "title": "AI Agent Development Partner",
+      "icon": "sparkles",
+      "modelLane": "fastTriage",
+      "reportsTo": "chief-human-resources-officer",
+      "capabilities": "Owns AI-agent development under CHRO: reviews recent agent work for repeated instruction, skill, routine, role, or tool gaps; applies small low-risk durable improvements; and proposes governed role/process changes with evidence and retirement conditions.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-financial-officer",
+      "name": "07 CFO (Chief Financial Officer)",
+      "role": "cfo",
+      "title": "Chief Financial Officer",
+      "icon": "database",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns financial sanity for subscription apps: token/cost control, unit-economics assumptions, plan tiers, lifetime owner entitlement tracking, revenue readiness risks, and budget gates.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-assets-officer",
+      "name": "08 CAO (Chief Assets Officer)",
+      "role": "pm",
+      "title": "Chief Assets Officer",
+      "icon": "package",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns reusable company/product assets: app templates, design assets, docs, release artifacts, screenshots, generated work products, proof packages, and asset reuse between Soar and Roost.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-technology-officer",
+      "name": "09 CTO (Chief Technology Officer)",
+      "role": "cto",
+      "title": "Chief Technology Officer",
+      "icon": "circuit-board",
+      "modelLane": "codingDeep",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns technical direction, architecture governance, engineering standards, integration boundaries, technical risk, and specialist routing for softwarehouse delivery.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "technical-solution-architect",
+      "name": "09 TSA (Technical Solution Architect)",
+      "role": "engineer",
+      "title": "Technical Solution Architect",
+      "icon": "telescope",
+      "modelLane": "codingDeep",
+      "reportsTo": "chief-technology-officer",
+      "capabilities": "Owns technical solution design, decomposition, dependency ordering, architecture notes, implementation handoffs, and final technical fit before specialist execution.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "core-backend-engineer",
+      "name": "09 CBE (Core Backend Engineer)",
+      "role": "engineer",
+      "title": "CMS Backend Engineer",
+      "icon": "terminal",
+      "modelLane": "codingStrong",
+      "reportsTo": "chief-technology-officer",
+      "capabilities": "Owns API routes, server services, backend validation, authorization boundaries, orchestration logic, and backend-focused tests.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "frontend-web-engineer",
+      "name": "09 FEW (Frontend Web Engineer)",
+      "role": "engineer",
+      "title": "Frontend Web Engineer",
+      "icon": "globe",
+      "modelLane": "codingStrong",
+      "reportsTo": "chief-technology-officer",
+      "capabilities": "Owns React/web routes, UI state, client API calls, accessibility, responsive behavior, and browser evidence.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "data-persistence-engineer",
+      "name": "09 DBE (Data Persistence Engineer)",
+      "role": "engineer",
+      "title": "Data Persistence Engineer",
+      "icon": "database",
+      "modelLane": "codingStrong",
+      "reportsTo": "chief-technology-officer",
+      "capabilities": "Owns schema, migrations, database clients, persistence integrity, tenancy boundaries, data repair plans, and DB-focused verification.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "deployment-reliability-engineer",
+      "name": "09 DRE (Deployment & Reliability Engineer)",
+      "role": "devops",
+      "title": "Deployment and Reliability Engineer",
+      "icon": "cog",
+      "modelLane": "codingStrong",
+      "reportsTo": "chief-technology-officer",
+      "capabilities": "Owns deploy paths, runtime services, release smoke checks, Coolify/VPS readiness, operational reliability, rollback notes, and environment-specific proof.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "runtime-adapter-engineer",
+      "name": "09 RTE (Runtime & Adapter Engineer)",
+      "role": "engineer",
+      "title": "Runtime and Adapter Engineer",
+      "icon": "brain",
+      "modelLane": "codingDeep",
+      "reportsTo": "chief-technology-officer",
+      "capabilities": "Owns agent loops, adapter/plugin runtime behavior, automation boundaries, prompt/context safety, and execution integration for Paperclip-managed agents.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "integration-domain-engineer",
+      "name": "09 IDE (Integration Domain Engineer)",
+      "role": "engineer",
+      "title": "Integration Domain Engineer",
+      "icon": "radar",
+      "modelLane": "codingDeep",
+      "reportsTo": "chief-technology-officer",
+      "capabilities": "Owns external integrations, domain-specific runtime chains, adapter boundaries, provider/API behavior, and integration proof for specialized applications.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "code-review-specialist",
+      "name": "09 CRS (Code Review Specialist)",
+      "role": "engineer",
+      "title": "Code Review Specialist",
+      "icon": "search",
+      "modelLane": "codingDeep",
+      "reportsTo": "chief-technology-officer",
+      "capabilities": "Owns code review, regression-risk analysis, diff quality, maintainability checks, and review handoff notes before merge or release.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "qa-verification-engineer",
+      "name": "09 QVE (QA & Verification Engineer)",
+      "role": "qa",
+      "title": "QA and Verification Engineer",
+      "icon": "bug",
+      "modelLane": "codingStrong",
+      "reportsTo": "chief-technology-officer",
+      "capabilities": "Owns verification strategy, smoke gates, regression evidence, bug reproduction, release confidence, and quality sign-off criteria.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "test-automation-engineer",
+      "name": "09 TAE (Test Automation Engineer)",
+      "role": "qa",
+      "title": "Test Automation Engineer",
+      "icon": "microscope",
+      "modelLane": "codingStrong",
+      "reportsTo": "qa-verification-engineer",
+      "capabilities": "Owns automated regression proof for Soar first and Roost second: targeted unit/integration/e2e tests, Playwright/browser proof, fixtures, flake triage, and evidence artifacts. Works under QVE and stays paused unless a task or routine explicitly wakes safe non-production test work.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "security-privacy-auditor",
+      "name": "10 SPA (Security & Privacy Auditor)",
+      "role": "security",
+      "title": "Security and Privacy Auditor",
+      "icon": "shield",
+      "modelLane": "securityDeep",
+      "reportsTo": "chief-legal-officer",
+      "capabilities": "Owns technical security/privacy review, abuse-case analysis, secret-handling checks, authz boundaries, and risk notes for softwarehouse work. Does not act as a legal department.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-legal-officer",
+      "name": "10 CLO (Chief Legal Officer)",
+      "role": "security",
+      "title": "Chief Legal Officer",
+      "icon": "shield",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns legal/privacy/risk readiness for selling app access: terms/privacy checklist, data handling, account entitlements, security/privacy review coordination, and legal-risk blocker packets without pretending to provide formal legal advice.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "chief-innovation-officer",
+      "name": "11 CINO (Chief Innovation Officer)",
+      "role": "pm",
+      "title": "Chief Innovation Officer",
+      "icon": "lightbulb",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns the innovation portfolio, incubation flow, application PM coordination, prototype-to-v1 decisions, and promotion handoff into product and engineering delivery.",
+      "defaultWorkspace": "portfolio"
+    },
+    {
+      "key": "innovation-portfolio-manager",
+      "name": "11 IPM (Innovation Portfolio Manager)",
+      "role": "pm",
+      "title": "Innovation Portfolio Manager",
+      "icon": "lightbulb",
+      "modelLane": "generalReasoning",
+      "reportsTo": "chief-innovation-officer",
+      "capabilities": "Owns innovation portfolio coordination for LuckySparrow Softwarehouse with Soar first and Roost second. Keeps dormant app streams parked, tracks staffing/ownership gaps, converts strategic gaps into narrow Paperclip issues, and does not implement code.",
+      "defaultWorkspace": "portfolio"
+    },
+    {
+      "key": "aviary-product-manager",
+      "name": "11 APM (Aviary Product Manager)",
+      "role": "pm",
+      "title": "Aviary Product Manager",
+      "icon": "sparkles",
+      "modelLane": "generalReasoning",
+      "reportsTo": "chief-innovation-officer",
+      "capabilities": "Owns Aviary project intake, known-state baseline, roadmap slices, blocker escalation, and cross-specialist coordination.",
+      "defaultWorkspace": "aviary"
+    },
+    {
+      "key": "featherly-platform-manager",
+      "name": "11 FPM (Featherly Platform Manager)",
+      "role": "pm",
+      "title": "Featherly Platform Manager",
+      "icon": "lightbulb",
+      "modelLane": "generalReasoning",
+      "reportsTo": "chief-innovation-officer",
+      "capabilities": "Owns Featherly project intake, known-state baseline, roadmap slices, blocker escalation, and cross-specialist coordination when Featherly is active.",
+      "defaultWorkspace": "featherly"
+    },
+    {
+      "key": "nest-product-manager",
+      "name": "11 NPM (Nest Product Manager)",
+      "role": "pm",
+      "title": "Nest Product Manager",
+      "icon": "heart",
+      "modelLane": "generalReasoning",
+      "reportsTo": "chief-innovation-officer",
+      "capabilities": "Owns Nest project intake, known-state baseline, roadmap slices, blocker escalation, and cross-specialist coordination.",
+      "defaultWorkspace": "nest"
+    },
+    {
+      "key": "roost-product-manager",
+      "name": "11 RPM (Roost Project Manager)",
+      "role": "pm",
+      "title": "Roost Product Manager",
+      "icon": "target",
+      "modelLane": "generalReasoning",
+      "reportsTo": "chief-innovation-officer",
+      "capabilities": "Owns Roost/companycore project intake, known-state baseline, roadmap slices, blocker escalation, and cross-specialist coordination.",
+      "defaultWorkspace": "roost"
+    },
+    {
+      "key": "soar-product-manager",
+      "name": "11 SPM (Soar Product Manager)",
+      "role": "pm",
+      "title": "Soar Product Manager",
+      "icon": "target",
+      "modelLane": "generalReasoning",
+      "reportsTo": "chief-innovation-officer",
+      "capabilities": "Owns Soar version delivery, roadmap slices, blocker escalation, routine readiness, and cross-specialist coordination.",
+      "defaultWorkspace": "soar"
+    },
+    {
+      "key": "chief-executive-officer",
+      "name": "12 CEO (Chief Executive Officer)",
+      "role": "ceo",
+      "title": "Softwarehouse Executive Owner",
+      "icon": "crown",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns the executive operating truth for the softwarehouse: final prioritization, board escalation framing, strategic delegation, and executive-level acceptance of outcomes.",
+      "defaultWorkspace": "softwarehouse"
+    }
+  ],
+  "workspacePolicy": {
+    "root": "C:/Personal/Projekty/Aplikacje",
+    "defaultCwd": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
+    "rule": "Agents start in the narrowest useful local cwd for their standing role. Existing applications must use their canonical local workspace under C:/Personal/Projekty/Aplikacje/<Application>; do not clone, copy, or create a second local app instance. In this local phase, Paperclip means Paperclip_Softwarehouse and the old C:/Personal/Projekty/Aplikacje/Paperclip path is not an active project. Isolated worktrees require explicit board approval for the specific issue and must be cleaned after handoff. Never use C:/tmp, system temp folders, Downloads, Desktop, or ad hoc scratch folders as application repo/checkouts; temp folders are only for short-lived generated artifacts that are deleted before handoff. Issue/project execution workspaces should resolve to the canonical project cwd by default. Broad portfolio cwd is reserved for portfolio/application coordination roles only.",
+    "workspaces": {
+      "softwarehouse": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
+      "portfolio": "C:/Personal/Projekty/Aplikacje",
+      "soar": "C:/Personal/Projekty/Aplikacje/Soar",
+      "roost": "C:/Personal/Projekty/Aplikacje/Roost",
+      "aviary": "C:/Personal/Projekty/Aplikacje/Aviary",
+      "featherly": "C:/Personal/Projekty/Aplikacje/Featherly",
+      "nest": "C:/Personal/Projekty/Aplikacje/Nest"
+    }
+  }
+}

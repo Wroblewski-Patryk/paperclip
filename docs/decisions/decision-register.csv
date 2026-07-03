@@ -1,0 +1,2 @@
+ID,Title,Area,Status,Owner,Decision file,Impacted docs,Impacted modules,Accepted date,Superseded by,Notes
+ADR-000,Example decision,architecture,proposed,Owner,docs/decisions/ADR-000-template.md,docs/architecture/system-architecture.md,example,,,Example only.

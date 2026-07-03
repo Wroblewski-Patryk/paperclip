@@ -1,0 +1,98 @@
+{
+    "main":  {
+                 "id":  "project-docs-main",
+                 "type":  "split",
+                 "children":  [
+                                  {
+                                      "id":  "project-docs-leaf",
+                                      "type":  "leaf",
+                                      "state":  {
+                                                    "type":  "markdown",
+                                                    "state":  {
+                                                                  "file":  "README.md",
+                                                                  "mode":  "source",
+                                                                  "source":  false
+                                                              }
+                                                }
+                                  }
+                              ],
+                 "direction":  "vertical"
+             },
+    "left":  {
+                 "id":  "project-docs-left",
+                 "type":  "split",
+                 "children":  [
+                                  {
+                                      "id":  "project-docs-files",
+                                      "type":  "leaf",
+                                      "state":  {
+                                                    "type":  "file-explorer",
+                                                    "state":  {
+
+                                                              }
+                                                }
+                                  },
+                                  {
+                                      "id":  "project-docs-search",
+                                      "type":  "leaf",
+                                      "state":  {
+                                                    "type":  "search",
+                                                    "state":  {
+                                                                  "query":  "",
+                                                                  "matchingCase":  false,
+                                                                  "explainSearch":  false,
+                                                                  "collapseAll":  false,
+                                                                  "extraContext":  false,
+                                                                  "sortOrder":  "alphabetical"
+                                                              }
+                                                }
+                                  }
+                              ],
+                 "direction":  "horizontal",
+                 "width":  300
+             },
+    "right":  {
+                  "id":  "project-docs-right",
+                  "type":  "split",
+                  "children":  [
+                                   {
+                                       "id":  "project-docs-backlinks",
+                                       "type":  "leaf",
+                                       "state":  {
+                                                     "type":  "backlink",
+                                                     "state":  {
+                                                                   "collapseAll":  false,
+                                                                   "extraContext":  false,
+                                                                   "sortOrder":  "alphabetical",
+                                                                   "showSearch":  false,
+                                                                   "searchQuery":  "",
+                                                                   "backlinkCollapsed":  false,
+                                                                   "unlinkedCollapsed":  true
+                                                               }
+                                                 }
+                                   },
+                                   {
+                                       "id":  "project-docs-outline",
+                                       "type":  "leaf",
+                                       "state":  {
+                                                     "type":  "outline",
+                                                     "state":  {
+
+                                                               }
+                                                 }
+                                   }
+                               ],
+                  "direction":  "horizontal",
+                  "width":  300,
+                  "collapsed":  true
+              },
+    "leftRibbon":  {
+                       "hiddenItems":  {
+
+                                       }
+                   },
+    "active":  "project-docs-leaf",
+    "lastOpenFiles":  [
+
+                      ]
+}
