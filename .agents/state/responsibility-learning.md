@@ -190,3 +190,26 @@ Standing rule:
   UI state.
 - Avoid restarting the Paperclip server while healthy live runs are active
   unless the restart is the only safe repair path.
+
+## 2026-07-04 - Treat protected smoke gaps as configuration defects
+
+Observed pattern: Soar Gate 2 reached real deploy/readiness verification, but
+protected `/workers/ready` smoke could not be proven with the available
+production test account. The smoke account authenticated as `USER`, while the
+endpoint requires admin authority plus the approved ops-network path. `LUC-69`
+correctly captured the missing bindings as a blocked configuration/approval
+lane instead of letting QVE/DRE close the gate with partial evidence.
+
+Standing rule:
+
+- When a protected production smoke needs additional secret refs, roles, or
+  ops-network bindings, record the exact missing secret-ref names and required
+  authority without exposing values.
+- Keep the delivery gate blocked until the least-privilege path is approved and
+  bound; do not downgrade the evidence requirement merely because public health
+  checks pass.
+- Route secret binding, role grant, deploy, restart, or broad access changes
+  through the governed owner/AIA path. DSM/operations may record the lesson and
+  track the blocker, but must not self-edit agent authority or bindings.
+- Future closure evidence should cite the parent issue, the binding/approval
+  issue, the smoke command or artifact, and the residual risk.

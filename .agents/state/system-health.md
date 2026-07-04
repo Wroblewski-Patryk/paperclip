@@ -1,14 +1,20 @@
 # System Health
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 ## Local Paperclip Softwarehouse Instance
 
-Known working runtime from the recent restart:
+Current active Softwarehouse runtime:
 
 - Base URL: `http://127.0.0.1:3200`
 - Company name: `LuckySparrow`
-- Company id: `f13051a7-d0aa-4261-9254-d3ab90735de5`
+- Company id: `ae26bb8b-8f5f-4a85-b341-78d4e1985975`
+- Prefix: `LUC`
+- Active Stage 1 hard parent: `LUC-25`
+
+Historical restart snapshot from the previous/wiped instance:
+
+- Previous company id: `f13051a7-d0aa-4261-9254-d3ab90735de5`
 - Deployment mode: `local_trusted`
 - Exposure: `private`
 - Auth ready: `true`

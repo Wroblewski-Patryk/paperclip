@@ -1181,3 +1181,163 @@ New gate:
 Decision posture: do not silently mutate secret bindings from the monitor.
 Surface the approval clearly to the owner/AIA path unless explicit current
 approval is given for this specific secret-ref binding.
+
+# 2026-07-04 - PDCA Learning Review: Stage 1 Evidence And Memory Hygiene
+
+Issue source: `LUC-73` (`04 Operations: PDCA Learning and Company Memory
+Review`).
+
+Plan:
+
+- Review the active Stage 1 routine evidence, current memory files, and active
+  board state under `LUC-25`.
+- Preserve only durable lessons; avoid editing agent instructions or authority
+  directly from the DSM routine.
+
+Do:
+
+- Confirmed `LUC-73` has no prior comments/documents and is assigned to `04
+  DSM`.
+- Reviewed active memory files in `.agents/state/`, including the project
+  journal, project memory, active mission, risk register, and responsibility
+  learning.
+- Reviewed the active issue snapshot for `LUC-25`, `LUC-34`, `LUC-44`,
+  `LUC-45`, `LUC-47`, `LUC-62`, `LUC-64`, `LUC-69`, and `LUC-73`.
+
+Check:
+
+- Stage 1 is no longer plan-only: Soar deploy/readiness work is producing
+  concrete evidence and routing real blockers through child issues.
+- `LUC-45` and `LUC-62` closed with evidence-oriented findings, and `LUC-64`
+  converted the finance findings into an owner decision packet.
+- `LUC-69` is correctly blocked on a protected-worker readiness smoke binding
+  gap instead of closing Gate 2 without proof.
+- A no-wake hygiene issue was already observed and corrected: ordinary
+  finalization comments on `done`/`blocked` issues can unintentionally wake
+  agents, so final disposition should prefer state/document/work-product
+  updates unless continuation is intended.
+
+Act:
+
+- Added a responsibility-learning note for future DSM/operations runs: treat
+  protected smoke evidence gaps as configuration/approval defects, not as
+  missing effort from delivery agents.
+- Added `RISK-PSH-010` to track Stage 1 protected-smoke binding drift.
+- Published the review as the `pdca-review` document on `LUC-73` and closed the
+  issue with evidence. No agent instructions, permissions, routines, or hiring
+  authority were changed.
+
+# 2026-07-04 - Product AI Smoke Account Policy And Soar Auth Blocker
+
+Conversation summary: the owner clarified that production owner accounts exist
+for Soar and Roost, but agents should not use the owner's private account as
+their runtime test credential. Each app needs dedicated AI smoke credentials:
+normal customer/user where relevant, admin/operator where the app exposes such
+flows, and workspace-owner where the app's highest available authority is a
+workspace owner rather than a global admin.
+
+Actions:
+
+- Recorded the app smoke account policy in
+  `.agents/state/softwarehouse-secret-requirements.md`.
+- Provisioned a dedicated Roost production AI owner/workspace smoke account and
+  rotated Paperclip refs `roost_prod_test_email`,
+  `roost_prod_test_password`, and `roost_prod_test_workspace_name`.
+- Bound the Roost smoke refs to `09 DRE`, `09 QVE`, and `10 SPA`.
+- Verified Roost production readiness and that the Roost smoke account returned
+  an auth token and workspace. No raw secret values were written to memory.
+
+Soar finding:
+
+- Soar production account provisioning could not be completed yet because app
+  auth is unhealthy: `/ready` returned `503 not_ready`, and auth endpoints
+  returned the redaction-safe error class `Rate limit temporarily unavailable`.
+- Created `LUC-80`, `09 Technology: Restore Soar auth readiness and provision
+  AI smoke accounts`, assigned to `09 DRE`, under `LUC-25`.
+- `LUC-80` must restore Soar auth/rate-limit readiness, then provision/verify
+  dedicated Soar AI `USER` smoke refs and `ADMIN` smoke refs without exposing
+  raw secrets.
+
+# 2026-07-04 - Owner-Linked Integration Verification Path
+
+Conversation summary: the owner clarified that some production app capabilities
+cannot be fully tested through AI smoke accounts because third-party providers
+are linked only to the owner's app account. Soar uses owner-linked
+Binance/exchange connectivity; Roost may use owner-linked Google Drive or
+similar third-party integrations.
+
+Decision:
+
+- Keep dedicated AI smoke accounts as the default verification path.
+- Add a separate owner-linked integration verification path for cases where the
+  capability genuinely depends on the owner's connected third-party provider.
+- Store only Paperclip secret refs; do not expose raw values in memory, issue
+  comments, logs, docs, or artifacts.
+- Bind owner-linked refs only to `09 DRE`, `09 QVE`, and `10 SPA`.
+- Do not bind these owner credentials to `00 AIA` by default; AIA should
+  coordinate Polish owner-facing decisions, not hold broad credential access.
+
+Configured refs:
+
+- `soar_owner_prod_email`
+- `soar_owner_prod_password`
+- `roost_owner_prod_email`
+- `roost_owner_prod_password`
+
+Gates:
+
+- Soar owner-linked credentials may be used for read-only/dry-run/paper-mode
+  Binance or exchange integration evidence when AI smoke accounts cannot test
+  the flow.
+- LIVE trading, order creation/cancel, exchange key changes, wallet/funds
+  movement, or real market mutation still require separate explicit owner
+  approval for the exact action.
+- Roost owner-linked credentials may be used for read-only/non-destructive
+  Google Drive or third-party integration evidence when AI smoke accounts
+  cannot test the flow.
+- File deletion, sharing changes, external sends, provider config mutation, or
+  destructive third-party action still require separate explicit owner approval
+  for the exact action.
+
+Follow-up clarification:
+
+- This is a general product-portfolio pattern, not a Soar/Roost-only exception.
+- Future apps such as Nest may need the same path when third-party integrations
+  are intentionally linked only to the owner's account.
+- Apps without that constraint should rely on AI smoke accounts only and should
+  not receive owner-linked credential refs.
+- Product activation packets should decide whether owner-linked integration
+  credentials are needed, name the exact refs, and bind them only to the
+  narrowest verification/security roles.
+
+Additional portfolio architecture clarification:
+
+- Aviary is expected to be a more complex future product because it may depend
+  on Nest and Roost, and those apps may themselves depend on external providers.
+- When a downstream product such as Aviary fails, agents must not assume the
+  downstream app is the root cause. The fault may be in an upstream
+  LuckySparrow product, a third-party provider connected to that product, a data
+  mapping, freshness, permission, or credential path.
+- Added cross-product dependency diagnosis guidance to the product architecture
+  index and autonomous delivery architecture. This is recorded as a future
+  portfolio pattern only; no Aviary/Nest work should be created until the owner
+  activates those lanes.
+
+# 2026-07-04 - Commit Hygiene Owner Preference
+
+Conversation summary: the owner clarified that Paperclip Softwarehouse work
+should not finish with unexplained dirty files. File-changing work should be
+split into logical commits when needed and committed before handoff. If a dirty
+state remains because another agent is actively working or because a change is
+blocked, the reason, owner, and remaining files must be stated explicitly.
+
+Standing rule:
+
+- Treat a clean git status as the normal handoff target.
+- Split unrelated work into separate commits rather than mixing operating
+  memory, generated status, adapter/runtime code, and product app changes.
+- Do not revert or overwrite another agent's uncommitted work. Classify it,
+  verify where reasonable, then commit it separately or record why it cannot be
+  committed yet.
+- If saving durable memory or a journal entry, commit that memory update in the
+  same turn unless explicitly blocked.

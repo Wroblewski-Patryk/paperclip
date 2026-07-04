@@ -59,6 +59,9 @@ with Roost as part of the autonomous company layer.
   Paperclip_Softwarehouse repo.
 - Avoid broad rewrites and context churn. Capture what matters, then keep
   moving.
+- Finish file-changing work with a commit. If a change is not ready to commit,
+  explicitly record why it is blocked and which files remain dirty; do not leave
+  completed work as an unexplained dirty worktree.
 
 ## Current Company Shape
 
