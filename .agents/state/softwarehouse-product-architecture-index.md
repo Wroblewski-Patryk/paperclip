@@ -34,6 +34,32 @@ projects, issues, routines, goals, or implementation work for Featherly,
 Aviary, or Nest until the applications are on VPS and the owner explicitly
 activates them.
 
+## Portfolio Dependency Pattern
+
+Future products may depend on other LuckySparrow products plus third-party
+providers. Aviary is expected to be more complex than a standalone app: it may
+consume or coordinate data from Nest and Roost, and those upstream apps may
+themselves depend on external providers. The same pattern can appear in other
+future products.
+
+When a downstream product misbehaves, agents must not assume the downstream app
+is the root cause. They must classify the failure across the dependency chain:
+
+- downstream app behavior and UI/API handling;
+- upstream LuckySparrow product data contract, freshness, completeness, and
+  permissions;
+- upstream app's third-party provider connection and owner-linked integration
+  state;
+- transformation/mapping logic between products;
+- stale, partial, duplicated, or malformed data;
+- missing owner-linked credential path or missing AI smoke account path.
+
+For active products, this means a bug report should name the affected product,
+the suspected upstream/downstream products, the data contract or feature slice,
+and the evidence that locates the fault. For parked products such as Aviary,
+Nest, and Featherly, record the pattern only; do not create product work until
+the owner activates the lane.
+
 ## Innovation To Product Lifecycle
 
 Active app lanes currently live in `11 Innovation` because they are still being

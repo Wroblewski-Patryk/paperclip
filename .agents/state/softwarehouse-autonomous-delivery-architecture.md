@@ -200,6 +200,36 @@ completion requires API/data impact checks. If the code graph is incomplete,
 the agent must write down the manual caller/callee search used and route a
 traceability repair when the gap is reusable.
 
+## Cross-Product Dependency Diagnosis
+
+For portfolio products that depend on other LuckySparrow apps or external
+providers, diagnosis must include provenance. A failure observed in a downstream
+app may be caused by:
+
+- the downstream app's own code, UI, API, cache, or permissions;
+- an upstream LuckySparrow app providing stale, incomplete, malformed, or
+  unauthorized data;
+- a third-party provider connected to the upstream app or owner account;
+- a broken mapping, webhook, event, import/export, file sync, queue, or polling
+  contract between products;
+- a missing or incorrectly scoped smoke credential or owner-linked integration
+  credential.
+
+When this pattern applies, the issue must identify:
+
+- downstream product and feature slice;
+- upstream product(s), provider(s), and data contract(s);
+- expected data shape/freshness/permission assumptions;
+- evidence distinguishing downstream defect from upstream-data defect;
+- owner-linked or AI-smoke credential path needed for proof;
+- which role owns each side of the handoff.
+
+Do not close a downstream bug as fixed until the responsible agent has either
+proved the downstream app is correct with valid upstream data, fixed the
+upstream source/contract, or created a first-class blocker for the upstream
+owner. Do not create work for parked products only to model this pattern; apply
+it when the product lane is active.
+
 Agents must not close product work only because a plan, report, commit, or
 local unit test exists. Close only when the feature slice has current
 cross-layer evidence or a clearly owned blocker under the parent.
