@@ -545,3 +545,50 @@ Immediate post-change check:
   `09 QVE`, `09 DRE`, `10 SPA`.
 - No duplicate/circular issue expansion or unauthorized routine trigger was
   observed immediately after activation.
+
+# 2026-07-04 - Stage 1 Routine Wave 1 Activated
+
+The owner approved progressive routine unlocking when routines are configured
+correctly and useful for autonomous app creation. Codex activated the first
+guarded routine wave instead of enabling all routines at once.
+
+Activated routines:
+
+- `00 General: Softwarehouse Liveness and Active Work Review`
+  - Assignee: `00 AIA`
+  - Trigger enabled: yes
+  - Next scheduled run: 2026-07-04T14:00:00.000Z
+  - Purpose: check whether Paperclip is alive, intentionally quiet or running,
+    free of broad accidental issue creation, and focused on approved Soar/Roost
+    local autonomy under `LUC-19`.
+- `09 Technology: Evidence Gate and Definition of Done Review`
+  - Assignee: `09 QVE`
+  - Trigger enabled: yes
+  - Next scheduled run: 2026-07-08T08:00:00.000Z
+  - Purpose: audit whether active/completed Soar/Roost work has inspectable
+    test, review, documentation, security, deploy, and monitoring evidence when
+    applicable.
+
+Kept paused for now:
+
+- Old controlled dry-run routine, because the dry run is complete.
+- Owner direction/proposal review, unless a direct owner-decision flow needs it.
+- Portfolio truth and PDCA memory routines, until their paused assignee roles
+  are justified/resumed safely or the active issue tree shows a concrete need.
+- Cost/quota, secrets/Coolify/VPS, source-control/deploy-readiness, and hiring
+  routines, because they can create high-risk gates or decisions and should
+  activate only after active work proves stable or a concrete need appears.
+
+Heartbeat automation update:
+
+- The Codex heartbeat now explicitly monitors active `LUC-19` work plus routine
+  behavior and permits further routine unlocking piece by piece when
+  configuration, assignee role fit, cadence, scope, and risk are clean.
+
+Immediate post-change snapshot:
+
+- Active routines: 2.
+- Live runs: QVE and RPM.
+- Open issues: `LUC-19` blocked on children and `LUC-23` in progress.
+- No broad routine activation, all-agent activation, production mutation, push,
+  deploy, secret change, or unrelated product expansion was performed.
