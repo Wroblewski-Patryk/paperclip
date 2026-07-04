@@ -213,3 +213,33 @@ Standing rule:
   track the blocker, but must not self-edit agent authority or bindings.
 - Future closure evidence should cite the parent issue, the binding/approval
   issue, the smoke command or artifact, and the residual risk.
+
+## 2026-07-04 - Split live capacity cleanup into diagnosis, permit, and hardening
+
+Observed pattern: Stage 1 deploy triggers for Soar and Roost reached Coolify, but
+the queue did not produce current production build metadata while the VPS root
+filesystem was critically full. The useful path was not another deploy trigger.
+It was a read-only investigation, a narrow mutation permit, and source-controlled
+recurrence hardening.
+
+Standing rule:
+
+- Treat live disk/capacity pressure as a protected release gate, even when the
+  suspected object looks obvious.
+- First produce read-only evidence with target object, size, owner, path,
+  sensitivity risk, and no-mutation boundary.
+- If cleanup is needed, request approval for the exact object/action, expected
+  reclaimed space, rollback/no-rollback statement, stop condition, and
+  post-action smoke/readiness checks.
+- Route recurrence prevention as a separate source-controlled code/config lane
+  with verification, not as an ad hoc live-server tweak.
+- Do not repeat deploy triggers while the deployment queue is known stale,
+  storage is critically low, or the previous deployment rows are unresolved.
+
+Current evidence:
+
+- `LUC-124` found a stale Soar API core dump at `/app/apps/api/core` accounting
+  for about 4.6G of writable-layer pressure without reading the core contents.
+- `LUC-124` requested cleanup approval `eaae3dd5-369b-43b3-b54a-4d09c5dd5fc5`
+  for deleting only that file.
+- `LUC-127` implemented recurrence hardening in Soar deployment configuration.
