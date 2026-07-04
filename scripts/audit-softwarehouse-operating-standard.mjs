@@ -89,6 +89,36 @@ const requiredBundleEntryTerms = [
   "Before taking non-trivial action, read the shared contracts and your role file",
   "The role file is the only agent-specific responsibility file",
 ];
+const requiredReferenceFiles = [
+  "agent-activation-governance.md",
+  "company-operating-model.md",
+  "cost-token-and-context-efficiency.md",
+  "delegation-and-reporting-contract.md",
+  "delivery-closure-loop.md",
+  "departments-and-naming.md",
+  "end-to-end-operating-flow.md",
+  "gap-detection-and-learning-packets.md",
+  "goal-and-routine-governance.md",
+  "hiring-and-agent-governance.md",
+  "innovation-to-product-lifecycle.md",
+  "learning-and-self-correction.md",
+  "owner-direction-and-proposal-loop.md",
+  "owner-interface-and-language-policy.md",
+  "paperclip-operating-mechanics.md",
+  "procedures-and-task-lifecycle.md",
+  "product-architecture-source-of-truth.md",
+  "resource-and-github-policy.md",
+  "secrets-deploy-evidence.md",
+  "standards.md",
+];
+const requiredReferenceTerms = [
+  "Current Stage 1 Mission",
+  "LUC-25",
+  "Paperclip Operation Contract",
+  "paperclipCreateIssue",
+  "paperclipCheckoutIssue",
+  "request_confirmation",
+];
 
 function readIfExists(filePath) {
   return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
@@ -141,6 +171,7 @@ let rosterAgentCount = 0;
 let sourceRoleFilesExpected = 0;
 let sourceRoleFilesPresent = 0;
 let roleMapEntriesCovered = 0;
+let rosterAgents = [];
 const rosterAgentsByKey = new Map();
 const roleMapText = readIfExists(path.join(repoRoot, "docs/softwarehouse/02-roles-and-agents.md"));
 const sharedFiles = existsSync(sourceSharedRoot)
@@ -154,7 +185,7 @@ if (!existsSync(rosterPath)) {
   findings.push({ severity: "error", type: "missing_roster", path: "softwarehouse/agent-roster.json" });
 } else {
   const roster = parseJsonFile(rosterPath);
-  const rosterAgents = Array.isArray(roster.agents) ? roster.agents : [];
+  rosterAgents = Array.isArray(roster.agents) ? roster.agents : [];
   rosterAgentCount = rosterAgents.length;
 
   for (const agent of rosterAgents) {
@@ -210,13 +241,23 @@ if (existsSync(agentRoot)) {
     const instructionsRoot = path.join(agentRoot, entry.name, "instructions");
     const sharedRoot = path.join(instructionsRoot, "shared");
     const rolesRoot = path.join(instructionsRoot, "roles");
+    const referencesRoot = path.join(instructionsRoot, "references");
     const bundleEntryText = readIfExists(path.join(instructionsRoot, "AGENTS.md"));
     const metadataText = readIfExists(path.join(instructionsRoot, "metadata.md"));
-    const promptText = [
+    const sharedPromptText = [
       readIfExists(path.join(sharedRoot, "50-responsibility-boundaries.md")),
       readIfExists(path.join(sharedRoot, "95-operating-processes.md")),
     ].join("\n");
-    const missingTerms = requiredPromptTerms.filter((term) => !promptText.includes(term));
+    const referencePromptText = [
+      readIfExists(path.join(referencesRoot, "standards.md")),
+      readIfExists(path.join(referencesRoot, "end-to-end-operating-flow.md")),
+      readIfExists(path.join(referencesRoot, "paperclip-operating-mechanics.md")),
+      readIfExists(path.join(referencesRoot, "procedures-and-task-lifecycle.md")),
+    ].join("\n");
+    const hasReferenceLayout = existsSync(referencesRoot) && !existsSync(sharedRoot);
+    const promptText = hasReferenceLayout ? referencePromptText : sharedPromptText;
+    const normalizedPromptText = normalizeText(promptText);
+    const missingTerms = requiredPromptTerms.filter((term) => !normalizedPromptText.includes(normalizeText(term)));
     if (missingTerms.length === 0) {
       agentsWithStandard += 1;
     } else {
@@ -230,10 +271,16 @@ if (existsSync(agentRoot)) {
 
     const missingBundleTerms = requiredBundleEntryTerms.filter((term) => !bundleEntryText.includes(term));
     const missingSharedReferences = sharedFiles.filter((fileName) => !bundleEntryText.includes(`shared/${fileName}`));
+    const missingReferenceFiles = requiredReferenceFiles.filter((fileName) => !existsSync(path.join(referencesRoot, fileName)));
+    const missingReferenceEntryLinks = requiredReferenceFiles.filter((fileName) => !bundleEntryText.includes(`references/${fileName}`));
+    const missingReferenceTerms = requiredReferenceTerms.filter((term) => !(bundleEntryText + "\n" + referencePromptText).includes(term));
     const roleReferenceMatch = bundleEntryText.match(/roles\/([a-z0-9-]+\.md)/);
     const roleFileName = roleReferenceMatch?.[1] ?? null;
     const roleKey = roleFileName ? roleFileName.replace(/\.md$/, "") : null;
     const roleFileText = roleFileName ? readIfExists(path.join(rolesRoot, roleFileName)) : "";
+    const yamlNameMatch = bundleEntryText.match(/^name:\s*(.+)$/m);
+    const inlineAgentName = yamlNameMatch?.[1]?.trim() ?? null;
+    const inlineRosterAgent = inlineAgentName ? rosterAgents.find((agent) => agent.name === inlineAgentName) : null;
     const roleFiles = existsSync(rolesRoot)
       ? (await readdir(rolesRoot, { withFileTypes: true }))
           .filter((roleEntry) => roleEntry.isFile() && roleEntry.name.endsWith(".md"))
@@ -241,7 +288,28 @@ if (existsSync(agentRoot)) {
           .sort()
       : [];
 
-    if (
+    if (hasReferenceLayout) {
+      if (
+        missingReferenceFiles.length === 0 &&
+        missingReferenceEntryLinks.length === 0 &&
+        missingReferenceTerms.length === 0 &&
+        inlineRosterAgent &&
+        !bundleEntryText.includes("## Stage 0 Guard")
+      ) {
+        agentsWithBundleEntry += 1;
+      } else {
+        findings.push({
+          severity: "error",
+          type: "agent_reference_bundle_drift",
+          agentDirectory: entry.name,
+          missingReferenceFiles,
+          missingReferenceEntryLinks,
+          missingReferenceTerms,
+          staleStage0Guard: bundleEntryText.includes("## Stage 0 Guard"),
+          inlineAgentName,
+        });
+      }
+    } else if (
       missingBundleTerms.length === 0 &&
       missingSharedReferences.length === 0 &&
       roleFileName &&
@@ -267,8 +335,12 @@ if (existsSync(agentRoot)) {
     const metadataNameMatch = metadataText.match(/Agent name:\s*([^\r\n]+)/);
     const metadataKey = metadataKeyMatch?.[1]?.trim();
     const metadataName = metadataNameMatch?.[1]?.trim();
-    const rosterAgent = roleKey ? rosterAgentsByKey.get(roleKey) : null;
-    if (roleKey && metadataKey === roleKey && rosterAgent && metadataName === rosterAgent.name) {
+    const rosterAgent = hasReferenceLayout ? inlineRosterAgent : (roleKey ? rosterAgentsByKey.get(roleKey) : null);
+    if (
+      hasReferenceLayout
+        ? Boolean(inlineRosterAgent)
+        : Boolean(roleKey && metadataKey === roleKey && rosterAgent && metadataName === rosterAgent.name)
+    ) {
       agentsWithRoleMetadata += 1;
     } else {
       findings.push({

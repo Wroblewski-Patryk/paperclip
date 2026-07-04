@@ -982,3 +982,63 @@ This applies to recovery-needed states, stale blockers, workspace escapes,
 secrets/deploy issues, runtime adapter failures, and similar Paperclip workflow
 failures. The goal is forward movement with better governance, not hiding
 errors or creating broad speculative work.
+
+# 2026-07-04 - Paperclip Agent Operations Capability Correction
+
+The owner asked whether Paperclip agents actually know how to use Paperclip
+itself: issue/task creation, assignment, blocker handling, comments,
+interactions, and work products. Codex first resolved the pending owner
+decision packet on `LUC-64` by selecting the conservative Stage 1 budget/quota
+policy option. Paperclip accepted the interaction answer and closed `LUC-64`,
+then created follow-up `LUC-66` for conservative budget guardrails.
+
+Diagnosis: agents technically have the Paperclip skills/MCP tools needed for
+work-object operations (`paperclipCreateIssue`, `paperclipUpdateIssue`,
+`paperclipCheckoutIssue`, comments, documents, interactions, approvals, and
+API fallback), but the active managed instruction bundles still carried
+Stage-0/dry-run language and did not make the operation rules explicit enough
+for current Stage 1 delivery. This could cause agents to stop at reports,
+blockers, or unclear parent/child routing instead of creating the smallest
+safe executable child issue or interaction.
+
+Corrections applied:
+
+- Updated `.agents/state/softwarehouse-paperclip-operating-mechanics.md` to
+  active Stage 1 language under `LUC-25`, with a Paperclip work-object
+  playbook and blocker/resume playbook.
+- Updated `.agents/state/softwarehouse-task-lifecycle-contract.md` with the
+  Paperclip Operation Contract: when to list/get issues, checkout, create child
+  issues, update status/blockers, comment, use documents/work products, or
+  create interactions.
+- Synchronized the updated `references/paperclip-operating-mechanics.md`,
+  `references/procedures-and-task-lifecycle.md`, and `AGENTS.md` current
+  Stage 1 mission section into all 38 active managed instruction bundles
+  through the Paperclip instruction-bundle API.
+- Added exact standards language to all 38 live `references/standards.md`
+  files: APQC-style, Definition of Ready, Definition of Done, quality gates,
+  and work-report evidence.
+- Fixed `scripts/audit-softwarehouse-operating-standard.mjs` so it validates
+  both the newer `shared/roles` bundle shape and the current live
+  `references/*.md` bundle shape.
+- Reconciled source truth for department 06: `06 AIM (AI Agent Manager)` is the
+  active AI-agent creation authority; `06 CHRO` and `06 POP` remain paused
+  broad human-capital/people-ops roles. Added
+  `softwarehouse/instructions/roles/ai-agent-manager.md`, updated
+  `softwarehouse/agent-roster.json`, and corrected
+  `docs/softwarehouse/02-roles-and-agents.md`.
+
+Verification:
+
+- `node scripts/audit-softwarehouse-operating-standard.mjs` with
+  `PAPERCLIP_HOME=.paperclip/runtime/home` and the LuckySparrow company id:
+  pass, 38/38 agents with standard, bundle entry, and role metadata.
+- `node scripts/audit-softwarehouse-workspace-boundaries.mjs`: pass; parked
+  sibling directories remain warnings only and must not be mutated.
+- Direct bundle check: 38/38 agents have `Current Stage 1 Mission`, no old
+  `Stage 0 Guard`, `LUC-25`, `Paperclip Operation Contract`, and interaction
+  guidance.
+
+Note: `pnpm run softwarehouse:*` wrappers attempted a dependency install and
+failed before running the scripts because Windows denied a symlink creation in
+`packages/plugins/plugin-workspace-diff` (`EPERM`). Direct `node` script runs
+were used for verification.

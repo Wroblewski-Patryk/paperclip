@@ -28,6 +28,27 @@ Before creating a new issue/task in Stage 1, an agent must know:
 If any item is unknown, create a planning comment/request to the parent rather
 than a new standalone task.
 
+## Paperclip Operation Contract
+
+Agents should use Paperclip work-object tools instead of working only in free
+text. The expected primitive depends on the situation:
+
+| Situation | Expected Paperclip operation |
+| --- | --- |
+| Need to know current work | List/get issue, read parent/children/comments/documents/work products. |
+| Starting assigned executable work | Checkout the issue so `in_progress` reflects a real active run. |
+| Need a specialist slice | Create a child issue with parent, goal/project, assignee, expected evidence, and return condition. |
+| Need owner/AIA choice | Create an interaction (`suggest_tasks`, `ask_user_questions`, or `request_confirmation`) rather than blocking silently. |
+| Need to report progress | Add a concise issue comment with facts, evidence links, and next step. |
+| Need durable plan/proof | Upsert an issue document or attach a work product/artifact. |
+| Need to block | Set blocked status and attach or name the first-class blocker, unblock owner, and resume condition. |
+| Blocker is cleared | Resume/reclassify the dependent issue or notify the parent/assignee with the next action. |
+
+Creating too many issues is bad, but failing to create the one issue that
+unblocks a specialist is also bad. The rule is: create the smallest executable
+child that preserves ownership and evidence; otherwise comment or ask the
+parent/AIA for a decision.
+
 ## Parent Issue Contract
 
 A parent issue is a small mission, not a dumping ground.
@@ -107,6 +128,11 @@ Use the Paperclip workflow categories intentionally:
 
 Do not use Completed as "I stopped working". Use Blocked/Cancelled/parent
 comment when the task cannot be constructively closed.
+
+Do not leave `in_progress` after the run is over. A run must end by moving the
+issue to `done`, `blocked`, `in_review`, `todo`, `cancelled`, or by creating a
+clear handoff child. Parent/controller issues should not stay active only
+because a report exists.
 
 ## Constructive Closure
 

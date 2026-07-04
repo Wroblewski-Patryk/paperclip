@@ -7,13 +7,13 @@
   "talentPolicy": {
     "canProposeRoleSplits": true,
     "approvalRequiredForNewActiveAgents": true,
-    "companyAndProjectRoleApprover": "chief-human-resources-officer",
+    "companyAndProjectRoleApprover": "ai-agent-manager",
     "technicalRoleApprover": "chief-technology-officer",
     "memoryOwner": "documentation-steward",
     "sourceOfTruth": "softwarehouse/talent-and-capability-system.md",
-    "rule": "Repeated failure becomes a capability gap and measured role/process proposal, not silent broad-agent expansion. CHRO owns agent creation authority; AID designs AI-agent role/process improvements but does not create agents directly.",
-    "agentCreationAuthority": "chief-human-resources-officer",
-    "agentRoleDesignOwner": "ai-agent-development-partner"
+    "rule": "Repeated failure becomes a capability gap and measured role/process proposal, not silent broad-agent expansion. AIM owns AI-agent creation authority and AI-agent role/process improvement review. CHRO remains paused unless broad human-capital work is explicitly opened.",
+    "agentCreationAuthority": "ai-agent-manager",
+    "agentRoleDesignOwner": "ai-agent-manager"
   },
   "modelPolicy": {
     "defaultAdapter": "codex_local",
@@ -184,7 +184,18 @@
       "icon": "sparkles",
       "modelLane": "generalReasoning",
       "reportsTo": "ai-assistant",
-      "capabilities": "Owns people and AI-agent staffing, role clarity, responsibility boundaries, unhealthy-agent follow-up, onboarding/offboarding of roles, and workload/WIP hygiene for the app-building company. Delegates human people-ops work to POP when activated and AI-agent development work to AID.",
+      "capabilities": "Paused broad human-capital lead for future company scaling: role clarity, responsibility boundaries, human-capital policy, and workload/WIP hygiene. Does not create AI agents in current Stage 1; AI-agent hiring authority belongs to 06 AIM.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
+      "key": "ai-agent-manager",
+      "name": "06 AIM (AI Agent Manager)",
+      "role": "pm",
+      "title": "AI Agent Manager",
+      "icon": "sparkles",
+      "modelLane": "generalReasoning",
+      "reportsTo": "ai-assistant",
+      "capabilities": "Owns governed AI-agent hiring, onboarding, role-fit review, instruction/skill/routine change intake, unhealthy-agent follow-up, and agent-learning governance. This is the only non-board agent role allowed to create/hire AI agents, and only after the hiring procedure is satisfied. Delegates human people-ops work to POP when activated.",
       "canCreateAgents": true,
       "defaultWorkspace": "softwarehouse"
     },
@@ -196,18 +207,7 @@
       "icon": "heart",
       "modelLane": "fastTriage",
       "reportsTo": "chief-human-resources-officer",
-      "capabilities": "Reserved CHRO report for human people-operations work: operator onboarding notes, contributor collaboration process, human review expectations, and board handoff clarity. Stays inactive unless the board opens human people-ops work; does not own AI-agent prompt, skill, routine, or adapter improvement.",
-      "defaultWorkspace": "softwarehouse"
-    },
-    {
-      "key": "ai-agent-development-partner",
-      "name": "06 AID (AI Agent Development Partner)",
-      "role": "pm",
-      "title": "AI Agent Development Partner",
-      "icon": "sparkles",
-      "modelLane": "fastTriage",
-      "reportsTo": "chief-human-resources-officer",
-      "capabilities": "Owns AI-agent development under CHRO: reviews recent agent work for repeated instruction, skill, routine, role, or tool gaps; applies small low-risk durable improvements; and proposes governed role/process changes with evidence and retirement conditions.",
+      "capabilities": "Reserved CHRO/AIM report for human people-operations work: operator onboarding notes, contributor collaboration process, human review expectations, and board handoff clarity. Stays inactive unless the board opens human people-ops work; does not own AI-agent prompt, skill, routine, or adapter improvement.",
       "defaultWorkspace": "softwarehouse"
     },
     {
