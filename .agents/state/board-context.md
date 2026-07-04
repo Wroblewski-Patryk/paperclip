@@ -94,6 +94,10 @@ The project is both product work and company-building work. Future Codex chats s
   Do not repeat the values in memory, docs, comments, or final responses. The
   remaining Coolify work is API token/team/resource discovery and read-only
   access testing.
+- Resource access policy lives in
+  `.agents/state/softwarehouse-resource-access-matrix.md`. The operating model
+  is least privilege across secrets, skills, tools, markdown resources,
+  routines, repositories, deployment access, and production test accounts.
 - Resource constraints live in `.agents/state/softwarehouse-resource-policy.md`.
   The owner does not have a paid GitHub plan. Agents must not assume paid GitHub
   features, paid Actions capacity, Advanced Security, paid runners/packages,

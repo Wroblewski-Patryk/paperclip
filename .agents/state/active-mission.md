@@ -37,8 +37,12 @@ Verified current instance:
   in `.agents/state/softwarehouse-secret-requirements.md`.
 - Coolify Stage 0 base/login credentials are now stored as Paperclip managed
   secrets and bound by `secret_ref` env bindings to 16 deploy-capable or
-  coordinating agents. Remaining Coolify gate: API token, team id, project ids,
-  resource ids, and tested read-only access.
+  coordinating agents for URL/API URL only. Login email/password are restricted
+  to `00 AIA`, `09 CTO`, `09 DRE`, `10 SPA`, and `12 CEO`. Remaining Coolify
+  gate: API token, team id, project ids, resource ids, and tested read-only
+  access.
+- Resource access matrix is tracked at
+  `.agents/state/softwarehouse-resource-access-matrix.md`.
 - Resource policy is tracked in `.agents/state/softwarehouse-resource-policy.md`:
   no paid GitHub plan is available, so Stage 1 agents must not assume paid
   GitHub features, paid Actions capacity, Advanced Security, paid runners,

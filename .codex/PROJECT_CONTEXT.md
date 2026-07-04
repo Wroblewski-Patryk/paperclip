@@ -60,6 +60,10 @@ Current verified direction:
   features, paid Actions capacity, Advanced Security, paid runners/packages,
   enterprise-only controls, paid GitHub AI features, or notification-heavy
   automation.
+- Resource access matrix lives in
+  `.agents/state/softwarehouse-resource-access-matrix.md`. Follow least
+  privilege for secrets, skills, tools, markdown resources, routines, repos,
+  deployments, and production test accounts.
 
 Read these current Stage 0 files before changing Softwarehouse configuration:
 
@@ -68,6 +72,7 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-departments.md`
 - `.agents/state/softwarehouse-secret-requirements.md`
 - `.agents/state/softwarehouse-resource-policy.md`
+- `.agents/state/softwarehouse-resource-access-matrix.md`
 - `.agents/state/stage1-activation-soar.md`
 - `.agents/state/stage1-activation-roost.md`
 

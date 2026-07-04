@@ -38,6 +38,14 @@ Configured in Paperclip on 2026-07-04 as `local_encrypted` managed secrets:
 - `coolify_login_email` bound to runtime env `COOLIFY_LOGIN_EMAIL`
 - `coolify_login_password` bound to runtime env `COOLIFY_LOGIN_PASSWORD`
 
+Current binding scope:
+
+- Base/API URL refs are available to selected deployment/coordinating agents.
+- Login email/password refs are restricted to `00 AIA`, `09 CTO`, `09 DRE`,
+  `10 SPA`, and `12 CEO`.
+- The detailed least-privilege matrix lives in
+  `.agents/state/softwarehouse-resource-access-matrix.md`.
+
 These values are test/Stage 0 credentials and should be rotated manually in v2
 as planned by the owner. Values are not stored in this file.
 

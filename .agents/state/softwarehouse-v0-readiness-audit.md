@@ -30,6 +30,7 @@ by the owner.
 - Department numbering: 05 = Customer Success; 06 = People and AI Workforce.
 - Canonical department map: `.agents/state/softwarehouse-departments.md`.
 - Resource policy: `.agents/state/softwarehouse-resource-policy.md`.
+- Resource access matrix: `.agents/state/softwarehouse-resource-access-matrix.md`.
 
 ## Requirement Coverage
 
@@ -48,9 +49,10 @@ by the owner.
 | Agent learning at individual, department, company level | Yes | Yes in instructions and paused PDCA routine | Needs activation and real learning packets in Stage 1. |
 | Agents must not self-edit | Yes | Yes in instructions | Future: enforce through stronger permission tooling if available. |
 | Hiring only through AI workforce manager | Yes | Yes; only `06 AIM` can create agents | Need full hiring packet template before Stage 1. |
-| Secrets via Paperclip secret refs, no raw values | Yes | Coolify base/login credentials entered as Paperclip managed secrets and bound by secret_ref to selected deploy-capable agents | Provider warning unresolved; v2 rotation planned. |
+| Secrets via Paperclip secret refs, no raw values | Yes | Coolify credentials entered as Paperclip managed secrets; URL/API refs bound to 16 deploy-capable/coordinating agents; login/password refs restricted to 5 governance/deploy/security roles | Provider warning unresolved; v2 rotation planned. |
 | Coolify/VPS deployment observation | Yes | Base URL, API URL, login email, and login password secrets exist; paused readiness routine exists | Need API token, team id, resource ids, and tested read-only access. |
 | No paid GitHub assumption or email-noisy automation | Yes | Resource policy and agent instructions updated | Need Stage 1 enforcement during real work. |
+| Least-privilege resource access | Yes | Resource access matrix created; Coolify login narrowed; agent creation restricted to `06 AIM` | Need skill-by-agent audit and future tool/plugin enforcement review. |
 | Prefer configuration and official/common extensions over code | Yes | Yes | CLI/catalog tooling blockers remain documented. |
 | Work should be pleasant end-to-end for agents | Yes | Added shared operating flow to all bundles | Needs Stage 1 feedback to refine friction points. |
 
@@ -62,6 +64,9 @@ by the owner.
 - `.agents/state/softwarehouse-departments.md`: canonical 00-12 department map.
 - `.agents/state/softwarehouse-resource-policy.md`: resource realism, free-plan
   GitHub constraints, and notification-noise policy.
+- `.agents/state/softwarehouse-resource-access-matrix.md`: least-privilege
+  matrix for secrets, skills, tools, markdown resources, routines, repos,
+  deployments, and production test accounts.
 - `doc/plans/2026-07-04-softwarehouse-stage-0-foundation.md`: repo plan.
 - Managed instruction bundles for all agents:
   - `AGENTS.md`

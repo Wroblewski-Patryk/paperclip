@@ -49,21 +49,26 @@ LuckySparrow Software House before autonomous agents start work.
 - Resource policy lives at `.agents/state/softwarehouse-resource-policy.md`.
   Prefer local/free verification and report paid-plan or quota constraints
   instead of inventing unavailable GitHub-based solutions.
+- Resource access matrix lives at
+  `.agents/state/softwarehouse-resource-access-matrix.md` and covers secrets,
+  skills, tools, markdown resources, routines, repos, deployments, and
+  production test accounts.
 - Agent learning/self-correction is encoded in shared instructions at individual, department, and company levels. Agents must produce learning packets; they may not edit their own instructions, skills, permissions, or routines directly.
 - Hiring governance is encoded in instructions and permissions. Only `06 AIM (AI Agent Manager)` currently has `permissions.canCreateAgents: true`; all other agents are false. `06 AIM` belongs to department `06 People and AI Workforce` and is the governed AI-agent hiring manager.
 - Runtime still contains old company instruction/runtime folders for company id `f13051a7-d0aa-4261-9254-d3ab90735de5`. These old folders should not be blindly copied because their agent ids do not match the current company agents.
 - Secrets: company has 4 Coolify Stage 0 managed secrets in `local_encrypted`:
   base URL, API URL, login email, and login password. Values are not stored in
-  memory files. These are bound by `secret_ref` env bindings to 16
-  deploy-capable/coordinating agents while all agents remain paused.
+  memory files. Base/API URL refs are bound to 16 deploy-capable/coordinating
+  agents. Login email/password refs are restricted to `00 AIA`, `09 CTO`,
+  `09 DRE`, `10 SPA`, and `12 CEO`. All agents remain paused.
   `local_encrypted` is configured with `strictMode: true` in
   `.paperclip/config.json`, but provider health still warns that the local key
   file permissions are `666`. A Windows ACL tightening attempt made the key
   unreadable to the local runtime, so the working readable ACL was restored and
   the warning remains a known v0 blocker/risk. AWS/GCP/Vault providers are not
   configured.
-- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-022414.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
-- Stage 0 configuration snapshot exists at `.agents/state/backups/stage0-config-20260704-022426.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and current agent instruction folders. It intentionally does not store secret values.
+- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-022924.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
+- Stage 0 configuration snapshot exists at `.agents/state/backups/stage0-config-20260704-022934.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and current agent instruction folders. It intentionally does not store secret values.
 - CLI caveat: `pnpm paperclipai skills browse` attempted dependency install and failed on Windows with `EPERM` while creating a plugin SDK symlink. Use HTTP API/file inspection until that tooling issue is repaired.
 - Catalog install caveat: the catalog install API failed on a pinned hash mismatch for `paperclipai:bundled:docs:doc-maintenance:SKILL.md`; local official skill directory imports were used instead.
 
@@ -80,7 +85,10 @@ LuckySparrow Software House before autonomous agents start work.
 9. A backup/export point exists before enabling autonomous work.
 10. Resource realism is explicit: no paid GitHub assumptions and no
     notification-heavy automation without owner approval.
-11. Board accepts a current readiness percentage and known residual risks.
+11. Resource access matrix exists for least-privilege assignment of secrets,
+    skills, tools, markdown resources, routines, repos, deployments, and
+    production test accounts.
+12. Board accepts a current readiness percentage and known residual risks.
 
 ## Current Stage 0 Estimate
 
@@ -100,6 +108,10 @@ Completed or partly complete:
   resource policy and agent instruction bundles.
 - Coolify base/login credentials are stored as Paperclip managed secrets and
   bound to selected deployment/coordinating agents through secret refs.
+- Login/password Coolify access has been narrowed to five governance,
+  deployment, and security roles.
+- Least-privilege resource matrix exists for current and future agent
+  capabilities.
 - Only `06 AIM (AI Agent Manager)` can create/hire agents, and only through the governed hiring path.
 - Seven core routines exist as paused drafts with disabled schedules.
 - All 38 agents are intentionally paused to prevent accidental wakeups during Stage 0.

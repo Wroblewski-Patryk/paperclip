@@ -32,9 +32,10 @@ projects, secrets, routines, evidence, and learning.
 - Current-agent managed instruction bundles: 38/38 verified, managed mode, no warnings
 - Agent creation authority: only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`
 - Department map: `.agents/state/softwarehouse-departments.md`
-- Backup checkpoint: manual DB backup `paperclip-20260704-022414.sql.gz` plus config snapshot `.agents/state/backups/stage0-config-20260704-022426.zip`
+- Backup checkpoint: manual DB backup `paperclip-20260704-022924.sql.gz` plus config snapshot `.agents/state/backups/stage0-config-20260704-022934.zip`
 - V0 audit: `.agents/state/softwarehouse-v0-readiness-audit.md`
 - Resource policy: `.agents/state/softwarehouse-resource-policy.md`
+- Resource access matrix: `.agents/state/softwarehouse-resource-access-matrix.md`
 - Stage 1 draft activation packets: `.agents/state/stage1-activation-soar.md` and `.agents/state/stage1-activation-roost.md`
 
 ## Non-Negotiables
@@ -48,6 +49,9 @@ projects, secrets, routines, evidence, and learning.
 - Department-owned routines, goals, issues, work products, reports, and similar
   objects should use `NN NazwaDziału - ...` naming.
 - No raw secrets in chat, memory files, instructions, docs, issue comments, or logs.
+- Do not give every agent every resource. Apply least privilege to secrets,
+  skills, tools, markdown resources, routines, repos, deployment access, and
+  production test accounts.
 - Prefer Paperclip-native configuration: managed instructions, company skills,
   routines, secret refs, company packages, issue documents, and work products.
 - Add code only after verifying that configuration or official extension paths
@@ -162,10 +166,15 @@ Reasons:
   noisy notification automation without explicit owner approval.
 - Coolify base/login credentials are stored as Paperclip managed secrets and
   bound to selected agents through `secret_ref` env bindings.
-- Missing: Coolify API token/team/resource ids, tested read-only deployment
-  access, product-app production test-account secrets, accepted/fixed Windows
-  secret key warning, full local-storage/secrets-key disaster recovery, and
-  final board verification.
+- Coolify login/password bindings are restricted to `00 AIA`, `09 CTO`,
+  `09 DRE`, `10 SPA`, and `12 CEO`; broader deployment/coordinating roles only
+  receive URL/API URL refs.
+- Least-privilege resource access matrix exists.
+- Missing: skill-by-agent audit, future tool/plugin enforcement review,
+  Coolify API token/team/resource ids, tested read-only deployment access,
+  product-app production test-account secrets, accepted/fixed Windows secret
+  key warning, full local-storage/secrets-key disaster recovery, and final
+  board verification.
 
 ## Immediate Next Actions
 
