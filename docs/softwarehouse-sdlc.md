@@ -16,7 +16,7 @@ This SDLC is the default operating contract for Paperclip Softwarehouse agents.
 | Deployment | push/deploy record, Coolify/resource status, version/commit | deployment evidence attached |
 | Monitoring | post-deploy health checks, logs, alarms, production smoke | monitoring evidence attached for high-risk deploys |
 | Retrospective | what failed, what repeated, what changed in process | repeated failures create improvement tasks |
-| Process Improvement | updated docs, scripts, policies, or backlog | closes the PDCA loop |
+| Process Improvement | updated docs, scripts, policies, evals, or backlog | closes the PDCA loop with EvalRun PASS when an AgentImprovementTask exists |
 
 ## Status Vocabulary
 
@@ -29,3 +29,17 @@ operating vocabulary:
 
 The richer vocabulary is a stage overlay. It must not weaken the single-assignee issue model,
 checkout lock, execution lock, activity logging, approval gates, or company scoping.
+
+## Agent Improvement Flywheel
+
+The SDLC uses the Agent Improvement Flywheel for self-correction:
+
+AgentRun -> SafeTraceLog -> AgentFeedback -> AgentEval -> EvalRun -> AgentImprovementTask ->
+process/code/instruction fix -> EvalRun PASS -> done.
+
+Use `docs/agent-improvement-flywheel.md`, `docs/evals-and-regression-gates.md`,
+`docs/safe-trace-logging.md`, and `docs/agent-feedback-loop.md` as the canonical contract.
+
+Any change that alters agent behavior, prompts, shared instructions, skills, routines, policy gates,
+workspace boundaries, secrets access, deployment behavior, or issue/task lifecycle behavior needs
+eval or regression evidence scaled to risk.

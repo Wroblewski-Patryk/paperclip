@@ -12,6 +12,11 @@ Policy gates prevent autonomous agents from calling work done when the company c
 - No broad workspace/repository change without branch or worktree isolation.
 - No task handoff without a summary and next action.
 - No repeated failure without a process-improvement issue.
+- No agent behavior, prompt, skill, routine, policy, permission, or `AGENTS.md`
+  change without eval or regression evidence.
+- No AgentImprovementTask closure without EvalRun `PASS`.
+- No normal trace log may contain raw secrets, tokens, passwords, owner credentials,
+  private provider payloads, or unredacted sensitive prompts.
 
 ## Risky Actions
 
@@ -30,3 +35,24 @@ The remaining product gap is a broader gate service/read model that applies the 
 consistently to deployment, production smoke, supervisor review, and dashboard-visible mission
 control flows. Until that exists, agents and supervisors must record any bypass as a blocker or
 incident.
+
+## Agent Improvement Flywheel
+
+The canonical improvement loop is defined in:
+
+- `docs/agent-improvement-flywheel.md`
+- `docs/evals-and-regression-gates.md`
+- `docs/safe-trace-logging.md`
+- `docs/agent-feedback-loop.md`
+
+Every meaningful agent failure should produce, in order:
+
+1. a redacted SafeTraceLog or equivalent issue/work-product evidence;
+2. AgentFeedback from human, model, QA, security, test, or monitoring source;
+3. an AgentEval or regression gate when recurrence would be harmful;
+4. an AgentImprovementTask when the eval fails, severity is high, or the problem repeats;
+5. EvalRun `PASS` before the improvement can close.
+
+Clearing a red/error/recovery-needed state is not enough. The root cause, prevention path, and
+future regression signal must be captured unless the feedback owner explicitly classifies the event
+as a one-off low-risk false alarm.

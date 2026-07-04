@@ -17,6 +17,9 @@ The softwarehouse should improve after every meaningful delivery, failed run, bl
 - deploy gate failures
 - security review failures
 - user feedback
+- redacted SafeTraceLog records
+- AgentFeedback from human, model, QA, security, test, or monitoring sources
+- failed or flaky AgentEval/EvalRun results
 
 ## Improvement Outputs
 
@@ -28,6 +31,7 @@ The softwarehouse should improve after every meaningful delivery, failed run, bl
 - capability gap note
 - proposed role split
 - project follow-up issue
+- AgentImprovementTask with EvalRun PASS close evidence
 
 ## Anti-Chaos Rules
 
@@ -40,4 +44,19 @@ The softwarehouse should improve after every meaningful delivery, failed run, bl
 - no feature deletion without dependency check
 - no production deployment without gate
 - no vague final "done" report
+- no AgentImprovementTask closure without EvalRun PASS
+- no repeated agent failure without feedback, eval/regression decision, and prevention path
 
+## Agent Improvement Flywheel
+
+The canonical loop is:
+
+AgentRun -> SafeTraceLog -> AgentFeedback -> AgentEval -> EvalRun -> AgentImprovementTask ->
+process or implementation fix -> EvalRun PASS -> done.
+
+See:
+
+- `../agent-improvement-flywheel.md`
+- `../evals-and-regression-gates.md`
+- `../safe-trace-logging.md`
+- `../agent-feedback-loop.md`

@@ -31,6 +31,8 @@ not locally shippable while any applicable gate is `blocked`, `stale`, or
 - regression proof added or missing-test gap recorded
 - confirmation evidence attached
 - known-issues or status docs updated when useful
+- AgentFeedback and AgentEval updated when the bug reflects weak agent behavior,
+  repeated process failure, unsafe action, or missing evidence
 
 ## Feature Gate
 
@@ -50,3 +52,12 @@ not locally shippable while any applicable gate is `blocked`, `stale`, or
 - rollback described
 - deploy log prepared
 - smoke test after deployment planned and executed
+
+## Agent Improvement Gate
+
+- SafeTraceLog or equivalent redacted evidence exists
+- AgentFeedback records source, severity, summary, evidence, and suggested fix
+- AgentEval exists for repeated, high-risk, or behavior-changing failures
+- EvalRun result is recorded
+- AgentImprovementTask cannot close unless EvalRun is `PASS`
+- raw logs, owner-linked credentials, provider payloads, and sensitive prompts stay out of normal traces
