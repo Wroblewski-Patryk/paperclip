@@ -103,6 +103,52 @@ Each cycle uses PDCA:
 
 No work is complete until the Check and Act parts are represented in evidence.
 
+## Feature Slice Traceability Contract
+
+For Soar and Roost implementation, repair, verification, and deploy-readiness
+work, the executable issue must name the feature slice it is changing or
+proving. A feature slice is the smallest useful end-to-end user or system
+capability, not just a backend function, frontend component, or isolated test.
+
+Before changing code, the agent must identify or refresh:
+
+- product intent and acceptance criteria;
+- user/system entrypoint, route, or trigger;
+- frontend page/component/control when user-visible;
+- API route, service, job, worker, adapter, or command boundary;
+- database model, migration, event, queue, cache, secret ref, or external
+  integration touched by the slice;
+- upstream callers and downstream callees from graph, registry, code search, or
+  explicit manual analysis;
+- existing tests, browser proof, production proof, docs, and known blockers;
+- expected parent issue and reporting path.
+
+After changing code or evidence, the same cycle must update or explicitly
+classify the affected product traceability surfaces. Prefer existing project
+native sources instead of inventing duplicates:
+
+- Soar: `docs/status/project-truth-index.md`,
+  `docs/status/app-completion-index.md`,
+  `docs/status/function-journey-index.md`,
+  `docs/status/user-action-index.md`, `docs/graphs/*`,
+  `docs/architecture/registry/*`, `docs/architecture/chains/chains.csv`,
+  `docs/pipelines/*`, and module docs.
+- Roost: `docs/status/project-truth-index.md`,
+  `docs/status/app-completion-index.md`, `docs/status/architecture-*`,
+  `docs/graphs/*`, `docs/architecture/nodes/*`,
+  `docs/architecture/registry/*`, `docs/architecture/chains/chains.csv`,
+  `docs/pipelines/*`, and module docs.
+
+If a backend change affects a user-visible behavior, completion requires a
+frontend impact check. If a frontend change depends on backend state,
+completion requires API/data impact checks. If the code graph is incomplete,
+the agent must write down the manual caller/callee search used and route a
+traceability repair when the gap is reusable.
+
+Agents must not close product work only because a plan, report, commit, or
+local unit test exists. Close only when the feature slice has current
+cross-layer evidence or a clearly owned blocker under the parent.
+
 ## Deployment Closure Loop
 
 For product changes with deployment impact:

@@ -900,3 +900,31 @@ Durable correction:
 - Archived the active Paperclip `11 Innovation: Aviary` project without deleting
   files, because Stage 1 agent work is currently limited to Paperclip, Soar,
   and Roost.
+
+# 2026-07-04 - Feature-Slice Traceability Audit
+
+The owner asked whether Paperclip agents really have the application-level maps
+needed to finish Soar and Roost without guessing or stopping at reports.
+
+Codex inspected current Paperclip routines/issues, Soar/Roost git state,
+project-truth/app-completion indexes, architecture graphs, package scripts, and
+recent old-agent commit patterns. Finding: the old mechanism exists and should
+be preserved as the operating model: known-state baselines, app-completion
+indexes, function/user-action indexes, architecture graph refreshes, LUC
+evidence packets, source-control gates, production health watches, protected
+smoke proof, and queue-expeditor/no-stall routing.
+
+Current state is not complete. Soar is `main...origin/main [ahead 25]` with
+`docs/status/project-truth-index.md` in `gaps_require_routing` and `3542`
+app-completion gaps. Roost is `main...origin/main [ahead 3]` with
+`gaps_require_routing`, `1232` app-completion gaps, and registry-vs-nodes
+normalization risk.
+
+Durable correction: added
+`.agents/state/softwarehouse-feature-slice-traceability-audit.md` and made the
+`Feature Slice Traceability Contract` mandatory in
+`.agents/state/softwarehouse-autonomous-delivery-architecture.md`.
+Implementation, repair, and proof issues for Soar/Roost must now name the
+feature slice, map product/UI/API/backend/data/integration/test/docs/proof
+surfaces, inspect callers/callees, and update or classify the relevant
+traceability indexes before closure.
