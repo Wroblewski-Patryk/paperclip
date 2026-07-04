@@ -505,3 +505,43 @@ Decision:
 - Keep treating this as non-regression evidence only. The next meaningful
   progress step is an owner/AIA-approved local autonomy test that lets Paperclip
   demonstrate its own monitoring and evidence loop without broad scope expansion.
+
+# 2026-07-04 - Stage 1 Local Autonomy Expansion Started
+
+The owner observed that Paperclip had been stable but idle for several hours and
+explicitly approved loosening the leash so Paperclip can work toward the real
+Stage 1 goal: 100% working Soar and Roost applications.
+
+Control-plane change:
+
+- Created `LUC-19`: `00 General: Stage 1 Local Autonomy Expansion - Soar and Roost`.
+- Assigned `LUC-19` to `00 AIA`.
+- Scope: local-first Soar/Roost app-building work under a single parent issue.
+- AIA may create concrete child issues under `LUC-19`, route work through DPM,
+  SPM/RPM, CTO/QVE/DRE/SPA, and request additional agents only when a child
+  issue has a concrete role-scoped need.
+- Resumed `11 RPM (Roost Project Manager)` because Roost is now explicitly in
+  the active Stage 1 scope.
+- Updated the Codex heartbeat automation to monitor active `LUC-19` work every
+  30 minutes instead of only watching the completed `LUC-12` through `LUC-18`
+  dry-run state.
+
+Safety gates preserved:
+
+- No push, deploy/redeploy/restart/rollback, production mutation, secret value
+  change, raw secret exposure, paid GitHub/cloud feature, destructive action,
+  customer/legal/finance commitment, or LIVE trading/order proof without a
+  separate owner approval.
+- Soar repo divergence/dirty state and Docker/Linux-engine local runtime
+  readiness must be handled explicitly before implementation/deploy-impacting
+  expansion.
+- Roost must receive its own architecture/source-of-truth preflight before
+  implementation expansion.
+
+Immediate post-change check:
+
+- AIA started running on `LUC-19`.
+- Active set is now `00 AIA`, `04 DPM`, `11 SPM`, `11 RPM`, `09 CTO`,
+  `09 QVE`, `09 DRE`, `10 SPA`.
+- No duplicate/circular issue expansion or unauthorized routine trigger was
+  observed immediately after activation.
