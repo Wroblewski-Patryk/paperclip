@@ -657,3 +657,47 @@ Immediate post-change snapshot:
   pass.
 - No production mutation, push, deploy, secret change, paid-resource use,
   destructive action, or unrelated product expansion was performed.
+
+# 2026-07-04 - Stage 1 Hard Delivery Goal Created
+
+The owner observed that Paperclip again became idle after completing the
+activation/preflight style work. Diagnosis: `LUC-19` was defined too short; its
+done condition was proving that a child tree and local autonomy loop existed,
+not delivering usable apps.
+
+Corrective action:
+
+- Created hard parent `LUC-25`: `00 General: Deliver Soar and Roost to Usable
+  VPS Production`.
+- Done condition now requires both Soar and Roost to be created, verified, and
+  deployed to VPS so the owner can use them.
+- Agents must not close `LUC-25` for a plan, preflight, report, or child tree.
+  If they reach a report/blocker, they must route concrete next executable work
+  unless a true owner decision is required.
+
+Created critical child issues:
+
+- `LUC-26`: `04 Operations: Delivery control for Soar/Roost to VPS`.
+- `LUC-27`: `11 Innovation: Soar build-to-production execution`.
+- `LUC-28`: `11 Innovation: Roost build-to-production execution`.
+- `LUC-29`: `09 Technology: Soar/Roost implementation routing and repo execution`.
+- `LUC-30`: `09 Technology: VPS/Coolify deployment execution path`.
+- `LUC-31`: `09 Technology: Production readiness verification for Soar/Roost`.
+- `LUC-32`: `10 Legal: Security secrets and production safety gate for Soar/Roost`.
+
+Deployment scope clarification:
+
+- VPS/Coolify deployment is part of the owner-approved target outcome for Soar
+  and Roost.
+- DRE/SPA/QVE evidence should precede push/deploy/redeploy/restart/rollback.
+- Raw secret exposure, destructive infrastructure actions, paid GitHub/cloud
+  features, legal/customer/finance commitments, unrelated products, marketing,
+  sales, customer service, and LIVE trading/order proof remain gated/out of
+  scope unless separately approved.
+
+Immediate post-change snapshot:
+
+- 8 live runs started on `LUC-25` through `LUC-32`: AIA, DPM, SPM, RPM, CTO,
+  DRE, QVE, and SPA.
+- Heartbeat automation was updated to monitor this hard delivery-to-VPS goal
+  every 15 minutes.
