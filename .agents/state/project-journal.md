@@ -157,3 +157,33 @@ Initial live state after start:
 - 10 routines paused.
 - 0 enabled routine triggers.
 - `LUC-12` is the only issue created for the dry run.
+
+# 2026-07-04 - Stage 1 Monitor Given Progressive Autonomy Policy
+
+Conversation summary and automation update.
+
+The owner clarified that the `paperclip-stage-1-dry-run-monitor` automation
+should not remain only a passive watchdog. Its purpose is to help Paperclip
+prove autonomous operation, then loosen constraints when evidence is good, slow
+down the external Codex checks, and ultimately delete or pause the automation
+once Paperclip has a reliable internal monitoring/routine/evidence loop.
+
+Codex updated the heartbeat automation with a progressive autonomy policy:
+
+- if behavior is unsafe, noisy, duplicative, blocked, or poorly evidenced,
+  tighten scope and make safe process/configuration fixes;
+- if behavior is good, allow broader local app-building work under the active
+  hierarchy: child issues, role-scoped additional agents, Soar/Roost local
+  preflight and implementation-readiness work;
+- keep production, push/deploy, secret changes, destructive actions, paid
+  GitHub/cloud features, and customer/legal/finance commitments behind separate
+  owner approval gates;
+- after two consecutive clean monitor cycles with useful progress, consider
+  slowing the heartbeat interval to 60-120 minutes;
+- after three or more clean cycles plus a working internal Paperclip
+  monitoring/routine/evidence loop, recommend pausing or deleting the Codex
+  heartbeat, and do so only with explicit owner approval.
+
+Durable intent: Paperclip should earn autonomy through evidence. The external
+Codex monitor should become less necessary over time, not become the permanent
+manager.
