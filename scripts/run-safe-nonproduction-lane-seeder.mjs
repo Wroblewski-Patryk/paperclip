@@ -41,6 +41,15 @@ function byName(items, name) {
   return findAgentByNameOrAlias(items, name);
 }
 
+function activeProjectByControlledName(projects, controlledName) {
+  const aliases = {
+    Soar: ["Soar", "11 Innovation: Soar"],
+    Roost: ["Roost", "11 Innovation: Roost"],
+    "Softwarehouse Operating System": ["Softwarehouse Operating System", "00 General: Softwarehouse"],
+  }[controlledName] ?? [controlledName];
+  return projects.find((project) => aliases.includes(project.name) && !project.archivedAt) ?? null;
+}
+
 function byTitle(items, title) {
   return items.find((item) => item.title === title);
 }
@@ -142,7 +151,7 @@ const [health, projects, agents, goals, labels, issues, liveRuns] = await Promis
 
 const activeRunCount = health.devServer?.activeRunCount ?? liveRuns.length;
 
-const soar = byName(projects, "Soar");
+const soar = activeProjectByControlledName(projects, "Soar");
 if (!soar || soar.archivedAt) throw new Error("Active Soar project not found.");
 
 const soarIssues = issues.filter((issue) => issue.projectId === soar.id && !terminalStatuses.has(issue.status));

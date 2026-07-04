@@ -1786,6 +1786,7 @@ if (singleFlight.mode === "follower") {
     const architectureLifecycle = byName.get("architectureAwarenessLifecycle")?.summary ?? {};
     const projectTruthAudit = byName.get("projectTruthAudit")?.summary ?? {};
     const projectTruthGapDispatcher = byName.get("projectTruthGapDispatcher")?.summary ?? {};
+    const learningLoop = byName.get("learningLoop")?.summary ?? {};
     const runtimeBindingRepairRaw = byName.get("runtimeBindingAssigneeRepair")?.summary ?? {};
     const projectOwnershipAssignment = byName.get("projectOwnershipAssignment")?.summary ?? {};
     const runtimeBindingRepair = resolveRuntimeBindingRepairSummary(

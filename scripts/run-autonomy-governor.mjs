@@ -42,6 +42,9 @@ const controlledProjectNames = new Set(
     .filter(Boolean),
 );
 const projectAliases = new Map([
+  ["Soar", ["Soar", "11 Innovation: Soar"]],
+  ["Roost", ["Roost", "11 Innovation: Roost"]],
+  ["Softwarehouse Operating System", ["Softwarehouse Operating System", "00 General: Softwarehouse"]],
   ["Aviary", ["Aviary", "Personality"]],
 ]);
 const staleBlockerRepairs = new Map([
@@ -267,14 +270,21 @@ let projects;
 let issues;
 let liveRuns;
 let secrets;
+let secretsMetadataUnavailable = false;
 try {
-  [health, projects, issues, liveRuns, secrets] = await Promise.all([
+  [health, projects, issues, liveRuns] = await Promise.all([
     request("GET", "/api/health"),
     request("GET", `/api/companies/${company.id}/projects`),
     requestGovernorIssues(company.id),
     request("GET", `/api/companies/${company.id}/live-runs`),
-    request("GET", `/api/companies/${company.id}/secrets/metadata`),
   ]);
+  try {
+    secrets = await request("GET", `/api/companies/${company.id}/secrets/metadata`);
+  } catch (error) {
+    if (error?.status !== 404) throw error;
+    secrets = [];
+    secretsMetadataUnavailable = true;
+  }
 } catch (error) {
   if (!isRequestTimeoutError(error)) throw error;
   console.log(JSON.stringify({
@@ -444,6 +454,9 @@ for (const identifier of gateRootIdentifiers) {
     existingRecheckChildStatus: existingRecheckChild?.status ?? null,
   });
 }
+const metadataUnavailableGateWarning = secretsMetadataUnavailable && gateRootIdentifiers.size > 0
+  ? "Secret metadata endpoint is unavailable on this Paperclip instance; autonomous protected recheck freshness is disabled, but local non-secret delivery may continue."
+  : null;
 const freshGateActions = gateObservations.filter((gate) =>
   gate.status === "blocked"
   && gate.actionableFreshGateFact
@@ -717,6 +730,11 @@ console.log(JSON.stringify({
     lastOutputAt: run.lastOutputAt,
   })),
   gateObservations,
+  secretMetadata: {
+    unavailable: secretsMetadataUnavailable,
+    warning: metadataUnavailableGateWarning,
+    trackedMetadataCount: secrets.length,
+  },
   nextRunnableIssues: runnableIssues.slice(0, 10).map((issue) => ({
     identifier: issue.identifier,
     title: issue.title,

@@ -141,7 +141,7 @@ if (apply && activeRunCount > 0) {
   process.exit(0);
 }
 
-const soar = projects.find((project) => project.name === "Soar" && !project.archivedAt);
+const soar = projects.find((project) => ["Soar", "11 Innovation: Soar"].includes(project.name) && !project.archivedAt);
 if (!soar) throw new Error("Active Soar project not found.");
 
 const goal = goals.find((candidate) => candidate.title === "Soar V1 audit-to-completion loop")

@@ -46,6 +46,9 @@ const sourceControlClosureAssigneeByProject = new Map([
   ["Nest", "Nest Project Manager"],
 ]);
 const projectAliases = new Map([
+  ["Soar", ["Soar", "11 Innovation: Soar"]],
+  ["Roost", ["Roost", "11 Innovation: Roost"]],
+  ["Softwarehouse Operating System", ["Softwarehouse Operating System", "00 General: Softwarehouse"]],
   ["Aviary", ["Aviary", "Personality"]],
 ]);
 const projectPriority = (process.env.SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS ?? "Soar,Roost,Softwarehouse Operating System")

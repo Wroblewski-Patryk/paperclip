@@ -183,7 +183,12 @@ async function findExistingIssueForGap(companyId, title, gap, initialIssues) {
 }
 
 function findProject(projects, name) {
-  return projects.find((project) => project.name === name && !project.archivedAt) ?? null;
+  const aliases = {
+    Soar: ["Soar", "11 Innovation: Soar"],
+    Roost: ["Roost", "11 Innovation: Roost"],
+    "Softwarehouse Operating System": ["Softwarehouse Operating System", "00 General: Softwarehouse"],
+  }[name] ?? [name];
+  return projects.find((project) => aliases.includes(project.name) && !project.archivedAt) ?? null;
 }
 
 function findOwner(agents, gap) {

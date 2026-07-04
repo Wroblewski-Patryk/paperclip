@@ -68,6 +68,15 @@ function byTitle(items, wantedTitle) {
   return items.find((item) => item.title === wantedTitle);
 }
 
+function activeProjectByControlledName(projects, controlledName) {
+  const aliases = {
+    Soar: ["Soar", "11 Innovation: Soar"],
+    Roost: ["Roost", "11 Innovation: Roost"],
+    "Softwarehouse Operating System": ["Softwarehouse Operating System", "00 General: Softwarehouse"],
+  }[controlledName] ?? [controlledName];
+  return projects.find((project) => aliases.includes(project.name) && !project.archivedAt) ?? null;
+}
+
 async function ensureLabel(companyId, labelsByName, name, color) {
   const existing = labelsByName.get(name);
   if (existing) return existing;
@@ -151,7 +160,7 @@ try {
 const activeRunCount = health.devServer?.activeRunCount ?? liveRuns.length;
 const activeRunNoop = apply && activeRunCount > 0;
 
-const soar = byName(projects, "Soar");
+const soar = activeProjectByControlledName(projects, "Soar");
 if (!soar || soar.archivedAt) throw new Error("Active Soar project not found.");
 
 const candidateIssues = [...matchingTitleIssues, ...issues];
