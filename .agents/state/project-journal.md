@@ -1042,3 +1042,39 @@ Note: `pnpm run softwarehouse:*` wrappers attempted a dependency install and
 failed before running the scripts because Windows denied a symlink creation in
 `packages/plugins/plugin-workspace-diff` (`EPERM`). Direct `node` script runs
 were used for verification.
+
+# 2026-07-04 - Stage 1 Blocker Forward-Movement Correction
+
+During the Stage 1 monitor, Codex found that most blocked issues under
+`LUC-25` were healthy dependency gates with `blockerAttention.state=covered`,
+but `LUC-61` and `LUC-66` were unhealthy `needs_attention` blockers with no
+unresolved child blocker and no pending interaction. This matched the owner's
+concern that blockers can hang forever if Paperclip does not convert them into
+clear decisions, child blockers, or executable next work.
+
+Corrections applied:
+
+- `LUC-66`: applied the conservative Stage 1 budget guardrails from the CFO
+  document using board/Codex authority. The company now has one active
+  `billed_cents` policy at 100 cents/month with hard stop enabled. All 38
+  agents have `budgetMonthlyCents=25` and matching active agent
+  `billed_cents` hard-stop policies. No paid GitHub/cloud feature was enabled
+  and no raw secrets were exposed. The issue document was corrected to use the
+  actual existing-agent route plus explicit budget-policy upsert, then
+  `LUC-66` was marked done.
+- `LUC-61`: resolved the Soar protected-worker readiness authority question.
+  DRE/QVE/SPA may run only read-only production smoke through existing secret
+  refs or already configured smoke principals, from an allowed ops-network
+  path. Raw secret exposure, secret mutation, broad role grants,
+  deploy/restart/rollback, destructive infra changes, paid features, and LIVE
+  trading/order proof remain forbidden without a separate approval. `LUC-61`
+  was marked done and `LUC-44` was nudged to continue with concrete evidence or
+  create a narrow child blocker.
+
+Post-correction verification:
+
+- `LUC-61` and `LUC-66` are `done` with `blockerAttention.state=none`.
+- `LUC-44` returned to `in_progress`.
+- `LUC-25` and higher-level delivery issues remain blocked only by covered
+  active children, not by stale attention blockers.
+- Active work resumed with DRE, AIA, CFO, and CBE live runs.
