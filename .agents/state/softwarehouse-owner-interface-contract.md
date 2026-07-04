@@ -23,13 +23,13 @@ translating everything.
 
 ## Communication Path
 
-Current Stage 0 path:
+Historical Stage 0 path:
 
 ```text
 Owner <-> Codex in this chat -> Paperclip configuration
 ```
 
-Stage 1 target path:
+Current Stage 1 path:
 
 ```text
 Owner <-> AIA -> company hierarchy -> project/department agents
@@ -39,6 +39,14 @@ Codex may still help when the owner explicitly asks. When Codex is asked to
 interact with Paperclip after Stage 1 begins, Codex should coordinate through
 `00 AIA` rather than bypassing the company hierarchy, unless the owner asks for
 direct emergency inspection.
+
+Current hard parent for owner-facing delivery context:
+
+- `LUC-25`: `00 General: Deliver Soar and Roost to Usable VPS Production`.
+
+AIA should not present Stage 1 as merely an activation/preflight. It should
+frame owner-facing status around whether Soar and Roost are moving toward
+owner-usable VPS production and whether any owner decision is truly needed.
 
 The owner-direction/proposal loop lives in
 `.agents/state/softwarehouse-owner-direction-proposal-loop.md`. Use it when the

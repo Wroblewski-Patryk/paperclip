@@ -2,77 +2,90 @@
 
 Last updated: 2026-07-04
 
-Source: Paperclip API checks, managed instruction bundle inspection, and
-conversation requirements.
+Source: Paperclip API checks, managed instruction bundle inspection,
+conversation requirements, and Stage 1 activation state.
 
 ## Verdict
 
-Agent role configuration is strong but not honestly 100%.
+Agent role configuration is strong enough for active Stage 1 app-factory work.
 
-Current estimated readiness: about 94%.
+Current estimated readiness: about 95%.
 
-This is enough to say v0 is on the horizon. The remaining gap is not missing
-roles or missing context; it is runtime proof, budget policy, and future
-calibration after the first controlled Stage 1 dry run.
+The remaining gap is not "more documentation before start"; it is real behavior
+calibration while agents deliver Soar and Roost to usable VPS production under
+`LUC-25`.
+
+## Current Stage 1 Role Posture
+
+Active app-factory core:
+
+- `00 AIA`;
+- `01 CSO`;
+- `02 CPO`, `02 UID`, `02 UXW`, `02 WPM`;
+- `04 COO`, `04 DPM`, `04 DSM`;
+- `06 AIM`;
+- `07 CFO`;
+- `08 CAO`;
+- `09 CTO`, `09 TSA`, `09 CBE`, `09 FEW`, `09 DBE`, `09 IDE`, `09 RTE`,
+  `09 TAE`, `09 QVE`, `09 CRS`, `09 DRE`;
+- `10 CLO`, `10 SPA`;
+- `11 CINO`, `11 IPM`, `11 SPM`, `11 RPM`.
+
+Paused/out of current scope:
+
+- `03 CRO`, `05 CCO`, `05 CSM`, `06 CHRO`, `06 POP`, `11 APM`, `11 FPM`,
+  `11 NPM`, `12 CEO`.
 
 ## Verified Strengths
 
-- 38 agents exist and all are paused.
+- 38 agents exist.
 - 38/38 agents use `codex_local`.
 - 38/38 agents point at local Codex model configuration.
 - 38/38 agents have a role scope.
 - 38/38 agents have a working profile using Big Five-style traits.
-- 38/38 agents include the shared company, standards, learning, hiring,
+- 38/38 agents include shared company, standards, learning, hiring,
   secrets/deploy, flow, department, resource, product architecture,
   delegation, closure, gap detection, procedure, owner-interface, and
   cost/token/context references.
 - Only `06 AIM (AI Agent Manager)` can create agents.
-- Routines remain paused with disabled triggers.
-- There are 0 Paperclip issues/tasks and 0 live runs.
-- Soar and Roost are the only active product lanes for Stage 1.
-- Featherly, Aviary, and Nest are future portfolio lanes only. Do not create
-  Paperclip work for them until they are on VPS and the owner explicitly
-  activates them.
+- Soar and Roost are the only active product lanes for Stage 1 delivery.
+- Featherly, Aviary, and Nest remain parked until owner activation.
 - Paperclip exposes cost, budget, and quota endpoints.
 - The local Codex CLI wrapper responds to `--version`.
 
-## Main Gaps
+## Main Gaps To Calibrate During Stage 1
 
-1. Runtime proof is intentionally incomplete.
-   Agents are paused, so no real agent execution, model invocation, skill use,
-   or issue lifecycle has been proven in this clean Stage 0 instance.
+1. Runtime behavior and role handoffs.
+   The active test is whether agents keep routing concrete implementation,
+   verification, deploy, and evidence work until `LUC-25` is genuinely done.
 
-2. Monetary budget policy is not configured.
-   Company and agent monthly budget fields are currently zero. Paperclip can
-   report budgets/costs/quota, but no owner-approved hard limits are set.
+2. Monetary budget policy.
+   Paperclip can report budgets/costs/quota, but hard company/agent limits
+   remain an owner decision. CFO should surface practical recommendations from
+   observed Stage 1 usage.
 
-3. Cost metering for local Codex is partially observable.
-   Quota windows are visible, but cost summary currently has no metered events
-   because no Stage 1 work has run. Future local Codex runs may report token
-   usage without a reliable dollar cost.
+3. Role/personality calibration.
+   Working profiles are present and role-aligned, but actual behavior should be
+   adjusted through governed learning packets if Stage 1 reveals recurring
+   issues.
 
-4. Role/personality calibration is plausible, not empirically proven.
-   Working profiles are present and role-aligned, but real behavior needs
-   evaluation after Stage 1 evidence.
+4. Product-specific playbooks.
+   Agents know to start from Soar/Roost `docs/architecture`; deeper playbooks
+   should be created from actual delivery findings rather than invented.
 
-5. Product-specific depth is intentionally lean.
-   Agents know to start from Soar/Roost `docs/architecture`, but detailed
-   Soar/Roost implementation playbooks should be built from actual dry-run
-   findings rather than invented in Stage 0.
+## What "100%" Requires
 
-## What "100%" Requires Later
+- Soar and Roost reach owner-usable VPS production.
+- AIA can summarize owner-facing decisions/blockers in Polish without noise.
+- Parent/child reporting stays coherent under active delivery pressure.
+- Evidence gates prevent false completion.
+- Production/deploy/secret/cost gates are respected while still allowing
+  necessary delivery progress.
+- Learning packets improve routines/procedures/instructions after failures.
 
-- First controlled Soar dry run completes without broad activation.
-- AIA produces a Polish owner decision packet that is understandable and
-  actionable.
-- Agents show they can follow parent/child reporting and closure evidence.
-- Cost/quota observations are captured.
-- One learning packet is produced if the dry run reveals a process issue.
-- Owner decides whether to set company/agent budget limits.
-- Role profiles are adjusted only through the governed learning/hiring path.
+## Operating Decision
 
-## Stage 0 Operating Decision
-
-Do not create new agents just because the theoretical organization could be
-larger. Start Stage 1 with the current 38 roles, observe real gaps, and let
-`06 AIM` propose hiring only through the hiring procedure.
+Do not create new permanent agents just because a theoretical softwarehouse
+could be larger. Use the active 29-role app-factory core, observe real gaps,
+and let `06 AIM` propose hiring only through the hiring procedure when a
+concrete repeated gap appears.

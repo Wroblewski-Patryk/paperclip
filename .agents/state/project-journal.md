@@ -728,3 +728,95 @@ Durable implications:
 - Updated `.codex/PROJECT_CONTEXT.md`, `.agents/state/board-context.md`, and
   `.agents/state/active-mission.md` so future chats see Stage 1 as an active
   company proof rather than Stage 0 quiet configuration.
+
+# 2026-07-04 - Stage 1 Context And Configuration Cleanup
+
+The owner asked for a broader pass so the whole repository memory and live
+Paperclip configuration stop drifting back to Stage 0 and instead reflect the
+current Stage 1 mission: keep working until Soar and Roost are 100% usable on
+VPS and Paperclip is ready for Stage 2 migration.
+
+Live Paperclip changes:
+
+- Updated goals:
+  - `00 General: v0 Softwarehouse Readiness - Achieved`.
+  - `00 General: Stage 1 Softwarehouse Delivery to VPS` as active parent.
+  - `11 Innovation: Soar Delivery to Usable VPS Production`.
+  - `11 Innovation: Roost Delivery to Usable VPS Production`.
+- Normalized open issue titles from Polish department prefixes to English
+  department prefixes where new child issues had drifted:
+  - `LUC-33`, `LUC-34`, `LUC-35`, `LUC-39`, `LUC-40`, `LUC-41`, `LUC-42`.
+
+Memory/config updates:
+
+- Rewrote the first-read current files so they are Stage 1-first:
+  `.codex/PROJECT_CONTEXT.md`, `.agents/state/board-context.md`,
+  `.agents/state/active-mission.md`, `.agents/state/current-focus.md`, and
+  `.agents/state/next-steps.md`.
+- Added `.agents/state/softwarehouse-stage1-delivery-foundation.md` as the
+  current foundation for the active app-factory mission.
+- Rewrote/updated audits and governance files to replace stale "all paused /
+  dry run / no issues" guidance:
+  - `.agents/state/softwarehouse-v1-goals-routines-audit.md`;
+  - `.agents/state/softwarehouse-agent-role-readiness-audit.md`;
+  - `.agents/state/softwarehouse-complementarity-audit.md`;
+  - `.agents/state/softwarehouse-goal-routine-governance.md`;
+  - `.agents/state/softwarehouse-agent-activation-governance.md`;
+  - `.agents/state/softwarehouse-owner-interface-contract.md`;
+  - `.agents/state/softwarehouse-resource-access-matrix.md`;
+  - `.agents/state/softwarehouse-departments.md`.
+- Marked Stage 0/v0 files and the first-action recommendation as historical
+  baseline/superseded rather than current operating guidance.
+
+Current interpretation:
+
+- Stage 1 is active and continues until `LUC-25` proves Soar/Roost usable on
+  VPS.
+- Stage 2 is not active yet; it starts when Paperclip itself can be moved to
+  VPS and operate with Roost as part of the autonomous company layer.
+- Agents should use the company structure to learn and improve while delivering
+  work, but must not broaden into marketing/sales/customer service, parked
+  products, destructive infra, raw secrets, paid resources, legal/customer/
+  finance commitments, or LIVE trading/order proof without separate approval.
+
+Verification snapshot:
+
+- 29 app-factory agents active; 9 out-of-scope agents paused.
+- 9 app-factory routines active; the old controlled dry-run routine paused.
+- 4 goals aligned: Stage 1 delivery active, Soar/Roost delivery active, v0
+  readiness achieved.
+- 0 open issue titles with Polish department prefixes after cleanup.
+
+# 2026-07-04 - Stage 1 Routine Cadence And Live Work Check
+
+The owner reported that Paperclip looked idle again and asked for the remaining
+Stage 0 to Stage 1 configuration to be checked and corrected. Diagnosis: live
+work was active, but the active routines still had weekly/draft-style schedules,
+which made internal self-supervision too slow for Stage 1 delivery.
+
+Live Paperclip observations:
+
+- Multiple Stage 1 agent runs were running or recently succeeded for Soar/Roost
+  delivery work.
+- Out-of-scope agents were correctly paused by real agent `status` values:
+  revenue/marketing, customer service, broad HR, parked product managers, and
+  the 12 CEO proxy remained paused.
+- Active app-factory routines were enabled but most still pointed to weekly
+  schedules.
+- New Roost evidence appeared at
+  `.agents/state/evidence/LUC-33/roost-docker-local-api-harness-proof.md` and
+  recorded a passing Docker-backed local API harness.
+
+Corrective action:
+
+- Updated the nine active routine triggers to a Stage 1 cadence:
+  - liveness every 30 minutes;
+  - evidence gate twice hourly;
+  - source/deploy readiness hourly;
+  - PDCA, portfolio truth, and owner-direction every 2 hours;
+  - secrets/access every 4 hours;
+  - cost/quota and agent-hiring governance twice daily.
+- Left `00 General - v1 Draft Paused - Controlled Activation Dry Run` paused
+  and disabled as historical context.
+- Recorded the cadence in
+  `.agents/state/softwarehouse-stage1-delivery-foundation.md`.

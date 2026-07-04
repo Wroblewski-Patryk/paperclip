@@ -73,18 +73,19 @@ Agents may propose a new goal or routine when:
 Agents must not create new goals/routines from vague curiosity or to bypass an
 existing parent goal/procedure.
 
-## Current V1 Ownership
+## Current Stage 1 Ownership
 
-Current planned goals:
+Current goals:
 
-- `00 General: v0 Softwarehouse Readiness` -> `00 AIA`.
-- `00 General: Stage 1 Controlled Activation Dry Run` -> `00 AIA`.
-- `11 Innovation: Stage 1 Soar Activation` -> `11 SPM`.
-- `11 Innovation: Stage 1 Roost Activation` -> `11 RPM`.
+- `00 General: v0 Softwarehouse Readiness - Achieved` -> `00 AIA`
+  (historical baseline).
+- `00 General: Stage 1 Softwarehouse Delivery to VPS` -> `00 AIA`.
+- `11 Innovation: Soar Delivery to Usable VPS Production` -> `11 SPM`.
+- `11 Innovation: Roost Delivery to Usable VPS Production` -> `11 RPM`.
 
-Current paused routines:
+Current active routines:
 
-- `00 AIA` owns owner direction, controlled activation, and liveness routines.
+- `00 AIA` owns owner direction and liveness routines.
 - `04 COO` owns portfolio truth and PDCA memory/process review.
 - `06 AIM` owns agent hiring/governance review.
 - `07 CFO` owns cost/quota/budget review.
@@ -92,12 +93,17 @@ Current paused routines:
 - `09 DRE` owns source-control/deploy readiness review.
 - `10 SPA` owns secrets/Coolify/VPS access readiness review.
 
+Historical paused routine:
+
+- `00 General - v1 Draft Paused - Controlled Activation Dry Run` remains paused
+  because the controlled dry run is complete.
+
 ## Activation Rule
 
 Creating or editing a paused goal/routine is not the same as permission to run
 it.
 
-During Stage 0:
+During Stage 0 (historical):
 
 - Codex/board may configure goals and routines.
 - Agents remain paused.
@@ -105,13 +111,18 @@ During Stage 0:
 - Triggers remain disabled.
 - No Paperclip issues/tasks should be created unless the owner explicitly asks.
 
-During Stage 1:
+During current Stage 1:
 
-- AIA proposes activation in Polish.
-- Owner approves the activation scope.
-- Board/Codex or an approved activation bridge performs lifecycle changes.
+- AIA routes owner direction and escalates in Polish when decisions are needed.
+- Stage 1 delivery goals and app-factory routines are active.
+- `LUC-25` is the hard parent and must not close until Soar and Roost are
+  owner-usable on VPS.
 - COO/DPM monitor duplicate work and routine hygiene.
 - Department owners keep their routines useful and narrow.
+- Marketing, sales, customer service, broad HR, parked product PMs, and CEO
+  proxy work remain paused unless separately approved.
+- Production/deploy/secret/destructive/paid/legal/live-trading gates remain
+  explicit.
 
 ## Review Cadence
 

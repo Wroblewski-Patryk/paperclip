@@ -58,8 +58,14 @@ Current examples:
 - `02 Product: Soar` after the accepted innovation-to-product transition
 - `08 Assets: Paperclip Worktrees`
 
-Projects and goals use colon form: `NN EnglishDepartment: Element`.
-Routines use paused-procedure form: `NN EnglishDepartment - v1 Draft Paused - Element`.
+Projects, goals, and active issue titles should prefer colon form:
+`NN EnglishDepartment: Element`.
+
+Active routines should use colon form:
+`NN EnglishDepartment: Element`.
+
+Historical paused draft routines may keep the older paused-procedure form:
+`NN EnglishDepartment - v1 Draft Paused - Element`.
 
 ## Innovation To Product Transition
 

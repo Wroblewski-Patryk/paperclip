@@ -2,8 +2,8 @@
 
 Last updated: 2026-07-04
 
-Purpose: define how agents may be turned on/off for Stage 1 without losing
-owner control, least privilege, or the quiet Stage 0 safety model.
+Purpose: define how agents may be turned on/off during active Stage 1 without
+losing owner control, least privilege, or scope discipline.
 
 ## Verified Paperclip Capability
 
@@ -52,21 +52,28 @@ owner/Codex signal
 | Hiring/new agent creation | `06 AIM` only, after hiring procedure |
 | High-risk production/secrets/cost expansion | Owner/AIA/CEO/SPA/CFO according to risk |
 
-## Initial V1 Activation Set
+## Current Stage 1 Active Set
 
-For the first controlled Soar dry run, AIA should request only:
+The controlled dry run has completed. The current active app-factory core is:
 
-- `00 AIA`: owner interface and routing;
-- `04 DPM`: parent/child task hygiene;
-- `11 SPM`: Soar product lane ownership;
-- `09 CTO`: technical direction;
-- `09 QVE`: evidence/check quality;
-- `09 DRE`: only if deployment observation is included;
-- `10 SPA`: only if secrets, auth, production smoke, or security-sensitive
-  checks are included;
-- `07 CFO`: only for cost/quota/budget evidence if the dry run records usage.
+- `00 AIA`, `01 CSO`, `02 CPO`, `02 UID`, `02 UXW`, `02 WPM`;
+- `04 COO`, `04 DPM`, `04 DSM`;
+- `06 AIM`;
+- `07 CFO`;
+- `08 CAO`;
+- `09 CTO`, `09 TSA`, `09 CBE`, `09 FEW`, `09 DBE`, `09 IDE`, `09 RTE`,
+  `09 TAE`, `09 QVE`, `09 CRS`, `09 DRE`;
+- `10 CLO`, `10 SPA`;
+- `11 CINO`, `11 IPM`, `11 SPM`, `11 RPM`.
 
-Do not resume every agent just because they exist.
+Still paused/out of scope unless separately approved:
+
+- `03 CRO`, `05 CCO`, `05 CSM`, `06 CHRO`, `06 POP`, `11 APM`, `11 FPM`,
+  `11 NPM`, `12 CEO`.
+
+Do not resume every agent just because they exist. Resume additional roles only
+when the work remains inside the `LUC-25` Soar/Roost delivery mission or the
+owner explicitly expands scope.
 
 ## Activation Request Packet
 
@@ -113,7 +120,7 @@ Agents resumed for a narrow role should be paused again when:
 - the parent issue is blocked on owner input;
 - cost/quota pressure appears;
 - the agent begins expanding scope outside its activation packet;
-- Stage 1 dry run ends.
+- the Stage 1 mission narrows and the role is no longer needed.
 
 ## Implementation Note
 

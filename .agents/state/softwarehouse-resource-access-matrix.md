@@ -164,13 +164,17 @@ Editing policy:
 
 ## Tools And Plugins
 
-Current Stage 0 stance:
+Current Stage 1 stance:
 
 - No tool is treated as universally available to every role.
 - Tool use should follow role scope, issue scope, explicit env bindings, and
   evidence gates.
 - Plugin tools, browser tools, deployment tools, repo-write tools, and
-  production-touching tools are high-risk until Stage 1 proves the flow.
+  production-touching tools may be used for `LUC-25` Soar/Roost delivery when
+  the assigned role, issue scope, and evidence gates justify them.
+- Marketing/sales/customer-service, parked products, paid features, raw secret
+  exposure, destructive actions, and LIVE trading/order proof remain out of
+  scope unless separately approved.
 
 Default tool classes by role:
 

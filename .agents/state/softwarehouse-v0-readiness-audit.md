@@ -2,6 +2,10 @@
 
 Last updated: 2026-07-04
 
+> Historical baseline. V0/Stage 0 readiness has been superseded by active
+> Stage 1 delivery under `LUC-25`. Use this file for background only; current
+> guidance lives in `.agents/state/softwarehouse-stage1-delivery-foundation.md`.
+
 Source: conversation summary plus verified Paperclip API state at
 `http://127.0.0.1:3200`.
 

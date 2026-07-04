@@ -2,13 +2,22 @@
 
 Last updated: 2026-07-04
 
+> Historical baseline. Stage 0 has been superseded by active Stage 1 delivery.
+> Current operating guidance lives in
+> `.agents/state/softwarehouse-stage1-delivery-foundation.md`,
+> `.agents/state/active-mission.md`, and `.agents/state/current-focus.md`.
+> Do not use the quiet-state rules below as current instructions.
+
 This file indexes the owner intent and verified readiness state for configuring
 LuckySparrow Software House before autonomous agents start work.
 
 ## Stage Model
 
-- Stage 0: configure Paperclip Softwarehouse before agent execution. Current stage.
-- Stage 1: enable Paperclip agents to work toward app goals, initially Soar and Roost, supervised by Codex/Paperclip watchdog loops.
+- Stage 0: configure Paperclip Softwarehouse before agent execution. Historical
+  baseline, achieved enough to start Stage 1.
+- Stage 1: current. Paperclip agents work toward `LUC-25`: Soar and Roost
+  usable on VPS, with app-factory roles/routines active and supervised by
+  Paperclip/Codex watchdog loops.
 - Stage 2: move Paperclip to VPS and operate with Roost as an autonomous digital-services company. Soar remains a personal capital-growth app lane.
 
 ## Durable Owner Intent

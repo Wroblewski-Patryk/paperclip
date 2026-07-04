@@ -5,13 +5,17 @@ Last updated: 2026-07-04
 Purpose: propose the most complementary first Stage 1 action for Paperclip
 agents after the owner approves activation.
 
-This is a recommendation, not approval to create Paperclip issues or resume
-agents during Stage 0.
+Status: completed/superseded.
+
+This recommendation was used to start the first controlled Stage 1 dry run.
+Current work has moved beyond this file to the hard delivery mission in
+`.agents/state/softwarehouse-stage1-delivery-foundation.md` and `LUC-25`.
 
 ## Recommendation
 
-Run a narrow `00 General: Stage 1 Controlled Activation Dry Run` before any
-large Soar/Roost implementation push.
+Historical recommendation: run a narrow
+`00 General: Stage 1 Controlled Activation Dry Run` before any large
+Soar/Roost implementation push.
 
 This dry run is a controlled Stage 1 activation and monitoring exercise, not a
 full autonomous-company launch. It should wake only the smallest useful agent
