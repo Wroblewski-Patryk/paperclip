@@ -13,6 +13,11 @@ agents during Stage 0.
 Run a narrow `00 General: Stage 1 Controlled Activation Dry Run` before any
 large Soar/Roost implementation push.
 
+This dry run is a controlled Stage 1 activation and monitoring exercise, not a
+full autonomous-company launch. It should wake only the smallest useful agent
+set, prove one operating loop end to end, then stop for synthesis and owner
+decision before expanding.
+
 The dry run should prove the company operating loop itself:
 
 ```text
@@ -32,6 +37,9 @@ organization without creating broad product risk:
 - Evidence and closure rules are tested.
 - Learning/procedure update path is tested.
 - The owner can approve, correct, or stop the pattern before many agents run.
+
+The Paperclip-specific mechanics for this loop live in
+`.agents/state/softwarehouse-paperclip-operating-mechanics.md`.
 
 ## Suggested Scope
 

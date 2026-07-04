@@ -83,6 +83,11 @@ LuckySparrow Software House before autonomous agents start work.
   `.agents/state/softwarehouse-task-lifecycle-contract.md`. Agents should not
   create tasks unless they can connect goal, procedure, parent, child,
   evidence, closure, retrospective, and improvement path.
+- Paperclip operating mechanics live at
+  `.agents/state/softwarehouse-paperclip-operating-mechanics.md`. Agents should
+  understand status/paused behavior, wakeup/activation, goal/project/issue/
+  routine relationships, trigger safety, evidence, approvals, and the precise
+  meaning of the Stage 1 dry run before doing work.
 - Owner interface contract lives at
   `.agents/state/softwarehouse-owner-interface-contract.md`. Stage 1 owner
   communication should route through `00 AIA` in clear Polish, while internal
@@ -138,6 +143,9 @@ LuckySparrow Software House before autonomous agents start work.
     retrospective, and improvement path.
 15. Owner interface and language policy is installed: owner-facing decisions go
     through AIA in Polish; internal company work remains English-first.
+16. Paperclip operating mechanics are installed: agents must understand
+    paused/wakeup behavior, routine triggers, goal/project/issue hierarchy,
+    evidence, approval gates, and the controlled V1 dry-run model.
 
 ## Current Stage 0 Estimate
 
@@ -186,6 +194,8 @@ Completed or partly complete:
 - All 38 managed instruction bundles include the procedure/task lifecycle
   reference.
 - All 38 managed instruction bundles include the owner interface/language
+  reference.
+- All 38 managed instruction bundles include the Paperclip operating mechanics
   reference.
 - Only `06 AIM (AI Agent Manager)` can create/hire agents, and only through the governed hiring path.
 - Ten core routines exist as paused drafts with disabled schedules.

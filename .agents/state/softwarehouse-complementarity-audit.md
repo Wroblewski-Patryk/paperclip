@@ -11,7 +11,7 @@ escalate without noisy task creation.
 
 Stage 0 complementarity is high and close to v1-ready.
 
-Current estimate: about 97%.
+Current estimate: about 98%.
 
 This is not 100% because the most important remaining evidence can only come
 from a controlled Stage 1 dry run: AIA owner packet quality, real agent
@@ -45,6 +45,7 @@ tree working under pressure.
 | --- | --- | --- |
 | Owner direction -> AIA proposal -> approval -> execution | Owner interface contract, owner direction/proposal loop, AIA task-routing permission, paused owner-direction routine | Configured, not run |
 | Goal/routine governance | Goal/routine governance matrix, V1 goals/routines audit, procedure system | Configured |
+| Paperclip operating mechanics | Paperclip primitive map, wakeup/paused model, goal/project/issue/routine hygiene, dry-run definition | Configured, not run |
 | Stage 1 activation | Controlled activation goal, activation governance, paused controlled activation routine | Configured, owner-gated |
 | Agent activation tree | AIA decision packet, activation request packet, board/bridge resume requirement, pause-back rule | Policy configured; technical bridge future |
 | App innovation delivery | Soar/Roost goals, product architecture index, autonomous delivery architecture, procedure/task lifecycle | Configured, not run |
@@ -67,7 +68,7 @@ tree working under pressure.
 - Shared agent references cover company model, standards, learning, hiring,
   secrets/deploy, flow, departments, resources, architecture, innovation
   lifecycle, delegation, activation, closure, procedures, owner communication,
-  owner proposal loop, and cost/token efficiency.
+  owner proposal loop, Paperclip operating mechanics, and cost/token efficiency.
 
 ## Remaining Gaps Before Calling It Ideal
 

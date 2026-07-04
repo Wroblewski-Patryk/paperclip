@@ -64,6 +64,11 @@ All routines are paused and all triggers are disabled.
 Stage 1 should start with the controlled activation routine, not with a bulk
 agent resume.
 
+The controlled dry run means "activate and monitor the first V1 operating loop
+under constraints", not "let all autonomous work start". The Paperclip-specific
+mechanics are tracked in
+`.agents/state/softwarehouse-paperclip-operating-mechanics.md`.
+
 Agent resume/pause is governed by
 `.agents/state/softwarehouse-agent-activation-governance.md`. `00 AIA` prepares
 the activation tree and can assign tasks, but actual lifecycle changes require

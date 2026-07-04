@@ -61,3 +61,40 @@ This is a durable diary for project-level context that should survive across Cod
 - 2026-07-04 / Complementarity audit and owner proposal loop: The owner asked to check whether all Paperclip settings and additions are complementary enough for a near-ideal autonomous company where the owner gives direction/notes and approves proposals while the company handles execution. Codex verified live runtime state: health ok, 38 paused agents, 10 paused routines, 0 enabled triggers, 4 planned goals, 0 issues, 0 live runs, 18 skills, 29 secrets, `codex_local` loaded, and 38/38 instruction bundles with 0 warnings. Codex added the paused routine `00 General - v1 Draft Paused - Owner Direction and Proposal Review`, added `.agents/state/softwarehouse-owner-direction-proposal-loop.md`, propagated `references/owner-direction-and-proposal-loop.md` to all 38 agent bundles, corrected stale current-state memory from 7 routines/3 goals to 10 routines/4 goals, and added `.agents/state/softwarehouse-complementarity-audit.md`. Estimated complementarity is about 97%; remaining proof requires the first controlled Stage 1 dry run.
 
 - 2026-07-04 / Goal and routine governance clarified: The owner challenged whether "everything is implemented" and asked who among the agents owns creating/managing goals and routines. Codex verified implementation details: goals API is broad company-access based, routines are more constrained because agents can manage routines assigned to themselves and board actors can manage company routines, so business governance cannot rely on API permissions alone. Codex added `.agents/state/softwarehouse-goal-routine-governance.md`: `00 AIA` owns intake/routing and proposal packets, `12 CEO` owns company-level goal fit and priority, `04 COO` owns routine/process coherence and hygiene, department owners own department goals/routines, `06 AIM` owns only AI-agent hiring/governance routines and creation authority, and the owner remains the approval authority for Stage 1 activation and high-risk changes. No agents were resumed and no Paperclip issues were created.
+
+# 2026-07-04 - Paperclip Operating Mechanics Gap Closed
+
+Conversation summary and configuration update.
+
+The owner asked whether agents already understand enough about how Paperclip
+itself works to act well in Stage 1, and clarified that the V1 dry run may mean
+"starting V1 and monitoring it." Codex identified a remaining configuration
+gap: the company model, goals, routines, learning, and activation governance
+were present, but agents also needed a direct shared reference for Paperclip
+mechanics: paused status, wakeups, routine triggers, goals/projects/issues,
+work products, approval gates, and how a controlled dry run differs from broad
+autonomy.
+
+Actions taken:
+
+- Added `.agents/state/softwarehouse-paperclip-operating-mechanics.md`.
+- Clarified `.agents/state/softwarehouse-stage1-recommended-first-action.md`
+  that the V1 dry run is controlled activation and monitoring, not full launch.
+- Updated complementarity, V1 goals/routines, Stage 0 foundation, active
+  mission, and `.codex/PROJECT_CONTEXT.md` to point at the new mechanics layer.
+- Synchronized `references/paperclip-operating-mechanics.md` into all 38
+  managed agent instruction bundles and added it to their required reading.
+
+Verification:
+
+- Paperclip state stayed quiet: 38 agents paused, 10 routines paused, 0 enabled
+  triggers, 4 goals, 0 issues, 0 live runs.
+- Instruction bundle API reported 38 agents, 0 bundles with warnings, and 0
+  bundles missing `references/paperclip-operating-mechanics.md`.
+
+Current interpretation:
+
+The most important known Stage 0 design gap is now not a missing document but
+runtime proof. V1 dry run means a small owner-approved activation-and-monitoring
+exercise: AIA Polish packet, minimal agent set, one parent issue, Soar preflight,
+evidence, review, learning packet, then owner decision before expansion.

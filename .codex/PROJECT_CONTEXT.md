@@ -136,6 +136,12 @@ Current verified direction:
 - Recommended first Stage 1 action lives in
   `.agents/state/softwarehouse-stage1-recommended-first-action.md`: controlled
   Soar dry run through AIA before broad agent activation.
+- Paperclip operating mechanics live in
+  `.agents/state/softwarehouse-paperclip-operating-mechanics.md`: agents should
+  understand Paperclip primitives, paused/wakeup behavior, routine trigger
+  safety, goal/project/issue hierarchy, evidence/artifact gates, approval paths,
+  and that the V1 dry run is controlled activation and monitoring, not full
+  autonomous-company launch.
 
 Read these current Stage 0 files before changing Softwarehouse configuration:
 
@@ -162,6 +168,7 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-owner-direction-proposal-loop.md`
 - `.agents/state/softwarehouse-complementarity-audit.md`
 - `.agents/state/softwarehouse-goal-routine-governance.md`
+- `.agents/state/softwarehouse-paperclip-operating-mechanics.md`
 
 ## Collaboration Notes
 

@@ -125,6 +125,11 @@ Verified current instance:
   routing, CEO owns company-level fit/priority, COO owns routine/process
   coherence, department owners own department goals/routines, and owner approval
   gates Stage 1 activation and high-risk changes.
+- Paperclip operating mechanics are tracked in
+  `.agents/state/softwarehouse-paperclip-operating-mechanics.md`: agents must
+  understand paused/wakeup behavior, routine triggers, goal/project/issue
+  hierarchy, evidence/artifact gates, approval paths, and that the V1 dry run is
+  a controlled activation-and-monitoring proof rather than broad autonomy.
 
 Stage 0 gates live in `.agents/state/softwarehouse-stage0-foundation.md`.
 Codex in this chat should drive v0 directly and must not create Paperclip
