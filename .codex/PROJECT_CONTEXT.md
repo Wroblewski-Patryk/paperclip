@@ -50,6 +50,16 @@ Current verified direction:
 - 38/38 managed instruction bundles are present and include shared standards,
   learning/self-correction, hiring governance, secrets/deploy policy, and
   end-to-end operating flow.
+- 38/38 agent role entry files have role scopes and Big Five-style working
+  profiles. This is strong Stage 0 configuration, not proof of perfect fit; the
+  first controlled dry run must calibrate real behavior.
+- Paperclip reports `codex_local` as loaded and all agents are configured for
+  it. Local `scripts/codex.cmd --version` works. Do not prove runtime execution
+  by starting agents during Stage 0.
+- Paperclip budget/cost/quota endpoints respond, including OpenAI quota windows
+  for the local Codex path. Company and agent hard budgets are currently zero,
+  so cost/token policy is documented but hard budget limits remain an owner
+  decision before broad work.
 - Department 05 is customer success; department 06 is people and AI workforce.
 - Canonical department map and naming convention live in
   `.agents/state/softwarehouse-departments.md`; department-owned work objects
@@ -58,6 +68,11 @@ Current verified direction:
   `NN Department: Element`; current active lanes include
   `00 General: Softwarehouse`, `11 Innovation: Soar`,
   `11 Innovation: Roost`, and `11 Innovation: Aviary`.
+- Portfolio direction is five products long term: Soar, Roost, Featherly,
+  Aviary, and Nest. For Stage 0 / first Stage 1 activation, only Soar and Roost
+  are active. Featherly, Aviary, and Nest must remain parked; do not create
+  Paperclip work for them until they are on VPS and the owner explicitly
+  activates them.
 - Goals also use the English naming convention `NN Department: Element`;
   current goals are `00 General: v0 Softwarehouse Readiness`,
   `11 Innovation: Stage 1 Soar Activation`, and
@@ -118,6 +133,8 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-task-lifecycle-contract.md`
 - `.agents/state/softwarehouse-owner-interface-contract.md`
 - `.agents/state/softwarehouse-stage1-recommended-first-action.md`
+- `.agents/state/softwarehouse-cost-token-policy.md`
+- `.agents/state/softwarehouse-agent-role-readiness-audit.md`
 
 ## Collaboration Notes
 

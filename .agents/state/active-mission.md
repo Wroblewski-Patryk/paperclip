@@ -83,6 +83,20 @@ Verified current instance:
   GitHub features, paid Actions capacity, Advanced Security, paid runners,
   enterprise-only controls, paid GitHub AI features, or notification-heavy
   email-generating automation.
+- Cost/token policy is tracked in
+  `.agents/state/softwarehouse-cost-token-policy.md`: Paperclip exposes
+  budget/cost/quota surfaces and Codex quota windows, but hard company/agent
+  budgets are not configured yet. Stage 1 should start with a controlled dry
+  run and then decide budget limits from evidence.
+- Agent role readiness is tracked in
+  `.agents/state/softwarehouse-agent-role-readiness-audit.md`: 38/38 agents
+  have role scopes, Big Five-style working profiles, and shared context refs,
+  but readiness is estimated at about 94% rather than 100% until runtime,
+  skill, cost, and behavior calibration are proven.
+- Long-horizon app portfolio is Soar, Roost, Featherly, Aviary, and Nest.
+  During Stage 0 and initial Stage 1, only Soar and Roost are active.
+  Featherly, Aviary, and Nest remain parked; do not create Paperclip work for
+  them until they are on VPS and the owner activates them.
 
 Stage 0 gates live in `.agents/state/softwarehouse-stage0-foundation.md`.
 Codex in this chat should drive v0 directly and must not create Paperclip

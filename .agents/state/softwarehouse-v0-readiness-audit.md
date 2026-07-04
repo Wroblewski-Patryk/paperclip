@@ -7,7 +7,7 @@ Source: conversation summary plus verified Paperclip API state at
 
 ## Current Readiness
 
-Estimated Stage 0 / v0 readiness: about 96%.
+Estimated Stage 0 / v0 readiness: about 94%.
 
 This is close enough to see the v0 horizon, but not ready for Stage 1 agent
 execution until the remaining gates below are resolved or consciously accepted
@@ -38,7 +38,18 @@ by the owner.
   team/resource ids, and Soar/Roost production test accounts.
 - Managed instructions: 38/38 agents have managed bundles with no API warnings,
   including shared product-architecture, delegation/reporting, delivery-closure,
-  learning-packet, procedure, task-lifecycle, and owner-interface references.
+  learning-packet, procedure, task-lifecycle, owner-interface, and
+  cost/token/context-efficiency references.
+- Role/personality readiness: 38/38 agents have role scopes and Big Five-style
+  working profiles in their personal `AGENTS.md` files.
+- Codex readiness: 38/38 agents use `codex_local`; Paperclip reports the
+  adapter loaded with instructions-bundle, skills, local-agent-JWT, and model
+  profile support. `scripts/codex.cmd --version` returns a local Codex CLI
+  version.
+- Cost/budget readiness: Paperclip budget/cost/quota endpoints respond.
+  Company and agent hard budget fields are currently zero, so Stage 1 needs an
+  owner decision before broad autonomous spending limits are treated as
+  configured.
 - Agent creation authority: only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`.
 - Department numbering: 05 = Customer Success; 06 = People and AI Workforce.
 - Canonical department map: `.agents/state/softwarehouse-departments.md`.
@@ -62,6 +73,9 @@ by the owner.
 | Stage 2: VPS + Roost autonomous company | Yes | Concept only | Needs future deploy/provider architecture and secrets. |
 | Use APQC/PCF, MECE, PDCA, evidence gates | Yes | Yes in instructions/routines | Future improvement: richer process playbooks by department. |
 | Use role/personality fit such as Big Five | Yes | Initial role profiles in agent entry files | Future improvement: more precise role calibration/evals. |
+| Codex local adapter availability | Yes | `codex_local` loaded; all agents configured for it; local CLI wrapper responds | Real model invocation is unproven in quiet Stage 0 because agents remain paused. |
+| Token, quota, and cost efficiency | Yes | Shared policy and agent reference added; cost/quota endpoints verified | Hard budget limits are not configured yet; owner should decide after first dry run. |
+| Future five-app portfolio | Yes | Soar/Roost active; Featherly/Aviary/Nest parked by policy | Do not create Paperclip work for parked apps until VPS and owner activation. |
 | Agent learning at individual, department, company level | Yes | Yes in instructions and paused PDCA routine | Needs activation and real learning packets in Stage 1. |
 | Agents must not self-edit | Yes | Yes in instructions | Future: enforce through stronger permission tooling if available. |
 | Hiring only through AI workforce manager | Yes | Yes; only `06 AIM` can create agents | Need full hiring packet template before Stage 1. |
@@ -106,6 +120,10 @@ by the owner.
   interface, Polish decision packets, clarification path, and language policy.
 - `.agents/state/softwarehouse-stage1-recommended-first-action.md`: controlled
   Soar dry run recommendation.
+- `.agents/state/softwarehouse-cost-token-policy.md`: budget, quota, token,
+  and context-efficiency policy.
+- `.agents/state/softwarehouse-agent-role-readiness-audit.md`: explicit role
+  readiness verdict and remaining gaps.
 - `doc/plans/2026-07-04-softwarehouse-stage-0-foundation.md`: repo plan.
 - Managed instruction bundles for all agents:
   - `AGENTS.md`
@@ -123,6 +141,7 @@ by the owner.
   - `references/gap-detection-and-learning-packets.md`
   - `references/procedures-and-task-lifecycle.md`
   - `references/owner-interface-and-language-policy.md`
+  - `references/cost-token-and-context-efficiency.md`
 
 ## Remaining V0 Gates
 
@@ -141,6 +160,7 @@ by the owner.
 3. Full disaster recovery gate:
    - Current DB backup exists at `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-031504.sql.gz`.
    - Current lightweight memory/config snapshot exists at `.agents/state/backups/stage0-memory-config-20260704-031638.zip`.
+   - Current role/cost policy and agent-instruction snapshot exists at `.agents/state/backups/stage0-role-cost-config-20260704-032329.zip`.
    - Still needs deliberate handling of local storage and the local encrypted secrets key outside repo memory.
 
 4. Tooling gate:
@@ -154,18 +174,24 @@ by the owner.
    - If a workflow needs a paid plan, quota, or hosted automation, agents must
      report the constraint and propose a local/free alternative first.
 
-6. Activation gate:
+6. Cost/token gate:
+   - Paperclip can show budget, cost, and quota surfaces, but no hard
+     company/agent budgets are configured yet.
+   - The first Stage 1 dry run should record before/after cost summary and
+     quota windows when available, then propose whether to set budget limits.
+
+7. Activation gate:
    - Before Stage 1, owner must explicitly approve which agents/routines to unpause.
    - Do not bulk-resume all agents unless the owner explicitly chooses that mode.
 
-7. Architecture dry-run gate:
+8. Architecture dry-run gate:
    - Review the product architecture index and autonomous delivery contract with
      the owner before enabling agents.
    - First Stage 1 cycle should be narrow: one app lane, one parent PM, one
      technical owner, one verifier, and deployment observation only after local
      proof.
 
-8. Owner interface dry-run gate:
+9. Owner interface dry-run gate:
    - AIA should present the first Stage 1 approval packet in Polish.
    - Owner should approve, revise, or reject the controlled Soar dry run before
      Paperclip creates Stage 1 issues or resumes agents.
@@ -179,4 +205,6 @@ by the owner.
 - Secret rotation and least-privilege review cadence.
 - Soar and Roost app-specific evidence checklists, now grounded in the shared
   delivery closure loop.
+- Stage 1 budget profile after the first dry run: company limit, per-agent
+  limits, quota escalation owner, and unknown-cost Codex reporting.
 - Customer-facing service lifecycle: lead -> discovery -> quote -> delivery -> QA -> deploy -> support -> renewal.

@@ -23,7 +23,16 @@ mismatch and escalates through the parent/owner chain.
 | Soar | `C:/Personal/Projekty/Aplikacje/Soar` | first active app lane; personal capital-growth app | `docs/architecture/README.md`, then `docs/architecture/architecture-source-of-truth.md` |
 | Roost | `C:/Personal/Projekty/Aplikacje/Roost` | second active app lane; future company operating system / CompanyCore lane | `docs/architecture/README.md`, then `docs/architecture/architecture-source-of-truth.md` |
 
-Future app ideas remain parked unless the board activates them.
+## Parked Portfolio Lanes
+
+The long-horizon LuckySparrow portfolio is Soar, Roost, Featherly, Aviary, and
+Nest.
+
+For Stage 0 and the first Stage 1 activation, only Soar and Roost are active.
+Featherly, Aviary, and Nest are explicitly parked. Do not create Paperclip
+projects, issues, routines, goals, or implementation work for Featherly,
+Aviary, or Nest until the applications are on VPS and the owner explicitly
+activates them.
 
 ## Soar Architecture Notes
 
