@@ -59,9 +59,15 @@ with Roost as part of the autonomous company layer.
   Paperclip_Softwarehouse repo.
 - Avoid broad rewrites and context churn. Capture what matters, then keep
   moving.
-- Finish file-changing work with a commit. If a change is not ready to commit,
-  explicitly record why it is blocked and which files remain dirty; do not leave
-  completed work as an unexplained dirty worktree.
+- For this Codex chat, "commit my finished changes" means changes in the
+  Paperclip_Softwarehouse control-plane repo unless the owner explicitly says
+  otherwise. Soar and Roost are product repos: their commits should normally be
+  made by the Paperclip agents responsible for building/managing those apps,
+  because they own the evidence gates and know when product work is ready.
+- When Soar/Roost are dirty, this Codex should monitor, classify, and report the
+  state, but should not commit product-agent work by default. If a product repo
+  remains dirty because an agent is active or work is blocked, state the owner,
+  reason, and relevant files instead of silently cleaning it up.
 
 ## Current Company Shape
 

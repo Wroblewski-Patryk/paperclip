@@ -1341,3 +1341,25 @@ Standing rule:
   committed yet.
 - If saving durable memory or a journal entry, commit that memory update in the
   same turn unless explicitly blocked.
+
+# 2026-07-04 - Product Repo Commit Ownership Clarification
+
+Conversation summary: after a cleanup pass, the owner clarified that requests
+for this Codex to commit are meant in the context of Paperclip
+(`Paperclip_Softwarehouse`) unless explicitly stated otherwise. Soar and Roost
+commits should be created inside Paperclip by the product/application agents
+responsible for managing, building, testing, and documenting those apps.
+
+Decision:
+
+- This Codex should commit its own finished Paperclip control-plane changes.
+- This Codex should not normally commit Soar/Roost changes directly, because
+  those product repos are owned by Paperclip's app-delivery agents and their
+  source-control closure gates.
+- For Soar/Roost, this Codex may inspect status, detect active/stale work,
+  warn about dirty state, and help Paperclip route recovery, but should leave
+  product commits to the responsible agents unless the owner explicitly grants
+  an exception.
+- Future cleanup reports should distinguish "Paperclip repo clean" from
+  "product repo dirty because agent X is still working" instead of treating all
+  three repos as this Codex's commit scope.
