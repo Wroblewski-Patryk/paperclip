@@ -187,3 +187,46 @@ Codex updated the heartbeat automation with a progressive autonomy policy:
 Durable intent: Paperclip should earn autonomy through evidence. The external
 Codex monitor should become less necessary over time, not become the permanent
 manager.
+
+# 2026-07-04 - Stage 1 Monitor Cycle 1
+
+Heartbeat monitor result for `paperclip-stage-1-dry-run-monitor`.
+
+Paperclip completed the first controlled Soar dry run:
+
+- `LUC-12` is `done`.
+- Child issues `LUC-13` through `LUC-18` are all `done`.
+- Evidence was attached or linked across task hygiene, Soar architecture,
+  technical readiness, verification, read-only deploy/Coolify observation, and
+  security/privacy gates.
+- AIA posted a parent closure summary with a Polish owner-facing note.
+- No routine triggers were enabled.
+- No unauthorized agents beyond the approved seven were activated.
+- No push, deploy, production mutation, secret mutation, or broad speculative
+  backlog was observed.
+
+Monitor correction:
+
+- `04 DPM` had one stale live run (`060755d3-a362-4d7c-a339-8746cf4df4b4`)
+  still marked `running` after its issue `LUC-13` was already `done`.
+- Codex cancelled that stale run as control-plane cleanup.
+- Post-cleanup state: 31 agents paused, the seven approved agents idle, 0 live
+  runs, 7 issues done, and 0 enabled routine triggers.
+
+Readiness interpretation:
+
+This counts as one clean monitor cycle with useful progress after cleanup.
+Do not slow or delete the heartbeat yet. Per the progressive policy, consider
+slowing only after two consecutive clean cycles; consider deletion/pausing only
+after three or more clean cycles plus a working internal Paperclip monitoring
+loop and explicit owner approval.
+
+Residual expansion gates from AIA's closure remain important:
+
+- Soar repo divergence/dirty state must be reconciled or explicitly accepted
+  before implementation or deploy-oriented expansion.
+- Full local runtime readiness still needs Docker/Linux engine backed
+  Postgres/Redis checks.
+- Production smoke beyond read-only public checks, protected worker proof,
+  deploy/restart/rollback, secret edits, paid automation, and LIVE trading/order
+  proof remain separate owner-approval gates.
