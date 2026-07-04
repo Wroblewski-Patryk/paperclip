@@ -243,3 +243,28 @@ Current evidence:
 - `LUC-124` requested cleanup approval `eaae3dd5-369b-43b3-b54a-4d09c5dd5fc5`
   for deleting only that file.
 - `LUC-127` implemented recurrence hardening in Soar deployment configuration.
+
+## 2026-07-04 - Do not wake blocked duplicate lanes with cleanup comments
+
+Observed pattern: live-run cleanup can accidentally recreate the problem it is
+trying to solve. `LUC-145` and `LUC-146` were already blocked duplicate DRE
+lanes while `LUC-133` remained the real active DRE run. The janitor cancelled
+the duplicates, then wrote a bookkeeping issue comment that caused Paperclip to
+queue fresh duplicate DRE runs for the same blocked issues.
+
+Standing rule:
+
+- For already-blocked duplicate owner lanes, cancel the duplicate run and skip
+  bookkeeping issue comments unless a human-facing decision actually needs to
+  be recorded.
+- Do not treat board/user issue comments as neutral metadata; comments can wake
+  assignees and should be avoided in pure runtime cleanup paths.
+- Preserve the single productive owner run, and verify cleanup with a follow-up
+  dry-run showing `actionCount: 0`.
+
+Current evidence:
+
+- `scripts/run-live-run-janitor.mjs` skips duplicate-run bookkeeping comments
+  for blocked duplicate lanes.
+- `scripts/softwarehouse-gate-specs.test.mjs` contains regression coverage for
+  this behavior.

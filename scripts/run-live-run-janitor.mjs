@@ -960,19 +960,16 @@ if (apply) {
     }
 
     if (action.kind === "cancel_duplicate_owner_run") {
-      const updated = await patchIssueForJanitor(action, item, {
-        status: "blocked",
-        comment: [
-          duplicateOwnerRunMarker(action.identifier),
-          "",
-          "Live-run janitor cancelled a duplicate active lane for the same owner agent.",
-          `Kept run: ${action.keptRunId}. Cancelled duplicate run: ${action.runId}.`,
-          "This issue is blocked until the owner agent finishes or hands off the kept active lane.",
-          "No product, deploy, production, secret, or project-code mutation was performed.",
-        ].join("\n"),
-      });
-      if (!updated) continue;
-      item.issueStatus = updated.status;
+      if (action.issueStatus === "blocked") {
+        item.issueStatusSyncSkipped = "already_blocked";
+        item.issueStatusSyncReason = "Skipped duplicate-run bookkeeping comment to avoid waking a blocked duplicate lane.";
+      } else {
+        const updated = await patchIssueForJanitor(action, item, {
+          status: "blocked",
+        });
+        if (!updated) continue;
+        item.issueStatus = updated.status;
+      }
     }
 
     applied.push(item);

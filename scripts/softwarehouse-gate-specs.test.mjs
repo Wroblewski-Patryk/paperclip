@@ -115,7 +115,8 @@ test("live-run janitor treats blocked duplicate owner runs as safe duplicate cle
   assert.match(source, /if \(terminalStatuses\.has\(issue\.status\)\) continue;/);
   assert.match(source, /kind: "cancel_duplicate_owner_run"/);
   assert.match(source, /status: "blocked"/);
-  assert.match(source, /This issue is blocked until the owner agent finishes or hands off the kept active lane\./);
+  assert.match(source, /action\.issueStatus === "blocked"/);
+  assert.match(source, /Skipped duplicate-run bookkeeping comment to avoid waking a blocked duplicate lane/);
 });
 
 test("live-run janitor does not let orphan direct wakes outrank issue-bound recovery", async () => {
@@ -700,6 +701,15 @@ test("live-run janitor falls back to API reads when direct database is unavailab
   assert.match(source, /readMode: "api_fallback"/);
   assert.match(source, /fullIssueScanAvailable: false/);
   assert.match(source, /if \(liveRuns\.length === 0 && fullIssueScanAvailable\)/);
+});
+
+test("live-run janitor avoids duplicate-run comments that re-wake blocked lanes", async () => {
+  const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
+
+  assert.match(source, /action\.kind === "cancel_duplicate_owner_run"/);
+  assert.match(source, /action\.issueStatus === "blocked"/);
+  assert.match(source, /Skipped duplicate-run bookkeeping comment to avoid waking a blocked duplicate lane/);
+  assert.doesNotMatch(source, /duplicateOwnerRunMarker\(action\.identifier\)[\s\S]*Kept run:/);
 });
 
 test("autonomy governor only recommends gate watcher apply when the apply guard can pass", async () => {

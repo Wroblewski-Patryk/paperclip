@@ -1445,3 +1445,31 @@ Decision:
   returned HTTP 500. The status update and TAE wakeup succeeded. Track this as
   a Paperclip comment-path quality issue if it recurs; do not treat it as a
   reason to silently skip durable evidence.
+
+# 2026-07-04 - Blocked Duplicate Run Janitor Fix
+
+Conversation summary: during the Stage 1 heartbeat, DRE had one real active run
+for `LUC-133`, while `LUC-145` and `LUC-146` were blocked issues with queued
+duplicate DRE runs. The live-run janitor cancelled the duplicates, but its
+bookkeeping comment/issue patch re-woke the blocked duplicate lanes, recreating
+new queued runs.
+
+Decision:
+
+- Treat duplicate queued runs on already-blocked issues as pure runtime cleanup.
+- Cancel the duplicate run but do not add a bookkeeping issue comment to a
+  blocked duplicate lane, because human/board comments can wake the assignee.
+- Keep the active productive owner run untouched.
+
+Evidence:
+
+- Before fix: live runs included DRE `LUC-133` plus queued DRE duplicates for
+  `LUC-145` and `LUC-146`.
+- Code updated in `scripts/run-live-run-janitor.mjs`.
+- Regression updated in `scripts/softwarehouse-gate-specs.test.mjs`.
+- Verification: `node --test scripts/softwarehouse-gate-specs.test.mjs` passed
+  86/86. `pnpm exec vitest run scripts/softwarehouse-gate-specs.test.mjs` could
+  not run because local pnpm auto-install hit the known Windows plugin SDK
+  symlink `EPERM` issue.
+- After applying the fixed janitor, live-run dry-run reported `actionCount: 0`
+  and only the real DRE `LUC-133` run remained live.
