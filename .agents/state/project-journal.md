@@ -113,3 +113,47 @@ yet, Codex may help interpret the decision basis for the owner in Polish.
 Codex updated the owner interface contract, Paperclip operating mechanics,
 Stage 1 recommended first action, board context, active mission, and compact
 Codex context to reflect this narrower language policy.
+
+# 2026-07-04 - Stage 1 Controlled Dry Run Started
+
+Owner approval and live configuration update.
+
+The owner approved starting the first controlled Stage 1 dry run and asked
+Codex to monitor it for several hours, periodically checking for failures,
+direction drift, duplicate/circular work, approval needs, and unsafe behavior.
+The approved activation set is `00 AIA`, `04 DPM`, `11 SPM`, `09 CTO`,
+`09 QVE`, `09 DRE`, and `10 SPA`.
+
+Actions taken:
+
+- Created a manual database backup before activation:
+  `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-035301.sql.gz`.
+- Created parent issue `LUC-12`:
+  `00 General: Stage 1 Controlled Activation Dry Run - Soar Preflight`.
+- Linked `LUC-12` to the controlled dry-run goal and `00 General:
+  Softwarehouse` project.
+- Resumed only the seven approved agents. The other 31 agents remained paused.
+- Left all routines paused and all routine triggers disabled.
+- Created Codex heartbeat automation
+  `paperclip-stage-1-dry-run-monitor` for 8 checks every 30 minutes in this
+  same thread.
+
+Early correction:
+
+- `LUC-12` was initially created with `workMode: planning`, which would have
+  limited AIA to a plan-only response and made the dry run too weak.
+- Codex cancelled the stale planning-context runs, switched `LUC-12` to
+  `workMode: standard`, preserved the no-code/no-push/no-deploy/no-production
+  constraints in issue comments, and restarted AIA.
+- The active run after correction is `c2c05eb4-0183-403d-8cf5-73dd737fd541`,
+  and its heartbeat context shows `issueWorkMode: standard` with no planning
+  directive.
+
+Initial live state after start:
+
+- 31 agents paused.
+- 6 approved agents idle.
+- `00 AIA` running on `LUC-12`.
+- 10 routines paused.
+- 0 enabled routine triggers.
+- `LUC-12` is the only issue created for the dry run.
