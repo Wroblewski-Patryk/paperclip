@@ -140,6 +140,7 @@ Shared files every agent may read:
 - `references/delegation-and-reporting-contract.md`
 - `references/delivery-closure-loop.md`
 - `references/gap-detection-and-learning-packets.md`
+- `references/procedures-and-task-lifecycle.md`
 
 Editing policy:
 
@@ -150,6 +151,9 @@ Editing policy:
 - Product architecture, delegation, closure, and learning references are shared
   because every role must respect source-of-truth docs, parent reporting,
   duplicate prevention, evidence gates, and governed self-improvement.
+- Procedure/task lifecycle guidance is shared because every agent that touches
+  work must understand how to create, update, decompose, close, and improve
+  tasks constructively.
 
 ## Tools And Plugins
 

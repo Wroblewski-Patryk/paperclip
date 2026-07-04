@@ -54,6 +54,11 @@ Verified current instance:
 - Architecture gap analysis is tracked at
   `.agents/state/softwarehouse-architecture-gap-analysis.md`; current guidance
   is to use controlled activation of existing agents before hiring new roles.
+- Procedure system and task lifecycle contract are tracked at
+  `.agents/state/softwarehouse-procedure-system.md` and
+  `.agents/state/softwarehouse-task-lifecycle-contract.md`; Stage 1 agents must
+  create/update tasks only through goal/procedure/parent/child/evidence/retro
+  chains.
 - Resource policy is tracked in `.agents/state/softwarehouse-resource-policy.md`:
   no paid GitHub plan is available, so Stage 1 agents must not assume paid
   GitHub features, paid Actions capacity, Advanced Security, paid runners,

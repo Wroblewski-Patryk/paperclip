@@ -77,6 +77,11 @@ Current verified direction:
   `.agents/state/softwarehouse-architecture-gap-analysis.md`; current guidance
   is controlled activation with existing agents first, not adding new permanent
   agents before Stage 1 proves a gap.
+- Procedure system lives in `.agents/state/softwarehouse-procedure-system.md`
+  and task lifecycle contract lives in
+  `.agents/state/softwarehouse-task-lifecycle-contract.md`; agents should
+  create/update tasks only when work connects to goal, procedure, parent,
+  child evidence, closure synthesis, retrospective, and improvement.
 
 Read these current Stage 0 files before changing Softwarehouse configuration:
 
@@ -91,6 +96,8 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-product-architecture-index.md`
 - `.agents/state/softwarehouse-autonomous-delivery-architecture.md`
 - `.agents/state/softwarehouse-architecture-gap-analysis.md`
+- `.agents/state/softwarehouse-procedure-system.md`
+- `.agents/state/softwarehouse-task-lifecycle-contract.md`
 
 ## Collaboration Notes
 

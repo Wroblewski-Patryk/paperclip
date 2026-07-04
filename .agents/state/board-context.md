@@ -118,6 +118,12 @@ The project is both product work and company-building work. Future Codex chats s
   created, prevent duplicate lanes, and close delivery through local proof,
   source control, Coolify observation, production smoke evidence, and learning
   packets.
+- Procedure and task lifecycle contracts now live in
+  `.agents/state/softwarehouse-procedure-system.md` and
+  `.agents/state/softwarehouse-task-lifecycle-contract.md`. Agents should use
+  procedures as organizational paths: goal -> procedure -> parent issue ->
+  child issues -> evidence -> closure -> retrospective -> procedure update
+  proposal.
 
 ## Standing Codex Watchdog
 

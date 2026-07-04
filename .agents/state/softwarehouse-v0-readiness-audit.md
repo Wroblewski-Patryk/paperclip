@@ -29,7 +29,7 @@ by the owner.
   team/resource ids, and Soar/Roost production test accounts.
 - Managed instructions: 38/38 agents have managed bundles with no API warnings,
   including shared product-architecture, delegation/reporting, delivery-closure,
-  and learning-packet references.
+  learning-packet, procedure, and task-lifecycle references.
 - Agent creation authority: only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`.
 - Department numbering: 05 = Customer Success; 06 = People and AI Workforce.
 - Canonical department map: `.agents/state/softwarehouse-departments.md`.
@@ -61,6 +61,8 @@ by the owner.
 | Top-down delegation and parent reporting | Yes | Delivery architecture and shared agent references define parent notification, child-work preflight, duplicate prevention, and MECE task split | Needs Stage 1 enforcement during real issue creation. |
 | Commit -> push -> Coolify -> production smoke closure | Yes | Delivery closure loop added to state docs and all agent bundles | Deploy actions remain gated; production smoke requires Stage 1 approval. |
 | Learning without self-editing | Yes | Learning packet reference added; individual/department/company packet path made explicit | Needs first real Stage 1 learning packets. |
+| Procedures/flows before task creation | Yes | Procedure system and task lifecycle contract added; agents must connect work to goal -> procedure -> parent -> child -> evidence -> retro | Needs Stage 1 enforcement and real procedure run records. |
+| Constructive parent/child task closure | Yes | Parent and child issue contracts added; completed work must synthesize child results and end as Delivered, Blocked, Cancelled, Superseded, or Learning | Needs actual issue workflow once Stage 1 starts. |
 | Prefer configuration and official/common extensions over code | Yes | Yes | CLI/catalog tooling blockers remain documented. |
 | Work should be pleasant end-to-end for agents | Yes | Added shared operating flow to all bundles | Needs Stage 1 feedback to refine friction points. |
 
@@ -82,6 +84,10 @@ by the owner.
   learning architecture.
 - `.agents/state/softwarehouse-architecture-gap-analysis.md`: critical gap
   register and controlled activation recommendation.
+- `.agents/state/softwarehouse-procedure-system.md`: procedure card,
+  procedure lifecycle, initial procedure registry, run record, and retro model.
+- `.agents/state/softwarehouse-task-lifecycle-contract.md`: creation gate,
+  parent/child issue contracts, constructive closure, and optimization loop.
 - `doc/plans/2026-07-04-softwarehouse-stage-0-foundation.md`: repo plan.
 - Managed instruction bundles for all agents:
   - `AGENTS.md`
@@ -97,6 +103,7 @@ by the owner.
   - `references/delegation-and-reporting-contract.md`
   - `references/delivery-closure-loop.md`
   - `references/gap-detection-and-learning-packets.md`
+  - `references/procedures-and-task-lifecycle.md`
 
 ## Remaining V0 Gates
 
@@ -113,8 +120,8 @@ by the owner.
    - Include repo path, deploy context, first outcome, verification plan, evidence gates, and owner approval condition.
 
 3. Full disaster recovery gate:
-   - Current DB backup exists at `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-024722.sql.gz`.
-   - Current config/instruction snapshot exists at `.agents/state/backups/stage0-config-20260704-024731.zip`.
+   - Current DB backup exists at `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-025906.sql.gz`.
+   - Current config/instruction snapshot exists at `.agents/state/backups/stage0-config-20260704-025914.zip`.
    - Still needs deliberate handling of local storage and the local encrypted secrets key outside repo memory.
 
 4. Tooling gate:
@@ -143,6 +150,7 @@ by the owner.
 
 - Department playbooks for all 12 APQC/PCF categories.
 - Hiring packet template and role-fit scorecard for `06 AIM`.
+- Expanded procedure cards for the initial procedure registry.
 - Learning packet template with severity, root cause, fix proposal, affected scope, and rollback.
 - Secret rotation and least-privilege review cadence.
 - Soar and Roost app-specific evidence checklists, now grounded in the shared
