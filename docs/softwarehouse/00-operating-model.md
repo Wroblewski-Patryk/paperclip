@@ -25,12 +25,25 @@ Roost / CompanyCore is the intended long-term source of truth for company data, 
 
 Paperclip Softwarehouse uses a light operating system inspired by:
 
-- PDCA / ISO 9001: plan, do, check, act on every meaningful task.
-- APQC-style process classification: every task maps to a named process.
-- Scrum / Kanban: clear workflow states and no stale work.
-- DevOps / DORA: delivery, failure, recovery, and reliability are tracked.
-- OWASP ASVS/SAMM: security checks are scaled to risk.
-- ADRs: architectural decisions are recorded when they affect future work.
+- APQC/PCF-style process classification: every task maps to a named process.
+- MECE: parent goals split into clean, non-overlapping child lanes.
+- Kanban: Paperclip issues/tasks are the visible work board with WIP limits.
+- PDCA / ISO 9001 style: plan, do, check, act on every meaningful task.
+- RACI/DACI-lite: non-trivial work names accountable owner, consulted roles,
+  decision owner, and informed parent.
+- Definition of Ready / Definition of Done: unclear work does not start and
+  unproven work does not close.
+- ADR/RFC-lite and C4/traceability-lite: architecture and cross-layer product
+  decisions are durable.
+- DevOps / DORA / SRE-lite: delivery, failure, recovery, rollback, and
+  reliability are tracked.
+- OWASP ASVS/SAMM plus least privilege: security checks are scaled to risk.
+- ITIL-inspired incident/problem/change: incidents, root-cause learning, and
+  controlled changes are separated.
+
+See `docs/softwarehouse/16-standard-stack.md` for the operating map. The stack
+is intentionally lightweight; standards are used to reduce ambiguity, risk,
+cost, and delivery friction, not to add ceremony.
 
 ## Required Work Loop
 

@@ -69,3 +69,8 @@ the loop is not closed.
 10. Use issue-comment `resume` as a wake signal, not as punctuation. Do not
     resume already-done work or healthy active runs unless a new execution path
     is deliberately required.
+11. Treat ordinary comments on `blocked` or terminal issues as possible wake
+    signals. If you only need to document closure, prefer issue documents,
+    work products, status updates, or an explicit no-continuation path. If an
+    accidental wake starts, cancel the unintended run, restore the correct
+    status, and record the learning outside the terminal issue.

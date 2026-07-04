@@ -1120,3 +1120,44 @@ Verification:
 
 - Direct bundle audit: 38/38 agents include the Kanban board standard in live
   managed instructions.
+
+# 2026-07-04 - Complementary Standard Stack And No-Wake Hygiene
+
+Conversation summary: the owner asked whether APQC/PCF, MECE, PDCA, and Kanban
+are enough for a large autonomous Paperclip organization, and pointed out a new
+`LUC-61`/SPA error. Codex found that `LUC-61` itself was substantively done,
+but ordinary operator comments on blocked/done issues were acting as wake
+signals. That briefly reopened `LUC-61`, started an unintended SPA run, and put
+SPA into `error`.
+
+Immediate correction:
+
+- Restored `LUC-61` to `done`.
+- Resumed `10 SPA` from `error` to `idle`.
+- Verified `LUC-61` has zero live runs.
+
+System correction:
+
+- Added `docs/softwarehouse/16-standard-stack.md` as the canonical lightweight
+  standard map.
+- Added `.agents/state/softwarehouse-standard-stack.md` for durable operating
+  memory.
+- Updated `docs/softwarehouse/00-operating-model.md`,
+  `softwarehouse/instructions/shared/10-work-loop.md`, and
+  `softwarehouse/instructions/shared/95-operating-processes.md`.
+- Synchronized live `references/standards.md` into all 38 Paperclip agents.
+
+Standard stack decision:
+
+- Keep APQC/PCF, MECE, Kanban, and PDCA.
+- Add RACI/DACI-lite, DoR/DoD, ADR/RFC-lite, C4/traceability-lite,
+  DevOps/DORA/SRE-lite, OWASP ASVS/SAMM plus least privilege, ITIL-inspired
+  incident/problem/change separation, and value-stream/no-waste review.
+- Use standards as diagnostics and flow aids, not bureaucracy.
+
+Verification:
+
+- Direct live bundle audit: 38/38 agents include `Complementary Standard Stack`,
+  `No-Wake Change Hygiene`, and `RACI/DACI-lite` in `references/standards.md`.
+- `LUC-61`: `done`, no live runs.
+- `10 SPA`: `idle`.

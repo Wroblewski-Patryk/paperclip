@@ -34,6 +34,10 @@ Use `docs/softwarehouse/` as the lightweight operating standard:
   creation from first business intent to release-ready evidence.
 - `14-business-operating-standard.md` for the lightweight business checks that
   keep autonomous work useful to real users and the owner.
+- `16-standard-stack.md` for the complementary standard map: APQC/PCF, MECE,
+  Kanban, PDCA, RACI/DACI-lite, DoR/DoD, ADR/RFC, C4 traceability,
+  DevOps/DORA/SRE, OWASP/SAMM, ITIL-inspired incident/change, and value-stream
+  waste reduction.
 - `templates/work-report-template.md` for final reports.
 
 Do not treat documentation as optional ceremony. These files are the operating
