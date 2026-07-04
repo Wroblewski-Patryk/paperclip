@@ -854,6 +854,15 @@ function resolveOverrideEntity(entry, side) {
   return null;
 }
 
+function resolveEntityByOverridePath(targetPath, typeFilter = null) {
+  const normalizedPath = normalizeRelativePath(targetPath);
+  const direct = fileEntityByPath.get(normalizedPath);
+  if (direct && (!typeFilter || direct.type === typeFilter)) return direct;
+  return [...entities.values()].find((entity) =>
+    entity.path === normalizedPath && (!typeFilter || entity.type === typeFilter)
+  ) ?? null;
+}
+
 const project = addEntity(entities, {
   id: stableId("project", projectName, repoRoot),
   type: "project",
@@ -972,6 +981,7 @@ for (const file of files) {
           status: "implemented",
           evidence: [relativePath],
         });
+        fileEntityByPath.set(endpoint.path, endpoint);
         addRelation(relations, entity, endpoint, "implements", relativePath);
         addRelation(relations, endpoint, moduleEntity, "connected_to", relativePath);
       }
@@ -987,6 +997,7 @@ for (const file of files) {
         status: isTest ? "tested" : "implemented",
         evidence: [relativePath],
       });
+      fileEntityByPath.set(functionEntity.path, functionEntity);
       addRelation(relations, entity, functionEntity, "implements", relativePath);
     }
 
@@ -999,6 +1010,7 @@ for (const file of files) {
         status: "implemented",
         evidence: [relativePath],
       });
+      fileEntityByPath.set(classEntity.path, classEntity);
       addRelation(relations, entity, classEntity, "implements", relativePath);
     }
   }
@@ -1007,7 +1019,7 @@ for (const file of files) {
 for (const entry of overrides.entityOverrides) {
   const targetPath = normalizeRelativePath(entry.path ?? "");
   if (!targetPath) continue;
-  const target = fileEntityByPath.get(targetPath);
+  const target = resolveEntityByOverridePath(targetPath);
   if (!target) continue;
 
   let mutated = false;
