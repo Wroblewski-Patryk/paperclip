@@ -157,7 +157,7 @@ Build a Softwarehouse-native `Knowledge`/`Tools` cockpit:
   - `docs/graphs/architecture-awareness.json`
   - `docs/status/*architecture*`
   - `softwarehouse/*`
-  - `APPLICATIONS_INDEX.md`
+  - `softwarehouse/portfolio/APPLICATIONS_INDEX.md`
 - Tools page reads:
   - `docs/automation/agent-command-catalog.csv`
   - `docs/automation/tooling-contract.md`

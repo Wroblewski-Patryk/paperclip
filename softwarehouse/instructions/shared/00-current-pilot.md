@@ -18,8 +18,9 @@
 - Roost documentation path: `C:/Personal/Projekty/Aplikacje/Roost/docs`
 - Template path: `C:/Personal/Projekty/Aplikacje/!template`
 - Portfolio root: `C:/Personal/Projekty/Aplikacje`
-- Root portfolio index: `C:/Personal/Projekty/Aplikacje/APPLICATIONS_INDEX.md`
-- Root portfolio CSV: `C:/Personal/Projekty/Aplikacje/APPLICATIONS_INDEX.csv`
+- Portfolio index: `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/softwarehouse/portfolio/APPLICATIONS_INDEX.md`
+- Portfolio CSV: `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/softwarehouse/portfolio/APPLICATIONS_INDEX.csv`
+- Portfolio index refresh: `node scripts/update-softwarehouse-portfolio-index.mjs`
 - Paperclip canonical workspace: `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse`
 - Naming rule: `Paperclip` means `Paperclip_Softwarehouse`; the old
   `C:/Personal/Projekty/Aplikacje/Paperclip` folder is not active.

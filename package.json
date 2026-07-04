@@ -145,7 +145,8 @@
     "softwarehouse:materialize-soar-architecture-backlog": "node scripts/run-soar-architecture-backlog-materializer.mjs",
     "softwarehouse:materialize-soar-architecture-backlog:apply": "node scripts/run-soar-architecture-backlog-materializer.mjs --apply",
     "softwarehouse:roost-secrets": "node scripts/configure-roost-secret-placeholders.mjs",
-    "softwarehouse:workspace-boundary-audit": "node scripts/audit-softwarehouse-workspace-boundaries.mjs"
+    "softwarehouse:workspace-boundary-audit": "node scripts/audit-softwarehouse-workspace-boundaries.mjs",
+    "softwarehouse:portfolio-index": "node scripts/update-softwarehouse-portfolio-index.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

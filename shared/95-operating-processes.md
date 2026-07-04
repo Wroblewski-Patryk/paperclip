@@ -54,14 +54,15 @@ or request one.
 ## Portfolio Index Refresh
 
 After any project audit, takeover preparation, docs-root change, or meaningful
-status change, refresh the root application radar:
+status change, refresh the Paperclip-owned application radar:
 
-`C:/Personal/Projekty/Aplikacje/scripts/update-applications-index.ps1`
+`node scripts/update-softwarehouse-portfolio-index.mjs`
 
 Then run or request the Softwarehouse audit and verify it reports
-`rootPortfolioDrift: []`. Do not leave stale aliases such as old docs roots,
-missing project folders, or helper folders masquerading as applications in
-`APPLICATIONS_INDEX.md` or `APPLICATIONS_INDEX.csv`.
+`rootPortfolioDrift: []`. Do not create `APPLICATIONS_INDEX.md`,
+`APPLICATIONS_INDEX.csv`, helper folders, or updater scripts directly under
+`C:/Personal/Projekty/Aplikacje`; the canonical index files live under
+`Paperclip_Softwarehouse/softwarehouse/portfolio/`.
 
 ## Learning And Role Splits
 

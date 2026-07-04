@@ -25,7 +25,7 @@ Its job is narrower:
 
 ## Operating Model
 
-1. Portfolio Director reads `../APPLICATIONS_INDEX.md`.
+1. Portfolio Director reads `softwarehouse/portfolio/APPLICATIONS_INDEX.md`.
 2. The 11 Innovations Director owns incubation for application projects inside
    LuckySparrow's `11 Innovations` department.
 3. Each active or prepared application gets one Project Manager under

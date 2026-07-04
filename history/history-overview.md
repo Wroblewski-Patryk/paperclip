@@ -16,7 +16,7 @@ for what happened: audits, task packets, proof snapshots, and migration notes.
 | --- | --- | --- |
 | Software-house operating docs | `softwarehouse/*.md` | The current role, routine, hierarchy, and process model. |
 | Architecture awareness exports | `docs/graphs/` | Generated/project graph and architecture-awareness reports. |
-| Root portfolio state | `/Aplikacje/APPLICATIONS_INDEX.md` | Structural readiness radar for projects under `/Aplikacje`. |
+| Portfolio state | `softwarehouse/portfolio/APPLICATIONS_INDEX.md` | Structural readiness radar for projects under `/Aplikacje`, generated inside the approved Paperclip workspace. |
 | Paperclip audit | `node scripts/audit-luckysparrow-softwarehouse.mjs` output | Current live control-plane health, active runs, blockers, model drift, instruction drift. |
 | Soar project evidence | `../Soar/history/` | Current pilot project proof, blocker packets, release/readiness artifacts. |
 
@@ -28,7 +28,7 @@ for what happened: audits, task packets, proof snapshots, and migration notes.
   reconciliation and explicit `workers-market-stream` readiness proof or an
   accepted deeper-blocker packet.
 - Paperclip audit passes with no Spark-model drift, no instruction bundle
-  drift, and no root portfolio drift.
+  drift, and no forbidden root portfolio artifacts.
 - This repository received the same canonical docs/history/template backbone
   expected from managed applications so the software-house project is visible
   in the `/Aplikacje` index.
@@ -37,4 +37,4 @@ for what happened: audits, task packets, proof snapshots, and migration notes.
 
 Every meaningful Paperclip operating-system change should add or update a
 history entry when it changes agent behavior, project intake, routines,
-deployment governance, or root portfolio truth.
+deployment governance, or portfolio truth.

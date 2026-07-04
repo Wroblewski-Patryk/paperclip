@@ -41,7 +41,7 @@ A project may enter `monitoring` only when all are true:
 - QA/Test/Security/Ops gates are either passing, explicitly blocked, or deferred
   with reason and owner;
 - project docs, `.codex/context`, history artifacts, Paperclip issue state, and
-  root `APPLICATIONS_INDEX.md` agree on current state;
+  `softwarehouse/portfolio/APPLICATIONS_INDEX.md` agree on current state;
 - monitoring routines are active or intentionally paused with a named reason.
 
 If any item is false, the project is not idle. Create or wake the narrowest

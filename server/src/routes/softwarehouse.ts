@@ -17,7 +17,6 @@ function resolveWorkspaceRoot() {
 }
 
 const ROOT = resolveWorkspaceRoot();
-const PORTFOLIO_ROOT = path.resolve(ROOT, "..");
 
 interface FileStatus {
   path: string;
@@ -261,7 +260,7 @@ export function softwarehouseRoutes() {
     assertCompanyAccess(req, companyId);
 
     const [portfolioIndex, controlDocs, graphFiles, statusDocs] = await Promise.all([
-      readDoc("portfolio-index", "APPLICATIONS_INDEX.md", "Applications Index", PORTFOLIO_ROOT),
+      readDoc("portfolio-index", "softwarehouse/portfolio/APPLICATIONS_INDEX.md", "Applications Index"),
       Promise.all([
         readDoc("readme", "softwarehouse/README.md", "Softwarehouse README"),
         readDoc("operating-processes", "softwarehouse/operating-processes.md", "Operating Processes"),
