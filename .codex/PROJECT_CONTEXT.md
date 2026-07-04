@@ -58,6 +58,10 @@ Current verified direction:
   `NN Department: Element`; current active lanes include
   `00 General: Softwarehouse`, `11 Innovation: Soar`,
   `11 Innovation: Roost`, and `11 Innovation: Aviary`.
+- Goals also use the English naming convention `NN Department: Element`;
+  current goals are `00 General: v0 Softwarehouse Readiness`,
+  `11 Innovation: Stage 1 Soar Activation`, and
+  `11 Innovation: Stage 1 Roost Activation`.
 - Only `06 AIM (AI Agent Manager)` may create/hire AI agents.
 - Secrets must be entered through Paperclip secret refs/provider flows, never
   chat or memory files.

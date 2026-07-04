@@ -30,7 +30,7 @@ When a work object has a clear department owner, begin the title with:
 
 Examples:
 
-- `00 Ogólny - v0 Softwarehouse Readiness`
+- `00 General: v0 Softwarehouse Readiness` for English goal/project naming
 - `06 Kadry - Agent Hiring and Governance Review`
 - `09 Technologia - Soar Deploy Readiness Check`
 - `05 Relacje - Customer Feedback Synthesis`

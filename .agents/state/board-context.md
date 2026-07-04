@@ -115,6 +115,10 @@ The project is both product work and company-building work. Future Codex chats s
   `11 Innovation: Soar`, `11 Innovation: Roost`, `11 Innovation: Aviary`,
   archived `08 Assets: Paperclip Worktrees`, and archived
   `00 General: WroblewskiPatryk`.
+- Paperclip goals also use English department naming:
+  `00 General: v0 Softwarehouse Readiness`,
+  `11 Innovation: Stage 1 Soar Activation`, and
+  `11 Innovation: Stage 1 Roost Activation`.
 - Product architecture and autonomous delivery contracts now live in
   `.agents/state/softwarehouse-product-architecture-index.md` and
   `.agents/state/softwarehouse-autonomous-delivery-architecture.md`. Stage 1

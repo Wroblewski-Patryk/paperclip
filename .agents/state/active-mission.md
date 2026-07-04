@@ -33,6 +33,10 @@ Verified current instance:
   `11 Innovation: Roost`, `11 Innovation: Aviary`,
   `08 Assets: Paperclip Worktrees`, and
   `00 General: WroblewskiPatryk`.
+- Goals are normalized to English department names:
+  `00 General: v0 Softwarehouse Readiness`,
+  `11 Innovation: Stage 1 Soar Activation`, and
+  `11 Innovation: Stage 1 Roost Activation`.
 - Runtime still contains old instruction/runtime folders for the previous
   company id `f13051a7-d0aa-4261-9254-d3ab90735de5`; do not blindly reuse them
   because agent ids differ.
