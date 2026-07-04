@@ -47,7 +47,9 @@ LuckySparrow Software House before autonomous agents start work.
   `11 Innovation: Stage 1 Soar Activation`, and
   `11 Innovation: Stage 1 Roost Activation`.
 - Issues: 0 returned by `/api/companies/:companyId/issues`.
-- Routines: 7 returned by `/api/companies/:companyId/routines`; all are Stage 0 drafts with `status: paused`, every title is department-prefixed, and every schedule trigger is `enabled: false`.
+- Routines: 7 returned by `/api/companies/:companyId/routines`; all are Stage
+  0 drafts with `status: paused`, every title is normalized to English
+  department naming, and every schedule trigger is `enabled: false`.
 - Live runs: 0 returned by `/api/companies/:companyId/live-runs`.
 - Agent status: 38/38 agents are intentionally `paused` as the Stage 0 quiet-mode guard.
 - Company skills: 18 returned by `/api/companies/:companyId/skills`. Role attachments are present for Paperclip ops, planning, triage, QA, docs, GitHub PR workflow, browser, release, and product/design skills.
@@ -105,8 +107,8 @@ LuckySparrow Software House before autonomous agents start work.
   unreadable to the local runtime, so the working readable ACL was restored and
   the warning remains a known v0 blocker/risk. AWS/GCP/Vault providers are not
   configured.
-- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-030900.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
-- Stage 0 configuration snapshot exists at `.agents/state/backups/stage0-config-20260704-030908.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and current agent instruction folders. It intentionally does not store secret values.
+- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-031504.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
+- Latest lightweight Stage 0 memory/config snapshot exists at `.agents/state/backups/stage0-memory-config-20260704-031638.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and the project-memory workflow. It intentionally does not store secret values or full runtime folders.
 - CLI caveat: `pnpm paperclipai skills browse` attempted dependency install and failed on Windows with `EPERM` while creating a plugin SDK symlink. Use HTTP API/file inspection until that tooling issue is repaired.
 - Catalog install caveat: the catalog install API failed on a pinned hash mismatch for `paperclipai:bundled:docs:doc-maintenance:SKILL.md`; local official skill directory imports were used instead.
 
@@ -151,8 +153,8 @@ Completed or partly complete:
 - All 38 agents have department metadata: department number, English process, Polish department name, and prefixed department display name.
 - Goals now follow the English department naming convention:
   `NN Department: Element`.
-- Routines still follow the earlier department-prefix naming convention and
-  can be normalized separately if the owner wants full English naming there too.
+- Routines now follow the English department naming convention:
+  `NN Department - v0 Paused - Element`.
 - Projects now follow the English department project convention:
   `NN Department: Element`.
 - GitHub/free-plan and notification-noise constraints are recorded in the

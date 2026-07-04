@@ -62,6 +62,9 @@ Current verified direction:
   current goals are `00 General: v0 Softwarehouse Readiness`,
   `11 Innovation: Stage 1 Soar Activation`, and
   `11 Innovation: Stage 1 Roost Activation`.
+- Routines use the English naming convention
+  `NN Department - v0 Paused - Element`; all current routines remain paused
+  with disabled triggers.
 - Only `06 AIM (AI Agent Manager)` may create/hire AI agents.
 - Secrets must be entered through Paperclip secret refs/provider flows, never
   chat or memory files.

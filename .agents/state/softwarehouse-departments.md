@@ -57,9 +57,8 @@ Current examples:
 - `11 Innovation: Roost`
 - `08 Assets: Paperclip Worktrees`
 
-This project-specific convention intentionally keeps project names English
-while older goals/routines may still use the Polish department display names
-until they are explicitly normalized.
+Projects and goals use colon form: `NN EnglishDepartment: Element`.
+Routines use paused-procedure form: `NN EnglishDepartment - v0 Paused - Element`.
 
 ## AIA Routing
 

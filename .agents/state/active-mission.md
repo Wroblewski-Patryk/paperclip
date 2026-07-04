@@ -37,6 +37,9 @@ Verified current instance:
   `00 General: v0 Softwarehouse Readiness`,
   `11 Innovation: Stage 1 Soar Activation`, and
   `11 Innovation: Stage 1 Roost Activation`.
+- Routines are normalized to English department names with the paused form:
+  `NN Department - v0 Paused - Element`; all 7 remain paused with disabled
+  triggers.
 - Runtime still contains old instruction/runtime folders for the previous
   company id `f13051a7-d0aa-4261-9254-d3ab90735de5`; do not blindly reuse them
   because agent ids differ.

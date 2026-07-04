@@ -119,6 +119,9 @@ The project is both product work and company-building work. Future Codex chats s
   `00 General: v0 Softwarehouse Readiness`,
   `11 Innovation: Stage 1 Soar Activation`, and
   `11 Innovation: Stage 1 Roost Activation`.
+- Paperclip routines also use English department naming:
+  `NN Department - v0 Paused - Element`; all current routines remain paused
+  with disabled triggers.
 - Product architecture and autonomous delivery contracts now live in
   `.agents/state/softwarehouse-product-architecture-index.md` and
   `.agents/state/softwarehouse-autonomous-delivery-architecture.md`. Stage 1
