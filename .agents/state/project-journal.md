@@ -592,3 +592,68 @@ Immediate post-change snapshot:
 - Open issues: `LUC-19` blocked on children and `LUC-23` in progress.
 - No broad routine activation, all-agent activation, production mutation, push,
   deploy, secret change, or unrelated product expansion was performed.
+
+# 2026-07-04 - Stage 1 App Factory Core Activated
+
+The owner approved activating everything needed for v1 autonomous app creation
+inside Paperclip, limited to Soar/Roost application building and excluding
+marketing/sales/customer-service work.
+
+Activated app-factory agent core:
+
+- Strategy/product/design: `01 CSO`, `02 CPO`, `02 UID`, `02 UXW`, `02 WPM`.
+- Operations/docs: `04 COO`, `04 DPM`, `04 DSM`.
+- Agent governance: `06 AIM`.
+- Cost/asset support: `07 CFO`, `08 CAO`.
+- Technology delivery: `09 CTO`, `09 TSA`, `09 CBE`, `09 FEW`, `09 DBE`,
+  `09 IDE`, `09 RTE`, `09 TAE`, `09 QVE`, `09 CRS`, `09 DRE`.
+- Security/legal gates: `10 CLO`, `10 SPA`.
+- Innovation/product lanes: `11 CINO`, `11 IPM`, `11 SPM`, `11 RPM`.
+- Existing `00 AIA` remains the owner-facing router and control-plane operator.
+
+Kept paused/out of scope:
+
+- `03 CRO`, `05 CCO`, `05 CSM` because marketing, sales, and customer service
+  are not part of the current owner-approved scope.
+- `06 CHRO`, `06 POP` because broader people operations are not needed for the
+  current app-building loop.
+- `11 APM`, `11 FPM`, `11 NPM` because Aviary, Featherly, and Nest remain
+  parked until VPS plus owner activation.
+- `12 CEO` because AIA remains the practical owner-facing coordinator for this
+  operating loop.
+
+Activated app-factory routines:
+
+- `00 General: Owner Direction and Proposal Review`.
+- `00 General: Softwarehouse Liveness and Active Work Review`.
+- `04 Operations: Portfolio Truth and Project Index Review`.
+- `04 Operations: PDCA Learning and Company Memory Review`.
+- `06 People: Agent Hiring and Governance Review`.
+- `07 Finance: Cost, Quota, and Budget Review`.
+- `09 Technology: Evidence Gate and Definition of Done Review`.
+- `09 Technology: Source Control and Deploy Readiness Review`.
+- `10 Legal: Secrets Coolify and VPS Access Readiness Review`.
+
+Kept paused:
+
+- `00 General - v1 Draft Paused - Controlled Activation Dry Run`, because the
+  dry run is complete and this routine is historical.
+
+Runtime action:
+
+- AIA was woken with `owner_approved_v1_app_factory_activation` and instructed
+  to expand useful local implementation work under `LUC-19`, route concrete
+  tasks to the newly active roles, and preserve approval gates.
+- The Codex heartbeat automation was updated to monitor the broader
+  app-factory core every 20 minutes and to treat marketing/sales/customer
+  service/parked product activation as an anomaly unless separately justified.
+
+Immediate post-change snapshot:
+
+- 29 app-factory agents active, with AIA running.
+- 9 out-of-scope agents remain paused.
+- 9 routines active; only the old controlled dry-run routine remains paused.
+- Open issue surface is `LUC-19` blocked, with AIA running a fresh activation
+  pass.
+- No production mutation, push, deploy, secret change, paid-resource use,
+  destructive action, or unrelated product expansion was performed.
