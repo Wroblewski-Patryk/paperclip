@@ -76,6 +76,43 @@ Current binding scope:
 These values are test/Stage 0 credentials and should be rotated manually in v2
 as planned by the owner. Values are not stored in this file.
 
+## Product Smoke Accounts
+
+Owner personal application accounts are not agent runtime credentials. They may
+be used only as temporary owner authority to provision or verify dedicated AI
+smoke accounts, and must not be stored as agent-facing app credentials.
+
+Each production app should have dedicated AI smoke credentials before agents
+claim production verification:
+
+- one normal user/customer smoke account when the app has customer workflows;
+- one admin/operator smoke account when the app has protected admin or
+  readiness workflows that require elevated app role;
+- one workspace owner smoke account when the app's highest available authority
+  is workspace ownership rather than a global admin panel.
+
+Current Stage 1 account policy:
+
+- Soar has `USER` and `ADMIN` roles. Use `soar_prod_test_email/password` for
+  normal user smoke and `soar_prod_admin_smoke_email/password` for protected
+  admin readiness smoke. Bind admin-smoke refs to DRE/QVE/SPA as
+  `SMOKE_AUTH_EMAIL` and `SMOKE_AUTH_PASSWORD`; do not bind `SMOKE_AUTH_TOKEN`
+  unless separately approved.
+- Roost currently has a workspace-owner model and no separate global admin
+  panel. Use `roost_prod_test_email/password` plus
+  `roost_prod_test_workspace_name` as the AI owner/workspace smoke account.
+
+2026-07-04 status:
+
+- Roost production AI owner/workspace smoke account was provisioned and the
+  Paperclip refs `roost_prod_test_email`, `roost_prod_test_password`, and
+  `roost_prod_test_workspace_name` were rotated and bound to DRE/QVE/SPA.
+- Soar production AI account provisioning is blocked by app readiness, not by
+  missing owner intent: `/ready` is `503` and auth endpoints return a
+  redaction-safe `Rate limit temporarily unavailable` error class. `LUC-80`
+  owns restoring Soar auth/rate-limit readiness and then provisioning
+  `soar_prod_test_*` plus `soar_prod_admin_smoke_*`.
+
 Current Coolify gap:
 
 - Browser login verified that the initial team `ai's Team` had no projects; the
