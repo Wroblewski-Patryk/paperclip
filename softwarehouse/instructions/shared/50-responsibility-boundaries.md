@@ -47,6 +47,12 @@ Example:
 - `04 DSM` must not assign `09 TAE` directly.
 - Correct route: `04 DSM -> 04 DPM -> 04 COO -> 00 AIA/09 CTO -> 09 QVE -> 09 TAE`.
 - The return path is the reverse: `09 TAE -> 09 QVE -> 09 CTO -> 00 AIA/04 COO -> 04 DPM -> 04 DSM`.
+- Implementation work routes through `09 EDL` after CTO/TSA acceptance:
+  `requesting manager -> 09 CTO/09 TSA -> 09 EDL -> 09 specialist`, then
+  back through `09 specialist -> 09 EDL -> 09 CTO/09 TSA -> requesting manager`.
+- `09 EDL` is the execution-routing lead for `09 CBE`, `09 FEW`, `09 DBE`,
+  `09 IDE`, `09 RTE`, and `09 CRS`. `09 QVE`, `09 TAE`, `09 DRE`, and
+  `10 SPA` remain independent control/gate lanes and are not bypassed by EDL.
 
 The issue body or handoff comment must name the source agent, source manager,
 target department lead, target specialist, parent issue, return condition, and

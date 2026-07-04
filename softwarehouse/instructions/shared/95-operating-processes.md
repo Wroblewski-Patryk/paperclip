@@ -97,6 +97,14 @@ Then return evidence up the same chain in reverse. Emergency direct mentions
 are allowed only for active safety/security/deploy incidents and must include a
 same-comment manager notification.
 
+Implementation work follows the Technology execution route:
+
+`requesting manager -> 09 CTO/09 TSA -> 09 EDL -> 09 specialist`
+
+Use the reverse route for specialist evidence and blocker reporting. `09 EDL`
+coordinates implementation specialists only; QA, deploy, security, and owner
+approval gates remain with their dedicated owners.
+
 ## Portfolio Index Refresh
 
 After any project audit, takeover preparation, docs-root change, or meaningful

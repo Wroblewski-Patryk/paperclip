@@ -69,8 +69,8 @@ The active core should include:
 - `06 AIM`;
 - `07 CFO`;
 - `08 CAO`;
-- `09 CTO`, `09 TSA`, `09 CBE`, `09 FEW`, `09 DBE`, `09 IDE`, `09 RTE`,
-  `09 TAE`, `09 QVE`, `09 CRS`, `09 DRE`;
+- `09 CTO`, `09 TSA`, `09 EDL`, `09 CBE`, `09 FEW`, `09 DBE`, `09 IDE`,
+  `09 RTE`, `09 TAE`, `09 QVE`, `09 CRS`, `09 DRE`;
 - `10 CLO`, `10 SPA`;
 - `11 CINO`, `11 IPM`, `11 SPM`, `11 RPM`.
 

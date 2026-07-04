@@ -61,7 +61,7 @@ exist; if it is done, the evidence must be linked.
 | Product Direction | 02 CPO + Web Product Manager | product thesis, user journeys, dream interpretation from `docs/architecture`, acceptance criteria, non-goals, release slices | code architecture, project queue ownership, implementation |
 | UX/UI Product Design | UX Web Designer + UI Visual Designer | workflow design, interaction quality, view maps, visual acceptance evidence | backend behavior, product priority, implementation |
 | Architecture | CTO + Technical Solution Architect | architecture contracts, traceability, technical risk, feasibility, implementation boundaries | feature coding, product direction |
-| Delivery | Engineering Delivery Lead | work breakdown, dependency order, handoffs | specialist implementation |
+| Delivery | 09 EDL (Engineering Delivery Lead) | work breakdown, dependency order, implementation handoffs, parent/child reporting | specialist implementation, architecture approval, release approval |
 | Frontend | Frontend Engineer | routes, components, client state, browser proof | backend/service behavior |
 | Backend | Backend API Engineer | routes, controllers, services, validation, auth boundary | UI rendering, schema alone |
 | Data | Data Persistence Engineer | schema, migrations, queries, integrity, backup/restore proof | product behavior alone |

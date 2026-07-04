@@ -71,7 +71,7 @@ Work flows top-down and evidence flows bottom-up.
 | 01 Strategy | `01 CSO` | strategic fit, conflicts, roadmap implications |
 | 04 Operations | `04 COO`, `04 DPM` | delivery flow, task structure, dependency hygiene, parent/child closure |
 | 11 Innovation/Product lanes | `11 SPM`, `11 RPM`, other PMs | app-specific outcomes, product acceptance, architecture fit with Soar/Roost |
-| 09 Technology | `09 CTO`, engineers, QA, DRE | implementation, technical review, verification, deploy observation |
+| 09 Technology | `09 CTO`, `09 TSA`, `09 EDL`, engineers, QA, DRE | architecture, execution breakdown, implementation, technical review, verification, deploy observation |
 | 10 Risk | `10 SPA`, `10 CLO` | security, privacy, compliance, secrets, high-risk action gates |
 | 06 Workforce | `06 AIM`, `06 CHRO`, `06 POP` | agent hiring/change packets, capacity, role fit, learning governance |
 
@@ -104,6 +104,14 @@ Example route:
 Reverse evidence route:
 
 `09 TAE -> 09 QVE -> 09 CTO -> 00 AIA/04 COO -> 04 DPM -> 04 DSM`
+
+Implementation requests route through EDL after CTO/TSA acceptance:
+
+`requesting manager -> 09 CTO/09 TSA -> 09 EDL -> 09 specialist`
+
+The return path is:
+
+`09 specialist -> 09 EDL -> 09 CTO/09 TSA -> requesting manager`
 
 Direct cross-department assignment is allowed only when the parent issue already
 names that specialist/gate, or when there is an active emergency involving

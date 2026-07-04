@@ -26,8 +26,8 @@ Active app-factory core:
 - `06 AIM`;
 - `07 CFO`;
 - `08 CAO`;
-- `09 CTO`, `09 TSA`, `09 CBE`, `09 FEW`, `09 DBE`, `09 IDE`, `09 RTE`,
-  `09 TAE`, `09 QVE`, `09 CRS`, `09 DRE`;
+- `09 CTO`, `09 TSA`, `09 EDL`, `09 CBE`, `09 FEW`, `09 DBE`, `09 IDE`,
+  `09 RTE`, `09 TAE`, `09 QVE`, `09 CRS`, `09 DRE`;
 - `10 CLO`, `10 SPA`;
 - `11 CINO`, `11 IPM`, `11 SPM`, `11 RPM`.
 
@@ -38,12 +38,12 @@ Paused/out of current scope:
 
 ## Verified Strengths
 
-- 38 agents exist.
-- 38/38 agents use `codex_local`.
-- 38/38 agents point at local Codex model configuration.
-- 38/38 agents have a role scope.
-- 38/38 agents have a working profile using Big Five-style traits.
-- 38/38 agents include shared company, standards, learning, hiring,
+- 39 agents exist after adding `09 EDL (Engineering Delivery Lead)`.
+- 39/39 agents use `codex_local`.
+- 39/39 agents point at local Codex model configuration.
+- 39/39 agents have a role scope.
+- 39/39 agents have a working profile using Big Five-style traits.
+- 39/39 agents include shared company, standards, learning, hiring,
   secrets/deploy, flow, department, resource, product architecture,
   delegation, closure, gap detection, procedure, owner-interface, and
   cost/token/context references.
@@ -129,3 +129,25 @@ Recommended operating model:
 
 This preserves a useful tension: Product defines and accepts the user
 experience; Technology implements and proves it.
+
+## Stage 1 Technology Hierarchy Adjustment
+
+`09 EDL (Engineering Delivery Lead)` is now the middle execution manager under
+`09 CTO`. This keeps CTO focused on architecture, standards, risk, and technical
+acceptance while EDL manages implementation flow.
+
+Current 09 Technology shape:
+
+- `09 CTO` owns technical direction and final technical fit.
+- `09 TSA` owns solution design and architecture decomposition.
+- `09 EDL` owns execution breakdown, dependency ordering, and specialist
+  routing for implementation lanes.
+- `09 CBE`, `09 FEW`, `09 DBE`, `09 IDE`, `09 RTE`, and `09 CRS` report to
+  `09 EDL`.
+- `09 QVE` reports to `09 CTO`; `09 TAE` reports to `09 QVE`.
+- `09 DRE` reports to `09 CTO` because deployment/reliability is a release
+  control lane, not just another implementation lane.
+
+This is the minimum useful split for the current Soar/Roost delivery pressure.
+Do not add more engineering managers until repeated evidence shows EDL cannot
+keep implementation flow coherent.

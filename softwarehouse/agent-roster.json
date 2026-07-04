@@ -255,13 +255,24 @@
       "defaultWorkspace": "softwarehouse"
     },
     {
+      "key": "engineering-delivery-lead",
+      "name": "09 EDL (Engineering Delivery Lead)",
+      "role": "pm",
+      "title": "Engineering Delivery Lead",
+      "icon": "git-branch",
+      "modelLane": "codingDeep",
+      "reportsTo": "chief-technology-officer",
+      "capabilities": "Owns engineering execution flow after CTO/TSA technical acceptance: splits work into layer-specific issues, sequences dependencies, routes implementation specialists, keeps parent/child reporting coherent, and escalates blockers without implementing specialist code directly.",
+      "defaultWorkspace": "softwarehouse"
+    },
+    {
       "key": "core-backend-engineer",
       "name": "09 CBE (Core Backend Engineer)",
       "role": "engineer",
       "title": "CMS Backend Engineer",
       "icon": "terminal",
       "modelLane": "codingStrong",
-      "reportsTo": "chief-technology-officer",
+      "reportsTo": "engineering-delivery-lead",
       "capabilities": "Owns API routes, server services, backend validation, authorization boundaries, orchestration logic, and backend-focused tests.",
       "defaultWorkspace": "softwarehouse"
     },
@@ -272,7 +283,7 @@
       "title": "Frontend Web Engineer",
       "icon": "globe",
       "modelLane": "codingStrong",
-      "reportsTo": "chief-technology-officer",
+      "reportsTo": "engineering-delivery-lead",
       "capabilities": "Owns React/web routes, UI state, client API calls, accessibility, responsive behavior, and browser evidence.",
       "defaultWorkspace": "softwarehouse"
     },
@@ -283,7 +294,7 @@
       "title": "Data Persistence Engineer",
       "icon": "database",
       "modelLane": "codingStrong",
-      "reportsTo": "chief-technology-officer",
+      "reportsTo": "engineering-delivery-lead",
       "capabilities": "Owns schema, migrations, database clients, persistence integrity, tenancy boundaries, data repair plans, and DB-focused verification.",
       "defaultWorkspace": "softwarehouse"
     },
@@ -305,7 +316,7 @@
       "title": "Runtime and Adapter Engineer",
       "icon": "brain",
       "modelLane": "codingDeep",
-      "reportsTo": "chief-technology-officer",
+      "reportsTo": "engineering-delivery-lead",
       "capabilities": "Owns agent loops, adapter/plugin runtime behavior, automation boundaries, prompt/context safety, and execution integration for Paperclip-managed agents.",
       "defaultWorkspace": "softwarehouse"
     },
@@ -316,7 +327,7 @@
       "title": "Integration Domain Engineer",
       "icon": "radar",
       "modelLane": "codingDeep",
-      "reportsTo": "chief-technology-officer",
+      "reportsTo": "engineering-delivery-lead",
       "capabilities": "Owns external integrations, domain-specific runtime chains, adapter boundaries, provider/API behavior, and integration proof for specialized applications.",
       "defaultWorkspace": "softwarehouse"
     },
@@ -327,7 +338,7 @@
       "title": "Code Review Specialist",
       "icon": "search",
       "modelLane": "codingDeep",
-      "reportsTo": "chief-technology-officer",
+      "reportsTo": "engineering-delivery-lead",
       "capabilities": "Owns code review, regression-risk analysis, diff quality, maintainability checks, and review handoff notes before merge or release.",
       "defaultWorkspace": "softwarehouse"
     },
