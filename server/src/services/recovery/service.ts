@@ -67,6 +67,7 @@ export const ACTIVE_RUN_OUTPUT_SUSPICION_THRESHOLD_MS = 60 * 60 * 1000;
 export const ACTIVE_RUN_OUTPUT_CRITICAL_THRESHOLD_MS = 4 * 60 * 60 * 1000;
 export const ACTIVE_RUN_OUTPUT_CONTINUE_REARM_MS = 30 * 60 * 1000;
 const ACTIVE_RUN_OUTPUT_EVIDENCE_TAIL_BYTES = 8 * 1024;
+const SOURCE_SCOPED_RECOVERY_WAKE_REARM_MS = 5 * 60 * 1000;
 const STRANDED_ISSUE_RECOVERY_ORIGIN_KIND = RECOVERY_ORIGIN_KINDS.strandedIssueRecovery;
 const STALE_ACTIVE_RUN_EVALUATION_ORIGIN_KIND = RECOVERY_ORIGIN_KINDS.staleActiveRunEvaluation;
 const DEFERRED_WAKE_CONTEXT_KEY = "_paperclipWakeContext";
@@ -2129,7 +2130,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
   }
 
   async function enqueueSourceScopedStrandedRecoveryWake(input: {
-    action: Awaited<ReturnType<typeof recoveryActionsSvc.upsertSourceScoped>>;
+    action: Pick<typeof issueRecoveryActions.$inferSelect, "id" | "attemptCount" | "ownerAgentId">;
     issue: typeof issues.$inferSelect;
     latestRun: LatestIssueRun;
     recoveryCause: StrandedRecoveryCause;
@@ -2161,6 +2162,121 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         recoveryCause: input.recoveryCause,
       }, "status_only"),
     });
+  }
+
+  async function rearmSourceScopedRecoveryAction(input: {
+    action: typeof issueRecoveryActions.$inferSelect;
+    issue: typeof issues.$inferSelect;
+  }) {
+    if (!input.action.ownerAgentId) return null;
+
+    const now = new Date();
+    const [updated] = await db
+      .update(issueRecoveryActions)
+      .set({
+        attemptCount: input.action.attemptCount + 1,
+        lastAttemptAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(issueRecoveryActions.id, input.action.id),
+          inArray(issueRecoveryActions.status, ["active", "escalated"]),
+        ),
+      )
+      .returning();
+
+    if (!updated) return null;
+
+    const recoveryCause =
+      updated.cause === SUCCESSFUL_RUN_MISSING_STATE_REASON
+        ? SUCCESSFUL_RUN_MISSING_STATE_REASON
+        : "stranded_assigned_issue";
+    const latestRun = await getLatestIssueRun(input.issue.companyId, input.issue.id);
+
+    await enqueueSourceScopedStrandedRecoveryWake({
+      action: updated,
+      issue: input.issue,
+      latestRun,
+      recoveryCause,
+    });
+
+    return updated;
+  }
+
+  async function reconcileActiveSourceScopedRecoveryActions() {
+    const rows = await db
+      .select({
+        action: issueRecoveryActions,
+        issue: issues,
+        owner: agents,
+      })
+      .from(issueRecoveryActions)
+      .innerJoin(
+        issues,
+        and(
+          eq(issues.companyId, issueRecoveryActions.companyId),
+          eq(issues.id, issueRecoveryActions.sourceIssueId),
+        ),
+      )
+      .leftJoin(
+        agents,
+        and(
+          eq(agents.companyId, issueRecoveryActions.companyId),
+          eq(agents.id, issueRecoveryActions.ownerAgentId),
+        ),
+      )
+      .where(
+        and(
+          inArray(issueRecoveryActions.status, ["active", "escalated"]),
+          inArray(issueRecoveryActions.kind, ["stranded_assigned_issue", "missing_disposition"]),
+          notInArray(issues.status, ["done", "cancelled"]),
+        ),
+      )
+      .orderBy(asc(issueRecoveryActions.updatedAt));
+
+    const result = {
+      recoveryActionWakesRequeued: 0,
+      skipped: 0,
+      issueIds: [] as string[],
+    };
+
+    const now = Date.now();
+    for (const row of rows) {
+      if (!row.action.ownerAgentId || !isAgentInvokable(row.owner)) {
+        result.skipped += 1;
+        continue;
+      }
+
+      const lastAttemptAt = row.action.lastAttemptAt ? new Date(row.action.lastAttemptAt).getTime() : 0;
+      if (Number.isFinite(lastAttemptAt) && now - lastAttemptAt < SOURCE_SCOPED_RECOVERY_WAKE_REARM_MS) {
+        result.skipped += 1;
+        continue;
+      }
+
+      if (await hasActiveExecutionPath(row.issue.companyId, row.issue.id)) {
+        result.skipped += 1;
+        continue;
+      }
+
+      if (await isAutomaticRecoverySuppressedByPauseHold(db, row.issue.companyId, row.issue.id, treeControlSvc)) {
+        result.skipped += 1;
+        continue;
+      }
+
+      const rearmed = await rearmSourceScopedRecoveryAction({
+        action: row.action,
+        issue: row.issue,
+      });
+      if (rearmed) {
+        result.recoveryActionWakesRequeued += 1;
+        result.issueIds.push(row.issue.id);
+      } else {
+        result.skipped += 1;
+      }
+    }
+
+    return result;
   }
 
   function buildRecoveryIssueInPlaceEscalationComment(input: {
@@ -2453,6 +2569,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       productiveContinuationObserved: 0,
       successfulContinuationObserved: 0,
       orphanBlockersAssigned: 0,
+      recoveryActionWakesRequeued: 0,
       successfulRunHandoffEscalated: 0,
       escalated: 0,
       skipped: 0,
@@ -2731,6 +2848,11 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     result.orphanBlockersAssigned = orphanBlockerRecovery.assigned;
     result.skipped += orphanBlockerRecovery.skipped;
     result.issueIds.push(...orphanBlockerRecovery.issueIds);
+
+    const sourceScopedRecovery = await reconcileActiveSourceScopedRecoveryActions();
+    result.recoveryActionWakesRequeued = sourceScopedRecovery.recoveryActionWakesRequeued;
+    result.skipped += sourceScopedRecovery.skipped;
+    result.issueIds.push(...sourceScopedRecovery.issueIds);
 
     return result;
   }

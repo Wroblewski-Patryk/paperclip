@@ -820,3 +820,58 @@ Corrective action:
   and disabled as historical context.
 - Recorded the cadence in
   `.agents/state/softwarehouse-stage1-delivery-foundation.md`.
+
+# 2026-07-04 - PDCA Memory Review And Adapter-Failure Learning Signal
+
+Routine issue `LUC-50` reviewed current Stage 1 memory and live open issue
+state. Durable memory was broadly Stage 1-aligned, but
+`.agents/state/system-health.md` still named the previous wiped company id as
+current; this was corrected to the active LuckySparrow company id
+`ae26bb8b-8f5f-4a85-b341-78d4e1985975`.
+
+Live issue review found a real cross-routine blocker: several evidence/source
+gate and routine issues (`LUC-35`, `LUC-43`, `LUC-46`, `LUC-47`) carried
+`adapter_failed` recovery from the same Windows Codex auth symlink failure. The
+issue tree already has a concrete owner path via `LUC-51`, assigned to Runtime
+& Adapter Engineering, so DSM did not create duplicate work.
+
+PDCA lesson: memory/routine review should record runtime substrate failures
+when they block evidence gates, but route one repair lane instead of spawning
+parallel documentation or recovery tasks.
+
+# 2026-07-04 - Source-Scoped Recovery Rearm After Codex Runtime Repair
+
+The owner noticed several agents showing error/recovery-needed states after the
+Windows Codex managed-home failure. Diagnosis confirmed that the original
+`adapter_failed` runs were historical, caused by the Codex `auth.json` symlink
+failure before the Windows fallback repair, but they left active source-scoped
+recovery actions on `LUC-35`, `LUC-43`, `LUC-46`, and `LUC-47`.
+
+Durable code fix:
+
+- Added source-scoped recovery action rearming in
+  `server/src/services/recovery/service.ts`.
+- `reconcileStrandedAssignedIssues()` now scans active source-scoped recovery
+  actions with an invokable owner, no live execution path, no pause hold, and a
+  five-minute cooldown, then increments `attemptCount` and queues a fresh
+  `source_scoped_recovery_action` wake.
+- `server/src/index.ts` now logs `recoveryActionWakesRequeued` during startup
+  and periodic heartbeat recovery.
+
+Live operational cleanup:
+
+- Requeued concrete recovery wakes for `LUC-35`, `LUC-43`, `LUC-46`, and
+  `LUC-47` to `09 CTO` after the adapter repair.
+- Used official `/resume` for stale non-running `09 CBE` and `09 DRE` error
+  statuses so the sidebar no longer treats historical adapter failures as live
+  agent failure.
+- Did not restart the server while active runs were running, to avoid creating
+  fresh `process_lost` noise.
+
+Verification:
+
+- `node node_modules/vitest/vitest.mjs run server/src/__tests__/issue-recovery-actions.test.ts server/src/__tests__/run-continuations.test.ts`
+  passed.
+- Server typecheck still has pre-existing unrelated `@paperclipai/shared`
+  export drift in other modules; no remaining reported error from
+  `server/src/services/recovery/service.ts`.

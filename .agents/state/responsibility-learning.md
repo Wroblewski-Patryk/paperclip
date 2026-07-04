@@ -170,3 +170,23 @@ TODO for a future Codex:
   at least one real lesson was either applied or explicitly marked unnecessary.
 - Check whether `LUC-6985`, `LUC-3515`, and the source-control closure lesson
   are still active blockers or have been retired with evidence.
+
+## 2026-07-04 - Do not strand source-scoped recovery after infrastructure repair
+
+Observed failure mode: a transient/infrastructure adapter failure can create
+source-scoped `Recovery needed` actions, then remain visible even after the
+runtime substrate is fixed if no fresh wake is queued for the recovery owner.
+This makes Paperclip look broken while the real fix has already landed.
+
+Standing rule:
+
+- Treat repeated `adapter_failed` from the same runtime substrate as one repair
+  lane, not many duplicated issue trees.
+- After the substrate is repaired, source-scoped recovery actions should be
+  rearmed with a bounded cooldown and a fresh attempt count when there is no
+  active execution path.
+- Prefer official agent `/resume` for stale non-running `error` badges caused
+  by historical infrastructure failure; do not mass-invoke agents just to clear
+  UI state.
+- Avoid restarting the Paperclip server while healthy live runs are active
+  unless the restart is the only safe repair path.
