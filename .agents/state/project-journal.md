@@ -1365,3 +1365,38 @@ Decision:
 - Future cleanup reports should distinguish "Paperclip repo clean" from
   "product repo dirty because agent X is still working" instead of treating all
   three repos as this Codex's commit scope.
+
+# 2026-07-04 - Knowledge Governance Layer
+
+Conversation summary: the owner identified a long-run noise risk: facts,
+reports, and lessons from thousands of tasks ago may have been true when they
+were written but can become stale or contradictory after the system changes.
+Paperclip needs a way to separate current truth from evidence, decisions,
+lessons, and historical archive before agents load or reuse old context.
+
+Decision:
+
+- Added `docs/softwarehouse/17-knowledge-governance.md` as the company-level
+  memory contract.
+- Durable knowledge is now classified as `current_truth`, `decision`,
+  `evidence`, `lesson`, or `archive`.
+- Evidence from runs, CSV/JSON exports, issue comments, and historical reports
+  is not automatically current truth. It must be promoted by an accountable
+  owner and linked to proof.
+- Product-specific truth for Soar and Roost stays in their product repos:
+  architecture docs, feature/user-flow indexes, cross-layer traces, known gaps,
+  and verification evidence.
+- Paperclip stores company-level operating truth: agent coordination, gates,
+  procedures, portfolio rules, lessons, and decision history.
+- Archived Paperclip issues are searchable evidence, not default context for
+  future runs.
+
+Implementation notes:
+
+- Updated softwarehouse operating, documentation, PDCA, continuous improvement,
+  standard-stack, and Agent Improvement Flywheel docs.
+- Updated shared agent memory instructions so agents state whether knowledge
+  changed as current truth, decision, evidence-only, lesson, archive, or no
+  knowledge change.
+- Updated the operating-standard audit to require the knowledge governance doc
+  and term.

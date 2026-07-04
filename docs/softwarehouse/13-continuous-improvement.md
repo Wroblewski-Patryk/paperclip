@@ -32,6 +32,8 @@ The softwarehouse should improve after every meaningful delivery, failed run, bl
 - proposed role split
 - project follow-up issue
 - AgentImprovementTask with EvalRun PASS close evidence
+- current-truth, decision-log, lesson, or archive update when the finding
+  changes what future agents should trust
 
 ## Anti-Chaos Rules
 
@@ -46,6 +48,8 @@ The softwarehouse should improve after every meaningful delivery, failed run, bl
 - no vague final "done" report
 - no AgentImprovementTask closure without EvalRun PASS
 - no repeated agent failure without feedback, eval/regression decision, and prevention path
+- no old evidence treated as current truth without promotion and supersession
+  check
 
 ## Agent Improvement Flywheel
 
@@ -60,3 +64,4 @@ See:
 - `../evals-and-regression-gates.md`
 - `../safe-trace-logging.md`
 - `../agent-feedback-loop.md`
+- `17-knowledge-governance.md`

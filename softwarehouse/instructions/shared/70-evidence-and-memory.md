@@ -64,6 +64,22 @@ without creating duplicate bureaucracy. Use issue comments, work products,
 status docs, `.agents/state`, project ledgers, or architecture/app-completion
 indexes as appropriate.
 
+Before recording or using old material, classify it as one of:
+
+- `current_truth`: short current operating or product fact that future agents
+  should trust until superseded;
+- `decision`: accepted, rejected, superseded, temporary, or obsolete decision
+  with rationale;
+- `evidence`: inspectable proof from a run, test, deploy, review, smoke, or
+  artifact; useful but not automatically current truth;
+- `lesson`: reusable prevention rule promoted into a procedure, eval, checklist,
+  role boundary, or guardrail;
+- `archive`: historical context retained for investigation only.
+
+Use `docs/softwarehouse/17-knowledge-governance.md` as the company contract.
+Do not treat archived issues, old reports, or old CSV/JSON exports as binding
+truth when a newer current-truth or decision source exists.
+
 Record these event types when they materially affect future work:
 
 - `decision`
@@ -84,6 +100,10 @@ Each ledger event should include the agent/owner, issue or project, action,
 evidence, affected files/entities, result, and next owner/action. Never print
 secret values. For failed or repeated attempts, include the exact reason future
 agents should avoid or retry the path.
+
+If the event changes what future agents should trust, state the promotion path:
+`current truth updated`, `decision recorded`, `evidence attached only`,
+`lesson promoted`, `archived as historical`, or `no knowledge change`.
 
 ## Trace Minimum
 

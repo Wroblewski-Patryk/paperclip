@@ -228,6 +228,13 @@ When a verification command fails, record the command, failure, and next step.
 
 ## Project Memory Sources
 
+Knowledge is layered. Before using or storing old information, classify it as
+current truth, decision, evidence, lesson, or archive. Current truth and active
+decisions outrank old run evidence. Archived issues and historical reports are
+searchable evidence, not default context. Use
+`C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/docs/softwarehouse/17-knowledge-governance.md`
+when deciding whether evidence should be promoted, superseded, or archived.
+
 Read these first when working on Soar:
 
 - `AGENTS.md`

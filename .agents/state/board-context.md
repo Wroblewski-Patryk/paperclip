@@ -112,6 +112,8 @@ with Roost as part of the autonomous company layer.
   `.agents/state/softwarehouse-owner-interface-contract.md`.
 - Stage 1 delivery foundation:
   `.agents/state/softwarehouse-stage1-delivery-foundation.md`.
+- Knowledge governance:
+  `docs/softwarehouse/17-knowledge-governance.md`.
 
 Historical Stage 0/v0 files remain as background only and should not override
 the active Stage 1 delivery mission.

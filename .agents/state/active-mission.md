@@ -124,6 +124,7 @@ Read these first for current work:
 - `.agents/state/softwarehouse-autonomous-delivery-architecture.md`
 - `.agents/state/softwarehouse-task-lifecycle-contract.md`
 - `.agents/state/softwarehouse-owner-interface-contract.md`
+- `docs/softwarehouse/17-knowledge-governance.md`
 
 Historical Stage 0 baseline remains in:
 

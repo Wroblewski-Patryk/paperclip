@@ -113,8 +113,10 @@ comments, work products, docs, and activity evidence.
    - files, policies, skills, prompts, or routines to inspect
    - required evidence before closure
 8. The owner fixes the process, instruction, skill, tool, prompt, test, or runtime behavior.
-9. The eval must produce EvalRun `PASS`.
-10. Only then may the AgentImprovementTask move to `done`.
+9. The owner classifies any durable knowledge produced by the fix using
+   `docs/softwarehouse/17-knowledge-governance.md`.
+10. The eval must produce EvalRun `PASS`.
+11. Only then may the AgentImprovementTask move to `done`.
 
 ## Role Ownership
 
@@ -137,6 +139,9 @@ comments, work products, docs, and activity evidence.
 - Prompt, AGENTS.md, policy-gate, routine, permission, adapter, and agent behavior changes require eval or regression evidence.
 - Raw logs must not be stored in normal traces. Use the restricted RawTraceVault policy in
   `docs/safe-trace-logging.md` only when safe traces are insufficient.
+- Evidence from a run remains evidence until an accountable owner promotes it
+  into current truth, a decision, or a lesson. Old traces and artifacts must not
+  override newer current-truth sources.
 
 ## Stage 1 Use
 

@@ -40,10 +40,16 @@ Paperclip Softwarehouse uses a light operating system inspired by:
 - OWASP ASVS/SAMM plus least privilege: security checks are scaled to risk.
 - ITIL-inspired incident/problem/change: incidents, root-cause learning, and
   controlled changes are separated.
+- Knowledge governance: current truth, decisions, evidence, lessons, and
+  archive are separated so old run history does not override current facts.
 
 See `docs/softwarehouse/16-standard-stack.md` for the operating map. The stack
 is intentionally lightweight; standards are used to reduce ambiguity, risk,
 cost, and delivery friction, not to add ceremony.
+
+See `docs/softwarehouse/17-knowledge-governance.md` for the memory layering
+rule that keeps current truth separate from old evidence and archived run
+noise.
 
 ## Required Work Loop
 

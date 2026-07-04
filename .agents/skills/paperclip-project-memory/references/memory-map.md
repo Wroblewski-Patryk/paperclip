@@ -1,6 +1,6 @@
 # Paperclip Project Memory Map
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 ## Files
 
@@ -13,6 +13,7 @@ Last updated: 2026-07-03
 | `.agents/state/responsibility-learning.md` | Lessons from repeated agent/process failures. | A repeated failure pattern or responsibility boundary change is identified. |
 | `.agents/state/agent-evals.md` | Evaluations of agent behavior and quality. | Reviewing agent performance or learning-loop outcomes. |
 | `.agents/workflows/context-capture.md` | Procedure for turning chats into memory. | The capture workflow itself changes. |
+| `docs/softwarehouse/17-knowledge-governance.md` | Company rule for separating current truth, decisions, evidence, lessons, and archive. | Agents need to decide whether old run evidence should become durable truth or remain historical context. |
 
 ## Boundaries
 
@@ -21,6 +22,9 @@ Last updated: 2026-07-03
 - `doc/` is product and engineering documentation.
 - Paperclip issue documents are the source of truth for issue-specific plans.
 - Generated deliverables should be attached as Paperclip work products when the issue workflow requires it.
+- Old issue history, archived tasks, traces, and generated exports are evidence
+  until promoted into current truth, a decision, or a lesson by an accountable
+  owner.
 
 ## Update Granularity
 

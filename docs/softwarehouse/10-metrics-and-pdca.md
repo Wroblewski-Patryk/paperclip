@@ -26,6 +26,8 @@ Every meaningful task follows:
 - change failure rate
 - mean time to recovery
 - docs drift count
+- current-truth drift count
+- archived evidence reused as current truth count
 - security gate failures
 
 ## Continuous Improvement Rule
@@ -37,6 +39,6 @@ When the same class of blocker repeats, create one of:
 - role boundary update
 - automation/audit issue
 - capability gap note
+- knowledge promotion, supersession, or archive update
 
 Do not solve repeated process failure by telling agents to "try harder".
-

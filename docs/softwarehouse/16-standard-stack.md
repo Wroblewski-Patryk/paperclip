@@ -25,6 +25,7 @@ delivery.
 | OWASP ASVS/SAMM + least privilege | Security and secrets discipline. | Scale security checks by risk; use secret refs only; gate production, auth, and data-sensitive actions. |
 | ITIL-inspired incident/problem/change | Operational recovery without chaos. | Separate incident containment, root cause/problem learning, and controlled change/release approval. |
 | Value-stream/no-waste review | Cost, token, and cycle-time control. | Remove duplicate searches, stale blockers, broad tasks, repeated failed wakes, and unnecessary context. |
+| Knowledge governance | Memory signal-to-noise and staleness control. | Separate current truth, decisions, evidence, lessons, and archive before loading context or updating memory. |
 
 ## Decision Rule
 
@@ -39,6 +40,8 @@ When an agent is unsure which standard applies, use this order:
 7. Security/DevOps/ITIL: does this touch secrets, deploy, production, incident,
    rollback, money, legal, or live user/trading risk?
 8. PDCA: what should improve before the next similar run?
+9. Knowledge governance: is this current truth, decision, evidence, lesson, or
+   archive, and what does it supersede?
 
 ## No-Wake Change Hygiene
 
@@ -66,3 +69,5 @@ signals, not punctuation.
   Soar/Roost toward usable production with fewer mistakes.
 - Do not certify or overformalize. Use lightweight, evidence-backed versions
   of each standard.
+- Do not load or cite old issue history as binding truth until it is checked
+  against current-truth and decision sources.

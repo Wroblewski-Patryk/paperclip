@@ -30,6 +30,7 @@ const requiredDocs = [
   "docs/softwarehouse/11-agent-handoff-rules.md",
   "docs/softwarehouse/12-incident-and-bugfix-process.md",
   "docs/softwarehouse/13-continuous-improvement.md",
+  "docs/softwarehouse/17-knowledge-governance.md",
   "docs/softwarehouse/agent-audit.md",
   "docs/softwarehouse/implementation-report.md",
   "docs/softwarehouse/templates/task-template.md",
@@ -59,6 +60,7 @@ const requiredDocTerms = [
   "release",
   "DORA",
   "ADR",
+  "Knowledge governance",
 ];
 
 const requiredProcessTerms = [
