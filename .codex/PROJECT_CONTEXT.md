@@ -54,6 +54,10 @@ Current verified direction:
 - Canonical department map and naming convention live in
   `.agents/state/softwarehouse-departments.md`; department-owned work objects
   should start with `NN NazwaDziału - ...`.
+- Projects use the English project naming convention
+  `NN Department: Element`; current active lanes include
+  `00 General: Softwarehouse`, `11 Innovation: Soar`,
+  `11 Innovation: Roost`, and `11 Innovation: Aviary`.
 - Only `06 AIM (AI Agent Manager)` may create/hire AI agents.
 - Secrets must be entered through Paperclip secret refs/provider flows, never
   chat or memory files.

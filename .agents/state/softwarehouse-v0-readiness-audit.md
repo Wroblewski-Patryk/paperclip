@@ -22,6 +22,11 @@ by the owner.
 - Live runs: 0.
 - Routines: 7 total, all `paused`, every schedule trigger `enabled: false`.
 - Goals: 3 planned company goals, all prefixed with department number/name.
+- Projects: 6 total, normalized to English department names:
+  `00 General: Softwarehouse`, `11 Innovation: Soar`,
+  `11 Innovation: Roost`, `11 Innovation: Aviary`,
+  `08 Assets: Paperclip Worktrees`, and
+  `00 General: WroblewskiPatryk`.
 - Skills: 18 company skills, attached by role through desired-skill sync.
 - Secrets: 29 company secrets, all `local_encrypted` managed refs with no raw
   values stored in memory files. This includes Coolify login refs, separate
@@ -46,6 +51,7 @@ by the owner.
 | Paused/inactive routines are allowed | Yes | Yes | Activation remains owner-gated. |
 | Agents should be muted | Yes | Yes | 38/38 paused; heartbeat disabled. |
 | Department names should start with numbers for filtering | Yes | Yes | Applied to agents metadata, routines, goals, and naming instructions. |
+| Project names should use numbered English department naming | Yes | Yes | Projects normalized as `NN Department: Element`; archived entries included. |
 | Build toward Soar and Roost first | Yes | Partly | Need local Stage 1 activation packets before issue creation. |
 | Stage 2: VPS + Roost autonomous company | Yes | Concept only | Needs future deploy/provider architecture and secrets. |
 | Use APQC/PCF, MECE, PDCA, evidence gates | Yes | Yes in instructions/routines | Future improvement: richer process playbooks by department. |
@@ -120,8 +126,8 @@ by the owner.
    - Include repo path, deploy context, first outcome, verification plan, evidence gates, and owner approval condition.
 
 3. Full disaster recovery gate:
-   - Current DB backup exists at `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-025906.sql.gz`.
-   - Current config/instruction snapshot exists at `.agents/state/backups/stage0-config-20260704-025914.zip`.
+   - Current DB backup exists at `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-030213.sql.gz`.
+   - Current config/instruction snapshot exists at `.agents/state/backups/stage0-config-20260704-030223.zip`.
    - Still needs deliberate handling of local storage and the local encrypted secrets key outside repo memory.
 
 4. Tooling gate:

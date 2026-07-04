@@ -110,6 +110,11 @@ The project is both product work and company-building work. Future Codex chats s
   packets live in `.agents/state/stage1-activation-soar.md` and
   `.agents/state/stage1-activation-roost.md`; these are not approval to create
   Paperclip issues or resume agents.
+- Paperclip projects use English department naming for filtering:
+  `NN Department: Element`. Current names are `00 General: Softwarehouse`,
+  `11 Innovation: Soar`, `11 Innovation: Roost`, `11 Innovation: Aviary`,
+  archived `08 Assets: Paperclip Worktrees`, and archived
+  `00 General: WroblewskiPatryk`.
 - Product architecture and autonomous delivery contracts now live in
   `.agents/state/softwarehouse-product-architecture-index.md` and
   `.agents/state/softwarehouse-autonomous-delivery-architecture.md`. Stage 1

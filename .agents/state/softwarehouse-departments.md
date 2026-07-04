@@ -40,6 +40,27 @@ title and list collaborators in the body. Use `00 Ogólny` for AIA-owned company
 coordination, general LuckySparrow context, and cases where no better owner is
 clear.
 
+## Project Naming Convention
+
+Projects use the English department display form requested for project filters:
+
+`NN EnglishDepartment: Element`
+
+When the element needs a parent/context label, use:
+
+`NN EnglishDepartment: Parent - Element`
+
+Current examples:
+
+- `00 General: Softwarehouse`
+- `11 Innovation: Soar`
+- `11 Innovation: Roost`
+- `08 Assets: Paperclip Worktrees`
+
+This project-specific convention intentionally keeps project names English
+while older goals/routines may still use the Polish department display names
+until they are explicitly normalized.
+
 ## AIA Routing
 
 `00 AIA (AI Assistant)` is the general LuckySparrow coordinator. AIA decides

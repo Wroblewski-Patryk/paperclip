@@ -28,6 +28,11 @@ Verified current instance:
 - Department-owned work objects should use the canonical prefix convention
   `NN NazwaDziału - ...`; the source of truth is
   `.agents/state/softwarehouse-departments.md`.
+- Projects are normalized to English department names:
+  `00 General: Softwarehouse`, `11 Innovation: Soar`,
+  `11 Innovation: Roost`, `11 Innovation: Aviary`,
+  `08 Assets: Paperclip Worktrees`, and
+  `00 General: WroblewskiPatryk`.
 - Runtime still contains old instruction/runtime folders for the previous
   company id `f13051a7-d0aa-4261-9254-d3ab90735de5`; do not blindly reuse them
   because agent ids differ.
