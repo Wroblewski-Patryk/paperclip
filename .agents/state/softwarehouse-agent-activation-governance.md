@@ -50,7 +50,7 @@ owner/Codex signal
 | Agent resume/pause execution | Owner/Codex board action or approved activation bridge |
 | Task routing and assignment | `00 AIA`, parent agents, department owners |
 | Hiring/new agent creation | `06 AIM` only, after hiring procedure |
-| High-risk production/secrets/cost expansion | Owner/AIA/CEO/SPA/CFO according to risk |
+| High-risk production/secrets/cost expansion | Owner/AIA/SPA/CFO according to risk; CEO may frame executive priority but does not operate secrets or deployment in Stage 1 |
 
 ## Current Stage 1 Active Set
 
@@ -70,6 +70,13 @@ Still paused/out of scope unless separately approved:
 
 - `03 CRO`, `05 CCO`, `05 CSM`, `06 CHRO`, `06 POP`, `11 APM`, `11 FPM`,
   `11 NPM`, `12 CEO`.
+
+`12 CEO` may be resumed only for a concrete Stage 1 executive decision inside
+`LUC-25`: priority conflict, owner-facing escalation framing, or acceptance of
+a Soar/Roost Innovation-to-Product packet after Product, Technology, QA,
+Security, and Operations evidence exists. CEO must not create business plans,
+marketing/sales/customer-service work, broad company expansion, deployment
+actions, production mutation, or secret operations during Stage 1.
 
 Do not resume every agent just because they exist. Resume additional roles only
 when the work remains inside the `LUC-25` Soar/Roost delivery mission or the

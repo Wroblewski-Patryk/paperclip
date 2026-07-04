@@ -1400,3 +1400,24 @@ Implementation notes:
   knowledge change.
 - Updated the operating-standard audit to require the knowledge governance doc
   and term.
+
+# 2026-07-04 - Stage 1 CEO Activation Guardrail
+
+Conversation summary: the owner said `12 CEO` and other paused agents may be
+unpaused if useful, but only after configuration is checked and only inside the
+current app-creation mission. CEO should not create business plans yet; broad
+company/business planning belongs to v2 after VPS/Roost readiness.
+
+Decision:
+
+- Keep `12 CEO` paused by default during Stage 1.
+- CEO may be resumed only for a concrete `LUC-25` executive decision: priority
+  conflict, owner-facing escalation framing, or evidence-based acceptance of a
+  Soar/Roost Innovation-to-Product transition packet.
+- CEO must not run business plans, marketing, sales, customer service, broad
+  expansion, deployment, production mutation, or secret operations in Stage 1.
+- Soar/Roost transition language should use the existing department map:
+  `11 Innovation` incubation moves to `02 Product` ownership when ready, while
+  `04 Operations` coordinates delivery and operating cadence.
+- Coolify/deploy/login secret access should remain with AIA/CTO/DRE/SPA rather
+  than CEO; CEO receives evidence packets from those roles.

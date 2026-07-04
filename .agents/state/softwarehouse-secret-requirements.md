@@ -62,12 +62,12 @@ Configured in Paperclip on 2026-07-04 as `local_encrypted` managed secrets:
 Current binding scope:
 
 - Base/API URL refs are available to selected deployment/coordinating agents.
-- Coolify read token and discovered team/resource ids are available to 16
+- Coolify read token and discovered team/resource ids are available to 15
   selected deployment/coordinating agents for observation.
-- Coolify deploy token is restricted to `00 AIA`, `09 CTO`, `09 DRE`,
-  `10 SPA`, and `12 CEO`.
+- Coolify deploy token is restricted to `00 AIA`, `09 CTO`, `09 DRE`, and
+  `10 SPA`.
 - Login email/password refs are restricted to `00 AIA`, `09 CTO`, `09 DRE`,
-  `10 SPA`, and `12 CEO`.
+  and `10 SPA`.
 - Soar and Roost production test-account refs are each bound to 10
   app-relevant engineering, verification, security, and product roles.
 - The detailed least-privilege matrix lives in

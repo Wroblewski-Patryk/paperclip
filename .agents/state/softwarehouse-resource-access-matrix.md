@@ -115,9 +115,10 @@ Access tiers:
 
 | Tier | Agents | Bound env refs | Intended use |
 | --- | --- | --- | --- |
-| Coolify read observer | `00 AIA`, `04 COO`, `04 DPM`, `06 AIM`, `09 CTO`, `09 TSA`, `09 CBE`, `09 FEW`, `09 IDE`, `09 QVE`, `09 RTE`, `09 DRE`, `10 SPA`, `11 SPM`, `11 RPM`, `12 CEO` | Coolify base/API URL, read token, team id/name, Soar resource ids, Roost app id, app base URLs | Observe resources, deployments, app status, and evidence paths through API/browser without raw credentials. |
-| Coolify deploy operator | `00 AIA`, `09 CTO`, `09 DRE`, `10 SPA`, `12 CEO` | `COOLIFY_DEPLOY_API_TOKEN` | Governed deployment actions only after an approved release/deploy gate. |
-| Coolify login operator | `00 AIA`, `09 CTO`, `09 DRE`, `10 SPA`, `12 CEO` | all Coolify env refs including login email/password | Board-approved UI observation, team switching, deploy/resource discovery, failed deploy diagnosis. |
+| Coolify read observer | `00 AIA`, `04 COO`, `04 DPM`, `06 AIM`, `09 CTO`, `09 TSA`, `09 CBE`, `09 FEW`, `09 IDE`, `09 QVE`, `09 RTE`, `09 DRE`, `10 SPA`, `11 SPM`, `11 RPM` | Coolify base/API URL, read token, team id/name, Soar resource ids, Roost app id, app base URLs | Observe resources, deployments, app status, and evidence paths through API/browser without raw credentials. |
+| Coolify deploy operator | `00 AIA`, `09 CTO`, `09 DRE`, `10 SPA` | `COOLIFY_DEPLOY_API_TOKEN` | Governed deployment actions only after an approved release/deploy gate. |
+| Coolify login operator | `00 AIA`, `09 CTO`, `09 DRE`, `10 SPA` | all Coolify env refs including login email/password | Board-approved UI observation, team switching, deploy/resource discovery, failed deploy diagnosis. |
+| Executive acceptance | `12 CEO` | no Coolify login/deploy/read secrets by default in Stage 1 | Accept or reject executive packets based on evidence supplied by AIA, Product, Technology, QA, Security, and Operations. |
 
 Current Coolify facts:
 

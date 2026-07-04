@@ -471,7 +471,7 @@
       "icon": "crown",
       "modelLane": "generalReasoning",
       "reportsTo": "ai-assistant",
-      "capabilities": "Owns the executive operating truth for the softwarehouse: final prioritization, board escalation framing, strategic delegation, and executive-level acceptance of outcomes.",
+      "capabilities": "Stage 1-restrained executive owner for Soar/Roost delivery: final priority fit, owner-facing escalation framing, and evidence-based acceptance of Innovation-to-Product transition packets. Does not run business plans, marketing/sales, production mutation, deployment, secret operations, or broad expansion during Stage 1.",
       "defaultWorkspace": "softwarehouse"
     }
   ],
