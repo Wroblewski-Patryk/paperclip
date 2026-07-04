@@ -35,20 +35,21 @@ LuckySparrow Software House before autonomous agents start work.
 - Active Paperclip base: `http://127.0.0.1:3200`.
 - Health: `ok`, version `0.3.1`, deployment mode `local_trusted`, exposure `private`.
 - Current company: `LuckySparrow`, id `ae26bb8b-8f5f-4a85-b341-78d4e1985975`, prefix `LUC`, issue counter `6`.
-- Agents: 38 returned by `/api/companies/:companyId/agents`; all observed as idle in sampled output.
+- Agents: 38 returned by `/api/companies/:companyId/agents`; all are currently paused for Stage 0 quiet mode.
 - Projects: 6 returned by `/api/companies/:companyId/projects`; names are
   normalized to the English project convention `NN Department: Element`.
   Active/planned lanes include `00 General: Softwarehouse`,
   `11 Innovation: Soar`, `11 Innovation: Roost`, and
   `11 Innovation: Aviary`; archived/non-active entries include
   `08 Assets: Paperclip Worktrees` and `00 General: WroblewskiPatryk`.
-- Goals: 3 planned company goals, all normalized to the English convention
+- Goals: 4 planned company goals, all normalized to the English convention
   `NN Department: Element`: `00 General: v0 Softwarehouse Readiness`,
+  `00 General: Stage 1 Controlled Activation Dry Run`,
   `11 Innovation: Stage 1 Soar Activation`, and
   `11 Innovation: Stage 1 Roost Activation`.
 - Issues: 0 returned by `/api/companies/:companyId/issues`.
-- Routines: 7 returned by `/api/companies/:companyId/routines`; all are Stage
-  0 drafts with `status: paused`, every title is normalized to English
+- Routines: 10 returned by `/api/companies/:companyId/routines`; all are v1
+  draft assets with `status: paused`, every title is normalized to English
   department naming, and every schedule trigger is `enabled: false`.
 - Live runs: 0 returned by `/api/companies/:companyId/live-runs`.
 - Agent status: 38/38 agents are intentionally `paused` as the Stage 0 quiet-mode guard.
@@ -107,7 +108,7 @@ LuckySparrow Software House before autonomous agents start work.
   unreadable to the local runtime, so the working readable ACL was restored and
   the warning remains a known v0 blocker/risk. AWS/GCP/Vault providers are not
   configured.
-- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-031504.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
+- Database backups are enabled in `.paperclip/config.json`; latest remembered manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-033055.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
 - Latest lightweight Stage 0 memory/config snapshot exists at `.agents/state/backups/stage0-memory-config-20260704-031638.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and the project-memory workflow. It intentionally does not store secret values or full runtime folders.
 - CLI caveat: `pnpm paperclipai skills browse` attempted dependency install and failed on Windows with `EPERM` while creating a plugin SDK symlink. Use HTTP API/file inspection until that tooling issue is repaired.
 - Catalog install caveat: the catalog install API failed on a pinned hash mismatch for `paperclipai:bundled:docs:doc-maintenance:SKILL.md`; local official skill directory imports were used instead.
@@ -119,7 +120,7 @@ LuckySparrow Software House before autonomous agents start work.
 3. Company skills are installed or created, then attached to relevant agents using Paperclip desired-skill sync.
 4. Secrets are declared through Paperclip secret refs; no raw secret values are stored in memory files, instructions, activity logs, or issue comments.
 5. Coolify/VPS access model is defined as secret refs and operational routines, with permission boundaries and deploy evidence expectations.
-6. Core routines exist but do not create noisy work: liveness, portfolio truth, PDCA review, evidence-gate review, source-control/deploy readiness, secrets/Coolify/VPS readiness, and agent hiring/governance review. In Stage 0 they must remain `paused` with disabled triggers.
+6. Core routines exist but do not create noisy work: owner direction/proposal review, controlled activation, liveness, portfolio truth, PDCA review, evidence-gate review, source-control/deploy readiness, secrets/Coolify/VPS readiness, finance/cost review, and agent hiring/governance review. In Stage 0 they must remain `paused` with disabled triggers.
 7. Stage 1 activation packets for Soar and Roost exist with clear owners, acceptance criteria, and evidence gates. During Stage 0 these remain repo-local plans, not Paperclip issues, unless the owner explicitly approves issue creation.
 8. Paperclip CLI/tooling blockers are either repaired or documented with API fallback.
 9. A backup/export point exists before enabling autonomous work.
@@ -140,7 +141,7 @@ LuckySparrow Software House before autonomous agents start work.
 
 ## Current Stage 0 Estimate
 
-As of this capture, Stage 0 is about 96% complete.
+As of this capture, Stage 0 is about 97% complete.
 
 Completed or partly complete:
 
@@ -154,7 +155,7 @@ Completed or partly complete:
 - Goals now follow the English department naming convention:
   `NN Department: Element`.
 - Routines now follow the English department naming convention:
-  `NN Department - v0 Paused - Element`.
+  `NN Department - v1 Draft Paused - Element`.
 - Projects now follow the English department project convention:
   `NN Department: Element`.
 - GitHub/free-plan and notification-noise constraints are recorded in the
@@ -187,7 +188,7 @@ Completed or partly complete:
 - All 38 managed instruction bundles include the owner interface/language
   reference.
 - Only `06 AIM (AI Agent Manager)` can create/hire agents, and only through the governed hiring path.
-- Seven core routines exist as paused drafts with disabled schedules.
+- Ten core routines exist as paused drafts with disabled schedules.
 - All 38 agents are intentionally paused to prevent accidental wakeups during Stage 0.
 - Durable memory records the Stage 0 boundary: Codex configures v0 directly; Paperclip agents remain idle.
 

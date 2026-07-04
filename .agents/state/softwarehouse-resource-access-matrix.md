@@ -26,7 +26,7 @@ Minimum responsibility, maximum diversification:
 | --- | --- |
 | Create/hire AI agents | Only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`. |
 | Stage 0 execution | All 38 agents are paused. No Paperclip issues/tasks or live runs. |
-| Routines | 7 routines exist as paused assets only; every schedule trigger is disabled. |
+| Routines | 10 routines exist as paused assets only; every schedule trigger is disabled. |
 | Secrets | Paperclip `local_encrypted` managed secrets with `secret_ref` env bindings only. |
 | Self-modification | Forbidden by shared instructions. Agents produce learning/access-change packets instead. |
 
@@ -137,11 +137,14 @@ Shared files every agent may read:
 - `references/departments-and-naming.md`
 - `references/resource-and-github-policy.md`
 - `references/product-architecture-source-of-truth.md`
+- `references/innovation-to-product-lifecycle.md`
 - `references/delegation-and-reporting-contract.md`
+- `references/agent-activation-governance.md`
 - `references/delivery-closure-loop.md`
 - `references/gap-detection-and-learning-packets.md`
 - `references/procedures-and-task-lifecycle.md`
 - `references/owner-interface-and-language-policy.md`
+- `references/cost-token-and-context-efficiency.md`
 
 Editing policy:
 

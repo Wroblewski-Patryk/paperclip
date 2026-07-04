@@ -22,8 +22,9 @@ by the owner.
 - Live runs: 0.
 - Routines: 7 total, all `paused`, every schedule trigger `enabled: false`,
   and every title normalized to English department naming.
-- Goals: 3 planned company goals, all normalized to English department names:
+- Goals: 4 planned company goals, all normalized to English department names:
   `00 General: v0 Softwarehouse Readiness`,
+  `00 General: Stage 1 Controlled Activation Dry Run`,
   `11 Innovation: Stage 1 Soar Activation`, and
   `11 Innovation: Stage 1 Roost Activation`.
 - Projects: 6 total, normalized to English department names:
@@ -68,7 +69,7 @@ by the owner.
 | Department names should start with numbers for filtering | Yes | Yes | Applied to agents metadata, routines, goals, and naming instructions. |
 | Goal names should use numbered English department naming | Yes | Yes | Goals normalized as `NN Department: Element`. |
 | Project names should use numbered English department naming | Yes | Yes | Projects normalized as `NN Department: Element`; archived entries included. |
-| Routine names should use numbered English department naming | Yes | Yes | Routines normalized as `NN Department - v0 Paused - Element`; all remain paused. |
+| Routine names should use numbered English department naming | Yes | Yes | Routines normalized as `NN Department - v1 Draft Paused - Element`; all remain paused. |
 | Build toward Soar and Roost first | Yes | Partly | Need local Stage 1 activation packets before issue creation. |
 | Stage 2: VPS + Roost autonomous company | Yes | Concept only | Needs future deploy/provider architecture and secrets. |
 | Use APQC/PCF, MECE, PDCA, evidence gates | Yes | Yes in instructions/routines | Future improvement: richer process playbooks by department. |

@@ -12,7 +12,7 @@ Verified current instance:
 - Company: `LuckySparrow`, id `ae26bb8b-8f5f-4a85-b341-78d4e1985975`, prefix
   `LUC`.
 - Current board state is intentionally quiet: 38 agents, 6 projects, 0 issues,
-  3 planned goals, 7 paused routines, 0 live runs, 18 company skills, 29
+  4 planned goals, 10 paused routines, 0 live runs, 18 company skills, 29
   company secrets.
 - All 38 agents are intentionally paused for Stage 0 quiet mode. Do not resume
   agents until the owner approves Stage 1 or explicitly asks for a targeted
@@ -38,7 +38,7 @@ Verified current instance:
   `11 Innovation: Stage 1 Soar Activation`, and
   `11 Innovation: Stage 1 Roost Activation`.
 - Routines are normalized to English department names with the paused form:
-  `NN Department - v0 Paused - Element`; all 7 remain paused with disabled
+  `NN Department - v1 Draft Paused - Element`; all 10 remain paused with disabled
   triggers.
 - Runtime still contains old instruction/runtime folders for the previous
   company id `f13051a7-d0aa-4261-9254-d3ab90735de5`; do not blindly reuse them
@@ -112,6 +112,14 @@ Verified current instance:
   activation decisions and task routing, has `canAssignTasks: true`, but normal
   agent access cannot directly resume/pause agents. Actual lifecycle changes
   require owner/Codex board action or an approved activation bridge.
+- Owner direction/proposal loop is tracked in
+  `.agents/state/softwarehouse-owner-direction-proposal-loop.md`: the owner
+  provides direction/notes/approvals, AIA consolidates Polish proposals or
+  questions, and approved execution flows through the company hierarchy.
+- Overall complementarity audit is tracked in
+  `.agents/state/softwarehouse-complementarity-audit.md`: current Stage 0
+  estimate is about 97%, with remaining proof deferred to a controlled Stage 1
+  dry run.
 
 Stage 0 gates live in `.agents/state/softwarehouse-stage0-foundation.md`.
 Codex in this chat should drive v0 directly and must not create Paperclip

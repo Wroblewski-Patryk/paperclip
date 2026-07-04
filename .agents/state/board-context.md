@@ -66,9 +66,10 @@ The project is both product work and company-building work. Future Codex chats s
 - All agents should stay paused during Stage 0 unless the owner explicitly asks
   for a targeted resume.
 - Current Stage 0 configuration now has managed instruction bundles for all 38
-  agents, 18 company skills attached by role, 7 paused routines, 3 planned
-  company goals, all 38 agents paused, and `06 AIM (AI Agent Manager)` as the
-  only agent with AI-agent creation authority.
+  agents, 18 company skills attached by role, 10 paused v1 draft routines, 4
+  planned company goals, all 38 agents paused, `00 AIA` with task-routing
+  authority, and `06 AIM (AI Agent Manager)` as the only agent with AI-agent
+  creation authority.
 - Canonical departments live in `.agents/state/softwarehouse-departments.md`.
   Department-owned routines, goals, issues, work products, reports, approvals,
   and notes should start with `NN NazwaDziału - ...` for filtering and fast
@@ -117,10 +118,11 @@ The project is both product work and company-building work. Future Codex chats s
   `00 General: WroblewskiPatryk`.
 - Paperclip goals also use English department naming:
   `00 General: v0 Softwarehouse Readiness`,
+  `00 General: Stage 1 Controlled Activation Dry Run`,
   `11 Innovation: Stage 1 Soar Activation`, and
   `11 Innovation: Stage 1 Roost Activation`.
 - Paperclip routines also use English department naming:
-  `NN Department - v0 Paused - Element`; all current routines remain paused
+  `NN Department - v1 Draft Paused - Element`; all current routines remain paused
   with disabled triggers.
 - Product architecture and autonomous delivery contracts now live in
   `.agents/state/softwarehouse-product-architecture-index.md` and
@@ -142,6 +144,11 @@ The project is both product work and company-building work. Future Codex chats s
   using clear decision packets. Internal company work, project names, operating
   assets, procedures, and cross-agent context stay English-first unless the
   owner-facing summary needs Polish.
+- Owner direction/proposal loop now lives in
+  `.agents/state/softwarehouse-owner-direction-proposal-loop.md`: the owner
+  gives direction, notes, and approvals; AIA turns them into Polish proposals,
+  memory updates, routed work, or clarifying questions; approved execution then
+  flows through goals/procedures/issues/agents.
 - The recommended first Stage 1 action is a controlled Soar dry run recorded in
   `.agents/state/softwarehouse-stage1-recommended-first-action.md`.
 

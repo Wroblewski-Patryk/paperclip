@@ -11,7 +11,7 @@ agent execution.
 V1 goals and routines are now well defined for a controlled start, but they are
 not an approval to run.
 
-Estimated readiness for the goals/routines layer: about 97%.
+Estimated readiness for the goals/routines layer: about 98%.
 
 The remaining 3% is intentional: the owner still needs to approve Stage 1 and
 select the exact activation mode before any routine trigger, issue creation, or
@@ -33,6 +33,7 @@ All routines are paused and all triggers are disabled.
 | Routine | Owner | V1 purpose |
 | --- | --- | --- |
 | `00 General - v1 Draft Paused - Controlled Activation Dry Run` | `00 AIA` | Owner packet, one parent issue, Soar preflight, evidence, cost note, learning packet. |
+| `00 General - v1 Draft Paused - Owner Direction and Proposal Review` | `00 AIA` | Convert owner notes/direction into Polish proposals, routed work, memory updates, or clarifying questions. |
 | `00 General - v1 Draft Paused - Softwarehouse Liveness and Quiet-State Review` | `00 AIA` | Confirm Paperclip is intentionally quiet or intentionally running and free of accidental broad work. |
 | `04 Operations - v1 Draft Paused - Portfolio Truth and Project Index Review` | `04 COO` | Keep active lanes, repo paths, parked apps, and task hygiene aligned. |
 | `04 Operations - v1 Draft Paused - PDCA Learning and Company Memory Review` | `04 COO` | Turn run lessons into governed memory/procedure/instruction improvements. |
@@ -51,6 +52,7 @@ All routines are paused and all triggers are disabled.
 - Linked all V1 draft routines to the controlled dry-run goal and the
   `00 General: Softwarehouse` project.
 - Added a dedicated controlled activation routine.
+- Added a dedicated owner direction and proposal review routine.
 - Added a dedicated finance routine for cost, quota, and budget review.
 - Kept every routine paused and every trigger disabled.
 
@@ -99,7 +101,7 @@ Do not activate if:
 Verified after configuration:
 
 - 4 goals, all `planned`;
-- 9 routines, all `paused`;
+- 10 routines, all `paused`;
 - 0 enabled routine triggers;
 - 38 agents, all `paused`;
 - 0 issues/tasks;
@@ -110,3 +112,5 @@ Verified after configuration:
   `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-032840.sql.gz`.
 - Post AIA activation-governance permission backup:
   `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-033055.sql.gz`.
+- Post owner-direction/proposal routine backup:
+  `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-033427.sql.gz`.

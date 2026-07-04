@@ -38,8 +38,8 @@ agents should not work yet.
 Current verified direction:
 
 - 38 agents exist and are intentionally paused.
-- 7 routines exist only as inactive assets: routine `status: paused`, triggers `enabled: false`.
-- 3 planned company goals exist with department prefixes.
+- 10 routines exist only as inactive v1 draft assets: routine `status: paused`, triggers `enabled: false`.
+- 4 planned company goals exist with department prefixes.
 - 0 issues/tasks and 0 live runs should remain true until owner approval.
 - 18 company skills are attached by role.
 - 29 Stage 0 secrets exist in Paperclip `local_encrypted` storage and are
@@ -93,6 +93,10 @@ Current verified direction:
   actual lifecycle changes require owner/Codex board action or an approved
   activation bridge. Policy lives in
   `.agents/state/softwarehouse-agent-activation-governance.md`.
+- Owner direction/proposal loop lives in
+  `.agents/state/softwarehouse-owner-direction-proposal-loop.md`: the owner
+  gives direction and notes, AIA prepares Polish proposals or questions, and
+  approved work flows through goals/procedures/issues/agents.
 - Secrets must be entered through Paperclip secret refs/provider flows, never
   chat or memory files.
 - Resource policy lives in `.agents/state/softwarehouse-resource-policy.md`.
@@ -150,6 +154,8 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-v1-goals-routines-audit.md`
 - `.agents/state/softwarehouse-innovation-to-product-lifecycle.md`
 - `.agents/state/softwarehouse-agent-activation-governance.md`
+- `.agents/state/softwarehouse-owner-direction-proposal-loop.md`
+- `.agents/state/softwarehouse-complementarity-audit.md`
 
 ## Collaboration Notes
 

@@ -33,6 +33,10 @@ interact with Paperclip after Stage 1 begins, Codex should coordinate through
 `00 AIA` rather than bypassing the company hierarchy, unless the owner asks for
 direct emergency inspection.
 
+The owner-direction/proposal loop lives in
+`.agents/state/softwarehouse-owner-direction-proposal-loop.md`. Use it when the
+owner gives notes, direction, corrections, approvals, or asks for a proposal.
+
 ## AIA External Interface
 
 `00 AIA` is the default external interface to the owner.
@@ -77,6 +81,14 @@ Ryzyko / cofnięcie:
 
 Use Polish for the packet. Keep internal identifiers, project names, issue ids,
 file paths, procedure ids, and environment names in their original form.
+
+## Owner Direction And Notes
+
+When the owner gives direction or notes rather than a direct approval, AIA
+should classify the input as direction, note, approval, rejection/correction,
+question, or high-risk decision. Low-risk context should be saved and routed;
+high-risk or ambiguous work should return as a Polish proposal packet before
+execution.
 
 ## When To Ask The Owner
 
