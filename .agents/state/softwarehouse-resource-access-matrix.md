@@ -45,10 +45,40 @@ Verification command:
 | Capability | Current implementation |
 | --- | --- |
 | Create/hire AI agents | Only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`. |
+| Assign/create routed task work | Current live access is permissive: all 38 agents have `tasks:assign` grants. Treat this as an execution-compatibility posture, not as the desired organizational authority model. Agents must still follow reporting-tree routing in instructions. |
 | Stage 0 execution | All 38 agents are paused. No Paperclip issues/tasks or live runs. |
 | Routines | 10 routines exist as paused assets only; every schedule trigger is disabled. |
 | Secrets | Paperclip `local_encrypted` managed secrets with `secret_ref` env bindings only. |
 | Self-modification | Forbidden by shared instructions. Agents produce learning/access-change packets instead. |
+
+## Task Assignment Authority Gap
+
+Paperclip supports constrained assignment through `tasks:assign_scope` with
+`managerAgentId` / subtree-style scopes. The current LuckySparrow instance
+still has broad `tasks:assign` on every agent for compatibility with active
+autonomous work.
+
+Operating rule until enforcement is tightened:
+
+- broad task assignment access does not mean broad organizational authority;
+- agents must route cross-department work through `reportsTo` and the
+  reporting-tree contract;
+- direct cross-department assignment is a policy violation unless the parent
+  issue already names that gate/specialist or an emergency exception is
+  documented;
+- do not change these grants during active delivery without a scoped access
+  migration plan and recovery path, because overly aggressive permission
+  removal can strand agents that need to create child issues, comments, or
+  handoffs.
+
+Future hardening candidate:
+
+- keep broad assignment for `00 AIA`, relevant department heads, `04 COO`,
+  `04 DPM`, `09 CTO`, `09 QVE`, `10 CLO`/`10 SPA`, and `06 AIM` as justified;
+- convert ordinary specialists to `tasks:assign_scope` limited to their own
+  subtree, direct manager path, or explicit project/gate scopes;
+- add an audit that flags cross-department direct assignments where no common
+  manager route or emergency exception is documented.
 
 ## Coolify Secret Access
 

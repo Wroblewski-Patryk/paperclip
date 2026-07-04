@@ -59,17 +59,26 @@ Paused/out of current scope:
    The active test is whether agents keep routing concrete implementation,
    verification, deploy, and evidence work until `LUC-25` is genuinely done.
 
-2. Monetary budget policy.
+2. Assignment authority enforcement.
+   `reportsTo` is correctly configured and shared instructions now require
+   reporting-tree routing, but the live access layer still grants broad
+   `tasks:assign` to all 38 agents. This is acceptable as a compatibility
+   posture during active Stage 1 only if agents obey the chain-of-command
+   contract. Future hardening should migrate specialists toward
+   `tasks:assign_scope` and add an audit for direct cross-department
+   assignments that bypass managers.
+
+3. Monetary budget policy.
    Paperclip can report budgets/costs/quota, but hard company/agent limits
    remain an owner decision. CFO should surface practical recommendations from
    observed Stage 1 usage.
 
-3. Role/personality calibration.
+4. Role/personality calibration.
    Working profiles are present and role-aligned, but actual behavior should be
    adjusted through governed learning packets if Stage 1 reveals recurring
    issues.
 
-4. Product-specific playbooks.
+5. Product-specific playbooks.
    Agents know to start from Soar/Roost `docs/architecture`; deeper playbooks
    should be created from actual delivery findings rather than invented.
 
@@ -89,3 +98,34 @@ Do not create new permanent agents just because a theoretical softwarehouse
 could be larger. Use the active 29-role app-factory core, observe real gaps,
 and let `06 AIM` propose hiring only through the hiring procedure when a
 concrete repeated gap appears.
+
+## Role Placement Review - UX/UI/Product/Technology
+
+The current placement of `02 UXW`, `02 UID`, and `02 WPM` under `02 CPO` is
+correct for Stage 1.
+
+Rationale:
+
+- `02 CPO` owns product shape, acceptance quality, UX direction, and product
+  handoff standards.
+- `02 UXW` owns flows, interaction quality, view maps, and design acceptance.
+- `02 UID` owns visual interface quality, layout evidence, UI screenshots, and
+  visual consistency.
+- `02 WPM` owns web product requirements, user value, non-goals, acceptance
+  criteria, and release slices.
+
+These are product/design accountabilities, not technology implementation
+accountabilities. They should collaborate closely with `09 FEW`, `09 QVE`, and
+`09 CTO`, but they should not report to `09 CTO` unless the role is changed
+from product/design authority into engineering implementation.
+
+Recommended operating model:
+
+- keep `02 UXW`, `02 UID`, and `02 WPM` under `02 CPO`;
+- route implementation work to `09 CTO`/`09 FEW` through the reporting tree;
+- route visual/UX acceptance back to `02 CPO` and the relevant product PM;
+- if repeated design-system engineering gaps appear, let `06 AIM` evaluate a
+  new hybrid role rather than moving UX/UI into Technology prematurely.
+
+This preserves a useful tension: Product defines and accepts the user
+experience; Technology implements and proves it.

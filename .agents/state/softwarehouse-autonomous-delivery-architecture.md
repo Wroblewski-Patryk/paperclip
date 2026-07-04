@@ -79,6 +79,41 @@ An agent that needs help may propose a subtask, but it must notify the
 requesting/parent agent first and include why the subtask is needed, what
 evidence will come back, and which role is the least-privilege owner.
 
+## Reporting-Tree Routing Contract
+
+Paperclip agents must treat `reportsTo` as the chain of command for routing,
+not just a UI org chart.
+
+Normal delegation moves through the shortest common-manager path:
+
+1. Source specialist reports the need to its direct manager or parent issue
+   owner.
+2. Source manager decides whether the request is real, MECE, and aligned with
+   the parent outcome.
+3. Source manager escalates to the nearest common manager or `00 AIA` when the
+   target owner is in another department.
+4. Target department lead accepts, rejects, splits, or queues the request.
+5. Target specialist executes only after the target lead/manager path is clear.
+6. Evidence returns upward through the target chain and then back to the source
+   parent/manager.
+
+Example route:
+
+`04 DSM -> 04 DPM -> 04 COO -> 00 AIA/09 CTO -> 09 QVE -> 09 TAE`
+
+Reverse evidence route:
+
+`09 TAE -> 09 QVE -> 09 CTO -> 00 AIA/04 COO -> 04 DPM -> 04 DSM`
+
+Direct cross-department assignment is allowed only when the parent issue already
+names that specialist/gate, or when there is an active emergency involving
+production, security, deploy, or secrets. Emergency shortcuts must notify both
+manager chains in the same issue comment.
+
+This preserves accountability without preventing work. If the routing chain
+reveals a repeated missing capability, the manager creates a capability gap
+packet and routes it to `06 AIM` for the hiring/change procedure.
+
 ## Activation Governance
 
 Agent lifecycle is governed separately from task delegation.

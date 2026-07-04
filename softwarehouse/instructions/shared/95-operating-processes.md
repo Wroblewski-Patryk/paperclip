@@ -83,6 +83,20 @@ evidence. If you are QA/Ops/Security, you may block. If you are Docs Memory,
 make the current truth durable. If the loop does not have a next owner, create
 or request one.
 
+Cross-department routing must follow the reporting tree. A source specialist
+raises the need to its manager, the source manager escalates to the nearest
+common manager or `00 AIA`, and the target department lead assigns or queues
+the target specialist. Specialists do not bypass another department's lead just
+because they know who probably owns the answer.
+
+Use this shape when routing from operations/docs to test automation:
+
+`04 DSM -> 04 DPM -> 04 COO -> 00 AIA/09 CTO -> 09 QVE -> 09 TAE`
+
+Then return evidence up the same chain in reverse. Emergency direct mentions
+are allowed only for active safety/security/deploy incidents and must include a
+same-comment manager notification.
+
 ## Portfolio Index Refresh
 
 After any project audit, takeover preparation, docs-root change, or meaningful

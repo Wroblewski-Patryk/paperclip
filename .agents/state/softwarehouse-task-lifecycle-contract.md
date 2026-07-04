@@ -125,6 +125,31 @@ Child issue description should include:
 Child issues should not create further children unless their parent agent is
 notified and the split passes the delegation rule.
 
+## Cross-Department Child Issue Routing
+
+An agent must not create a child issue directly for a specialist outside its
+reporting subtree unless the parent issue already names that specialist/gate or
+an emergency exception is documented.
+
+Use the shortest reporting-chain route:
+
+1. Source agent comments to its manager or parent owner with the needed
+   capability.
+2. Source manager validates the need and checks for duplicate/open work.
+3. Source manager escalates to the nearest common manager or `00 AIA`.
+4. Target department lead assigns/queues the correct specialist.
+5. Specialist returns evidence to the target lead, then back through the source
+   chain.
+
+Example:
+
+`04 DSM -> 04 DPM -> 04 COO -> 00 AIA/09 CTO -> 09 QVE -> 09 TAE`
+
+The issue or comment must include source manager, target lead, expected
+artifact, return condition, and blocker rule. If the chain is missing a needed
+role, route a capability/hiring packet to `06 AIM`; do not invent a direct
+shadow relationship.
+
 ## Updating Work
 
 Agents should update tasks through comments/status rather than silently

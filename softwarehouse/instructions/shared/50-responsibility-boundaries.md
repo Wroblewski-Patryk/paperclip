@@ -23,3 +23,32 @@ own; the softwarehouse standard defines how you work.
 - Cross-layer work must be split into handoffs with owners and proof expectations.
 - If a task spans layers, create or request child issues instead of doing a broad all-in-one pass.
 - Every handoff must say: owner, affected layer, files/docs to read, expected output, verification, and blocker if any.
+
+## Chain-Of-Command Routing
+
+Do not create cross-department child issues directly for a specialist outside
+your reporting subtree. Route the request through the shortest common-manager
+path so the responsible leads stay informed and can accept, reject, split, or
+reroute the work.
+
+Default rule:
+
+- direct report to direct manager is allowed;
+- manager to direct report is allowed;
+- same-manager sibling handoff is allowed only when the manager is named in the
+  handoff comment or parent issue;
+- cross-department work must climb to the nearest common manager, then descend
+  through the target department lead;
+- urgent safety/security/deploy incidents may notify the specialist directly,
+  but must also notify both chains and name the emergency reason.
+
+Example:
+
+- `04 DSM` must not assign `09 TAE` directly.
+- Correct route: `04 DSM -> 04 DPM -> 04 COO -> 00 AIA/09 CTO -> 09 QVE -> 09 TAE`.
+- The return path is the reverse: `09 TAE -> 09 QVE -> 09 CTO -> 00 AIA/04 COO -> 04 DPM -> 04 DSM`.
+
+The issue body or handoff comment must name the source agent, source manager,
+target department lead, target specialist, parent issue, return condition, and
+evidence expected. If the route feels too heavy, create a parent comment asking
+the manager to route it rather than bypassing the hierarchy.
