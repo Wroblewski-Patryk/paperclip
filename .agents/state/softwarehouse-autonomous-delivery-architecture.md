@@ -92,6 +92,27 @@ Use MECE decomposition:
 - together they cover the parent acceptance criteria;
 - discovery tasks end with a decision, not with an expanding task tree.
 
+## Blocker Hygiene
+
+Blocked work is healthy only when it has first-class blocker issues, a named
+unblock owner, and a concrete return condition. A blocked issue with no
+unresolved blocker, or with blockers that are already `done`, is not a stable
+resting state.
+
+Blocker hygiene rules:
+
+- If a blocker issue becomes `done`, the blocked dependent must be resumed or
+  reclassified by its assignee or parent.
+- If an issue is blocked by a fact rather than a task, create or attach the
+  smallest responsible blocker issue with owner/action.
+- If a parent issue is blocked by children, that is valid only while those
+  children are active, queued, or explicitly blocked with their own owner.
+- The blocked inbox is a queue for intervention, not a parking lot. `00 AIA`,
+  `04 DPM`, and the relevant department lead should clear it by resuming,
+  attaching blockers, or escalating a real owner decision.
+- A blocker comment must name what fact changes the status and which agent is
+  responsible for producing that fact.
+
 ## PDCA Checkpoint
 
 Each cycle uses PDCA:

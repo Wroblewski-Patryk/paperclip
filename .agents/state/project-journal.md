@@ -928,3 +928,29 @@ Implementation, repair, and proof issues for Soar/Roost must now name the
 feature slice, map product/UI/API/backend/data/integration/test/docs/proof
 surfaces, inspect callers/callees, and update or classify the relevant
 traceability indexes before closure.
+
+# 2026-07-04 - Blocked Inbox Hygiene Correction
+
+The owner noticed blocked inbox items and asked whether blocked tasks should
+automatically progress after other agents produce the missing evidence. Codex
+verified that the blocked inbox showed three unhealthy blockers:
+
+- `LUC-29` was blocked by `LUC-33`, which was already `done`;
+- `LUC-30` was blocked by `LUC-38`, which was already `done`;
+- `LUC-47` was `blocked` with no first-class blocker attached.
+
+Operational correction applied through the Paperclip API:
+
+- moved `LUC-29` to `todo` and woke `09 CTO`;
+- moved `LUC-30` to `todo` and woke `09 DRE`;
+- attached `LUC-30` and `LUC-44` as blockers for `LUC-47` so the issue is
+  covered by active unblock owners instead of sitting in attention forever.
+
+Post-check: blocked inbox attention count returned `0`, while active work
+continued through `09 CTO`, `09 DRE`, `09 QVE`, and `11 SPM` runs.
+
+Durable policy update: added `Blocker Hygiene` to
+`.agents/state/softwarehouse-autonomous-delivery-architecture.md`. Blocked work
+must now have first-class blockers, a named unblock owner, and a concrete
+return condition; the blocked inbox is an intervention queue, not a parking
+lot.
