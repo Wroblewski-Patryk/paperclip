@@ -1473,3 +1473,46 @@ Evidence:
   symlink `EPERM` issue.
 - After applying the fixed janitor, live-run dry-run reported `actionCount: 0`
   and only the real DRE `LUC-133` run remained live.
+
+# 2026-07-04 - Routine and Project Truth Duplicate Cleanup
+
+Conversation summary: the owner asked to treat visible duplicate issues as a
+systemic harmony problem, not only as individual cleanup. The board contained
+many duplicate routine execution issue titles and one visible manual Soar
+Project Truth duplicate.
+
+Root cause:
+
+- Routine dispatch coalesced only when the existing routine issue had a live
+  execution run. A blocked/todo/in-review routine issue without a live run could
+  be duplicated by the next scheduled tick.
+- Old terminal routine execution issues remained visible, so historical
+  evidence looked like active board truth.
+- Project Truth dispatch deduped exact titles only against non-terminal issues;
+  if a visible `done` issue had the same exact title, a later run could create a
+  second identical task.
+- Board/API comments on closed issues can reopen the issue and wake the
+  assignee. Pure cleanup comments must therefore avoid the normal comment API
+  unless a human-facing decision needs to wake work.
+
+Decision:
+
+- Routine dispatch now coalesces to an existing open routine issue even when it
+  has no live run, unless the routine explicitly uses `always_enqueue`.
+- The routine duplicate janitor cancels/hides non-canonical open duplicates and
+  hides old terminal duplicates while preserving history.
+- Project Truth exact-title dedupe now considers visible terminal issues as
+  canonical evidence, so repeated exact gaps do not create identical issue
+  clones.
+- For current board cleanup, keep the newest/canonical visible item and archive
+  older duplicate evidence with `hiddenAt`; do not delete history.
+
+Evidence:
+
+- `node scripts/run-routine-duplicate-janitor.mjs --apply` cleaned routine
+  duplicate groups.
+- Follow-up dry-run reported `duplicateGroupCount: 0` and `actionCount: 0`.
+- The remaining manual Soar duplicate was reduced to one visible item by hiding
+  older `LUC-86` and keeping `LUC-108` visible.
+- A manual comment on `LUC-86` woke DSM via `issue.comment.reopen`; the
+  accidental run was cancelled and `LUC-86` was restored to `done` + hidden.

@@ -712,6 +712,25 @@ test("live-run janitor avoids duplicate-run comments that re-wake blocked lanes"
   assert.doesNotMatch(source, /duplicateOwnerRunMarker\(action\.identifier\)[\s\S]*Kept run:/);
 });
 
+test("routine duplicate janitor archives terminal duplicate routine issues", async () => {
+  const source = await readFile("scripts/run-routine-duplicate-janitor.mjs", "utf8");
+
+  assert.match(source, /const terminalStatuses = new Set\(\["done", "cancelled"\]\)/);
+  assert.match(source, /archive_terminal_duplicate_routine_issue/);
+  assert.match(source, /set hidden_at = now\(\)/);
+  assert.match(source, /Cancelled duplicate routine issue in favor of canonical/);
+  assert.match(source, /Archived terminal duplicate routine issue in favor of canonical/);
+});
+
+test("routine dispatch coalesces to open routine issues, not only live runs", async () => {
+  const source = await readFile("server/src/services/routines.ts", "utf8");
+
+  assert.match(source, /async function findOpenExecutionIssue/);
+  assert.match(source, /eq\(issues\.title, title\)/);
+  assert.match(source, /input\.routine\.concurrencyPolicy === "always_enqueue"/);
+  assert.match(source, /await findOpenExecutionIssue\(input\.routine, txDb, dispatchFingerprint/);
+});
+
 test("autonomy governor only recommends gate watcher apply when the apply guard can pass", async () => {
   const source = await readFile("scripts/run-autonomy-governor.mjs", "utf8");
 
@@ -1018,6 +1037,16 @@ test("project truth indexes route app-completion proof gaps instead of treating 
   assert.match(dispatcher, /comment\.body/);
   assert.match(dispatcher, /const isRuntimeIssue = String\(issue\.title/);
   assert.match(dispatcher, /kind: runtime_error/);
+});
+
+test("project truth dispatcher dedupes exact terminal visible issues", async () => {
+  const dispatcher = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
+
+  assert.match(dispatcher, /const exactTitleIssues = issues/);
+  assert.match(dispatcher, /issue\.title === title && !issue\.hiddenAt/);
+  assert.match(dispatcher, /const openMatch = exactTitleIssues/);
+  assert.match(dispatcher, /terminalStatuses\.has\(issue\.status\)/);
+  assert.match(dispatcher, /updatedDelta/);
 });
 
 test("app completion index exposes full risk backlog counts when priority review rows are capped", async () => {

@@ -24,6 +24,7 @@ const runId = process.env.PAPERCLIP_RUN_ID ?? null;
 const help = process.argv.includes("--help") || process.argv.includes("-h");
 const apply = process.argv.includes("--apply");
 const openStatuses = new Set(["backlog", "todo", "in_progress", "in_review", "blocked"]);
+const terminalStatuses = new Set(["done", "cancelled"]);
 const markerPrefix = "softwarehouse-routine-duplicate-janitor:cancel_duplicate_routine:";
 if (help) {
   console.log([
@@ -31,7 +32,7 @@ if (help) {
     "",
     "Find duplicate open routine execution issues by originId/title.",
     "Without --apply, prints a dry-run JSON action list.",
-    "With --apply, comments on and cancels non-canonical duplicate issues.",
+    "With --apply, comments on, cancels, and archives non-canonical duplicate issues.",
   ].join("\n"));
   process.exit(0);
 }
@@ -154,13 +155,14 @@ const { issues, liveRuns, source } = await withControlSql(async (sql) => {
         status,
         origin_kind as "originKind",
         origin_id as "originId",
+        updated_at as "updatedAt",
         created_at as "createdAt"
       from issues
       where company_id = ${company.id}
         and origin_kind = 'routine_execution'
         and origin_id is not null
         and hidden_at is null
-        and status in ('backlog', 'todo', 'in_progress', 'in_review', 'blocked')
+        and status in ('backlog', 'todo', 'in_progress', 'in_review', 'blocked', 'done', 'cancelled')
     `,
     sql`
       select context_snapshot ->> 'issueId' as "issueId"
@@ -180,7 +182,7 @@ const { issues, liveRuns, source } = await withControlSql(async (sql) => {
 const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean));
 const grouped = new Map();
 for (const issue of issues) {
-  if (!openStatuses.has(issue.status)) continue;
+  if (!openStatuses.has(issue.status) && !terminalStatuses.has(issue.status)) continue;
   if (issue.originKind !== "routine_execution" || !issue.originId || !issue.title) continue;
   const key = issueKey(issue);
   if (!grouped.has(key)) grouped.set(key, []);
@@ -229,6 +231,7 @@ for (const items of grouped.values()) {
   for (const issue of items) {
     if (issue.id === keep.id) continue;
     if (liveIssueIds.has(issue.id)) continue;
+    if (!openStatuses.has(issue.status)) continue;
     actions.push({
       action: "cancel_duplicate_routine_issue",
       identifier: issue.identifier,
@@ -242,6 +245,33 @@ for (const items of grouped.values()) {
       keepHasLiveRun: liveIssueIds.has(keep.id),
     });
   }
+
+  const openItems = items.filter((issue) => openStatuses.has(issue.status));
+  const terminalItems = items.filter((issue) => terminalStatuses.has(issue.status) && !liveIssueIds.has(issue.id));
+  const terminalKeep = openItems.length > 0
+    ? null
+    : [...terminalItems].sort((a, b) => {
+        const updatedDelta = timestampMs(b.updatedAt) - timestampMs(a.updatedAt);
+        if (updatedDelta !== 0) return updatedDelta;
+        return timestampMs(b.createdAt) - timestampMs(a.createdAt);
+      })[0] ?? null;
+  const archiveKeep = openItems.length > 0 ? keep : terminalKeep;
+  for (const issue of terminalItems) {
+    if (terminalKeep && issue.id === terminalKeep.id) continue;
+    if (!archiveKeep) continue;
+    actions.push({
+      action: "archive_terminal_duplicate_routine_issue",
+      identifier: issue.identifier,
+      issueId: issue.id,
+      title: issue.title,
+      status: issue.status,
+      rootBlocker: rootBlocker(issue),
+      keepIdentifier: archiveKeep.identifier,
+      keepStatus: archiveKeep.status,
+      keepRootBlocker: rootBlocker(archiveKeep),
+      keepHasLiveRun: liveIssueIds.has(archiveKeep.id),
+    });
+  }
 }
 
 const applied = [];
@@ -249,7 +279,16 @@ if (apply) {
   await withControlSql(async (sql) => {
     await sql.begin(async (tx) => {
       for (const action of actions) {
-        const body = [
+        const body = action.action === "archive_terminal_duplicate_routine_issue"
+          ? [
+              `${markerPrefix}${action.identifier}:archive:v1`,
+              "",
+              `Archived terminal duplicate routine issue in favor of canonical ${action.keepIdentifier}.`,
+              `Duplicate routine title: ${action.title}.`,
+              "This is board metadata cleanup only: no project code, production, deploy, restart, protected smoke, push, or secret mutation.",
+              "Any evidence already posted on this issue remains preserved in its comments/history.",
+            ].join("\n")
+          : [
           `${markerPrefix}${action.identifier}:v1`,
           "",
           `Cancelled duplicate routine issue in favor of canonical ${action.keepIdentifier}.`,
@@ -275,16 +314,26 @@ if (apply) {
             ${body}
           )
         `;
-        const updated = await tx`
-          update issues
-          set status = 'cancelled',
-              cancelled_at = now(),
-              updated_at = now()
-          where id = ${action.issueId}
-            and company_id = ${company.id}
-          returning status
-        `;
-        applied.push({ ...action, updatedStatus: updated[0]?.status ?? null });
+        const updated = action.action === "archive_terminal_duplicate_routine_issue"
+          ? await tx`
+              update issues
+              set hidden_at = now(),
+                  updated_at = now()
+              where id = ${action.issueId}
+                and company_id = ${company.id}
+              returning status, hidden_at as "hiddenAt"
+            `
+          : await tx`
+              update issues
+              set status = 'cancelled',
+                  cancelled_at = now(),
+                  hidden_at = now(),
+                  updated_at = now()
+              where id = ${action.issueId}
+                and company_id = ${company.id}
+              returning status, hidden_at as "hiddenAt"
+            `;
+        applied.push({ ...action, updatedStatus: updated[0]?.status ?? null, hiddenAt: updated[0]?.hiddenAt ?? null });
       }
     });
   });

@@ -49,7 +49,7 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("paperclip-routines-service-");
     db = createDb(tempDb.connectionString);
-  }, 20_000);
+  }, 60_000);
 
   afterEach(async () => {
     if (originalSecretsProviderEnv === undefined) {
@@ -223,7 +223,7 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
     expect(allRoutines.map((entry) => entry.id)).toEqual(expect.arrayContaining([routine.id, otherRoutine.id]));
   });
 
-  it("creates a fresh execution issue when the previous routine issue is open but idle", async () => {
+  it("coalesces into an open routine issue even when it is idle", async () => {
     const { companyId, issueSvc, routine, svc } = await seedFixture();
     const previousRunId = randomUUID();
     const previousIssue = await issueSvc.create(companyId, {
@@ -254,8 +254,9 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
     expect(detailBefore?.activeIssue).toBeNull();
 
     const run = await svc.runRoutine(routine.id, { source: "manual" });
-    expect(run.status).toBe("issue_created");
-    expect(run.linkedIssueId).not.toBe(previousIssue.id);
+    expect(run.status).toBe("coalesced");
+    expect(run.linkedIssueId).toBe(previousIssue.id);
+    expect(run.coalescedIntoRunId).toBe(previousRunId);
 
     const routineIssues = await db
       .select({
@@ -265,9 +266,8 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
       .from(issues)
       .where(eq(issues.originId, routine.id));
 
-    expect(routineIssues).toHaveLength(2);
-    expect(routineIssues.map((issue) => issue.id)).toContain(previousIssue.id);
-    expect(routineIssues.map((issue) => issue.id)).toContain(run.linkedIssueId);
+    expect(routineIssues).toHaveLength(1);
+    expect(routineIssues[0]?.id).toBe(previousIssue.id);
   });
 
   it("creates draft routines without a project or default assignee", async () => {
@@ -642,7 +642,7 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
     expect(wakeupResolved).toBe(true);
   });
 
-  it("coalesces only when the existing routine issue has a live execution run", async () => {
+  it("coalesces when the existing routine issue has a live execution run", async () => {
     const { agentId, companyId, issueSvc, routine, svc } = await seedFixture();
     const previousRunId = randomUUID();
     const liveHeartbeatRunId = randomUUID();
@@ -693,6 +693,48 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
     expect(detailBefore?.activeIssue?.id).toBe(previousIssue.id);
 
     const run = await svc.runRoutine(routine.id, { source: "manual" });
+    expect(run.status).toBe("coalesced");
+    expect(run.linkedIssueId).toBe(previousIssue.id);
+    expect(run.coalescedIntoRunId).toBe(previousRunId);
+
+    const routineIssues = await db
+      .select({ id: issues.id })
+      .from(issues)
+      .where(eq(issues.originId, routine.id));
+
+    expect(routineIssues).toHaveLength(1);
+    expect(routineIssues[0]?.id).toBe(previousIssue.id);
+  });
+
+  it("coalesces into a blocked routine issue without a live run instead of creating a duplicate", async () => {
+    const { companyId, issueSvc, routine, svc } = await seedFixture();
+    const previousRunId = randomUUID();
+    const previousIssue = await issueSvc.create(companyId, {
+      projectId: routine.projectId,
+      title: routine.title,
+      description: routine.description,
+      status: "blocked",
+      priority: routine.priority,
+      assigneeAgentId: routine.assigneeAgentId,
+      originKind: "routine_execution",
+      originId: routine.id,
+      originRunId: previousRunId,
+      originFingerprint: "older-schedule-tick",
+    });
+
+    await db.insert(routineRuns).values({
+      id: previousRunId,
+      companyId,
+      routineId: routine.id,
+      triggerId: null,
+      source: "manual",
+      status: "issue_created",
+      triggeredAt: new Date("2026-03-20T12:00:00.000Z"),
+      linkedIssueId: previousIssue.id,
+      dispatchFingerprint: "older-schedule-tick",
+    });
+
+    const run = await svc.runRoutine(routine.id, { source: "manual", payload: { tick: "new" } });
     expect(run.status).toBe("coalesced");
     expect(run.linkedIssueId).toBe(previousIssue.id);
     expect(run.coalescedIntoRunId).toBe(previousRunId);

@@ -268,3 +268,35 @@ Current evidence:
   for blocked duplicate lanes.
 - `scripts/softwarehouse-gate-specs.test.mjs` contains regression coverage for
   this behavior.
+
+## 2026-07-04 - Deduplicate visible board truth before creating more work
+
+Observed pattern: Paperclip can create internal noise when a scheduler or gap
+dispatcher treats "no live run" or "terminal status" as "no existing issue."
+That produced repeated routine execution issues and repeated Project Truth
+tasks with the same exact title. Archiving old evidence is useful; deleting it
+or letting it stay visible as current truth is not.
+
+Standing rule:
+
+- Before creating a routine or Project Truth issue, search for an existing
+  visible exact match and reuse it as canonical context unless the new issue has
+  a distinct, more precise scope.
+- Routine execution coalescing must consider all open routine issues, including
+  `blocked`, `todo`, and `in_review`, not only issues with live runs.
+- Terminal duplicate evidence should be hidden with `hiddenAt`, not deleted.
+  Keep one canonical visible item and preserve older history for audit.
+- Do not use normal board/API comments for pure metadata cleanup on closed
+  issues, because comments can reopen the issue and wake the assignee.
+- If cleanup accidentally wakes an agent, cancel only that accidental cleanup
+  run, restore the issue to its true terminal/hidden state, and record the
+  lesson.
+
+Current evidence:
+
+- `scripts/run-routine-duplicate-janitor.mjs` supports terminal duplicate
+  archival and open duplicate cancellation/hiding.
+- `server/src/services/routines.ts` coalesces routine dispatch to open routine
+  issues without requiring a live run.
+- `scripts/run-project-truth-gap-dispatcher.mjs` dedupes exact visible terminal
+  Project Truth issues.

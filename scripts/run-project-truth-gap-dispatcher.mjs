@@ -128,9 +128,22 @@ function identifierNumber(identifier) {
 }
 
 function canonicalExistingIssue(title, issues) {
-  return issues
-    .filter((issue) => issue.title === title && !terminalStatuses.has(issue.status))
+  const exactTitleIssues = issues
+    .filter((issue) => issue.title === title && !issue.hiddenAt);
+  const openMatch = exactTitleIssues
+    .filter((issue) => !terminalStatuses.has(issue.status))
     .sort((a, b) => identifierNumber(a.identifier) - identifierNumber(b.identifier))
+    .at(0);
+  if (openMatch) return openMatch;
+
+  return exactTitleIssues
+    .filter((issue) => terminalStatuses.has(issue.status))
+    .sort((a, b) => {
+      const updatedDelta = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime()
+        - new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
+      if (updatedDelta !== 0) return updatedDelta;
+      return identifierNumber(b.identifier) - identifierNumber(a.identifier);
+    })
     .at(0) ?? null;
 }
 

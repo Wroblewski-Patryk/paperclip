@@ -2,6 +2,7 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { applyPendingMigrations, ensurePostgresDatabase } from "./client.js";
 import { prepareEmbeddedPostgresNativeRuntime } from "./embedded-postgres-native.js";
 
@@ -102,8 +103,18 @@ async function createEmbeddedPostgresTestInstance(tempDirPrefix: string) {
   return { dataDir, port, instance };
 }
 
-function cleanupEmbeddedPostgresTestDirs(dataDir: string) {
-  fs.rmSync(dataDir, { recursive: true, force: true });
+async function cleanupEmbeddedPostgresTestDirs(dataDir: string) {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 4) await delay(100 * (attempt + 1));
+    }
+  }
+  throw lastError;
 }
 
 function formatEmbeddedPostgresError(error: unknown): string {
@@ -132,7 +143,7 @@ async function probeEmbeddedPostgresSupport(): Promise<EmbeddedPostgresTestSuppo
     };
   } finally {
     await instance?.stop().catch(() => {});
-    if (dataDir) cleanupEmbeddedPostgresTestDirs(dataDir);
+    if (dataDir) await cleanupEmbeddedPostgresTestDirs(dataDir);
   }
 }
 
@@ -166,12 +177,12 @@ export async function startEmbeddedPostgresTestDatabase(
       connectionString,
       cleanup: async () => {
         await instance?.stop().catch(() => {});
-        if (dataDir) cleanupEmbeddedPostgresTestDirs(dataDir);
+        if (dataDir) await cleanupEmbeddedPostgresTestDirs(dataDir);
       },
     };
   } catch (error) {
     await instance?.stop().catch(() => {});
-    if (dataDir) cleanupEmbeddedPostgresTestDirs(dataDir);
+    if (dataDir) await cleanupEmbeddedPostgresTestDirs(dataDir);
     throw new Error(
       `Failed to start embedded PostgreSQL test database: ${formatEmbeddedPostgresError(error)}`,
     );
