@@ -59,6 +59,11 @@ All routines are paused and all triggers are disabled.
 Stage 1 should start with the controlled activation routine, not with a bulk
 agent resume.
 
+Agent resume/pause is governed by
+`.agents/state/softwarehouse-agent-activation-governance.md`. `00 AIA` prepares
+the activation tree and can assign tasks, but actual lifecycle changes require
+owner/Codex board action or an approved activation bridge.
+
 Recommended activation sequence:
 
 1. Owner approves the controlled dry-run scope.
@@ -103,3 +108,5 @@ Verified after configuration:
   `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-032614.sql.gz`.
 - Post innovation-to-product project-description backup:
   `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-032840.sql.gz`.
+- Post AIA activation-governance permission backup:
+  `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-033055.sql.gz`.

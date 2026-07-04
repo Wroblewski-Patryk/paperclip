@@ -22,6 +22,8 @@ Before creating a new issue/task in Stage 1, an agent must know:
 - done criteria and reviewer;
 - risk gates: owner approval, secrets, production, paid resource, security,
   legal, finance, deploy, or hiring.
+- activation state: whether the intended assignee is active or paused, and
+  whether an AIA activation request is needed.
 
 If any item is unknown, create a planning comment/request to the parent rather
 than a new standalone task.
@@ -151,6 +153,8 @@ Recurring checks:
 - no parent issues with completed children and no synthesis;
 - no repeated duplicate tasks;
 - no tasks assigned to paused/unavailable roles unless intentionally queued;
+- no paused specialist activated without an activation request packet and
+  parent/AIA approval path;
 - no deployment-affecting tasks closed without source-control/deploy/prod
   evidence;
 - no learning packets left unreviewed when a procedure is about to run again.

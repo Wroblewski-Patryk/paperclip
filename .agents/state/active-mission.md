@@ -107,6 +107,11 @@ Verified current instance:
   projects live in `11 Innovation` while they are being validated, then move to
   `02 Product` once usable, supportable, deployable, and ready to sell or grant
   access.
+- Agent activation governance is tracked in
+  `.agents/state/softwarehouse-agent-activation-governance.md`: `00 AIA` owns
+  activation decisions and task routing, has `canAssignTasks: true`, but normal
+  agent access cannot directly resume/pause agents. Actual lifecycle changes
+  require owner/Codex board action or an approved activation bridge.
 
 Stage 0 gates live in `.agents/state/softwarehouse-stage0-foundation.md`.
 Codex in this chat should drive v0 directly and must not create Paperclip

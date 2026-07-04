@@ -88,6 +88,11 @@ Current verified direction:
   `NN Department - v1 Draft Paused - Element`; all current routines remain
   paused with disabled triggers.
 - Only `06 AIM (AI Agent Manager)` may create/hire AI agents.
+- `00 AIA` has `canAssignTasks: true` for Stage 1 routing, but `canCreateAgents:
+  false`. Normal agent REST access cannot directly call agent resume/pause;
+  actual lifecycle changes require owner/Codex board action or an approved
+  activation bridge. Policy lives in
+  `.agents/state/softwarehouse-agent-activation-governance.md`.
 - Secrets must be entered through Paperclip secret refs/provider flows, never
   chat or memory files.
 - Resource policy lives in `.agents/state/softwarehouse-resource-policy.md`.
@@ -144,6 +149,7 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-agent-role-readiness-audit.md`
 - `.agents/state/softwarehouse-v1-goals-routines-audit.md`
 - `.agents/state/softwarehouse-innovation-to-product-lifecycle.md`
+- `.agents/state/softwarehouse-agent-activation-governance.md`
 
 ## Collaboration Notes
 

@@ -45,6 +45,22 @@ An agent that needs help may propose a subtask, but it must notify the
 requesting/parent agent first and include why the subtask is needed, what
 evidence will come back, and which role is the least-privilege owner.
 
+## Activation Governance
+
+Agent lifecycle is governed separately from task delegation.
+
+`00 AIA` owns the activation decision packet and now has task-assignment
+authority. It does not directly resume or pause agents through normal agent REST
+access. Board/operator action or an approved activation bridge performs actual
+resume/pause calls.
+
+Agents may request activation of paused specialists through their parent or
+manager chain. Requests must state the needed role, parent goal/issue, expected
+evidence, risk flags, cost/quota impact, and pause-back condition.
+
+The activation policy lives in
+`.agents/state/softwarehouse-agent-activation-governance.md`.
+
 ## Delegation Rule
 
 Before a child issue/task may be created in Stage 1, the parent agent must have
