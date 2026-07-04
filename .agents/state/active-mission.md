@@ -97,6 +97,11 @@ Verified current instance:
   During Stage 0 and initial Stage 1, only Soar and Roost are active.
   Featherly, Aviary, and Nest remain parked; do not create Paperclip work for
   them until they are on VPS and the owner activates them.
+- V1 goals/routines readiness is tracked in
+  `.agents/state/softwarehouse-v1-goals-routines-audit.md`: the Stage 1
+  controlled activation dry-run goal exists, Soar/Roost activation goals are
+  linked under it, 9 V1 draft routines are paused, and all routine triggers are
+  disabled.
 
 Stage 0 gates live in `.agents/state/softwarehouse-stage0-foundation.md`.
 Codex in this chat should drive v0 directly and must not create Paperclip

@@ -124,6 +124,8 @@ by the owner.
   and context-efficiency policy.
 - `.agents/state/softwarehouse-agent-role-readiness-audit.md`: explicit role
   readiness verdict and remaining gaps.
+- `.agents/state/softwarehouse-v1-goals-routines-audit.md`: V1 goal tree and
+  paused routine readiness audit.
 - `doc/plans/2026-07-04-softwarehouse-stage-0-foundation.md`: repo plan.
 - Managed instruction bundles for all agents:
   - `AGENTS.md`
@@ -159,6 +161,7 @@ by the owner.
 
 3. Full disaster recovery gate:
    - Current DB backup exists at `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-031504.sql.gz`.
+   - Current post-goal/routine DB backup exists at `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-032614.sql.gz`.
    - Current lightweight memory/config snapshot exists at `.agents/state/backups/stage0-memory-config-20260704-031638.zip`.
    - Current role/cost policy and agent-instruction snapshot exists at `.agents/state/backups/stage0-role-cost-config-20260704-032329.zip`.
    - Still needs deliberate handling of local storage and the local encrypted secrets key outside repo memory.

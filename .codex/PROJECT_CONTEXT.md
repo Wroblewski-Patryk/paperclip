@@ -75,11 +75,13 @@ Current verified direction:
   activates them.
 - Goals also use the English naming convention `NN Department: Element`;
   current goals are `00 General: v0 Softwarehouse Readiness`,
+  `00 General: Stage 1 Controlled Activation Dry Run`,
   `11 Innovation: Stage 1 Soar Activation`, and
-  `11 Innovation: Stage 1 Roost Activation`.
+  `11 Innovation: Stage 1 Roost Activation`; Soar/Roost activation goals are
+  children of the controlled dry-run goal.
 - Routines use the English naming convention
-  `NN Department - v0 Paused - Element`; all current routines remain paused
-  with disabled triggers.
+  `NN Department - v1 Draft Paused - Element`; all current routines remain
+  paused with disabled triggers.
 - Only `06 AIM (AI Agent Manager)` may create/hire AI agents.
 - Secrets must be entered through Paperclip secret refs/provider flows, never
   chat or memory files.
@@ -135,6 +137,7 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-stage1-recommended-first-action.md`
 - `.agents/state/softwarehouse-cost-token-policy.md`
 - `.agents/state/softwarehouse-agent-role-readiness-audit.md`
+- `.agents/state/softwarehouse-v1-goals-routines-audit.md`
 
 ## Collaboration Notes
 
