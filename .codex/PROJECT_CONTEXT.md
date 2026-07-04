@@ -1,6 +1,6 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 ## What This Workspace Is
 
@@ -28,6 +28,48 @@ Use `.agents/skills/paperclip-project-memory/SKILL.md` when the user asks to sav
 ## Current North Star
 
 Help the user build and run LuckySparrow Software House as an autonomous software company on top of Paperclip. The system should make autonomous agents more capable, governable, inspectable, and commercially useful while keeping human board control over risk, production, budget, and direction.
+
+## Current Stage 0 State
+
+The local Paperclip Softwarehouse instance has been reset to a quiet Stage 0
+configuration phase. Codex in the current chat configures v0 directly; Paperclip
+agents should not work yet.
+
+Current verified direction:
+
+- 38 agents exist and are intentionally paused.
+- 7 routines exist only as inactive assets: routine `status: paused`, triggers `enabled: false`.
+- 3 planned company goals exist with department prefixes.
+- 0 issues/tasks and 0 live runs should remain true until owner approval.
+- 18 company skills are attached by role.
+- 4 Coolify Stage 0 secrets exist in Paperclip `local_encrypted` storage and
+  are bound by secret refs to selected deploy-capable/coordinating agents.
+  Values must not be written into memory or final responses.
+- 38/38 managed instruction bundles are present and include shared standards,
+  learning/self-correction, hiring governance, secrets/deploy policy, and
+  end-to-end operating flow.
+- Department 05 is customer success; department 06 is people and AI workforce.
+- Canonical department map and naming convention live in
+  `.agents/state/softwarehouse-departments.md`; department-owned work objects
+  should start with `NN NazwaDziału - ...`.
+- Only `06 AIM (AI Agent Manager)` may create/hire AI agents.
+- Secrets must be entered through Paperclip secret refs/provider flows, never
+  chat or memory files.
+- Resource policy lives in `.agents/state/softwarehouse-resource-policy.md`.
+  The owner does not have a paid GitHub plan; do not assume paid GitHub
+  features, paid Actions capacity, Advanced Security, paid runners/packages,
+  enterprise-only controls, paid GitHub AI features, or notification-heavy
+  automation.
+
+Read these current Stage 0 files before changing Softwarehouse configuration:
+
+- `.agents/state/softwarehouse-stage0-foundation.md`
+- `.agents/state/softwarehouse-v0-readiness-audit.md`
+- `.agents/state/softwarehouse-departments.md`
+- `.agents/state/softwarehouse-secret-requirements.md`
+- `.agents/state/softwarehouse-resource-policy.md`
+- `.agents/state/stage1-activation-soar.md`
+- `.agents/state/stage1-activation-roost.md`
 
 ## Collaboration Notes
 

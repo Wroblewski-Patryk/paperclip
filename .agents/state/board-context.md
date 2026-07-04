@@ -1,6 +1,6 @@
 # Board Context
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 ## User Intent
 
@@ -36,6 +36,75 @@ The project is both product work and company-building work. Future Codex chats s
 - Soar is the first active sellable app lane.
 - Roost is the second active sellable app lane in thinner readiness mode.
 - Other app/project ideas stay backlog unless the board reopens them.
+
+## Stage 0 Foundation Direction
+
+- The owner intentionally reset to a nearly clean Paperclip instance after an
+  earlier noisy state with thousands of tasks. Future work should avoid
+  recreating volume without signal.
+- Current phase is Stage 0: configure Paperclip Softwarehouse before any
+  autonomous agent execution.
+- Prefer official Paperclip configuration surfaces first: managed agent
+  instructions, company skills, routines, secret refs, company import/export,
+  issue documents, work products, and evidence gates.
+- Use new code only when a verified Paperclip capability is missing or broken.
+- Operating standards such as APQC/PCF, MECE, PDCA, governance gates,
+  QA/security/DevOps, customer success, and learning loops should be encoded as
+  practical instructions, skills, routines, and issue gates rather than vague
+  philosophy.
+- Agent design should model company employees: role scope, authority,
+  responsibility, access, escalation, collaboration norms, and optionally Big
+  Five-style personality fit when it improves role behavior.
+- Do not store raw secrets in memory, instructions, comments, docs, or logs.
+  Use Paperclip secret refs and explicit operator entry paths.
+- During Stage 0/v0, Codex in the current chat is the implementer/configurator.
+  Do not create Paperclip issues/tasks for Paperclip agents unless the owner
+  explicitly asks. Paperclip agents remain quiet until the owner confirms v0 is
+  complete and approves Stage 1.
+- The owner approved creating Paperclip routines during Stage 0 only when they
+  are inactive: routine `status: paused` and every trigger `enabled: false`.
+- All agents should stay paused during Stage 0 unless the owner explicitly asks
+  for a targeted resume.
+- Current Stage 0 configuration now has managed instruction bundles for all 38
+  agents, 18 company skills attached by role, 7 paused routines, 3 planned
+  company goals, all 38 agents paused, and `06 AIM (AI Agent Manager)` as the
+  only agent with AI-agent creation authority.
+- Canonical departments live in `.agents/state/softwarehouse-departments.md`.
+  Department-owned routines, goals, issues, work products, reports, approvals,
+  and notes should start with `NN NazwaDziału - ...` for filtering and fast
+  recognition.
+- Every current agent bundle includes a shared end-to-end operating flow:
+  intake, triage, plan, do, check, review, act, and learning handoff. The goal
+  is pleasant, clear work with small context, explicit evidence, and clean
+  handoffs.
+- Agents should learn through governed learning packets: individual lessons,
+  department pattern reviews, and company-level operating updates. They must not
+  directly edit their own instructions, skills, permissions, or routines.
+- Department 05 is Relacje / customer service. Department 06 is Kadry / people
+  and AI workforce. Human/workforce
+  operations and AI-agent management are separate subdomains; only the AI-agent
+  manager may hire/create AI agents after the hiring procedure passes.
+- Required secret names and policy live in
+  `.agents/state/softwarehouse-secret-requirements.md`; the file stores no
+  values. Do not enter real production secrets until the local encrypted key ACL
+  warning is either accepted for local use or fixed by a better runtime/provider
+  setup.
+- Coolify Stage 0 base/login credentials have been entered as Paperclip managed
+  secrets and bound by secret refs to selected deployment/coordinating agents.
+  Do not repeat the values in memory, docs, comments, or final responses. The
+  remaining Coolify work is API token/team/resource discovery and read-only
+  access testing.
+- Resource constraints live in `.agents/state/softwarehouse-resource-policy.md`.
+  The owner does not have a paid GitHub plan. Agents must not assume paid GitHub
+  features, paid Actions capacity, Advanced Security, paid runners/packages,
+  enterprise-only controls, paid GitHub AI features, or notification-heavy
+  automation. Prefer local/free verification and report missing plan/quota as a
+  constraint with a free/local alternative.
+- Current v0 coverage audit lives in
+  `.agents/state/softwarehouse-v0-readiness-audit.md`. Draft Stage 1 activation
+  packets live in `.agents/state/stage1-activation-soar.md` and
+  `.agents/state/stage1-activation-roost.md`; these are not approval to create
+  Paperclip issues or resume agents.
 
 ## Standing Codex Watchdog
 

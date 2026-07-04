@@ -44,9 +44,9 @@
   },
   "secrets": {
     "provider": "local_encrypted",
-    "strictMode": false,
+    "strictMode": true,
     "localEncrypted": {
-      "keyFilePath": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/secrets/master.key"
+      "keyFilePath": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/home/instances/default/secrets/master.key"
     }
   },
   "telemetry": {

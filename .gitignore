@@ -69,6 +69,7 @@ coolify.*
 artifacts/
 report/
 screenshots/
+.agents/state/backups/
 
 # Local Obsidian plugin/theme installs for the docs vault
 docs/.obsidian/plugins/

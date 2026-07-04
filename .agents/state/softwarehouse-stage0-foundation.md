@@ -1,0 +1,138 @@
+# Softwarehouse Stage 0 Foundation
+
+Last updated: 2026-07-04
+
+This file indexes the owner intent and verified readiness state for configuring
+LuckySparrow Software House before autonomous agents start work.
+
+## Stage Model
+
+- Stage 0: configure Paperclip Softwarehouse before agent execution. Current stage.
+- Stage 1: enable Paperclip agents to work toward app goals, initially Soar and Roost, supervised by Codex/Paperclip watchdog loops.
+- Stage 2: move Paperclip to VPS and operate with Roost as an autonomous digital-services company. Soar remains a personal capital-growth app lane.
+
+## Durable Owner Intent
+
+- Avoid repeating the previous noisy state where thousands of tasks existed but signal was low.
+- Prefer configuration, official Paperclip features, company packages, skills, routines, instructions, and secret refs over new code.
+- Use recognized operating standards where they improve local execution: APQC/PCF, MECE, PDCA, governance gates, evidence gates, QA/security/DevOps, customer success, pricing/subscription, and learning loops.
+- Treat agents as company employees with explicit role scope, authority, responsibilities, access, escalation paths, and personality fit. Big Five can be used as a role-shaping model when it improves agent behavior.
+- Keep Paperclip as the control plane for the company. Product apps such as Soar and Roost remain separate app repos.
+- Do not start autonomous agent work until Stage 0 gates are sufficiently ready and visible to the board.
+- Measure forces against available resources. The owner does not have a paid
+  GitHub plan, so agents must not assume paid GitHub features, paid Actions
+  capacity, Advanced Security, paid runners/packages/storage, enterprise-only
+  controls, or paid GitHub AI features. Do not create notification-heavy GitHub
+  automation or workflows that send repeated emails unless the owner explicitly
+  approves that exact tradeoff.
+- During Stage 0, Codex in this chat implements/configures Paperclip directly
+  and must not create Paperclip issues/tasks for Paperclip agents unless the
+  owner explicitly asks. Paperclip agents and Codex-local agents inside
+  Paperclip remain inactive until the owner approves Stage 1.
+
+## Verified Local State On 2026-07-04
+
+- Active Paperclip base: `http://127.0.0.1:3200`.
+- Health: `ok`, version `0.3.1`, deployment mode `local_trusted`, exposure `private`.
+- Current company: `LuckySparrow`, id `ae26bb8b-8f5f-4a85-b341-78d4e1985975`, prefix `LUC`, issue counter `6`.
+- Agents: 38 returned by `/api/companies/:companyId/agents`; all observed as idle in sampled output.
+- Projects: 6 returned by `/api/companies/:companyId/projects`; active/planned lanes include Softwarehouse, Soar, Roost, Aviary, plus archived/non-active entries.
+- Goals: 3 planned company goals, all department-prefixed: `00 Ogólny - v0 Softwarehouse Readiness`, `11 Innowacje - Stage 1 Soar Activation`, and `11 Innowacje - Stage 1 Roost Activation`.
+- Issues: 0 returned by `/api/companies/:companyId/issues`.
+- Routines: 7 returned by `/api/companies/:companyId/routines`; all are Stage 0 drafts with `status: paused`, every title is department-prefixed, and every schedule trigger is `enabled: false`.
+- Live runs: 0 returned by `/api/companies/:companyId/live-runs`.
+- Agent status: 38/38 agents are intentionally `paused` as the Stage 0 quiet-mode guard.
+- Company skills: 18 returned by `/api/companies/:companyId/skills`. Role attachments are present for Paperclip ops, planning, triage, QA, docs, GitHub PR workflow, browser, release, and product/design skills.
+- App-shipped skills catalog exists at `packages/skills-catalog/generated/catalog.json` with bundled/optional skills for docs, Paperclip operations, product, quality, software development, browser, content, and design critique.
+- Agent managed instructions are configured for all 38 agents. Verified through `/api/agents/:id/instructions-bundle?companyId=...`: every current agent has a managed bundle with no warnings and at least these files: `AGENTS.md`, `references/company-operating-model.md`, `references/standards.md`, `references/learning-and-self-correction.md`, `references/hiring-and-agent-governance.md`, `references/secrets-deploy-evidence.md`, `references/end-to-end-operating-flow.md`, and `references/departments-and-naming.md`.
+- Canonical department map lives at `.agents/state/softwarehouse-departments.md`. Department naming convention is `NN NazwaDziału - concise title` for department-owned routines, goals, issues, reports, work products, approvals, and notes.
+- Resource policy lives at `.agents/state/softwarehouse-resource-policy.md`.
+  Prefer local/free verification and report paid-plan or quota constraints
+  instead of inventing unavailable GitHub-based solutions.
+- Agent learning/self-correction is encoded in shared instructions at individual, department, and company levels. Agents must produce learning packets; they may not edit their own instructions, skills, permissions, or routines directly.
+- Hiring governance is encoded in instructions and permissions. Only `06 AIM (AI Agent Manager)` currently has `permissions.canCreateAgents: true`; all other agents are false. `06 AIM` belongs to department `06 People and AI Workforce` and is the governed AI-agent hiring manager.
+- Runtime still contains old company instruction/runtime folders for company id `f13051a7-d0aa-4261-9254-d3ab90735de5`. These old folders should not be blindly copied because their agent ids do not match the current company agents.
+- Secrets: company has 4 Coolify Stage 0 managed secrets in `local_encrypted`:
+  base URL, API URL, login email, and login password. Values are not stored in
+  memory files. These are bound by `secret_ref` env bindings to 16
+  deploy-capable/coordinating agents while all agents remain paused.
+  `local_encrypted` is configured with `strictMode: true` in
+  `.paperclip/config.json`, but provider health still warns that the local key
+  file permissions are `666`. A Windows ACL tightening attempt made the key
+  unreadable to the local runtime, so the working readable ACL was restored and
+  the warning remains a known v0 blocker/risk. AWS/GCP/Vault providers are not
+  configured.
+- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-022414.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
+- Stage 0 configuration snapshot exists at `.agents/state/backups/stage0-config-20260704-022426.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and current agent instruction folders. It intentionally does not store secret values.
+- CLI caveat: `pnpm paperclipai skills browse` attempted dependency install and failed on Windows with `EPERM` while creating a plugin SDK symlink. Use HTTP API/file inspection until that tooling issue is repaired.
+- Catalog install caveat: the catalog install API failed on a pinned hash mismatch for `paperclipai:bundled:docs:doc-maintenance:SKILL.md`; local official skill directory imports were used instead.
+
+## Stage 0 Readiness Gates
+
+1. Baseline inventory is documented: company, agents, projects, skills, routines, issues, secrets, runtime paths.
+2. Agent instructions bundles exist for every active agent and include shared company standards plus role-specific files.
+3. Company skills are installed or created, then attached to relevant agents using Paperclip desired-skill sync.
+4. Secrets are declared through Paperclip secret refs; no raw secret values are stored in memory files, instructions, activity logs, or issue comments.
+5. Coolify/VPS access model is defined as secret refs and operational routines, with permission boundaries and deploy evidence expectations.
+6. Core routines exist but do not create noisy work: liveness, portfolio truth, PDCA review, evidence-gate review, source-control/deploy readiness, secrets/Coolify/VPS readiness, and agent hiring/governance review. In Stage 0 they must remain `paused` with disabled triggers.
+7. Stage 1 activation packets for Soar and Roost exist with clear owners, acceptance criteria, and evidence gates. During Stage 0 these remain repo-local plans, not Paperclip issues, unless the owner explicitly approves issue creation.
+8. Paperclip CLI/tooling blockers are either repaired or documented with API fallback.
+9. A backup/export point exists before enabling autonomous work.
+10. Resource realism is explicit: no paid GitHub assumptions and no
+    notification-heavy automation without owner approval.
+11. Board accepts a current readiness percentage and known residual risks.
+
+## Current Stage 0 Estimate
+
+As of this capture, Stage 0 is about 86% complete.
+
+Completed or partly complete:
+
+- Paperclip instance is healthy and fresh.
+- Current company, agents, projects, issues, routines, live runs, skills, secrets, backup path, and key runtime paths are inventoried.
+- Managed instruction bundles exist for all 38 current agents and encode Stage 0/1/2, APQC/PCF, MECE, PDCA, evidence gates, learning, self-correction, hiring, and secrets/deploy policy.
+- Managed instruction bundles also include `references/end-to-end-operating-flow.md` so agents have a clear intake -> triage -> plan -> do -> check -> review -> act -> learning flow.
+- Company skills increased from 8 to 18 and are attached by role through desired-skill sync.
+- Department 05/06 naming is corrected: department 05 is customer success, and department 06 is people and AI workforce.
+- All 38 agents have department metadata: department number, English process, Polish department name, and prefixed department display name.
+- Goals and routines now follow the department-prefix naming convention.
+- GitHub/free-plan and notification-noise constraints are recorded in the
+  resource policy and agent instruction bundles.
+- Coolify base/login credentials are stored as Paperclip managed secrets and
+  bound to selected deployment/coordinating agents through secret refs.
+- Only `06 AIM (AI Agent Manager)` can create/hire agents, and only through the governed hiring path.
+- Seven core routines exist as paused drafts with disabled schedules.
+- All 38 agents are intentionally paused to prevent accidental wakeups during Stage 0.
+- Durable memory records the Stage 0 boundary: Codex configures v0 directly; Paperclip agents remain idle.
+
+Not yet complete:
+
+- Secret provider health still has a Windows key-permission warning.
+- Coolify API token, team id, project ids, resource ids, and read-only access
+  tests are not done.
+- Coolify/VPS/GitHub/product-app secret refs and operator entry path are
+  declared as no-value policy. Coolify base/login values are entered; remaining
+  API/resource/product-app values and access tests are not done.
+- Stage 0 routines exist, but activation/resume remains owner-gated.
+- Soar/Roost activation work is represented as draft repo-local Stage 1 activation packets, but not yet owner-approved for Paperclip issue creation or agent execution.
+- A lightweight Stage 0 config snapshot exists after routines/agent pause, and a fresh manual DB backup exists. A full disaster-recovery backup still requires separate handling of local storage and the encrypted secrets key.
+- Paperclip catalog install and CLI dependency/symlink tooling blockers remain documented but not repaired.
+
+## Immediate Next Actions
+
+- Draft the reviewed secret-ref manifest for Coolify/VPS/GitHub/product apps without storing values.
+- Decide whether to accept the local Windows ACL warning temporarily or switch the secret provider strategy before entering real secrets.
+- Review and approve or revise the draft Stage 1 activation packets for Soar and Roost.
+- Review the resource policy before Stage 1 so agents know when to use local
+  checks versus owner-approved GitHub/cloud automation.
+- Create a full Stage 0 backup/export checkpoint that includes DB backup plus current instruction/config files, while keeping the secrets key handled separately as sensitive material.
+- Keep Stage 0 execution in this Codex chat and repo-local files until the
+  owner approves Paperclip issue/routine creation for Stage 1.
+
+## Correction
+
+On 2026-07-04, Codex mistakenly created Paperclip backlog issues `LUC-7`
+through `LUC-11` for Stage 0 configuration. The owner clarified that Stage 0
+must be performed by Codex in this chat, not by creating Paperclip work for
+Paperclip agents. Codex deleted those five issues immediately and verified no
+live runs were active.

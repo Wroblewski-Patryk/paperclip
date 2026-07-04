@@ -1,5 +1,62 @@
 # Active Mission
 
+## 2026-07-04 Stage 0 Softwarehouse Foundation
+
+Current durable mission shifted to Stage 0 after the local Paperclip instance
+was reset to a nearly clean state. Before enabling autonomous agents, configure
+LuckySparrow Software House so it can work with less noise and better evidence.
+
+Verified current instance:
+
+- Base URL: `http://127.0.0.1:3200`.
+- Company: `LuckySparrow`, id `ae26bb8b-8f5f-4a85-b341-78d4e1985975`, prefix
+  `LUC`.
+- Current board state is intentionally quiet: 38 agents, 6 projects, 0 issues,
+  3 planned goals, 7 paused routines, 0 live runs, 18 company skills, 4 company
+  secrets.
+- All 38 agents are intentionally paused for Stage 0 quiet mode. Do not resume
+  agents until the owner approves Stage 1 or explicitly asks for a targeted
+  unpause.
+- Company skills are attached by role through desired-skill sync.
+- Managed agent instruction bundles are present for all 38 agents and verified
+  through the Paperclip instruction-bundle API with no warnings.
+- Agent learning is configured as a governed packet/review loop at individual,
+  department, and company levels. Agents may not self-edit their own
+  instructions, skills, permissions, or routines.
+- Only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`.
+  This agent is the department 06 governed AI-agent hiring manager.
+- Department-owned work objects should use the canonical prefix convention
+  `NN NazwaDziału - ...`; the source of truth is
+  `.agents/state/softwarehouse-departments.md`.
+- Runtime still contains old instruction/runtime folders for the previous
+  company id `f13051a7-d0aa-4261-9254-d3ab90735de5`; do not blindly reuse them
+  because agent ids differ.
+- Secret provider `local_encrypted` is configured, but health warns the local
+  key file permissions are `666`; AWS/GCP/Vault are not configured. Strict mode
+  is enabled in `.paperclip/config.json`, and required secret names are tracked
+  in `.agents/state/softwarehouse-secret-requirements.md`.
+- Coolify Stage 0 base/login credentials are now stored as Paperclip managed
+  secrets and bound by `secret_ref` env bindings to 16 deploy-capable or
+  coordinating agents. Remaining Coolify gate: API token, team id, project ids,
+  resource ids, and tested read-only access.
+- Resource policy is tracked in `.agents/state/softwarehouse-resource-policy.md`:
+  no paid GitHub plan is available, so Stage 1 agents must not assume paid
+  GitHub features, paid Actions capacity, Advanced Security, paid runners,
+  enterprise-only controls, paid GitHub AI features, or notification-heavy
+  email-generating automation.
+
+Stage 0 gates live in `.agents/state/softwarehouse-stage0-foundation.md`.
+Codex in this chat should drive v0 directly and must not create Paperclip
+issues/tasks for Paperclip agents unless the owner explicitly asks.
+The owner has approved creating routines only as non-running assets: routine
+`status: paused` with triggers `enabled: false`. Do not start broad autonomous
+work until secrets policy/value entry, Soar/Roost activation gates, and full
+backup/export evidence are ready enough for a board-approved Stage 1 start.
+Current v0 coverage audit lives at
+`.agents/state/softwarehouse-v0-readiness-audit.md`; draft Stage 1 activation
+packets live at `.agents/state/stage1-activation-soar.md` and
+`.agents/state/stage1-activation-roost.md`.
+
 ## 2026-07-03 Softwarehouse App-Completion Mission
 
 Current durable mission: make Paperclip Softwarehouse capable of taking over,

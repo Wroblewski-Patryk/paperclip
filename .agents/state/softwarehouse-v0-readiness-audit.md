@@ -1,0 +1,117 @@
+# Softwarehouse V0 Readiness Audit
+
+Last updated: 2026-07-04
+
+Source: conversation summary plus verified Paperclip API state at
+`http://127.0.0.1:3200`.
+
+## Current Readiness
+
+Estimated Stage 0 / v0 readiness: about 86%.
+
+This is close enough to see the v0 horizon, but not ready for Stage 1 agent
+execution until the remaining gates below are resolved or consciously accepted
+by the owner.
+
+## Verified Implementation State
+
+- Paperclip health: ok, version `0.3.1`, `local_trusted/private`.
+- Company: `LuckySparrow`, id `ae26bb8b-8f5f-4a85-b341-78d4e1985975`, prefix `LUC`.
+- Agents: 38 total, 38 paused, heartbeat disabled on every sampled/current agent.
+- Issues/tasks: 0.
+- Live runs: 0.
+- Routines: 7 total, all `paused`, every schedule trigger `enabled: false`.
+- Goals: 3 planned company goals, all prefixed with department number/name.
+- Skills: 18 company skills, attached by role through desired-skill sync.
+- Secrets: 4 company secrets, all `local_encrypted` managed Coolify Stage 0
+  credentials with no raw values stored in memory files.
+- Managed instructions: 38/38 agents have managed bundles with no API warnings.
+- Agent creation authority: only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`.
+- Department numbering: 05 = Customer Success; 06 = People and AI Workforce.
+- Canonical department map: `.agents/state/softwarehouse-departments.md`.
+- Resource policy: `.agents/state/softwarehouse-resource-policy.md`.
+
+## Requirement Coverage
+
+| Owner direction | Captured in context | Implemented now | Remaining gap |
+| --- | --- | --- | --- |
+| Stage 0 before autonomous work | Yes | Yes | Owner must approve Stage 1 later. |
+| Codex configures v0; Paperclip agents do not work yet | Yes | Yes | Keep agents paused until explicit approval. |
+| No Paperclip issues/tasks during Stage 0 | Yes | Yes | None; issue count verified as 0. |
+| Paused/inactive routines are allowed | Yes | Yes | Activation remains owner-gated. |
+| Agents should be muted | Yes | Yes | 38/38 paused; heartbeat disabled. |
+| Department names should start with numbers for filtering | Yes | Yes | Applied to agents metadata, routines, goals, and naming instructions. |
+| Build toward Soar and Roost first | Yes | Partly | Need local Stage 1 activation packets before issue creation. |
+| Stage 2: VPS + Roost autonomous company | Yes | Concept only | Needs future deploy/provider architecture and secrets. |
+| Use APQC/PCF, MECE, PDCA, evidence gates | Yes | Yes in instructions/routines | Future improvement: richer process playbooks by department. |
+| Use role/personality fit such as Big Five | Yes | Initial role profiles in agent entry files | Future improvement: more precise role calibration/evals. |
+| Agent learning at individual, department, company level | Yes | Yes in instructions and paused PDCA routine | Needs activation and real learning packets in Stage 1. |
+| Agents must not self-edit | Yes | Yes in instructions | Future: enforce through stronger permission tooling if available. |
+| Hiring only through AI workforce manager | Yes | Yes; only `06 AIM` can create agents | Need full hiring packet template before Stage 1. |
+| Secrets via Paperclip secret refs, no raw values | Yes | Coolify base/login credentials entered as Paperclip managed secrets and bound by secret_ref to selected deploy-capable agents | Provider warning unresolved; v2 rotation planned. |
+| Coolify/VPS deployment observation | Yes | Base URL, API URL, login email, and login password secrets exist; paused readiness routine exists | Need API token, team id, resource ids, and tested read-only access. |
+| No paid GitHub assumption or email-noisy automation | Yes | Resource policy and agent instructions updated | Need Stage 1 enforcement during real work. |
+| Prefer configuration and official/common extensions over code | Yes | Yes | CLI/catalog tooling blockers remain documented. |
+| Work should be pleasant end-to-end for agents | Yes | Added shared operating flow to all bundles | Needs Stage 1 feedback to refine friction points. |
+
+## Implemented Operating Assets
+
+- `.agents/state/softwarehouse-stage0-foundation.md`: Stage 0 index and gates.
+- `.agents/state/softwarehouse-secret-requirements.md`: no-value secret manifest.
+- `.agents/state/softwarehouse-v0-readiness-audit.md`: this coverage audit.
+- `.agents/state/softwarehouse-departments.md`: canonical 00-12 department map.
+- `.agents/state/softwarehouse-resource-policy.md`: resource realism, free-plan
+  GitHub constraints, and notification-noise policy.
+- `doc/plans/2026-07-04-softwarehouse-stage-0-foundation.md`: repo plan.
+- Managed instruction bundles for all agents:
+  - `AGENTS.md`
+  - `references/company-operating-model.md`
+  - `references/standards.md`
+  - `references/learning-and-self-correction.md`
+  - `references/hiring-and-agent-governance.md`
+  - `references/secrets-deploy-evidence.md`
+  - `references/end-to-end-operating-flow.md`
+  - `references/departments-and-naming.md`
+  - `references/resource-and-github-policy.md`
+
+## Remaining V0 Gates
+
+1. Secrets gate:
+   - Decide whether to accept the local Windows `local_encrypted` key permission warning for local v0, fix the launch/ACL context, or use a different provider strategy.
+   - Coolify base/login secrets are now entered through Paperclip managed secrets.
+   - Still enter or discover `COOLIFY_API_TOKEN`, `COOLIFY_TEAM_ID`,
+     `COOLIFY_PROJECT_ID_*`, `COOLIFY_RESOURCE_ID_*`, VPS secrets if needed,
+     GitHub token if used, and product-app test-account secrets through
+     UI/env/provider flow, never memory files.
+
+2. Soar/Roost activation gate:
+   - Draft local Stage 1 activation packets for Soar and Roost.
+   - Include repo path, deploy context, first outcome, verification plan, evidence gates, and owner approval condition.
+
+3. Full disaster recovery gate:
+   - Current DB backups and config snapshots exist.
+   - Still needs deliberate handling of local storage and the local encrypted secrets key outside repo memory.
+
+4. Tooling gate:
+   - Paperclip skills catalog install hit a pinned hash mismatch.
+   - `pnpm paperclipai skills browse` hit a Windows symlink/EPERM issue.
+   - API/local file fallback works, but tooling should be repaired or accepted as a known v0 caveat.
+
+5. Resource realism gate:
+   - Stage 1 work must not assume paid GitHub capabilities or create noisy
+     notification/email automation.
+   - If a workflow needs a paid plan, quota, or hosted automation, agents must
+     report the constraint and propose a local/free alternative first.
+
+6. Activation gate:
+   - Before Stage 1, owner must explicitly approve which agents/routines to unpause.
+   - Do not bulk-resume all agents unless the owner explicitly chooses that mode.
+
+## Future Backlog For Excellent Flow
+
+- Department playbooks for all 12 APQC/PCF categories.
+- Hiring packet template and role-fit scorecard for `06 AIM`.
+- Learning packet template with severity, root cause, fix proposal, affected scope, and rollback.
+- Secret rotation and least-privilege review cadence.
+- Soar and Roost app-specific evidence checklists.
+- Customer-facing service lifecycle: lead -> discovery -> quote -> delivery -> QA -> deploy -> support -> renewal.
