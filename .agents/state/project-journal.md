@@ -1161,3 +1161,23 @@ Verification:
   `No-Wake Change Hygiene`, and `RACI/DACI-lite` in `references/standards.md`.
 - `LUC-61`: `done`, no live runs.
 - `10 SPA`: `idle`.
+
+# 2026-07-04 - Stage 1 Monitor: LUC-69 Secret-Ref Approval Gate
+
+Heartbeat monitor found Stage 1 progressing with DRE active and no agents in
+`error`. `LUC-61` remained `done`, `10 SPA` was `idle`, and there were no live
+runs on `LUC-61`.
+
+New gate:
+
+- `LUC-69` blocks Soar Gate 2 because protected `/workers/ready` smoke needs
+  approved secret-ref bindings and an allowed ops-network path.
+- A pending board approval exists for binding existing approved smoke
+  principal refs to DRE/QVE/SPA. Raw secret values were not inspected or
+  exposed.
+- Codex corrected the issue title from mojibake/mixed language to
+  `00 General: Bind Soar protected worker readiness smoke refs`.
+
+Decision posture: do not silently mutate secret bindings from the monitor.
+Surface the approval clearly to the owner/AIA path unless explicit current
+approval is given for this specific secret-ref binding.
