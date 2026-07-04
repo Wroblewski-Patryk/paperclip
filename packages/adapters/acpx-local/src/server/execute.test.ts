@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AcpRuntimeOptions } from "acpx/runtime";
 import { createAcpxLocalExecutor } from "./execute.js";
 
@@ -14,6 +14,7 @@ async function makeTempRoot() {
 }
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await Promise.all(tempRoots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true })));
 });
 
@@ -227,6 +228,58 @@ describe("acpx_local runtime skill isolation", () => {
     expect(path.resolve(path.dirname(managedAuth), await fs.readlink(managedAuth))).toBe(sourceAuth);
   });
 
+  it("copies managed Codex auth when the host refuses auth symlinks", async () => {
+    const root = await makeTempRoot();
+    const sourceCodexHome = path.join(root, "source-codex-home");
+    const paperclipHome = path.join(root, "paperclip-home");
+    const paperclipInstanceId = "test-instance";
+    const managedCodexHome = path.join(
+      paperclipHome,
+      "instances",
+      paperclipInstanceId,
+      "companies",
+      "company-1",
+      "codex-home",
+    );
+    await fs.mkdir(sourceCodexHome, { recursive: true });
+    const sourceAuth = path.join(sourceCodexHome, "auth.json");
+    const managedAuth = path.join(managedCodexHome, "auth.json");
+    await fs.writeFile(sourceAuth, "{\"source\":true}", "utf8");
+
+    vi.spyOn(fs, "symlink").mockImplementationOnce(async () => {
+      const error = new Error("operation not permitted") as NodeJS.ErrnoException;
+      error.code = "EPERM";
+      throw error;
+    });
+
+    const previousCodexHome = process.env.CODEX_HOME;
+    const previousPaperclipHome = process.env.PAPERCLIP_HOME;
+    const previousPaperclipInstanceId = process.env.PAPERCLIP_INSTANCE_ID;
+    try {
+      process.env.CODEX_HOME = sourceCodexHome;
+      process.env.PAPERCLIP_HOME = paperclipHome;
+      process.env.PAPERCLIP_INSTANCE_ID = paperclipInstanceId;
+      await runExecutor({
+        agent: "codex",
+        stateDir: path.join(root, "state"),
+        paperclipRuntimeSkills: [],
+        paperclipSkillSync: { desiredSkills: [] },
+      });
+    } finally {
+      if (previousCodexHome === undefined) delete process.env.CODEX_HOME;
+      else process.env.CODEX_HOME = previousCodexHome;
+      if (previousPaperclipHome === undefined) delete process.env.PAPERCLIP_HOME;
+      else process.env.PAPERCLIP_HOME = previousPaperclipHome;
+      if (previousPaperclipInstanceId === undefined) delete process.env.PAPERCLIP_INSTANCE_ID;
+      else process.env.PAPERCLIP_INSTANCE_ID = previousPaperclipInstanceId;
+    }
+
+    const authStat = await fs.lstat(managedAuth);
+    expect(authStat.isFile()).toBe(true);
+    expect(authStat.isSymbolicLink()).toBe(false);
+    expect(await fs.readFile(managedAuth, "utf8")).toBe("{\"source\":true}");
+  });
+
   it("keeps fresh credential wrapper scripts across ACPX agent changes", async () => {
     const root = await makeTempRoot();
     const stateDir = path.join(root, "state");
@@ -255,8 +308,10 @@ describe("acpx_local runtime skill isolation", () => {
     const envPath = path.join(stateDir, "wrappers", wrappers.find((name) => name.startsWith("custom-b-") && name.endsWith(".env"))!);
     const wrapper = await fs.readFile(wrapperPath, "utf8");
     const env = await fs.readFile(envPath, "utf8");
-    expect((await fs.stat(envPath)).mode & 0o777).toBe(0o600);
-    expect((await fs.stat(wrapperPath)).mode & 0o777).toBe(0o700);
+    if (process.platform !== "win32") {
+      expect((await fs.stat(envPath)).mode & 0o777).toBe(0o600);
+      expect((await fs.stat(wrapperPath)).mode & 0o777).toBe(0o700);
+    }
     expect(wrapper).toContain("node ./fake-acp.js");
     expect(wrapper).not.toContain("PAPERCLIP_API_KEY");
     expect(wrapper).not.toContain("new-key");

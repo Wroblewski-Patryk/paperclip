@@ -160,6 +160,37 @@ async function ensureParentDir(target: string): Promise<void> {
   await fs.mkdir(path.dirname(target), { recursive: true });
 }
 
+async function isExpectedSymlink(target: string, source: string): Promise<boolean> {
+  const existing = await fs.lstat(target).catch(() => null);
+  if (!existing?.isSymbolicLink()) return false;
+
+  const linkedPath = await fs.readlink(target).catch(() => null);
+  if (!linkedPath) return false;
+
+  return path.resolve(path.dirname(target), linkedPath) === path.resolve(source);
+}
+
+async function createExpectedSymlink(target: string, source: string): Promise<void> {
+  try {
+    await fs.symlink(source, target);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "EEXIST" && await isExpectedSymlink(target, source)) return;
+    throw error;
+  }
+}
+
+function canFallbackToCopiedSharedFile(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException).code;
+  return code === "EPERM" || code === "EACCES" || code === "EINVAL" || code === "ENOTSUP";
+}
+
+async function copySharedFile(target: string, source: string): Promise<void> {
+  await ensureParentDir(target);
+  await fs.copyFile(source, target);
+  await fs.chmod(target, 0o600).catch(() => {});
+}
+
 async function writeFileAtomically(input: {
   target: string;
   contents: string;
@@ -185,24 +216,29 @@ async function ensureSymlink(target: string, source: string): Promise<void> {
   const existing = await fs.lstat(target).catch(() => null);
   if (!existing) {
     await ensureParentDir(target);
-    await fs.symlink(resolvedSource, target);
+    try {
+      await createExpectedSymlink(target, resolvedSource);
+    } catch (error) {
+      if (!canFallbackToCopiedSharedFile(error)) throw error;
+      await copySharedFile(target, resolvedSource);
+    }
     return;
   }
 
   if (!existing.isSymbolicLink()) {
-    await fs.rm(target, { recursive: true, force: true });
-    await fs.symlink(resolvedSource, target);
+    await copySharedFile(target, resolvedSource);
     return;
   }
 
-  const linkedPath = await fs.readlink(target).catch(() => null);
-  if (!linkedPath) return;
-
-  const resolvedLinkedPath = path.resolve(path.dirname(target), linkedPath);
-  if (resolvedLinkedPath === resolvedSource) return;
+  if (await isExpectedSymlink(target, resolvedSource)) return;
 
   await fs.unlink(target);
-  await fs.symlink(resolvedSource, target);
+  try {
+    await createExpectedSymlink(target, resolvedSource);
+  } catch (error) {
+    if (!canFallbackToCopiedSharedFile(error)) throw error;
+    await copySharedFile(target, resolvedSource);
+  }
 }
 
 async function ensureCopiedFile(target: string, source: string): Promise<void> {
