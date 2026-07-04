@@ -119,6 +119,7 @@ Access tiers:
 | Coolify deploy operator | `00 AIA`, `09 CTO`, `09 DRE`, `10 SPA` | `COOLIFY_DEPLOY_API_TOKEN` | Governed deployment actions only after an approved release/deploy gate. |
 | Coolify login operator | `00 AIA`, `09 CTO`, `09 DRE`, `10 SPA` | all Coolify env refs including login email/password | Board-approved UI observation, team switching, deploy/resource discovery, failed deploy diagnosis. |
 | Executive acceptance | `12 CEO` | no Coolify login/deploy/read secrets by default in Stage 1 | Accept or reject executive packets based on evidence supplied by AIA, Product, Technology, QA, Security, and Operations. |
+| Soar protected smoke automation | `09 DRE`, `09 QVE`, `09 TAE`, `10 SPA` | `SMOKE_AUTH_EMAIL`, `SMOKE_AUTH_PASSWORD` backed by Soar admin-smoke refs | Run read-only protected readiness smoke and regression proof. No `SMOKE_AUTH_TOKEN`, deploy/restart/rollback, live trading/order proof, account mutation, or raw secret disclosure. |
 
 Current Coolify facts:
 

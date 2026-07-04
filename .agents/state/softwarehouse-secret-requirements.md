@@ -70,6 +70,10 @@ Current binding scope:
   and `10 SPA`.
 - Soar and Roost production test-account refs are each bound to 10
   app-relevant engineering, verification, security, and product roles.
+- Soar protected admin-smoke refs are bound only where needed for production
+  readiness proof: `09 DRE`, `09 QVE`, `09 TAE`, and `10 SPA` as
+  `SMOKE_AUTH_EMAIL` and `SMOKE_AUTH_PASSWORD`. Do not bind
+  `SMOKE_AUTH_TOKEN` unless separately approved.
 - The detailed least-privilege matrix lives in
   `.agents/state/softwarehouse-resource-access-matrix.md`.
 
@@ -95,7 +99,7 @@ Current Stage 1 account policy:
 
 - Soar has `USER` and `ADMIN` roles. Use `soar_prod_test_email/password` for
   normal user smoke and `soar_prod_admin_smoke_email/password` for protected
-  admin readiness smoke. Bind admin-smoke refs to DRE/QVE/SPA as
+  admin readiness smoke. Bind admin-smoke refs to DRE/QVE/TAE/SPA as
   `SMOKE_AUTH_EMAIL` and `SMOKE_AUTH_PASSWORD`; do not bind `SMOKE_AUTH_TOKEN`
   unless separately approved.
 - Roost currently has a workspace-owner model and no separate global admin

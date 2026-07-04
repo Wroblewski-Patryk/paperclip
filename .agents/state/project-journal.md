@@ -1421,3 +1421,27 @@ Decision:
   `04 Operations` coordinates delivery and operating cadence.
 - Coolify/deploy/login secret access should remain with AIA/CTO/DRE/SPA rather
   than CEO; CEO receives evidence packets from those roles.
+
+# 2026-07-04 - TAE Protected Smoke Binding
+
+Conversation summary: `LUC-88` showed that `09 TAE` could not automate the
+Soar protected smoke path because `SMOKE_AUTH_EMAIL` and
+`SMOKE_AUTH_PASSWORD` were not bound to the TAE runtime, even though QVE/DRE
+already had the approved admin-smoke refs.
+
+Decision:
+
+- Bind the existing Soar admin-smoke secret refs to `09 TAE` only as
+  `SMOKE_AUTH_EMAIL` and `SMOKE_AUTH_PASSWORD`.
+- Do not bind `SMOKE_AUTH_TOKEN`, Coolify read/login/deploy refs, owner account
+  credentials, live trading credentials, or broader production controls to TAE.
+- TAE may use these refs only for read-only protected readiness smoke,
+  automated regression proof, and redaction-safe evidence under QVE.
+- Treat future protected-smoke blockers as access-matrix/configuration defects:
+  verify whether the responsible test/QA role has the required secret refs, then
+  bind narrowly or record that the proof remains owner-supervised-only.
+- While resolving `LUC-88`, direct issue comment attempts through both
+  `POST /api/issues/:id/comments` and `PATCH /api/issues/:id` with `comment`
+  returned HTTP 500. The status update and TAE wakeup succeeded. Track this as
+  a Paperclip comment-path quality issue if it recurs; do not treat it as a
+  reason to silently skip durable evidence.
