@@ -129,6 +129,14 @@ The project is both product work and company-building work. Future Codex chats s
   procedures as organizational paths: goal -> procedure -> parent issue ->
   child issues -> evidence -> closure -> retrospective -> procedure update
   proposal.
+- Owner interface and language policy now live in
+  `.agents/state/softwarehouse-owner-interface-contract.md`. During Stage 1,
+  Paperclip should communicate with the owner through `00 AIA` in Polish,
+  using clear decision packets. Internal company work, project names, operating
+  assets, procedures, and cross-agent context stay English-first unless the
+  owner-facing summary needs Polish.
+- The recommended first Stage 1 action is a controlled Soar dry run recorded in
+  `.agents/state/softwarehouse-stage1-recommended-first-action.md`.
 
 ## Standing Codex Watchdog
 

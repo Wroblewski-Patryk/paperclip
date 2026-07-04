@@ -64,6 +64,13 @@ Verified current instance:
   `.agents/state/softwarehouse-task-lifecycle-contract.md`; Stage 1 agents must
   create/update tasks only through goal/procedure/parent/child/evidence/retro
   chains.
+- Owner interface contract is tracked at
+  `.agents/state/softwarehouse-owner-interface-contract.md`; owner-facing
+  communication should go through `00 AIA` in Polish, with clear decision
+  packets, while internal company work remains English-first.
+- Recommended first Stage 1 action is tracked at
+  `.agents/state/softwarehouse-stage1-recommended-first-action.md`: controlled
+  Soar dry run before broad agent activation.
 - Resource policy is tracked in `.agents/state/softwarehouse-resource-policy.md`:
   no paid GitHub plan is available, so Stage 1 agents must not assume paid
   GitHub features, paid Actions capacity, Advanced Security, paid runners,

@@ -77,6 +77,13 @@ LuckySparrow Software House before autonomous agents start work.
   `.agents/state/softwarehouse-task-lifecycle-contract.md`. Agents should not
   create tasks unless they can connect goal, procedure, parent, child,
   evidence, closure, retrospective, and improvement path.
+- Owner interface contract lives at
+  `.agents/state/softwarehouse-owner-interface-contract.md`. Stage 1 owner
+  communication should route through `00 AIA` in clear Polish, while internal
+  company operating assets stay English-first.
+- Recommended first Stage 1 action lives at
+  `.agents/state/softwarehouse-stage1-recommended-first-action.md`: a narrow
+  controlled Soar dry run through AIA before broad agent activation.
 - Agent learning/self-correction is encoded in shared instructions at individual, department, and company levels. Agents must produce learning packets; they may not edit their own instructions, skills, permissions, or routines directly.
 - Hiring governance is encoded in instructions and permissions. Only `06 AIM (AI Agent Manager)` currently has `permissions.canCreateAgents: true`; all other agents are false. `06 AIM` belongs to department `06 People and AI Workforce` and is the governed AI-agent hiring manager.
 - Runtime still contains old company instruction/runtime folders for company id `f13051a7-d0aa-4261-9254-d3ab90735de5`. These old folders should not be blindly copied because their agent ids do not match the current company agents.
@@ -95,8 +102,8 @@ LuckySparrow Software House before autonomous agents start work.
   unreadable to the local runtime, so the working readable ACL was restored and
   the warning remains a known v0 blocker/risk. AWS/GCP/Vault providers are not
   configured.
-- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-030213.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
-- Stage 0 configuration snapshot exists at `.agents/state/backups/stage0-config-20260704-030223.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and current agent instruction folders. It intentionally does not store secret values.
+- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-030629.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
+- Stage 0 configuration snapshot exists at `.agents/state/backups/stage0-config-20260704-030637.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and current agent instruction folders. It intentionally does not store secret values.
 - CLI caveat: `pnpm paperclipai skills browse` attempted dependency install and failed on Windows with `EPERM` while creating a plugin SDK symlink. Use HTTP API/file inspection until that tooling issue is repaired.
 - Catalog install caveat: the catalog install API failed on a pinned hash mismatch for `paperclipai:bundled:docs:doc-maintenance:SKILL.md`; local official skill directory imports were used instead.
 
@@ -123,6 +130,8 @@ LuckySparrow Software House before autonomous agents start work.
 14. Procedure-guided task lifecycle is installed: agents must connect work to a
     goal, procedure, parent issue, child issues, evidence, closure synthesis,
     retrospective, and improvement path.
+15. Owner interface and language policy is installed: owner-facing decisions go
+    through AIA in Polish; internal company work remains English-first.
 
 ## Current Stage 0 Estimate
 
@@ -166,6 +175,8 @@ Completed or partly complete:
 - All 38 managed instruction bundles include the new architecture/delegation/
   closure/learning references.
 - All 38 managed instruction bundles include the procedure/task lifecycle
+  reference.
+- All 38 managed instruction bundles include the owner interface/language
   reference.
 - Only `06 AIM (AI Agent Manager)` can create/hire agents, and only through the governed hiring path.
 - Seven core routines exist as paused drafts with disabled schedules.

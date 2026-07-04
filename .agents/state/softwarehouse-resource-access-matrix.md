@@ -141,6 +141,7 @@ Shared files every agent may read:
 - `references/delivery-closure-loop.md`
 - `references/gap-detection-and-learning-packets.md`
 - `references/procedures-and-task-lifecycle.md`
+- `references/owner-interface-and-language-policy.md`
 
 Editing policy:
 
@@ -154,6 +155,9 @@ Editing policy:
 - Procedure/task lifecycle guidance is shared because every agent that touches
   work must understand how to create, update, decompose, close, and improve
   tasks constructively.
+- Owner interface/language guidance is shared because every agent must know
+  that AIA owns owner-facing Polish decision packets and that internal work
+  remains English-first.
 
 ## Tools And Plugins
 

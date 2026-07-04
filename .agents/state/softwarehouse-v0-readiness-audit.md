@@ -34,7 +34,7 @@ by the owner.
   team/resource ids, and Soar/Roost production test accounts.
 - Managed instructions: 38/38 agents have managed bundles with no API warnings,
   including shared product-architecture, delegation/reporting, delivery-closure,
-  learning-packet, procedure, and task-lifecycle references.
+  learning-packet, procedure, task-lifecycle, and owner-interface references.
 - Agent creation authority: only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`.
 - Department numbering: 05 = Customer Success; 06 = People and AI Workforce.
 - Canonical department map: `.agents/state/softwarehouse-departments.md`.
@@ -69,6 +69,8 @@ by the owner.
 | Learning without self-editing | Yes | Learning packet reference added; individual/department/company packet path made explicit | Needs first real Stage 1 learning packets. |
 | Procedures/flows before task creation | Yes | Procedure system and task lifecycle contract added; agents must connect work to goal -> procedure -> parent -> child -> evidence -> retro | Needs Stage 1 enforcement and real procedure run records. |
 | Constructive parent/child task closure | Yes | Parent and child issue contracts added; completed work must synthesize child results and end as Delivered, Blocked, Cancelled, Superseded, or Learning | Needs actual issue workflow once Stage 1 starts. |
+| Owner-facing communication in Polish through AIA | Yes | Owner interface contract added; all agents have shared language policy; AIA is default external interface | Needs Stage 1 dry run to prove the packet quality. |
+| Safe first Stage 1 action | Yes | Recommended controlled Soar dry run documented | Requires owner approval before creating issues or unpausing agents. |
 | Prefer configuration and official/common extensions over code | Yes | Yes | CLI/catalog tooling blockers remain documented. |
 | Work should be pleasant end-to-end for agents | Yes | Added shared operating flow to all bundles | Needs Stage 1 feedback to refine friction points. |
 
@@ -94,6 +96,10 @@ by the owner.
   procedure lifecycle, initial procedure registry, run record, and retro model.
 - `.agents/state/softwarehouse-task-lifecycle-contract.md`: creation gate,
   parent/child issue contracts, constructive closure, and optimization loop.
+- `.agents/state/softwarehouse-owner-interface-contract.md`: AIA owner
+  interface, Polish decision packets, clarification path, and language policy.
+- `.agents/state/softwarehouse-stage1-recommended-first-action.md`: controlled
+  Soar dry run recommendation.
 - `doc/plans/2026-07-04-softwarehouse-stage-0-foundation.md`: repo plan.
 - Managed instruction bundles for all agents:
   - `AGENTS.md`
@@ -110,6 +116,7 @@ by the owner.
   - `references/delivery-closure-loop.md`
   - `references/gap-detection-and-learning-packets.md`
   - `references/procedures-and-task-lifecycle.md`
+  - `references/owner-interface-and-language-policy.md`
 
 ## Remaining V0 Gates
 
@@ -126,8 +133,8 @@ by the owner.
    - Include repo path, deploy context, first outcome, verification plan, evidence gates, and owner approval condition.
 
 3. Full disaster recovery gate:
-   - Current DB backup exists at `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-030213.sql.gz`.
-   - Current config/instruction snapshot exists at `.agents/state/backups/stage0-config-20260704-030223.zip`.
+   - Current DB backup exists at `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-030629.sql.gz`.
+   - Current config/instruction snapshot exists at `.agents/state/backups/stage0-config-20260704-030637.zip`.
    - Still needs deliberate handling of local storage and the local encrypted secrets key outside repo memory.
 
 4. Tooling gate:
@@ -151,6 +158,11 @@ by the owner.
    - First Stage 1 cycle should be narrow: one app lane, one parent PM, one
      technical owner, one verifier, and deployment observation only after local
      proof.
+
+8. Owner interface dry-run gate:
+   - AIA should present the first Stage 1 approval packet in Polish.
+   - Owner should approve, revise, or reject the controlled Soar dry run before
+     Paperclip creates Stage 1 issues or resumes agents.
 
 ## Future Backlog For Excellent Flow
 

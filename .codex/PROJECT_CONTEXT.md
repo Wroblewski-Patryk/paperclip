@@ -86,6 +86,13 @@ Current verified direction:
   `.agents/state/softwarehouse-task-lifecycle-contract.md`; agents should
   create/update tasks only when work connects to goal, procedure, parent,
   child evidence, closure synthesis, retrospective, and improvement.
+- Owner interface contract lives in
+  `.agents/state/softwarehouse-owner-interface-contract.md`; after Stage 1
+  activation, Paperclip should communicate with the owner through `00 AIA` in
+  Polish, while internal company assets remain English-first.
+- Recommended first Stage 1 action lives in
+  `.agents/state/softwarehouse-stage1-recommended-first-action.md`: controlled
+  Soar dry run through AIA before broad agent activation.
 
 Read these current Stage 0 files before changing Softwarehouse configuration:
 
@@ -102,6 +109,8 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-architecture-gap-analysis.md`
 - `.agents/state/softwarehouse-procedure-system.md`
 - `.agents/state/softwarehouse-task-lifecycle-contract.md`
+- `.agents/state/softwarehouse-owner-interface-contract.md`
+- `.agents/state/softwarehouse-stage1-recommended-first-action.md`
 
 ## Collaboration Notes
 
