@@ -120,6 +120,11 @@ Verified current instance:
   `.agents/state/softwarehouse-complementarity-audit.md`: current Stage 0
   estimate is about 97%, with remaining proof deferred to a controlled Stage 1
   dry run.
+- Goal/routine governance is tracked in
+  `.agents/state/softwarehouse-goal-routine-governance.md`: AIA owns intake and
+  routing, CEO owns company-level fit/priority, COO owns routine/process
+  coherence, department owners own department goals/routines, and owner approval
+  gates Stage 1 activation and high-risk changes.
 
 Stage 0 gates live in `.agents/state/softwarehouse-stage0-foundation.md`.
 Codex in this chat should drive v0 directly and must not create Paperclip

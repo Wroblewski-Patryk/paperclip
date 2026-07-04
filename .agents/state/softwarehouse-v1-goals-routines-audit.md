@@ -19,6 +19,9 @@ agent resume happens.
 
 ## Current Goal Tree
 
+Governance source of truth:
+`.agents/state/softwarehouse-goal-routine-governance.md`.
+
 | Goal | Status | Owner | Purpose |
 | --- | --- | --- | --- |
 | `00 General: v0 Softwarehouse Readiness` | Planned | `00 AIA` | Stage 0 completion/readiness gate. |

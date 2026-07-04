@@ -44,6 +44,7 @@ tree working under pressure.
 | Loop | Implemented as | Status |
 | --- | --- | --- |
 | Owner direction -> AIA proposal -> approval -> execution | Owner interface contract, owner direction/proposal loop, AIA task-routing permission, paused owner-direction routine | Configured, not run |
+| Goal/routine governance | Goal/routine governance matrix, V1 goals/routines audit, procedure system | Configured |
 | Stage 1 activation | Controlled activation goal, activation governance, paused controlled activation routine | Configured, owner-gated |
 | Agent activation tree | AIA decision packet, activation request packet, board/bridge resume requirement, pause-back rule | Policy configured; technical bridge future |
 | App innovation delivery | Soar/Roost goals, product architecture index, autonomous delivery architecture, procedure/task lifecycle | Configured, not run |

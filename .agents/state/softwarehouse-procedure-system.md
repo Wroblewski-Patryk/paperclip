@@ -22,6 +22,11 @@ If an agent cannot name the goal, procedure, parent owner, expected evidence,
 and closure condition, it should not create a new task. It should report a
 planning gap to the parent/requesting agent.
 
+Goal and routine ownership is governed by
+`.agents/state/softwarehouse-goal-routine-governance.md`. Raw API permission is
+not enough; agents must follow the owner/department/accountability matrix
+before proposing or changing goals/routines.
+
 ## Paperclip Capabilities To Use
 
 Paperclip already provides the raw primitives needed for this model:

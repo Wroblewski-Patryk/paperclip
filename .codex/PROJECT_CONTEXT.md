@@ -97,6 +97,11 @@ Current verified direction:
   `.agents/state/softwarehouse-owner-direction-proposal-loop.md`: the owner
   gives direction and notes, AIA prepares Polish proposals or questions, and
   approved work flows through goals/procedures/issues/agents.
+- Goal/routine governance lives in
+  `.agents/state/softwarehouse-goal-routine-governance.md`: AIA is intake and
+  routing owner, CEO owns company-level fit/priority, COO owns process/routine
+  coherence, department owners own department goals/routines, and owner approval
+  gates Stage 1 activation/high-risk changes.
 - Secrets must be entered through Paperclip secret refs/provider flows, never
   chat or memory files.
 - Resource policy lives in `.agents/state/softwarehouse-resource-policy.md`.
@@ -156,6 +161,7 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-agent-activation-governance.md`
 - `.agents/state/softwarehouse-owner-direction-proposal-loop.md`
 - `.agents/state/softwarehouse-complementarity-audit.md`
+- `.agents/state/softwarehouse-goal-routine-governance.md`
 
 ## Collaboration Notes
 
