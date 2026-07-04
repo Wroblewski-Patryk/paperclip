@@ -5,8 +5,9 @@ import type { AdapterExecutionContext } from "@paperclipai/adapter-utils";
 import { resolvePaperclipInstanceRootForAdapter } from "@paperclipai/adapter-utils/server-utils";
 
 const TRUTHY_ENV_RE = /^(1|true|yes|on)$/i;
-const COPIED_SHARED_FILES = ["config.json", "config.toml", "instructions.md"] as const;
+const COPIED_SHARED_FILES = ["config.json", "instructions.md"] as const;
 const SYMLINKED_SHARED_FILES = ["auth.json"] as const;
+const SANITIZED_CONFIG_FILE = "config.toml";
 
 function nonEmpty(value: string | undefined): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
@@ -65,11 +66,27 @@ async function createExpectedSymlink(target: string, source: string): Promise<vo
   }
 }
 
+function canFallbackToCopiedSharedFile(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException).code;
+  return code === "EPERM" || code === "EACCES" || code === "EINVAL" || code === "ENOTSUP";
+}
+
+async function copySharedFile(target: string, source: string): Promise<void> {
+  await ensureParentDir(target);
+  await fs.copyFile(source, target);
+  await fs.chmod(target, 0o600).catch(() => {});
+}
+
 async function ensureSymlink(target: string, source: string): Promise<void> {
   const existing = await fs.lstat(target).catch(() => null);
   if (!existing) {
     await ensureParentDir(target);
-    await createExpectedSymlink(target, source);
+    try {
+      await createExpectedSymlink(target, source);
+    } catch (error) {
+      if (!canFallbackToCopiedSharedFile(error)) throw error;
+      await copySharedFile(target, source);
+    }
     return;
   }
 
@@ -80,7 +97,12 @@ async function ensureSymlink(target: string, source: string): Promise<void> {
   if (await isExpectedSymlink(target, source)) return;
 
   await fs.unlink(target);
-  await createExpectedSymlink(target, source);
+  try {
+    await createExpectedSymlink(target, source);
+  } catch (error) {
+    if (!canFallbackToCopiedSharedFile(error)) throw error;
+    await copySharedFile(target, source);
+  }
 }
 
 async function ensureCopiedFile(target: string, source: string): Promise<void> {
@@ -88,6 +110,42 @@ async function ensureCopiedFile(target: string, source: string): Promise<void> {
   if (existing) return;
   await ensureParentDir(target);
   await fs.copyFile(source, target);
+}
+
+function sanitizeSharedCodexConfigToml(raw: string): string {
+  const blockedSectionPrefixes = [
+    "apps.",
+    "marketplaces.",
+    "mcp_servers.",
+    "plugins.",
+  ];
+  let skipSection = false;
+  const kept: string[] = [];
+
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    const sectionMatch = /^\[([^\]]+)\]$/.exec(trimmed);
+    if (sectionMatch) {
+      const section = sectionMatch[1]?.trim().toLowerCase() ?? "";
+      skipSection = blockedSectionPrefixes.some((prefix) => section.startsWith(prefix));
+      if (skipSection) continue;
+    }
+
+    if (skipSection) continue;
+    if (/^notify\s*=/.test(trimmed)) continue;
+
+    kept.push(line);
+  }
+
+  return `${kept.join("\n").trim()}\n`;
+}
+
+async function ensureCopiedCodexConfig(target: string, source: string): Promise<void> {
+  await ensureParentDir(target);
+  const sanitized = sanitizeSharedCodexConfigToml(await fs.readFile(source, "utf8"));
+  const existing = await fs.readFile(target, "utf8").catch(() => null);
+  if (existing === sanitized) return;
+  await fs.writeFile(target, sanitized, { mode: 0o600 });
 }
 
 /**
@@ -140,6 +198,11 @@ export async function prepareManagedCodexHome(
       const source = path.join(sourceHome, name);
       if (!(await pathExists(source))) continue;
       await ensureCopiedFile(path.join(targetHome, name), source);
+    }
+
+    const sourceConfig = path.join(sourceHome, SANITIZED_CONFIG_FILE);
+    if (await pathExists(sourceConfig)) {
+      await ensureCopiedCodexConfig(path.join(targetHome, SANITIZED_CONFIG_FILE), sourceConfig);
     }
 
     await onLog(

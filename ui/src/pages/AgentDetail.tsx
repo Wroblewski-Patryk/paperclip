@@ -148,9 +148,29 @@ const runStatusIcons: Record<string, { icon: typeof CheckCircle2; color: string 
   running: { icon: Loader2, color: "text-cyan-600 dark:text-cyan-400" },
   queued: { icon: Clock, color: "text-yellow-600 dark:text-yellow-400" },
   scheduled_retry: { icon: Clock, color: "text-sky-600 dark:text-sky-400" },
+  deferred: { icon: Clock, color: "text-sky-600 dark:text-sky-400" },
   timed_out: { icon: Timer, color: "text-orange-600 dark:text-orange-400" },
   cancelled: { icon: Slash, color: "text-neutral-500 dark:text-neutral-400" },
 };
+
+function isDependencyDeferredRun(run: Pick<HeartbeatRun, "status" | "errorCode" | "resultJson">) {
+  const stopReason = typeof run.resultJson?.stopReason === "string" ? run.resultJson.stopReason : null;
+  return run.status === "cancelled"
+    && (run.errorCode === "issue_dependencies_blocked" || stopReason === "issue_dependencies_blocked");
+}
+
+function displayRunStatus(run: Pick<HeartbeatRun, "status" | "errorCode" | "resultJson">) {
+  return isDependencyDeferredRun(run) ? "deferred" : run.status;
+}
+
+function runSummaryText(run: Pick<HeartbeatRun, "status" | "errorCode" | "resultJson" | "error">) {
+  if (isDependencyDeferredRun(run)) {
+    return "Waiting for blockers; Paperclip will wake this agent when dependencies resolve.";
+  }
+  return run.resultJson
+    ? String((run.resultJson as Record<string, unknown>).summary ?? (run.resultJson as Record<string, unknown>).result ?? "")
+    : run.error ?? "";
+}
 
 const RUN_LOG_PAGE_BYTES = 256_000;
 
@@ -1347,11 +1367,10 @@ function LatestRunCard({ runs, agentId }: { runs: HeartbeatRun[]; agentId: strin
   const liveRun = sorted.find((r) => r.status === "running" || r.status === "queued");
   const run = liveRun ?? sorted[0];
   const isLive = run.status === "running" || run.status === "queued";
-  const statusInfo = runStatusIcons[run.status] ?? { icon: Clock, color: "text-neutral-400" };
+  const displayStatus = displayRunStatus(run);
+  const statusInfo = runStatusIcons[displayStatus] ?? { icon: Clock, color: "text-neutral-400" };
   const StatusIcon = statusInfo.icon;
-  const summaryRaw = run.resultJson
-    ? String((run.resultJson as Record<string, unknown>).summary ?? (run.resultJson as Record<string, unknown>).result ?? "")
-    : run.error ?? "";
+  const summaryRaw = runSummaryText(run);
 
   // Extract a clean 2-3 line excerpt: first non-empty, non-header, non-list-mark lines
   const summary = useMemo(() => {
@@ -1400,7 +1419,7 @@ function LatestRunCard({ runs, agentId }: { runs: HeartbeatRun[]; agentId: strin
       >
         <div className="flex items-center gap-2">
           <StatusIcon className={cn("h-3.5 w-3.5", statusInfo.color, run.status === "running" && "animate-spin")} />
-          <StatusBadge status={run.status} />
+          <StatusBadge status={displayStatus} />
           <span className="font-mono text-xs text-muted-foreground">{run.id.slice(0, 8)}</span>
           <span className={cn(
             "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium",
@@ -3082,12 +3101,11 @@ export function AgentSkillsTab({
 /* ---- Runs Tab ---- */
 
 function RunListItem({ run, isSelected, agentId }: { run: HeartbeatRun; isSelected: boolean; agentId: string }) {
-  const statusInfo = runStatusIcons[run.status] ?? { icon: Clock, color: "text-neutral-400" };
+  const displayStatus = displayRunStatus(run);
+  const statusInfo = runStatusIcons[displayStatus] ?? { icon: Clock, color: "text-neutral-400" };
   const StatusIcon = statusInfo.icon;
   const metrics = runMetrics(run);
-  const summary = run.resultJson
-    ? String((run.resultJson as Record<string, unknown>).summary ?? (run.resultJson as Record<string, unknown>).result ?? "")
-    : run.error ?? "";
+  const summary = runSummaryText(run);
   const sourceResolvedFold = readSourceResolvedWatchdogFold(run.resultJson);
 
   return (
@@ -3365,6 +3383,7 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
   const sessionId = run.sessionIdAfter || run.sessionIdBefore;
   const hasNonZeroExit = run.exitCode !== null && run.exitCode !== 0;
   const retryState = describeRunRetryState(run);
+  const displayStatus = displayRunStatus(run);
 
   return (
     <div className="space-y-4 min-w-0">
@@ -3374,7 +3393,7 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
           {/* Left column: status + timing */}
           <div className="flex-1 p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <StatusBadge status={run.status} />
+              <StatusBadge status={displayStatus} />
               {(run.status === "running" || run.status === "queued") && (
                 <Button
                   variant="ghost"

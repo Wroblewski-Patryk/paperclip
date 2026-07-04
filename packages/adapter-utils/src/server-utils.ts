@@ -1800,9 +1800,21 @@ export async function ensurePaperclipSkillSymlink(
   linkSkill: (source: string, target: string) => Promise<void> = (linkSource, linkTarget) =>
     fs.symlink(linkSource, linkTarget),
 ): Promise<"created" | "repaired" | "skipped"> {
+  async function linkOrCopySkill(): Promise<void> {
+    try {
+      await linkSkill(source, target);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "EPERM" && code !== "EACCES" && code !== "EINVAL" && code !== "ENOTSUP") {
+        throw error;
+      }
+      await fs.cp(source, target, { recursive: true, dereference: false });
+    }
+  }
+
   const existing = await fs.lstat(target).catch(() => null);
   if (!existing) {
-    await linkSkill(source, target);
+    await linkOrCopySkill();
     return "created";
   }
 
@@ -1824,7 +1836,7 @@ export async function ensurePaperclipSkillSymlink(
   }
 
   await fs.unlink(target);
-  await linkSkill(source, target);
+  await linkOrCopySkill();
   return "repaired";
 }
 
