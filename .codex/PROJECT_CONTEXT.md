@@ -29,6 +29,48 @@ Use `.agents/skills/paperclip-project-memory/SKILL.md` when the user asks to sav
 
 Help the user build and run LuckySparrow Software House as an autonomous software company on top of Paperclip. The system should make autonomous agents more capable, governable, inspectable, and commercially useful while keeping human board control over risk, production, budget, and direction.
 
+## Current Stage 1 State
+
+Paperclip has moved beyond Stage 0 configuration. The active Stage 1 mission is
+to prove LuckySparrow as a practical autonomous softwarehouse by delivering two
+real applications, Soar and Roost, to usable VPS production. This is not merely
+a deploy task: it is the first full-company proof that Paperclip agents can act
+like a human softwarehouse with product ownership, delivery management,
+engineering, QA, security, deployment, documentation, cost awareness, governed
+learning, and owner-facing escalation.
+
+Current hard delivery parent:
+
+- `LUC-25`: `00 General: Deliver Soar and Roost to Usable VPS Production`.
+- Do not close this parent for plans, preflights, reports, or a child issue
+  tree. Done means Soar and Roost are created, verified, deployed to VPS, and
+  usable by the owner with inspectable evidence.
+- Critical children `LUC-26` through `LUC-32` cover delivery control, Soar,
+  Roost, technical implementation, VPS/Coolify deployment, production
+  readiness verification, and security/secrets safety.
+
+Current active company scope:
+
+- Active: app-factory roles needed to build Soar/Roost through product,
+  design, operations, docs, agent governance, cost/asset support, technology
+  delivery, review/test/runtime/deploy-readiness, security/legal gates, and
+  Soar/Roost innovation/product management.
+- Paused/out of scope: marketing/sales/customer service, broader HR, parked app
+  PMs for Aviary/Featherly/Nest, and executive proxy work unless separately
+  approved.
+- Active routines: all app-factory governance routines except the old
+  controlled dry-run routine.
+
+Strategic interpretation:
+
+- The Soar/Roost VPS delivery goal exists because the larger goal is an
+  autonomous digital software company, not just two apps.
+- Agents should model a real softwarehouse: clear responsibilities, authority,
+  least-privilege access, evidence gates, handoffs, PDCA learning, and
+  escalation paths.
+- Internal work may be English-first; direct owner-facing decisions and
+  summaries should come through `00 AIA` in clear Polish.
+
 ## Current Stage 0 State
 
 The local Paperclip Softwarehouse instance has been reset to a quiet Stage 0

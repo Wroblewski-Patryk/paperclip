@@ -701,3 +701,30 @@ Immediate post-change snapshot:
   DRE, QVE, and SPA.
 - Heartbeat automation was updated to monitor this hard delivery-to-VPS goal
   every 15 minutes.
+
+# 2026-07-04 - Stage 1 Goal Reframed As Company Proof
+
+Conversation summary: the owner clarified that the Soar/Roost VPS delivery goal
+exists because the larger objective is building an autonomous company that
+creates software and broader digital solutions through Paperclip. `LUC-25`
+should therefore be interpreted as a first real proof of the whole
+softwarehouse operating model, not as an isolated app-deploy task.
+
+Durable implications:
+
+- Paperclip should model a human softwarehouse: strategy, product/design,
+  operations, docs, agent governance, asset/workspace support, technology
+  delivery, QA/review/test, security/legal, deployment, cost awareness,
+  evidence, and PDCA learning.
+- Soar/Roost delivery validates whether agents have sufficiently complementary
+  duties, authorities, routines, skills, markdown context, secret refs, tools,
+  and escalation paths.
+- Direct owner-facing communication remains Polish through `00 AIA`; internal
+  company reports and evidence may remain English-first.
+- Marketing, sales, customer service, unrelated client work, parked products,
+  raw secret exposure, destructive infrastructure actions, paid features, and
+  LIVE trading/order proof remain outside this active mission unless separately
+  approved.
+- Updated `.codex/PROJECT_CONTEXT.md`, `.agents/state/board-context.md`, and
+  `.agents/state/active-mission.md` so future chats see Stage 1 as an active
+  company proof rather than Stage 0 quiet configuration.

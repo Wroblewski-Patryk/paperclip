@@ -1,5 +1,55 @@
 # Active Mission
 
+## 2026-07-04 Stage 1 Hard Delivery And Company Proof
+
+The active mission has moved beyond Stage 0 setup. Paperclip is now being used
+as the operating control plane for a first practical proof of LuckySparrow as an
+autonomous softwarehouse.
+
+Hard delivery parent:
+
+- `LUC-25`: `00 General: Deliver Soar and Roost to Usable VPS Production`.
+- Critical children:
+  - `LUC-26`: delivery control.
+  - `LUC-27`: Soar build-to-production execution.
+  - `LUC-28`: Roost build-to-production execution.
+  - `LUC-29`: technical implementation routing and repo execution.
+  - `LUC-30`: VPS/Coolify deployment execution path.
+  - `LUC-31`: production readiness verification.
+  - `LUC-32`: security, secrets, and production safety gate.
+
+Mission interpretation:
+
+- This goal is not only about two apps. It is the first full-company proof that
+  Paperclip agents can behave like a human softwarehouse: clear roles,
+  authority, responsibility, least-privilege access, evidence, review,
+  deployment discipline, owner-facing escalation, and learning loops.
+- Do not allow `LUC-25` to close for plans, preflight reports, or task-tree
+  creation. Done requires Soar and Roost to be created, verified, deployed to
+  VPS, and usable by the owner.
+- Active scope is Soar/Roost app creation and delivery. Marketing, sales,
+  customer service, unrelated client work, and parked product work for
+  Featherly/Aviary/Nest remain out of scope unless the owner explicitly expands
+  the mission.
+- VPS/Coolify deployment is part of the target outcome. Still preserve gates
+  for raw secrets, destructive infrastructure actions, paid features,
+  legal/customer/finance commitments, and LIVE trading/order proof.
+- Owner-facing decisions, blockers, and summaries should go through `00 AIA` in
+  Polish. Internal reports and evidence may remain English-first.
+
+Active app-factory core:
+
+- `00 AIA`, `01 CSO`, `02 CPO`, `02 UID`, `02 UXW`, `02 WPM`, `04 COO`,
+  `04 DPM`, `04 DSM`, `06 AIM`, `07 CFO`, `08 CAO`, `09 CTO`, `09 TSA`,
+  `09 CBE`, `09 FEW`, `09 DBE`, `09 IDE`, `09 RTE`, `09 TAE`, `09 QVE`,
+  `09 CRS`, `09 DRE`, `10 CLO`, `10 SPA`, `11 CINO`, `11 IPM`, `11 SPM`,
+  and `11 RPM`.
+
+Paused/out of scope unless separately approved:
+
+- `03 CRO`, `05 CCO`, `05 CSM`, `06 CHRO`, `06 POP`, `11 APM`, `11 FPM`,
+  `11 NPM`, and `12 CEO`.
+
 ## 2026-07-04 Stage 0 Softwarehouse Foundation
 
 Current durable mission shifted to Stage 0 after the local Paperclip instance

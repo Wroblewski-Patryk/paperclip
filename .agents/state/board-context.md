@@ -33,9 +33,28 @@ The project is both product work and company-building work. Future Codex chats s
 
 - Paperclip is the control plane and product foundation.
 - LuckySparrow Software House is the local autonomous company instance.
+- The current Stage 1 proof is to operate LuckySparrow like a real autonomous
+  softwarehouse by delivering Soar and Roost to usable VPS production, with
+  evidence, review, security, deploy-readiness, and owner-facing closure.
 - Soar is the first active sellable app lane.
-- Roost is the second active sellable app lane in thinner readiness mode.
+- Roost is the second active sellable app lane and is now part of the same hard
+  delivery-to-VPS mission, not just thinner readiness mode.
 - Other app/project ideas stay backlog unless the board reopens them.
+
+## Current Stage 1 Operating Model
+
+- Active hard parent issue: `LUC-25` / `00 General: Deliver Soar and Roost to
+  Usable VPS Production`.
+- `LUC-25` must not close for a plan, preflight, report, or child tree. Closure
+  requires Soar and Roost to be created, verified, deployed to VPS, and usable
+  by the owner.
+- This goal is a proof of the larger company architecture: product, design,
+  operations, docs, agent governance, cost/asset support, technology delivery,
+  QA/review/test, security/legal, deployment, and product management working
+  together like a human softwarehouse.
+- Marketing, sales, customer service, broader HR, parked app PMs, and executive
+  proxy work remain paused/out of scope unless the owner explicitly expands the
+  mission.
 
 ## Stage 0 Foundation Direction
 
