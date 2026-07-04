@@ -89,11 +89,12 @@ The project is both product work and company-building work. Future Codex chats s
   values. Do not enter real production secrets until the local encrypted key ACL
   warning is either accepted for local use or fixed by a better runtime/provider
   setup.
-- Coolify Stage 0 base/login credentials have been entered as Paperclip managed
-  secrets and bound by secret refs to selected deployment/coordinating agents.
-  Do not repeat the values in memory, docs, comments, or final responses. The
-  remaining Coolify work is API token/team/resource discovery and read-only
-  access testing.
+- Coolify Stage 0 base/login/read/deploy credentials, LuckySparrow team
+  id/name, Soar resource ids, Roost app id, Soar/Roost production URLs, and
+  Soar/Roost production test accounts have been entered as Paperclip managed
+  secrets and bound by least-privilege secret refs. Do not repeat the values in
+  memory, docs, comments, or final responses. The Coolify read token was tested
+  against live API endpoints; deploy-token use remains gate-controlled.
 - Resource access policy lives in
   `.agents/state/softwarehouse-resource-access-matrix.md`. The operating model
   is least privilege across secrets, skills, tools, markdown resources,

@@ -24,12 +24,14 @@ Required before agents can observe deployments safely:
 - `COOLIFY_BASE_URL`
 - `COOLIFY_LOGIN_EMAIL`
 - `COOLIFY_LOGIN_PASSWORD`
-- `COOLIFY_API_TOKEN`
-- `COOLIFY_TEAM_ID` or equivalent team/context id if required by the Coolify API
+- `COOLIFY_READ_API_TOKEN`
+- `COOLIFY_DEPLOY_API_TOKEN`
+- `COOLIFY_TEAM_ID_LUCKYSPARROW`
 - `COOLIFY_PROJECT_ID_SOAR`
-- `COOLIFY_PROJECT_ID_ROOST`
-- `COOLIFY_RESOURCE_ID_SOAR`
-- `COOLIFY_RESOURCE_ID_ROOST`
+- `COOLIFY_PROJECT_UUID_SOAR`
+- `COOLIFY_ENVIRONMENT_UUID_SOAR_PRODUCTION`
+- `COOLIFY_RESOURCE_UUID_SOAR_*`
+- `COOLIFY_RESOURCE_UUID_ROOST_APP`
 
 Configured in Paperclip on 2026-07-04 as `local_encrypted` managed secrets:
 
@@ -37,12 +39,37 @@ Configured in Paperclip on 2026-07-04 as `local_encrypted` managed secrets:
 - `coolify_api_url` bound to runtime env `COOLIFY_API_URL`
 - `coolify_login_email` bound to runtime env `COOLIFY_LOGIN_EMAIL`
 - `coolify_login_password` bound to runtime env `COOLIFY_LOGIN_PASSWORD`
+- `coolify_read_api_token` bound to runtime env `COOLIFY_READ_API_TOKEN`
+- `coolify_deploy_api_token` bound to runtime env `COOLIFY_DEPLOY_API_TOKEN`
+- `coolify_team_id_luckysparrow` and `coolify_team_name_luckysparrow`
+- Soar Coolify ids:
+  `coolify_project_id_soar`, `coolify_project_uuid_soar`,
+  `coolify_environment_uuid_soar_production`,
+  `coolify_resource_uuid_soar_web`, `coolify_resource_uuid_soar_api`,
+  `coolify_resource_uuid_soar_worker_backtest`,
+  `coolify_resource_uuid_soar_worker_execution`,
+  `coolify_resource_uuid_soar_worker_market_data`,
+  `coolify_resource_uuid_soar_worker_market_stream`,
+  `coolify_database_uuid_soar_postgresql`, and
+  `coolify_database_uuid_soar_redis`
+- Roost Coolify id: `coolify_resource_uuid_roost_app`
+- Soar production refs: `soar_prod_base_url`, `soar_api_base_url`,
+  `soar_prod_test_email`, and `soar_prod_test_password`
+- Roost production refs: `roost_prod_base_url`, `roost_api_base_url`,
+  `roost_prod_test_email`, `roost_prod_test_password`, and
+  `roost_prod_test_workspace_name`
 
 Current binding scope:
 
 - Base/API URL refs are available to selected deployment/coordinating agents.
+- Coolify read token and discovered team/resource ids are available to 16
+  selected deployment/coordinating agents for observation.
+- Coolify deploy token is restricted to `00 AIA`, `09 CTO`, `09 DRE`,
+  `10 SPA`, and `12 CEO`.
 - Login email/password refs are restricted to `00 AIA`, `09 CTO`, `09 DRE`,
   `10 SPA`, and `12 CEO`.
+- Soar and Roost production test-account refs are each bound to 10
+  app-relevant engineering, verification, security, and product roles.
 - The detailed least-privilege matrix lives in
   `.agents/state/softwarehouse-resource-access-matrix.md`.
 
@@ -51,12 +78,16 @@ as planned by the owner. Values are not stored in this file.
 
 Current Coolify gap:
 
-- `COOLIFY_API_TOKEN`, team id, project ids, and resource ids are not yet
-  configured.
-- A direct JSON login attempt against common Coolify paths did not expose a
-  usable API token flow; `/login` returned a CSRF/session-style response.
-- If Soar/Roost resources are not visible after login, switch team in Coolify
-  before recording team/resource ids.
+- Browser login verified that the initial team `ai's Team` had no projects; the
+  active infrastructure team is `LuckySparrow`.
+- Coolify API tokens cannot be recovered after creation, so Stage 0 created new
+  dedicated tokens and stored them in Paperclip secrets. Coolify permissions are
+  single-scope in this UI: `read` and `deploy` are separate tokens.
+- `coolify_read_api_token` was verified against `/api/v1/version`,
+  `/api/v1/teams`, `/api/v1/projects`, `/api/v1/deployments`, and
+  `/api/v1/applications`.
+- `coolify_deploy_api_token` is deploy-scoped and should be used only behind
+  release/deploy gates.
 
 Optional, only if deployment checks require direct SSH:
 
@@ -125,12 +156,12 @@ Production test-account naming convention:
 
 Known Stage 1 examples to create when values are available:
 
-- `SOAR_PROD_TEST_BASE_URL`
-- `SOAR_PROD_TEST_EMAIL`
-- `SOAR_PROD_TEST_PASSWORD`
-- `ROOST_PROD_TEST_BASE_URL`
-- `ROOST_PROD_TEST_EMAIL`
-- `ROOST_PROD_TEST_PASSWORD`
+- `SOAR_PROD_TEST_BASE_URL`: configured as `soar_prod_base_url`
+- `SOAR_PROD_TEST_EMAIL`: configured as `soar_prod_test_email`
+- `SOAR_PROD_TEST_PASSWORD`: configured as `soar_prod_test_password`
+- `ROOST_PROD_TEST_BASE_URL`: configured as `roost_prod_base_url`
+- `ROOST_PROD_TEST_EMAIL`: configured as `roost_prod_test_email`
+- `ROOST_PROD_TEST_PASSWORD`: configured as `roost_prod_test_password`
 
 ## Learning And Audit
 

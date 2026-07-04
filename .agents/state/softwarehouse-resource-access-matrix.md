@@ -38,6 +38,13 @@ Configured secrets:
 - `coolify_api_url`
 - `coolify_login_email`
 - `coolify_login_password`
+- `coolify_read_api_token`
+- `coolify_deploy_api_token`
+- `coolify_team_id_luckysparrow`
+- `coolify_team_name_luckysparrow`
+- Soar project/environment/resource ids
+- Roost app resource id
+- Soar/Roost production URLs and test-account refs
 
 Runtime env names:
 
@@ -45,21 +52,34 @@ Runtime env names:
 - `COOLIFY_API_URL`
 - `COOLIFY_LOGIN_EMAIL`
 - `COOLIFY_LOGIN_PASSWORD`
+- `COOLIFY_READ_API_TOKEN`
+- `COOLIFY_DEPLOY_API_TOKEN`
+- `COOLIFY_TEAM_ID_LUCKYSPARROW`
+- `COOLIFY_TEAM_NAME_LUCKYSPARROW`
+- `SOAR_PROD_BASE_URL`
+- `SOAR_API_BASE_URL`
+- `ROOST_PROD_BASE_URL`
+- `ROOST_API_BASE_URL`
 
 Access tiers:
 
 | Tier | Agents | Bound env refs | Intended use |
 | --- | --- | --- | --- |
-| Coolify URL observer | `00 AIA`, `04 COO`, `04 DPM`, `06 AIM`, `09 CTO`, `09 TSA`, `09 CBE`, `09 FEW`, `09 IDE`, `09 QVE`, `09 RTE`, `09 DRE`, `10 SPA`, `11 SPM`, `11 RPM`, `12 CEO` | `COOLIFY_BASE_URL`, `COOLIFY_API_URL` | Know where Coolify/API is, report missing token/team/resource ids, prepare evidence paths. |
+| Coolify read observer | `00 AIA`, `04 COO`, `04 DPM`, `06 AIM`, `09 CTO`, `09 TSA`, `09 CBE`, `09 FEW`, `09 IDE`, `09 QVE`, `09 RTE`, `09 DRE`, `10 SPA`, `11 SPM`, `11 RPM`, `12 CEO` | Coolify base/API URL, read token, team id/name, Soar resource ids, Roost app id, app base URLs | Observe resources, deployments, app status, and evidence paths through API/browser without raw credentials. |
+| Coolify deploy operator | `00 AIA`, `09 CTO`, `09 DRE`, `10 SPA`, `12 CEO` | `COOLIFY_DEPLOY_API_TOKEN` | Governed deployment actions only after an approved release/deploy gate. |
 | Coolify login operator | `00 AIA`, `09 CTO`, `09 DRE`, `10 SPA`, `12 CEO` | all Coolify env refs including login email/password | Board-approved UI observation, team switching, deploy/resource discovery, failed deploy diagnosis. |
 
-Current gap:
+Current Coolify facts:
 
-- `COOLIFY_API_TOKEN`, `COOLIFY_TEAM_ID`, `COOLIFY_PROJECT_ID_SOAR`,
-  `COOLIFY_PROJECT_ID_ROOST`, `COOLIFY_RESOURCE_ID_SOAR`, and
-  `COOLIFY_RESOURCE_ID_ROOST` are not yet configured.
-- Once a read-only API token exists, prefer token-based observation over UI
-  login/password and reduce password bindings further if possible.
+- `LuckySparrow` is Coolify team id `0`; the initial login team `ai's Team`
+  has no projects.
+- Soar project id/UUID, production environment UUID, six app resource UUIDs,
+  PostgreSQL UUID, Redis UUID, web URL, and API URL are configured as refs.
+- Roost is a docker-compose app resource with configured domains for
+  `roost.luckysparrow.ch`, `api.roost.luckysparrow.ch`,
+  `companycore.luckysparrow.ch`, and `api.companycore.luckysparrow.ch`.
+- Prefer `COOLIFY_READ_API_TOKEN` for observation before using UI
+  login/password.
 
 ## Production Test Accounts
 
@@ -75,15 +95,16 @@ Suggested names:
 - `ROOST_PROD_TEST_PASSWORD`
 - `ROOST_PROD_TEST_TOTP_SECRET` only if MFA is required
 
-Initial intended access:
+Configured access:
 
 | App | Primary agents | Verification agents | Security oversight |
 | --- | --- | --- | --- |
 | Soar | `11 SPM`, `09 FEW`, `09 CBE`, `09 IDE` as needed | `09 QVE`, `09 TAE`, `09 DRE` | `10 SPA` |
 | Roost | `11 RPM`, `09 FEW`, `09 CBE`, `09 IDE` as needed | `09 QVE`, `09 TAE`, `09 DRE` | `10 SPA` |
 
-Do not bind production test accounts to all agents. Bind only after the app's
-Stage 1 activation packet names the first outcome and evidence path.
+The configured Stage 0 refs are additionally visible to `00 AIA` and `09 CTO`
+for orchestration/technical governance. Do not bind production test accounts to
+all agents.
 
 ## Skills
 

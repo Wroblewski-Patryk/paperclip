@@ -7,7 +7,7 @@ Source: conversation summary plus verified Paperclip API state at
 
 ## Current Readiness
 
-Estimated Stage 0 / v0 readiness: about 86%.
+Estimated Stage 0 / v0 readiness: about 93%.
 
 This is close enough to see the v0 horizon, but not ready for Stage 1 agent
 execution until the remaining gates below are resolved or consciously accepted
@@ -23,8 +23,10 @@ by the owner.
 - Routines: 7 total, all `paused`, every schedule trigger `enabled: false`.
 - Goals: 3 planned company goals, all prefixed with department number/name.
 - Skills: 18 company skills, attached by role through desired-skill sync.
-- Secrets: 4 company secrets, all `local_encrypted` managed Coolify Stage 0
-  credentials with no raw values stored in memory files.
+- Secrets: 29 company secrets, all `local_encrypted` managed refs with no raw
+  values stored in memory files. This includes Coolify login refs, separate
+  Coolify read/deploy API tokens, Soar/Roost production URLs, Coolify
+  team/resource ids, and Soar/Roost production test accounts.
 - Managed instructions: 38/38 agents have managed bundles with no API warnings.
 - Agent creation authority: only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`.
 - Department numbering: 05 = Customer Success; 06 = People and AI Workforce.
@@ -49,10 +51,10 @@ by the owner.
 | Agent learning at individual, department, company level | Yes | Yes in instructions and paused PDCA routine | Needs activation and real learning packets in Stage 1. |
 | Agents must not self-edit | Yes | Yes in instructions | Future: enforce through stronger permission tooling if available. |
 | Hiring only through AI workforce manager | Yes | Yes; only `06 AIM` can create agents | Need full hiring packet template before Stage 1. |
-| Secrets via Paperclip secret refs, no raw values | Yes | Coolify credentials entered as Paperclip managed secrets; URL/API refs bound to 16 deploy-capable/coordinating agents; login/password refs restricted to 5 governance/deploy/security roles | Provider warning unresolved; v2 rotation planned. |
-| Coolify/VPS deployment observation | Yes | Base URL, API URL, login email, and login password secrets exist; paused readiness routine exists | Need API token, team id, resource ids, and tested read-only access. |
+| Secrets via Paperclip secret refs, no raw values | Yes | Coolify, Soar, and Roost refs entered as Paperclip managed secrets; read/deploy/login/test-account bindings are tiered by role | Provider warning unresolved; v2 rotation planned. |
+| Coolify/VPS deployment observation | Yes | Coolify browser login verified, team switched to LuckySparrow, API read token tested, Soar/Roost URLs/resource ids discovered, paused readiness routine exists | Deploy-token actions remain gated; full VPS SSH still optional/unconfigured. |
 | No paid GitHub assumption or email-noisy automation | Yes | Resource policy and agent instructions updated | Need Stage 1 enforcement during real work. |
-| Least-privilege resource access | Yes | Resource access matrix created; Coolify login narrowed; agent creation restricted to `06 AIM` | Need skill-by-agent audit and future tool/plugin enforcement review. |
+| Least-privilege resource access | Yes | Resource access matrix created; Coolify login/deploy restricted to 5 roles, read refs to 16 roles, app test accounts to 10 app-relevant roles, agent creation restricted to `06 AIM` | Need skill-by-agent audit and future tool/plugin enforcement review. |
 | Prefer configuration and official/common extensions over code | Yes | Yes | CLI/catalog tooling blockers remain documented. |
 | Work should be pleasant end-to-end for agents | Yes | Added shared operating flow to all bundles | Needs Stage 1 feedback to refine friction points. |
 
@@ -83,11 +85,11 @@ by the owner.
 
 1. Secrets gate:
    - Decide whether to accept the local Windows `local_encrypted` key permission warning for local v0, fix the launch/ACL context, or use a different provider strategy.
-   - Coolify base/login secrets are now entered through Paperclip managed secrets.
-   - Still enter or discover `COOLIFY_API_TOKEN`, `COOLIFY_TEAM_ID`,
-     `COOLIFY_PROJECT_ID_*`, `COOLIFY_RESOURCE_ID_*`, VPS secrets if needed,
-     GitHub token if used, and product-app test-account secrets through
-     UI/env/provider flow, never memory files.
+   - Coolify base/login/read/deploy secrets, team/resource ids, and Soar/Roost
+     production test accounts are now entered through Paperclip managed
+     secrets.
+   - Still add VPS SSH refs only if direct SSH becomes required; keep GitHub
+     token optional and least-privilege.
 
 2. Soar/Roost activation gate:
    - Draft local Stage 1 activation packets for Soar and Roost.

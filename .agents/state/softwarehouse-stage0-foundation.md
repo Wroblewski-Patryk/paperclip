@@ -56,19 +56,23 @@ LuckySparrow Software House before autonomous agents start work.
 - Agent learning/self-correction is encoded in shared instructions at individual, department, and company levels. Agents must produce learning packets; they may not edit their own instructions, skills, permissions, or routines directly.
 - Hiring governance is encoded in instructions and permissions. Only `06 AIM (AI Agent Manager)` currently has `permissions.canCreateAgents: true`; all other agents are false. `06 AIM` belongs to department `06 People and AI Workforce` and is the governed AI-agent hiring manager.
 - Runtime still contains old company instruction/runtime folders for company id `f13051a7-d0aa-4261-9254-d3ab90735de5`. These old folders should not be blindly copied because their agent ids do not match the current company agents.
-- Secrets: company has 4 Coolify Stage 0 managed secrets in `local_encrypted`:
-  base URL, API URL, login email, and login password. Values are not stored in
-  memory files. Base/API URL refs are bound to 16 deploy-capable/coordinating
-  agents. Login email/password refs are restricted to `00 AIA`, `09 CTO`,
-  `09 DRE`, `10 SPA`, and `12 CEO`. All agents remain paused.
+- Secrets: company has 29 Stage 0 managed secrets in `local_encrypted`.
+  Values are not stored in memory files. Current refs include Coolify base/API
+  URL, login email/password, separate read/deploy API tokens, LuckySparrow team
+  id/name, Soar Coolify project/environment/resource ids, Roost Coolify app id,
+  Soar/Roost production URLs, and one production test account per app.
+  Coolify read/resource refs are bound to 16 deployment/coordinating agents.
+  Coolify deploy token and login/password refs are restricted to `00 AIA`,
+  `09 CTO`, `09 DRE`, `10 SPA`, and `12 CEO`. Soar/Roost app test-account refs
+  are bound to 10 app-relevant roles each. All agents remain paused.
   `local_encrypted` is configured with `strictMode: true` in
   `.paperclip/config.json`, but provider health still warns that the local key
   file permissions are `666`. A Windows ACL tightening attempt made the key
   unreadable to the local runtime, so the working readable ACL was restored and
   the warning remains a known v0 blocker/risk. AWS/GCP/Vault providers are not
   configured.
-- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-022924.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
-- Stage 0 configuration snapshot exists at `.agents/state/backups/stage0-config-20260704-022934.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and current agent instruction folders. It intentionally does not store secret values.
+- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-024049.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
+- Stage 0 configuration snapshot exists at `.agents/state/backups/stage0-config-20260704-024049.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and current agent instruction folders. It intentionally does not store secret values.
 - CLI caveat: `pnpm paperclipai skills browse` attempted dependency install and failed on Windows with `EPERM` while creating a plugin SDK symlink. Use HTTP API/file inspection until that tooling issue is repaired.
 - Catalog install caveat: the catalog install API failed on a pinned hash mismatch for `paperclipai:bundled:docs:doc-maintenance:SKILL.md`; local official skill directory imports were used instead.
 
@@ -92,7 +96,7 @@ LuckySparrow Software House before autonomous agents start work.
 
 ## Current Stage 0 Estimate
 
-As of this capture, Stage 0 is about 86% complete.
+As of this capture, Stage 0 is about 93% complete.
 
 Completed or partly complete:
 
@@ -106,8 +110,18 @@ Completed or partly complete:
 - Goals and routines now follow the department-prefix naming convention.
 - GitHub/free-plan and notification-noise constraints are recorded in the
   resource policy and agent instruction bundles.
-- Coolify base/login credentials are stored as Paperclip managed secrets and
-  bound to selected deployment/coordinating agents through secret refs.
+- Coolify base/login/read/deploy credentials are stored as Paperclip managed
+  secrets and bound to selected agents through secret refs.
+- Coolify browser login was verified; the active infrastructure team is
+  `LuckySparrow`, not the default `ai's Team`.
+- `coolify_read_api_token` was tested successfully against Coolify version,
+  teams, projects, deployments, and applications endpoints.
+- Soar production URL/API URL and Coolify project/resource ids are configured
+  as refs.
+- Roost production URL/API URL and Coolify app resource id are configured as
+  refs.
+- One Soar and one Roost production test account were created and stored as
+  Paperclip secret refs.
 - Login/password Coolify access has been narrowed to five governance,
   deployment, and security roles.
 - Least-privilege resource matrix exists for current and future agent
@@ -120,11 +134,10 @@ Completed or partly complete:
 Not yet complete:
 
 - Secret provider health still has a Windows key-permission warning.
-- Coolify API token, team id, project ids, resource ids, and read-only access
-  tests are not done.
-- Coolify/VPS/GitHub/product-app secret refs and operator entry path are
-  declared as no-value policy. Coolify base/login values are entered; remaining
-  API/resource/product-app values and access tests are not done.
+- Direct VPS SSH refs are not configured because they are not yet required for
+  Stage 0 API/browser deployment observation.
+- GitHub token is still optional/unconfigured; Stage 1 must not assume paid
+  GitHub features.
 - Stage 0 routines exist, but activation/resume remains owner-gated.
 - Soar/Roost activation work is represented as draft repo-local Stage 1 activation packets, but not yet owner-approved for Paperclip issue creation or agent execution.
 - A lightweight Stage 0 config snapshot exists after routines/agent pause, and a fresh manual DB backup exists. A full disaster-recovery backup still requires separate handling of local storage and the encrypted secrets key.
@@ -132,7 +145,8 @@ Not yet complete:
 
 ## Immediate Next Actions
 
-- Draft the reviewed secret-ref manifest for Coolify/VPS/GitHub/product apps without storing values.
+- Review the configured Coolify/Soar/Roost secret-ref manifest without exposing
+  values.
 - Decide whether to accept the local Windows ACL warning temporarily or switch the secret provider strategy before entering real secrets.
 - Review and approve or revise the draft Stage 1 activation packets for Soar and Roost.
 - Review the resource policy before Stage 1 so agents know when to use local

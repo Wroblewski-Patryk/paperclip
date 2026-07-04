@@ -42,8 +42,10 @@ Current verified direction:
 - 3 planned company goals exist with department prefixes.
 - 0 issues/tasks and 0 live runs should remain true until owner approval.
 - 18 company skills are attached by role.
-- 4 Coolify Stage 0 secrets exist in Paperclip `local_encrypted` storage and
-  are bound by secret refs to selected deploy-capable/coordinating agents.
+- 29 Stage 0 secrets exist in Paperclip `local_encrypted` storage and are
+  bound by secret refs to least-privilege agent groups. This includes Coolify
+  login refs, separate Coolify read/deploy API tokens, Coolify team/resource
+  ids, Soar/Roost production URLs, and one production test account per app.
   Values must not be written into memory or final responses.
 - 38/38 managed instruction bundles are present and include shared standards,
   learning/self-correction, hiring governance, secrets/deploy policy, and

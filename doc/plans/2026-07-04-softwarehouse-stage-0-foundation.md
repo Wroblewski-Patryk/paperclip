@@ -25,14 +25,16 @@ projects, secrets, routines, evidence, and learning.
 - Live runs: 0
 - Agents: 38/38 intentionally `paused` as Stage 0 quiet mode
 - Company skills: 18, attached by role through desired-skill sync
-- Company secrets: 4 Coolify Stage 0 managed secrets, bound by `secret_ref` to
-  selected deploy-capable/coordinating agents
+- Company secrets: 29 Stage 0 managed secrets, bound by `secret_ref` to
+  least-privilege agent groups. Includes Coolify login/read/deploy refs,
+  Coolify team/resource ids, Soar/Roost production URLs, and one production test
+  account per app.
 - Secrets provider: `local_encrypted` with strict mode configured in `.paperclip/config.json`, but Windows key permissions warning remains
 - Catalog: app-shipped skills catalog exists at `packages/skills-catalog/generated/catalog.json`
 - Current-agent managed instruction bundles: 38/38 verified, managed mode, no warnings
 - Agent creation authority: only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`
 - Department map: `.agents/state/softwarehouse-departments.md`
-- Backup checkpoint: manual DB backup `paperclip-20260704-022924.sql.gz` plus config snapshot `.agents/state/backups/stage0-config-20260704-022934.zip`
+- Backup checkpoint: manual DB backup `paperclip-20260704-024049.sql.gz` plus config snapshot `.agents/state/backups/stage0-config-20260704-024049.zip`
 - V0 audit: `.agents/state/softwarehouse-v0-readiness-audit.md`
 - Resource policy: `.agents/state/softwarehouse-resource-policy.md`
 - Resource access matrix: `.agents/state/softwarehouse-resource-access-matrix.md`
@@ -120,6 +122,12 @@ projects, secrets, routines, evidence, and learning.
   - logs and failed deploy diagnosis
   - production smoke evidence
   - no irreversible production changes without board gate
+- Coolify API access is configured with separate single-scope tokens:
+  `COOLIFY_READ_API_TOKEN` for observation and `COOLIFY_DEPLOY_API_TOKEN` for
+  governed deploy actions. The read token was verified against live Coolify API
+  endpoints.
+- Soar and Roost production smoke-test account refs are configured. No raw
+  values are stored in repo memory.
 
 ### 5. Routines
 
@@ -147,7 +155,7 @@ projects, secrets, routines, evidence, and learning.
 
 ## Readiness Estimate
 
-Current Stage 0 readiness: about 86%.
+Current Stage 0 readiness: about 93%.
 
 Reasons:
 
@@ -164,21 +172,23 @@ Reasons:
   routines, and planned goals.
 - Resource constraints are implemented: no paid GitHub assumptions and no
   noisy notification automation without explicit owner approval.
-- Coolify base/login credentials are stored as Paperclip managed secrets and
-  bound to selected agents through `secret_ref` env bindings.
+- Coolify base/login/read/deploy credentials are stored as Paperclip managed
+  secrets and bound to selected agents through `secret_ref` env bindings.
+- Coolify active team, Soar project/resource ids, Roost resource id, and
+  Soar/Roost production URLs are configured as refs.
+- One Soar and one Roost production test account exist and are stored as refs.
 - Coolify login/password bindings are restricted to `00 AIA`, `09 CTO`,
   `09 DRE`, `10 SPA`, and `12 CEO`; broader deployment/coordinating roles only
   receive URL/API URL refs.
 - Least-privilege resource access matrix exists.
 - Missing: skill-by-agent audit, future tool/plugin enforcement review,
-  Coolify API token/team/resource ids, tested read-only deployment access,
-  product-app production test-account secrets, accepted/fixed Windows secret
-  key warning, full local-storage/secrets-key disaster recovery, and final
-  board verification.
+  accepted/fixed Windows secret-key warning, optional direct VPS SSH refs if
+  Stage 1 needs them, full local-storage/secrets-key disaster recovery, and
+  final board verification.
 
 ## Immediate Next Actions
 
-1. Draft the secret-ref manifest for Coolify/VPS/GitHub/product app access.
+1. Review the configured secret-ref manifest for Coolify/Soar/Roost access.
 2. Decide whether local Windows `local_encrypted` key warning is acceptable for
    Stage 0 or whether to switch provider/launch context before entering values.
 3. Keep Stage 0 execution in Codex/repo-local configuration work, not Paperclip

@@ -12,8 +12,8 @@ Verified current instance:
 - Company: `LuckySparrow`, id `ae26bb8b-8f5f-4a85-b341-78d4e1985975`, prefix
   `LUC`.
 - Current board state is intentionally quiet: 38 agents, 6 projects, 0 issues,
-  3 planned goals, 7 paused routines, 0 live runs, 18 company skills, 4 company
-  secrets.
+  3 planned goals, 7 paused routines, 0 live runs, 18 company skills, 29
+  company secrets.
 - All 38 agents are intentionally paused for Stage 0 quiet mode. Do not resume
   agents until the owner approves Stage 1 or explicitly asks for a targeted
   unpause.
@@ -35,12 +35,13 @@ Verified current instance:
   key file permissions are `666`; AWS/GCP/Vault are not configured. Strict mode
   is enabled in `.paperclip/config.json`, and required secret names are tracked
   in `.agents/state/softwarehouse-secret-requirements.md`.
-- Coolify Stage 0 base/login credentials are now stored as Paperclip managed
-  secrets and bound by `secret_ref` env bindings to 16 deploy-capable or
-  coordinating agents for URL/API URL only. Login email/password are restricted
-  to `00 AIA`, `09 CTO`, `09 DRE`, `10 SPA`, and `12 CEO`. Remaining Coolify
-  gate: API token, team id, project ids, resource ids, and tested read-only
-  access.
+- Coolify Stage 0 base/login/read/deploy credentials, LuckySparrow team
+  id/name, Soar resource ids, Roost app id, Soar/Roost production URLs, and
+  Soar/Roost production test accounts are stored as Paperclip managed secrets.
+  Coolify read/resource refs go to 16 deploy-capable or coordinating agents.
+  Coolify login/deploy refs are restricted to `00 AIA`, `09 CTO`, `09 DRE`,
+  `10 SPA`, and `12 CEO`. The Coolify read token was tested against live API
+  endpoints.
 - Resource access matrix is tracked at
   `.agents/state/softwarehouse-resource-access-matrix.md`.
 - Resource policy is tracked in `.agents/state/softwarehouse-resource-policy.md`:
