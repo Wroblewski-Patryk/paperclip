@@ -126,6 +126,29 @@ The configured Stage 0 refs are additionally visible to `00 AIA` and `09 CTO`
 for orchestration/technical governance. Do not bind production test accounts to
 all agents.
 
+## Owner-Linked Integration Credentials
+
+Some Stage 1 verification requires the owner's app account because third-party
+providers are connected only there. These refs are separate from AI smoke
+accounts and are not default smoke credentials:
+
+- `SOAR_OWNER_PROD_EMAIL`
+- `SOAR_OWNER_PROD_PASSWORD`
+- `ROOST_OWNER_PROD_EMAIL`
+- `ROOST_OWNER_PROD_PASSWORD`
+
+Access:
+
+| App | Bound agents | Intended use | Hard gates |
+| --- | --- | --- | --- |
+| Soar | `09 DRE`, `09 QVE`, `10 SPA` | Owner-linked Binance/exchange integration verification when AI smoke accounts cannot exercise the flow. Prefer read-only health/status, dry-run, paper mode, and non-mutating evidence. | LIVE trading, order placement/cancel, exchange key changes, wallet/funds movement, or real market mutation require separate explicit owner approval for the exact action. |
+| Roost | `09 DRE`, `09 QVE`, `10 SPA` | Owner-linked Google Drive or third-party integration verification when AI smoke accounts cannot exercise the flow. Prefer read-only status, metadata, and non-destructive proof. | File deletion, sharing changes, external sends, provider config mutation, or destructive third-party actions require separate explicit owner approval for the exact action. |
+
+`00 AIA` owns Polish owner-facing coordination and approvals, but does not get
+owner-linked credential refs by default. If AIA needs to authorize a specific
+owner-linked integration test, it should issue a clear decision packet rather
+than receiving broad secret access.
+
 ## Skills
 
 Skills are capability modules, not decorations:

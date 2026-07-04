@@ -113,6 +113,45 @@ Current Stage 1 account policy:
   owns restoring Soar auth/rate-limit readiness and then provisioning
   `soar_prod_test_*` plus `soar_prod_admin_smoke_*`.
 
+## Owner-Linked Integration Verification
+
+Some app capabilities depend on third-party providers that are intentionally
+connected only to the owner's production app account, not to AI smoke accounts.
+Examples: Soar owner-linked Binance/exchange connectivity and Roost
+owner-linked Google Drive connectivity.
+
+Configured owner-linked integration refs:
+
+- `soar_owner_prod_email`
+- `soar_owner_prod_password`
+- `roost_owner_prod_email`
+- `roost_owner_prod_password`
+
+Use policy:
+
+- These refs are not default smoke credentials and must not replace dedicated
+  AI smoke accounts.
+- They may be used only when a specific issue needs to verify a capability that
+  cannot be tested through an AI smoke account because the third-party provider
+  is linked only to the owner's account.
+- Use the least invasive proof available first: read-only status, connection
+  health, metadata, dry-run, sandbox/paper mode, or non-mutating UI/API proof.
+- Soar LIVE trading, order creation, order cancellation, exchange key changes,
+  wallet/funds movement, or any real market mutation requires separate explicit
+  owner approval for that exact action.
+- Roost destructive Google Drive actions, sharing changes, external sends,
+  file deletion, or third-party configuration mutation require separate
+  explicit owner approval for that exact action.
+- Do not print raw passwords, tokens, cookies, exchange keys, OAuth tokens, or
+  provider payloads in comments, logs, docs, or artifacts.
+
+Binding scope:
+
+- Bound only to `09 DRE`, `09 QVE`, and `10 SPA` for gated production
+  verification and security oversight.
+- `00 AIA` can coordinate owner-facing decisions without receiving the raw
+  owner-linked credential refs by default.
+
 Current Coolify gap:
 
 - Browser login verified that the initial team `ai's Team` had no projects; the
