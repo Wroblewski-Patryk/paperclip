@@ -120,6 +120,12 @@ connected only to the owner's production app account, not to AI smoke accounts.
 Examples: Soar owner-linked Binance/exchange connectivity and Roost
 owner-linked Google Drive connectivity.
 
+This is a portfolio pattern, not a Soar/Roost-only exception. Future products
+such as Nest may need the same owner-linked verification path when an external
+provider is intentionally connected only to the owner's account. Other products
+may not need it at all. Decide per app during the activation packet instead of
+creating owner-linked refs by default.
+
 Configured owner-linked integration refs:
 
 - `soar_owner_prod_email`
@@ -151,6 +157,10 @@ Binding scope:
   verification and security oversight.
 - `00 AIA` can coordinate owner-facing decisions without receiving the raw
   owner-linked credential refs by default.
+- For future apps, create app-specific refs only after the app is active and a
+  concrete third-party integration proof requires them. Use the naming pattern
+  `<app>_owner_prod_email/password` or a narrower provider-specific name when
+  there are multiple owner-linked integrations.
 
 Current Coolify gap:
 

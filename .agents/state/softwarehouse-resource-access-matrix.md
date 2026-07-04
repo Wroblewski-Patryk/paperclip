@@ -132,6 +132,13 @@ Some Stage 1 verification requires the owner's app account because third-party
 providers are connected only there. These refs are separate from AI smoke
 accounts and are not default smoke credentials:
 
+This is the general pattern for future apps too. Do not create or bind
+owner-linked credentials merely because a product exists. During a product's
+activation packet, decide whether the app has third-party/provider capabilities
+that cannot be exercised through AI smoke accounts. If yes, create the narrowest
+app-specific owner-linked refs and bind them only to the verification/security
+roles that need them. If no, rely on ordinary AI smoke accounts only.
+
 - `SOAR_OWNER_PROD_EMAIL`
 - `SOAR_OWNER_PROD_PASSWORD`
 - `ROOST_OWNER_PROD_EMAIL`
@@ -148,6 +155,13 @@ Access:
 owner-linked credential refs by default. If AIA needs to authorize a specific
 owner-linked integration test, it should issue a clear decision packet rather
 than receiving broad secret access.
+
+Future app examples:
+
+- A future Nest lane may need owner-linked refs if its real third-party
+  provider integrations are intentionally connected only to the owner's
+  account.
+- Apps without owner-linked providers should not receive this credential class.
 
 ## Skills
 
