@@ -954,3 +954,31 @@ Durable policy update: added `Blocker Hygiene` to
 must now have first-class blockers, a named unblock owner, and a concrete
 return condition; the blocked inbox is an intervention queue, not a parking
 lot.
+
+# 2026-07-04 - Fix Once Prevention Rule
+
+The owner clarified a general operating principle for Codex supervision and
+Paperclip agents: every reported problem should be handled as both an immediate
+repair and a prevention opportunity. Do not fix the same class of issue ten
+times. For each non-trivial incident, inspect the surrounding process and
+environment, identify the root cause, record what should change, and configure
+Paperclip or update its operating memory so the same failure mode is less
+likely to recur.
+
+Codex added the `Fix Once Prevention Rule` to
+`.agents/state/softwarehouse-autonomous-delivery-architecture.md`.
+
+Required pattern:
+
+- contain the immediate issue;
+- identify root cause in the actual Windows/Paperclip/local-agent environment;
+- check adjacent recurrence risk;
+- add the smallest durable prevention in config, process, instructions,
+  routines, scripts, tests, permissions, or docs;
+- write the learning packet at the right individual/department/company level;
+- verify the prevention or name the next verification.
+
+This applies to recovery-needed states, stale blockers, workspace escapes,
+secrets/deploy issues, runtime adapter failures, and similar Paperclip workflow
+failures. The goal is forward movement with better governance, not hiding
+errors or creating broad speculative work.

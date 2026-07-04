@@ -25,6 +25,40 @@ Every meaningful cycle must leave evidence. If evidence cannot be produced,
 the agent reports the exact missing capability, secret, repo state, or
 architecture decision instead of pretending the work is done.
 
+## Fix Once Prevention Rule
+
+When the owner reports a problem, or an agent detects an error, the response is
+not complete after repairing the immediate symptom. The responsible operator or
+agent must also look around the failure and decide whether Paperclip needs a
+process, configuration, instruction, routine, permission, script, test, or
+documentation update to prevent the same class of failure.
+
+Every non-trivial incident should leave:
+
+- immediate containment: what was fixed or paused now;
+- root cause: why it happened in this Windows + Paperclip + local-agent
+  environment;
+- recurrence risk: where the same pattern could happen again;
+- durable prevention: the smallest config/process/tooling/instruction change
+  that reduces recurrence;
+- learning packet: individual, department, or company-level lesson;
+- verification: how the prevention was checked or how it will be checked next.
+
+Examples:
+
+- `recovery needed` should lead to adapter/runtime diagnosis, a targeted
+  repair, and instructions or tests that prevent the same recovery loop.
+- stale blockers should lead to blocker hygiene, dependent wakeups, and a rule
+  that blocked work cannot park without an owner/action.
+- workspace escapes should lead to path-boundary audits and no-delete/no-root
+  artifact policy, not only deletion of the stray files.
+- deploy or secret incidents should lead to gate and least-privilege updates,
+  not only a one-off rerun.
+
+This rule is bounded by scope: do not create broad speculative backlogs or
+rewrite the company. Apply the smallest systemic correction that keeps Stage 1
+moving toward usable Soar and Roost on VPS.
+
 ## Hierarchy Contract
 
 Work flows top-down and evidence flows bottom-up.
