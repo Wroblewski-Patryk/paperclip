@@ -20,6 +20,13 @@ owner direction -> AIA packet -> goal -> project -> parent issue
   -> closure synthesis -> learning packet -> procedure/routine improvement
 ```
 
+The daily board discipline is Kanban. Paperclip goals define intent,
+routines/procedures define repeatable checks, and issues/tasks are the visible
+Kanban cards that move through backlog, todo, in progress, review, blocked,
+done, or cancelled. Agents should optimize flow, WIP, blockers, and evidence
+inside this board instead of treating comments or reports as a replacement for
+stateful work management.
+
 Stage 1 is active under `LUC-25`: `00 General: Deliver Soar and Roost to
 Usable VPS Production`. Agents may use Paperclip work objects inside that
 approved parent mission when doing so reduces ambiguity, preserves
@@ -34,7 +41,7 @@ traceability, and moves Soar/Roost toward owner-usable VPS production.
 | Agent status | Lifecycle state. `paused` prevents accidental work. | Do not assume a paused agent can or should execute. Ask through AIA/activation governance. |
 | Goal | Business intent and success frame. | Connect meaningful work to a goal before creating or accepting execution work. |
 | Project | Product, department, or asset lane. | Keep work attached to the correct project, using `NN Department: Element` naming. |
-| Issue/task | Executable unit of work. | Use one clear owner, parent/child hierarchy, evidence, and closure comments. |
+| Issue/task | Kanban card and executable unit of work. | Use one clear owner, parent/child hierarchy, workflow state, evidence, and closure comments. |
 | Routine | Repeatable operating procedure or review loop. | In Stage 1, app-factory routines may run only within the active Soar/Roost delivery scope and must not create broad/noisy backlog. |
 | Trigger | Schedule/event that can start routine work. | Use only approved triggers. Never enable unrelated or speculative triggers just to see what happens. |
 | Skill | Packaged operating ability or workflow. | Use only when role-relevant and useful; report missing/noisy skills through learning packets. |
@@ -72,6 +79,16 @@ Before creating or accepting issue work in Stage 1, an agent must confirm:
 Agents should not create circular work, speculative backlog noise, or broad
 "improve everything" tasks. If the work is unclear, report the ambiguity upward
 instead of inventing a task tree.
+
+Kanban hygiene:
+
+- `in_progress` means a real live execution lane, not a plan or wish.
+- `todo/backlog` is the ordered pull queue, not a dumping ground.
+- `blocked` is temporary and must include owner, cause, unblock condition, and
+  a parent/dependent notification path.
+- `in_review` is required when independent QA, PM, security, ops, or owner
+  acceptance must inspect evidence before done.
+- `done` means evidence-backed closure, not "the run stopped".
 
 ## Paperclip Work Object Playbook
 

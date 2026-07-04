@@ -1078,3 +1078,45 @@ Post-correction verification:
 - `LUC-25` and higher-level delivery issues remain blocked only by covered
   active children, not by stale attention blockers.
 - Active work resumed with DRE, AIA, CFO, and CBE live runs.
+
+# 2026-07-04 - Kanban As Paperclip Board Standard
+
+Conversation summary: the owner clarified that Paperclip goals, routines, and
+issues/tasks need a clear work-management standard. Codex agreed that Kanban is
+the right default standard for day-to-day board movement because Paperclip is
+already organized around visible issue states, parent/child work, blockers,
+review, and evidence.
+
+Decision:
+
+- Kanban is the Softwarehouse board standard for Paperclip issues/tasks.
+- Goals define why work exists.
+- Routines/procedures create or inspect repeatable work.
+- Issues/tasks are Kanban cards moving through `backlog`, `todo`,
+  `in_progress`, `in_review`, `blocked`, `done`, or `cancelled`.
+- WIP is limited by allowing `in_progress` only for real live execution.
+- Blocked work must have owner, reason, unblock condition, and parent/dependent
+  notification.
+- PDCA remains the improvement cycle around Kanban: Plan the lane, Do the
+  work, Check evidence, Act by updating procedures, memory, skills, docs, or
+  follow-up tasks.
+
+Corrections applied:
+
+- Added Kanban standard language to `docs/softwarehouse/03-delivery-workflow.md`.
+- Added `Kanban As The Board Standard` to
+  `.agents/state/softwarehouse-task-lifecycle-contract.md`.
+- Added Paperclip/Kanban mechanics to
+  `.agents/state/softwarehouse-paperclip-operating-mechanics.md`.
+- Added Kanban board language to
+  `softwarehouse/instructions/shared/90-pipeline-and-supervision.md` and
+  `softwarehouse/instructions/shared/95-operating-processes.md`.
+- Synchronized the two live shared instruction files into all 38 Paperclip
+  agent bundles:
+  `references/paperclip-operating-mechanics.md` and
+  `references/procedures-and-task-lifecycle.md`.
+
+Verification:
+
+- Direct bundle audit: 38/38 agents include the Kanban board standard in live
+  managed instructions.

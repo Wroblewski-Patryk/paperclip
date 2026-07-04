@@ -51,6 +51,27 @@ comment says `blocked`, set or request `blocked`. If work is complete, set or
 request `done`. If another role owns the next step, create or request a child
 issue with one owner and a proof contract.
 
+## Kanban Board Standard
+
+Paperclip issues are the shared Kanban board for Stage 1 delivery. Goals define
+why a lane matters, routines/procedures create or inspect repeatable work, and
+issues/tasks carry the actual visible flow.
+
+Use Kanban states deliberately:
+
+- `backlog`: valid work, not ready or not selected.
+- `todo`: ready or discovery-ready, with owner and next action.
+- `in_progress`: live checked-out execution only.
+- `in_review`: named reviewer or gate owner must inspect evidence.
+- `blocked`: concrete blocker, owner, and unblock condition.
+- `done`: evidence-backed completion.
+- `cancelled`: duplicate, superseded, invalid, or intentionally abandoned with
+  reason.
+
+Kanban manages flow; PDCA improves the system after evidence is produced. Do
+not hide work in prose when it needs a card, and do not create cards when a
+comment or parent decision is enough.
+
 ## Single-Lane Execution
 
 - One agent can actively execute only one lane at a time.

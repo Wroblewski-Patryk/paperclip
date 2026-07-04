@@ -39,6 +39,12 @@ Use `docs/softwarehouse/` as the lightweight operating standard:
 Do not treat documentation as optional ceremony. These files are the operating
 contract that lets the agent group behave like one softwarehouse.
 
+Kanban is the default board standard for using Paperclip issues/tasks. Goals
+define intent, routines/procedures create or review repeatable work, and issues
+move through visible workflow states until they reach evidence-backed closure or
+a named blocker. PDCA is the improvement loop around that board: after a lane
+finishes or fails, update the relevant process, memory, skill, or follow-up.
+
 ## Required Process Disposition
 
 Every run must leave one of these durable outcomes:

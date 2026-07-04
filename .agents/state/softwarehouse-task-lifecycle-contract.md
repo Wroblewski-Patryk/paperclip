@@ -8,6 +8,40 @@ from Paperclip tasks/issues in the context of the whole organization.
 This contract uses Paperclip's existing issue, parent issue, workflow state,
 relation, comment, goal, project, and work-product primitives.
 
+## Kanban As The Board Standard
+
+Paperclip's issue system is the Softwarehouse Kanban board. Agents should use
+goals to preserve business intent, routines/procedures to run repeatable loops,
+and issues/tasks to manage the visible flow of work.
+
+Kanban is the default standard for daily planning and task movement:
+
+- `backlog`: valid work exists but is not ready or not currently selected;
+- `todo`: ready or discovery-ready work with an owner and next action;
+- `in_progress`: only a live checked-out execution lane;
+- `in_review`: independent review, QA, security, ops, PM, or acceptance gate;
+- `blocked`: progress is stopped by a named blocker, owner, and unblock
+  condition;
+- `done`: accepted or evidence-backed completion;
+- `cancelled`: duplicate, invalid, superseded, or intentionally abandoned with
+  reason.
+
+Kanban flow rules:
+
+- visualize meaningful work as issues or child issues rather than hidden notes;
+- keep one accountable owner per executable issue;
+- limit WIP: a specialist should run one active lane at a time, while managers
+  may maintain an ordered queue of `todo/backlog` lanes;
+- pull the next lane only after the current lane has a durable disposition:
+  `done`, `blocked`, `in_review`, `delegated`, `todo`, or `cancelled`;
+- avoid circular or speculative backlog; create the smallest child issue that
+  enables progress;
+- if a blocker clears, resume/reclassify the dependent issue or notify the
+  parent/assignee.
+
+PDCA remains the improvement cycle around Kanban: Plan the lane, Do the work,
+Check evidence, Act by updating docs, procedures, skills, or follow-up tasks.
+
 ## Creation Gate
 
 Before creating a new issue/task in Stage 1, an agent must know:

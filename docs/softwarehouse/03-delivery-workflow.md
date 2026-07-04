@@ -21,6 +21,28 @@ Use these semantic states even when the Paperclip issue schema uses `backlog`, `
 | BLOCKED | blocked | blocker, owner, and unblock action are named |
 | NEEDS_HUMAN_DECISION | blocked | human decision is required and the exact question is stated |
 
+## Kanban Standard
+
+Paperclip issues are the Softwarehouse Kanban board. Goals define why work
+exists, routines/procedures create or review repeatable work, and issues/tasks
+carry the daily execution flow.
+
+Kanban is the default planning and flow-management standard:
+
+- visualize every meaningful work item as an issue or child issue;
+- keep one accountable owner per executable issue;
+- limit WIP by allowing `in_progress` only for live execution;
+- keep parent/controller issues out of stale `in_progress`;
+- pull the next task from `todo/backlog` only when the current lane has a
+  durable disposition;
+- make blockers first-class with owner, reason, unblock condition, and parent
+  notification;
+- use `in_review` for independent review, QA, security, ops, or PM acceptance;
+- close as `done` only with inspectable evidence and acceptance.
+
+Kanban manages flow. PDCA improves the process after the flow produces evidence
+or exposes waste.
+
 ## Movement Rules
 
 - No issue enters `in_progress` without a minimal plan.
@@ -35,4 +57,3 @@ Use these semantic states even when the Paperclip issue schema uses `backlog`, `
 2. DO: make the smallest coherent change or handoff.
 3. CHECK: run targeted checks, build/test/lint/typecheck when relevant, compare with acceptance.
 4. ACT: update docs, report evidence, create follow-up, or close.
-
