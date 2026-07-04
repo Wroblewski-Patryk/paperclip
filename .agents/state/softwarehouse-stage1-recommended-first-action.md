@@ -23,7 +23,8 @@ The dry run should prove the company operating loop itself:
 ```text
 Owner decision -> AIA Polish decision packet -> parent issue -> one app lane
   -> product architecture preflight -> one small verification/fix slice
-  -> local evidence -> parent synthesis -> AIA Polish report -> learning packet
+  -> local evidence -> parent synthesis -> AIA owner-facing Polish summary
+  -> learning packet
 ```
 
 ## Why This First
@@ -58,7 +59,8 @@ Expected outcome:
 - verify configured Coolify read refs are sufficient to observe Soar deployment;
 - verify production URL/test account can be used for a safe login/smoke path
   only if Stage 1 approval includes protected production smoke;
-- produce a Polish AIA summary for the owner;
+- produce an AIA owner-facing Polish summary for the owner, while internal
+  reports and evidence artifacts may stay English-first;
 - produce one learning packet about missing context, if any.
 
 ## Minimal Activation Set

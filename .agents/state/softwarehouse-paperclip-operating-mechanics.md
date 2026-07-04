@@ -96,7 +96,7 @@ Owner approval
 -> Soar architecture/readiness preflight
 -> local evidence and optional protected production smoke
 -> review/evidence gate
--> AIA Polish report
+-> AIA owner-facing Polish summary, linked to English-first evidence if needed
 -> learning packet
 -> owner decision about expansion
 ```

@@ -131,8 +131,9 @@ Current verified direction:
   child evidence, closure synthesis, retrospective, and improvement.
 - Owner interface contract lives in
   `.agents/state/softwarehouse-owner-interface-contract.md`; after Stage 1
-  activation, Paperclip should communicate with the owner through `00 AIA` in
-  Polish, while internal company assets remain English-first.
+  activation, direct owner-facing decisions, questions, approval help, and
+  summaries should go through `00 AIA` in Polish, while internal company
+  reports, evidence, artifacts, and cross-agent assets may remain English-first.
 - Recommended first Stage 1 action lives in
   `.agents/state/softwarehouse-stage1-recommended-first-action.md`: controlled
   Soar dry run through AIA before broad agent activation.

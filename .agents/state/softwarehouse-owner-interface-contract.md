@@ -11,8 +11,15 @@ Internal company work should stay English-first for durable operating assets,
 procedures, architecture, project names, task titles where practical, code,
 commits, and cross-agent context.
 
-Owner-facing communication must be Polish-first, clear, concise, and
-decision-oriented.
+Owner-facing direct communication through AIA must be Polish-first, clear,
+concise, and decision-oriented.
+
+Reports, work products, evidence artifacts, internal issue notes, technical
+handoffs, architecture notes, and cross-agent summaries may stay English-first
+unless they are written specifically as a direct message to the owner. When an
+internal English report needs owner attention, AIA should provide a short Polish
+decision packet or summary and link/reference the English artifact instead of
+translating everything.
 
 ## Communication Path
 
@@ -52,6 +59,9 @@ AIA should:
 - route approved work back into the company hierarchy;
 - record owner decisions in the relevant issue, procedure, memory, or approval
   path.
+- watch for pending approval tasks and, when useful, help the owner decide by
+  presenting the decision basis in Polish without hiding underlying English
+  evidence.
 
 ## Owner Decision Packet
 
@@ -79,8 +89,9 @@ Ryzyko / cofnięcie:
 <risk and rollback or recovery path>
 ```
 
-Use Polish for the packet. Keep internal identifiers, project names, issue ids,
-file paths, procedure ids, and environment names in their original form.
+Use Polish for the packet because it is direct owner communication. Keep
+internal identifiers, project names, issue ids, file paths, procedure ids, and
+environment names in their original form.
 
 ## Owner Direction And Notes
 
@@ -108,8 +119,9 @@ Ask the owner before:
   time or create risk.
 
 Do not ask the owner for routine low-risk implementation details that a
-responsible role can decide inside approved policy. Report those in normal
-evidence and closure notes.
+responsible role can decide inside approved policy. Record those in normal
+English-first evidence and closure notes unless AIA needs to surface a direct
+owner decision.
 
 ## When AIA Should Ask Clarifying Questions
 
@@ -159,5 +171,7 @@ The system needs a safety valve for both Codex and the owner:
   AIA can consolidate.
 - Do not translate code identifiers, secret ref names, URLs, issue ids, commit
   hashes, or procedure ids into Polish.
+- Do not require every report to be Polish. Only direct owner-facing AIA
+  communication needs Polish.
 - Do not create work from owner intent until AIA/Codex understands the desired
   direction well enough to route it safely.

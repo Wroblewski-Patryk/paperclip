@@ -140,10 +140,11 @@ The project is both product work and company-building work. Future Codex chats s
   proposal.
 - Owner interface and language policy now live in
   `.agents/state/softwarehouse-owner-interface-contract.md`. During Stage 1,
-  Paperclip should communicate with the owner through `00 AIA` in Polish,
-  using clear decision packets. Internal company work, project names, operating
-  assets, procedures, and cross-agent context stay English-first unless the
-  owner-facing summary needs Polish.
+  Paperclip should communicate with the owner through `00 AIA` in Polish for
+  direct owner-facing decisions, questions, approval help, and summaries.
+  Internal company work, reports, evidence, project names, operating assets,
+  procedures, and cross-agent context may stay English-first unless a direct
+  owner-facing message needs Polish.
 - Owner direction/proposal loop now lives in
   `.agents/state/softwarehouse-owner-direction-proposal-loop.md`: the owner
   gives direction, notes, and approvals; AIA turns them into Polish proposals,

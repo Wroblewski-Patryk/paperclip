@@ -98,3 +98,18 @@ The most important known Stage 0 design gap is now not a missing document but
 runtime proof. V1 dry run means a small owner-approved activation-and-monitoring
 exercise: AIA Polish packet, minimal agent set, one parent issue, Soar preflight,
 evidence, review, learning packet, then owner decision before expansion.
+
+# 2026-07-04 - Owner-Facing Polish Scope Clarified
+
+Conversation summary and configuration correction.
+
+The owner clarified that reports do not need to be Polish by default. Polish is
+required for direct owner-facing communication through AIA: decision packets,
+questions, approval help, and concise summaries. Internal reports, evidence,
+work products, issue notes, technical handoffs, and cross-agent context may stay
+English-first. If Codex sees pending approval tasks and the owner has not asked
+yet, Codex may help interpret the decision basis for the owner in Polish.
+
+Codex updated the owner interface contract, Paperclip operating mechanics,
+Stage 1 recommended first action, board context, active mission, and compact
+Codex context to reflect this narrower language policy.

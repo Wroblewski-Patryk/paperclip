@@ -73,8 +73,9 @@ Verified current instance:
   chains.
 - Owner interface contract is tracked at
   `.agents/state/softwarehouse-owner-interface-contract.md`; owner-facing
-  communication should go through `00 AIA` in Polish, with clear decision
-  packets, while internal company work remains English-first.
+  direct communication should go through `00 AIA` in Polish, with clear
+  decision packets, while internal company reports, evidence, and cross-agent
+  work may remain English-first.
 - Recommended first Stage 1 action is tracked at
   `.agents/state/softwarehouse-stage1-recommended-first-action.md`: controlled
   Soar dry run before broad agent activation.
