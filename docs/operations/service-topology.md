@@ -1,6 +1,6 @@
 # Service Topology
 
-Last updated: 2026-06-11
+Last updated: 2026-07-04
 
 ## Purpose
 
@@ -14,7 +14,7 @@ coordinates.
 | Paperclip app/API | local dev server | `http://127.0.0.1:3200` | local workspace, Paperclip runtime data | `/api/health`, softwarehouse audit script | Softwarehouse OS / CTO |
 | Paperclip runtime home | local filesystem | `.paperclip/runtime/home/...` | Codex auth, model adapters, agent configs | agent status + live-runs audit | CTO / Agent Health |
 | Agent instruction bundles | repo files + Paperclip agent docs | `softwarehouse/instructions/` | sync script, role roster | instruction drift audit | Docs Memory / CTO |
-| Root portfolio index | local filesystem | `C:/Personal/Projekty/Aplikacje/APPLICATIONS_INDEX.md` | project docs/status/history | root portfolio drift audit | Portfolio Director |
+| Workspace boundary audit | local filesystem + Paperclip API | `pnpm run softwarehouse:workspace-boundary-audit` | allowed roots and active project records | no active project outside allowed roots; no generated root artifacts | Softwarehouse OS / CTO |
 
 ## Managed Application Projects
 
@@ -23,6 +23,17 @@ coordinates.
 | Soar | primary sellable lane | `C:/Personal/Projekty/Aplikacje/Soar` | `LUC-241` protected workers/readiness gate | Soar Project Manager |
 | Roost | secondary thin-readiness lane | `C:/Personal/Projekty/Aplikacje/Roost` | `LUC-261` CompanyCore/Roost takeover gate | Roost Project Manager |
 | Softwarehouse Operating System | planned | this repo | improve autonomy/process observability | Portfolio / CTO |
+
+Stage 1 file operations are limited to:
+
+- `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse`
+- `C:/Personal/Projekty/Aplikacje/Soar`
+- `C:/Personal/Projekty/Aplikacje/Roost`
+
+Agents must not create generated files, helper scripts, indexes, or scratch
+folders directly under `C:/Personal/Projekty/Aplikacje`. Sibling app folders are
+parked or external owner assets: do not mutate or delete them without explicit
+owner approval.
 
 Deferred portfolio streams: Featherly, Nest, Aviary, LuckySparrow.ch,
 OpenJarvis, Obiekty, Paperclip product work, and other experiments stay
@@ -47,7 +58,7 @@ operator
   -> specialist agents
   -> project repo docs/code/tests
   -> evidence/history
-  -> root /Aplikacje index
+  -> project-local status and Paperclip evidence
 
 Ops lanes:
 Paperclip -> Coolify/VPS -> Soar API/Web/workers -> smoke/readiness evidence

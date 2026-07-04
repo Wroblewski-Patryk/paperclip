@@ -875,3 +875,28 @@ Verification:
 - Server typecheck still has pre-existing unrelated `@paperclipai/shared`
   export drift in other modules; no remaining reported error from
   `server/src/services/recovery/service.ts`.
+
+# 2026-07-04 - Workspace Boundary Escape Cleanup
+
+The owner noticed rogue generated artifacts outside the active workspaces:
+`C:\Personal\Projekty\Aplikacje\scripts`,
+`C:\Personal\Projekty\Aplikacje\APPLICATIONS_INDEX.md`, and
+`C:\Personal\Projekty\Aplikacje\APPLICATIONS_INDEX.csv`. Codex removed only
+those explicit generated artifacts and did not touch sibling app folders.
+
+Root cause: `scripts/install-root-applications-index-updater.mjs` intentionally
+installed a helper script into the parent `/Aplikacje` folder and the operating
+docs still treated that root index as canonical. That pattern is now deprecated.
+
+Durable correction:
+
+- Removed the root index installer and package command.
+- Added `pnpm run softwarehouse:workspace-boundary-audit`, which fails when
+  forbidden root artifacts exist or an active Paperclip project points outside
+  `Paperclip_Softwarehouse`, `Soar`, or `Roost`.
+- Updated AGENTS, Codex context, operating docs, resource access policy, active
+  mission, success metrics, and risk register with the three-root boundary and
+  explicit no-delete rule for parked/sibling app folders.
+- Archived the active Paperclip `11 Innovation: Aviary` project without deleting
+  files, because Stage 1 agent work is currently limited to Paperclip, Soar,
+  and Roost.

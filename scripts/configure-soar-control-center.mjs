@@ -342,7 +342,7 @@ const soarWorkspace = await ensurePrimaryWorkspace(soar.id, {
   metadata: {
     docsRoot: "docs",
     documentationMap: "docs/documentation-map.md",
-    applicationsIndex: path.join(appsRoot, "APPLICATIONS_INDEX.md"),
+    workspaceBoundaryAudit: "pnpm run softwarehouse:workspace-boundary-audit",
     pilotScope: "Soar first; add future projects only after Soar control loop is proven.",
   },
   runtimeConfig: {
@@ -729,11 +729,11 @@ await ensureWorkProduct(parent.id, {
 await ensureWorkProduct(parent.id, {
   projectId: soar.id,
   type: "artifact",
-  provider: "local_file",
-  title: "Applications portfolio index",
+  provider: "command",
+  title: "Workspace boundary audit",
   status: "active",
-  summary: "Root application status index that should reflect Soar pilot status.",
-  metadata: { path: "C:/Personal/Projekty/Aplikacje/APPLICATIONS_INDEX.md" },
+  summary: "Audit proving Soar/Paperclip/Roost are the only active Stage 1 agent roots and no generated helper artifacts live directly under /Aplikacje.",
+  metadata: { command: "pnpm run softwarehouse:workspace-boundary-audit" },
 });
 await ensureWorkProduct(parent.id, {
   projectId: soar.id,

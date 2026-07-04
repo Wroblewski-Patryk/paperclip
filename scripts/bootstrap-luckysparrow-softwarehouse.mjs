@@ -9,7 +9,6 @@ const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const localCodexCommand = path.join(root, "scripts", "codex.cmd");
 const rosterPath = path.join(root, "softwarehouse", "agent-roster.json");
-const applicationsIndexPath = path.join(appsRoot, "APPLICATIONS_INDEX.csv");
 const commonInstructionsPath = path.join(root, "softwarehouse", "instructions", "common-operating-context.md");
 const roleInstructionsDir = path.join(root, "softwarehouse", "instructions", "roles");
 
@@ -30,40 +29,19 @@ async function request(method, route, body) {
   return data;
 }
 
-function parseCsvLine(line) {
-  const values = [];
-  let current = "";
-  let quoted = false;
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i];
-    if (char === '"' && line[i + 1] === '"') {
-      current += '"';
-      i += 1;
-      continue;
-    }
-    if (char === '"') {
-      quoted = !quoted;
-      continue;
-    }
-    if (char === "," && !quoted) {
-      values.push(current);
-      current = "";
-      continue;
-    }
-    current += char;
-  }
-  values.push(current);
-  return values;
-}
-
 async function readApplications() {
-  const csv = await readFile(applicationsIndexPath, "utf8");
-  const lines = csv.split(/\r?\n/).filter(Boolean);
-  const headers = parseCsvLine(lines[0]).map((header) => header.replace(/^\uFEFF/, ""));
-  return lines.slice(1).map((line) => {
-    const values = parseCsvLine(line);
-    return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
-  });
+  return (process.env.SOFTWAREHOUSE_BOOTSTRAP_PROJECTS ?? "Soar,Roost")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .map((name) => ({
+      Application: name,
+      Project: name,
+      DocRoot: "docs",
+      Overall: "",
+      Status: "planned",
+      DetailsLink: `${name}/docs`,
+    }));
 }
 
 function adapterConfigForLane(roster, laneKey) {
@@ -298,7 +276,7 @@ async function getOrCreateTakeoverIssue(companyId, application, project, agentsB
     title,
     description,
     status: "backlog",
-    priority: application.Application === "Soar" || application.Application === "Aviary" ? "critical" : "high",
+    priority: application.Application === "Soar" || application.Application === "Roost" ? "critical" : "high",
     projectId: project.id,
   });
 }

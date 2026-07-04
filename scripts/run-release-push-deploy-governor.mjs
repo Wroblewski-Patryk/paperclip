@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -7,10 +6,6 @@ const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Apl
 const outputJson = "report/softwarehouse-release-push-deploy-governor.latest.json";
 const outputMd = "report/softwarehouse-release-push-deploy-governor.latest.md";
 const defaultProjects = ["Soar", "Roost"];
-const excludedDiscoveredProjects = new Set([
-  ".paperclip-worktrees",
-  "Paperclip_Softwarehouse",
-]);
 
 async function readJson(filePath, fallback = null) {
   try {
@@ -39,48 +34,6 @@ function repoPath(name) {
   return name === "Paperclip_Softwarehouse" ? process.cwd() : path.join(appsRoot, name);
 }
 
-function parseCsvLine(line) {
-  const cells = [];
-  let current = "";
-  let quoted = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    const next = line[index + 1];
-    if (char === '"' && quoted && next === '"') {
-      current += '"';
-      index += 1;
-    } else if (char === '"') {
-      quoted = !quoted;
-    } else if (char === "," && !quoted) {
-      cells.push(current);
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  cells.push(current);
-  return cells;
-}
-
-async function discoverProjectsFromIndex() {
-  const indexPath = path.join(appsRoot, "APPLICATIONS_INDEX.csv");
-  const text = await readFile(indexPath, "utf8");
-  const lines = text.split(/\r?\n/).filter(Boolean);
-  if (lines.length < 2) return [];
-  const headers = parseCsvLine(lines[0]);
-  const appIndex = headers.indexOf("Application");
-  const projectIndex = headers.indexOf("Project");
-  const names = [];
-  for (const line of lines.slice(1)) {
-    const cells = parseCsvLine(line);
-    const name = (cells[projectIndex] || cells[appIndex] || "").trim();
-    if (!name || excludedDiscoveredProjects.has(name) || name.startsWith(".")) continue;
-    if (!existsSync(path.join(repoPath(name), ".git"))) continue;
-    names.push(name);
-  }
-  return [...new Set(names)];
-}
-
 async function resolveProjects() {
   if (process.env.SOFTWAREHOUSE_RELEASE_PROJECTS) {
     return process.env.SOFTWAREHOUSE_RELEASE_PROJECTS
@@ -88,12 +41,7 @@ async function resolveProjects() {
       .map((item) => item.trim())
       .filter(Boolean);
   }
-  try {
-    const discovered = await discoverProjectsFromIndex();
-    return discovered.length > 0 ? discovered : defaultProjects;
-  } catch {
-    return defaultProjects;
-  }
+  return defaultProjects;
 }
 
 function statusFor(name) {

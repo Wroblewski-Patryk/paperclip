@@ -1,6 +1,6 @@
 # Risk Register
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 | ID | Area | Risk | Likelihood | Impact | Mitigation | Status | Last Updated |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -12,3 +12,4 @@ Last updated: 2026-07-03
 | RISK-PSH-006 | Memory drift | Future agents may miss this conversation if memory is not in the expected `.agents/state` convention or the memory skill is not used. | medium | medium | Use `.agents/skills/paperclip-project-memory/SKILL.md`; store concise state files in `.agents/state/` and update `project-journal.md` for archived threads. | mitigating | 2026-07-03 |
 | RISK-PSH-007 | Queue churn | Repeated stale queued wakeups can create `issue_assignee_changed` cancellation noise and make the dashboard look broken even when ownership changes are legitimate. | medium | medium | Coalesce duplicate issue/agent wakeups, inspect live-runs and fresh heartbeat-runs before acting, and avoid manual retry storms. | mitigating | 2026-07-03 |
 | RISK-PSH-008 | Mechanical unblocking | Blocked issues can be incorrectly reopened if future agents remove blockers without checking whether they are terminal/resolved or still active dependencies like `LUC-6331`. | medium | high | Remove blockers only when the blocker is terminal/resolved; treat Soar lanes blocked by `LUC-6331` as real until fresh evidence resolves it. | mitigating | 2026-07-03 |
+| RISK-PSH-009 | Workspace boundary escape | Agents or helper scripts can create generated files directly under `C:/Personal/Projekty/Aplikacje` or mutate/delete sibling app folders outside the active Stage 1 roots. | medium | high | Stage 1 allowed roots are only Paperclip_Softwarehouse, Soar, and Roost; root generated artifacts are forbidden; run `pnpm run softwarehouse:workspace-boundary-audit`; leave unclear sibling folders untouched and escalate. | mitigating | 2026-07-04 |

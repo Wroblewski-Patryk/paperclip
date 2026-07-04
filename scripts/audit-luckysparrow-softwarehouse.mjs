@@ -729,51 +729,27 @@ async function fileInfo(filePath) {
   }
 }
 
-const rootPortfolioDrift = [];
+const rootBoundaryDrift = [];
 const applicationsIndexPath = path.join(appsRoot, "APPLICATIONS_INDEX.md");
 const applicationsCsvPath = path.join(appsRoot, "APPLICATIONS_INDEX.csv");
 const applicationsUpdaterPath = path.join(appsRoot, "scripts", "update-applications-index.ps1");
-if (!(await pathExists(applicationsIndexPath))) {
-  rootPortfolioDrift.push({
-    file: applicationsIndexPath,
-    reason: "missing_root_index",
-  });
-}
-if (!(await pathExists(applicationsCsvPath))) {
-  rootPortfolioDrift.push({
-    file: applicationsCsvPath,
-    reason: "missing_root_csv",
-  });
-}
-if (!(await pathExists(applicationsUpdaterPath))) {
-  rootPortfolioDrift.push({
-    file: applicationsUpdaterPath,
-    reason: "missing_root_index_updater",
-  });
-}
 if (await pathExists(applicationsIndexPath)) {
-  const indexText = await readFile(applicationsIndexPath, "utf8");
-  const forbiddenPortfolioFragments = [
-    "companycore/Roost",
-    "Roost - docs",
-    "| companycore |",
-    "| companycore-drive-fix |",
-    "| scripts |",
-  ];
-  const staleFragments = forbiddenPortfolioFragments.filter((fragment) => indexText.includes(fragment));
-  if (staleFragments.length > 0) {
-    rootPortfolioDrift.push({
-      file: applicationsIndexPath,
-      reason: "stale_root_index_entries",
-      staleFragments,
-    });
-  }
-  if (!indexText.includes("| Roost | [Roost](Roost)")) {
-    rootPortfolioDrift.push({
-      file: applicationsIndexPath,
-      reason: "missing_canonical_roost_entry",
-    });
-  }
+  rootBoundaryDrift.push({
+    file: applicationsIndexPath,
+    reason: "forbidden_root_generated_index",
+  });
+}
+if (await pathExists(applicationsCsvPath)) {
+  rootBoundaryDrift.push({
+    file: applicationsCsvPath,
+    reason: "forbidden_root_generated_index",
+  });
+}
+if (await pathExists(applicationsUpdaterPath)) {
+  rootBoundaryDrift.push({
+    file: applicationsUpdaterPath,
+    reason: "forbidden_root_helper_script",
+  });
 }
 
 const unblockPacketMarkdownPath = path.join("docs", "status", "softwarehouse-unblock-packet.md");
@@ -1084,7 +1060,7 @@ if (weakWorkerQueue) findings.push({
 if (agentsWithMultipleLiveRuns.length > 0) findings.push({ severity: "critical", area: "wip", message: "Agents have more than one live run; enforce one-agent-one-active-lane.", items: agentsWithMultipleLiveRuns });
 if (agentsWithSparkModel.length > 0) findings.push({ severity: "critical", area: "models", message: "Agents still reference Spark models.", items: agentsWithSparkModel.map((agent) => agent.name) });
 if (instructionBundleDrift.length > 0) findings.push({ severity: "critical", area: "instructions", message: "Agent instruction bundles contain stale or inconsistent project context.", items: instructionBundleDrift });
-if (rootPortfolioDrift.length > 0) findings.push({ severity: "warn", area: "portfolio-index", message: "Root /Aplikacje project index is missing, stale, or not refreshable.", items: rootPortfolioDrift });
+if (rootBoundaryDrift.length > 0) findings.push({ severity: "warn", area: "workspace-boundary", message: "Generated helpers or indexes exist directly under /Aplikacje; keep agent work inside Paperclip_Softwarehouse, Soar, or Roost.", items: rootBoundaryDrift });
 if (coolifyBindingDrift.length > 0) findings.push({ severity: "critical", area: "ownership", message: "Coolify/runtime issues are assigned to agents without Coolify env bindings.", items: coolifyBindingDrift });
 if (runtimeBindingGaps.length > 0) findings.push({
   severity: "warn",
@@ -1326,7 +1302,7 @@ console.log(JSON.stringify({
     cheapModel: agent.runtimeConfig?.modelProfiles?.cheap?.adapterConfig?.model ?? null,
   })),
   instructionBundleDrift,
-  rootPortfolioDrift,
+  rootBoundaryDrift,
   unblockPacketStatus,
   controlTickStatus,
   controlPostureStatus,

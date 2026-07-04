@@ -11,33 +11,30 @@ const parkedProjectNames = new Set(
     .filter(Boolean),
 );
 
-const repositories = [
-  {
-    name: "Paperclip_Softwarehouse",
-    path: process.cwd(),
-    required: true,
-  },
-  {
-    name: "Soar",
-    path: path.join(appsRoot, "Soar"),
+const defaultRepositoryNames = (
+  process.env.SOFTWAREHOUSE_SOURCE_CONTROL_PROJECTS ??
+  "Paperclip_Softwarehouse,Soar,Roost"
+)
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
+
+function repositoryForName(name) {
+  if (name === "Paperclip_Softwarehouse") {
+    return {
+      name,
+      path: process.cwd(),
+      required: true,
+    };
+  }
+  return {
+    name,
+    path: path.join(appsRoot, name),
     required: false,
-  },
-  {
-    name: "Roost",
-    path: path.join(appsRoot, "Roost"),
-    required: false,
-  },
-  {
-    name: "Aviary",
-    path: path.join(appsRoot, "Aviary"),
-    required: false,
-  },
-  {
-    name: "Nest",
-    path: path.join(appsRoot, "Nest"),
-    required: false,
-  },
-];
+  };
+}
+
+const repositories = defaultRepositoryNames.map(repositoryForName);
 
 function runGit(cwd, args, options = {}) {
   const trimOutput = options.trimOutput ?? true;

@@ -115,6 +115,19 @@ Agents should work on scoped branches or Paperclip execution workspaces/worktree
 record the next action or blocker in the issue thread, keep generated artifacts attached as work
 products, and avoid broad rewrites that make ownership, review, or rollback unclear.
 
+9. Preserve local application boundaries.
+Stage 1 autonomous agents may work only inside these local roots unless the owner explicitly
+approves a different root in the current thread or Paperclip approval:
+- `C:\Personal\Projekty\Aplikacje\Paperclip_Softwarehouse`
+- `C:\Personal\Projekty\Aplikacje\Soar`
+- `C:\Personal\Projekty\Aplikacje\Roost`
+
+Do not create helper folders, generated indexes, scripts, or scratch files directly under
+`C:\Personal\Projekty\Aplikacje`. Do not delete or clean up sibling app folders such as
+Nest, Featherly, Aviary, or other experiments. If ownership is unclear, report the path as
+a boundary issue and leave it untouched. Run `pnpm run softwarehouse:workspace-boundary-audit`
+after configuration changes that affect projects, routines, workspaces, or autonomous lanes.
+
 ## 6. Database Change Workflow
 
 When changing data model:

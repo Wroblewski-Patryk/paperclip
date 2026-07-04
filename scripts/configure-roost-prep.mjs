@@ -334,7 +334,7 @@ const roostWorkspace = await ensurePrimaryWorkspace(roostProject.id, {
   metadata: {
     projectAlias: "Roost/companycore",
     docsRoot: roostDocsRoot,
-    applicationsIndex: path.join(appsRoot, "APPLICATIONS_INDEX.md"),
+    workspaceBoundaryAudit: "pnpm run softwarehouse:workspace-boundary-audit",
     preparationOnly: false,
   },
   runtimeConfig: {

@@ -1,6 +1,6 @@
 # Capability Map
 
-Last updated: 2026-06-19
+Last updated: 2026-07-04
 
 ## Purpose
 
@@ -23,7 +23,7 @@ Capability -> Process -> Agent role -> Paperclip issue/routine -> Project files 
 | SH-CAP-003 | Architectural awareness | Agents can build and update a project graph of entities, relations, evidence, and gaps. | Architecture awareness layer script and graph exports. | implemented | `softwarehouse/architectural-awareness-layer.md`, `docs/graphs/architecture-awareness.json` | Run graph sync after meaningful project changes. |
 | SH-CAP-004 | Evidence-first closure | Issues close only with proof, status, affected files, tests, and next blockers. | Shared instruction bundle and audit script. | implemented | `softwarehouse/instructions/shared/70-evidence-and-memory.md`, `scripts/audit-luckysparrow-softwarehouse.mjs` | Keep stale blocked/in-progress cleanup active. |
 | SH-CAP-005 | Release/deploy governance | Coolify/VPS actions are gated, reversible, and redacted. | Coolify resource model, deploy safety instructions, secret placeholders. | implemented | `softwarehouse/coolify-resource-model.md`, `softwarehouse/instructions/shared/20-release-and-deploy-safety.md` | Reconcile `LUC-99` SHA/worker readiness. |
-| SH-CAP-006 | Root portfolio radar | `/Aplikacje` shows project structure readiness and links to project docs. | Root index updater and audit drift check. | implemented | `/Aplikacje/APPLICATIONS_INDEX.md`, `scripts/install-root-applications-index-updater.mjs` | Refresh after each project audit/commit. |
+| SH-CAP-006 | Workspace boundary control | Stage 1 agents stay inside the approved active roots and never create helper artifacts directly under `/Aplikacje`. | Boundary audit script, archived parked projects, and explicit no-delete policy for sibling app folders. | implemented | `scripts/audit-softwarehouse-workspace-boundaries.mjs`, `pnpm run softwarehouse:workspace-boundary-audit` | Run after project/routine/workspace configuration changes and before widening autonomy. |
 | SH-CAP-007 | Autonomous routine posture | Routines keep maps, status, regression, docs, and PM supervision alive. | Active routine set in Paperclip. | implemented | `node scripts/audit-luckysparrow-softwarehouse.mjs` | Tune routines based on live blocked/runnable state. |
 | SH-CAP-008 | Multi-project expansion | Soar and Roost can run as active local app lanes, while Aviary/Nest/Featherly stay prepared until explicitly activated. | Soar and Roost have project managers and workspace policies; future-app PMs exist but stay paused while parked. | implemented baseline | `pnpm softwarehouse:two-project-readiness`, `pnpm softwarehouse:executive-health` | Activate future PMs only when the board promotes that app into active delivery. |
 | SH-CAP-009 | AI-agent talent management | The softwarehouse improves its own agents, role boundaries, skills, routines, and instructions from evidence. | CHRO, AID, talent policy, learning loop, and agent-development review roles exist. | implemented baseline | `softwarehouse/talent-and-capability-system.md`, `softwarehouse/agent-roster.json` | Keep AID/CHRO active for agent-quality issues; avoid broad new roles without measured trial evidence. |

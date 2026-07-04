@@ -51,6 +51,16 @@ Active products:
 - Soar.
 - Roost.
 
+Allowed local workspace roots:
+
+- `C:\Personal\Projekty\Aplikacje\Paperclip_Softwarehouse`
+- `C:\Personal\Projekty\Aplikacje\Soar`
+- `C:\Personal\Projekty\Aplikacje\Roost`
+
+The parent `C:\Personal\Projekty\Aplikacje` folder is not an agent workspace.
+Do not create root helper folders/indexes there, and do not delete or clean
+sibling app folders without explicit owner approval.
+
 Active work:
 
 - architecture/source-of-truth checks;

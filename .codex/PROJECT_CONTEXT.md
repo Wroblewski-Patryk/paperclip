@@ -121,6 +121,18 @@ Parked until owner activation:
 
 - Featherly, Aviary, Nest, and unrelated products.
 
+Current allowed local workspace roots:
+
+- `C:\Personal\Projekty\Aplikacje\Paperclip_Softwarehouse`
+- `C:\Personal\Projekty\Aplikacje\Soar`
+- `C:\Personal\Projekty\Aplikacje\Roost`
+
+Do not create generated files, scripts, indexes, or scratch folders directly
+under `C:\Personal\Projekty\Aplikacje`. Do not delete or clean sibling app
+folders. When in doubt, report the path as a boundary issue and leave it
+untouched. Run `pnpm run softwarehouse:workspace-boundary-audit` after changing
+project/routine/workspace configuration.
+
 Out of scope unless separately approved:
 
 - marketing, sales, customer service;

@@ -20,6 +20,26 @@ Minimum responsibility, maximum diversification:
   but may not self-edit them. Access changes go through board/Codex in Stage 0
   and through governed approvals in Stage 1.
 
+## Local Workspace Boundary
+
+Stage 1 autonomous work is allowed only inside these roots:
+
+- `C:\Personal\Projekty\Aplikacje\Paperclip_Softwarehouse`
+- `C:\Personal\Projekty\Aplikacje\Soar`
+- `C:\Personal\Projekty\Aplikacje\Roost`
+
+The parent folder `C:\Personal\Projekty\Aplikacje` is not an agent workspace.
+Agents must not create helper folders, generated indexes, scripts, scratch
+files, or cleanup outputs directly in that parent folder. Agents must not delete
+or "tidy" sibling app folders such as Nest, Featherly, Aviary, LuckySparrow.ch,
+OpenJarvis, Obiekty, or other owner experiments. If a file/folder is outside the
+three active roots and the owner has not explicitly approved work there, agents
+must leave it untouched and report a boundary issue.
+
+Verification command:
+
+- `pnpm run softwarehouse:workspace-boundary-audit`
+
 ## Current Hard Permissions
 
 | Capability | Current implementation |
@@ -194,6 +214,9 @@ Default tool classes by role:
 - Product apps such as Soar and Roost are separate repos.
 - Agents must identify the repo before changing files.
 - Product-app repo write access should be scoped to the assigned app and issue.
+- Root-level generated indexes under `C:\Personal\Projekty\Aplikacje` are
+  forbidden; project state belongs in the relevant project repo or Paperclip
+  evidence artifacts.
 - Broad rewrites, destructive git, force push, and production config changes are
   board-gated.
 

@@ -189,18 +189,23 @@ Post-cleanup agent snapshot from the thread:
 
 ## Source-Control And App Redeploy Model
 
-- Paperclip is the control plane. Agent-created/local product apps are separate
-  repositories under `C:/Personal/Projekty/Aplikacje/<Application>`, usually
-  listed in `C:/Personal/Projekty/Aplikacje/APPLICATIONS_INDEX.csv`.
+- Paperclip is the control plane. Stage 1 agent work is bounded to
+  `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse`,
+  `C:/Personal/Projekty/Aplikacje/Soar`, and
+  `C:/Personal/Projekty/Aplikacje/Roost`.
+- Sibling app folders under `C:/Personal/Projekty/Aplikacje` are owner assets
+  or parked portfolio items. Do not mutate or delete them without explicit
+  owner approval.
 - Product-app work must be closed from the product repo root, not only from
   `Paperclip_Softwarehouse`: report files changed, verification, commit SHA or
   why no commit exists, branch/upstream state, push status, deploy impact,
   Coolify redeploy evidence when applicable, production smoke/readiness
   evidence, residual risk, and next owner.
-- `scripts/run-release-push-deploy-governor.mjs` is app-aware and can
-  auto-discover repos from `APPLICATIONS_INDEX.csv` when
-  `SOFTWAREHOUSE_RELEASE_PROJECTS` is unset. Use it before broad push/deploy
-  decisions.
+- `scripts/run-release-push-deploy-governor.mjs` is app-aware and defaults to
+  Soar/Roost when `SOFTWAREHOUSE_RELEASE_PROJECTS` is unset. Use it before
+  broad push/deploy decisions.
+- Run `pnpm run softwarehouse:workspace-boundary-audit` after changing
+  Paperclip projects, routines, workspaces, or autonomy scope.
 - Known current blocker: Soar was observed with 31 dirty lines and branch
   divergence (`main...origin/main [ahead 9, behind 1]`). Future agents should
   classify/commit dirty work and reconcile the branch before any push or deploy
