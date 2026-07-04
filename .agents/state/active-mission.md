@@ -44,6 +44,16 @@ Verified current instance:
   endpoints.
 - Resource access matrix is tracked at
   `.agents/state/softwarehouse-resource-access-matrix.md`.
+- Product architecture index is tracked at
+  `.agents/state/softwarehouse-product-architecture-index.md`; Soar/Roost work
+  must begin with repo-specific `docs/architecture` source-of-truth checks.
+- Autonomous delivery architecture is tracked at
+  `.agents/state/softwarehouse-autonomous-delivery-architecture.md`; Stage 1
+  work must follow parent/child reporting, duplicate prevention, PDCA,
+  commit/push/Coolify/production-smoke closure, and governed learning packets.
+- Architecture gap analysis is tracked at
+  `.agents/state/softwarehouse-architecture-gap-analysis.md`; current guidance
+  is to use controlled activation of existing agents before hiring new roles.
 - Resource policy is tracked in `.agents/state/softwarehouse-resource-policy.md`:
   no paid GitHub plan is available, so Stage 1 agents must not assume paid
   GitHub features, paid Actions capacity, Advanced Security, paid runners,

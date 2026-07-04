@@ -45,6 +45,7 @@ LuckySparrow Software House before autonomous agents start work.
 - Company skills: 18 returned by `/api/companies/:companyId/skills`. Role attachments are present for Paperclip ops, planning, triage, QA, docs, GitHub PR workflow, browser, release, and product/design skills.
 - App-shipped skills catalog exists at `packages/skills-catalog/generated/catalog.json` with bundled/optional skills for docs, Paperclip operations, product, quality, software development, browser, content, and design critique.
 - Agent managed instructions are configured for all 38 agents. Verified through `/api/agents/:id/instructions-bundle?companyId=...`: every current agent has a managed bundle with no warnings and at least these files: `AGENTS.md`, `references/company-operating-model.md`, `references/standards.md`, `references/learning-and-self-correction.md`, `references/hiring-and-agent-governance.md`, `references/secrets-deploy-evidence.md`, `references/end-to-end-operating-flow.md`, and `references/departments-and-naming.md`.
+- Managed instruction bundles also now include shared architecture execution references: `references/product-architecture-source-of-truth.md`, `references/delegation-and-reporting-contract.md`, `references/delivery-closure-loop.md`, and `references/gap-detection-and-learning-packets.md`.
 - Canonical department map lives at `.agents/state/softwarehouse-departments.md`. Department naming convention is `NN NazwaDziału - concise title` for department-owned routines, goals, issues, reports, work products, approvals, and notes.
 - Resource policy lives at `.agents/state/softwarehouse-resource-policy.md`.
   Prefer local/free verification and report paid-plan or quota constraints
@@ -53,6 +54,19 @@ LuckySparrow Software House before autonomous agents start work.
   `.agents/state/softwarehouse-resource-access-matrix.md` and covers secrets,
   skills, tools, markdown resources, routines, repos, deployments, and
   production test accounts.
+- Product architecture index lives at
+  `.agents/state/softwarehouse-product-architecture-index.md`. It identifies
+  Soar and Roost repo paths, their `docs/architecture` sources of truth, and
+  the preflight required before product work.
+- Autonomous delivery architecture lives at
+  `.agents/state/softwarehouse-autonomous-delivery-architecture.md`. It defines
+  the top-down delegation contract, duplicate-prevention rule, PDCA checkpoint,
+  commit/push/Coolify/production-smoke closure loop, and learning packet path.
+- Architecture gap analysis lives at
+  `.agents/state/softwarehouse-architecture-gap-analysis.md`. Current finding:
+  no new permanent agents are required before Stage 1; run the current company
+  with controlled activation and use governed hiring packets when real gaps are
+  proven.
 - Agent learning/self-correction is encoded in shared instructions at individual, department, and company levels. Agents must produce learning packets; they may not edit their own instructions, skills, permissions, or routines directly.
 - Hiring governance is encoded in instructions and permissions. Only `06 AIM (AI Agent Manager)` currently has `permissions.canCreateAgents: true`; all other agents are false. `06 AIM` belongs to department `06 People and AI Workforce` and is the governed AI-agent hiring manager.
 - Runtime still contains old company instruction/runtime folders for company id `f13051a7-d0aa-4261-9254-d3ab90735de5`. These old folders should not be blindly copied because their agent ids do not match the current company agents.
@@ -71,8 +85,8 @@ LuckySparrow Software House before autonomous agents start work.
   unreadable to the local runtime, so the working readable ACL was restored and
   the warning remains a known v0 blocker/risk. AWS/GCP/Vault providers are not
   configured.
-- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-024049.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
-- Stage 0 configuration snapshot exists at `.agents/state/backups/stage0-config-20260704-024049.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and current agent instruction folders. It intentionally does not store secret values.
+- Database backups are enabled in `.paperclip/config.json`; latest manual DB backup is `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-024722.sql.gz`. DB backups do not include local storage, instruction files, or the local encrypted secrets key.
+- Stage 0 configuration snapshot exists at `.agents/state/backups/stage0-config-20260704-024731.zip`. It captures repo-local Stage 0 memory/plan, `.codex/PROJECT_CONTEXT.md`, `.paperclip/config.json`, and current agent instruction folders. It intentionally does not store secret values.
 - CLI caveat: `pnpm paperclipai skills browse` attempted dependency install and failed on Windows with `EPERM` while creating a plugin SDK symlink. Use HTTP API/file inspection until that tooling issue is repaired.
 - Catalog install caveat: the catalog install API failed on a pinned hash mismatch for `paperclipai:bundled:docs:doc-maintenance:SKILL.md`; local official skill directory imports were used instead.
 
@@ -93,10 +107,13 @@ LuckySparrow Software House before autonomous agents start work.
     skills, tools, markdown resources, routines, repos, deployments, and
     production test accounts.
 12. Board accepts a current readiness percentage and known residual risks.
+13. Stage 1 autonomous delivery architecture is installed: product
+    architecture preflight, top-down delegation, duplicate prevention,
+    deploy/production closure, and governed learning packets.
 
 ## Current Stage 0 Estimate
 
-As of this capture, Stage 0 is about 93% complete.
+As of this capture, Stage 0 is about 96% complete.
 
 Completed or partly complete:
 
@@ -126,6 +143,13 @@ Completed or partly complete:
   deployment, and security roles.
 - Least-privilege resource matrix exists for current and future agent
   capabilities.
+- Product architecture index exists for Soar and Roost, including repo paths
+  and `docs/architecture` reading order.
+- Shared autonomous delivery architecture exists for parent-child delegation,
+  duplicate prevention, PDCA, commit/push/deploy closure, Coolify observation,
+  production smoke evidence, and learning packets.
+- All 38 managed instruction bundles include the new architecture/delegation/
+  closure/learning references.
 - Only `06 AIM (AI Agent Manager)` can create/hire agents, and only through the governed hiring path.
 - Seven core routines exist as paused drafts with disabled schedules.
 - All 38 agents are intentionally paused to prevent accidental wakeups during Stage 0.
@@ -148,7 +172,8 @@ Not yet complete:
 - Review the configured Coolify/Soar/Roost secret-ref manifest without exposing
   values.
 - Decide whether to accept the local Windows ACL warning temporarily or switch the secret provider strategy before entering real secrets.
-- Review and approve or revise the draft Stage 1 activation packets for Soar and Roost.
+- Review and approve or revise the draft Stage 1 activation packets for Soar
+  and Roost against the new delivery architecture.
 - Review the resource policy before Stage 1 so agents know when to use local
   checks versus owner-approved GitHub/cloud automation.
 - Create a full Stage 0 backup/export checkpoint that includes DB backup plus current instruction/config files, while keeping the secrets key handled separately as sensitive material.

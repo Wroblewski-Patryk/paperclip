@@ -7,7 +7,7 @@ Source: conversation summary plus verified Paperclip API state at
 
 ## Current Readiness
 
-Estimated Stage 0 / v0 readiness: about 93%.
+Estimated Stage 0 / v0 readiness: about 96%.
 
 This is close enough to see the v0 horizon, but not ready for Stage 1 agent
 execution until the remaining gates below are resolved or consciously accepted
@@ -27,7 +27,9 @@ by the owner.
   values stored in memory files. This includes Coolify login refs, separate
   Coolify read/deploy API tokens, Soar/Roost production URLs, Coolify
   team/resource ids, and Soar/Roost production test accounts.
-- Managed instructions: 38/38 agents have managed bundles with no API warnings.
+- Managed instructions: 38/38 agents have managed bundles with no API warnings,
+  including shared product-architecture, delegation/reporting, delivery-closure,
+  and learning-packet references.
 - Agent creation authority: only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`.
 - Department numbering: 05 = Customer Success; 06 = People and AI Workforce.
 - Canonical department map: `.agents/state/softwarehouse-departments.md`.
@@ -55,6 +57,10 @@ by the owner.
 | Coolify/VPS deployment observation | Yes | Coolify browser login verified, team switched to LuckySparrow, API read token tested, Soar/Roost URLs/resource ids discovered, paused readiness routine exists | Deploy-token actions remain gated; full VPS SSH still optional/unconfigured. |
 | No paid GitHub assumption or email-noisy automation | Yes | Resource policy and agent instructions updated | Need Stage 1 enforcement during real work. |
 | Least-privilege resource access | Yes | Resource access matrix created; Coolify login/deploy restricted to 5 roles, read refs to 16 roles, app test accounts to 10 app-relevant roles, agent creation restricted to `06 AIM` | Need skill-by-agent audit and future tool/plugin enforcement review. |
+| Product architecture sources for Soar/Roost | Yes | Product architecture index added; agents must read repo-specific `docs/architecture` before product work | Needs owner dry-run review before Stage 1 activation. |
+| Top-down delegation and parent reporting | Yes | Delivery architecture and shared agent references define parent notification, child-work preflight, duplicate prevention, and MECE task split | Needs Stage 1 enforcement during real issue creation. |
+| Commit -> push -> Coolify -> production smoke closure | Yes | Delivery closure loop added to state docs and all agent bundles | Deploy actions remain gated; production smoke requires Stage 1 approval. |
+| Learning without self-editing | Yes | Learning packet reference added; individual/department/company packet path made explicit | Needs first real Stage 1 learning packets. |
 | Prefer configuration and official/common extensions over code | Yes | Yes | CLI/catalog tooling blockers remain documented. |
 | Work should be pleasant end-to-end for agents | Yes | Added shared operating flow to all bundles | Needs Stage 1 feedback to refine friction points. |
 
@@ -69,6 +75,13 @@ by the owner.
 - `.agents/state/softwarehouse-resource-access-matrix.md`: least-privilege
   matrix for secrets, skills, tools, markdown resources, routines, repos,
   deployments, and production test accounts.
+- `.agents/state/softwarehouse-product-architecture-index.md`: Soar/Roost
+  repo and architecture-source preflight.
+- `.agents/state/softwarehouse-autonomous-delivery-architecture.md`: Stage 1
+  operating loop, hierarchy, delegation, PDCA, deploy/prod closure, and
+  learning architecture.
+- `.agents/state/softwarehouse-architecture-gap-analysis.md`: critical gap
+  register and controlled activation recommendation.
 - `doc/plans/2026-07-04-softwarehouse-stage-0-foundation.md`: repo plan.
 - Managed instruction bundles for all agents:
   - `AGENTS.md`
@@ -80,6 +93,10 @@ by the owner.
   - `references/end-to-end-operating-flow.md`
   - `references/departments-and-naming.md`
   - `references/resource-and-github-policy.md`
+  - `references/product-architecture-source-of-truth.md`
+  - `references/delegation-and-reporting-contract.md`
+  - `references/delivery-closure-loop.md`
+  - `references/gap-detection-and-learning-packets.md`
 
 ## Remaining V0 Gates
 
@@ -96,7 +113,8 @@ by the owner.
    - Include repo path, deploy context, first outcome, verification plan, evidence gates, and owner approval condition.
 
 3. Full disaster recovery gate:
-   - Current DB backups and config snapshots exist.
+   - Current DB backup exists at `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-024722.sql.gz`.
+   - Current config/instruction snapshot exists at `.agents/state/backups/stage0-config-20260704-024731.zip`.
    - Still needs deliberate handling of local storage and the local encrypted secrets key outside repo memory.
 
 4. Tooling gate:
@@ -114,11 +132,19 @@ by the owner.
    - Before Stage 1, owner must explicitly approve which agents/routines to unpause.
    - Do not bulk-resume all agents unless the owner explicitly chooses that mode.
 
+7. Architecture dry-run gate:
+   - Review the product architecture index and autonomous delivery contract with
+     the owner before enabling agents.
+   - First Stage 1 cycle should be narrow: one app lane, one parent PM, one
+     technical owner, one verifier, and deployment observation only after local
+     proof.
+
 ## Future Backlog For Excellent Flow
 
 - Department playbooks for all 12 APQC/PCF categories.
 - Hiring packet template and role-fit scorecard for `06 AIM`.
 - Learning packet template with severity, root cause, fix proposal, affected scope, and rollback.
 - Secret rotation and least-privilege review cadence.
-- Soar and Roost app-specific evidence checklists.
+- Soar and Roost app-specific evidence checklists, now grounded in the shared
+  delivery closure loop.
 - Customer-facing service lifecycle: lead -> discovery -> quote -> delivery -> QA -> deploy -> support -> renewal.

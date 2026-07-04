@@ -66,6 +66,17 @@ Current verified direction:
   `.agents/state/softwarehouse-resource-access-matrix.md`. Follow least
   privilege for secrets, skills, tools, markdown resources, routines, repos,
   deployments, and production test accounts.
+- Product architecture index lives in
+  `.agents/state/softwarehouse-product-architecture-index.md`; Soar and Roost
+  product work must start from each repo's `docs/architecture`.
+- Autonomous delivery architecture lives in
+  `.agents/state/softwarehouse-autonomous-delivery-architecture.md`; Stage 1
+  work must follow top-down delegation, duplicate prevention, PDCA,
+  commit/push/Coolify/production-smoke closure, and governed learning packets.
+- Architecture gap analysis lives in
+  `.agents/state/softwarehouse-architecture-gap-analysis.md`; current guidance
+  is controlled activation with existing agents first, not adding new permanent
+  agents before Stage 1 proves a gap.
 
 Read these current Stage 0 files before changing Softwarehouse configuration:
 
@@ -77,6 +88,9 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-resource-access-matrix.md`
 - `.agents/state/stage1-activation-soar.md`
 - `.agents/state/stage1-activation-roost.md`
+- `.agents/state/softwarehouse-product-architecture-index.md`
+- `.agents/state/softwarehouse-autonomous-delivery-architecture.md`
+- `.agents/state/softwarehouse-architecture-gap-analysis.md`
 
 ## Collaboration Notes
 

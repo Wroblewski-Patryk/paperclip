@@ -110,6 +110,14 @@ The project is both product work and company-building work. Future Codex chats s
   packets live in `.agents/state/stage1-activation-soar.md` and
   `.agents/state/stage1-activation-roost.md`; these are not approval to create
   Paperclip issues or resume agents.
+- Product architecture and autonomous delivery contracts now live in
+  `.agents/state/softwarehouse-product-architecture-index.md` and
+  `.agents/state/softwarehouse-autonomous-delivery-architecture.md`. Stage 1
+  agents must read Soar/Roost `docs/architecture`, report architecture
+  mismatches upward, notify parent/requesting agents before child work is
+  created, prevent duplicate lanes, and close delivery through local proof,
+  source control, Coolify observation, production smoke evidence, and learning
+  packets.
 
 ## Standing Codex Watchdog
 

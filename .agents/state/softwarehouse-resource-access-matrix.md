@@ -136,6 +136,10 @@ Shared files every agent may read:
 - `references/end-to-end-operating-flow.md`
 - `references/departments-and-naming.md`
 - `references/resource-and-github-policy.md`
+- `references/product-architecture-source-of-truth.md`
+- `references/delegation-and-reporting-contract.md`
+- `references/delivery-closure-loop.md`
+- `references/gap-detection-and-learning-packets.md`
 
 Editing policy:
 
@@ -143,6 +147,9 @@ Editing policy:
 - Learning or access improvements must be proposed as packets for review.
 - Shared files should remain practical and concise; role-specific files carry
   department/role detail.
+- Product architecture, delegation, closure, and learning references are shared
+  because every role must respect source-of-truth docs, parent reporting,
+  duplicate prevention, evidence gates, and governed self-improvement.
 
 ## Tools And Plugins
 
