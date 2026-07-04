@@ -73,6 +73,11 @@ Current verified direction:
   are active. Featherly, Aviary, and Nest must remain parked; do not create
   Paperclip work for them until they are on VPS and the owner explicitly
   activates them.
+- Product lifecycle rule: apps live in `11 Innovation` while they are being
+  validated and proven. When an app is usable, supportable, deployable, and
+  ready to sell or grant access, agents should propose a governed transition to
+  `02 Product: AppName`, then involve sales, operations, customer success,
+  finance, technology, and legal as needed.
 - Goals also use the English naming convention `NN Department: Element`;
   current goals are `00 General: v0 Softwarehouse Readiness`,
   `00 General: Stage 1 Controlled Activation Dry Run`,
@@ -138,6 +143,7 @@ Read these current Stage 0 files before changing Softwarehouse configuration:
 - `.agents/state/softwarehouse-cost-token-policy.md`
 - `.agents/state/softwarehouse-agent-role-readiness-audit.md`
 - `.agents/state/softwarehouse-v1-goals-routines-audit.md`
+- `.agents/state/softwarehouse-innovation-to-product-lifecycle.md`
 
 ## Collaboration Notes
 

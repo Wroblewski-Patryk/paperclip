@@ -55,10 +55,21 @@ Current examples:
 - `00 General: Softwarehouse`
 - `11 Innovation: Soar`
 - `11 Innovation: Roost`
+- `02 Product: Soar` after the accepted innovation-to-product transition
 - `08 Assets: Paperclip Worktrees`
 
 Projects and goals use colon form: `NN EnglishDepartment: Element`.
-Routines use paused-procedure form: `NN EnglishDepartment - v0 Paused - Element`.
+Routines use paused-procedure form: `NN EnglishDepartment - v1 Draft Paused - Element`.
+
+## Innovation To Product Transition
+
+Use `11 Innovation: AppName` while a product is being discovered, validated,
+architected, and proven. Move it to `02 Product: AppName` only after the owner
+accepts that the app is usable, supportable, deployable, and ready to refine as
+something that can be used, sold, or granted access.
+
+The transition gate is tracked in
+`.agents/state/softwarehouse-innovation-to-product-lifecycle.md`.
 
 ## AIA Routing
 

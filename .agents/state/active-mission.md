@@ -102,6 +102,11 @@ Verified current instance:
   controlled activation dry-run goal exists, Soar/Roost activation goals are
   linked under it, 9 V1 draft routines are paused, and all routine triggers are
   disabled.
+- Innovation-to-product lifecycle is tracked in
+  `.agents/state/softwarehouse-innovation-to-product-lifecycle.md`: app
+  projects live in `11 Innovation` while they are being validated, then move to
+  `02 Product` once usable, supportable, deployable, and ready to sell or grant
+  access.
 
 Stage 0 gates live in `.agents/state/softwarehouse-stage0-foundation.md`.
 Codex in this chat should drive v0 directly and must not create Paperclip

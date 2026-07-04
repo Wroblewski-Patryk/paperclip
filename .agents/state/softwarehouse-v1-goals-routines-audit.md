@@ -70,6 +70,14 @@ Recommended activation sequence:
 7. Owner decides whether to expand to Soar implementation, Roost activation,
    budget limits, or more routines.
 
+## Product Lifecycle Note
+
+Soar and Roost remain under `11 Innovation` for the first V1 cycles because the
+initial goal is validation and readiness. Once an app is usable, supportable,
+deployable, and commercially meaningful, agents should propose a governed move
+to `02 Product: AppName` using
+`.agents/state/softwarehouse-innovation-to-product-lifecycle.md`.
+
 ## Stop Conditions
 
 Do not activate if:
@@ -93,3 +101,5 @@ Verified after configuration:
 - 0 live runs;
 - DB backup:
   `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-032614.sql.gz`.
+- Post innovation-to-product project-description backup:
+  `.paperclip/runtime/home/instances/default/data/backups/paperclip-20260704-032840.sql.gz`.

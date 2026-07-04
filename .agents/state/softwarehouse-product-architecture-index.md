@@ -34,6 +34,21 @@ projects, issues, routines, goals, or implementation work for Featherly,
 Aviary, or Nest until the applications are on VPS and the owner explicitly
 activates them.
 
+## Innovation To Product Lifecycle
+
+Active app lanes currently live in `11 Innovation` because they are still being
+validated. This is not the final department for a usable/sellable application.
+
+When an app is usable, supportable, deployable, and commercially meaningful, the
+responsible owner should propose a transition from `11 Innovation: AppName` to
+`02 Product: AppName`. The transition should use the gate in
+`.agents/state/softwarehouse-innovation-to-product-lifecycle.md`.
+
+After transition, `02 Product` owns product/service refinement, packaging,
+entitlements, onboarding, and roadmap. `03 Sales`, `04 Operations`, `05 Customer
+Success`, `07 Finance`, `09 Technology`, and `10 Legal` join according to the
+commercial and production risks.
+
 ## Soar Architecture Notes
 
 Observed from current Soar docs:
