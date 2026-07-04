@@ -16,6 +16,28 @@ const coolifyEnvKeys = [
   "COOLIFY_SOAR_REDIS_RESOURCE_ID",
 ];
 
+const compatibilityEnvAliases = {
+  COOLIFY_API_TOKEN: ["COOLIFY_READ_API_TOKEN"],
+  COOLIFY_TOKEN: ["COOLIFY_READ_API_TOKEN"],
+  COOLIFY_TEAM_ID: ["COOLIFY_TEAM_ID_LUCKYSPARROW"],
+  COOLIFY_SOAR_TEAM_ID: ["COOLIFY_TEAM_ID_LUCKYSPARROW"],
+  COOLIFY_SOAR_PROJECT_ID: ["COOLIFY_PROJECT_ID_SOAR", "COOLIFY_PROJECT_UUID_SOAR"],
+  COOLIFY_SOAR_PRODUCTION_ENVIRONMENT: ["COOLIFY_ENVIRONMENT_UUID_SOAR_PRODUCTION"],
+  COOLIFY_SOAR_APP_ID: ["COOLIFY_RESOURCE_UUID_SOAR_WEB"],
+  COOLIFY_SOAR_WEB_APP_ID: ["COOLIFY_RESOURCE_UUID_SOAR_WEB"],
+  COOLIFY_SOAR_API_APP_ID: ["COOLIFY_RESOURCE_UUID_SOAR_API"],
+  COOLIFY_SOAR_POSTGRES_RESOURCE_ID: ["COOLIFY_DATABASE_UUID_SOAR_POSTGRESQL"],
+  COOLIFY_SOAR_REDIS_RESOURCE_ID: ["COOLIFY_DATABASE_UUID_SOAR_REDIS"],
+};
+
+function applyCoolifyEnvCompatibilityAliases() {
+  for (const [targetKey, sourceKeys] of Object.entries(compatibilityEnvAliases)) {
+    if (process.env[targetKey]) continue;
+    const sourceKey = sourceKeys.find((key) => process.env[key]);
+    if (sourceKey) process.env[targetKey] = process.env[sourceKey];
+  }
+}
+
 function hasMinimumCoolifyEnv() {
   return Boolean(
     process.env.COOLIFY_BASE_URL
@@ -130,9 +152,11 @@ process.exit(0);
       process.env[key] = value;
     }
   }
+  applyCoolifyEnvCompatibilityAliases();
   return { attempted: true, loadedKeys: Object.keys(loaded).sort() };
 }
 
+applyCoolifyEnvCompatibilityAliases();
 const secretEnvFallback = resolvePaperclipCoolifyEnvFallback();
 const baseUrl = process.env.COOLIFY_BASE_URL;
 const token = process.env.COOLIFY_API_TOKEN ?? process.env.COOLIFY_TOKEN;
