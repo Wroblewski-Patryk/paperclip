@@ -300,3 +300,27 @@ Current evidence:
   issues without requiring a live run.
 - `scripts/run-project-truth-gap-dispatcher.mjs` dedupes exact visible terminal
   Project Truth issues.
+
+## 2026-07-05 - Parked product roles must not keep live product workspaces
+
+Observed pattern: even paused or parked roles can become dangerous if their
+standing workspace points at a product directory outside the current mission.
+Stage 1 allows Paperclip_Softwarehouse, Soar, and Roost only, but Aviary,
+Featherly, and Nest product-manager roles still referenced their future product
+folders.
+
+Standing rule:
+
+- If a product is parked, its manager may exist as a role but must use the
+  Paperclip_Softwarehouse coordination workspace, not the inactive app repo.
+- Product-specific cwd access is granted only when the owner explicitly
+  activates the product into the current mission and the workspace boundary
+  policy is updated in source control.
+- Portfolio roles should read Paperclip-owned indexes and issue evidence rather
+  than starting in the parent `C:\Personal\Projekty\Aplikacje` directory.
+
+Current evidence:
+
+- `softwarehouse/agent-roster.json` maps portfolio, Aviary, Featherly, and Nest
+  workspaces to Paperclip_Softwarehouse for Stage 1.
+- Live API audit after sync reported 39 agents and 0 cwd violations.

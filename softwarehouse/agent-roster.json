@@ -479,15 +479,15 @@
   "workspacePolicy": {
     "root": "C:/Personal/Projekty/Aplikacje",
     "defaultCwd": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
-    "rule": "Agents start in the narrowest useful local cwd for their standing role. Existing applications must use their canonical local workspace under C:/Personal/Projekty/Aplikacje/<Application>; do not clone, copy, or create a second local app instance. In this local phase, Paperclip means Paperclip_Softwarehouse and the old C:/Personal/Projekty/Aplikacje/Paperclip path is not an active project. Isolated worktrees require explicit board approval for the specific issue and must be cleaned after handoff. Never use C:/tmp, system temp folders, Downloads, Desktop, or ad hoc scratch folders as application repo/checkouts; temp folders are only for short-lived generated artifacts that are deleted before handoff. Issue/project execution workspaces should resolve to the canonical project cwd by default. Broad portfolio cwd is reserved for portfolio/application coordination roles only.",
+    "rule": "Agents start in the narrowest useful local cwd for their standing role. Stage 1 active workspaces are only Paperclip_Softwarehouse, Soar, and Roost. Existing active applications must use their canonical local workspace under C:/Personal/Projekty/Aplikacje/<Application>; do not clone, copy, or create a second local app instance. In this local phase, Paperclip means Paperclip_Softwarehouse and the old C:/Personal/Projekty/Aplikacje/Paperclip path is not an active project. Isolated worktrees require explicit board approval for the specific issue and must be cleaned after handoff. Never use C:/Personal/Projekty/Aplikacje itself, C:/tmp, system temp folders, Downloads, Desktop, or ad hoc scratch folders as application repo/checkouts. Temp folders are only for short-lived generated artifacts that are deleted before handoff. Issue/project execution workspaces should resolve to the canonical project cwd by default. Portfolio coordination roles use the Paperclip_Softwarehouse workspace and read Paperclip-owned portfolio indexes instead of starting in the parent apps folder.",
     "workspaces": {
       "softwarehouse": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
-      "portfolio": "C:/Personal/Projekty/Aplikacje",
+      "portfolio": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
       "soar": "C:/Personal/Projekty/Aplikacje/Soar",
       "roost": "C:/Personal/Projekty/Aplikacje/Roost",
-      "aviary": "C:/Personal/Projekty/Aplikacje/Aviary",
-      "featherly": "C:/Personal/Projekty/Aplikacje/Featherly",
-      "nest": "C:/Personal/Projekty/Aplikacje/Nest"
+      "aviary": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
+      "featherly": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
+      "nest": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse"
     }
   }
 }

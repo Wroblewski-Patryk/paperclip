@@ -1660,3 +1660,25 @@ Actions:
 Decision: effective plan spend is an operational capacity estimate, not a
 replacement for real `metered_api` billing. Future OpenAI API lanes still need
 verified cost events before they count as API spend.
+
+# 2026-07-05 - Stage 1 Workspace Boundary Repair For Portfolio Roles
+
+Context: a heartbeat audit found that 11 CINO/IPM had already been corrected in
+the live Paperclip instance, but parked future-product managers for Aviary,
+Featherly, and Nest still carried direct app workspaces even though those
+products are out of Stage 1 scope.
+
+Actions:
+
+- Tightened `softwarehouse/agent-roster.json` so Stage 1 workspaces are only
+  Paperclip_Softwarehouse, Soar, and Roost.
+- Mapped portfolio and parked product-manager workspaces to
+  Paperclip_Softwarehouse until the owner explicitly activates those products.
+- Synced the live LuckySparrow agent configuration for CINO, IPM, APM, FPM, and
+  NPM.
+
+Verification:
+
+- Direct API workspace audit: 39 agents inspected, 0 cwd violations outside the
+  allowed Stage 1 roots.
+- `node --test scripts/softwarehouse-gate-specs.test.mjs` passed 93/93.
