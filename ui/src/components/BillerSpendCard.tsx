@@ -10,6 +10,7 @@ interface BillerSpendCardProps {
   budgetMonthlyCents: number;
   totalCompanySpendCents: number;
   providerRows: CostByProviderModel[];
+  subscriptionSpendCents?: number | null;
 }
 
 export function BillerSpendCard({
@@ -18,6 +19,7 @@ export function BillerSpendCard({
   budgetMonthlyCents,
   totalCompanySpendCents,
   providerRows,
+  subscriptionSpendCents = null,
 }: BillerSpendCardProps) {
   const providerBreakdown = useMemo(() => {
     const map = new Map<string, { provider: string; costCents: number; inputTokens: number; outputTokens: number }>();
@@ -52,6 +54,9 @@ export function BillerSpendCard({
     providerBudgetShare > 0
       ? Math.min(100, (row.costCents / providerBudgetShare) * 100)
       : 0;
+  const displaySpendCents = subscriptionSpendCents ?? row.costCents;
+  const isSubscriptionEstimate = subscriptionSpendCents != null;
+  const totalTokens = row.inputTokens + row.cachedInputTokens + row.outputTokens;
 
   return (
     <Card>
@@ -71,19 +76,22 @@ export function BillerSpendCard({
               {row.modelCount} model{row.modelCount === 1 ? "" : "s"}
             </CardDescription>
           </div>
-          <span className="text-xl font-bold tabular-nums shrink-0">
-            {formatCents(row.costCents)}
-          </span>
+          <div className="shrink-0 text-right">
+            <div className="text-xl font-bold tabular-nums">{formatCents(displaySpendCents)}</div>
+            {isSubscriptionEstimate ? (
+              <div className="text-[11px] text-muted-foreground">plan share</div>
+            ) : null}
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="px-4 pb-4 pt-3 space-y-4">
         {budgetMonthlyCents > 0 && (
           <QuotaBar
-            label="Period spend"
-            percentUsed={budgetPct}
-            leftLabel={formatCents(row.costCents)}
-            rightLabel={`${Math.round(budgetPct)}% of allocation`}
+            label={isSubscriptionEstimate ? "Plan usage" : "Period spend"}
+            percentUsed={isSubscriptionEstimate ? Math.min(100, (displaySpendCents / budgetMonthlyCents) * 100) : budgetPct}
+            leftLabel={formatCents(displaySpendCents)}
+            rightLabel={isSubscriptionEstimate ? "estimated from quota" : `${Math.round(budgetPct)}% of allocation`}
           />
         )}
 
@@ -94,7 +102,8 @@ export function BillerSpendCard({
             ? `${row.subscriptionRunCount} subscription run${row.subscriptionRunCount === 1 ? "" : "s"}`
             : "0 subscription runs"}
           {" · "}
-          {formatCents(weekSpendCents)} this week
+          {formatTokens(totalTokens)} tokens
+          {isSubscriptionEstimate ? ` · API ${formatCents(row.costCents)}` : ` · ${formatCents(weekSpendCents)} this week`}
         </div>
 
         {billingTypeBreakdown.length > 0 && (
@@ -108,7 +117,7 @@ export function BillerSpendCard({
                 {billingTypeBreakdown.map(([billingType, costCents]) => (
                   <div key={billingType} className="flex items-center justify-between gap-2 text-xs">
                     <span className="text-muted-foreground">{billingTypeDisplayName(billingType as any)}</span>
-                    <span className="font-medium tabular-nums">{formatCents(costCents)}</span>
+                    <span className="font-medium tabular-nums">{costCents > 0 ? formatCents(costCents) : "included"}</span>
                   </div>
                 ))}
               </div>
@@ -128,7 +137,7 @@ export function BillerSpendCard({
                   <div key={entry.provider} className="flex items-center justify-between gap-2 text-xs">
                     <span className="text-muted-foreground">{providerDisplayName(entry.provider)}</span>
                     <div className="text-right tabular-nums">
-                      <div className="font-medium">{formatCents(entry.costCents)}</div>
+                      <div className="font-medium">{entry.costCents > 0 ? formatCents(entry.costCents) : "included"}</div>
                       <div className="text-muted-foreground">
                         {formatTokens(entry.inputTokens + entry.outputTokens)} tok
                       </div>

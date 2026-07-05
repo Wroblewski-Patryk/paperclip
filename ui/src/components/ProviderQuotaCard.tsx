@@ -34,6 +34,7 @@ interface ProviderQuotaCardProps {
   quotaSource?: string | null;
   quotaLoading?: boolean;
   subscriptionBudgetCents?: number | null;
+  subscriptionSpendCents?: number | null;
 }
 
 export function ProviderQuotaCard({
@@ -49,48 +50,53 @@ export function ProviderQuotaCard({
   quotaSource = null,
   quotaLoading = false,
   subscriptionBudgetCents = null,
+  subscriptionSpendCents = null,
 }: ProviderQuotaCardProps) {
   // single-pass aggregation over rows — memoized so the 8 derived values are not
   // recomputed on every parent render tick (providers tab polls every 30s, and each
   // card is mounted twice: once in the "all" tab grid and once in its per-provider tab).
   const totals = useMemo(() => {
-    let inputTokens = 0, outputTokens = 0, costCents = 0;
-    let apiRunCount = 0, subRunCount = 0, subInputTokens = 0, subOutputTokens = 0;
+    let inputTokens = 0, cachedInputTokens = 0, outputTokens = 0, costCents = 0;
+    let apiRunCount = 0, subRunCount = 0, subInputTokens = 0, subCachedInputTokens = 0, subOutputTokens = 0;
     for (const r of rows) {
       inputTokens += r.inputTokens;
+      cachedInputTokens += r.cachedInputTokens;
       outputTokens += r.outputTokens;
       costCents += r.costCents;
       apiRunCount += r.apiRunCount;
       subRunCount += r.subscriptionRunCount;
       subInputTokens += r.subscriptionInputTokens;
+      subCachedInputTokens += r.subscriptionCachedInputTokens;
       subOutputTokens += r.subscriptionOutputTokens;
     }
-    const totalTokens = inputTokens + outputTokens;
-    const subTokens = subInputTokens + subOutputTokens;
-    // denominator: api-billed tokens (from cost_events) + subscription tokens (from heartbeat_runs)
-    const allTokens = totalTokens + subTokens;
+    const totalTokens = inputTokens + cachedInputTokens + outputTokens;
+    const subTokens = subInputTokens + subCachedInputTokens + subOutputTokens;
     return {
       totalInputTokens: inputTokens,
+      totalCachedInputTokens: cachedInputTokens,
       totalOutputTokens: outputTokens,
       totalTokens,
       totalCostCents: costCents,
       totalApiRuns: apiRunCount,
       totalSubRuns: subRunCount,
       totalSubInputTokens: subInputTokens,
+      totalSubCachedInputTokens: subCachedInputTokens,
       totalSubOutputTokens: subOutputTokens,
       totalSubTokens: subTokens,
-      subSharePct: allTokens > 0 ? (subTokens / allTokens) * 100 : 0,
+      subSharePct: totalTokens > 0 ? (subTokens / totalTokens) * 100 : 0,
     };
   }, [rows]);
 
   const {
     totalInputTokens,
+    totalCachedInputTokens,
     totalOutputTokens,
     totalTokens,
     totalCostCents,
     totalApiRuns,
     totalSubRuns,
     totalSubInputTokens,
+    totalSubCachedInputTokens,
     totalSubOutputTokens,
     totalSubTokens,
     subSharePct,
@@ -125,6 +131,10 @@ export function ProviderQuotaCard({
     () => Math.max(...windowRows.map((r) => r.costCents), 0),
     [windowRows],
   );
+  const maxWindowTokens = useMemo(
+    () => Math.max(...windowRows.map((r) => r.inputTokens + r.cachedInputTokens + r.outputTokens), 0),
+    [windowRows],
+  );
   const isClaudeQuotaPanel = provider === "anthropic";
   const isCodexQuotaPanel = provider === "openai" && quotaSource?.startsWith("codex-");
   const supportsSubscriptionQuota = provider === "anthropic" || provider === "openai";
@@ -139,7 +149,9 @@ export function ProviderQuotaCard({
     return Math.max(...percents);
   }, [isCodexQuotaPanel, quotaWindows]);
   const effectiveSubscriptionSpendCents =
-    subscriptionBudgetCents != null && codexQuotaPercent != null
+    subscriptionSpendCents != null
+      ? subscriptionSpendCents
+      : subscriptionBudgetCents != null && codexQuotaPercent != null
       ? Math.round((subscriptionBudgetCents * codexQuotaPercent) / 100)
       : null;
   const displayCostCents = effectiveSubscriptionSpendCents ?? totalCostCents;
@@ -153,7 +165,7 @@ export function ProviderQuotaCard({
               {providerDisplayName(provider)}
             </CardTitle>
             <CardDescription className="text-xs mt-0.5">
-              <span className="font-mono">{formatTokens(totalInputTokens)}</span> in
+              <span className="font-mono">{formatTokens(totalInputTokens + totalCachedInputTokens)}</span> in
               {" · "}
               <span className="font-mono">{formatTokens(totalOutputTokens)}</span> out
               {(totalApiRuns > 0 || totalSubRuns > 0) && (
@@ -187,13 +199,15 @@ export function ProviderQuotaCard({
               }
               showDeficitNotch={showDeficitNotch}
             />
-            <QuotaBar
-              label="This week"
-              percentUsed={weekPct}
-              leftLabel={formatCents(weekSpendCents)}
-              rightLabel={`~${formatCents(Math.round(weeklyBudgetShare))} / wk`}
-              showDeficitNotch={weekPct >= 100}
-            />
+            {effectiveSubscriptionSpendCents == null ? (
+              <QuotaBar
+                label="This week"
+                percentUsed={weekPct}
+                leftLabel={formatCents(weekSpendCents)}
+                rightLabel={`~${formatCents(Math.round(weeklyBudgetShare))} / wk`}
+                showDeficitNotch={weekPct >= 100}
+              />
+            ) : null}
           </div>
         )}
 
@@ -211,8 +225,8 @@ export function ProviderQuotaCard({
                   // omit windows with no data rather than showing false $0.00 zeros
                   if (!row) return null;
                   const cents = row.costCents;
-                  const tokens = row.inputTokens + row.outputTokens;
-                  const barPct = maxWindowCents > 0 ? (cents / maxWindowCents) * 100 : 0;
+                  const tokens = row.inputTokens + row.cachedInputTokens + row.outputTokens;
+                  const barPct = maxWindowCents > 0 ? (cents / maxWindowCents) * 100 : maxWindowTokens > 0 ? (tokens / maxWindowTokens) * 100 : 0;
                   return (
                     <div key={w} className="space-y-1">
                       <div className="flex items-center justify-between gap-2 text-xs">
@@ -220,7 +234,7 @@ export function ProviderQuotaCard({
                         <span className="text-muted-foreground font-mono flex-1">
                           {formatTokens(tokens)} tok
                         </span>
-                        <span className="font-medium tabular-nums">{formatCents(cents)}</span>
+                        <span className="font-medium tabular-nums">{cents > 0 ? formatCents(cents) : "included"}</span>
                       </div>
                       <div className="h-2 w-full border border-border overflow-hidden">
                         <div
@@ -253,7 +267,7 @@ export function ProviderQuotaCard({
                     {" · "}
                   </>
                 )}
-                <span className="font-mono text-foreground">{formatTokens(totalSubInputTokens)}</span> in
+                <span className="font-mono text-foreground">{formatTokens(totalSubInputTokens + totalSubCachedInputTokens)}</span> in
                 {" · "}
                 <span className="font-mono text-foreground">{formatTokens(totalSubOutputTokens)}</span> out
               </p>
@@ -280,9 +294,20 @@ export function ProviderQuotaCard({
             <div className="border-t border-border" />
             <div className="space-y-3">
               {rows.map((row) => {
-                const rowTokens = row.inputTokens + row.outputTokens;
+                const rowTokens = row.inputTokens + row.cachedInputTokens + row.outputTokens;
                 const tokenPct = totalTokens > 0 ? (rowTokens / totalTokens) * 100 : 0;
-                const costPct = totalCostCents > 0 ? (row.costCents / totalCostCents) * 100 : 0;
+                const rowSubscriptionShareCents =
+                  effectiveSubscriptionSpendCents != null && totalTokens > 0
+                    ? Math.round((effectiveSubscriptionSpendCents * rowTokens) / totalTokens)
+                    : null;
+                const costPct =
+                  rowSubscriptionShareCents != null &&
+                  effectiveSubscriptionSpendCents != null &&
+                  effectiveSubscriptionSpendCents > 0
+                    ? (rowSubscriptionShareCents / effectiveSubscriptionSpendCents) * 100
+                    : totalCostCents > 0
+                      ? (row.costCents / totalCostCents) * 100
+                      : 0;
                 return (
                   <div key={`${row.provider}:${row.model}`} className="space-y-1.5">
                     {/* model name and cost */}
@@ -299,7 +324,9 @@ export function ProviderQuotaCard({
                         <span className="text-muted-foreground">
                           {formatTokens(rowTokens)} tok
                         </span>
-                        <span className="font-medium">{formatCents(row.costCents)}</span>
+                        <span className="font-medium">
+                          {rowSubscriptionShareCents != null ? formatCents(rowSubscriptionShareCents) : formatCents(row.costCents)}
+                        </span>
                       </div>
                     </div>
                     {/* token share bar */}

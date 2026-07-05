@@ -44,28 +44,37 @@ function currentWeekRange(): { from: string; to: string } {
   return { from: mon.toISOString(), to: sun.toISOString() };
 }
 
-function ProviderTabLabel({ provider, rows }: { provider: string; rows: CostByProviderModel[] }) {
+function ProviderTabLabel({ provider, rows, planShareCents }: { provider: string; rows: CostByProviderModel[]; planShareCents?: number | null }) {
   const totalTokens = rows.reduce((sum, row) => sum + row.inputTokens + row.cachedInputTokens + row.outputTokens, 0);
   const totalCost = rows.reduce((sum, row) => sum + row.costCents, 0);
   return (
     <span className="flex items-center gap-1.5">
       <span>{providerDisplayName(provider)}</span>
       <span className="font-mono text-xs text-muted-foreground">{formatTokens(totalTokens)}</span>
-      <span className="text-xs text-muted-foreground">{formatCents(totalCost)}</span>
+      <span className="text-xs text-muted-foreground">{formatCents(planShareCents ?? totalCost)}</span>
     </span>
   );
 }
 
-function BillerTabLabel({ biller, rows }: { biller: string; rows: CostByBiller[] }) {
+function BillerTabLabel({ biller, rows, planShareCents }: { biller: string; rows: CostByBiller[]; planShareCents?: number | null }) {
   const totalTokens = rows.reduce((sum, row) => sum + row.inputTokens + row.cachedInputTokens + row.outputTokens, 0);
   const totalCost = rows.reduce((sum, row) => sum + row.costCents, 0);
   return (
     <span className="flex items-center gap-1.5">
       <span>{providerDisplayName(biller)}</span>
       <span className="font-mono text-xs text-muted-foreground">{formatTokens(totalTokens)}</span>
-      <span className="text-xs text-muted-foreground">{formatCents(totalCost)}</span>
+      <span className="text-xs text-muted-foreground">{formatCents(planShareCents ?? totalCost)}</span>
     </span>
   );
+}
+
+function accountedTokens(row: { inputTokens: number; cachedInputTokens: number; outputTokens: number }) {
+  return row.inputTokens + row.cachedInputTokens + row.outputTokens;
+}
+
+function estimatePlanShareCents(tokenCount: number, totalTokens: number, subscriptionSpendCents?: number | null) {
+  if (subscriptionSpendCents == null || totalTokens <= 0 || tokenCount <= 0) return null;
+  return Math.round((subscriptionSpendCents * tokenCount) / totalTokens);
 }
 
 function MetricTile({
@@ -455,6 +464,21 @@ export function Costs() {
     if (effectiveBiller !== activeBiller) setActiveBiller("all");
   }, [effectiveBiller, activeBiller]);
 
+  const inferenceTokenTotal =
+    (spendData?.byAgent ?? []).reduce(
+      (sum, row) => sum + accountedTokens(row),
+      0,
+    );
+  const effectiveSpendCents = spendData?.summary.spendCents ?? 0;
+  const effectiveBudgetCents = spendData?.summary.budgetCents ?? 0;
+  const reportedSpendCents = spendData?.summary.reportedSpendCents ?? effectiveSpendCents;
+  const hasSubscriptionEstimate = spendData?.summary.subscriptionBudgetCents != null;
+  const subscriptionSpendCents = spendData?.summary.subscriptionSpendCents ?? null;
+  const totalAccountedTokens = inferenceTokenTotal;
+  const totalProjectTokens = (spendData?.byProject ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
+  const totalProviderTokens = (providerData ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
+  const totalBillerTokens = (billerData ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
+
   const providerTabItems = useMemo(() => {
     const providerKeys = Array.from(byProvider.keys());
     const allTokens = providerKeys.reduce(
@@ -474,7 +498,7 @@ export function Costs() {
             {providerKeys.length > 0 ? (
               <>
                 <span className="font-mono text-xs text-muted-foreground">{formatTokens(allTokens)}</span>
-                <span className="text-xs text-muted-foreground">{formatCents(allCents)}</span>
+                <span className="text-xs text-muted-foreground">{formatCents(subscriptionSpendCents ?? allCents)}</span>
               </>
             ) : null}
           </span>
@@ -482,10 +506,20 @@ export function Costs() {
       },
       ...providerKeys.map((provider) => ({
         value: provider,
-        label: <ProviderTabLabel provider={provider} rows={byProvider.get(provider) ?? []} />,
+        label: (
+          <ProviderTabLabel
+            provider={provider}
+            rows={byProvider.get(provider) ?? []}
+            planShareCents={estimatePlanShareCents(
+              (byProvider.get(provider) ?? []).reduce((sum, row) => sum + accountedTokens(row), 0),
+              totalProviderTokens,
+              subscriptionSpendCents,
+            )}
+          />
+        ),
       })),
     ];
-  }, [byProvider]);
+  }, [byProvider, subscriptionSpendCents, totalProviderTokens]);
 
   const billerTabItems = useMemo(() => {
     const billerKeys = Array.from(byBiller.keys());
@@ -506,7 +540,7 @@ export function Costs() {
             {billerKeys.length > 0 ? (
               <>
                 <span className="font-mono text-xs text-muted-foreground">{formatTokens(allTokens)}</span>
-                <span className="text-xs text-muted-foreground">{formatCents(allCents)}</span>
+                <span className="text-xs text-muted-foreground">{formatCents(subscriptionSpendCents ?? allCents)}</span>
               </>
             ) : null}
           </span>
@@ -514,20 +548,20 @@ export function Costs() {
       },
       ...billerKeys.map((biller) => ({
         value: biller,
-        label: <BillerTabLabel biller={biller} rows={byBiller.get(biller) ?? []} />,
+        label: (
+          <BillerTabLabel
+            biller={biller}
+            rows={byBiller.get(biller) ?? []}
+            planShareCents={estimatePlanShareCents(
+              (byBiller.get(biller) ?? []).reduce((sum, row) => sum + accountedTokens(row), 0),
+              totalBillerTokens,
+              subscriptionSpendCents,
+            )}
+          />
+        ),
       })),
     ];
-  }, [byBiller]);
-
-  const inferenceTokenTotal =
-    (spendData?.byAgent ?? []).reduce(
-      (sum, row) => sum + row.inputTokens + row.cachedInputTokens + row.outputTokens,
-      0,
-    );
-  const effectiveSpendCents = spendData?.summary.spendCents ?? 0;
-  const effectiveBudgetCents = spendData?.summary.budgetCents ?? 0;
-  const reportedSpendCents = spendData?.summary.reportedSpendCents ?? effectiveSpendCents;
-  const hasSubscriptionEstimate = spendData?.summary.subscriptionBudgetCents != null;
+  }, [byBiller, subscriptionSpendCents, totalBillerTokens]);
 
   const topFinanceEvents = (financeData?.events ?? []) as FinanceEvent[];
   const budgetPolicies = budgetData?.policies ?? [];
@@ -748,6 +782,11 @@ export function Costs() {
                         const modelRows = agentModelRows.get(row.agentId) ?? [];
                         const isExpanded = expandedAgents.has(row.agentId);
                         const hasBreakdown = modelRows.length > 0;
+                        const agentPlanShare = estimatePlanShareCents(
+                          accountedTokens(row),
+                          totalAccountedTokens,
+                          subscriptionSpendCents,
+                        );
                         return (
                           <div key={row.agentId} className="border border-border px-4 py-3">
                             <div
@@ -766,10 +805,17 @@ export function Costs() {
                                 {row.agentStatus === "terminated" ? <StatusBadge status="terminated" /> : null}
                               </div>
                               <div className="text-right text-sm tabular-nums">
-                                <div className="font-medium">{formatCents(row.costCents)}</div>
+                                <div className="font-medium">
+                                  {agentPlanShare != null ? formatCents(agentPlanShare) : formatCents(row.costCents)}
+                                </div>
                                 <div className="text-xs text-muted-foreground">
                                   in {formatTokens(row.inputTokens + row.cachedInputTokens)} · out {formatTokens(row.outputTokens)}
                                 </div>
+                                {hasSubscriptionEstimate ? (
+                                  <div className="text-xs text-muted-foreground">
+                                    plan share estimate · API {formatCents(row.costCents)}
+                                  </div>
+                                ) : null}
                                 {(row.apiRunCount > 0 || row.subscriptionRunCount > 0) ? (
                                   <div className="text-xs text-muted-foreground">
                                     {row.apiRunCount > 0 ? `${row.apiRunCount} api` : "0 api"}
@@ -785,7 +831,16 @@ export function Costs() {
                             {isExpanded && modelRows.length > 0 ? (
                               <div className="mt-3 space-y-2 border-l border-border pl-4">
                                 {modelRows.map((modelRow) => {
-                                  const sharePct = row.costCents > 0 ? Math.round((modelRow.costCents / row.costCents) * 100) : 0;
+                                  const modelPlanShare = estimatePlanShareCents(
+                                    accountedTokens(modelRow),
+                                    accountedTokens(row),
+                                    agentPlanShare,
+                                  );
+                                  const sharePct = agentPlanShare != null && agentPlanShare > 0 && modelPlanShare != null
+                                    ? Math.round((modelPlanShare / agentPlanShare) * 100)
+                                    : row.costCents > 0
+                                      ? Math.round((modelRow.costCents / row.costCents) * 100)
+                                      : 0;
                                   return (
                                     <div
                                       key={`${modelRow.provider}:${modelRow.model}:${modelRow.billingType}`}
@@ -803,7 +858,7 @@ export function Costs() {
                                       </div>
                                       <div className="text-right tabular-nums">
                                         <div className="font-medium">
-                                          {formatCents(modelRow.costCents)}
+                                          {modelPlanShare != null ? formatCents(modelPlanShare) : formatCents(modelRow.costCents)}
                                           <span className="ml-1 font-normal text-muted-foreground">({sharePct}%)</span>
                                         </div>
                                         <div className="text-muted-foreground">
@@ -832,15 +887,29 @@ export function Costs() {
                       {(spendData?.byProject.length ?? 0) === 0 ? (
                         <p className="text-sm text-muted-foreground">No project-attributed run costs yet.</p>
                       ) : (
-                        spendData?.byProject.map((row, index) => (
-                          <div
-                            key={row.projectId ?? `unattributed-${index}`}
-                            className="flex items-center justify-between gap-3 border border-border px-3 py-2 text-sm"
-                          >
-                            <span className="truncate">{row.projectName ?? row.projectId ?? "Unattributed"}</span>
-                            <span className="font-medium tabular-nums">{formatCents(row.costCents)}</span>
-                          </div>
-                        ))
+                        spendData?.byProject.map((row, index) => {
+                          const projectPlanShare = estimatePlanShareCents(
+                            accountedTokens(row),
+                            totalProjectTokens,
+                            subscriptionSpendCents,
+                          );
+                          return (
+                            <div
+                              key={row.projectId ?? `unattributed-${index}`}
+                              className="flex items-center justify-between gap-3 border border-border px-3 py-2 text-sm"
+                            >
+                              <span className="truncate">{row.projectName ?? row.projectId ?? "Unattributed"}</span>
+                              <div className="text-right">
+                                <div className="font-medium tabular-nums">
+                                  {projectPlanShare != null ? formatCents(projectPlanShare) : formatCents(row.costCents)}
+                                </div>
+                                {hasSubscriptionEstimate ? (
+                                  <div className="text-xs text-muted-foreground">plan share</div>
+                                ) : null}
+                              </div>
+                            </div>
+                          );
+                        })
                       )}
                     </CardContent>
                   </Card>
@@ -997,6 +1066,11 @@ export function Costs() {
                           quotaSource={quotaSourcesByProvider.get(provider) ?? null}
                           quotaLoading={quotaLoading}
                           subscriptionBudgetCents={spendData?.summary.subscriptionBudgetCents ?? null}
+                          subscriptionSpendCents={estimatePlanShareCents(
+                            (byProvider.get(provider) ?? []).reduce((sum, row) => sum + accountedTokens(row), 0),
+                            totalProviderTokens,
+                            subscriptionSpendCents,
+                          )}
                         />
                       ))}
                     </div>
@@ -1018,6 +1092,11 @@ export function Costs() {
                       quotaSource={quotaSourcesByProvider.get(provider) ?? null}
                       quotaLoading={quotaLoading}
                       subscriptionBudgetCents={spendData?.summary.subscriptionBudgetCents ?? null}
+                      subscriptionSpendCents={estimatePlanShareCents(
+                        (byProvider.get(provider) ?? []).reduce((sum, row) => sum + accountedTokens(row), 0),
+                        totalProviderTokens,
+                        subscriptionSpendCents,
+                      )}
                     />
                   </TabsContent>
                 ))}
@@ -1051,6 +1130,11 @@ export function Costs() {
                             budgetMonthlyCents={spendData?.summary.budgetCents ?? 0}
                             totalCompanySpendCents={spendData?.summary.spendCents ?? 0}
                             providerRows={providerRows}
+                            subscriptionSpendCents={estimatePlanShareCents(
+                              accountedTokens(row),
+                              totalBillerTokens,
+                              subscriptionSpendCents,
+                            )}
                           />
                         );
                       })}
@@ -1070,6 +1154,11 @@ export function Costs() {
                         budgetMonthlyCents={spendData?.summary.budgetCents ?? 0}
                         totalCompanySpendCents={spendData?.summary.spendCents ?? 0}
                         providerRows={providerRows}
+                        subscriptionSpendCents={estimatePlanShareCents(
+                          accountedTokens(row),
+                          totalBillerTokens,
+                          subscriptionSpendCents,
+                        )}
                       />
                     </TabsContent>
                   );

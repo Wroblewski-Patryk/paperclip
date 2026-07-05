@@ -324,3 +324,30 @@ Current evidence:
 - `softwarehouse/agent-roster.json` maps portfolio, Aviary, Featherly, and Nest
   workspaces to Paperclip_Softwarehouse for Stage 1.
 - Live API audit after sync reported 39 agents and 0 cwd violations.
+
+## 2026-07-05 - Treat token quota as operational capacity, not only accounting
+
+Observed pattern: subscription-backed local Codex work can consume a large
+weekly quota while normal API cost fields remain `$0.00`. If agents only react
+to dollar spend, they can overrun the real limiting resource and then stall in
+bulk when quota pressure appears.
+
+Standing rule:
+
+- Cost dashboards must show both real API billing and effective subscription
+  plan usage.
+- Queue/wake logic should use quota pressure to pace work before it wakes a
+  large backlog.
+- Agent context should be treated as a budgeted resource: start from a compact
+  role/project baseline, then fetch specific architecture, issue, or evidence
+  context only when the current task needs it.
+- Context optimization must not remove evidence gates or cause agents to guess;
+  it should reduce irrelevant context, not reduce accountability.
+
+Current evidence:
+
+- `/LUC/costs` now displays effective Codex plan usage and plan-share
+  attribution while keeping API spend visible as `$0.00` when no metered API
+  event exists.
+- `scripts/softwarehouse-gate-specs.test.mjs` includes quota-gating coverage for
+  local Codex starts.

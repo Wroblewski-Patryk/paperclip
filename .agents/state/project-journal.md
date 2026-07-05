@@ -1682,3 +1682,34 @@ Verification:
 - Direct API workspace audit: 39 agents inspected, 0 cwd violations outside the
   allowed Stage 1 roots.
 - `node --test scripts/softwarehouse-gate-specs.test.mjs` passed 93/93.
+
+# 2026-07-05 - Costs UI Must Separate API Billing From Codex Plan Usage
+
+Context: the owner saw about 84-85% Codex plan quota usage after roughly a week
+of active Paperclip agent work and correctly challenged whether `/LUC/costs`
+was configured well enough. The live API showed real inference token volume and
+local Codex quota pressure, but normal `metered_api` cost fields remained
+`$0.00` because the work used the ChatGPT/Codex subscription lane.
+
+Decision:
+
+- Keep real API billing and local subscription capacity as separate concepts.
+- Display effective `ChatGPT Pro / Codex plan` usage as operational spend when
+  live quota data exists.
+- Preserve `API $0.00` where there are no metered API cost events, so the board
+  does not confuse plan capacity with an invoice.
+- Allocate the effective plan usage across agents, providers, billers, and
+  projects by accounted token share, including cached input tokens.
+
+Evidence:
+
+- `/api/companies/ae26bb8b-8f5f-4a85-b341-78d4e1985975/costs/summary` reported
+  `subscriptionSpendCents: 17000`, `subscriptionBudgetCents: 20000`, and
+  `subscriptionUtilizationPercent: 85`.
+- Headless Chrome check of `/LUC/costs` showed `$170.00`, `$200.00`, provider
+  and biller tabs, plan-share labels, and included subscription usage.
+- `node --test scripts/softwarehouse-gate-specs.test.mjs` passed 93/93.
+
+Follow-up: create a separate context-budget optimization pass so agents receive
+minimum viable baseline context plus scoped on-demand knowledge instead of
+large company-wide context packets for every run.
