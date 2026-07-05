@@ -26,9 +26,10 @@
       "modelReasoningEffort": "xhigh"
     },
     "fastTriage": {
-      "model": "gpt-5.5",
+      "model": "gpt-5.4",
       "modelReasoningEffort": "low",
-      "note": "Use the low-effort Codex lane for bounded triage/doc/status-only work. Primary coding and continuation work stays on the agent's normal lane, and Spark is intentionally not used because it has been unreliable in local Paperclip runs."
+      "fastMode": true,
+      "note": "Use the lower-cost/lower-effort Codex lane for bounded triage, docs, duplicate checks, monitor summaries, and status-only work. Primary coding and continuation work stays on the agent's normal lane. Spark remains excluded because it has been unreliable in local Paperclip runs."
     },
     "generalReasoning": {
       "model": "gpt-5.5",

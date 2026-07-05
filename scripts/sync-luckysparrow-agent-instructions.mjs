@@ -64,6 +64,7 @@ function adapterConfigFor(definition, laneKey = definition.modelLane) {
     cwd: workspaceCwd(definition),
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,
+    ...(lane.fastMode ? { fastMode: true } : {}),
     search: false,
     dangerouslyBypassApprovalsAndSandbox: true,
     timeoutSec: 0,
@@ -90,6 +91,11 @@ async function syncAgentRuntime(agent, definition) {
     },
   };
   await request("PATCH", `/api/agents/${agent.id}?companyId=${company.id}`, {
+    name: definition.name,
+    role: definition.role,
+    title: definition.title,
+    icon: definition.icon,
+    capabilities: definition.capabilities,
     adapterConfig,
     runtimeConfig,
     metadata: {

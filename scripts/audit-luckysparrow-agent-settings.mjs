@@ -34,6 +34,7 @@ function expectedAdapterConfig(roster, laneKey) {
     cwd: expectedWorkspaceCwd(roster, null),
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,
+    ...(lane.fastMode ? { fastMode: true } : {}),
     search: false,
     dangerouslyBypassApprovalsAndSandbox: true,
     timeoutSec: 0,
@@ -89,6 +90,7 @@ function checkAdapter(findings, agentName, actualConfig, expectedConfig, prefix)
   for (const key of [
     "model",
     "modelReasoningEffort",
+    "fastMode",
     "search",
     "dangerouslyBypassApprovalsAndSandbox",
     "timeoutSec",
@@ -105,12 +107,12 @@ function assertSafeModelPolicy(findings, definition, roster) {
     record(findings, "error", definition.name, "modelPolicy.missingLane", { modelLane: definition.modelLane });
     return;
   }
-  const expectedModel = "gpt-5.5";
-  if (lane.model !== expectedModel || /spark/i.test(lane.model)) {
+  const allowedModels = new Set(["gpt-5.5", "gpt-5.4"]);
+  if (!allowedModels.has(lane.model) || /spark/i.test(lane.model)) {
     record(findings, "error", definition.name, "modelPolicy.model", {
       modelLane: definition.modelLane,
       model: lane.model,
-      expected: `${expectedModel} and no Spark model`,
+      expected: "gpt-5.5 for primary lanes or gpt-5.4 for fastTriage, and no Spark model",
     });
   }
 }

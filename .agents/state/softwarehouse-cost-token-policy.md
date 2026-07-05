@@ -53,7 +53,7 @@ Implementation policy:
 
 Runtime knobs:
 
-- `PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT` defaults to `80`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT` defaults to `75`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS` defaults to `120000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS` defaults to `900000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_CACHE_MS` defaults to `60000`.
@@ -63,6 +63,31 @@ monthly dollar spend. For local Codex, `$0.00` spend means "no metered API spend
 was recorded"; it does not mean unlimited subscription capacity remains. Do not
 collapse subscription quota into fake dollar spend unless the owner explicitly
 configures an effective subscription-cost model later.
+
+Audit command:
+
+```sh
+node scripts/audit-softwarehouse-model-cost-readiness.mjs
+```
+
+This command checks provider quota windows, budget policies, primary/cheap
+model distribution, whether `fastTriage` is actually diversified, and whether
+any OpenAI API-key lane exists without verified metered cost evidence.
+
+## Model And Provider Diversification
+
+Primary Stage 1 coding, security, deployment, and architecture lanes stay on
+`gpt-5.5` with high or extra-high reasoning unless a specific issue proves a
+cheaper lane is sufficient. The `fastTriage` profile is separate: it uses
+`gpt-5.4`, low reasoning, and Codex fast mode for bounded triage, documentation
+sync, duplicate checks, monitor summaries, and status-only work.
+
+Future OpenAI API-backed agents must not be enabled broadly just because an
+`OPENAI_API_KEY` exists. First run a small metered smoke test and verify that
+Paperclip writes `cost_events` with `billingType = metered_api` and useful
+non-zero cost or an explicitly approved configured pricing model. Until that is
+true, API-backed GPT lanes are allowed only for narrow experiments with owner
+approval.
 
 Operating rule: if quota data is temporarily unavailable, Paperclip logs that
 fact and allows the start rather than silently pretending a hard quota block

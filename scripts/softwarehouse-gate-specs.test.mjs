@@ -224,6 +224,7 @@ test("heartbeat scheduler gates codex_local starts on provider quota pressure", 
   const source = await readFile("server/src/services/heartbeat.ts", "utf8");
 
   assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT/);
+  assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT"[\s\S]*75/);
   assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS/);
   assert.match(source, /CODEX_LOCAL_PROVIDER_QUOTA_CACHE_MS/);
   assert.match(source, /function buildProviderQuotaStartBlock/);
@@ -244,6 +245,19 @@ test("dashboard surfaces provider quota separately from dollar spend", async () 
   assert.match(source, /Provider Quota/);
   assert.match(source, /Month Spend/);
   assert.match(source, /formatCents\(data\.costs\.monthSpendCents\)/);
+});
+
+test("softwarehouse model and cost readiness audit guards quota and future API lanes", async () => {
+  const source = await readFile("scripts/audit-softwarehouse-model-cost-readiness.mjs", "utf8");
+  const roster = await readFile("softwarehouse/agent-roster.json", "utf8");
+
+  assert.match(source, /quotaHoldPercent/);
+  assert.match(source, /cheapEqualsPrimaryCount/);
+  assert.match(source, /metadata\?\.modelLane === "fastTriage"/);
+  assert.match(source, /openAiApiKeyConfiguredCount/);
+  assert.match(source, /api_metering_unverified/);
+  assert.match(roster, /"fastTriage"[\s\S]*"model": "gpt-5\.4"/);
+  assert.match(roster, /"fastMode": true/);
 });
 
 test("learning loop scopes active issues and bounds API requests for large local instances", async () => {

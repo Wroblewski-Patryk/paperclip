@@ -51,6 +51,7 @@ function adapterConfigForLane(roster, laneKey) {
     cwd: appsRoot,
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,
+    ...(lane.fastMode ? { fastMode: true } : {}),
     search: false,
     dangerouslyBypassApprovalsAndSandbox: true,
     timeoutSec: 0,

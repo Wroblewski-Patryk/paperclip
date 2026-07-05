@@ -3,7 +3,7 @@ const companyName = "LuckySparrow Software House";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const blockerTitle = "[Softwarehouse][Blocker] Configure OpenAI runtime auth for Codex agents";
 const targetModel = process.env.SOFTWAREHOUSE_CODEX_MODEL ?? "gpt-5.5";
-const targetCheapModel = process.env.SOFTWAREHOUSE_CODEX_CHEAP_MODEL ?? "gpt-5.5";
+const targetCheapModel = process.env.SOFTWAREHOUSE_CODEX_CHEAP_MODEL ?? "gpt-5.4";
 const unsupportedChatGptModels = new Set(["gpt-5", "gpt-5-mini", "gpt-5.3-codex"]);
 
 async function request(method, route, body) {
@@ -53,6 +53,7 @@ function normalizeAgentModelConfig(agent) {
               adapterConfig: {
                 ...(cheapProfile.adapterConfig ?? {}),
                 model: supportedCheapModel(cheapProfile.adapterConfig?.model),
+                ...(supportedCheapModel(cheapProfile.adapterConfig?.model) === "gpt-5.4" ? { fastMode: true } : {}),
               },
             },
           }

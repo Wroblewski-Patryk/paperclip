@@ -1592,3 +1592,20 @@ Verification notes:
 - `pnpm run softwarehouse:workspace-boundary-audit` could not complete because
   the repo still hits the known Windows plugin SDK symlink `EPERM` during
   dependency install; a direct API cwd audit was used as the bounded fallback.
+
+# 2026-07-05 - Model And Quota Budget Diversification
+
+Context: the owner asked for a broader model/cost plan that supports local
+Codex subscription limits now and future OpenAI API-backed GPT lanes later,
+without waking large backlogs when capacity is low.
+
+Actions:
+
+- Lowered the default local Codex quota hold threshold from 80% to 75% so queued
+  work is deferred earlier when ChatGPT/Codex plan capacity is tight.
+- Updated LuckySparrow model policy so primary lanes stay on `gpt-5.5`, while
+  `fastTriage` uses `gpt-5.4` with low reasoning and fast mode for bounded
+  monitor/triage/status work.
+- Added `scripts/audit-softwarehouse-model-cost-readiness.mjs` to report quota
+  pressure, budget policies, model distribution, cheap-profile diversification,
+  and whether a future OpenAI API lane has verified cost metering.
