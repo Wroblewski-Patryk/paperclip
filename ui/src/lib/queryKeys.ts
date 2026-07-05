@@ -195,6 +195,8 @@ export const queryKeys = {
     ["usage-by-provider", companyId, from, to] as const,
   usageByBiller: (companyId: string, from?: string, to?: string) =>
     ["usage-by-biller", companyId, from, to] as const,
+  usageByModelProfile: (companyId: string, from?: string, to?: string) =>
+    ["usage-by-model-profile", companyId, from, to] as const,
   financeSummary: (companyId: string, from?: string, to?: string) =>
     ["finance-summary", companyId, from, to] as const,
   financeByBiller: (companyId: string, from?: string, to?: string) =>

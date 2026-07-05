@@ -4,12 +4,13 @@ import type {
   BudgetPolicySummary,
   CostByAgentModel,
   CostByBiller,
+  CostByModelProfile,
   CostByProviderModel,
   CostWindowSpendRow,
   FinanceEvent,
   QuotaWindow,
 } from "@paperclipai/shared";
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight, Coins, DollarSign, ReceiptText } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight, Coins, DollarSign, ReceiptText, Route } from "lucide-react";
 import { budgetsApi } from "../api/budgets";
 import { costsApi } from "../api/costs";
 import { BillerSpendCard } from "../components/BillerSpendCard";
@@ -66,6 +67,17 @@ function BillerTabLabel({ biller, rows, planShareCents }: { biller: string; rows
       <span className="text-xs text-muted-foreground">{formatCents(planShareCents ?? totalCost)}</span>
     </span>
   );
+}
+
+function modelProfileRecommendation(row: CostByModelProfile) {
+  if (row.runCount === 0) return "No completed runs yet";
+  if (row.escalateBelowPercent != null && row.successPercent < row.escalateBelowPercent) {
+    return "Review routing or escalate";
+  }
+  if (row.successTargetPercent != null && row.successPercent < row.successTargetPercent) {
+    return "Watch outcome quality";
+  }
+  return "Healthy";
 }
 
 function accountedTokens(row: { inputTokens: number; cachedInputTokens: number; outputTokens: number }) {
@@ -172,7 +184,7 @@ export function Costs() {
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
 
-  const [mainTab, setMainTab] = useState<"overview" | "budgets" | "providers" | "billers" | "finance">("overview");
+  const [mainTab, setMainTab] = useState<"overview" | "budgets" | "providers" | "billers" | "models" | "finance">("overview");
   const [activeProvider, setActiveProvider] = useState("all");
   const [activeBiller, setActiveBiller] = useState("all");
 
@@ -324,6 +336,14 @@ export function Costs() {
     queryKey: queryKeys.usageByBiller(companyId, from || undefined, to || undefined),
     queryFn: () => costsApi.byBiller(companyId, from || undefined, to || undefined),
     enabled: !!selectedCompanyId && customReady && mainTab === "billers",
+    refetchInterval: 30_000,
+    staleTime: 10_000,
+  });
+
+  const { data: modelProfileData, isLoading: modelProfileLoading, error: modelProfileError } = useQuery({
+    queryKey: queryKeys.usageByModelProfile(companyId, from || undefined, to || undefined),
+    queryFn: () => costsApi.modelProfiles(companyId, from || undefined, to || undefined),
+    enabled: !!selectedCompanyId && customReady && mainTab === "models",
     refetchInterval: 30_000,
     staleTime: 10_000,
   });
@@ -498,6 +518,7 @@ export function Costs() {
   const totalProjectTokens = (spendData?.byProject ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
   const totalProviderTokens = (providerData ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
   const totalBillerTokens = (billerData ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
+  const totalModelProfileTokens = (modelProfileData?.rows ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
 
   const providerTabItems = useMemo(() => {
     const providerKeys = Array.from(byProvider.keys());
@@ -693,6 +714,7 @@ export function Costs() {
           <TabsTrigger value="budgets">Budgets</TabsTrigger>
           <TabsTrigger value="providers">Providers</TabsTrigger>
           <TabsTrigger value="billers">Billers</TabsTrigger>
+          <TabsTrigger value="models">Models</TabsTrigger>
           <TabsTrigger value="finance">Finance</TabsTrigger>
         </TabsList>
 
@@ -1198,6 +1220,143 @@ export function Costs() {
                   );
                 })}
               </Tabs>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="models" className="mt-4 space-y-4">
+          {showCustomPrompt ? (
+            <p className="text-sm text-muted-foreground">Select a start and end date to load data.</p>
+          ) : modelProfileLoading ? (
+            <PageSkeleton variant="costs" />
+          ) : modelProfileError ? (
+            <p className="text-sm text-destructive">{(modelProfileError as Error).message}</p>
+          ) : (
+            <>
+              <div className="grid gap-3 lg:grid-cols-4">
+                <MetricTile
+                  label="Profile tokens"
+                  value={formatTokens(totalModelProfileTokens)}
+                  subtitle={`${modelProfileData?.rows.length ?? 0} active profile lanes in range`}
+                  icon={Route}
+                />
+                <MetricTile
+                  label="Profile runs"
+                  value={String((modelProfileData?.rows ?? []).reduce((sum, row) => sum + row.runCount, 0))}
+                  subtitle={`${(modelProfileData?.rows ?? []).reduce((sum, row) => sum + row.successRunCount, 0)} succeeded runs`}
+                  icon={ChevronRight}
+                />
+                <MetricTile
+                  label="Catalog"
+                  value={String(modelProfileData?.profiles.length ?? 0)}
+                  subtitle="Configured model profiles available to the router"
+                  icon={Coins}
+                />
+                <MetricTile
+                  label="Sources"
+                  value={String(modelProfileData?.sources.length ?? 0)}
+                  subtitle="Provider docs tracked in the model catalog"
+                  icon={ReceiptText}
+                />
+              </div>
+
+              <Card>
+                <CardHeader className="px-5 pt-5 pb-2">
+                  <CardTitle className="text-base">Model profile economics</CardTitle>
+                  <CardDescription>
+                    Router profile usage, outcome rate, token pressure, and escalation guidance.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-5 pb-5 pt-2">
+                  {(modelProfileData?.rows.length ?? 0) === 0 ? (
+                    <p className="text-sm text-muted-foreground">No routed model-profile cost events in this period.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[980px] text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-left text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                            <th className="py-3 pr-4 font-medium">Profile</th>
+                            <th className="py-3 pr-4 font-medium">Default model</th>
+                            <th className="py-3 pr-4 font-medium">Quota lane</th>
+                            <th className="py-3 pr-4 text-right font-medium">Runs</th>
+                            <th className="py-3 pr-4 text-right font-medium">Success</th>
+                            <th className="py-3 pr-4 text-right font-medium">Tokens</th>
+                            <th className="py-3 pr-4 text-right font-medium">Plan share</th>
+                            <th className="py-3 font-medium">Recommendation</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(modelProfileData?.rows ?? []).map((row) => {
+                            const planShare = estimatePlanShareCents(accountedTokens(row), totalModelProfileTokens, subscriptionSpendCents);
+                            return (
+                              <tr key={row.profile} className="border-b border-border/70 align-top last:border-0">
+                                <td className="py-3 pr-4">
+                                  <div className="font-medium">{row.profile}</div>
+                                  <div className="mt-1 max-w-[260px] text-xs leading-5 text-muted-foreground">
+                                    {row.intent ?? "No catalog description"}
+                                  </div>
+                                </td>
+                                <td className="py-3 pr-4 font-mono text-xs">{row.defaultModel ?? "unknown"}</td>
+                                <td className="py-3 pr-4">
+                                  <div className="font-mono text-xs">{row.quotaLane ?? "untracked"}</div>
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    weight {row.relativeCostWeight ?? 1}
+                                  </div>
+                                </td>
+                                <td className="py-3 pr-4 text-right tabular-nums">
+                                  <div>{row.runCount}</div>
+                                  <div className="text-xs text-muted-foreground">{row.subscriptionRunCount} sub</div>
+                                </td>
+                                <td className="py-3 pr-4 text-right tabular-nums">
+                                  <div>{row.successPercent}%</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    target {row.successTargetPercent ?? "-"} / floor {row.escalateBelowPercent ?? "-"}
+                                  </div>
+                                </td>
+                                <td className="py-3 pr-4 text-right font-mono text-xs">{formatTokens(accountedTokens(row))}</td>
+                                <td className="py-3 pr-4 text-right tabular-nums">{formatCents(planShare ?? row.costCents)}</td>
+                                <td className="py-3">
+                                  <StatusBadge
+                                    status={
+                                      modelProfileRecommendation(row).startsWith("Review")
+                                        ? "blocked"
+                                        : modelProfileRecommendation(row).startsWith("Watch")
+                                          ? "running"
+                                          : "done"
+                                    }
+                                  />
+                                  <div className="mt-1 text-xs text-muted-foreground">{modelProfileRecommendation(row)}</div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="px-5 pt-5 pb-2">
+                  <CardTitle className="text-base">Provider model catalog</CardTitle>
+                  <CardDescription>Tracked external references for model and quota review.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-2 px-5 pb-5 pt-2 md:grid-cols-2">
+                  {(modelProfileData?.sources ?? []).map((source) => (
+                    <a
+                      key={source.url}
+                      className="border border-border p-3 text-sm text-foreground hover:bg-muted/40"
+                      href={source.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <div className="font-medium">{source.label}</div>
+                      <div className="mt-1 break-all text-xs text-muted-foreground">{source.url}</div>
+                    </a>
+                  ))}
+                </CardContent>
+              </Card>
             </>
           )}
         </TabsContent>

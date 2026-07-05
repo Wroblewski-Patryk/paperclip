@@ -8,6 +8,7 @@ import {
   normalizeModelProfileWakeContext,
   resolveModelProfileApplication,
 } from "../services/heartbeat.ts";
+import { loadModelEconomicsConfig, resetModelEconomicsConfigCacheForTests } from "../services/model-economics.js";
 import { resolveModelRouterProfile } from "../services/model-router.js";
 
 const cheapProfile: AdapterModelProfileDefinition = {
@@ -282,5 +283,23 @@ describe("model router profile selection", () => {
       profile: "spark",
       source: "name_prefix",
     });
+  });
+});
+
+describe("model economics catalog", () => {
+  it("loads the configured profile catalog used by the cost dashboard", () => {
+    resetModelEconomicsConfigCacheForTests();
+    const config = loadModelEconomicsConfig();
+
+    expect(config.profiles.spark).toMatchObject({
+      profile: "spark",
+      defaultModel: "gpt-5.3-codex-spark",
+      quotaLane: "codex_spark_preview",
+    });
+    expect(config.profiles.reasoning).toMatchObject({
+      profile: "reasoning",
+      defaultModel: "gpt-5.5",
+    });
+    expect(config.sources.some((source) => source.url.includes("developers.openai.com/codex/models"))).toBe(true);
   });
 });

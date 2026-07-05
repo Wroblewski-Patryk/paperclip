@@ -103,6 +103,49 @@ export interface CostByBiller {
   modelCount: number;
 }
 
+export interface ModelProfileCatalogEntry {
+  profile: string;
+  defaultModel: string;
+  relativeCostWeight: number;
+  quotaLane: string;
+  intent: string;
+  successTargetPercent: number;
+  escalateBelowPercent: number;
+  notes: string;
+}
+
+export interface CostByModelProfile {
+  profile: string;
+  requestedProfile: string | null;
+  appliedProfile: string | null;
+  defaultModel: string | null;
+  quotaLane: string | null;
+  intent: string | null;
+  relativeCostWeight: number | null;
+  successTargetPercent: number | null;
+  escalateBelowPercent: number | null;
+  costCents: number;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  apiRunCount: number;
+  subscriptionRunCount: number;
+  subscriptionCachedInputTokens: number;
+  subscriptionInputTokens: number;
+  subscriptionOutputTokens: number;
+  runCount: number;
+  successRunCount: number;
+  errorRunCount: number;
+  successPercent: number;
+}
+
+export interface ModelProfileEconomicsResponse {
+  profiles: ModelProfileCatalogEntry[];
+  rows: CostByModelProfile[];
+  sources: Array<{ label: string; url: string }>;
+  generatedAt: string;
+}
+
 /** per-agent breakdown by provider + model, for identifying token-hungry agents */
 export interface CostByAgentModel {
   agentId: string;

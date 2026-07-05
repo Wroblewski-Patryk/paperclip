@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 import { existsSync, mkdirSync, lstatSync, rmSync, symlinkSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -30,6 +30,16 @@ try {
 }
 
 const relativeSdkDir = relative(scopeDir, sdkDir);
-symlinkSync(relativeSdkDir, linkTarget, "dir");
+try {
+  symlinkSync(relativeSdkDir, linkTarget, "dir");
+} catch (error) {
+  if (process.platform !== "win32" || error?.code !== "EPERM") {
+    throw error;
+  }
+  // Windows often blocks directory symlinks without Developer Mode or elevation.
+  // A junction is enough for local workspace resolution and avoids recurring
+  // `pnpm install` failures in normal non-admin shells.
+  symlinkSync(sdkDir, linkTarget, "junction");
+}
 
-console.log(`  ✓ Linked local @paperclipai/plugin-sdk for ${packageDir}`);
+console.log(`  OK Linked local @paperclipai/plugin-sdk for ${packageDir}`);

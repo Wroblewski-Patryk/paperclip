@@ -1756,3 +1756,12 @@ large company-wide context packets for every run.
 - Rebuilt the UI with Vite, copied the fresh build to `server/ui-dist`, restarted the active local Softwarehouse server on `127.0.0.1:3200`, and verified dashboard/costs rendering with headless Chrome.
 - Direct validation passed for `packages/shared`, `server`, and `ui` typechecks, targeted Vitest coverage, Vite production build, `/api/health`, `/LUC/dashboard`, `/LUC/costs`, and direct workspace boundary audit.
 - `pnpm run softwarehouse:workspace-boundary-audit` still triggers the known Windows symlink EPERM in `packages/plugins/plugin-workspace-diff`; the underlying audit script passes when run directly with `node`.
+
+## 2026-07-06 - Windows environment hardening and model-economics dashboard
+
+- Fixed the recurring Windows `EPERM` failure in `packages/plugins/plugin-workspace-diff` postinstall by making `scripts/link-plugin-dev-sdk.mjs` fall back from directory symlink to Windows junction and verified `pnpm run softwarehouse:workspace-boundary-audit` now passes.
+- Added shared environment guidance at `softwarehouse/instructions/shared/05-environment-operations.md`: split critical Windows commands instead of relying on `&&`, avoid mixed-shell destructive filesystem chains, treat `ui/dist` as temp, and preserve `server/ui-dist` as the served UI build.
+- Added `softwarehouse/model-economics.config.json` and backend model-economics loading so model profile metadata, quota lanes, cost weights, success targets, and official OpenAI reference URLs are config-driven instead of hardcoded into agents.
+- Added `/api/companies/:companyId/costs/model-profiles` and the Costs `Models` tab to show profile usage, default model, quota lane, token pressure, run outcomes, plan-share estimate, and escalation/watch recommendations.
+- Removed stale per-agent `runtimeConfig.modelProfiles.cheap -> gpt-5.4` overrides from all 39 live LuckySparrow agents so existing agents use the central Codex adapter profile catalog and model router. Router coverage was verified for all agents, including paused/out-of-scope roles.
+- Verification passed for shared/server/ui typechecks, model-profile Vitest coverage, Vite build, served `server/ui-dist`, `/api/health`, the model-profiles API endpoint, workspace boundary audit, and Chrome smoke of `/LUC/costs` -> `Models` with no console errors.

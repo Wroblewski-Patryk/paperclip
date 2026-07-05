@@ -5,6 +5,7 @@ import { activityLog, agents, companies, costEvents, heartbeatRuns, issues, proj
 import { notFound, unprocessable } from "../errors.js";
 import { budgetService, type BudgetServiceHooks } from "./budgets.js";
 import { estimateCodexLocalSubscriptionCost } from "./effective-subscription-cost.js";
+import { loadModelEconomicsConfig } from "./model-economics.js";
 import { fetchAllQuotaWindows } from "./quota-windows.js";
 
 export interface CostDateRange {
@@ -26,6 +27,10 @@ function currentUtcMonthWindow(now = new Date()) {
     start: new Date(Date.UTC(year, month, 1, 0, 0, 0, 0)),
     end: new Date(Date.UTC(year, month + 1, 1, 0, 0, 0, 0)),
   };
+}
+
+function subscriptionBillingTypeSql() {
+  return sql.join(SUBSCRIPTION_BILLING_TYPES.map((value) => sql`${value}`), sql`, `);
 }
 
 async function getMonthlySpendTotal(
@@ -387,6 +392,94 @@ export function costService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         .where(and(...conditions))
         .groupBy(costEvents.biller)
         .orderBy(desc(sumAsNumber(costEvents.costCents)));
+    },
+
+    byModelProfile: async (companyId: string, range?: CostDateRange) => {
+      const profileExpr = sql<string>`
+        coalesce(
+          ${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'applied',
+          ${heartbeatRuns.contextSnapshot} ->> 'modelProfile',
+          'unprofiled'
+        )
+      `;
+      const requestedProfileExpr = sql<string | null>`
+        min(${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'requested')
+      `;
+      const appliedProfileExpr = sql<string | null>`
+        min(${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'applied')
+      `;
+      const billingTypes = subscriptionBillingTypeSql();
+      const conditions: ReturnType<typeof eq>[] = [eq(costEvents.companyId, companyId)];
+      if (range?.from) conditions.push(gte(costEvents.occurredAt, range.from));
+      if (range?.to) conditions.push(lte(costEvents.occurredAt, range.to));
+
+      const rows = await db
+        .select({
+          profile: profileExpr,
+          requestedProfile: requestedProfileExpr,
+          appliedProfile: appliedProfileExpr,
+          costCents: sumAsNumber(costEvents.costCents),
+          inputTokens: sumAsNumber(costEvents.inputTokens),
+          cachedInputTokens: sumAsNumber(costEvents.cachedInputTokens),
+          outputTokens: sumAsNumber(costEvents.outputTokens),
+          apiRunCount:
+            sql<number>`count(distinct case when ${costEvents.billingType} = ${METERED_BILLING_TYPE} then ${costEvents.heartbeatRunId} end)::int`,
+          subscriptionRunCount:
+            sql<number>`count(distinct case when ${costEvents.billingType} in (${billingTypes}) then ${costEvents.heartbeatRunId} end)::int`,
+          subscriptionCachedInputTokens:
+            sql<number>`coalesce(sum(case when ${costEvents.billingType} in (${billingTypes}) then ${costEvents.cachedInputTokens} else 0 end), 0)::double precision`,
+          subscriptionInputTokens:
+            sql<number>`coalesce(sum(case when ${costEvents.billingType} in (${billingTypes}) then ${costEvents.inputTokens} else 0 end), 0)::double precision`,
+          subscriptionOutputTokens:
+            sql<number>`coalesce(sum(case when ${costEvents.billingType} in (${billingTypes}) then ${costEvents.outputTokens} else 0 end), 0)::double precision`,
+          runCount: sql<number>`count(distinct ${heartbeatRuns.id})::int`,
+          successRunCount:
+            sql<number>`count(distinct case when ${heartbeatRuns.status} = 'succeeded' then ${heartbeatRuns.id} end)::int`,
+          errorRunCount:
+            sql<number>`count(distinct case when ${heartbeatRuns.status} in ('failed', 'cancelled', 'timed_out') then ${heartbeatRuns.id} end)::int`,
+        })
+        .from(costEvents)
+        .leftJoin(heartbeatRuns, eq(costEvents.heartbeatRunId, heartbeatRuns.id))
+        .where(and(...conditions))
+        .groupBy(profileExpr)
+        .orderBy(desc(sumAsNumber(costEvents.costCents)));
+
+      const config = loadModelEconomicsConfig();
+      return {
+        profiles: Object.values(config.profiles),
+        sources: config.sources,
+        generatedAt: new Date().toISOString(),
+        rows: rows.map((row) => {
+          const catalog = config.profiles[row.profile] ?? null;
+          const successPercent = row.runCount > 0
+            ? (Number(row.successRunCount) / Number(row.runCount)) * 100
+            : 0;
+          return {
+            profile: row.profile,
+            requestedProfile: row.requestedProfile,
+            appliedProfile: row.appliedProfile,
+            defaultModel: catalog?.defaultModel ?? null,
+            quotaLane: catalog?.quotaLane ?? null,
+            intent: catalog?.intent ?? null,
+            relativeCostWeight: catalog?.relativeCostWeight ?? null,
+            successTargetPercent: catalog?.successTargetPercent ?? null,
+            escalateBelowPercent: catalog?.escalateBelowPercent ?? null,
+            costCents: Number(row.costCents ?? 0),
+            inputTokens: Number(row.inputTokens ?? 0),
+            cachedInputTokens: Number(row.cachedInputTokens ?? 0),
+            outputTokens: Number(row.outputTokens ?? 0),
+            apiRunCount: Number(row.apiRunCount ?? 0),
+            subscriptionRunCount: Number(row.subscriptionRunCount ?? 0),
+            subscriptionCachedInputTokens: Number(row.subscriptionCachedInputTokens ?? 0),
+            subscriptionInputTokens: Number(row.subscriptionInputTokens ?? 0),
+            subscriptionOutputTokens: Number(row.subscriptionOutputTokens ?? 0),
+            runCount: Number(row.runCount ?? 0),
+            successRunCount: Number(row.successRunCount ?? 0),
+            errorRunCount: Number(row.errorRunCount ?? 0),
+            successPercent: Number(successPercent.toFixed(1)),
+          };
+        }),
+      };
     },
 
     /**
