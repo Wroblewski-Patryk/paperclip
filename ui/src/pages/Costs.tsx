@@ -220,12 +220,14 @@ export function Costs() {
     mutationFn: (input: {
       scopeType: BudgetPolicySummary["scopeType"];
       scopeId: string;
+      metric: BudgetPolicySummary["metric"];
       amount: number;
       windowKind: BudgetPolicySummary["windowKind"];
     }) =>
       budgetsApi.upsertPolicy(companyId, {
         scopeType: input.scopeType,
         scopeId: input.scopeId,
+        metric: input.metric,
         amount: input.amount,
         windowKind: input.windowKind,
       }),
@@ -932,7 +934,7 @@ export function Costs() {
                 <CardHeader className="px-5 pt-5 pb-3">
                   <CardTitle className="text-base">Budget control plane</CardTitle>
                   <CardDescription>
-                    Hard-stop spend limits for agents and projects. Provider subscription quota stays separate and appears under Providers.
+                    Hard-stop limits for API spend and effective subscription-plan usage. Provider quota windows stay inspectable under Providers.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 px-5 pb-5 pt-0 md:grid-cols-4">
@@ -1016,6 +1018,7 @@ export function Costs() {
                               policyMutation.mutate({
                                 scopeType: summary.scopeType,
                                 scopeId: summary.scopeId,
+                                metric: summary.metric,
                                 amount,
                                 windowKind: summary.windowKind,
                               })}

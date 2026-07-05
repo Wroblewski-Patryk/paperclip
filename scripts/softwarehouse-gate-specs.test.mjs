@@ -270,6 +270,26 @@ test("local Codex subscription quota is converted into effective plan spend", as
   assert.match(costsPage, /Plan usage/);
 });
 
+test("budget policies can govern effective local Codex plan usage separately from API billing", async () => {
+  const constants = await readFile("packages/shared/src/constants.ts", "utf8");
+    const budgets = await readFile("server/src/services/budgets.ts", "utf8");
+    const costsPage = await readFile("ui/src/pages/Costs.tsx", "utf8");
+    const card = await readFile("ui/src/components/BudgetPolicyCard.tsx", "utf8");
+    const configurator = await readFile("scripts/configure-effective-plan-budgets.mjs", "utf8");
+
+  assert.match(constants, /"effective_plan_cents"/);
+  assert.match(budgets, /computeEffectivePlanObservedAmount/);
+  assert.match(budgets, /subscription_included/);
+    assert.match(budgets, /estimateCodexLocalSubscriptionCost/);
+    assert.match(budgets, /policy\.metric === "billed_cents"/);
+    assert.match(costsPage, /metric: BudgetPolicySummary\["metric"\]/);
+    assert.match(costsPage, /metric: input\.metric/);
+    assert.match(card, /Effective plan usage/);
+    assert.match(card, /Metered API spend/);
+  assert.match(configurator, /PAPERCLIP_EFFECTIVE_PLAN_AGENT_BUFFER/);
+  assert.match(configurator, /--apply/);
+});
+
 test("softwarehouse model and cost readiness audit guards quota and future API lanes", async () => {
   const source = await readFile("scripts/audit-softwarehouse-model-cost-readiness.mjs", "utf8");
   const roster = await readFile("softwarehouse/agent-roster.json", "utf8");

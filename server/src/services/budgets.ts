@@ -23,6 +23,11 @@ import type {
 } from "@paperclipai/shared";
 import { notFound, unprocessable } from "../errors.js";
 import { logActivity } from "./activity-log.js";
+import {
+  estimateCodexLocalSubscriptionCost,
+  type EffectiveSubscriptionCost,
+} from "./effective-subscription-cost.js";
+import { fetchAllQuotaWindows } from "./quota-windows.js";
 
 type ScopeRecord = {
   companyId: string;
@@ -33,6 +38,7 @@ type ScopeRecord = {
 
 type PolicyRow = typeof budgetPolicies.$inferSelect;
 type IncidentRow = typeof budgetIncidents.$inferSelect;
+const SUBSCRIPTION_BILLING_TYPES = ["subscription_included", "subscription_overage"] as const;
 
 export type BudgetEnforcementScope = {
   companyId: string;
@@ -139,12 +145,10 @@ async function resolveScopeRecord(db: Db, scopeType: BudgetScopeType, scopeId: s
   };
 }
 
-async function computeObservedAmount(
+async function computeBilledCentsObservedAmount(
   db: Db,
   policy: Pick<PolicyRow, "companyId" | "scopeType" | "scopeId" | "windowKind" | "metric">,
 ) {
-  if (policy.metric !== "billed_cents") return 0;
-
   const conditions = [eq(costEvents.companyId, policy.companyId)];
   if (policy.scopeType === "agent") conditions.push(eq(costEvents.agentId, policy.scopeId));
   if (policy.scopeType === "project") conditions.push(eq(costEvents.projectId, policy.scopeId));
@@ -162,6 +166,65 @@ async function computeObservedAmount(
     .where(and(...conditions));
 
   return Number(row?.total ?? 0);
+}
+
+async function computeSubscriptionTokenTotal(
+  db: Db,
+  policy: Pick<PolicyRow, "companyId" | "scopeType" | "scopeId" | "windowKind">,
+  scope: "company" | "policy",
+) {
+  const conditions = [
+    eq(costEvents.companyId, policy.companyId),
+    inArray(costEvents.billingType, [...SUBSCRIPTION_BILLING_TYPES]),
+  ];
+  if (scope === "policy") {
+    if (policy.scopeType === "agent") conditions.push(eq(costEvents.agentId, policy.scopeId));
+    if (policy.scopeType === "project") conditions.push(eq(costEvents.projectId, policy.scopeId));
+  }
+  const { start, end } = resolveWindow(policy.windowKind as BudgetWindowKind);
+  if (policy.windowKind === "calendar_month_utc") {
+    conditions.push(gte(costEvents.occurredAt, start));
+    conditions.push(lt(costEvents.occurredAt, end));
+  }
+
+  const [row] = await db
+    .select({
+      total: sql<number>`coalesce(sum(${costEvents.inputTokens} + ${costEvents.cachedInputTokens} + ${costEvents.outputTokens}), 0)::double precision`,
+    })
+    .from(costEvents)
+    .where(and(...conditions));
+
+  return Number(row?.total ?? 0);
+}
+
+async function computeEffectivePlanObservedAmount(
+  db: Db,
+  policy: Pick<PolicyRow, "companyId" | "scopeType" | "scopeId" | "windowKind" | "metric">,
+  subscription: EffectiveSubscriptionCost | null,
+) {
+  if (!subscription || subscription.spendCents <= 0) return 0;
+  if (policy.scopeType === "company") return subscription.spendCents;
+
+  const [companyTokens, scopeTokens] = await Promise.all([
+    computeSubscriptionTokenTotal(db, policy, "company"),
+    computeSubscriptionTokenTotal(db, policy, "policy"),
+  ]);
+  if (companyTokens <= 0 || scopeTokens <= 0) return 0;
+  return Math.round((subscription.spendCents * scopeTokens) / companyTokens);
+}
+
+async function computeObservedAmount(
+  db: Db,
+  policy: Pick<PolicyRow, "companyId" | "scopeType" | "scopeId" | "windowKind" | "metric">,
+  subscription: EffectiveSubscriptionCost | null = null,
+) {
+  if (policy.metric === "billed_cents") {
+    return computeBilledCentsObservedAmount(db, policy);
+  }
+  if (policy.metric === "effective_plan_cents") {
+    return computeEffectivePlanObservedAmount(db, policy, subscription);
+  }
+  return 0;
 }
 
 function buildApprovalPayload(input: {
@@ -210,6 +273,23 @@ async function markApprovalStatus(
 }
 
 export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
+  let effectiveSubscriptionCostPromise: Promise<EffectiveSubscriptionCost | null> | null = null;
+  function getEffectiveSubscriptionCost() {
+    if (!effectiveSubscriptionCostPromise) {
+      effectiveSubscriptionCostPromise = fetchAllQuotaWindows()
+        .then(estimateCodexLocalSubscriptionCost)
+        .catch(() => null);
+    }
+    return effectiveSubscriptionCostPromise;
+  }
+
+  async function observedForPolicy(policy: Pick<PolicyRow, "companyId" | "scopeType" | "scopeId" | "windowKind" | "metric">) {
+    const subscription = policy.metric === "effective_plan_cents"
+      ? await getEffectiveSubscriptionCost()
+      : null;
+    return computeObservedAmount(db, policy, subscription);
+  }
+
   async function pauseScopeForBudget(policy: PolicyRow) {
     const now = new Date();
     if (policy.scopeType === "agent") {
@@ -315,7 +395,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
 
   async function buildPolicySummary(policy: PolicyRow): Promise<BudgetPolicySummary> {
     const scope = await resolveScopeRecord(db, policy.scopeType as BudgetScopeType, policy.scopeId);
-    const observedAmount = await computeObservedAmount(db, policy);
+    const observedAmount = await observedForPolicy(policy);
     const { start, end } = resolveWindow(policy.windowKind as BudgetWindowKind);
     const amount = policy.isActive ? policy.amount : 0;
     const utilizationPercent =
@@ -566,7 +646,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
           .returning()
           .then((rows) => rows[0]);
 
-      if (input.scopeType === "company" && windowKind === "calendar_month_utc") {
+      if (metric === "billed_cents" && input.scopeType === "company" && windowKind === "calendar_month_utc") {
         await db
           .update(companies)
           .set({
@@ -576,7 +656,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
           .where(eq(companies.id, input.scopeId));
       }
 
-      if (input.scopeType === "agent" && windowKind === "calendar_month_utc") {
+      if (metric === "billed_cents" && input.scopeType === "agent" && windowKind === "calendar_month_utc") {
         await db
           .update(agents)
           .set({
@@ -587,7 +667,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
       }
 
       if (amount > 0) {
-        const observedAmount = await computeObservedAmount(db, row);
+        const observedAmount = await observedForPolicy(row);
         if (observedAmount < amount) {
           await resumeScopeFromBudget(row);
           await resolveOpenIncidentsForPolicy(row.id, actorUserId ? "approved" : null, actorUserId);
@@ -664,8 +744,8 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
       });
 
       for (const policy of relevantPolicies) {
-        if (policy.metric !== "billed_cents" || policy.amount <= 0) continue;
-        const observedAmount = await computeObservedAmount(db, policy);
+        if (policy.amount <= 0) continue;
+        const observedAmount = await observedForPolicy(policy);
         const softThreshold = Math.ceil((policy.amount * policy.warnPercent) / 100);
 
         if (policy.notifyEnabled && observedAmount >= softThreshold) {
@@ -752,7 +832,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
         };
       }
 
-      const companyPolicy = await db
+      const companyPolicies = await db
         .select()
         .from(budgetPolicies)
         .where(
@@ -761,12 +841,11 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
             eq(budgetPolicies.scopeType, "company"),
             eq(budgetPolicies.scopeId, companyId),
             eq(budgetPolicies.isActive, true),
-            eq(budgetPolicies.metric, "billed_cents"),
           ),
-        )
-        .then((rows) => rows[0] ?? null);
-      if (companyPolicy && companyPolicy.hardStopEnabled && companyPolicy.amount > 0) {
-        const observed = await computeObservedAmount(db, companyPolicy);
+        );
+      for (const companyPolicy of companyPolicies) {
+        if (!companyPolicy.hardStopEnabled || companyPolicy.amount <= 0) continue;
+        const observed = await observedForPolicy(companyPolicy);
         if (observed >= companyPolicy.amount) {
           return {
             scopeType: "company" as const,
@@ -786,7 +865,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
         };
       }
 
-      const agentPolicy = await db
+      const agentPolicies = await db
         .select()
         .from(budgetPolicies)
         .where(
@@ -795,12 +874,11 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
             eq(budgetPolicies.scopeType, "agent"),
             eq(budgetPolicies.scopeId, agentId),
             eq(budgetPolicies.isActive, true),
-            eq(budgetPolicies.metric, "billed_cents"),
           ),
-        )
-        .then((rows) => rows[0] ?? null);
-      if (agentPolicy && agentPolicy.hardStopEnabled && agentPolicy.amount > 0) {
-        const observed = await computeObservedAmount(db, agentPolicy);
+        );
+      for (const agentPolicy of agentPolicies) {
+        if (!agentPolicy.hardStopEnabled || agentPolicy.amount <= 0) continue;
+        const observed = await observedForPolicy(agentPolicy);
         if (observed >= agentPolicy.amount) {
           return {
             scopeType: "agent" as const,
@@ -827,7 +905,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
         .then((rows) => rows[0] ?? null);
 
       if (!project || project.companyId !== companyId) return null;
-      const projectPolicy = await db
+      const projectPolicies = await db
         .select()
         .from(budgetPolicies)
         .where(
@@ -836,12 +914,11 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
             eq(budgetPolicies.scopeType, "project"),
             eq(budgetPolicies.scopeId, project.id),
             eq(budgetPolicies.isActive, true),
-            eq(budgetPolicies.metric, "billed_cents"),
           ),
-        )
-        .then((rows) => rows[0] ?? null);
-      if (projectPolicy && projectPolicy.hardStopEnabled && projectPolicy.amount > 0) {
-        const observed = await computeObservedAmount(db, projectPolicy);
+        );
+      for (const projectPolicy of projectPolicies) {
+        if (!projectPolicy.hardStopEnabled || projectPolicy.amount <= 0) continue;
+        const observed = await observedForPolicy(projectPolicy);
         if (observed >= projectPolicy.amount) {
           return {
             scopeType: "project" as const,
@@ -878,7 +955,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
       const policy = await getPolicyRow(incident.policyId);
       if (input.action === "raise_budget_and_resume") {
         const nextAmount = Math.max(0, Math.floor(input.amount ?? 0));
-        const currentObserved = await computeObservedAmount(db, policy);
+        const currentObserved = await observedForPolicy(policy);
         if (nextAmount <= currentObserved) {
           throw unprocessable("New budget must exceed current observed spend");
         }
@@ -894,14 +971,14 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
           })
           .where(eq(budgetPolicies.id, policy.id));
 
-        if (policy.scopeType === "company" && policy.windowKind === "calendar_month_utc") {
+        if (policy.metric === "billed_cents" && policy.scopeType === "company" && policy.windowKind === "calendar_month_utc") {
           await db
             .update(companies)
             .set({ budgetMonthlyCents: nextAmount, updatedAt: now })
             .where(eq(companies.id, policy.scopeId));
         }
 
-        if (policy.scopeType === "agent" && policy.windowKind === "calendar_month_utc") {
+        if (policy.metric === "billed_cents" && policy.scopeType === "agent" && policy.windowKind === "calendar_month_utc") {
           await db
             .update(agents)
             .set({ budgetMonthlyCents: nextAmount, updatedAt: now })

@@ -22,6 +22,11 @@ function windowLabel(windowKind: BudgetPolicySummary["windowKind"]) {
   return windowKind === "lifetime" ? "Lifetime budget" : "Monthly UTC budget";
 }
 
+function metricLabel(metric: BudgetPolicySummary["metric"]) {
+  if (metric === "effective_plan_cents") return "Effective plan usage";
+  return "Metered API spend";
+}
+
 function statusTone(status: BudgetPolicySummary["status"]) {
   if (status === "hard_stop") return "text-red-300 border-red-500/30 bg-red-500/10";
   if (status === "warning") return "text-amber-200 border-amber-500/30 bg-amber-500/10";
@@ -160,7 +165,9 @@ export function BudgetPolicyCard({
               {summary.scopeType}
             </div>
             <div className="mt-2 text-xl font-semibold">{summary.scopeName}</div>
-            <div className="mt-2 text-sm text-muted-foreground">{windowLabel(summary.windowKind)}</div>
+            <div className="mt-2 text-sm text-muted-foreground">
+              {windowLabel(summary.windowKind)} - {metricLabel(summary.metric)}
+            </div>
           </div>
           <div
             className={cn(
@@ -197,7 +204,9 @@ export function BudgetPolicyCard({
               {summary.scopeType}
             </div>
             <CardTitle className="mt-1 text-base">{summary.scopeName}</CardTitle>
-            <CardDescription className="mt-1">{windowLabel(summary.windowKind)}</CardDescription>
+            <CardDescription className="mt-1">
+              {windowLabel(summary.windowKind)} - {metricLabel(summary.metric)}
+            </CardDescription>
           </div>
           <div className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em]", statusTone(summary.status))}>
             <StatusIcon className="h-3.5 w-3.5" />
