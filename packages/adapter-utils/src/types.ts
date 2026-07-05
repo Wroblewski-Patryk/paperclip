@@ -284,6 +284,12 @@ export interface HireApprovedHookResult {
 export interface QuotaWindow {
   /** human label, e.g. "5h", "7d", "Sonnet 7d", "Credits" */
   label: string;
+  /** scope for quota enforcement; account applies to all model lanes */
+  scope?: "account" | "lane" | "model" | null;
+  /** Paperclip quota lane this window applies to, when provider data is lane-specific */
+  quotaLane?: string | null;
+  /** provider model this window applies to, when provider data is model-specific */
+  model?: string | null;
   /** percent of the window already consumed (0-100), null when not reported */
   usedPercent: number | null;
   /** iso timestamp when this window resets, null when not reported */

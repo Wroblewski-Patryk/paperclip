@@ -8,6 +8,7 @@ import type {
   CostByProviderModel,
   CostWindowSpendRow,
   FinanceEvent,
+  ModelProfileCatalogEntry,
   ProviderQuotaResult,
   QuotaWindow,
 } from "@paperclipai/shared";
@@ -114,6 +115,46 @@ function quotaWindowStatus(window: QuotaWindow, shortHoldPercent: number, longHo
   if (window.usedPercent >= threshold) return `Hold at ${threshold}%`;
   if (window.usedPercent >= Math.max(1, threshold - 15)) return `Pressure near ${threshold}%`;
   return `Open until ${threshold}%`;
+}
+
+function normalizeQuotaMatcherText(value?: string | null) {
+  return (value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function quotaWindowAppliesToProfile(window: QuotaWindow, profile: ModelProfileCatalogEntry) {
+  if (window.scope === "account") return true;
+  if (window.quotaLane && window.quotaLane === profile.quotaLane) return true;
+  if (window.model && normalizeQuotaMatcherText(window.model) === normalizeQuotaMatcherText(profile.defaultModel)) return true;
+  if (window.scope === "lane" || window.scope === "model") return false;
+
+  const label = normalizeQuotaMatcherText(window.label);
+  const lane = normalizeQuotaMatcherText(profile.quotaLane);
+  const model = normalizeQuotaMatcherText(profile.defaultModel);
+  if (lane && label.includes(lane)) return true;
+  if (model && label.includes(model)) return true;
+  if (label.includes("spark")) return profile.quotaLane === "codex_spark_preview";
+  if (label.includes("mini")) return profile.quotaLane === "codex_standard_light";
+  if (label.includes("pro")) return profile.quotaLane === "codex_pro";
+  return profile.quotaLane === "codex_standard";
+}
+
+function profileQuotaStatus(
+  profile: ModelProfileCatalogEntry,
+  windows: QuotaWindow[],
+  shortHoldPercent: number,
+  longHoldPercent: number,
+) {
+  const relevant = windows.filter((window) => quotaWindowAppliesToProfile(window, profile));
+  if (relevant.length === 0) return "No matching live window";
+  const statuses = relevant.map((window) => ({
+    window,
+    status: quotaWindowStatus(window, shortHoldPercent, longHoldPercent),
+  }));
+  const held = statuses.find((entry) => entry.status.startsWith("Hold"));
+  if (held) return `${held.status} · ${held.window.label}`;
+  const pressured = statuses.find((entry) => entry.status.startsWith("Pressure"));
+  if (pressured) return `${pressured.status} · ${pressured.window.label}`;
+  return `Open · ${relevant.map((window) => window.label).join(", ")}`;
 }
 
 function flattenQuotaWindows(results: ProviderQuotaResult[] | undefined) {
@@ -1558,11 +1599,12 @@ export function Costs() {
                               </td>
                               <td className="py-3 pr-4 text-xs text-muted-foreground">
                                 {quotaWindowRows.length > 0
-                                  ? quotaWindowRows
-                                      .map((row) =>
-                                        quotaWindowStatus(row.window, codexShortHoldPercent, codexLongHoldPercent)
-                                      )
-                                      .sort()[0]
+                                  ? profileQuotaStatus(
+                                      profile,
+                                      quotaWindowRows.map((row) => row.window),
+                                      codexShortHoldPercent,
+                                      codexLongHoldPercent,
+                                    )
                                   : "Awaiting live quota"}
                               </td>
                               <td className="py-3 text-xs leading-5 text-muted-foreground">{profile.intent}</td>

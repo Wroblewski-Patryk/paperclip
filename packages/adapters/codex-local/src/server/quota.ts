@@ -242,6 +242,9 @@ export async function fetchCodexQuota(
     const w = rateLimit.primary_window;
     windows.push({
       label: "5h limit",
+      scope: "lane",
+      quotaLane: "codex_standard",
+      model: null,
       usedPercent: normalizeCodexUsedPercent(w.used_percent),
       resetsAt:
         typeof w.reset_at === "number"
@@ -255,6 +258,9 @@ export async function fetchCodexQuota(
     const w = rateLimit.secondary_window;
     windows.push({
       label: "Weekly limit",
+      scope: "lane",
+      quotaLane: "codex_standard",
+      model: null,
       usedPercent: normalizeCodexUsedPercent(w.used_percent),
       resetsAt:
         typeof w.reset_at === "number"
@@ -328,11 +334,26 @@ function buildCodexRpcWindow(label: string, window: CodexRpcWindow | null | unde
   if (!window) return null;
   return {
     label,
+    ...codexQuotaScopeForLabel(label),
     usedPercent: normalizeCodexUsedPercent(window.usedPercent),
     resetsAt: unixSecondsToIso(window.resetsAt),
     valueLabel: null,
     detail: null,
   };
+}
+
+function codexQuotaScopeForLabel(label: string): Pick<QuotaWindow, "scope" | "quotaLane" | "model"> {
+  const normalized = label.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  if (normalized.includes("spark") || normalized.includes("gpt53codexspark")) {
+    return { scope: "lane", quotaLane: "codex_spark_preview", model: "gpt-5.3-codex-spark" };
+  }
+  if (normalized.includes("mini") || normalized.includes("gpt54mini")) {
+    return { scope: "lane", quotaLane: "codex_standard_light", model: "gpt-5.4-mini" };
+  }
+  if (normalized.includes("pro") || normalized.includes("gpt55pro")) {
+    return { scope: "lane", quotaLane: "codex_pro", model: "gpt-5.5-pro" };
+  }
+  return { scope: "lane", quotaLane: "codex_standard", model: null };
 }
 
 function parseCreditBalance(value: string | number | null | undefined): string | null {

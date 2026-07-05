@@ -1773,3 +1773,12 @@ large company-wide context packets for every run.
 - Wired heartbeat scheduling to read those instance settings from the DB, with existing environment variables remaining as fallback defaults. This keeps current deployments working while allowing operators to tune thresholds from the UI.
 - The limits UI intentionally reports provider-observed quota windows instead of inventing per-model hard limits when the provider does not expose them.
 - Verification passed for shared/server/ui typechecks, targeted quota/cost/model tests, Vite production build, served `server/ui-dist`, and local `/api/health` plus `/api/companies` checks.
+
+## 2026-07-06 - Lane-aware Codex quota gating
+
+- Hardened the Codex quota gate so queued runs are checked against the model profile/lane they would actually use instead of deferring every `codex_local` run on a single provider-wide hold.
+- Added optional quota-window metadata (`scope`, `quotaLane`, `model`) to shared and adapter contracts. Account-scoped windows still block every profile; lane/model-scoped windows only block matching profiles.
+- Marked local Codex WHAM/RPC quota windows with Paperclip quota lanes. Unlabeled Codex windows are treated as the standard Codex lane; Spark, mini/light, and Pro-labelled windows are routed to their own lanes when the provider reports them.
+- Updated `Costs > Limits` so each configured model profile shows its own start status against relevant quota windows, making it visible when standard work is held but Spark/light work can still proceed.
+- Added backend tests proving that a lane-scoped standard weekly hold blocks `standard` but not `spark`, while an account-scoped hold blocks both.
+- Official OpenAI docs reviewed during the change: Codex Spark is a separate model choice with its own usage limits, and OpenAI guidance says another available model can be used after one model's allowance is reached.

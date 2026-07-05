@@ -4,6 +4,7 @@ import {
   type AdapterModelProfileDefinition,
 } from "../adapters/index.js";
 import {
+  buildProviderQuotaStartBlock,
   mergeModelProfileAdapterConfig,
   normalizeModelProfileWakeContext,
   resolveModelProfileApplication,
@@ -301,5 +302,68 @@ describe("model economics catalog", () => {
       defaultModel: "gpt-5.5",
     });
     expect(config.sources.some((source) => source.url.includes("developers.openai.com/codex/models"))).toBe(true);
+  });
+});
+
+describe("model-aware provider quota gates", () => {
+  it("blocks only the matching quota lane when Codex exposes lane-scoped windows", () => {
+    resetModelEconomicsConfigCacheForTests();
+    const profiles = loadModelEconomicsConfig().profiles;
+    const quota = {
+      provider: "openai",
+      source: "test",
+      ok: true,
+      windows: [
+        {
+          label: "Weekly limit",
+          scope: "lane" as const,
+          quotaLane: "codex_standard",
+          model: null,
+          usedPercent: 95,
+          resetsAt: "2026-07-09T19:22:48.000Z",
+          valueLabel: null,
+          detail: null,
+        },
+      ],
+    };
+
+    expect(
+      buildProviderQuotaStartBlock(quota, new Date("2026-07-06T12:00:00.000Z"), undefined, profiles.standard),
+    ).toMatchObject({
+      quotaLane: "codex_standard",
+      modelProfile: "standard",
+    });
+    expect(
+      buildProviderQuotaStartBlock(quota, new Date("2026-07-06T12:00:00.000Z"), undefined, profiles.spark),
+    ).toBeNull();
+  });
+
+  it("keeps account-scoped quota windows as a hard stop for every model profile", () => {
+    resetModelEconomicsConfigCacheForTests();
+    const profiles = loadModelEconomicsConfig().profiles;
+    const quota = {
+      provider: "openai",
+      source: "test",
+      ok: true,
+      windows: [
+        {
+          label: "Agentic account weekly limit",
+          scope: "account" as const,
+          quotaLane: null,
+          model: null,
+          usedPercent: 95,
+          resetsAt: "2026-07-09T19:22:48.000Z",
+          valueLabel: null,
+          detail: null,
+        },
+      ],
+    };
+
+    expect(
+      buildProviderQuotaStartBlock(quota, new Date("2026-07-06T12:00:00.000Z"), undefined, profiles.standard),
+    ).not.toBeNull();
+    expect(
+      buildProviderQuotaStartBlock(quota, new Date("2026-07-06T12:00:00.000Z"), undefined, profiles.spark),
+    ).not.toBeNull();
   });
 });

@@ -22,6 +22,7 @@ import {
   type IssueExecutionMonitorPolicy,
   type IssueExecutionMonitorRecoveryPolicy,
   type InstanceExperimentalSettings,
+  type ModelProfileCatalogEntry,
   type ModelProfileKey,
   type RoutineRevisionSnapshotV1,
   type RunLivenessState,
@@ -94,6 +95,7 @@ import {
   type RunLivenessClassificationInput,
 } from "./run-liveness.js";
 import { resolveModelRouterProfile, type ModelRouterQuotaPressure } from "./model-router.js";
+import { loadModelEconomicsConfig } from "./model-economics.js";
 import { logActivity, publishPluginDomainEvent, type LogActivityInput } from "./activity-log.js";
 import {
   buildWorkspaceReadyComment,
@@ -374,9 +376,12 @@ const SESSIONED_LOCAL_ADAPTERS = new Set([
 ]);
 const INLINE_BASE64_IMAGE_DATA_RE = /("type":"image","source":\{"type":"base64","data":")([A-Za-z0-9+/=]{1024,})(")/g;
 
-type ProviderQuotaStartBlock = {
+export type ProviderQuotaStartBlock = {
   provider: string;
   source: string | null;
+  modelProfile: string | null;
+  defaultModel: string | null;
+  quotaLane: string | null;
   thresholdPercent: number;
   retryAt: Date;
   retrySpacingMs: number;
@@ -386,6 +391,9 @@ type ProviderQuotaStartBlock = {
     usedPercent: number | null;
     resetsAt: string | null;
     detail: string | null;
+    scope: "account" | "lane" | "model" | null;
+    quotaLane: string | null;
+    model: string | null;
   }>;
 };
 
@@ -396,7 +404,7 @@ type ProviderQuotaCacheEntry = {
 
 const providerQuotaCache = new Map<string, ProviderQuotaCacheEntry>();
 
-type CodexLocalQuotaGateSettings = Pick<
+export type CodexLocalQuotaGateSettings = Pick<
   InstanceExperimentalSettings,
   | "codexLocalQuotaHoldEnabled"
   | "codexLocalQuotaShortWindowHoldUsedPercent"
@@ -428,6 +436,34 @@ function isConsumableQuotaWindow(window: QuotaWindow) {
   return true;
 }
 
+function normalizeQuotaMatcherText(value: string | null | undefined) {
+  return (value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+export function quotaWindowAppliesToModelProfile(
+  window: QuotaWindow,
+  modelProfile: ModelProfileCatalogEntry | null | undefined,
+) {
+  if (!modelProfile) return true;
+  if (window.scope === "account") return true;
+  if (window.quotaLane && window.quotaLane === modelProfile.quotaLane) return true;
+  if (window.model && normalizeQuotaMatcherText(window.model) === normalizeQuotaMatcherText(modelProfile.defaultModel)) {
+    return true;
+  }
+  if (window.scope === "lane" || window.scope === "model") return false;
+
+  const label = normalizeQuotaMatcherText(window.label);
+  const lane = normalizeQuotaMatcherText(modelProfile.quotaLane);
+  const model = normalizeQuotaMatcherText(modelProfile.defaultModel);
+  if (lane && label.includes(lane)) return true;
+  if (model && label.includes(model)) return true;
+
+  if (label.includes("spark")) return modelProfile.quotaLane === "codex_spark_preview";
+  if (label.includes("mini")) return modelProfile.quotaLane === "codex_standard_light";
+  if (label.includes("pro")) return modelProfile.quotaLane === "codex_pro";
+  return modelProfile.quotaLane === "codex_standard";
+}
+
 function windowResetDate(window: QuotaWindow) {
   if (!window.resetsAt) return null;
   const parsed = new Date(window.resetsAt);
@@ -451,15 +487,17 @@ function quotaHoldThresholdForWindow(
     : settings.codexLocalQuotaLongWindowHoldUsedPercent;
 }
 
-function buildProviderQuotaStartBlock(
+export function buildProviderQuotaStartBlock(
   quota: ProviderQuotaResult,
   now = new Date(),
   settings: CodexLocalQuotaGateSettings = DEFAULT_CODEX_LOCAL_QUOTA_GATE_SETTINGS,
+  modelProfile?: ModelProfileCatalogEntry | null,
 ): ProviderQuotaStartBlock | null {
   if (!settings.codexLocalQuotaHoldEnabled) return null;
   if (!quota.ok) return null;
   const blockedWindows = quota.windows.filter((window) => {
     if (!isConsumableQuotaWindow(window) || typeof window.usedPercent !== "number") return false;
+    if (!quotaWindowAppliesToModelProfile(window, modelProfile)) return false;
     return window.usedPercent >= quotaHoldThresholdForWindow(window, now, settings);
   });
   if (blockedWindows.length === 0) return null;
@@ -480,6 +518,9 @@ function buildProviderQuotaStartBlock(
   return {
     provider: quota.provider,
     source: quota.source ?? null,
+    modelProfile: modelProfile?.profile ?? null,
+    defaultModel: modelProfile?.defaultModel ?? null,
+    quotaLane: modelProfile?.quotaLane ?? null,
     thresholdPercent,
     retryAt,
     retrySpacingMs: settings.codexLocalQuotaRetrySpacingMinutes * 60 * 1000,
@@ -489,6 +530,9 @@ function buildProviderQuotaStartBlock(
       usedPercent: window.usedPercent,
       resetsAt: window.resetsAt,
       detail: window.detail ?? null,
+      scope: window.scope ?? null,
+      quotaLane: window.quotaLane ?? null,
+      model: window.model ?? null,
     })),
   };
 }
@@ -6297,7 +6341,53 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     return result;
   }
 
-  async function getProviderQuotaStartBlockForAgent(agent: typeof agents.$inferSelect) {
+  async function resolveRunQuotaModelProfile(
+    agent: typeof agents.$inferSelect,
+    run: typeof heartbeatRuns.$inferSelect,
+    quota: ProviderQuotaResult,
+    quotaGateSettings: CodexLocalQuotaGateSettings,
+  ): Promise<ModelProfileCatalogEntry | null> {
+    const catalog = loadModelEconomicsConfig().profiles;
+    const context = parseObject(run.contextSnapshot);
+    const explicitProfile = readContextModelProfile(context);
+    if (explicitProfile) return catalog[explicitProfile] ?? null;
+
+    const issueId = readNonEmptyString(context.issueId);
+    const issueContext = issueId ? await getIssueExecutionContext(run.companyId, issueId) : null;
+    const issueAssigneeOverrides =
+      issueContext && issueContext.assigneeAgentId === agent.id
+        ? parseIssueAssigneeAdapterOverrides(issueContext.assigneeAdapterOverrides)
+        : null;
+    if (issueAssigneeOverrides?.modelProfile) {
+      return catalog[issueAssigneeOverrides.modelProfile] ?? null;
+    }
+
+    const issueRef = issueContext
+      ? {
+          title: issueContext.title,
+          description: issueContext.description,
+          priority: issueContext.priority,
+          workMode: issueContext.workMode,
+        }
+      : null;
+    const quotaPressure = resolveModelRouterQuotaPressure(quota, new Date(), quotaGateSettings);
+    const routerDecision = resolveModelRouterProfile({
+      agent: {
+        name: agent.name,
+        role: agent.role,
+        title: agent.title,
+      },
+      issue: issueRef,
+      contextSnapshot: context,
+      quotaPressure,
+    });
+    return routerDecision.profile ? (catalog[routerDecision.profile] ?? null) : null;
+  }
+
+  async function getProviderQuotaStartBlockForRun(
+    agent: typeof agents.$inferSelect,
+    run: typeof heartbeatRuns.$inferSelect,
+  ) {
     const quota = await getCachedProviderQuota(agent);
     if (!quota) return null;
     const quotaGateSettings = await getCodexLocalQuotaGateSettings();
@@ -6313,13 +6403,17 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       );
       return null;
     }
-    return buildProviderQuotaStartBlock(quota, new Date(), quotaGateSettings);
+    const modelProfile = await resolveRunQuotaModelProfile(agent, run, quota, quotaGateSettings);
+    return buildProviderQuotaStartBlock(quota, new Date(), quotaGateSettings, modelProfile);
   }
 
   function providerQuotaHoldPayload(block: ProviderQuotaStartBlock, scheduledRetryAt: Date) {
     return {
       provider: block.provider,
       source: block.source,
+      modelProfile: block.modelProfile,
+      defaultModel: block.defaultModel,
+      quotaLane: block.quotaLane,
       thresholdPercent: block.thresholdPercent,
       retryAt: block.retryAt.toISOString(),
       scheduledRetryAt: scheduledRetryAt.toISOString(),
@@ -6435,7 +6529,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       return null;
     }
 
-    const providerQuotaBlock = await getProviderQuotaStartBlockForAgent(agent);
+    const providerQuotaBlock = await getProviderQuotaStartBlockForRun(agent, run);
     if (providerQuotaBlock) {
       await deferQueuedRunsForProviderQuota(agent, [run], providerQuotaBlock);
       return null;
@@ -7385,14 +7479,21 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         return left.createdAt.getTime() - right.createdAt.getTime();
       });
 
-      const providerQuotaBlock = await getProviderQuotaStartBlockForAgent(agent);
-      if (providerQuotaBlock) {
-        await deferQueuedRunsForProviderQuota(agent, prioritizedRuns, providerQuotaBlock);
+      const eligibleRuns: Array<typeof heartbeatRuns.$inferSelect> = [];
+      for (const queuedRun of prioritizedRuns) {
+        const providerQuotaBlock = await getProviderQuotaStartBlockForRun(agent, queuedRun);
+        if (providerQuotaBlock) {
+          await deferQueuedRunsForProviderQuota(agent, [queuedRun], providerQuotaBlock);
+        } else {
+          eligibleRuns.push(queuedRun);
+        }
+      }
+      if (eligibleRuns.length === 0) {
         return [];
       }
 
       const claimedRuns: Array<typeof heartbeatRuns.$inferSelect> = [];
-      for (const queuedRun of prioritizedRuns) {
+      for (const queuedRun of eligibleRuns) {
         if (claimedRuns.length >= availableSlots) break;
         const claimed = await claimQueuedRun(queuedRun);
         if (claimed) claimedRuns.push(claimed);
