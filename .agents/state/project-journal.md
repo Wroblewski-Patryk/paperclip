@@ -1565,3 +1565,30 @@ Follow-up UI decision:
 - Keep provider quota separate from fake subscription-dollar conversion until a
   deliberate effective-cost model is configured. The operational gate should be
   driven by observed quota pressure, not by invented API spend.
+
+# 2026-07-05 - Heartbeat Workspace Boundary And Missing Disposition Repair
+
+Context: the Stage 1 monitor found no live runs, OpenAI Codex weekly quota at
+82%, and two `in_progress` issues with execution/check-out run ids whose run
+records no longer resolved through the API.
+
+Actions:
+
+- Patched five department 11 agents whose `adapterConfig.cwd` or cheap profile
+  cwd pointed outside the approved Stage 1 roots. The safe fallback is now
+  `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse` until those future
+  product roots are explicitly approved for Stage 1 work.
+- Ran the run-disposition enforcer in apply mode for `LUC-164` and `LUC-165`.
+  The enforcer added the required missing-disposition comments instead of
+  force-closing the issues.
+- Verified afterward that there were no live runs, no `in_progress` issues with
+  dead run locks, and no agent cwd violations against the allowed Stage 1 roots.
+
+Verification notes:
+
+- `node scripts/run-live-run-janitor.mjs` reported zero actions.
+- `node scripts/run-run-disposition-enforcer.mjs --apply` applied two
+  disposition comments.
+- `pnpm run softwarehouse:workspace-boundary-audit` could not complete because
+  the repo still hits the known Windows plugin SDK symlink `EPERM` during
+  dependency install; a direct API cwd audit was used as the bounded fallback.
