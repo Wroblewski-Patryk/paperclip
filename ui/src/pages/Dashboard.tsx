@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { dashboardApi } from "../api/dashboard";
 import { activityApi } from "../api/activity";
 import { accessApi } from "../api/access";
+import { costsApi } from "../api/costs";
 import { issuesApi } from "../api/issues";
 import { agentsApi } from "../api/agents";
 import { projectsApi } from "../api/projects";
@@ -20,11 +21,11 @@ import { ActivityRow } from "../components/ActivityRow";
 import { Identity } from "../components/Identity";
 import { timeAgo } from "../lib/timeAgo";
 import { cn, formatCents } from "../lib/utils";
-import { Bot, CircleDot, DollarSign, ShieldCheck, LayoutDashboard, PauseCircle } from "lucide-react";
+import { Bot, CircleDot, DollarSign, Gauge, ShieldCheck, LayoutDashboard, PauseCircle } from "lucide-react";
 import { ActiveAgentsPanel } from "../components/ActiveAgentsPanel";
 import { ChartCard, RunActivityChart, PriorityChart, IssueStatusChart, SuccessRateChart } from "../components/ActivityCharts";
 import { PageSkeleton } from "../components/PageSkeleton";
-import type { Agent, Issue } from "@paperclipai/shared";
+import type { Agent, Issue, ProviderQuotaResult, QuotaWindow } from "@paperclipai/shared";
 import { PluginSlotOutlet } from "@/plugins/slots";
 
 const DASHBOARD_ACTIVITY_LIMIT = 10;
@@ -32,6 +33,70 @@ const DASHBOARD_ACTIVITY_LIMIT = 10;
 function getRecentIssues(issues: Issue[]): Issue[] {
   return [...issues]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+}
+
+function providerQuotaName(provider: string): string {
+  const normalized = provider.toLowerCase();
+  if (normalized === "openai") return "OpenAI Codex";
+  if (normalized === "anthropic") return "Claude";
+  return provider;
+}
+
+function formatQuotaReset(resetsAt: string | null): string {
+  if (!resetsAt) return "reset not reported";
+  const date = new Date(resetsAt);
+  if (Number.isNaN(date.getTime())) return "reset not reported";
+  return `resets ${new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date)}`;
+}
+
+function isConsumableQuotaWindow(window: QuotaWindow): boolean {
+  return typeof window.usedPercent === "number" && Number.isFinite(window.usedPercent);
+}
+
+function providerQuotaMetric(
+  results: ProviderQuotaResult[] | undefined,
+  isLoading: boolean,
+): { value: string; description: string } {
+  if (isLoading) {
+    return { value: "...", description: "Checking provider quota" };
+  }
+
+  const candidates = (results ?? []).flatMap((result) =>
+    result.windows
+      .filter(isConsumableQuotaWindow)
+      .map((window) => ({
+        provider: providerQuotaName(result.provider),
+        source: result.source,
+        window,
+        usedPercent: window.usedPercent ?? 0,
+      })),
+  );
+
+  if (candidates.length > 0) {
+    const highest = candidates.reduce((best, current) =>
+      current.usedPercent > best.usedPercent ? current : best,
+    );
+    const source = highest.source ? ` via ${highest.source}` : "";
+    return {
+      value: `${Math.round(highest.usedPercent)}%`,
+      description: `${highest.provider}${source} - ${highest.window.label} - ${formatQuotaReset(highest.window.resetsAt)}`,
+    };
+  }
+
+  const unavailable = (results ?? []).find((result) => !result.ok);
+  if (unavailable) {
+    return {
+      value: "--",
+      description: `${providerQuotaName(unavailable.provider)} quota unavailable`,
+    };
+  }
+
+  return { value: "--", description: "No provider quota data" };
 }
 
 export function Dashboard() {
@@ -75,6 +140,13 @@ export function Dashboard() {
     queryKey: queryKeys.projects.list(selectedCompanyId!),
     queryFn: () => projectsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId,
+  });
+
+  const { data: quotaWindows, isLoading: isQuotaLoading } = useQuery({
+    queryKey: queryKeys.usageQuotaWindows(selectedCompanyId!),
+    queryFn: () => costsApi.quotaWindows(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+    staleTime: 60_000,
   });
 
   const { data: companyMembers } = useQuery({
@@ -192,6 +264,7 @@ export function Dashboard() {
   }
 
   const hasNoAgents = agents !== undefined && agents.length === 0;
+  const quotaMetric = providerQuotaMetric(quotaWindows, isQuotaLoading);
 
   return (
     <div className="space-y-6">
@@ -237,7 +310,7 @@ export function Dashboard() {
             </div>
           ) : null}
 
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-1 sm:gap-2">
+          <div className="grid grid-cols-2 xl:grid-cols-5 gap-1 sm:gap-2">
             <MetricCard
               icon={Bot}
               value={data.agents.active + data.agents.running + data.agents.paused + data.agents.error}
@@ -275,6 +348,13 @@ export function Dashboard() {
                     : "Unlimited budget"}
                 </span>
               }
+            />
+            <MetricCard
+              icon={Gauge}
+              value={quotaMetric.value}
+              label="Provider Quota"
+              to="/costs"
+              description={<span className="break-words">{quotaMetric.description}</span>}
             />
             <MetricCard
               icon={ShieldCheck}

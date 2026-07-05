@@ -1555,3 +1555,13 @@ Configuration:
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS` default: `120000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS` default: `900000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_CACHE_MS` default: `60000`.
+
+Follow-up UI decision:
+
+- The owner noticed that `/LUC/dashboard` still showed only `$0.00 Month
+  Spend`, which is misleading for local Codex subscription usage.
+- Dashboard now reads `/costs/quota-windows` and surfaces a separate
+  `Provider Quota` metric next to `Month Spend`.
+- Keep provider quota separate from fake subscription-dollar conversion until a
+  deliberate effective-cost model is configured. The operational gate should be
+  driven by observed quota pressure, not by invented API spend.

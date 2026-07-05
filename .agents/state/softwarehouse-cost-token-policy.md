@@ -58,6 +58,12 @@ Runtime knobs:
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS` defaults to `900000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_CACHE_MS` defaults to `60000`.
 
+Dashboard rule: Paperclip must show provider quota pressure separately from
+monthly dollar spend. For local Codex, `$0.00` spend means "no metered API spend
+was recorded"; it does not mean unlimited subscription capacity remains. Do not
+collapse subscription quota into fake dollar spend unless the owner explicitly
+configures an effective subscription-cost model later.
+
 Operating rule: if quota data is temporarily unavailable, Paperclip logs that
 fact and allows the start rather than silently pretending a hard quota block
 exists. Repeated unavailable quota checks should become an improvement task,

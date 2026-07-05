@@ -236,6 +236,16 @@ test("heartbeat scheduler gates codex_local starts on provider quota pressure", 
   assert.match(source, /providerQuotaHold/);
 });
 
+test("dashboard surfaces provider quota separately from dollar spend", async () => {
+  const source = await readFile("ui/src/pages/Dashboard.tsx", "utf8");
+
+  assert.match(source, /costsApi\.quotaWindows/);
+  assert.match(source, /queryKeys\.usageQuotaWindows/);
+  assert.match(source, /Provider Quota/);
+  assert.match(source, /Month Spend/);
+  assert.match(source, /formatCents\(data\.costs\.monthSpendCents\)/);
+});
+
 test("learning loop scopes active issues and bounds API requests for large local instances", async () => {
   const source = await readFile("scripts/run-softwarehouse-learning-loop.mjs", "utf8");
 
