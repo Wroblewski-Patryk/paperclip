@@ -1782,3 +1782,10 @@ large company-wide context packets for every run.
 - Updated `Costs > Limits` so each configured model profile shows its own start status against relevant quota windows, making it visible when standard work is held but Spark/light work can still proceed.
 - Added backend tests proving that a lane-scoped standard weekly hold blocks `standard` but not `spark`, while an account-scoped hold blocks both.
 - Official OpenAI docs reviewed during the change: Codex Spark is a separate model choice with its own usage limits, and OpenAI guidance says another available model can be used after one model's allowance is reached.
+
+## 2026-07-06 - Requeue stale quota holds when another model lane is available
+
+- Found 15 old `provider_quota_hold` scheduled retries that had been delayed to the standard weekly reset before lane-aware quota metadata existed.
+- Added heartbeat self-healing before queued-run resume: future provider quota holds are re-evaluated against the run's current model-router profile and are requeued when the selected lane is not currently blocked.
+- Verified on the live local Softwarehouse instance that active provider quota holds dropped to 0 and work resumed only in `codex_standard_light` and `codex_spark_preview`; no `codex_standard` runs were started while the standard weekly lane remains above threshold.
+- Validation passed for `@paperclipai/server` typecheck and the existing heartbeat model-profile test target.

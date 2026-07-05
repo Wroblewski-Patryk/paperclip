@@ -6507,6 +6507,110 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     return deferredRuns;
   }
 
+  async function requeueProviderQuotaHoldsForAvailableLanes(now = new Date()) {
+    const heldRuns = await db
+      .select()
+      .from(heartbeatRuns)
+      .where(
+        and(
+          eq(heartbeatRuns.status, "scheduled_retry"),
+          eq(heartbeatRuns.scheduledRetryReason, "provider_quota_hold"),
+          gt(heartbeatRuns.scheduledRetryAt, now),
+        ),
+      )
+      .orderBy(asc(heartbeatRuns.scheduledRetryAt), asc(heartbeatRuns.createdAt), asc(heartbeatRuns.id))
+      .limit(20);
+
+    const requeuedRunIds: string[] = [];
+
+    for (const run of heldRuns) {
+      const agent = await getAgent(run.agentId);
+      if (!agent || agent.adapterType !== "codex_local") continue;
+
+      const quota = await getCachedProviderQuota(agent);
+      if (!quota?.ok) continue;
+
+      const quotaGateSettings = await getCodexLocalQuotaGateSettings();
+      const modelProfile = await resolveRunQuotaModelProfile(agent, run, quota, quotaGateSettings);
+      const block = buildProviderQuotaStartBlock(quota, now, quotaGateSettings, modelProfile);
+      if (block) continue;
+
+      const previousContext = parseObject(run.contextSnapshot);
+      const previousResult = parseObject(run.resultJson);
+      const requeueDetails = {
+        reevaluatedAt: now.toISOString(),
+        previousScheduledRetryAt: run.scheduledRetryAt ? new Date(run.scheduledRetryAt).toISOString() : null,
+        previousError: run.error ?? null,
+        modelProfile: modelProfile?.profile ?? null,
+        quotaLane: modelProfile?.quotaLane ?? null,
+      };
+      const updated = await db
+        .update(heartbeatRuns)
+        .set({
+          status: "queued",
+          scheduledRetryAt: null,
+          scheduledRetryReason: null,
+          error: null,
+          errorCode: null,
+          contextSnapshot: {
+            ...previousContext,
+            providerQuotaHoldReevaluation: requeueDetails,
+          },
+          resultJson: {
+            ...previousResult,
+            providerQuotaHoldReevaluation: requeueDetails,
+          },
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(heartbeatRuns.id, run.id),
+            eq(heartbeatRuns.status, "scheduled_retry"),
+            eq(heartbeatRuns.scheduledRetryReason, "provider_quota_hold"),
+          ),
+        )
+        .returning()
+        .then((rows) => rows[0] ?? null);
+      if (!updated) continue;
+
+      requeuedRunIds.push(updated.id);
+      await setWakeupStatus(updated.wakeupRequestId, "queued", { error: null });
+      await appendRunEvent(updated, await nextRunEventSeq(updated.id), {
+        eventType: "lifecycle",
+        stream: "system",
+        level: "info",
+        message: "Provider quota hold was re-evaluated and requeued because the selected model lane is available",
+        payload: requeueDetails,
+      });
+      publishLiveEvent({
+        companyId: updated.companyId,
+        type: "heartbeat.run.queued",
+        payload: {
+          runId: updated.id,
+          agentId: updated.agentId,
+          invocationSource: updated.invocationSource,
+          triggerDetail: updated.triggerDetail,
+          wakeupRequestId: updated.wakeupRequestId,
+        },
+      });
+    }
+
+    if (requeuedRunIds.length > 0) {
+      logger.info(
+        {
+          requeuedRunCount: requeuedRunIds.length,
+          runIds: requeuedRunIds,
+        },
+        "Requeued provider quota holds whose selected model lanes are available",
+      );
+    }
+
+    return {
+      requeued: requeuedRunIds.length,
+      runIds: requeuedRunIds,
+    };
+  }
+
   async function claimQueuedRun(run: typeof heartbeatRuns.$inferSelect) {
     if (run.status !== "queued") return run;
     const agent = await getAgent(run.agentId);
@@ -7310,6 +7414,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
   }
 
   async function resumeQueuedRuns() {
+    await requeueProviderQuotaHoldsForAvailableLanes();
+
     const queuedRuns = await db
       .select({ agentId: heartbeatRuns.agentId })
       .from(heartbeatRuns)
