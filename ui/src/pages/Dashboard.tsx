@@ -344,8 +344,13 @@ export function Dashboard() {
               description={
                 <span>
                   {data.costs.monthBudgetCents > 0
-                    ? `${data.costs.monthUtilizationPercent}% of ${formatCents(data.costs.monthBudgetCents)} budget`
+                    ? `${data.costs.monthUtilizationPercent}% of ${formatCents(data.costs.monthBudgetCents)} ${
+                        data.costs.subscriptionMonthBudgetCents ? "plan budget" : "budget"
+                      }`
                     : "Unlimited budget"}
+                  {data.costs.subscriptionMonthBudgetCents != null
+                    ? ` - API ${formatCents(data.costs.reportedMonthSpendCents ?? 0)}`
+                    : null}
                 </span>
               }
             />

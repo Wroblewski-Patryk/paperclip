@@ -158,3 +158,25 @@ Before broad autonomous work, the owner should decide:
 - whether to define stricter daily or per-run soft limits;
 - whether CFO, CTO, AIA, or CEO owns budget escalation;
 - how to handle unknown-cost local Codex runs in status reports.
+
+## Effective Local Codex Plan Usage
+
+Local `codex_local` runs do not necessarily create metered API `cost_events`,
+so `$0.00 API spend` can be true while the owner's ChatGPT/Codex plan capacity
+is being consumed. Paperclip should therefore keep two separate accounting
+lanes:
+
+- reported spend: direct API or adapter-reported cost events;
+- effective subscription usage: an operational estimate derived from live
+  Codex quota windows and a configured monthly subscription budget.
+
+The default local Codex subscription budget is 20,000 cents, matching the
+owner's current $200/month plan assumption. This can be changed with
+`PAPERCLIP_CODEX_LOCAL_SUBSCRIPTION_BUDGET_CENTS` and
+`PAPERCLIP_CODEX_LOCAL_SUBSCRIPTION_PLAN_LABEL`.
+
+Do not use the effective subscription estimate as proof of OpenAI billing. It
+is a capacity-management and dashboard value so the company sees quota pressure
+as a meaningful budget burn instead of fake `$0.00 of $1.00` numbers. Future
+OpenAI API-backed GPT lanes must still prove real `metered_api` cost reporting
+before they are treated as billable API spend.

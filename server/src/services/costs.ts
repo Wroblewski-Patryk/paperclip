@@ -4,6 +4,8 @@ import type { Db } from "@paperclipai/db";
 import { activityLog, agents, companies, costEvents, heartbeatRuns, issues, projects } from "@paperclipai/db";
 import { notFound, unprocessable } from "../errors.js";
 import { budgetService, type BudgetServiceHooks } from "./budgets.js";
+import { estimateCodexLocalSubscriptionCost } from "./effective-subscription-cost.js";
+import { fetchAllQuotaWindows } from "./quota-windows.js";
 
 export interface CostDateRange {
   from?: Date;
@@ -122,16 +124,37 @@ export function costService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         .where(and(...conditions));
 
       const spendCents = Number(total);
+      const reportedSpendCents = spendCents;
+      const reportedBudgetCents = company.budgetMonthlyCents;
+      const subscription = await fetchAllQuotaWindows()
+        .then(estimateCodexLocalSubscriptionCost)
+        .catch(() => null);
+      const effectiveSpendCents = subscription?.spendCents ?? reportedSpendCents;
+      const effectiveBudgetCents = subscription?.budgetCents ?? reportedBudgetCents;
       const utilization =
+        effectiveBudgetCents > 0
+          ? (effectiveSpendCents / effectiveBudgetCents) * 100
+          : 0;
+      const reportedUtilization =
         company.budgetMonthlyCents > 0
           ? (spendCents / company.budgetMonthlyCents) * 100
           : 0;
 
       return {
         companyId,
-        spendCents,
-        budgetCents: company.budgetMonthlyCents,
+        reportedSpendCents,
+        reportedBudgetCents,
+        reportedUtilizationPercent: Number(reportedUtilization.toFixed(2)),
+        spendCents: effectiveSpendCents,
+        budgetCents: effectiveBudgetCents,
         utilizationPercent: Number(utilization.toFixed(2)),
+        subscriptionSpendCents: subscription?.spendCents,
+        subscriptionBudgetCents: subscription?.budgetCents,
+        subscriptionUtilizationPercent: subscription?.utilizationPercent,
+        subscriptionWindowLabel: subscription?.windowLabel,
+        subscriptionResetsAt: subscription?.resetsAt,
+        subscriptionSource: subscription?.source,
+        subscriptionPlanLabel: subscription?.planLabel,
       };
     },
 

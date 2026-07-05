@@ -21,9 +21,18 @@ export interface DashboardSummary {
     done: number;
   };
   costs: {
+    reportedMonthSpendCents?: number;
+    reportedMonthBudgetCents?: number;
     monthSpendCents: number;
     monthBudgetCents: number;
     monthUtilizationPercent: number;
+    subscriptionMonthSpendCents?: number;
+    subscriptionMonthBudgetCents?: number;
+    subscriptionUtilizationPercent?: number;
+    subscriptionWindowLabel?: string | null;
+    subscriptionResetsAt?: string | null;
+    subscriptionSource?: string | null;
+    subscriptionPlanLabel?: string | null;
   };
   pendingApprovals: number;
   budgets: {

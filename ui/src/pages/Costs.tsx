@@ -434,7 +434,13 @@ export function Costs() {
     return map;
   }, [preset, spendData, byProvider]);
 
-  const providers = useMemo(() => Array.from(byProvider.keys()), [byProvider]);
+  const providers = useMemo(() => {
+    const keys = new Set(byProvider.keys());
+    for (const result of quotaData ?? []) {
+      keys.add(result.provider);
+    }
+    return Array.from(keys);
+  }, [byProvider, quotaData]);
   const billers = useMemo(() => Array.from(byBiller.keys()), [byBiller]);
 
   const effectiveProvider =
@@ -518,6 +524,10 @@ export function Costs() {
       (sum, row) => sum + row.inputTokens + row.cachedInputTokens + row.outputTokens,
       0,
     );
+  const effectiveSpendCents = spendData?.summary.spendCents ?? 0;
+  const effectiveBudgetCents = spendData?.summary.budgetCents ?? 0;
+  const reportedSpendCents = spendData?.summary.reportedSpendCents ?? effectiveSpendCents;
+  const hasSubscriptionEstimate = spendData?.summary.subscriptionBudgetCents != null;
 
   const topFinanceEvents = (financeData?.events ?? []) as FinanceEvent[];
   const budgetPolicies = budgetData?.policies ?? [];
@@ -581,23 +591,27 @@ export function Costs() {
 
           <div className="grid gap-3 lg:grid-cols-4">
             <MetricTile
-              label="Inference spend"
-              value={formatCents(spendData?.summary.spendCents ?? 0)}
-              subtitle={`${formatTokens(inferenceTokenTotal)} tokens across request-scoped events`}
+              label={hasSubscriptionEstimate ? "Plan usage" : "Inference spend"}
+              value={formatCents(effectiveSpendCents)}
+              subtitle={
+                hasSubscriptionEstimate
+                  ? `${spendData?.summary.subscriptionUtilizationPercent ?? 0}% of ${spendData?.summary.subscriptionPlanLabel ?? "subscription plan"} - API ${formatCents(reportedSpendCents)}`
+                  : `${formatTokens(inferenceTokenTotal)} tokens across request-scoped events`
+              }
               icon={DollarSign}
             />
             <MetricTile
               label="Budget"
               value={activeBudgetIncidents.length > 0 ? String(activeBudgetIncidents.length) : (
-                spendData?.summary.budgetCents && spendData.summary.budgetCents > 0
-                  ? `${spendData.summary.utilizationPercent}%`
+                effectiveBudgetCents > 0
+                  ? `${spendData?.summary.utilizationPercent ?? 0}%`
                   : "Open"
               )}
               subtitle={
                 activeBudgetIncidents.length > 0
                   ? `${budgetData?.pausedAgentCount ?? 0} agents paused · ${budgetData?.pausedProjectCount ?? 0} projects paused`
-                  : spendData?.summary.budgetCents && spendData.summary.budgetCents > 0
-                    ? `${formatCents(spendData.summary.spendCents)} of ${formatCents(spendData.summary.budgetCents)}`
+                  : effectiveBudgetCents > 0
+                    ? `${formatCents(effectiveSpendCents)} of ${formatCents(effectiveBudgetCents)}`
                     : "No monthly cap configured"
               }
               icon={Coins}
@@ -657,21 +671,28 @@ export function Costs() {
               <div className="grid gap-4 xl:grid-cols-[1.3fr,1fr]">
                 <Card>
                   <CardHeader className="px-5 pt-5 pb-2">
-                    <CardTitle className="text-base">Inference ledger</CardTitle>
+                    <CardTitle className="text-base">
+                      {hasSubscriptionEstimate ? "Plan usage ledger" : "Inference ledger"}
+                    </CardTitle>
                     <CardDescription>
-                      Request-scoped inference spend for the selected period.
+                      {hasSubscriptionEstimate
+                        ? "Effective local Codex plan usage derived from live quota windows."
+                        : "Request-scoped inference spend for the selected period."}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 px-5 pb-5 pt-2">
                     <div className="flex flex-wrap items-end justify-between gap-3">
                       <div>
                         <div className="text-3xl font-semibold tabular-nums">
-                          {formatCents(spendData?.summary.spendCents ?? 0)}
+                          {formatCents(effectiveSpendCents)}
                         </div>
                         <div className="mt-1 text-sm text-muted-foreground">
-                          {spendData?.summary.budgetCents && spendData.summary.budgetCents > 0
-                            ? `Budget ${formatCents(spendData.summary.budgetCents)}`
+                          {effectiveBudgetCents > 0
+                            ? `Budget ${formatCents(effectiveBudgetCents)}`
                             : "Unlimited budget"}
+                          {hasSubscriptionEstimate
+                            ? ` - API ${formatCents(reportedSpendCents)}`
+                            : null}
                         </div>
                       </div>
                       <div className="border border-border px-4 py-3 text-right">
@@ -681,23 +702,23 @@ export function Costs() {
                         </div>
                       </div>
                     </div>
-                    {spendData?.summary.budgetCents && spendData.summary.budgetCents > 0 ? (
+                    {effectiveBudgetCents > 0 ? (
                       <div className="space-y-2">
                         <div className="h-2 overflow-hidden bg-muted">
                           <div
                             className={cn(
                               "h-full transition-[width,background-color] duration-150",
-                              spendData.summary.utilizationPercent > 90
+                              (spendData?.summary.utilizationPercent ?? 0) > 90
                                 ? "bg-red-400"
-                                : spendData.summary.utilizationPercent > 70
+                                : (spendData?.summary.utilizationPercent ?? 0) > 70
                                   ? "bg-yellow-400"
                                   : "bg-emerald-400",
                             )}
-                            style={{ width: `${Math.min(100, spendData.summary.utilizationPercent)}%` }}
+                            style={{ width: `${Math.min(100, spendData?.summary.utilizationPercent ?? 0)}%` }}
                           />
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {spendData.summary.utilizationPercent}% of monthly budget consumed in this range.
+                          {spendData?.summary.utilizationPercent ?? 0}% of monthly budget consumed in this range.
                         </div>
                       </div>
                     ) : null}
@@ -966,8 +987,8 @@ export function Costs() {
                           key={provider}
                           provider={provider}
                           rows={byProvider.get(provider) ?? []}
-                          budgetMonthlyCents={spendData?.summary.budgetCents ?? 0}
-                          totalCompanySpendCents={spendData?.summary.spendCents ?? 0}
+                          budgetMonthlyCents={effectiveBudgetCents}
+                          totalCompanySpendCents={effectiveSpendCents}
                           weekSpendCents={weekSpendByProvider.get(provider) ?? 0}
                           windowRows={windowSpendByProvider.get(provider) ?? []}
                           showDeficitNotch={deficitNotchByProvider.get(provider) ?? false}
@@ -975,6 +996,7 @@ export function Costs() {
                           quotaError={quotaErrorsByProvider.get(provider) ?? null}
                           quotaSource={quotaSourcesByProvider.get(provider) ?? null}
                           quotaLoading={quotaLoading}
+                          subscriptionBudgetCents={spendData?.summary.subscriptionBudgetCents ?? null}
                         />
                       ))}
                     </div>
@@ -986,8 +1008,8 @@ export function Costs() {
                     <ProviderQuotaCard
                       provider={provider}
                       rows={byProvider.get(provider) ?? []}
-                      budgetMonthlyCents={spendData?.summary.budgetCents ?? 0}
-                      totalCompanySpendCents={spendData?.summary.spendCents ?? 0}
+                      budgetMonthlyCents={effectiveBudgetCents}
+                      totalCompanySpendCents={effectiveSpendCents}
                       weekSpendCents={weekSpendByProvider.get(provider) ?? 0}
                       windowRows={windowSpendByProvider.get(provider) ?? []}
                       showDeficitNotch={deficitNotchByProvider.get(provider) ?? false}
@@ -995,6 +1017,7 @@ export function Costs() {
                       quotaError={quotaErrorsByProvider.get(provider) ?? null}
                       quotaSource={quotaSourcesByProvider.get(provider) ?? null}
                       quotaLoading={quotaLoading}
+                      subscriptionBudgetCents={spendData?.summary.subscriptionBudgetCents ?? null}
                     />
                   </TabsContent>
                 ))}

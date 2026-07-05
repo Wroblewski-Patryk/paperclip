@@ -1636,3 +1636,27 @@ Configuration:
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS` default: `120000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS` default: `900000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_CACHE_MS` default: `60000`.
+
+# 2026-07-05 - Effective Codex Plan Spend For Dashboard And Costs
+
+Context: the owner noticed that both `/LUC/dashboard` and `/LUC/costs` still
+showed `$0.00` spend against a `$1.00` budget even though local Codex plan
+quota is the real Stage 1 limiting resource. The desired behavior is a
+meaningful plan-usage counter while preserving the distinction between real
+API billing and local subscription capacity.
+
+Actions:
+
+- Added an effective local Codex subscription cost estimator that converts the
+  highest live Codex quota window into a configured monthly plan budget.
+- Set the default subscription budget assumption to 20,000 cents, matching the
+  owner's current $200/month plan; it remains configurable by environment.
+- Extended dashboard and costs summary payloads with reported API spend plus
+  subscription plan usage fields.
+- Updated dashboard and Costs UI so the primary spend cards show plan usage
+  when Codex quota data is available, while still displaying reported API spend
+  separately.
+
+Decision: effective plan spend is an operational capacity estimate, not a
+replacement for real `metered_api` billing. Future OpenAI API lanes still need
+verified cost events before they count as API spend.

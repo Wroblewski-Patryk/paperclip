@@ -33,6 +33,7 @@ interface ProviderQuotaCardProps {
   quotaError?: string | null;
   quotaSource?: string | null;
   quotaLoading?: boolean;
+  subscriptionBudgetCents?: number | null;
 }
 
 export function ProviderQuotaCard({
@@ -47,6 +48,7 @@ export function ProviderQuotaCard({
   quotaError = null,
   quotaSource = null,
   quotaLoading = false,
+  subscriptionBudgetCents = null,
 }: ProviderQuotaCardProps) {
   // single-pass aggregation over rows — memoized so the 8 derived values are not
   // recomputed on every parent render tick (providers tab polls every 30s, and each
@@ -128,6 +130,19 @@ export function ProviderQuotaCard({
   const supportsSubscriptionQuota = provider === "anthropic" || provider === "openai";
   const showSubscriptionQuotaSection =
     supportsSubscriptionQuota && (quotaLoading || quotaWindows.length > 0 || quotaError != null);
+  const codexQuotaPercent = useMemo(() => {
+    if (!isCodexQuotaPanel) return null;
+    const percents = quotaWindows
+      .map((window) => window.usedPercent)
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    if (percents.length === 0) return null;
+    return Math.max(...percents);
+  }, [isCodexQuotaPanel, quotaWindows]);
+  const effectiveSubscriptionSpendCents =
+    subscriptionBudgetCents != null && codexQuotaPercent != null
+      ? Math.round((subscriptionBudgetCents * codexQuotaPercent) / 100)
+      : null;
+  const displayCostCents = effectiveSubscriptionSpendCents ?? totalCostCents;
 
   return (
     <Card>
@@ -153,7 +168,7 @@ export function ProviderQuotaCard({
             </CardDescription>
           </div>
           <span className="text-xl font-bold tabular-nums shrink-0">
-            {formatCents(totalCostCents)}
+            {formatCents(displayCostCents)}
           </span>
         </div>
       </CardHeader>
@@ -163,9 +178,13 @@ export function ProviderQuotaCard({
           <div className="space-y-3">
             <QuotaBar
               label="Period spend"
-              percentUsed={budgetPct}
-              leftLabel={formatCents(totalCostCents)}
-              rightLabel={`${Math.round(budgetPct)}% of allocation`}
+              percentUsed={effectiveSubscriptionSpendCents != null ? codexQuotaPercent ?? 0 : budgetPct}
+              leftLabel={formatCents(displayCostCents)}
+              rightLabel={
+                effectiveSubscriptionSpendCents != null
+                  ? `${Math.round(codexQuotaPercent ?? 0)}% of plan`
+                  : `${Math.round(budgetPct)}% of allocation`
+              }
               showDeficitNotch={showDeficitNotch}
             />
             <QuotaBar

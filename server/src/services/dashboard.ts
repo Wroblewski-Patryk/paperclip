@@ -3,6 +3,8 @@ import type { Db } from "@paperclipai/db";
 import { agents, approvals, companies, costEvents, heartbeatRuns, issues } from "@paperclipai/db";
 import { notFound } from "../errors.js";
 import { budgetService } from "./budgets.js";
+import { estimateCodexLocalSubscriptionCost } from "./effective-subscription-cost.js";
+import { fetchAllQuotaWindows } from "./quota-windows.js";
 
 const DASHBOARD_RUN_ACTIVITY_DAYS = 14;
 
@@ -96,6 +98,11 @@ export function dashboardService(db: Db) {
         );
 
       const monthSpendCents = Number(monthSpend);
+      const subscription = await fetchAllQuotaWindows()
+        .then(estimateCodexLocalSubscriptionCost)
+        .catch(() => null);
+      const effectiveMonthSpendCents = subscription?.spendCents ?? monthSpendCents;
+      const effectiveMonthBudgetCents = subscription?.budgetCents ?? company.budgetMonthlyCents;
       const runActivityDayExpr = sql<string>`to_char(${heartbeatRuns.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
       const runActivityRows = await db
         .select({
@@ -129,8 +136,8 @@ export function dashboardService(db: Db) {
       }
 
       const utilization =
-        company.budgetMonthlyCents > 0
-          ? (monthSpendCents / company.budgetMonthlyCents) * 100
+        effectiveMonthBudgetCents > 0
+          ? (effectiveMonthSpendCents / effectiveMonthBudgetCents) * 100
           : 0;
       const budgetOverview = await budgets.overview(companyId);
 
@@ -144,9 +151,18 @@ export function dashboardService(db: Db) {
         },
         tasks: taskCounts,
         costs: {
-          monthSpendCents,
-          monthBudgetCents: company.budgetMonthlyCents,
+          reportedMonthSpendCents: monthSpendCents,
+          reportedMonthBudgetCents: company.budgetMonthlyCents,
+          monthSpendCents: effectiveMonthSpendCents,
+          monthBudgetCents: effectiveMonthBudgetCents,
           monthUtilizationPercent: Number(utilization.toFixed(2)),
+          subscriptionMonthSpendCents: subscription?.spendCents,
+          subscriptionMonthBudgetCents: subscription?.budgetCents,
+          subscriptionUtilizationPercent: subscription?.utilizationPercent,
+          subscriptionWindowLabel: subscription?.windowLabel,
+          subscriptionResetsAt: subscription?.resetsAt,
+          subscriptionSource: subscription?.source,
+          subscriptionPlanLabel: subscription?.planLabel,
         },
         pendingApprovals,
         budgets: {

@@ -29,6 +29,20 @@ GET /api/companies/{companyId}/costs/summary
 
 Returns total spend, budget, and utilization for the current month.
 
+For local subscription-backed adapters such as `codex_local`, direct API spend
+can remain zero while provider quota is consumed. In that case the summary may
+include both:
+
+- `reportedSpendCents` / `reportedBudgetCents`: direct metered/API ledger;
+- `spendCents` / `budgetCents`: effective display values, using subscription
+  quota-derived plan usage when available;
+- `subscriptionSpendCents`, `subscriptionBudgetCents`, and
+  `subscriptionUtilizationPercent`: the subscription estimate used by dashboard
+  and cost views.
+
+Subscription estimates are operational capacity signals, not proof of provider
+invoicing. Metered API integrations should still report explicit `cost_events`.
+
 ## Costs by Agent
 
 ```

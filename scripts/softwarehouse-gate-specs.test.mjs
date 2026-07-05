@@ -250,6 +250,24 @@ test("dashboard surfaces provider quota separately from dollar spend", async () 
   assert.match(source, /Provider Quota/);
   assert.match(source, /Month Spend/);
   assert.match(source, /formatCents\(data\.costs\.monthSpendCents\)/);
+  assert.match(source, /subscriptionMonthBudgetCents/);
+  assert.match(source, /reportedMonthSpendCents/);
+});
+
+test("local Codex subscription quota is converted into effective plan spend", async () => {
+  const helper = await readFile("server/src/services/effective-subscription-cost.ts", "utf8");
+  const costs = await readFile("server/src/services/costs.ts", "utf8");
+  const dashboard = await readFile("server/src/services/dashboard.ts", "utf8");
+  const costsPage = await readFile("ui/src/pages/Costs.tsx", "utf8");
+
+  assert.match(helper, /DEFAULT_CODEX_LOCAL_SUBSCRIPTION_BUDGET_CENTS = 20_000/);
+  assert.match(helper, /PAPERCLIP_CODEX_LOCAL_SUBSCRIPTION_BUDGET_CENTS/);
+  assert.match(helper, /estimateCodexLocalSubscriptionCost/);
+  assert.match(costs, /reportedSpendCents/);
+  assert.match(costs, /subscriptionSpendCents/);
+  assert.match(dashboard, /subscriptionMonthSpendCents/);
+  assert.match(costsPage, /hasSubscriptionEstimate/);
+  assert.match(costsPage, /Plan usage/);
 });
 
 test("softwarehouse model and cost readiness audit guards quota and future API lanes", async () => {

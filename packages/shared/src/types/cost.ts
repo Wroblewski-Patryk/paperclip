@@ -23,9 +23,22 @@ export interface CostEvent {
 
 export interface CostSummary {
   companyId: string;
+  /** Direct metered/API spend from cost_events. */
+  reportedSpendCents?: number;
+  /** Direct metered/API monthly budget configured on the company. */
+  reportedBudgetCents?: number;
+  reportedUtilizationPercent?: number;
   spendCents: number;
   budgetCents: number;
   utilizationPercent: number;
+  /** Estimated subscription plan usage, derived from live provider quota windows. */
+  subscriptionSpendCents?: number;
+  subscriptionBudgetCents?: number;
+  subscriptionUtilizationPercent?: number;
+  subscriptionWindowLabel?: string | null;
+  subscriptionResetsAt?: string | null;
+  subscriptionSource?: string | null;
+  subscriptionPlanLabel?: string | null;
 }
 
 export interface IssueCostSummary {
