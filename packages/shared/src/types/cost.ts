@@ -34,6 +34,7 @@ export interface CostSummary {
   /** Estimated subscription plan usage, derived from live provider quota windows. */
   subscriptionSpendCents?: number;
   subscriptionBudgetCents?: number;
+  subscriptionMonthlyBudgetCents?: number;
   subscriptionUtilizationPercent?: number;
   subscriptionWindowLabel?: string | null;
   subscriptionResetsAt?: string | null;

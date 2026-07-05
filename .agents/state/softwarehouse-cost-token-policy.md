@@ -55,7 +55,7 @@ Runtime knobs:
 
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT` defaults to `75`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT` defaults to
-  `95`.
+  `90`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_SHORT_WINDOW_MAX_MS` defaults to `86400000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS` defaults to `120000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS` defaults to `900000`.
@@ -63,9 +63,10 @@ Runtime knobs:
 
 The 75% threshold is a hard start gate for short reset windows, such as the
 local Codex five-hour window. Longer windows, such as weekly or monthly plan
-limits, are treated as conservation pressure until they reach the long-window
-hard hold threshold. Under long-window pressure, Paperclip should continue with
-small, role-scoped work and staggered retry, not wake a broad backlog.
+limits, hold new starts at 90% so a weekly reset window is conserved before it
+is fully exhausted. Under long-window pressure, Paperclip should continue with
+small, role-scoped work and staggered retry after reset, not wake a broad
+backlog.
 
 Dashboard rule: Paperclip must show provider quota pressure separately from
 monthly dollar spend. For local Codex, `$0.00` spend means "no metered API spend

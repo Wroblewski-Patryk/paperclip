@@ -101,8 +101,8 @@ export function dashboardService(db: Db) {
       const subscription = await fetchAllQuotaWindows()
         .then(estimateCodexLocalSubscriptionCost)
         .catch(() => null);
-      const effectiveMonthSpendCents = subscription?.spendCents ?? monthSpendCents;
-      const effectiveMonthBudgetCents = subscription?.budgetCents ?? company.budgetMonthlyCents;
+      const effectiveMonthSpendCents = monthSpendCents;
+      const effectiveMonthBudgetCents = company.budgetMonthlyCents;
       const runActivityDayExpr = sql<string>`to_char(${heartbeatRuns.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
       const runActivityRows = await db
         .select({
@@ -158,6 +158,7 @@ export function dashboardService(db: Db) {
           monthUtilizationPercent: Number(utilization.toFixed(2)),
           subscriptionMonthSpendCents: subscription?.spendCents,
           subscriptionMonthBudgetCents: subscription?.budgetCents,
+          subscriptionMonthlyBudgetCents: subscription?.monthlyBudgetCents,
           subscriptionUtilizationPercent: subscription?.utilizationPercent,
           subscriptionWindowLabel: subscription?.windowLabel,
           subscriptionResetsAt: subscription?.resetsAt,

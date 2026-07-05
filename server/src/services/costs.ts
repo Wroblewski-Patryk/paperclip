@@ -129,8 +129,8 @@ export function costService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       const subscription = await fetchAllQuotaWindows()
         .then(estimateCodexLocalSubscriptionCost)
         .catch(() => null);
-      const effectiveSpendCents = subscription?.spendCents ?? reportedSpendCents;
-      const effectiveBudgetCents = subscription?.budgetCents ?? reportedBudgetCents;
+      const effectiveSpendCents = reportedSpendCents;
+      const effectiveBudgetCents = reportedBudgetCents;
       const utilization =
         effectiveBudgetCents > 0
           ? (effectiveSpendCents / effectiveBudgetCents) * 100
@@ -150,6 +150,7 @@ export function costService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
         utilizationPercent: Number(utilization.toFixed(2)),
         subscriptionSpendCents: subscription?.spendCents,
         subscriptionBudgetCents: subscription?.budgetCents,
+        subscriptionMonthlyBudgetCents: subscription?.monthlyBudgetCents,
         subscriptionUtilizationPercent: subscription?.utilizationPercent,
         subscriptionWindowLabel: subscription?.windowLabel,
         subscriptionResetsAt: subscription?.resetsAt,

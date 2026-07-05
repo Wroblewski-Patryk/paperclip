@@ -77,6 +77,18 @@ function estimatePlanShareCents(tokenCount: number, totalTokens: number, subscri
   return Math.round((subscriptionSpendCents * tokenCount) / totalTokens);
 }
 
+function formatQuotaReset(resetsAt?: string | null) {
+  if (!resetsAt) return "reset not reported";
+  const parsed = new Date(resetsAt);
+  if (Number.isNaN(parsed.getTime())) return "reset not reported";
+  return `resets ${parsed.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+}
+
 function MetricTile({
   label,
   value,
@@ -476,6 +488,12 @@ export function Costs() {
   const reportedSpendCents = spendData?.summary.reportedSpendCents ?? effectiveSpendCents;
   const hasSubscriptionEstimate = spendData?.summary.subscriptionBudgetCents != null;
   const subscriptionSpendCents = spendData?.summary.subscriptionSpendCents ?? null;
+  const subscriptionBudgetCents = spendData?.summary.subscriptionBudgetCents ?? null;
+  const subscriptionMonthlyBudgetCents = spendData?.summary.subscriptionMonthlyBudgetCents ?? null;
+  const subscriptionUtilizationPercent = spendData?.summary.subscriptionUtilizationPercent ?? null;
+  const subscriptionWindowLabel = spendData?.summary.subscriptionWindowLabel ?? "subscription quota";
+  const subscriptionPlanLabel = spendData?.summary.subscriptionPlanLabel ?? "subscription plan";
+  const subscriptionResetLabel = formatQuotaReset(spendData?.summary.subscriptionResetsAt);
   const totalAccountedTokens = inferenceTokenTotal;
   const totalProjectTokens = (spendData?.byProject ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
   const totalProviderTokens = (providerData ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
@@ -627,11 +645,11 @@ export function Costs() {
 
           <div className="grid gap-3 lg:grid-cols-4">
             <MetricTile
-              label={hasSubscriptionEstimate ? "Plan usage" : "Inference spend"}
-              value={formatCents(effectiveSpendCents)}
+              label={hasSubscriptionEstimate ? "Plan quota" : "Inference spend"}
+              value={hasSubscriptionEstimate ? `${Math.round(subscriptionUtilizationPercent ?? 0)}%` : formatCents(effectiveSpendCents)}
               subtitle={
                 hasSubscriptionEstimate
-                  ? `${spendData?.summary.subscriptionUtilizationPercent ?? 0}% of ${spendData?.summary.subscriptionPlanLabel ?? "subscription plan"} - API ${formatCents(reportedSpendCents)}`
+                  ? `${subscriptionWindowLabel} - ${subscriptionResetLabel} - API ${formatCents(reportedSpendCents)}`
                   : `${formatTokens(inferenceTokenTotal)} tokens across request-scoped events`
               }
               icon={DollarSign}
@@ -648,7 +666,9 @@ export function Costs() {
                   ? `${budgetData?.pausedAgentCount ?? 0} agents paused · ${budgetData?.pausedProjectCount ?? 0} projects paused`
                   : effectiveBudgetCents > 0
                     ? `${formatCents(effectiveSpendCents)} of ${formatCents(effectiveBudgetCents)}`
-                    : "No monthly cap configured"
+                    : hasSubscriptionEstimate
+                      ? `${subscriptionPlanLabel} monthly value ${formatCents(subscriptionMonthlyBudgetCents ?? 0)}`
+                      : "No monthly cap configured"
               }
               icon={Coins}
             />
@@ -708,11 +728,11 @@ export function Costs() {
                 <Card>
                   <CardHeader className="px-5 pt-5 pb-2">
                     <CardTitle className="text-base">
-                      {hasSubscriptionEstimate ? "Plan usage ledger" : "Inference ledger"}
+                      {hasSubscriptionEstimate ? "Plan quota ledger" : "Inference ledger"}
                     </CardTitle>
                     <CardDescription>
                       {hasSubscriptionEstimate
-                        ? "Effective local Codex plan usage derived from live quota windows."
+                        ? "Live Codex quota-window usage, kept separate from metered API spend."
                         : "Request-scoped inference spend for the selected period."}
                     </CardDescription>
                   </CardHeader>
@@ -720,10 +740,14 @@ export function Costs() {
                     <div className="flex flex-wrap items-end justify-between gap-3">
                       <div>
                         <div className="text-3xl font-semibold tabular-nums">
-                          {formatCents(effectiveSpendCents)}
+                          {hasSubscriptionEstimate
+                            ? `${Math.round(subscriptionUtilizationPercent ?? 0)}%`
+                            : formatCents(effectiveSpendCents)}
                         </div>
                         <div className="mt-1 text-sm text-muted-foreground">
-                          {effectiveBudgetCents > 0
+                          {hasSubscriptionEstimate && subscriptionBudgetCents != null
+                            ? `${subscriptionWindowLabel}: ${formatCents(subscriptionSpendCents ?? 0)} of ${formatCents(subscriptionBudgetCents)} window value - ${subscriptionResetLabel}`
+                            : effectiveBudgetCents > 0
                             ? `Budget ${formatCents(effectiveBudgetCents)}`
                             : "Unlimited budget"}
                           {hasSubscriptionEstimate
@@ -738,23 +762,30 @@ export function Costs() {
                         </div>
                       </div>
                     </div>
-                    {effectiveBudgetCents > 0 ? (
+                    {hasSubscriptionEstimate || effectiveBudgetCents > 0 ? (
                       <div className="space-y-2">
                         <div className="h-2 overflow-hidden bg-muted">
                           <div
                             className={cn(
                               "h-full transition-[width,background-color] duration-150",
-                              (spendData?.summary.utilizationPercent ?? 0) > 90
+                              (hasSubscriptionEstimate ? subscriptionUtilizationPercent ?? 0 : spendData?.summary.utilizationPercent ?? 0) > 90
                                 ? "bg-red-400"
-                                : (spendData?.summary.utilizationPercent ?? 0) > 70
+                                : (hasSubscriptionEstimate ? subscriptionUtilizationPercent ?? 0 : spendData?.summary.utilizationPercent ?? 0) > 70
                                   ? "bg-yellow-400"
                                   : "bg-emerald-400",
                             )}
-                            style={{ width: `${Math.min(100, spendData?.summary.utilizationPercent ?? 0)}%` }}
+                            style={{
+                              width: `${Math.min(
+                                100,
+                                hasSubscriptionEstimate ? subscriptionUtilizationPercent ?? 0 : spendData?.summary.utilizationPercent ?? 0,
+                              )}%`,
+                            }}
                           />
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {spendData?.summary.utilizationPercent ?? 0}% of monthly budget consumed in this range.
+                          {hasSubscriptionEstimate
+                            ? `${subscriptionUtilizationPercent ?? 0}% of ${subscriptionWindowLabel.toLowerCase()} consumed; queued runs resume after reset when quota falls below scheduler thresholds.`
+                            : `${spendData?.summary.utilizationPercent ?? 0}% of monthly budget consumed in this range.`}
                         </div>
                       </div>
                     ) : null}

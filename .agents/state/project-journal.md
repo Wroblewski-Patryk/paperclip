@@ -1631,11 +1631,37 @@ Decision:
 Configuration:
 
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT` default: `75`.
-- `PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT` default: `95`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT` default: `90`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_SHORT_WINDOW_MAX_MS` default: `86400000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS` default: `120000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS` default: `900000`.
 - `PAPERCLIP_CODEX_LOCAL_QUOTA_CACHE_MS` default: `60000`.
+
+# 2026-07-05 - Codex Weekly Quota Display And Long-Window Hold
+
+Context: the owner confirmed from Codex UI that the visible 90%+ value is a
+weekly quota window, not monthly subscription spend. The dashboard previously
+made this look like `$182 / $200` monthly spend, which overstated the monthly
+budget burn and could allow starts too early for weekly conservation.
+
+Actions:
+
+- Kept metered API spend separate from local Codex subscription quota in the
+  dashboard and Costs views.
+- Converted the subscription reference value into the active quota window:
+  weekly usage now shows as a weekly share of the `$200/month` plan value
+  rather than fake monthly spend.
+- Lowered the long-window Codex quota hold threshold from 95% to 90%, while
+  keeping short-window holds at 75%.
+
+Evidence:
+
+- `/api/companies/ae26bb8b-8f5f-4a85-b341-78d4e1985975/costs/summary`
+  returned API spend `0 / 100` cents and subscription quota `4232 / 4600`
+  cents with `92%` weekly usage and reset `2026-07-09T19:22:48.000Z`.
+- Chrome smoke checks for `/LUC/dashboard` and `/LUC/costs` rendered nonblank
+  pages with `API Month Spend`, `Provider Quota`, `Plan quota`, and
+  `Weekly limit` visible.
 
 # 2026-07-05 - Effective Codex Plan Spend For Dashboard And Costs
 

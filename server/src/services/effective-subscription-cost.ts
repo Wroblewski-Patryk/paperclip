@@ -9,6 +9,7 @@ export interface EffectiveSubscriptionCost {
   planLabel: string;
   spendCents: number;
   budgetCents: number;
+  monthlyBudgetCents: number;
   utilizationPercent: number;
   windowLabel: string | null;
   resetsAt: string | null;
@@ -41,11 +42,29 @@ function isConsumptionWindow(window: QuotaWindow): boolean {
   return !text.includes("credit") && !text.includes("remaining") && !text.includes("balance");
 }
 
+function quotaWindowBudgetCents(monthlyBudgetCents: number, window: QuotaWindow): number {
+  const text = `${window.label} ${window.valueLabel ?? ""} ${window.detail ?? ""}`.toLowerCase();
+  const hourMatch = text.match(/\b(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)\b/);
+  if (hourMatch) {
+    const hours = Number.parseFloat(hourMatch[1]);
+    if (Number.isFinite(hours) && hours > 0) {
+      return Math.round(monthlyBudgetCents / ((365.25 / 12) * 24 / hours));
+    }
+  }
+  if (text.includes("daily") || text.includes("day")) {
+    return Math.round(monthlyBudgetCents / (365.25 / 12));
+  }
+  if (text.includes("weekly") || text.includes("week")) {
+    return Math.round(monthlyBudgetCents / (365.25 / 7 / 12));
+  }
+  return monthlyBudgetCents;
+}
+
 export function estimateCodexLocalSubscriptionCost(
   quotaResults: ProviderQuotaResult[],
 ): EffectiveSubscriptionCost | null {
-  const budgetCents = planBudgetCents();
-  if (budgetCents <= 0) return null;
+  const monthlyBudgetCents = planBudgetCents();
+  if (monthlyBudgetCents <= 0) return null;
 
   let best: {
     source: string | null;
@@ -69,12 +88,14 @@ export function estimateCodexLocalSubscriptionCost(
   if (!best) return null;
 
   const utilizationPercent = Number(best.usedPercent.toFixed(2));
+  const budgetCents = quotaWindowBudgetCents(monthlyBudgetCents, best.window);
   return {
     provider: "openai",
     source: best.source,
     planLabel: planLabel(),
     spendCents: Math.round((budgetCents * utilizationPercent) / 100),
     budgetCents,
+    monthlyBudgetCents,
     utilizationPercent,
     windowLabel: best.window.label ?? null,
     resetsAt: best.window.resetsAt ?? null,

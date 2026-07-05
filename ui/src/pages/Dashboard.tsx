@@ -339,17 +339,15 @@ export function Dashboard() {
             <MetricCard
               icon={DollarSign}
               value={formatCents(data.costs.monthSpendCents)}
-              label="Month Spend"
+              label="API Month Spend"
               to="/costs"
               description={
                 <span>
                   {data.costs.monthBudgetCents > 0
-                    ? `${data.costs.monthUtilizationPercent}% of ${formatCents(data.costs.monthBudgetCents)} ${
-                        data.costs.subscriptionMonthBudgetCents ? "plan budget" : "budget"
-                      }`
+                    ? `${data.costs.monthUtilizationPercent}% of ${formatCents(data.costs.monthBudgetCents)} API budget`
                     : "Unlimited budget"}
-                  {data.costs.subscriptionMonthBudgetCents != null
-                    ? ` - API ${formatCents(data.costs.reportedMonthSpendCents ?? 0)}`
+                  {data.costs.subscriptionMonthlyBudgetCents != null
+                    ? ` - ${data.costs.subscriptionPlanLabel ?? "subscription"} tracked in Provider Quota`
                     : null}
                 </span>
               }

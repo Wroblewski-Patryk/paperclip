@@ -189,7 +189,7 @@ export function ProviderQuotaCard({
         {hasBudget && (
           <div className="space-y-3">
             <QuotaBar
-              label="Period spend"
+              label={effectiveSubscriptionSpendCents != null ? "Quota window" : "Period spend"}
               percentUsed={effectiveSubscriptionSpendCents != null ? codexQuotaPercent ?? 0 : budgetPct}
               leftLabel={formatCents(displayCostCents)}
               rightLabel={

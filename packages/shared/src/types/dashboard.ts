@@ -28,6 +28,7 @@ export interface DashboardSummary {
     monthUtilizationPercent: number;
     subscriptionMonthSpendCents?: number;
     subscriptionMonthBudgetCents?: number;
+    subscriptionMonthlyBudgetCents?: number;
     subscriptionUtilizationPercent?: number;
     subscriptionWindowLabel?: string | null;
     subscriptionResetsAt?: string | null;
