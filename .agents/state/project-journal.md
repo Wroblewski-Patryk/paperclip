@@ -1516,3 +1516,42 @@ Evidence:
   older `LUC-86` and keeping `LUC-108` visible.
 - A manual comment on `LUC-86` woke DSM via `issue.comment.reopen`; the
   accidental run was cancelled and `LUC-86` was restored to `done` + hidden.
+
+# 2026-07-05 - Codex Local Quota-Aware Scheduling
+
+Conversation summary: the owner asked Paperclip to stop treating local Codex
+subscription usage as unlimited just because local `codex_local` runs can have
+`cost_cents = 0`. The desired behavior is to keep creating useful todo work,
+but not start agents when Codex quota is low or exhausted. After reset,
+Paperclip should resume gradually instead of waking a large backlog at once.
+
+External reference check:
+
+- Official OpenAI Codex help says users should inspect the Codex usage page and
+  limit banner when nearing or reaching a Codex limit, and after a limit is
+  reached the next work must wait for reset, upgrade, or credits.
+- Official OpenAI Codex developer docs note that the current limits are visible
+  in the usage dashboard and that the CLI `/status` command can show remaining
+  limits for the current session.
+- Community evidence around `paperclipai/paperclip` also shows the concrete
+  failure mode: local Codex subscription quota can be consumed while Paperclip
+  records zero billed cents.
+
+Decision:
+
+- `codex_local` provider quota windows are now a first-class scheduler start
+  gate.
+- If a consumable quota window is at or above the hold threshold, queued runs
+  move to `scheduled_retry` with `scheduledRetryReason =
+  provider_quota_hold`; wakeup requests move to `deferred_issue_execution`.
+- Retry timestamps are staggered after reset to avoid a thundering herd of
+  agents after Codex capacity returns.
+- Quota evidence is redacted to provider/source/window percent/reset metadata;
+  raw auth, tokens, prompts, and secrets are never stored in the run evidence.
+
+Configuration:
+
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT` default: `80`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS` default: `120000`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS` default: `900000`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_CACHE_MS` default: `60000`.

@@ -220,6 +220,22 @@ test("longevity watchdog covers autonomous softwarehouse contract checks", async
   assert.match(configurator, /process-improvement loops/);
 });
 
+test("heartbeat scheduler gates codex_local starts on provider quota pressure", async () => {
+  const source = await readFile("server/src/services/heartbeat.ts", "utf8");
+
+  assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT/);
+  assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS/);
+  assert.match(source, /CODEX_LOCAL_PROVIDER_QUOTA_CACHE_MS/);
+  assert.match(source, /function buildProviderQuotaStartBlock/);
+  assert.match(source, /adapterType !== "codex_local"/);
+  assert.match(source, /adapter\.getQuotaWindows/);
+  assert.match(source, /provider_quota_hold/);
+  assert.match(source, /scheduledRetryReason: "provider_quota_hold"/);
+  assert.match(source, /status: "scheduled_retry"/);
+  assert.match(source, /deferred_issue_execution/);
+  assert.match(source, /providerQuotaHold/);
+});
+
 test("learning loop scopes active issues and bounds API requests for large local instances", async () => {
   const source = await readFile("scripts/run-softwarehouse-learning-loop.mjs", "utf8");
 

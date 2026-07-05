@@ -1,6 +1,6 @@
 # Softwarehouse Cost, Token, And Context Policy
 
-Last updated: 2026-07-04
+Last updated: 2026-07-05
 
 Purpose: keep Paperclip Softwarehouse agent work useful under real Codex,
 budget, quota, and context limits.
@@ -29,6 +29,40 @@ Do not configure arbitrary monetary hard limits without owner approval. Stage 0
 should document the policy, verify Paperclip can observe usage/quota, and make
 budget configuration a Stage 1 owner decision.
 
+## Local Codex Provider Quota Gate
+
+Decision: local `codex_local` runs are governed by OpenAI/Codex provider quota
+windows as a first-class start gate. For ChatGPT/Codex subscription usage,
+`cost_cents = 0` is not proof that capacity is available, so monthly budget
+checks alone are not sufficient.
+
+Implementation policy:
+
+- Paperclip may still create and assign useful issues/tasks while Codex quota is
+  low.
+- If a `codex_local` quota window reaches the configured hold threshold,
+  Paperclip must not start the queued run immediately.
+- Queued runs are moved to `scheduled_retry` with
+  `scheduledRetryReason = provider_quota_hold` and wakeup status
+  `deferred_issue_execution`.
+- Retry times are staggered after the provider reset so a backlog does not wake
+  20 agents at once.
+- Quota hold records must include only redacted quota-window evidence:
+  provider, source, used percent, reset time, and scheduling metadata. They must
+  not include raw auth, tokens, prompts, or account secrets.
+
+Runtime knobs:
+
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT` defaults to `80`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS` defaults to `120000`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS` defaults to `900000`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_CACHE_MS` defaults to `60000`.
+
+Operating rule: if quota data is temporarily unavailable, Paperclip logs that
+fact and allows the start rather than silently pretending a hard quota block
+exists. Repeated unavailable quota checks should become an improvement task,
+because the correct long-term state is observable quota-aware scheduling.
+
 ## Agent Operating Rules
 
 Agents must:
@@ -40,6 +74,8 @@ Agents must:
   before re-discovering the same facts;
 - run targeted local verification before expensive broad suites;
 - report token/quota/cost uncertainty as a real operating constraint;
+- treat `provider_quota_hold` as a planned capacity delay, not as a failed
+  agent run;
 - stop and escalate if quota pressure, missing metering, or budget ambiguity
   threatens completion quality;
 - attach cost/quota observations to Stage 1 dry-run evidence when available.

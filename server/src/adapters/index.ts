@@ -23,6 +23,8 @@ export type {
   AdapterEnvironmentTestResult,
   AdapterEnvironmentTestContext,
   AdapterSessionCodec,
+  ProviderQuotaResult,
+  QuotaWindow,
   UsageSummary,
   AdapterAgent,
   AdapterRuntime,

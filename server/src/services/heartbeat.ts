@@ -59,6 +59,8 @@ import type {
   AdapterInvocationMeta,
   AdapterModelProfileDefinition,
   AdapterSessionCodec,
+  ProviderQuotaResult,
+  QuotaWindow,
   UsageSummary,
 } from "../adapters/index.js";
 import { createLocalAgentJwt } from "../agent-auth-jwt.js";
@@ -193,6 +195,30 @@ const MAX_RUN_EVENT_PAYLOAD_DEPTH = 6;
 const HEARTBEAT_MAX_CONCURRENT_RUNS_DEFAULT = AGENT_DEFAULT_MAX_CONCURRENT_RUNS;
 const HEARTBEAT_MAX_CONCURRENT_RUNS_MIN = 1;
 const HEARTBEAT_MAX_CONCURRENT_RUNS_MAX = 50;
+const CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT = readNumberEnv(
+  "PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT",
+  80,
+  1,
+  100,
+);
+const CODEX_LOCAL_PROVIDER_QUOTA_RETRY_SPACING_MS = readNumberEnv(
+  "PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS",
+  2 * 60 * 1000,
+  0,
+  60 * 60 * 1000,
+);
+const CODEX_LOCAL_PROVIDER_QUOTA_FALLBACK_DELAY_MS = readNumberEnv(
+  "PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS",
+  15 * 60 * 1000,
+  60 * 1000,
+  24 * 60 * 60 * 1000,
+);
+const CODEX_LOCAL_PROVIDER_QUOTA_CACHE_MS = readNumberEnv(
+  "PAPERCLIP_CODEX_LOCAL_QUOTA_CACHE_MS",
+  60 * 1000,
+  1000,
+  10 * 60 * 1000,
+);
 const LIVENESS_BOOKKEEPING_ACTIVITY_ACTIONS = [
   "environment.lease_acquired",
   "environment.lease_released",
@@ -329,6 +355,84 @@ const SESSIONED_LOCAL_ADAPTERS = new Set([
   "pi_local",
 ]);
 const INLINE_BASE64_IMAGE_DATA_RE = /("type":"image","source":\{"type":"base64","data":")([A-Za-z0-9+/=]{1024,})(")/g;
+
+type ProviderQuotaStartBlock = {
+  provider: string;
+  source: string | null;
+  thresholdPercent: number;
+  retryAt: Date;
+  reason: string;
+  windows: Array<{
+    label: string;
+    usedPercent: number | null;
+    resetsAt: string | null;
+    detail: string | null;
+  }>;
+};
+
+type ProviderQuotaCacheEntry = {
+  expiresAt: number;
+  result: ProviderQuotaResult;
+};
+
+const providerQuotaCache = new Map<string, ProviderQuotaCacheEntry>();
+
+function readNumberEnv(name: string, fallback: number, min: number, max: number) {
+  const raw = process.env[name];
+  if (raw == null || raw.trim() === "") return fallback;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(min, Math.min(max, parsed));
+}
+
+function isConsumableQuotaWindow(window: QuotaWindow) {
+  const label = window.label.toLowerCase();
+  if (label.includes("credit")) return false;
+  if (label.includes("remaining")) return false;
+  return true;
+}
+
+function windowResetDate(window: QuotaWindow) {
+  if (!window.resetsAt) return null;
+  const parsed = new Date(window.resetsAt);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function buildProviderQuotaStartBlock(
+  quota: ProviderQuotaResult,
+  now = new Date(),
+): ProviderQuotaStartBlock | null {
+  if (!quota.ok) return null;
+  const blockedWindows = quota.windows.filter((window) =>
+    isConsumableQuotaWindow(window) &&
+    typeof window.usedPercent === "number" &&
+    window.usedPercent >= CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT
+  );
+  if (blockedWindows.length === 0) return null;
+
+  const futureResets = blockedWindows
+    .map(windowResetDate)
+    .filter((date): date is Date => date !== null && date.getTime() > now.getTime())
+    .sort((left, right) => left.getTime() - right.getTime());
+  const retryAt = futureResets[0] ?? new Date(now.getTime() + CODEX_LOCAL_PROVIDER_QUOTA_FALLBACK_DELAY_MS);
+  const summary = blockedWindows
+    .map((window) => `${window.label}=${Math.round(window.usedPercent ?? 0)}%`)
+    .join(", ");
+
+  return {
+    provider: quota.provider,
+    source: quota.source ?? null,
+    thresholdPercent: CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT,
+    retryAt,
+    reason: `Provider quota hold: codex_local quota is at or above ${CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT}% (${summary}); run delayed until quota resets`,
+    windows: blockedWindows.map((window) => ({
+      label: window.label,
+      usedPercent: window.usedPercent,
+      resetsAt: window.resetsAt,
+      detail: window.detail ?? null,
+    })),
+  };
+}
 
 type RuntimeConfigSecretResolver = Pick<
   ReturnType<typeof secretService>,
@@ -6061,6 +6165,144 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     return Number(count ?? 0);
   }
 
+  async function getCachedProviderQuota(agent: typeof agents.$inferSelect) {
+    if (agent.adapterType !== "codex_local") return null;
+    const cacheKey = agent.adapterType;
+    const nowMs = Date.now();
+    const cached = providerQuotaCache.get(cacheKey);
+    if (cached && cached.expiresAt > nowMs) return cached.result;
+
+    let result: ProviderQuotaResult | null = null;
+    try {
+      const adapter = getServerAdapter(agent.adapterType);
+      if (!adapter.getQuotaWindows) return null;
+      result = await adapter.getQuotaWindows();
+    } catch (err) {
+      logger.warn({ err, adapterType: agent.adapterType }, "Failed to fetch provider quota windows");
+      return null;
+    }
+
+    providerQuotaCache.set(cacheKey, {
+      expiresAt: nowMs + CODEX_LOCAL_PROVIDER_QUOTA_CACHE_MS,
+      result,
+    });
+    return result;
+  }
+
+  async function getProviderQuotaStartBlockForAgent(agent: typeof agents.$inferSelect) {
+    const quota = await getCachedProviderQuota(agent);
+    if (!quota) return null;
+    if (!quota.ok) {
+      logger.warn(
+        {
+          adapterType: agent.adapterType,
+          provider: quota.provider,
+          source: quota.source ?? null,
+          error: quota.error ?? null,
+        },
+        "Provider quota windows are unavailable; allowing run start",
+      );
+      return null;
+    }
+    return buildProviderQuotaStartBlock(quota);
+  }
+
+  function providerQuotaHoldPayload(block: ProviderQuotaStartBlock, scheduledRetryAt: Date) {
+    return {
+      provider: block.provider,
+      source: block.source,
+      thresholdPercent: block.thresholdPercent,
+      retryAt: block.retryAt.toISOString(),
+      scheduledRetryAt: scheduledRetryAt.toISOString(),
+      windows: block.windows,
+    };
+  }
+
+  async function deferQueuedRunsForProviderQuota(
+    agent: typeof agents.$inferSelect,
+    queuedRuns: Array<typeof heartbeatRuns.$inferSelect>,
+    block: ProviderQuotaStartBlock,
+  ) {
+    const now = new Date();
+    const deferredRuns: Array<typeof heartbeatRuns.$inferSelect> = [];
+
+    for (const [index, run] of queuedRuns.entries()) {
+      const scheduledRetryAt = new Date(
+        Math.max(block.retryAt.getTime(), now.getTime() + 1000) +
+          (index * CODEX_LOCAL_PROVIDER_QUOTA_RETRY_SPACING_MS),
+      );
+      const quotaHold = providerQuotaHoldPayload(block, scheduledRetryAt);
+      const contextSnapshot = {
+        ...parseObject(run.contextSnapshot),
+        providerQuotaHold: quotaHold,
+      };
+      const resultJson = {
+        ...parseObject(run.resultJson),
+        stopReason: "provider_quota_hold",
+        providerQuotaHold: quotaHold,
+      };
+
+      const updated = await db
+        .update(heartbeatRuns)
+        .set({
+          status: "scheduled_retry",
+          scheduledRetryAt,
+          scheduledRetryReason: "provider_quota_hold",
+          error: block.reason,
+          errorCode: "provider_quota_hold",
+          contextSnapshot,
+          resultJson,
+          updatedAt: now,
+        })
+        .where(and(eq(heartbeatRuns.id, run.id), eq(heartbeatRuns.status, "queued")))
+        .returning()
+        .then((rows) => rows[0] ?? null);
+      if (!updated) continue;
+
+      deferredRuns.push(updated);
+      await setWakeupStatus(updated.wakeupRequestId, "deferred_issue_execution", {
+        error: block.reason,
+      });
+      await appendRunEvent(updated, await nextRunEventSeq(updated.id), {
+        eventType: "lifecycle",
+        stream: "system",
+        level: "warn",
+        message: block.reason,
+        payload: quotaHold,
+      });
+      publishLiveEvent({
+        companyId: updated.companyId,
+        type: "heartbeat.run.status",
+        payload: {
+          runId: updated.id,
+          agentId: updated.agentId,
+          status: updated.status,
+          invocationSource: updated.invocationSource,
+          triggerDetail: updated.triggerDetail,
+          error: updated.error ?? null,
+          errorCode: updated.errorCode ?? null,
+          startedAt: updated.startedAt ? new Date(updated.startedAt).toISOString() : null,
+          finishedAt: updated.finishedAt ? new Date(updated.finishedAt).toISOString() : null,
+        },
+      });
+    }
+
+    if (deferredRuns.length > 0) {
+      logger.info(
+        {
+          agentId: agent.id,
+          adapterType: agent.adapterType,
+          deferredRunCount: deferredRuns.length,
+          retryAt: block.retryAt.toISOString(),
+          thresholdPercent: block.thresholdPercent,
+        },
+        "Deferred queued codex_local runs because provider quota is near or at limit",
+      );
+    }
+
+    return deferredRuns;
+  }
+
   async function claimQueuedRun(run: typeof heartbeatRuns.$inferSelect) {
     if (run.status !== "queued") return run;
     const agent = await getAgent(run.agentId);
@@ -6080,6 +6322,12 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     });
     if (budgetBlock) {
       await cancelRunInternal(run.id, budgetBlock.reason);
+      return null;
+    }
+
+    const providerQuotaBlock = await getProviderQuotaStartBlockForAgent(agent);
+    if (providerQuotaBlock) {
+      await deferQueuedRunsForProviderQuota(agent, [run], providerQuotaBlock);
       return null;
     }
 
@@ -7026,6 +7274,12 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         if (leftPriorityRank !== rightPriorityRank) return leftPriorityRank - rightPriorityRank;
         return left.createdAt.getTime() - right.createdAt.getTime();
       });
+
+      const providerQuotaBlock = await getProviderQuotaStartBlockForAgent(agent);
+      if (providerQuotaBlock) {
+        await deferQueuedRunsForProviderQuota(agent, prioritizedRuns, providerQuotaBlock);
+        return [];
+      }
 
       const claimedRuns: Array<typeof heartbeatRuns.$inferSelect> = [];
       for (const queuedRun of prioritizedRuns) {
