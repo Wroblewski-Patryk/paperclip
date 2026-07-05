@@ -8,11 +8,13 @@ import type {
   CostByProviderModel,
   CostWindowSpendRow,
   FinanceEvent,
+  ProviderQuotaResult,
   QuotaWindow,
 } from "@paperclipai/shared";
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight, Coins, DollarSign, ReceiptText, Route } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight, Clock, Coins, DollarSign, Gauge, ReceiptText, Route } from "lucide-react";
 import { budgetsApi } from "../api/budgets";
 import { costsApi } from "../api/costs";
+import { instanceSettingsApi } from "../api/instanceSettings";
 import { BillerSpendCard } from "../components/BillerSpendCard";
 import { BudgetIncidentCard } from "../components/BudgetIncidentCard";
 import { BudgetPolicyCard } from "../components/BudgetPolicyCard";
@@ -24,6 +26,7 @@ import { Identity } from "../components/Identity";
 import { PageSkeleton } from "../components/PageSkeleton";
 import { PageTabBar } from "../components/PageTabBar";
 import { ProviderQuotaCard } from "../components/ProviderQuotaCard";
+import { CodexSubscriptionPanel } from "../components/CodexSubscriptionPanel";
 import { StatusBadge } from "../components/StatusBadge";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
@@ -99,6 +102,30 @@ function formatQuotaReset(resetsAt?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   })}`;
+}
+
+function quotaWindowStatus(window: QuotaWindow, shortHoldPercent: number, longHoldPercent: number) {
+  if (window.usedPercent == null) return "Unknown";
+  const reset = window.resetsAt ? new Date(window.resetsAt) : null;
+  const resetInMs = reset && !Number.isNaN(reset.getTime()) ? reset.getTime() - Date.now() : null;
+  const threshold = resetInMs != null && resetInMs > 0 && resetInMs <= 24 * 60 * 60 * 1000
+    ? shortHoldPercent
+    : longHoldPercent;
+  if (window.usedPercent >= threshold) return `Hold at ${threshold}%`;
+  if (window.usedPercent >= Math.max(1, threshold - 15)) return `Pressure near ${threshold}%`;
+  return `Open until ${threshold}%`;
+}
+
+function flattenQuotaWindows(results: ProviderQuotaResult[] | undefined) {
+  return (results ?? []).flatMap((result) =>
+    result.windows.map((window) => ({
+      provider: result.provider,
+      source: result.source ?? null,
+      ok: result.ok,
+      error: result.error ?? null,
+      window,
+    })),
+  );
 }
 
 function MetricTile({
@@ -184,7 +211,7 @@ export function Costs() {
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
 
-  const [mainTab, setMainTab] = useState<"overview" | "budgets" | "providers" | "billers" | "models" | "finance">("overview");
+  const [mainTab, setMainTab] = useState<"overview" | "budgets" | "providers" | "billers" | "models" | "limits" | "finance">("overview");
   const [activeProvider, setActiveProvider] = useState("all");
   const [activeBiller, setActiveBiller] = useState("all");
 
@@ -343,9 +370,16 @@ export function Costs() {
   const { data: modelProfileData, isLoading: modelProfileLoading, error: modelProfileError } = useQuery({
     queryKey: queryKeys.usageByModelProfile(companyId, from || undefined, to || undefined),
     queryFn: () => costsApi.modelProfiles(companyId, from || undefined, to || undefined),
-    enabled: !!selectedCompanyId && customReady && mainTab === "models",
+    enabled: !!selectedCompanyId && customReady && (mainTab === "models" || mainTab === "limits"),
     refetchInterval: 30_000,
     staleTime: 10_000,
+  });
+
+  const { data: experimentalSettings } = useQuery({
+    queryKey: queryKeys.instance.experimentalSettings,
+    queryFn: () => instanceSettingsApi.getExperimental(),
+    enabled: !!selectedCompanyId && mainTab === "limits",
+    staleTime: 30_000,
   });
 
   const { data: weekData } = useQuery({
@@ -375,7 +409,7 @@ export function Costs() {
   const { data: quotaData, isLoading: quotaLoading } = useQuery({
     queryKey: queryKeys.usageQuotaWindows(companyId),
     queryFn: () => costsApi.quotaWindows(companyId),
-    enabled: !!selectedCompanyId && mainTab === "providers",
+    enabled: !!selectedCompanyId && (mainTab === "providers" || mainTab === "limits"),
     refetchInterval: 300_000,
     staleTime: 60_000,
   });
@@ -519,6 +553,15 @@ export function Costs() {
   const totalProviderTokens = (providerData ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
   const totalBillerTokens = (billerData ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
   const totalModelProfileTokens = (modelProfileData?.rows ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
+  const quotaWindowRows = useMemo(() => flattenQuotaWindows(quotaData), [quotaData]);
+  const codexQuotaResult = (quotaData ?? []).find((result) => result.provider === "openai" && result.source?.startsWith("codex-"));
+  const codexShortHoldPercent = experimentalSettings?.codexLocalQuotaShortWindowHoldUsedPercent ?? 75;
+  const codexLongHoldPercent = experimentalSettings?.codexLocalQuotaLongWindowHoldUsedPercent ?? 90;
+  const quotaHoldEnabled = experimentalSettings?.codexLocalQuotaHoldEnabled !== false;
+  const highestQuotaPercent = quotaWindowRows.reduce(
+    (max, row) => typeof row.window.usedPercent === "number" ? Math.max(max, row.window.usedPercent) : max,
+    0,
+  );
 
   const providerTabItems = useMemo(() => {
     const providerKeys = Array.from(byProvider.keys());
@@ -715,6 +758,7 @@ export function Costs() {
           <TabsTrigger value="providers">Providers</TabsTrigger>
           <TabsTrigger value="billers">Billers</TabsTrigger>
           <TabsTrigger value="models">Models</TabsTrigger>
+          <TabsTrigger value="limits">Limits</TabsTrigger>
           <TabsTrigger value="finance">Finance</TabsTrigger>
         </TabsList>
 
@@ -1355,6 +1399,179 @@ export function Costs() {
                       <div className="mt-1 break-all text-xs text-muted-foreground">{source.url}</div>
                     </a>
                   ))}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="limits" className="mt-4 space-y-4">
+          {showCustomPrompt ? (
+            <p className="text-sm text-muted-foreground">Select a start and end date to load data.</p>
+          ) : quotaLoading || modelProfileLoading ? (
+            <PageSkeleton variant="costs" />
+          ) : modelProfileError ? (
+            <p className="text-sm text-destructive">{(modelProfileError as Error).message}</p>
+          ) : (
+            <>
+              <div className="grid gap-3 lg:grid-cols-4">
+                <MetricTile
+                  label="Quota windows"
+                  value={String(quotaWindowRows.length)}
+                  subtitle={`${quotaData?.filter((result) => result.ok).length ?? 0} provider quota source${(quotaData?.filter((result) => result.ok).length ?? 0) === 1 ? "" : "s"}`}
+                  icon={Gauge}
+                />
+                <MetricTile
+                  label="Highest usage"
+                  value={quotaWindowRows.length > 0 ? `${Math.round(highestQuotaPercent)}%` : "--"}
+                  subtitle={quotaHoldEnabled ? "Scheduler gates are enabled" : "Scheduler gates are disabled"}
+                  icon={ArrowUpRight}
+                />
+                <MetricTile
+                  label="Short hold"
+                  value={`${codexShortHoldPercent}%`}
+                  subtitle="Short quota windows, such as hourly or daily limits"
+                  icon={Clock}
+                />
+                <MetricTile
+                  label="Long hold"
+                  value={`${codexLongHoldPercent}%`}
+                  subtitle="Long quota windows, such as weekly or monthly limits"
+                  icon={Clock}
+                />
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[1fr,0.9fr]">
+                <Card>
+                  <CardHeader className="px-5 pt-5 pb-2">
+                    <CardTitle className="text-base">Live subscription limits</CardTitle>
+                    <CardDescription>
+                      Provider-reported usage windows used by budget estimates and codex_local start holds.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 px-5 pb-5 pt-2">
+                    {codexQuotaResult ? (
+                      <CodexSubscriptionPanel
+                        windows={codexQuotaResult.windows}
+                        source={codexQuotaResult.source}
+                        error={codexQuotaResult.ok ? null : codexQuotaResult.error}
+                      />
+                    ) : quotaWindowRows.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No live provider quota windows are available yet.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {quotaData?.map((result) => (
+                          <div key={`${result.provider}-${result.source ?? "unknown"}`} className="border border-border p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-sm font-medium">{providerDisplayName(result.provider)}</div>
+                              <div className="text-xs text-muted-foreground">{result.source ?? "provider quota"}</div>
+                            </div>
+                            {!result.ok ? (
+                              <div className="mt-2 text-sm text-destructive">{result.error ?? "Quota unavailable"}</div>
+                            ) : (
+                              <div className="mt-3 space-y-2">
+                                {result.windows.map((window) => (
+                                  <div key={window.label} className="flex items-center justify-between gap-3 text-sm">
+                                    <span>{window.label}</span>
+                                    <span className="tabular-nums text-muted-foreground">
+                                      {window.usedPercent == null ? window.valueLabel ?? "not reported" : `${window.usedPercent}% used`}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="px-5 pt-5 pb-2">
+                    <CardTitle className="text-base">Agent start gates</CardTitle>
+                    <CardDescription>
+                      Instance-wide thresholds for delaying new codex_local work when quota pressure is high.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 px-5 pb-5 pt-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="border border-border p-3">
+                        <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">State</div>
+                        <div className="mt-1 text-sm font-medium">{quotaHoldEnabled ? "Enabled" : "Disabled"}</div>
+                      </div>
+                      <div className="border border-border p-3">
+                        <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Retry spacing</div>
+                        <div className="mt-1 text-sm font-medium">
+                          {experimentalSettings?.codexLocalQuotaRetrySpacingMinutes ?? 2} min
+                        </div>
+                      </div>
+                      <div className="border border-border p-3">
+                        <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Short window hold</div>
+                        <div className="mt-1 text-sm font-medium">{codexShortHoldPercent}% used</div>
+                      </div>
+                      <div className="border border-border p-3">
+                        <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Long window hold</div>
+                        <div className="mt-1 text-sm font-medium">{codexLongHoldPercent}% used</div>
+                      </div>
+                    </div>
+                    <a
+                      href="/instance/settings/experimental"
+                      className="inline-flex text-sm text-primary underline-offset-2 hover:underline"
+                    >
+                      Edit quota gates in Instance Settings
+                    </a>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader className="px-5 pt-5 pb-2">
+                  <CardTitle className="text-base">Model lanes and quota mapping</CardTitle>
+                  <CardDescription>
+                    Configured router profiles, default models, and the quota lanes they are expected to consume.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-5 pb-5 pt-2">
+                  {(modelProfileData?.profiles.length ?? 0) === 0 ? (
+                    <p className="text-sm text-muted-foreground">No model profile catalog is configured.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[900px] text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-left text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                            <th className="py-3 pr-4 font-medium">Profile</th>
+                            <th className="py-3 pr-4 font-medium">Default model</th>
+                            <th className="py-3 pr-4 font-medium">Quota lane</th>
+                            <th className="py-3 pr-4 font-medium">Status</th>
+                            <th className="py-3 font-medium">Intent</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(modelProfileData?.profiles ?? []).map((profile) => (
+                            <tr key={profile.profile} className="border-b border-border/70 align-top last:border-0">
+                              <td className="py-3 pr-4 font-medium">{profile.profile}</td>
+                              <td className="py-3 pr-4 font-mono text-xs">{profile.defaultModel}</td>
+                              <td className="py-3 pr-4">
+                                <div className="font-mono text-xs">{profile.quotaLane}</div>
+                                <div className="mt-1 text-xs text-muted-foreground">weight {profile.relativeCostWeight}</div>
+                              </td>
+                              <td className="py-3 pr-4 text-xs text-muted-foreground">
+                                {quotaWindowRows.length > 0
+                                  ? quotaWindowRows
+                                      .map((row) =>
+                                        quotaWindowStatus(row.window, codexShortHoldPercent, codexLongHoldPercent)
+                                      )
+                                      .sort()[0]
+                                  : "Awaiting live quota"}
+                              </td>
+                              <td className="py-3 text-xs leading-5 text-muted-foreground">{profile.intent}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </>

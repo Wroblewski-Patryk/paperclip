@@ -7,6 +7,10 @@ import { and, asc, desc, eq, getTableColumns, gt, inArray, isNull, lt, lte, notI
 import type { Db } from "@paperclipai/db";
 import {
   AGENT_DEFAULT_MAX_CONCURRENT_RUNS,
+  DEFAULT_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MINUTES,
+  DEFAULT_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT,
+  DEFAULT_CODEX_LOCAL_QUOTA_RETRY_SPACING_MINUTES,
+  DEFAULT_CODEX_LOCAL_QUOTA_SHORT_WINDOW_HOLD_USED_PERCENT,
   ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
   MODEL_PROFILE_KEYS,
   isEnvironmentDriverSupportedForAdapter,
@@ -17,6 +21,7 @@ import {
   type IssueExecutionMonitorClearReason,
   type IssueExecutionMonitorPolicy,
   type IssueExecutionMonitorRecoveryPolicy,
+  type InstanceExperimentalSettings,
   type ModelProfileKey,
   type RoutineRevisionSnapshotV1,
   type RunLivenessState,
@@ -198,13 +203,13 @@ const HEARTBEAT_MAX_CONCURRENT_RUNS_MIN = 1;
 const HEARTBEAT_MAX_CONCURRENT_RUNS_MAX = 50;
 const CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT = readNumberEnv(
   "PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT",
-  75,
+  DEFAULT_CODEX_LOCAL_QUOTA_SHORT_WINDOW_HOLD_USED_PERCENT,
   1,
   100,
 );
 const CODEX_LOCAL_PROVIDER_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT = readNumberEnv(
   "PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT",
-  90,
+  DEFAULT_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT,
   1,
   100,
 );
@@ -216,13 +221,13 @@ const CODEX_LOCAL_PROVIDER_QUOTA_SHORT_WINDOW_MAX_MS = readNumberEnv(
 );
 const CODEX_LOCAL_PROVIDER_QUOTA_RETRY_SPACING_MS = readNumberEnv(
   "PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS",
-  2 * 60 * 1000,
+  DEFAULT_CODEX_LOCAL_QUOTA_RETRY_SPACING_MINUTES * 60 * 1000,
   0,
   60 * 60 * 1000,
 );
 const CODEX_LOCAL_PROVIDER_QUOTA_FALLBACK_DELAY_MS = readNumberEnv(
   "PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS",
-  15 * 60 * 1000,
+  DEFAULT_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MINUTES * 60 * 1000,
   60 * 1000,
   24 * 60 * 60 * 1000,
 );
@@ -374,6 +379,7 @@ type ProviderQuotaStartBlock = {
   source: string | null;
   thresholdPercent: number;
   retryAt: Date;
+  retrySpacingMs: number;
   reason: string;
   windows: Array<{
     label: string;
@@ -389,6 +395,23 @@ type ProviderQuotaCacheEntry = {
 };
 
 const providerQuotaCache = new Map<string, ProviderQuotaCacheEntry>();
+
+type CodexLocalQuotaGateSettings = Pick<
+  InstanceExperimentalSettings,
+  | "codexLocalQuotaHoldEnabled"
+  | "codexLocalQuotaShortWindowHoldUsedPercent"
+  | "codexLocalQuotaLongWindowHoldUsedPercent"
+  | "codexLocalQuotaRetrySpacingMinutes"
+  | "codexLocalQuotaFallbackDelayMinutes"
+>;
+
+const DEFAULT_CODEX_LOCAL_QUOTA_GATE_SETTINGS: CodexLocalQuotaGateSettings = {
+  codexLocalQuotaHoldEnabled: true,
+  codexLocalQuotaShortWindowHoldUsedPercent: CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT,
+  codexLocalQuotaLongWindowHoldUsedPercent: CODEX_LOCAL_PROVIDER_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT,
+  codexLocalQuotaRetrySpacingMinutes: Math.round(CODEX_LOCAL_PROVIDER_QUOTA_RETRY_SPACING_MS / 60_000),
+  codexLocalQuotaFallbackDelayMinutes: Math.round(CODEX_LOCAL_PROVIDER_QUOTA_FALLBACK_DELAY_MS / 60_000),
+};
 
 function readNumberEnv(name: string, fallback: number, min: number, max: number) {
   const raw = process.env[name];
@@ -418,20 +441,26 @@ function isShortQuotaWindow(window: QuotaWindow, now: Date) {
   return resetInMs > 0 && resetInMs <= CODEX_LOCAL_PROVIDER_QUOTA_SHORT_WINDOW_MAX_MS;
 }
 
-function quotaHoldThresholdForWindow(window: QuotaWindow, now: Date) {
+function quotaHoldThresholdForWindow(
+  window: QuotaWindow,
+  now: Date,
+  settings: CodexLocalQuotaGateSettings = DEFAULT_CODEX_LOCAL_QUOTA_GATE_SETTINGS,
+) {
   return isShortQuotaWindow(window, now)
-    ? CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT
-    : CODEX_LOCAL_PROVIDER_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT;
+    ? settings.codexLocalQuotaShortWindowHoldUsedPercent
+    : settings.codexLocalQuotaLongWindowHoldUsedPercent;
 }
 
 function buildProviderQuotaStartBlock(
   quota: ProviderQuotaResult,
   now = new Date(),
+  settings: CodexLocalQuotaGateSettings = DEFAULT_CODEX_LOCAL_QUOTA_GATE_SETTINGS,
 ): ProviderQuotaStartBlock | null {
+  if (!settings.codexLocalQuotaHoldEnabled) return null;
   if (!quota.ok) return null;
   const blockedWindows = quota.windows.filter((window) => {
     if (!isConsumableQuotaWindow(window) || typeof window.usedPercent !== "number") return false;
-    return window.usedPercent >= quotaHoldThresholdForWindow(window, now);
+    return window.usedPercent >= quotaHoldThresholdForWindow(window, now, settings);
   });
   if (blockedWindows.length === 0) return null;
 
@@ -439,19 +468,21 @@ function buildProviderQuotaStartBlock(
     .map(windowResetDate)
     .filter((date): date is Date => date !== null && date.getTime() > now.getTime())
     .sort((left, right) => left.getTime() - right.getTime());
-  const retryAt = futureResets[0] ?? new Date(now.getTime() + CODEX_LOCAL_PROVIDER_QUOTA_FALLBACK_DELAY_MS);
+  const fallbackDelayMs = settings.codexLocalQuotaFallbackDelayMinutes * 60 * 1000;
+  const retryAt = futureResets[0] ?? new Date(now.getTime() + fallbackDelayMs);
   const summary = blockedWindows
     .map((window) =>
-      `${window.label}=${Math.round(window.usedPercent ?? 0)}%/${quotaHoldThresholdForWindow(window, now)}%`
+      `${window.label}=${Math.round(window.usedPercent ?? 0)}%/${quotaHoldThresholdForWindow(window, now, settings)}%`
     )
     .join(", ");
-  const thresholdPercent = Math.min(...blockedWindows.map((window) => quotaHoldThresholdForWindow(window, now)));
+  const thresholdPercent = Math.min(...blockedWindows.map((window) => quotaHoldThresholdForWindow(window, now, settings)));
 
   return {
     provider: quota.provider,
     source: quota.source ?? null,
     thresholdPercent,
     retryAt,
+    retrySpacingMs: settings.codexLocalQuotaRetrySpacingMinutes * 60 * 1000,
     reason: `Provider quota hold: codex_local quota reached a hard start threshold (${summary}); run delayed until quota resets`,
     windows: blockedWindows.map((window) => ({
       label: window.label,
@@ -465,12 +496,14 @@ function buildProviderQuotaStartBlock(
 function resolveModelRouterQuotaPressure(
   quota: ProviderQuotaResult | null | undefined,
   now = new Date(),
+  settings: CodexLocalQuotaGateSettings = DEFAULT_CODEX_LOCAL_QUOTA_GATE_SETTINGS,
 ): ModelRouterQuotaPressure {
+  if (!settings.codexLocalQuotaHoldEnabled) return "normal";
   if (!quota?.ok) return "normal";
   let pressure: ModelRouterQuotaPressure = "normal";
   for (const window of quota.windows) {
     if (!isConsumableQuotaWindow(window) || typeof window.usedPercent !== "number") continue;
-    const holdThreshold = quotaHoldThresholdForWindow(window, now);
+    const holdThreshold = quotaHoldThresholdForWindow(window, now, settings);
     if (window.usedPercent >= Math.max(1, holdThreshold - 5)) return "critical";
     if (window.usedPercent >= Math.max(1, holdThreshold - 15)) pressure = "high";
   }
@@ -2685,6 +2718,34 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
   const recovery = recoveryService(db, { enqueueWakeup });
   const productivityReviews = productivityReviewService(db, { enqueueWakeup });
   let unsafeTextProjectionPromise: Promise<boolean> | null = null;
+  let quotaGateSettingsCache:
+    | { expiresAt: number; settings: CodexLocalQuotaGateSettings }
+    | null = null;
+
+  async function getCodexLocalQuotaGateSettings(): Promise<CodexLocalQuotaGateSettings> {
+    const nowMs = Date.now();
+    if (quotaGateSettingsCache && quotaGateSettingsCache.expiresAt > nowMs) {
+      return quotaGateSettingsCache.settings;
+    }
+    try {
+      const experimental = await instanceSettings.getExperimental();
+      const settings: CodexLocalQuotaGateSettings = {
+        codexLocalQuotaHoldEnabled: experimental.codexLocalQuotaHoldEnabled,
+        codexLocalQuotaShortWindowHoldUsedPercent: experimental.codexLocalQuotaShortWindowHoldUsedPercent,
+        codexLocalQuotaLongWindowHoldUsedPercent: experimental.codexLocalQuotaLongWindowHoldUsedPercent,
+        codexLocalQuotaRetrySpacingMinutes: experimental.codexLocalQuotaRetrySpacingMinutes,
+        codexLocalQuotaFallbackDelayMinutes: experimental.codexLocalQuotaFallbackDelayMinutes,
+      };
+      quotaGateSettingsCache = {
+        expiresAt: nowMs + CODEX_LOCAL_PROVIDER_QUOTA_CACHE_MS,
+        settings,
+      };
+      return settings;
+    } catch (err) {
+      logger.warn({ err }, "Failed to load Codex local quota gate settings; using environment defaults");
+      return DEFAULT_CODEX_LOCAL_QUOTA_GATE_SETTINGS;
+    }
+  }
 
   async function releaseEnvironmentLeasesForRun(input: {
     runId: string;
@@ -6239,6 +6300,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
   async function getProviderQuotaStartBlockForAgent(agent: typeof agents.$inferSelect) {
     const quota = await getCachedProviderQuota(agent);
     if (!quota) return null;
+    const quotaGateSettings = await getCodexLocalQuotaGateSettings();
     if (!quota.ok) {
       logger.warn(
         {
@@ -6251,7 +6313,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       );
       return null;
     }
-    return buildProviderQuotaStartBlock(quota);
+    return buildProviderQuotaStartBlock(quota, new Date(), quotaGateSettings);
   }
 
   function providerQuotaHoldPayload(block: ProviderQuotaStartBlock, scheduledRetryAt: Date) {
@@ -6261,6 +6323,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       thresholdPercent: block.thresholdPercent,
       retryAt: block.retryAt.toISOString(),
       scheduledRetryAt: scheduledRetryAt.toISOString(),
+      retrySpacingMs: block.retrySpacingMs,
       windows: block.windows,
     };
   }
@@ -6276,7 +6339,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     for (const [index, run] of queuedRuns.entries()) {
       const scheduledRetryAt = new Date(
         Math.max(block.retryAt.getTime(), now.getTime() + 1000) +
-          (index * CODEX_LOCAL_PROVIDER_QUOTA_RETRY_SPACING_MS),
+          (index * block.retrySpacingMs),
       );
       const quotaHold = providerQuotaHoldPayload(block, scheduledRetryAt);
       const contextSnapshot = {
@@ -7692,7 +7755,13 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     }
     const modelRouterQuota =
       agent.adapterType === "codex_local" ? await getCachedProviderQuota(agent) : null;
-    const modelRouterQuotaPressure = resolveModelRouterQuotaPressure(modelRouterQuota);
+    const modelRouterQuotaGateSettings =
+      agent.adapterType === "codex_local" ? await getCodexLocalQuotaGateSettings() : undefined;
+    const modelRouterQuotaPressure = resolveModelRouterQuotaPressure(
+      modelRouterQuota,
+      new Date(),
+      modelRouterQuotaGateSettings,
+    );
     const modelRouterDecision = resolveModelRouterProfile({
       agent: {
         name: agent.name,

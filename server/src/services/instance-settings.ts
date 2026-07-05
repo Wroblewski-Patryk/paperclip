@@ -3,6 +3,10 @@ import { companies, instanceSettings } from "@paperclipai/db";
 import {
   DEFAULT_FEEDBACK_DATA_SHARING_PREFERENCE,
   DEFAULT_BACKUP_RETENTION,
+  DEFAULT_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MINUTES,
+  DEFAULT_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT,
+  DEFAULT_CODEX_LOCAL_QUOTA_RETRY_SPACING_MINUTES,
+  DEFAULT_CODEX_LOCAL_QUOTA_SHORT_WINDOW_HOLD_USED_PERCENT,
   DEFAULT_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS,
   instanceGeneralSettingsSchema,
   type InstanceGeneralSettings,
@@ -50,6 +54,19 @@ export function normalizeExperimentalSettings(raw: unknown): InstanceExperimenta
       issueGraphLivenessAutoRecoveryLookbackHours:
         parsed.data.issueGraphLivenessAutoRecoveryLookbackHours ??
         DEFAULT_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS,
+      codexLocalQuotaHoldEnabled: parsed.data.codexLocalQuotaHoldEnabled ?? true,
+      codexLocalQuotaShortWindowHoldUsedPercent:
+        parsed.data.codexLocalQuotaShortWindowHoldUsedPercent ??
+        DEFAULT_CODEX_LOCAL_QUOTA_SHORT_WINDOW_HOLD_USED_PERCENT,
+      codexLocalQuotaLongWindowHoldUsedPercent:
+        parsed.data.codexLocalQuotaLongWindowHoldUsedPercent ??
+        DEFAULT_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT,
+      codexLocalQuotaRetrySpacingMinutes:
+        parsed.data.codexLocalQuotaRetrySpacingMinutes ??
+        DEFAULT_CODEX_LOCAL_QUOTA_RETRY_SPACING_MINUTES,
+      codexLocalQuotaFallbackDelayMinutes:
+        parsed.data.codexLocalQuotaFallbackDelayMinutes ??
+        DEFAULT_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MINUTES,
     };
   }
   return {
@@ -61,6 +78,13 @@ export function normalizeExperimentalSettings(raw: unknown): InstanceExperimenta
     enableIssueGraphLivenessAutoRecovery: false,
     issueGraphLivenessAutoRecoveryLookbackHours:
       DEFAULT_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS,
+    codexLocalQuotaHoldEnabled: true,
+    codexLocalQuotaShortWindowHoldUsedPercent:
+      DEFAULT_CODEX_LOCAL_QUOTA_SHORT_WINDOW_HOLD_USED_PERCENT,
+    codexLocalQuotaLongWindowHoldUsedPercent:
+      DEFAULT_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT,
+    codexLocalQuotaRetrySpacingMinutes: DEFAULT_CODEX_LOCAL_QUOTA_RETRY_SPACING_MINUTES,
+    codexLocalQuotaFallbackDelayMinutes: DEFAULT_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MINUTES,
   };
 }
 

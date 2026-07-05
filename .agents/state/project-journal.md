@@ -1,6 +1,6 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-04
+Last updated: 2026-07-06
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
@@ -1765,3 +1765,11 @@ large company-wide context packets for every run.
 - Added `/api/companies/:companyId/costs/model-profiles` and the Costs `Models` tab to show profile usage, default model, quota lane, token pressure, run outcomes, plan-share estimate, and escalation/watch recommendations.
 - Removed stale per-agent `runtimeConfig.modelProfiles.cheap -> gpt-5.4` overrides from all 39 live LuckySparrow agents so existing agents use the central Codex adapter profile catalog and model router. Router coverage was verified for all agents, including paused/out-of-scope roles.
 - Verification passed for shared/server/ui typechecks, model-profile Vitest coverage, Vite build, served `server/ui-dist`, `/api/health`, the model-profiles API endpoint, workspace boundary audit, and Chrome smoke of `/LUC/costs` -> `Models` with no console errors.
+
+## 2026-07-06 - Costs Limits tab and configurable Codex quota gates
+
+- Added a `Limits` tab to `/LUC/costs` that surfaces live provider quota windows, Codex subscription usage, router model lanes, quota-lane mapping, and the current start-hold thresholds used by scheduler gating.
+- Added instance-level configurable Codex local quota gates in `Instance Settings > Experimental`: enable/disable hold behavior, short-window hold percent, long-window hold percent, retry spacing, and fallback retry delay.
+- Wired heartbeat scheduling to read those instance settings from the DB, with existing environment variables remaining as fallback defaults. This keeps current deployments working while allowing operators to tune thresholds from the UI.
+- The limits UI intentionally reports provider-observed quota windows instead of inventing per-model hard limits when the provider does not expose them.
+- Verification passed for shared/server/ui typechecks, targeted quota/cost/model tests, Vite production build, served `server/ui-dist`, and local `/api/health` plus `/api/companies` checks.

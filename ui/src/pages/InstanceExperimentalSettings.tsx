@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, FlaskConical, Play, Search } from "lucide-react";
+import { Clock, FlaskConical, Gauge, Play, Search } from "lucide-react";
 import type {
+  InstanceExperimentalSettings as InstanceExperimentalSettingsData,
   IssueGraphLivenessAutoRecoveryPreview,
   PatchInstanceExperimentalSettings,
 } from "@paperclipai/shared";
@@ -123,6 +124,12 @@ export function InstanceExperimentalSettings() {
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
   const [lookbackHoursDraft, setLookbackHoursDraft] = useState("24");
+  const [quotaDraft, setQuotaDraft] = useState({
+    shortHoldPercent: "75",
+    longHoldPercent: "90",
+    retrySpacingMinutes: "2",
+    fallbackDelayMinutes: "15",
+  });
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [pendingPreview, setPendingPreview] = useState<IssueGraphLivenessAutoRecoveryPreview | null>(null);
 
@@ -189,6 +196,17 @@ export function InstanceExperimentalSettings() {
     }
   }, [experimentalQuery.data?.issueGraphLivenessAutoRecoveryLookbackHours]);
 
+  useEffect(() => {
+    const data = experimentalQuery.data;
+    if (!data) return;
+    setQuotaDraft({
+      shortHoldPercent: String(data.codexLocalQuotaShortWindowHoldUsedPercent),
+      longHoldPercent: String(data.codexLocalQuotaLongWindowHoldUsedPercent),
+      retrySpacingMinutes: String(data.codexLocalQuotaRetrySpacingMinutes),
+      fallbackDelayMinutes: String(data.codexLocalQuotaFallbackDelayMinutes),
+    });
+  }, [experimentalQuery.data]);
+
   if (experimentalQuery.isLoading) {
     return <div className="text-sm text-muted-foreground">Loading experimental settings...</div>;
   }
@@ -211,6 +229,7 @@ export function InstanceExperimentalSettings() {
   const autoRestartDevServerWhenIdle = experimentalQuery.data?.autoRestartDevServerWhenIdle === true;
   const enableIssueGraphLivenessAutoRecovery =
     experimentalQuery.data?.enableIssueGraphLivenessAutoRecovery === true;
+  const codexLocalQuotaHoldEnabled = experimentalQuery.data?.codexLocalQuotaHoldEnabled !== false;
   const lookbackHours =
     experimentalQuery.data?.issueGraphLivenessAutoRecoveryLookbackHours ?? 24;
   const parsedLookbackHours = Number.parseInt(lookbackHoursDraft, 10);
@@ -218,6 +237,35 @@ export function InstanceExperimentalSettings() {
     Number.isInteger(parsedLookbackHours) && parsedLookbackHours >= 1 && parsedLookbackHours <= 720;
   const recoveryActionPending =
     toggleMutation.isPending || previewMutation.isPending || runRecoveryMutation.isPending;
+  const parsedQuotaDraft = {
+    shortHoldPercent: Number.parseInt(quotaDraft.shortHoldPercent, 10),
+    longHoldPercent: Number.parseInt(quotaDraft.longHoldPercent, 10),
+    retrySpacingMinutes: Number.parseInt(quotaDraft.retrySpacingMinutes, 10),
+    fallbackDelayMinutes: Number.parseInt(quotaDraft.fallbackDelayMinutes, 10),
+  };
+  const quotaDraftIsValid =
+    Number.isInteger(parsedQuotaDraft.shortHoldPercent) &&
+    parsedQuotaDraft.shortHoldPercent >= 1 &&
+    parsedQuotaDraft.shortHoldPercent <= 100 &&
+    Number.isInteger(parsedQuotaDraft.longHoldPercent) &&
+    parsedQuotaDraft.longHoldPercent >= 1 &&
+    parsedQuotaDraft.longHoldPercent <= 100 &&
+    Number.isInteger(parsedQuotaDraft.retrySpacingMinutes) &&
+    parsedQuotaDraft.retrySpacingMinutes >= 0 &&
+    parsedQuotaDraft.retrySpacingMinutes <= 60 &&
+    Number.isInteger(parsedQuotaDraft.fallbackDelayMinutes) &&
+    parsedQuotaDraft.fallbackDelayMinutes >= 1 &&
+    parsedQuotaDraft.fallbackDelayMinutes <= 1440;
+  const quotaSettingsChanged = (() => {
+    const data: InstanceExperimentalSettingsData | undefined = experimentalQuery.data;
+    if (!data || !quotaDraftIsValid) return false;
+    return (
+      parsedQuotaDraft.shortHoldPercent !== data.codexLocalQuotaShortWindowHoldUsedPercent ||
+      parsedQuotaDraft.longHoldPercent !== data.codexLocalQuotaLongWindowHoldUsedPercent ||
+      parsedQuotaDraft.retrySpacingMinutes !== data.codexLocalQuotaRetrySpacingMinutes ||
+      parsedQuotaDraft.fallbackDelayMinutes !== data.codexLocalQuotaFallbackDelayMinutes
+    );
+  })();
 
   function previewForEnable() {
     if (!lookbackHoursIsValid) {
@@ -244,6 +292,19 @@ export function InstanceExperimentalSettings() {
       issueGraphLivenessAutoRecoveryLookbackHours: parsedLookbackHours,
     }, {
       onSuccess: () => runRecoveryMutation.mutate(parsedLookbackHours),
+    });
+  }
+
+  function saveQuotaSettings() {
+    if (!quotaDraftIsValid) {
+      setActionError("Codex quota settings must use valid whole numbers.");
+      return;
+    }
+    toggleMutation.mutate({
+      codexLocalQuotaShortWindowHoldUsedPercent: parsedQuotaDraft.shortHoldPercent,
+      codexLocalQuotaLongWindowHoldUsedPercent: parsedQuotaDraft.longHoldPercent,
+      codexLocalQuotaRetrySpacingMinutes: parsedQuotaDraft.retrySpacingMinutes,
+      codexLocalQuotaFallbackDelayMinutes: parsedQuotaDraft.fallbackDelayMinutes,
     });
   }
 
@@ -356,6 +417,114 @@ export function InstanceExperimentalSettings() {
             disabled={toggleMutation.isPending}
             aria-label="Toggle guarded dev-server auto-restart"
           />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-col gap-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1.5">
+              <h2 className="text-sm font-semibold">Codex Local Quota Gates</h2>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Pause new codex_local run starts when live provider quota windows approach the configured usage
+                thresholds. Existing queued runs are delayed until the provider reset or fallback retry window.
+              </p>
+            </div>
+            <ToggleSwitch
+              checked={codexLocalQuotaHoldEnabled}
+              onCheckedChange={() =>
+                toggleMutation.mutate({
+                  codexLocalQuotaHoldEnabled: !codexLocalQuotaHoldEnabled,
+                })
+              }
+              disabled={toggleMutation.isPending}
+              aria-label="Toggle Codex local quota gates"
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="space-y-1.5">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Gauge className="h-3.5 w-3.5" />
+                Short window %
+              </span>
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                step={1}
+                value={quotaDraft.shortHoldPercent}
+                onChange={(event) =>
+                  setQuotaDraft((prev) => ({ ...prev, shortHoldPercent: event.target.value }))
+                }
+                aria-invalid={!quotaDraftIsValid}
+              />
+            </label>
+            <label className="space-y-1.5">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Gauge className="h-3.5 w-3.5" />
+                Long window %
+              </span>
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                step={1}
+                value={quotaDraft.longHoldPercent}
+                onChange={(event) =>
+                  setQuotaDraft((prev) => ({ ...prev, longHoldPercent: event.target.value }))
+                }
+                aria-invalid={!quotaDraftIsValid}
+              />
+            </label>
+            <label className="space-y-1.5">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                Retry spacing min
+              </span>
+              <Input
+                type="number"
+                min={0}
+                max={60}
+                step={1}
+                value={quotaDraft.retrySpacingMinutes}
+                onChange={(event) =>
+                  setQuotaDraft((prev) => ({ ...prev, retrySpacingMinutes: event.target.value }))
+                }
+                aria-invalid={!quotaDraftIsValid}
+              />
+            </label>
+            <label className="space-y-1.5">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                Fallback delay min
+              </span>
+              <Input
+                type="number"
+                min={1}
+                max={1440}
+                step={1}
+                value={quotaDraft.fallbackDelayMinutes}
+                onChange={(event) =>
+                  setQuotaDraft((prev) => ({ ...prev, fallbackDelayMinutes: event.target.value }))
+                }
+                aria-invalid={!quotaDraftIsValid}
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={saveQuotaSettings}
+              disabled={toggleMutation.isPending || !quotaSettingsChanged}
+            >
+              Save quota gates
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Defaults: 75% for short windows, 90% for long windows, 2 minute retry spacing.
+            </p>
+          </div>
         </div>
       </section>
 

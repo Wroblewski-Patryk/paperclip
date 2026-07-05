@@ -6,6 +6,16 @@ export const MONTHLY_RETENTION_PRESETS = [1, 3, 6] as const;
 export const DEFAULT_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS = 24;
 export const MIN_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS = 1;
 export const MAX_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS = 24 * 30;
+export const DEFAULT_CODEX_LOCAL_QUOTA_SHORT_WINDOW_HOLD_USED_PERCENT = 75;
+export const DEFAULT_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT = 90;
+export const DEFAULT_CODEX_LOCAL_QUOTA_RETRY_SPACING_MINUTES = 2;
+export const DEFAULT_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MINUTES = 15;
+export const MIN_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT = 1;
+export const MAX_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT = 100;
+export const MIN_CODEX_LOCAL_QUOTA_RETRY_SPACING_MINUTES = 0;
+export const MAX_CODEX_LOCAL_QUOTA_RETRY_SPACING_MINUTES = 60;
+export const MIN_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MINUTES = 1;
+export const MAX_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MINUTES = 24 * 60;
 
 export interface BackupRetentionPolicy {
   dailyDays: (typeof DAILY_RETENTION_PRESETS)[number];
@@ -34,6 +44,11 @@ export interface InstanceExperimentalSettings {
   autoRestartDevServerWhenIdle: boolean;
   enableIssueGraphLivenessAutoRecovery: boolean;
   issueGraphLivenessAutoRecoveryLookbackHours: number;
+  codexLocalQuotaHoldEnabled: boolean;
+  codexLocalQuotaShortWindowHoldUsedPercent: number;
+  codexLocalQuotaLongWindowHoldUsedPercent: number;
+  codexLocalQuotaRetrySpacingMinutes: number;
+  codexLocalQuotaFallbackDelayMinutes: number;
 }
 
 export interface InstanceSettings {
