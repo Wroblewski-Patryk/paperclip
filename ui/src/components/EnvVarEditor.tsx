@@ -67,11 +67,13 @@ function toRows(rec: Record<string, EnvBinding> | null | undefined): Row[] {
 export function EnvVarEditor({
   value,
   secrets,
+  recentlyUsedSecrets: _recentlyUsedSecrets,
   onCreateSecret,
   onChange,
 }: {
   value: Record<string, EnvBinding>;
   secrets: CompanySecret[];
+  recentlyUsedSecrets?: CompanySecret[];
   onCreateSecret: (name: string, value: string) => Promise<CompanySecret>;
   onChange: (env: Record<string, EnvBinding> | undefined) => void;
 }) {

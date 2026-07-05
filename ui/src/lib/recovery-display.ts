@@ -38,6 +38,16 @@ export const RECOVERY_CHIP_DEFAULT_TONE: Record<
   },
 };
 
+export function recoveryChipLabel(
+  state: ActiveRecoveryDisplayState,
+  kind?: IssueRecoveryAction["kind"],
+): string {
+  if (kind === "workspace_validation" && state === "needed") {
+    return "Workspace recovery needed";
+  }
+  return RECOVERY_CHIP_DEFAULT_TONE[state].label;
+}
+
 export function deriveRecoveryDisplayState(
   action: Pick<IssueRecoveryAction, "status" | "kind" | "outcome">,
 ): RecoveryDisplayState {

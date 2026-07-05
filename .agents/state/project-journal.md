@@ -1748,3 +1748,11 @@ large company-wide context packets for every run.
 - Added quota-pressure soft fallback before the hard provider-quota hold: high pressure lowers expensive profiles by one lane, critical pressure lowers them more aggressively, and hard quota holds still defer queued Codex runs.
 - Rebuilt the UI, copied it to the real served `server/ui-dist` directory, restarted the local Softwarehouse server, and verified `/api/health`, `/LUC/dashboard`, `/LUC/costs`, Codex model profiles, and workspace boundary audit.
 - Verified targeted backend and frontend model-profile tests directly with local Vitest binaries because workspace `pnpm exec` is currently blocked by a Windows symlink EPERM in `packages/plugins/plugin-workspace-diff`.
+
+## 2026-07-05 - Full server/ui typecheck and served UI repair
+
+- Repaired shared exports and small UI compatibility gaps that had been blocking direct `packages/shared`, `server`, and `ui` TypeScript verification.
+- Kept the fix additive: exported existing artifacts/workspace/team/trust contracts, restored missing validators/types, and added no-op compatibility props where existing pages expected them.
+- Rebuilt the UI with Vite, copied the fresh build to `server/ui-dist`, restarted the active local Softwarehouse server on `127.0.0.1:3200`, and verified dashboard/costs rendering with headless Chrome.
+- Direct validation passed for `packages/shared`, `server`, and `ui` typechecks, targeted Vitest coverage, Vite production build, `/api/health`, `/LUC/dashboard`, `/LUC/costs`, and direct workspace boundary audit.
+- `pnpm run softwarehouse:workspace-boundary-audit` still triggers the known Windows symlink EPERM in `packages/plugins/plugin-workspace-diff`; the underlying audit script passes when run directly with `node`.

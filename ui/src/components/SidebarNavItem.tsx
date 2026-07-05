@@ -1,16 +1,29 @@
+import { createContext, useContext, type ReactNode } from "react";
 import { NavLink } from "@/lib/router";
 import { SIDEBAR_SCROLL_RESET_STATE } from "../lib/navigation-scroll";
 import { cn } from "../lib/utils";
 import { useSidebar } from "../context/SidebarContext";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { LucideIcon } from "lucide-react";
 
-interface SidebarNavItemProps {
+const SidebarNavExpandedContext = createContext(false);
+
+export function SidebarNavExpandedProvider({ children }: { children: ReactNode }) {
+  return (
+    <SidebarNavExpandedContext.Provider value={true}>
+      {children}
+    </SidebarNavExpandedContext.Provider>
+  );
+}
+
+export interface SidebarNavItemProps {
   to: string;
   label: string;
   icon: LucideIcon;
   end?: boolean;
   className?: string;
   badge?: number;
+  badgeLabel?: string;
   badgeTone?: "default" | "danger";
   textBadge?: string;
   textBadgeTone?: "default" | "amber";
@@ -25,19 +38,26 @@ export function SidebarNavItem({
   end,
   className,
   badge,
+  badgeLabel,
   badgeTone = "default",
   textBadge,
   textBadgeTone = "default",
   alert = false,
   liveCount,
 }: SidebarNavItemProps) {
-  const { isMobile, setSidebarOpen } = useSidebar();
+  const { isMobile, setSidebarOpen, collapsed, peeking } = useSidebar();
+  const forceExpanded = useContext(SidebarNavExpandedContext);
+  const rail = collapsed && !peeking && !forceExpanded;
+  const ariaParts = [label];
+  if (rail && badge != null && badge > 0) ariaParts.push(`${badge} ${badgeLabel ?? "items"}`);
+  if (rail && liveCount != null && liveCount > 0) ariaParts.push(`${liveCount} live`);
 
-  return (
+  const link = (
     <NavLink
       to={to}
       state={SIDEBAR_SCROLL_RESET_STATE}
       end={end}
+      aria-label={rail ? ariaParts.join(", ") : undefined}
       onClick={() => { if (isMobile) setSidebarOpen(false); }}
       className={({ isActive }) =>
         cn(
@@ -55,7 +75,16 @@ export function SidebarNavItem({
           <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_0_2px_hsl(var(--background))]" />
         )}
       </span>
-      <span className="flex-1 truncate">{label}</span>
+      <span
+        className={cn(
+          "truncate",
+          rail
+            ? "w-0 overflow-hidden opacity-0"
+            : "flex-1",
+        )}
+      >
+        {label}
+      </span>
       {textBadge && (
         <span
           className={cn(
@@ -68,7 +97,7 @@ export function SidebarNavItem({
           {textBadge}
         </span>
       )}
-      {liveCount != null && liveCount > 0 && (
+      {liveCount != null && liveCount > 0 && !rail && (
         <span className="ml-auto flex items-center gap-1.5">
           <span className="relative flex h-2 w-2">
             <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
@@ -80,7 +109,9 @@ export function SidebarNavItem({
       {badge != null && badge > 0 && (
         <span
           className={cn(
-            "ml-auto rounded-full px-1.5 py-0.5 text-xs leading-none",
+            rail
+              ? "ml-auto h-2 w-2 rounded-full p-0 text-[0px]"
+              : "ml-auto rounded-full px-1.5 py-0.5 text-xs leading-none",
             badgeTone === "danger"
               ? "bg-red-600/90 text-red-50"
               : "bg-primary text-primary-foreground",
@@ -90,5 +121,14 @@ export function SidebarNavItem({
         </span>
       )}
     </NavLink>
+  );
+
+  if (!rail) return link;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger>{link}</TooltipTrigger>
+      <TooltipContent side="right">{ariaParts.join(", ")}</TooltipContent>
+    </Tooltip>
   );
 }

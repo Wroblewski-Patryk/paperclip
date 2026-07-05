@@ -79,6 +79,30 @@ export const queryKeys = {
     liveRuns: (issueId: string) => ["issues", "live-runs", issueId] as const,
     activeRun: (issueId: string) => ["issues", "active-run", issueId] as const,
     workProducts: (issueId: string) => ["issues", "work-products", issueId] as const,
+    fileResources: (issueId: string, params: unknown) => ["issues", "file-resources", issueId, params] as const,
+    fileResource: (issueId: string, params: unknown) => ["issues", "file-resource", issueId, params] as const,
+    fileResourceContent: (issueId: string, params: unknown) => ["issues", "file-resource-content", issueId, params] as const,
+  },
+  fileResources: {
+    list: (issueId: string, params: unknown) => ["file-resources", issueId, params] as const,
+    resource: (issueId: string, params: unknown) => ["file-resource", issueId, params] as const,
+    content: (issueId: string, params: unknown) => ["file-resource-content", issueId, params] as const,
+  },
+  artifacts: {
+    list: (companyId: string, kind?: string, q?: string, groupBy?: string, groupIssueId?: string | null) =>
+      ["artifacts", companyId, kind ?? "all", q ?? "", groupBy ?? "none", groupIssueId ?? null] as const,
+  },
+  softwarehouse: {
+    knowledge: (companyId: string) => ["softwarehouse", companyId, "knowledge"] as const,
+    tools: (companyId: string) => ["softwarehouse", companyId, "tools"] as const,
+    backlog: (companyId: string) => ["softwarehouse", companyId, "backlog"] as const,
+  },
+  teamCatalog: {
+    catalog: (filters: { kind?: string; category?: string; q?: string } = {}) =>
+      ["team-catalog", "catalog", filters.kind ?? "__all-kinds__", filters.category ?? "__all-categories__", filters.q ?? ""] as const,
+    catalogFile: (catalogRef: string, relativePath: string) =>
+      ["team-catalog", "file", catalogRef, relativePath] as const,
+    installed: (companyId: string) => ["team-catalog", "installed", companyId] as const,
   },
   routines: {
     list: (companyId: string, filters?: { projectId?: string | null }) =>

@@ -222,3 +222,19 @@ export function projectWorkspaceUrl(
 ): string {
   return `${projectUrl(project)}/workspaces/${workspaceId}`;
 }
+
+export function formatProjectBudget({
+  amountCents,
+  windowKind,
+}: {
+  amountCents: number;
+  windowKind: "calendar_month_utc" | "lifetime" | string;
+}): string {
+  const value = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amountCents / 100);
+  return windowKind === "calendar_month_utc" ? `${value}/mo` : value;
+}

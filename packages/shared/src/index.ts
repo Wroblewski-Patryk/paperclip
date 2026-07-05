@@ -15,6 +15,7 @@ export {
   WORKSPACE_BRANCH_ROUTINE_VARIABLE,
   MODEL_PROFILE_KEYS,
   AGENT_ICON_NAMES,
+  PROJECT_ICON_NAMES,
   ISSUE_STATUSES,
   INBOX_MINE_ISSUE_STATUSES,
   INBOX_MINE_ISSUE_STATUS_FILTER,
@@ -143,6 +144,7 @@ export {
   type AgentRole,
   type ModelProfileKey,
   type AgentIconName,
+  type ProjectIconName,
   type IssueStatus,
   type IssuePriority,
   type IssueWorkMode,
@@ -1041,6 +1043,7 @@ export {
   listCompanyInvitesQuerySchema,
   listJoinRequestsQuerySchema,
   claimJoinRequestApiKeySchema,
+  createBoardApiKeySchema,
   boardCliAuthAccessLevelSchema,
   createCliAuthChallengeSchema,
   resolveCliAuthChallengeSchema,
@@ -1063,6 +1066,7 @@ export {
   type ListCompanyInvitesQuery,
   type ListJoinRequestsQuery,
   type ClaimJoinRequestApiKey,
+  type CreateBoardApiKey,
   type BoardCliAuthAccessLevel,
   type CreateCliAuthChallenge,
   type ResolveCliAuthChallenge,
@@ -1250,3 +1254,159 @@ export type {
   EnvironmentProviderCapability,
   EnvironmentSupportStatus,
 } from "./environment-support.js";
+
+export {
+  getAgentWorkEligibility,
+  isAgentStatusAssignableToWork,
+  isAgentStatusInvokable,
+  isAgentAssignableToWork,
+  isAgentInvokable,
+} from "./agent-eligibility.js";
+
+export type {
+  AgentEligibilityAgent,
+  AgentEligibilityLifecycleReason,
+  AgentInvalidOrgChainAncestor,
+  AgentOrgChainEntry,
+  AgentOrgChainHealth,
+  AgentOrgChainInvalidReason,
+  AgentWorkEligibility,
+} from "./agent-eligibility.js";
+
+export {
+  DEFAULT_TRUST_PRESET,
+  LOW_TRUST_REVIEW_PRESET,
+  LOW_TRUST_REVIEW_PRESET_VERSION,
+  LOW_TRUST_REVIEW_RAW_OUTPUT_DISPOSITION,
+  LOW_TRUST_TOOL_CLASSES,
+  TRUST_PRESETS,
+} from "./trust-policy.js";
+
+export type {
+  LowTrustBoundary,
+  LowTrustOutputPromotionTarget,
+  LowTrustReviewPresetPolicy,
+  LowTrustToolClass,
+  SourceTrustArtifactKind,
+  SourceTrustDisposition,
+  SourceTrustMetadata,
+  SourceTrustPromotionSource,
+  TrustAuthorizationPolicy,
+  TrustPreset,
+} from "./trust-policy.js";
+
+export type {
+  CompanyArtifact,
+  CompanyArtifactAgentSummary,
+  CompanyArtifactGroup,
+  CompanyArtifactGroupBy,
+  CompanyArtifactIssueSummary,
+  CompanyArtifactMediaKind,
+  CompanyArtifactProjectSummary,
+  CompanyArtifactSource,
+  CompanyArtifactsResponse,
+} from "./types/artifact.js";
+
+export type {
+  ResolvedWorkspaceResource,
+  WorkspaceFileContent,
+  WorkspaceFileContentEncoding,
+  WorkspaceFileListDirectoryItem,
+  WorkspaceFileListFileItem,
+  WorkspaceFileListItem,
+  WorkspaceFileListMode,
+  WorkspaceFileListResponse,
+  WorkspaceFilePreviewKind,
+  WorkspaceFileRef,
+  WorkspaceFileResourceKind,
+  WorkspaceFileSelector,
+  WorkspaceFileWorkspaceKind,
+} from "./types/workspace-file-resource.js";
+
+export type {
+  CatalogManifest,
+  CatalogTeam,
+  CatalogTeamCompatibility,
+  CatalogTeamEnvInputSummary,
+  CatalogTeamFile,
+  CatalogTeamFileDetail,
+  CatalogTeamFileKind,
+  CatalogTeamImportOptions,
+  CatalogTeamImportPreviewResult,
+  CatalogTeamInstallOptions,
+  CatalogTeamInstallResult,
+  CatalogTeamKind,
+  CatalogTeamSkillPreparation,
+  CatalogTeamSkillPreparationAction,
+  CatalogTeamSkillRequirement,
+  CatalogTeamSkillRequirementType,
+  CatalogTeamSourcePolicy,
+  CatalogTeamSourceRef,
+  CatalogTeamTrustLevel,
+  InstalledCatalogTeam,
+} from "./types/teams-catalog.js";
+
+export {
+  COMPANY_ARTIFACTS_DEFAULT_LIMIT,
+  COMPANY_ARTIFACTS_MAX_LIMIT,
+  COMPANY_ARTIFACTS_MAX_QUERY_LENGTH,
+  companyArtifactGroupBySchema,
+  companyArtifactGroupSchema,
+  companyArtifactMediaKindSchema,
+  companyArtifactSchema,
+  companyArtifactSourceSchema,
+  companyArtifactsQuerySchema,
+  companyArtifactsResponseSchema,
+  type CompanyArtifactsQuery,
+} from "./validators/artifact.js";
+
+export {
+  resolvedWorkspaceResourceSchema,
+  workspaceFileContentSchema,
+  workspaceFileListModeSchema,
+  workspaceFileListQuerySchema,
+  workspaceFilePreviewKindSchema,
+  workspaceFileRefSchema,
+  workspaceFileResourceKindSchema,
+  workspaceFileResourceQuerySchema,
+  workspaceFileSelectorSchema,
+  workspaceFileWorkspaceKindSchema,
+} from "./validators/workspace-file-resource.js";
+
+export {
+  softwarehouseIssueTemplateCatalogResponseSchema,
+  softwarehouseIssueTemplateKindSchema,
+  softwarehouseIssueTemplateSchema,
+  type SoftwarehouseIssueTemplate,
+  type SoftwarehouseIssueTemplateCatalogResponse,
+  type SoftwarehouseIssueTemplateKind,
+} from "./validators/softwarehouse.js";
+
+export {
+  catalogTeamCompatibilitySchema,
+  catalogTeamEnvInputSummarySchema,
+  catalogTeamFileDetailSchema,
+  catalogTeamFileKindSchema,
+  catalogTeamFileSchema,
+  catalogTeamInstallSchema,
+  catalogTeamKindSchema,
+  catalogTeamListQuerySchema,
+  catalogTeamPreviewSchema,
+  catalogTeamSchema,
+  catalogTeamSkillPreparationSchema,
+  catalogTeamSkillRequirementSchema,
+  catalogTeamSkillRequirementTypeSchema,
+  catalogTeamSourcePolicySchema,
+  catalogTeamSourceRefSchema,
+  catalogTeamTrustLevelSchema,
+} from "./validators/teams-catalog.js";
+
+export {
+  lowTrustBoundarySchema,
+  lowTrustOutputPromotionTargetSchema,
+  lowTrustReviewPresetPolicySchema,
+  sourceTrustMetadataSchema,
+  sourceTrustArtifactKindSchema,
+  trustAuthorizationPolicySchema,
+  trustPresetSchema,
+} from "./validators/trust-policy.js";

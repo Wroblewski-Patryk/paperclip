@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
-import type { ReactNode } from "react";
-import { flushSync } from "react-dom";
+import { act, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Agent } from "@paperclipai/shared";
@@ -47,14 +46,6 @@ vi.mock("../api/agents", () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
-async function act(callback: () => void | Promise<void>) {
-  let result: void | Promise<void> = undefined;
-  flushSync(() => {
-    result = callback();
-  });
-  await result;
-}
-
 async function flushReact() {
   await act(async () => {
     await Promise.resolve();
@@ -94,7 +85,7 @@ describe("AgentActionButtons", () => {
   let container: HTMLDivElement;
   let root: ReturnType<typeof createRoot> | null;
   let queryClient: QueryClient;
-  let invalidateQueries: ReturnType<typeof vi.spyOn>;
+  let invalidateQueries: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     container = document.createElement("div");
@@ -103,7 +94,7 @@ describe("AgentActionButtons", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+    invalidateQueries = vi.spyOn(queryClient, "invalidateQueries") as unknown as ReturnType<typeof vi.fn>;
     mockAgentsApi.clearError.mockResolvedValue(makeAgent({ status: "idle" }));
     mockAgentsApi.pause.mockResolvedValue(makeAgent({ status: "paused" }));
     mockAgentsApi.resume.mockResolvedValue(makeAgent({ status: "idle" }));
@@ -124,17 +115,19 @@ describe("AgentActionButtons", () => {
     vi.clearAllMocks();
   });
 
-  function render(agent: Agent) {
+  async function render(agent: Agent) {
     root = createRoot(container);
-    root.render(
-      <QueryClientProvider client={queryClient}>
-        <AgentActionButtons agent={agent} companyId="company-1" runLabel="Run Heartbeat" />
-      </QueryClientProvider>,
-    );
+    await act(async () => {
+      root?.render(
+        <QueryClientProvider client={queryClient}>
+          <AgentActionButtons agent={agent} companyId="company-1" runLabel="Run Heartbeat" />
+        </QueryClientProvider>,
+      );
+    });
   }
 
   it("replaces the pause slot with Clear error for error agents", async () => {
-    render(makeAgent({ status: "error" }));
+    await render(makeAgent({ status: "error" }));
     await flushReact();
 
     expect(container.textContent).toContain("Clear error");
@@ -150,7 +143,7 @@ describe("AgentActionButtons", () => {
   });
 
   it("calls clearError and refreshes agent-related queries", async () => {
-    render(makeAgent({ status: "error" }));
+    await render(makeAgent({ status: "error" }));
     await flushReact();
 
     await act(async () => {
@@ -169,7 +162,7 @@ describe("AgentActionButtons", () => {
   });
 
   it("keeps the normal pause action for non-error agents", async () => {
-    render(makeAgent({ status: "active" }));
+    await render(makeAgent({ status: "active" }));
     await flushReact();
 
     expect(container.textContent).toContain("Pause");

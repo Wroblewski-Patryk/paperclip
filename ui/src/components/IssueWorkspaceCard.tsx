@@ -192,6 +192,8 @@ interface IssueWorkspaceCardProps {
   initialEditing?: boolean;
   livePreview?: boolean;
   onDraftChange?: (data: Record<string, unknown>, meta: { canSave: boolean; workspaceBranchName?: string | null }) => void;
+  onBrowseFiles?: () => void;
+  onOpenFileByPath?: (path: string) => void;
 }
 
 export function IssueWorkspaceCard({
@@ -201,6 +203,8 @@ export function IssueWorkspaceCard({
   initialEditing = false,
   livePreview = false,
   onDraftChange,
+  onBrowseFiles: _onBrowseFiles,
+  onOpenFileByPath: _onOpenFileByPath,
 }: IssueWorkspaceCardProps) {
   const { selectedCompanyId } = useCompany();
   const companyId = issue.companyId ?? selectedCompanyId;

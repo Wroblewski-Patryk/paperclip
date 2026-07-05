@@ -8,9 +8,12 @@ import {
 } from "../constants.js";
 import { agentAdapterTypeSchema } from "../adapter-type.js";
 import { envConfigSchema } from "./secret.js";
+import { trustAuthorizationPolicySchema, trustPresetSchema } from "./trust-policy.js";
 
 export const agentPermissionsSchema = z.object({
   canCreateAgents: z.boolean().optional().default(false),
+  trustPreset: trustPresetSchema.optional(),
+  authorizationPolicy: trustAuthorizationPolicySchema.optional(),
 });
 
 export const agentInstructionsBundleModeSchema = z.enum(["managed", "external"]);

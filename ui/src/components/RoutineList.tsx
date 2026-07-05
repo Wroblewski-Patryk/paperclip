@@ -63,6 +63,7 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
   disableRunNow = false,
   disableToggle = false,
   hideArchiveAction = false,
+  divider: _divider,
   onRunNow,
   onToggleEnabled,
   onToggleArchived,
@@ -80,6 +81,7 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
   disableRunNow?: boolean;
   disableToggle?: boolean;
   hideArchiveAction?: boolean;
+  divider?: boolean;
   onRunNow: (routine: TRoutine) => void;
   onToggleEnabled: (routine: TRoutine, enabled: boolean) => void;
   onToggleArchived?: (routine: TRoutine) => void;

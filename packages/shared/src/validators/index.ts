@@ -280,14 +280,85 @@ export {
 } from "./issue-tree-control.js";
 
 export {
+  COMPANY_ARTIFACTS_DEFAULT_LIMIT,
+  COMPANY_ARTIFACTS_MAX_LIMIT,
+  COMPANY_ARTIFACTS_MAX_QUERY_LENGTH,
+  companyArtifactSourceSchema,
+  companyArtifactMediaKindSchema,
+  companyArtifactGroupBySchema,
+  companyArtifactsQuerySchema,
+  companyArtifactSchema,
+  companyArtifactGroupSchema,
+  companyArtifactsResponseSchema,
+  type CompanyArtifactsQuery,
+} from "./artifact.js";
+
+export {
+  workspaceFileWorkspaceKindSchema,
+  workspaceFileSelectorSchema,
+  workspaceFileListModeSchema,
+  workspaceFilePreviewKindSchema,
+  workspaceFileResourceKindSchema,
+  workspaceFileRefSchema,
+  workspaceFileResourceQuerySchema,
+  workspaceFileListQuerySchema,
+  resolvedWorkspaceResourceSchema,
+  workspaceFileContentSchema,
+  type WorkspaceFileResourceQuery,
+  type WorkspaceFileListQuery,
+} from "./workspace-file-resource.js";
+
+export {
+  softwarehouseIssueTemplateKindSchema,
+  softwarehouseIssueTemplateSchema,
+  softwarehouseIssueTemplateCatalogResponseSchema,
+  type SoftwarehouseIssueTemplateKind,
+  type SoftwarehouseIssueTemplate,
+  type SoftwarehouseIssueTemplateCatalogResponse,
+} from "./softwarehouse.js";
+
+export {
+  catalogTeamKindSchema,
+  catalogTeamTrustLevelSchema,
+  catalogTeamCompatibilitySchema,
+  catalogTeamFileKindSchema,
+  catalogTeamSkillRequirementTypeSchema,
+  catalogTeamSkillRequirementSchema,
+  catalogTeamEnvInputSummarySchema,
+  catalogTeamSourceRefSchema,
+  catalogTeamFileSchema,
+  catalogTeamSchema,
+  catalogTeamListQuerySchema,
+  catalogTeamFileDetailSchema,
+  catalogTeamSourcePolicySchema,
+  catalogTeamPreviewSchema,
+  catalogTeamInstallSchema,
+  catalogTeamSkillPreparationSchema,
+  type CatalogTeamListQuery,
+  type CatalogTeamPreview,
+  type CatalogTeamInstall,
+} from "./teams-catalog.js";
+
+export {
+  lowTrustOutputPromotionTargetSchema,
+  lowTrustBoundarySchema,
+  lowTrustReviewPresetPolicySchema,
+  trustAuthorizationPolicySchema,
+  trustPresetSchema,
+  sourceTrustMetadataSchema,
+} from "./trust-policy.js";
+
+export {
   createIssueWorkProductSchema,
   updateIssueWorkProductSchema,
   attachmentArtifactWorkProductMetadataSchema,
+  issueWorkProductMetadataSchema,
   issueWorkProductTypeSchema,
   issueWorkProductStatusSchema,
   issueWorkProductReviewStateSchema,
   type CreateIssueWorkProduct,
   type UpdateIssueWorkProduct,
+  type IssueWorkProductMetadata,
 } from "./work-product.js";
 
 export {
@@ -400,6 +471,7 @@ export {
   listCompanyInvitesQuerySchema,
   listJoinRequestsQuerySchema,
   claimJoinRequestApiKeySchema,
+  createBoardApiKeySchema,
   boardCliAuthAccessLevelSchema,
   createCliAuthChallengeSchema,
   resolveCliAuthChallengeSchema,
@@ -418,6 +490,7 @@ export {
   type ListCompanyInvitesQuery,
   type ListJoinRequestsQuery,
   type ClaimJoinRequestApiKey,
+  type CreateBoardApiKey,
   type BoardCliAuthAccessLevel,
   type CreateCliAuthChallenge,
   type ResolveCliAuthChallenge,

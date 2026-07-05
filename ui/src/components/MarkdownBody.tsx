@@ -19,6 +19,7 @@ interface MarkdownBodyProps {
   style?: React.CSSProperties;
   softBreaks?: boolean;
   linkIssueReferences?: boolean;
+  linkWorkspaceFileRefs?: boolean;
   /** Opt into Obsidian-style [[target]] / [[target|label]] wikilinks. */
   enableWikiLinks?: boolean;
   /** Base href used for wikilinks when no resolver is supplied. */
@@ -636,6 +637,7 @@ export function MarkdownBody({
   style,
   softBreaks = true,
   linkIssueReferences = true,
+  linkWorkspaceFileRefs: _linkWorkspaceFileRefs = false,
   enableWikiLinks = false,
   wikiLinkRoot,
   resolveWikiLinkHref,

@@ -48,6 +48,7 @@ const KIND_LABEL: Record<IssueRecoveryActionKind, string> = {
   stranded_assigned_issue: "Stranded Issue",
   active_run_watchdog: "Active Watchdog",
   issue_graph_liveness: "Graph Liveness",
+  workspace_validation: "Workspace Validation",
 };
 
 const KIND_HEADLINE: Record<IssueRecoveryActionKind, string> = {
@@ -58,6 +59,8 @@ const KIND_HEADLINE: Record<IssueRecoveryActionKind, string> = {
     "The active run has been silent. Recovery is observing without interrupting it.",
   issue_graph_liveness:
     "Paperclip detected this issue lost a live action path. A recovery owner needs to act.",
+  workspace_validation:
+    "Paperclip detected this issue needs workspace validation before execution can continue.",
 };
 
 const STATE_TONE: Record<RecoveryCardCardState, {

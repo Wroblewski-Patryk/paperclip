@@ -63,6 +63,12 @@ export const claimJoinRequestApiKeySchema = z.object({
 
 export type ClaimJoinRequestApiKey = z.infer<typeof claimJoinRequestApiKeySchema>;
 
+export const createBoardApiKeySchema = z.object({
+  name: z.string().trim().min(1).max(120),
+});
+
+export type CreateBoardApiKey = z.infer<typeof createBoardApiKeySchema>;
+
 export const boardCliAuthAccessLevelSchema = z.enum([
   "board",
   "instance_admin_required",
