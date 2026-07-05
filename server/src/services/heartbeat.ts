@@ -201,6 +201,18 @@ const CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT = readNumberEnv(
   1,
   100,
 );
+const CODEX_LOCAL_PROVIDER_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT = readNumberEnv(
+  "PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT",
+  95,
+  1,
+  100,
+);
+const CODEX_LOCAL_PROVIDER_QUOTA_SHORT_WINDOW_MAX_MS = readNumberEnv(
+  "PAPERCLIP_CODEX_LOCAL_QUOTA_SHORT_WINDOW_MAX_MS",
+  24 * 60 * 60 * 1000,
+  60 * 1000,
+  30 * 24 * 60 * 60 * 1000,
+);
 const CODEX_LOCAL_PROVIDER_QUOTA_RETRY_SPACING_MS = readNumberEnv(
   "PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS",
   2 * 60 * 1000,
@@ -398,16 +410,28 @@ function windowResetDate(window: QuotaWindow) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function isShortQuotaWindow(window: QuotaWindow, now: Date) {
+  const reset = windowResetDate(window);
+  if (!reset) return true;
+  const resetInMs = reset.getTime() - now.getTime();
+  return resetInMs > 0 && resetInMs <= CODEX_LOCAL_PROVIDER_QUOTA_SHORT_WINDOW_MAX_MS;
+}
+
+function quotaHoldThresholdForWindow(window: QuotaWindow, now: Date) {
+  return isShortQuotaWindow(window, now)
+    ? CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT
+    : CODEX_LOCAL_PROVIDER_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT;
+}
+
 function buildProviderQuotaStartBlock(
   quota: ProviderQuotaResult,
   now = new Date(),
 ): ProviderQuotaStartBlock | null {
   if (!quota.ok) return null;
-  const blockedWindows = quota.windows.filter((window) =>
-    isConsumableQuotaWindow(window) &&
-    typeof window.usedPercent === "number" &&
-    window.usedPercent >= CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT
-  );
+  const blockedWindows = quota.windows.filter((window) => {
+    if (!isConsumableQuotaWindow(window) || typeof window.usedPercent !== "number") return false;
+    return window.usedPercent >= quotaHoldThresholdForWindow(window, now);
+  });
   if (blockedWindows.length === 0) return null;
 
   const futureResets = blockedWindows
@@ -416,15 +440,18 @@ function buildProviderQuotaStartBlock(
     .sort((left, right) => left.getTime() - right.getTime());
   const retryAt = futureResets[0] ?? new Date(now.getTime() + CODEX_LOCAL_PROVIDER_QUOTA_FALLBACK_DELAY_MS);
   const summary = blockedWindows
-    .map((window) => `${window.label}=${Math.round(window.usedPercent ?? 0)}%`)
+    .map((window) =>
+      `${window.label}=${Math.round(window.usedPercent ?? 0)}%/${quotaHoldThresholdForWindow(window, now)}%`
+    )
     .join(", ");
+  const thresholdPercent = Math.min(...blockedWindows.map((window) => quotaHoldThresholdForWindow(window, now)));
 
   return {
     provider: quota.provider,
     source: quota.source ?? null,
-    thresholdPercent: CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT,
+    thresholdPercent,
     retryAt,
-    reason: `Provider quota hold: codex_local quota is at or above ${CODEX_LOCAL_PROVIDER_QUOTA_HOLD_USED_PERCENT}% (${summary}); run delayed until quota resets`,
+    reason: `Provider quota hold: codex_local quota reached a hard start threshold (${summary}); run delayed until quota resets`,
     windows: blockedWindows.map((window) => ({
       label: window.label,
       usedPercent: window.usedPercent,

@@ -1609,3 +1609,30 @@ Actions:
 - Added `scripts/audit-softwarehouse-model-cost-readiness.mjs` to report quota
   pressure, budget policies, model distribution, cheap-profile diversification,
   and whether a future OpenAI API lane has verified cost metering.
+
+# 2026-07-05 - Codex Quota Recovery Without Thundering Herd
+
+Context: after local Codex quota pressure, Paperclip placed 13 runs in
+`scheduled_retry` until the weekly reset even though the short five-hour window
+had recovered. This was too conservative for Stage 1 because the company needs
+to keep making bounded Soar/Roost progress without waking every queued run at
+once.
+
+Decision:
+
+- Keep the short-window local Codex hard hold at 75%.
+- Add a separate long-window hard hold at 95% for weekly/monthly style limits.
+- Treat long-window pressure below 95% as conservation mode: release only a
+  small number of concrete retries, keep fanout low, and continue observing
+  quota before promoting more work.
+- Do not configure GPT API lanes yet; this recovery is for the current local
+  Codex adapter only.
+
+Configuration:
+
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT` default: `75`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT` default: `95`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_SHORT_WINDOW_MAX_MS` default: `86400000`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS` default: `120000`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_FALLBACK_DELAY_MS` default: `900000`.
+- `PAPERCLIP_CODEX_LOCAL_QUOTA_CACHE_MS` default: `60000`.

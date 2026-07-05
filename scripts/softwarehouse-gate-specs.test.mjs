@@ -225,6 +225,11 @@ test("heartbeat scheduler gates codex_local starts on provider quota pressure", 
 
   assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT/);
   assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT"[\s\S]*75/);
+  assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT/);
+  assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT"[\s\S]*95/);
+  assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_SHORT_WINDOW_MAX_MS/);
+  assert.match(source, /function isShortQuotaWindow/);
+  assert.match(source, /function quotaHoldThresholdForWindow/);
   assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_RETRY_SPACING_MS/);
   assert.match(source, /CODEX_LOCAL_PROVIDER_QUOTA_CACHE_MS/);
   assert.match(source, /function buildProviderQuotaStartBlock/);

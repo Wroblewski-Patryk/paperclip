@@ -1,6 +1,8 @@
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const quotaHoldPercent = Number(process.env.PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT ?? 75);
+const longWindowHoldPercent = Number(process.env.PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT ?? 95);
+const shortWindowMaxMs = Number(process.env.PAPERCLIP_CODEX_LOCAL_QUOTA_SHORT_WINDOW_MAX_MS ?? 24 * 60 * 60 * 1000);
 
 async function request(route) {
   const response = await fetch(`${apiBase}${route}`, {
@@ -29,6 +31,22 @@ function envHasKey(agent, key) {
   return Object.prototype.hasOwnProperty.call(asRecord(agent.adapterConfig?.env), key);
 }
 
+function isConsumableQuotaWindow(window) {
+  return !/remaining|credit/i.test(`${window.label ?? ""} ${window.valueLabel ?? ""}`);
+}
+
+function isShortQuotaWindow(window, now = new Date()) {
+  if (!window.resetsAt) return true;
+  const reset = new Date(window.resetsAt);
+  if (Number.isNaN(reset.getTime())) return true;
+  const resetInMs = reset.getTime() - now.getTime();
+  return resetInMs > 0 && resetInMs <= shortWindowMaxMs;
+}
+
+function hardHoldThresholdForWindow(window) {
+  return isShortQuotaWindow(window) ? quotaHoldPercent : longWindowHoldPercent;
+}
+
 function summarizeQuota(providerResult) {
   return {
     provider: providerResult.provider,
@@ -40,10 +58,15 @@ function summarizeQuota(providerResult) {
       usedPercent: window.usedPercent ?? null,
       resetsAt: window.resetsAt ?? null,
       valueLabel: window.valueLabel ?? null,
-      overHoldThreshold:
+      hardHoldThreshold: isConsumableQuotaWindow(window) ? hardHoldThresholdForWindow(window) : null,
+      overShortHoldThreshold:
         typeof window.usedPercent === "number" &&
         window.usedPercent >= quotaHoldPercent &&
-        !/remaining|credit/i.test(`${window.label ?? ""} ${window.valueLabel ?? ""}`),
+        isConsumableQuotaWindow(window),
+      overHardHoldThreshold:
+        typeof window.usedPercent === "number" &&
+        window.usedPercent >= hardHoldThresholdForWindow(window) &&
+        isConsumableQuotaWindow(window),
     })),
   };
 }
@@ -104,14 +127,24 @@ const [quotaWindows, costSummary, budgetOverview, agents] = await Promise.all([
 
 const quota = quotaWindows.map(summarizeQuota);
 const agentSummary = summarizeAgents(agents);
-const anyQuotaHold = quota.some((provider) => provider.windows.some((window) => window.overHoldThreshold));
+const anyHardQuotaHold = quota.some((provider) => provider.windows.some((window) => window.overHardHoldThreshold));
+const anyLongWindowPressure = quota.some((provider) =>
+  provider.windows.some((window) => window.overShortHoldThreshold && !window.overHardHoldThreshold)
+);
 
 const risks = [];
-if (anyQuotaHold) {
+if (anyHardQuotaHold) {
   risks.push({
     code: "provider_quota_hold_expected",
     level: "info",
-    summary: `A consumable provider quota window is at or above ${quotaHoldPercent}%; queued codex_local runs should defer instead of starting.`,
+    summary: `A consumable provider quota window is at or above its hard threshold; queued codex_local runs should defer instead of starting.`,
+  });
+}
+if (anyLongWindowPressure) {
+  risks.push({
+    code: "provider_quota_long_window_pressure",
+    level: "info",
+    summary: `A long provider quota window is above ${quotaHoldPercent}% but below the hard long-window hold (${longWindowHoldPercent}%); continue slowly instead of starting a broad fanout.`,
   });
 }
 if (agentSummary.codexLocal.cheapEqualsPrimaryCount > 0) {
@@ -140,6 +173,8 @@ console.log(JSON.stringify({
   apiBase,
   companyId,
   quotaHoldPercent,
+  longWindowHoldPercent,
+  shortWindowMaxMs,
   costSummary,
   budget: summarizeBudgetPolicies(budgetOverview),
   quota,
