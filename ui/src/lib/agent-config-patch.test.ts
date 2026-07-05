@@ -168,6 +168,38 @@ describe("buildAgentUpdatePatch", () => {
     });
   });
 
+  it("merges non-cheap model profile changes onto existing runtimeConfig.modelProfiles state", () => {
+    const agent = makeAgent();
+    agent.runtimeConfig = {
+      heartbeat: { enabled: true, intervalSec: 300 },
+      modelProfiles: {
+        reasoning: {
+          enabled: false,
+          adapterConfig: { model: "old-reasoning", modelReasoningEffort: "high" },
+        },
+      },
+    };
+
+    const patch = buildAgentUpdatePatch(
+      agent,
+      makeOverlay({
+        modelProfiles: {
+          reasoning: {
+            enabled: true,
+            adapterConfig: { model: "new-reasoning" },
+          },
+        },
+      }),
+    );
+
+    expect((patch.runtimeConfig as Record<string, unknown>).modelProfiles).toEqual({
+      reasoning: {
+        enabled: true,
+        adapterConfig: { model: "new-reasoning", modelReasoningEffort: "high" },
+      },
+    });
+  });
+
   it("clears the cheap profile when the overlay marks it cleared", () => {
     const agent = makeAgent();
     agent.runtimeConfig = {

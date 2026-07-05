@@ -208,6 +208,31 @@ describe("server adapter registry", () => {
         adapterConfig: expect.objectContaining({ model: "gpt-5.3-codex-spark" }),
         source: "adapter_default",
       }),
+      expect.objectContaining({
+        key: "spark",
+        adapterConfig: expect.objectContaining({ model: "gpt-5.3-codex-spark" }),
+        source: "adapter_default",
+      }),
+      expect.objectContaining({
+        key: "light",
+        adapterConfig: expect.objectContaining({ model: "gpt-5.4-mini" }),
+        source: "adapter_default",
+      }),
+      expect.objectContaining({
+        key: "standard",
+        adapterConfig: expect.objectContaining({ model: "gpt-5.5" }),
+        source: "adapter_default",
+      }),
+      expect.objectContaining({
+        key: "reasoning",
+        adapterConfig: expect.objectContaining({ model: "gpt-5.5" }),
+        source: "adapter_default",
+      }),
+      expect.objectContaining({
+        key: "strategic",
+        adapterConfig: expect.objectContaining({ model: "gpt-5.5-pro" }),
+        source: "adapter_default",
+      }),
     ]);
     await expect(listAdapterModelProfiles("gemini_local")).resolves.toEqual([
       expect.objectContaining({

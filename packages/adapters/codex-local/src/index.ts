@@ -5,9 +5,9 @@ export const label = "Codex (local)";
 
 export const SANDBOX_INSTALL_COMMAND = "npm install -g @openai/codex";
 
-export const DEFAULT_CODEX_LOCAL_MODEL = "gpt-5.3-codex";
+export const DEFAULT_CODEX_LOCAL_MODEL = "gpt-5.5";
 export const DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX = true;
-export const CODEX_LOCAL_FAST_MODE_SUPPORTED_MODELS = ["gpt-5.4"] as const;
+export const CODEX_LOCAL_FAST_MODE_SUPPORTED_MODELS = ["gpt-5.4", "gpt-5.4-mini"] as const;
 
 function normalizeModelId(model: string | null | undefined): string {
   return typeof model === "string" ? model.trim() : "";
@@ -33,8 +33,12 @@ export function isCodexLocalFastModeSupported(model: string | null | undefined):
 }
 
 export const models = [
-  { id: "gpt-5.4", label: "gpt-5.4" },
   { id: DEFAULT_CODEX_LOCAL_MODEL, label: DEFAULT_CODEX_LOCAL_MODEL },
+  { id: "gpt-5.5-pro", label: "gpt-5.5-pro" },
+  { id: "gpt-5.4", label: "gpt-5.4" },
+  { id: "gpt-5.4-mini", label: "gpt-5.4-mini" },
+  { id: "gpt-5.4-nano", label: "gpt-5.4-nano" },
+  { id: "gpt-5.3-codex", label: "gpt-5.3-codex (deprecated)" },
   { id: "gpt-5.3-codex-spark", label: "gpt-5.3-codex-spark" },
   { id: "gpt-5", label: "gpt-5" },
   { id: "o3", label: "o3" },
@@ -48,11 +52,61 @@ export const models = [
 export const modelProfiles: AdapterModelProfileDefinition[] = [
   {
     key: "cheap",
-    label: "Cheap",
-    description: "Use the lowest-cost known Codex local model lane without changing the primary model.",
+    label: "Cheap / Spark",
+    description: "Legacy low-cost profile for recovery, status, and tiny follow-up runs.",
     adapterConfig: {
       model: "gpt-5.3-codex-spark",
-      // Spark is the cheap lane by model price; high effort keeps Codex coding behavior usable for delegated work.
+      modelReasoningEffort: "medium",
+    },
+    source: "adapter_default",
+  },
+  {
+    key: "spark",
+    label: "Spark",
+    description: "Fast coding lane for small fixes, formatting, documentation, and lightweight tests.",
+    adapterConfig: {
+      model: "gpt-5.3-codex-spark",
+      modelReasoningEffort: "medium",
+    },
+    source: "adapter_default",
+  },
+  {
+    key: "light",
+    label: "Light",
+    description: "General lightweight lane for triage, coordination, and routine analysis.",
+    adapterConfig: {
+      model: "gpt-5.4-mini",
+      modelReasoningEffort: "medium",
+      fastMode: true,
+    },
+    source: "adapter_default",
+  },
+  {
+    key: "standard",
+    label: "Standard",
+    description: "Default high-quality lane for normal implementation, debugging, review, and verification.",
+    adapterConfig: {
+      model: DEFAULT_CODEX_LOCAL_MODEL,
+      modelReasoningEffort: "medium",
+    },
+    source: "adapter_default",
+  },
+  {
+    key: "reasoning",
+    label: "Reasoning",
+    description: "Stronger lane for architecture, security, deployment, and cross-module reasoning.",
+    adapterConfig: {
+      model: DEFAULT_CODEX_LOCAL_MODEL,
+      modelReasoningEffort: "high",
+    },
+    source: "adapter_default",
+  },
+  {
+    key: "strategic",
+    label: "Strategic",
+    description: "Highest-reasoning lane for explicit strategic or multi-system decisions.",
+    adapterConfig: {
+      model: "gpt-5.5-pro",
       modelReasoningEffort: "high",
     },
     source: "adapter_default",
@@ -68,6 +122,7 @@ Core fields:
 - instructionsFilePath (string, optional): absolute path to a markdown instructions file prepended to stdin prompt at runtime
 - model (string, optional): Codex model id
 - modelReasoningEffort (string, optional): reasoning effort override (minimal|low|medium|high|xhigh) passed via -c model_reasoning_effort=...
+- modelProfiles (runtime config): Paperclip can apply cheap, spark, light, standard, reasoning, or strategic profiles before each run via the central model router.
 - promptTemplate (string, optional): run prompt template
 - search (boolean, optional): run codex with --search
 - fastMode (boolean, optional): enable Codex Fast mode; supported on GPT-5.4 and passed through for manual model IDs
@@ -89,6 +144,6 @@ Notes:
 - Paperclip injects desired local skills into the effective CODEX_HOME/skills/ directory at execution time so Codex can discover "$paperclip" and related skills without polluting the project working directory. In managed-home mode (the default) this is ~/.paperclip/instances/<id>/companies/<companyId>/codex-home/skills/; when CODEX_HOME is explicitly overridden in adapter config, that override is used instead.
 - Unless explicitly overridden in adapter config, Paperclip runs Codex with a per-company managed CODEX_HOME under the active Paperclip instance and seeds auth/config from the shared Codex home (the CODEX_HOME env var, when set, or ~/.codex).
 - Some model/tool combinations reject certain effort levels (for example minimal with web search enabled).
-- Fast mode is supported on GPT-5.4 and manual model IDs. When enabled for those models, Paperclip applies \`service_tier="fast"\` and \`features.fast_mode=true\`.
+- Fast mode is supported on GPT-5.4, GPT-5.4 mini, and manual model IDs. When enabled for those models, Paperclip applies \`service_tier="fast"\` and \`features.fast_mode=true\`.
 - When Paperclip realizes a workspace/runtime for a run, it injects PAPERCLIP_WORKSPACE_* and PAPERCLIP_RUNTIME_* env vars for agent-side tooling.
 `;

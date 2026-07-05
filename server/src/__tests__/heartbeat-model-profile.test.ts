@@ -8,6 +8,7 @@ import {
   normalizeModelProfileWakeContext,
   resolveModelProfileApplication,
 } from "../services/heartbeat.ts";
+import { resolveModelRouterProfile } from "../services/model-router.js";
 
 const cheapProfile: AdapterModelProfileDefinition = {
   key: "cheap",
@@ -36,7 +37,61 @@ describe("heartbeat model profile application", () => {
       fallbackReason: null,
       adapterConfig: {
         model: "gpt-5.3-codex-spark",
-        modelReasoningEffort: "high",
+        modelReasoningEffort: "medium",
+      },
+    });
+  });
+
+  it("uses the model router when no issue or wake context profile is explicit", () => {
+    const modelProfile = resolveModelProfileApplication({
+      adapterModelProfiles: [
+        cheapProfile,
+        {
+          key: "reasoning",
+          label: "Reasoning",
+          adapterConfig: { model: "reasoning-model" },
+          source: "adapter_default",
+        },
+      ],
+      agentRuntimeConfig: {},
+      issueModelProfile: null,
+      routerModelProfile: "reasoning",
+      contextSnapshot: {},
+    });
+
+    expect(modelProfile).toMatchObject({
+      requested: "reasoning",
+      requestedBy: "model_router",
+      applied: "reasoning",
+      adapterConfig: {
+        model: "reasoning-model",
+      },
+    });
+  });
+
+  it("keeps explicit issue model profile overrides ahead of router decisions", () => {
+    const modelProfile = resolveModelProfileApplication({
+      adapterModelProfiles: [
+        cheapProfile,
+        {
+          key: "reasoning",
+          label: "Reasoning",
+          adapterConfig: { model: "reasoning-model" },
+          source: "adapter_default",
+        },
+      ],
+      agentRuntimeConfig: {},
+      issueModelProfile: "cheap",
+      routerModelProfile: "reasoning",
+      contextSnapshot: {},
+    });
+
+    expect(modelProfile).toMatchObject({
+      requested: "cheap",
+      requestedBy: "issue_override",
+      applied: "cheap",
+      adapterConfig: {
+        model: "adapter-cheap",
       },
     });
   });
@@ -143,5 +198,89 @@ describe("heartbeat model profile application", () => {
     });
 
     expect(contextSnapshot).toMatchObject({ modelProfile: "cheap" });
+  });
+});
+
+describe("model router profile selection", () => {
+  it("routes architecture and deployment work to the reasoning profile", () => {
+    expect(
+      resolveModelRouterProfile({
+        agent: { name: "04 COO Chief Operating Officer", role: "general" },
+        issue: {
+          title: "Verify VPS deployment readiness",
+          priority: "high",
+        },
+        contextSnapshot: {},
+      }),
+    ).toMatchObject({
+      profile: "reasoning",
+      source: "title_rule",
+    });
+  });
+
+  it("routes lightweight medium-priority documentation tasks to Spark", () => {
+    expect(
+      resolveModelRouterProfile({
+        agent: { name: "09 CTO Chief Technology Officer", role: "cto" },
+        issue: {
+          title: "Update README status summary",
+          priority: "medium",
+        },
+        contextSnapshot: {},
+      }),
+    ).toMatchObject({
+      profile: "spark",
+      source: "title_rule",
+    });
+  });
+
+  it("uses Softwarehouse role/name defaults when there is no stronger task signal", () => {
+    expect(
+      resolveModelRouterProfile({
+        agent: { name: "09 FEW Frontend Engineer", role: "engineer" },
+        issue: {
+          title: "Implement button state",
+          priority: "medium",
+        },
+        contextSnapshot: {},
+      }),
+    ).toMatchObject({
+      profile: "standard",
+      source: "name_prefix",
+    });
+  });
+
+  it("lowers selected profiles when Codex quota pressure is high", () => {
+    expect(
+      resolveModelRouterProfile({
+        agent: { name: "09 DRE DevOps Reliability Engineer", role: "devops" },
+        issue: {
+          title: "Verify production deployment readiness",
+          priority: "high",
+        },
+        contextSnapshot: {},
+        quotaPressure: "high",
+      }),
+    ).toMatchObject({
+      profile: "standard",
+      source: "title_rule",
+    });
+  });
+
+  it("lowers selected profiles more aggressively when Codex quota pressure is critical", () => {
+    expect(
+      resolveModelRouterProfile({
+        agent: { name: "09 FEW Frontend Engineer", role: "engineer" },
+        issue: {
+          title: "Implement button state",
+          priority: "medium",
+        },
+        contextSnapshot: {},
+        quotaPressure: "critical",
+      }),
+    ).toMatchObject({
+      profile: "spark",
+      source: "name_prefix",
+    });
   });
 });

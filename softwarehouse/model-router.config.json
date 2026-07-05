@@ -1,0 +1,108 @@
+{
+  "enabled": true,
+  "defaultProfile": "standard",
+  "roleDefaults": {
+    "ceo": "reasoning",
+    "cto": "reasoning",
+    "cfo": "light",
+    "security": "reasoning",
+    "engineer": "standard",
+    "designer": "light",
+    "pm": "light",
+    "qa": "standard",
+    "devops": "reasoning",
+    "researcher": "reasoning",
+    "general": "light"
+  },
+  "namePrefixDefaults": {
+    "00 AIA": "light",
+    "01 CSO": "reasoning",
+    "02 CPO": "light",
+    "02 UID": "light",
+    "02 UXW": "light",
+    "02 WPM": "light",
+    "04 COO": "light",
+    "04 DPM": "light",
+    "04 DSM": "light",
+    "06 AIM": "light",
+    "07 CFO": "light",
+    "08 CAO": "light",
+    "09 CTO": "reasoning",
+    "09 TSA": "reasoning",
+    "09 EDL": "standard",
+    "09 CBE": "standard",
+    "09 FEW": "standard",
+    "09 DBE": "standard",
+    "09 IDE": "standard",
+    "09 RTE": "standard",
+    "09 TAE": "standard",
+    "09 QVE": "standard",
+    "09 CRS": "standard",
+    "09 DRE": "reasoning",
+    "10 CLO": "reasoning",
+    "10 SPA": "reasoning",
+    "11 CINO": "reasoning",
+    "11 IPM": "light",
+    "11 SPM": "light",
+    "11 RPM": "light"
+  },
+  "titleKeywordRules": [
+    {
+      "profile": "reasoning",
+      "keywords": [
+        "architecture",
+        "security",
+        "secrets",
+        "deployment",
+        "vps",
+        "coolify",
+        "schema",
+        "migration",
+        "cross-system",
+        "multi-system",
+        "production"
+      ],
+      "reason": "task touches architecture, security, deployment, data model, or production readiness"
+    },
+    {
+      "profile": "spark",
+      "keywords": [
+        "typo",
+        "format",
+        "formatting",
+        "comment",
+        "docs",
+        "documentation",
+        "readme",
+        "status",
+        "summary",
+        "triage",
+        "log"
+      ],
+      "priority": ["medium", "low"],
+      "reason": "task appears lightweight and safe for the Spark lane"
+    }
+  ],
+  "contextKeywordRules": [
+    {
+      "profile": "cheap",
+      "keywords": ["status_only", "recovery", "liveness", "janitor"],
+      "reason": "wake context is status/recovery oriented"
+    }
+  ],
+  "quotaPressureFallbacks": {
+    "high": {
+      "strategic": "reasoning",
+      "reasoning": "standard",
+      "standard": "light",
+      "light": "spark"
+    },
+    "critical": {
+      "strategic": "standard",
+      "reasoning": "light",
+      "standard": "spark",
+      "light": "cheap",
+      "spark": "cheap"
+    }
+  }
+}

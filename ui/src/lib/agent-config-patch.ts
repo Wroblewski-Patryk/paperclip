@@ -1,11 +1,11 @@
-import type { Agent } from "@paperclipai/shared";
+import { MODEL_PROFILE_KEYS, type Agent, type ModelProfileKey } from "@paperclipai/shared";
 
 export interface AgentModelProfileOverlay {
   enabled?: boolean;
   adapterConfig?: Record<string, unknown>;
   /**
-   * Mark the cheap profile for clearing. When true, the patch removes
-   * `runtimeConfig.modelProfiles.cheap` instead of merging into it.
+   * Mark the profile for clearing. When true, the patch removes that
+   * `runtimeConfig.modelProfiles.<key>` entry instead of merging into it.
    */
   cleared?: boolean;
 }
@@ -16,7 +16,7 @@ export interface AgentConfigOverlay {
   adapterConfig: Record<string, unknown>;
   heartbeat: Record<string, unknown>;
   runtime: Record<string, unknown>;
-  modelProfiles?: { cheap?: AgentModelProfileOverlay };
+  modelProfiles?: Partial<Record<ModelProfileKey, AgentModelProfileOverlay>>;
 }
 
 const ADAPTER_AGNOSTIC_KEYS = [
@@ -67,8 +67,9 @@ export function buildAgentUpdatePatch(agent: Agent, overlay: AgentConfigOverlay)
     patch.replaceAdapterConfig = true;
   }
 
-  const cheapOverlay = overlay.modelProfiles?.cheap;
-  const hasModelProfileChange = cheapOverlay !== undefined;
+  const profileOverlays = overlay.modelProfiles ?? {};
+  const changedModelProfiles = MODEL_PROFILE_KEYS.filter((key) => profileOverlays[key] !== undefined);
+  const hasModelProfileChange = changedModelProfiles.length > 0;
 
   if (Object.keys(overlay.heartbeat).length > 0 || hasModelProfileChange) {
     const existingRc = (agent.runtimeConfig ?? {}) as Record<string, unknown>;
@@ -82,22 +83,27 @@ export function buildAgentUpdatePatch(agent: Agent, overlay: AgentConfigOverlay)
 
     if (hasModelProfileChange) {
       const existingProfiles = ((existingRc.modelProfiles ?? {}) as Record<string, unknown>);
-      const existingCheap = ((existingProfiles.cheap ?? {}) as Record<string, unknown>);
       const nextProfiles = { ...existingProfiles };
 
-      if (cheapOverlay?.cleared) {
-        delete nextProfiles.cheap;
-      } else if (cheapOverlay) {
-        const mergedAdapterConfig = {
-          ...((existingCheap.adapterConfig ?? {}) as Record<string, unknown>),
-          ...(cheapOverlay.adapterConfig ?? {}),
-        };
-        const enabled = cheapOverlay.enabled ?? (existingCheap.enabled !== false);
-        nextProfiles.cheap = {
-          ...existingCheap,
-          enabled,
-          adapterConfig: mergedAdapterConfig,
-        };
+      for (const profileKey of changedModelProfiles) {
+        const profileOverlay = profileOverlays[profileKey];
+        const existingProfile = ((existingProfiles[profileKey] ?? {}) as Record<string, unknown>);
+        if (profileOverlay?.cleared) {
+          delete nextProfiles[profileKey];
+          continue;
+        }
+        if (profileOverlay) {
+          const mergedAdapterConfig = {
+            ...((existingProfile.adapterConfig ?? {}) as Record<string, unknown>),
+            ...(profileOverlay.adapterConfig ?? {}),
+          };
+          const enabled = profileOverlay.enabled ?? (existingProfile.enabled !== false);
+          nextProfiles[profileKey] = {
+            ...existingProfile,
+            enabled,
+            adapterConfig: mergedAdapterConfig,
+          };
+        }
       }
 
       if (Object.keys(nextProfiles).length === 0) {

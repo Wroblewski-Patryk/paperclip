@@ -88,6 +88,7 @@ import {
   classifyRunLiveness,
   type RunLivenessClassificationInput,
 } from "./run-liveness.js";
+import { resolveModelRouterProfile, type ModelRouterQuotaPressure } from "./model-router.js";
 import { logActivity, publishPluginDomainEvent, type LogActivityInput } from "./activity-log.js";
 import {
   buildWorkspaceReadyComment,
@@ -459,6 +460,21 @@ function buildProviderQuotaStartBlock(
       detail: window.detail ?? null,
     })),
   };
+}
+
+function resolveModelRouterQuotaPressure(
+  quota: ProviderQuotaResult | null | undefined,
+  now = new Date(),
+): ModelRouterQuotaPressure {
+  if (!quota?.ok) return "normal";
+  let pressure: ModelRouterQuotaPressure = "normal";
+  for (const window of quota.windows) {
+    if (!isConsumableQuotaWindow(window) || typeof window.usedPercent !== "number") continue;
+    const holdThreshold = quotaHoldThresholdForWindow(window, now);
+    if (window.usedPercent >= Math.max(1, holdThreshold - 5)) return "critical";
+    if (window.usedPercent >= Math.max(1, holdThreshold - 15)) pressure = "high";
+  }
+  return pressure;
 }
 
 type RuntimeConfigSecretResolver = Pick<
@@ -1197,7 +1213,7 @@ interface ParsedIssueAssigneeAdapterOverrides {
   useProjectWorkspace: boolean | null;
 }
 
-type ModelProfileRequestSource = "issue_override" | "wake_context";
+type ModelProfileRequestSource = "issue_override" | "wake_context" | "model_router";
 type AppliedModelProfileConfigSource = "agent_runtime" | "adapter_default";
 
 export interface ModelProfileApplication {
@@ -1287,17 +1303,21 @@ export function resolveModelProfileApplication(input: {
   adapterModelProfiles: AdapterModelProfileDefinition[];
   agentRuntimeConfig: unknown;
   issueModelProfile: ModelProfileKey | null | undefined;
+  routerModelProfile?: ModelProfileKey | null | undefined;
   contextSnapshot: Record<string, unknown> | null | undefined;
   profileResolutionFallbackReason?: string | null;
 }): ModelProfileApplication {
   const issueModelProfile = input.issueModelProfile ?? null;
   const contextModelProfile = readContextModelProfile(input.contextSnapshot);
-  const requested = issueModelProfile ?? contextModelProfile;
+  const routerModelProfile = input.routerModelProfile ?? null;
+  const requested = issueModelProfile ?? contextModelProfile ?? routerModelProfile;
   const requestedBy: ModelProfileRequestSource | null = issueModelProfile
     ? "issue_override"
     : contextModelProfile
       ? "wake_context"
-      : null;
+      : routerModelProfile
+        ? "model_router"
+        : null;
 
   if (!requested) {
     return {
@@ -7670,19 +7690,35 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         "Failed to resolve adapter model profiles; falling back to primary adapter config",
       );
     }
+    const modelRouterQuota =
+      agent.adapterType === "codex_local" ? await getCachedProviderQuota(agent) : null;
+    const modelRouterQuotaPressure = resolveModelRouterQuotaPressure(modelRouterQuota);
+    const modelRouterDecision = resolveModelRouterProfile({
+      agent: {
+        name: agent.name,
+        role: agent.role,
+        title: agent.title,
+      },
+      issue: issueRef,
+      contextSnapshot: context,
+      quotaPressure: modelRouterQuotaPressure,
+    });
     const modelProfileApplication = resolveModelProfileApplication({
       adapterModelProfiles,
       agentRuntimeConfig: agent.runtimeConfig,
       issueModelProfile: issueAssigneeOverrides?.modelProfile ?? null,
+      routerModelProfile: modelRouterDecision.profile,
       contextSnapshot: context,
       profileResolutionFallbackReason,
     });
     const modelProfileMetadata = modelProfileRunMetadata(modelProfileApplication);
     if (modelProfileMetadata) {
       context.paperclipModelProfile = modelProfileMetadata;
+      context.paperclipModelRouter = modelRouterDecision;
       if (modelProfileApplication.requested) context.modelProfile = modelProfileApplication.requested;
     } else {
       delete context.paperclipModelProfile;
+      delete context.paperclipModelRouter;
     }
     const mergedConfig = mergeModelProfileAdapterConfig({
       baseConfig: persistedWorkspaceManagedConfig,

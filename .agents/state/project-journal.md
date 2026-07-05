@@ -1739,3 +1739,12 @@ Evidence:
 Follow-up: create a separate context-budget optimization pass so agents receive
 minimum viable baseline context plus scoped on-demand knowledge instead of
 large company-wide context packets for every run.
+
+## 2026-07-05 - Codex Model Router groundwork
+
+- Added a central model-router policy for Softwarehouse agent runs, including versioned config at `softwarehouse/model-router.config.json`.
+- Expanded Codex local model profiles from the legacy `cheap` lane to `cheap`, `spark`, `light`, `standard`, `reasoning`, and `strategic`.
+- Updated heartbeat model-profile resolution so explicit issue/wake overrides still win, then the router picks a default based on issue/context/agent role.
+- Added quota-pressure soft fallback before the hard provider-quota hold: high pressure lowers expensive profiles by one lane, critical pressure lowers them more aggressively, and hard quota holds still defer queued Codex runs.
+- Rebuilt the UI, copied it to the real served `server/ui-dist` directory, restarted the local Softwarehouse server, and verified `/api/health`, `/LUC/dashboard`, `/LUC/costs`, Codex model profiles, and workspace boundary audit.
+- Verified targeted backend and frontend model-profile tests directly with local Vitest binaries because workspace `pnpm exec` is currently blocked by a Windows symlink EPERM in `packages/plugins/plugin-workspace-diff`.

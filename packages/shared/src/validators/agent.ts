@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   AGENT_ICON_NAMES,
+  MODEL_PROFILE_KEYS,
   AGENT_ROLES,
   AGENT_STATUSES,
   INBOX_MINE_ISSUE_STATUS_FILTER,
@@ -58,9 +59,11 @@ const agentModelProfileConfigSchema = z.object({
 }).strict();
 
 export const agentRuntimeConfigSchema = z.object({
-  modelProfiles: z.object({
-    cheap: agentModelProfileConfigSchema.optional(),
-  }).strict().optional(),
+  modelProfiles: z.object(
+    Object.fromEntries(
+      MODEL_PROFILE_KEYS.map((key) => [key, agentModelProfileConfigSchema.optional()]),
+    ) as Record<(typeof MODEL_PROFILE_KEYS)[number], z.ZodOptional<typeof agentModelProfileConfigSchema>>,
+  ).strict().optional(),
 }).catchall(z.unknown());
 
 export const createAgentSchema = z.object({
