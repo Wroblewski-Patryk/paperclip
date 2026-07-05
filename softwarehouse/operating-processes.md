@@ -81,7 +81,7 @@ issue is in DISCOVERY until Product/PM/Portfolio can classify it.
 | Longevity doctor/watchdog | CTO Architect + Portfolio Director | Hourly | Check local Paperclip health, restartRequired, WIP sanity, stale issues, project workspace policies, and snapshot export. | Doctor report, safe restart request if needed, no production mutation. |
 | Longevity snapshot backup | Docs Memory Lead | Daily | Export redacted local state for agents, projects, issues, routines, goals, labels, live runs, and secret key metadata. | `report/longevity/*` JSON/Markdown snapshot without secret values. |
 | Portfolio index refresh | Docs Memory Lead + Portfolio Director | After project audit, takeover prep, or meaningful status change | Keep `softwarehouse/portfolio/APPLICATIONS_INDEX.md` and `.csv` aligned with real project folders and docs roots. | Refreshed Paperclip-owned index from `node scripts/update-softwarehouse-portfolio-index.mjs`; no root-level generated indexes or updater under `/Aplikacje`. |
-| AI-agent development review | CHRO + AI Agent Development Partner | Daily or after repeated failures | Review recent agent work for repeatable instruction, skill, routine, role, or tool/config lessons. | At most one applied low-risk durable update, up to three governed follow-ups, or an explicit no-change finding. |
+| AI-agent development review | AI Agent Manager + AI Agent Development Partner | Daily or after repeated failures | Review recent agent work for repeatable instruction, skill, routine, role, or tool/config lessons. | At most one applied low-risk durable update, up to three governed follow-ups, or an explicit no-change finding. |
 | Retrospective loop | Portfolio Director + Docs Memory Lead | Weekly | Identify why agents stalled, repeated work, or missed proof; update process and instructions. | SOP changes, guardrail updates, role/routine adjustments. |
 | Talent/capability loop | Portfolio Director + CTO Architect + Docs Memory Lead | Weekly or after repeated failures | Detect missing responsibilities, propose new roles or role splits, and retire ineffective boundaries. | Capability gap note, approval decision, onboarding checklist, or instruction/process update. |
 
@@ -286,11 +286,12 @@ opening large Roost specialist batches, PMs must verify project-manager lanes,
 workspace policies, no stale `in_progress`, no shared specialist WIP conflicts,
 and unresolved project gates.
 
-The AI-agent development review is a lightweight daily scan owned by CHRO/AID.
+The AI-agent development review is a lightweight daily scan owned by AIM/AID.
 It may apply one low-risk durable improvement or produce a no-change finding.
 The heavier talent/capability loop remains evidence-triggered during the Soar
 pilot and should run when a recurring organizational gap needs approval,
-staffing, or role-boundary decisions.
+staffing, or role-boundary decisions. CHRO remains paused for broad
+human-capital work unless the board explicitly reopens that scope.
 
 ## Cost Rules
 

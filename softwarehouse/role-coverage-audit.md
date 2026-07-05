@@ -27,15 +27,15 @@ managed instruction bundles after syncing the roster instructions.
 | Operating standard audit | pass | `pnpm softwarehouse:operating-standard-audit` reports `ok: true` with no findings. |
 | Org chain health | pass | 38/38 live agents report healthy org chains. |
 | Heartbeat concurrency | pass | 38/38 live agents have `runtimeConfig.heartbeat.maxConcurrentRuns = 1`. |
-| Agent creation authority | pass | Only `06 CHRO` has `canCreateAgents = true`; AID designs/reviews AI-agent changes but cannot create agents directly. |
+| Agent creation authority | pass | Only `06 AIM` has `canCreateAgents = true`; AID designs/reviews AI-agent changes but cannot create agents directly, and CHRO is paused for broad human-capital work. |
 | Routine coverage | pass with review needed | 59 routines exist, 30 active and 29 paused, all with triggers. |
 | Secret handling | accepted local debt | 60 secret-looking env keys are configured as plain adapter env entries across 12 agents. This is acceptable for the current private local phase, but should migrate to Paperclip secret refs before broader operation. Values were not printed in this audit. |
 | Workspace scoping | pass | 31 agents start in `Paperclip_Softwarehouse`, 2 portfolio agents start in the portfolio root, and 5 app PMs start in their app roots (`Soar`, `Roost`, `Aviary`, `Featherly`, `Nest`). |
 | Role-file noise | pass | 18 non-roster role files were archived under `softwarehouse/instructions/roles-archive/legacy-2026-07-03/`; active `roles/` now matches the 38-agent roster. |
 
-The 2026-07-03 prompt sync propagated the latest blocker readback, resume
-discipline, evidence-gate, workspace-scope, and CHRO-owned hiring rules to all
-live managed agent bundles.
+The 2026-07-05 prompt sync expectation is that live managed bundles should carry
+the latest blocker readback, resume discipline, evidence-gate, workspace-scope,
+and AIM-owned AI-agent hiring rules.
 
 ## Implemented Roles
 
@@ -127,7 +127,7 @@ stable enough to absorb broader business operations.
 | Customer support | CCO / CSM | present but paused until users/customers exist. |
 | Billing/accounting | CFO | present but paused; subscription behavior remains Product/QA/Security test scope. |
 | Marketing/content | Future marketing owner | not a softwarehouse delivery dependency. |
-| HR/vendor management | CHRO / POP | CHRO active for agent staffing and quality; people/vendor operations remain paused. |
+| HR/vendor management | CHRO / POP | CHRO and POP remain paused for broad human people/vendor operations; current AI-agent staffing and quality route through AIM with AID review support. |
 
 ## Current Verdict
 
@@ -146,6 +146,7 @@ not inside this softwarehouse pilot, unless the user decides otherwise.
 For a strict autonomous software-creation company score, the current agent
 configuration is strong but not yet fully excellent. It has a coherent org
 chart, healthy managed instruction distribution, evidence gates, learning roles,
-active routines, CHRO-owned hiring authority, and narrower default workspaces.
+active routines, AIM-owned AI-agent hiring authority, and narrower default
+workspaces.
 It is held below excellent by accepted local plain-env secret debt and paused
 Product/UX acceptance paths that still require manual judgment for some work.

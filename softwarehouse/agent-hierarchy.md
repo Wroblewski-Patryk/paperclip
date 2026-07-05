@@ -93,7 +93,7 @@ finish application projects autonomously. Current fit:
 | 09 Technology | CTO, Delivery, specialist engineering, QA, Security, Ops | Builds, verifies, and releases app software under protected gates. |
 | 04 Operations | Ops Release Lead only for software runtime/release operations | No broader business operations yet. |
 | 08 Resources | Docs Memory Lead only for project knowledge/indexes | No procurement/assets department yet. |
-| 06 HR | CHRO with AI Agent Development Partner now; People Operations Partner reserved | Agent quality and role clarity are active; human people ops stays inactive until the board opens that scope. |
+| 06 HR | AIM with AI Agent Development Partner now; CHRO and People Operations Partner reserved | Agent quality and role clarity are active through AIM/AID; human people ops stays inactive until the board opens that scope. |
 
 Sales, relations, HR, finance, law, and broad business operations remain
 out-of-scope until Portfolio Director records an explicit expansion decision.
@@ -179,12 +179,13 @@ gaps. A lead should propose a new role, role split, routine, or instruction
 change when repeated failures show that the current boundary is too broad or
 unclear.
 
-The CHRO owns this loop structurally. `06 AID (AI Agent Development Partner)`
-owns the AI-agent side: daily or evidence-triggered review of recent agent work,
-small instruction/skill/routine improvements, and governed capability-gap
-proposals. `06 POP (People Operations Partner)` is reserved for future human
-people-ops work so human and AI-agent development do not collapse into one broad
-role.
+`06 AIM (AI Agent Manager)` owns the Stage 1 AI-agent hiring and governance
+loop structurally. `06 AID (AI Agent Development Partner)` supports the
+AI-agent side: daily or evidence-triggered review of recent agent work, small
+instruction/skill/routine improvements, and governed capability-gap proposals.
+`06 CHRO` and `06 POP (People Operations Partner)` are reserved for future
+human people-ops work so human and AI-agent development do not collapse into
+one broad role.
 
 The loop is:
 

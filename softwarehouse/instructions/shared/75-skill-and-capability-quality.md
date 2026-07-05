@@ -28,7 +28,8 @@ trial issue proves that another agent can use it without hidden context.
 ## Ownership
 
 - AID owns AI-agent skill/process improvement proposals.
-- CHRO owns staffing/authority impact.
+- AIM owns AI-agent staffing, hiring, and authority-impact decisions in current Stage 1.
+- CHRO owns broad human-capital staffing impact only when that scope is explicitly reopened.
 - CTO owns engineering/runtime/security/tooling fit for technical skills.
 - DSM owns durable docs, changelog, and discoverability.
 

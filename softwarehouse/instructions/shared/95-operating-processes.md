@@ -124,10 +124,11 @@ When a failure repeats, work crosses too many layers, or no role owns the proof,
 do not solve it with a broader prompt. Record a capability gap and propose the
 smallest useful role, instruction update, or process change. New active agents
 need the hiring gate from `softwarehouse/talent-and-capability-system.md`:
-CHRO creates or activates agents only after domain-owner consultation. AID
-designs/reviews AI-agent role changes. CTO reviews engineering, QA, security,
-ops, and runtime specialists. IPM or the relevant application PM reviews
-project-management coverage.
+AIM creates or activates AI agents only after domain-owner consultation. AID
+designs/reviews AI-agent role changes but does not create agents directly. CHRO
+remains paused for broad human-capital work unless explicitly reopened. CTO
+reviews engineering, QA, security, ops, and runtime specialists. IPM or the
+relevant application PM reviews project-management coverage.
 
 ## Organizational System Bias
 

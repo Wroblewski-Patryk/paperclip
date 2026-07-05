@@ -68,7 +68,7 @@ creation.
      user-visible status.
 
 6. Failure to Learning
-   - Owner: CHRO/AID + Docs/Memory.
+   - Owner: AIM/AID + Docs/Memory.
    - Input: repeated blockers, rework, failed handoffs, unclear ownership,
      stale routines.
    - Output: improved role instruction, skill, routine, template, or a

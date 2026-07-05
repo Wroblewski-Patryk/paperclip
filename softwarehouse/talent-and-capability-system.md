@@ -24,13 +24,15 @@ The purpose is organizational capability, not model tuning. Treat the LLM model
 as replaceable; preserve value in roles, memory, procedures, governance,
 workflow, skills, observability, and evidence.
 
-CHRO owns the system structurally and is the only active role with agent
-creation authority. `06 AID (AI Agent Development Partner)` owns the AI-agent
-side of the loop: daily or evidence-triggered reviews of recent agent work,
-small low-risk instruction/skill/routine improvements, and governed
+`06 AIM (AI Agent Manager)` owns the current Stage 1 AI-agent creation and
+hiring authority. `06 AID (AI Agent Development Partner)` supports the
+AI-agent side of the loop: daily or evidence-triggered reviews of recent agent
+work, small low-risk instruction/skill/routine improvements, and governed
 capability-gap proposals. AID designs or reviews role changes but does not
-create agents directly. `06 POP (People Operations Partner)` is reserved for
-future human/operator people-ops work.
+create agents directly. `06 CHRO (Chief Human Resources Officer)` remains
+paused for broad human-capital policy unless the board explicitly reopens that
+scope. `06 POP (People Operations Partner)` is reserved for future
+human/operator people-ops work.
 
 ## Capability Gap Signals
 
@@ -66,13 +68,15 @@ quality risk, and related procedure.
 
 ## Hiring Gate
 
-Only CHRO may create or activate a new agent. CHRO must consult the appropriate
-domain owner before activation: `00 AIA` for company-wide operating authority,
-`11 IPM` or the relevant application PM for project-management coverage, and
-`09 CTO` for engineering, QA, security, ops, or runtime specialists. AID should
-prepare the role design and first-trial packet for AI-agent changes. Project
-Managers and leads may propose roles, but proposals remain `todo` or
-`in_review` until CHRO and the domain owner accept them.
+Only `06 AIM` may create or activate a new AI agent in current Stage 1. AIM
+must consult the appropriate domain owner before activation: `00 AIA` for
+company-wide operating authority, `11 IPM` or the relevant application PM for
+project-management coverage, and `09 CTO` for engineering, QA, security, ops,
+or runtime specialists. AID should prepare or review the role design and
+first-trial packet for AI-agent changes. CHRO remains paused for broad
+human-capital work unless explicitly reopened by the board. Project Managers
+and leads may propose roles, but proposals remain `todo` or `in_review` until
+AIM and the domain owner accept them.
 
 Do not add an active agent just to make a stalled issue look busy. First try to
 split the work into a smaller existing lane. Add a new agent only when the
@@ -148,8 +152,9 @@ Learning updates should land in the narrowest durable place:
 
 ## Improvement Questions
 
-Every AID/CHRO/DSM improvement review should answer only the questions that are
-material to the evidence:
+Every AIM/AID/DSM improvement review should answer only the questions that are
+material to the evidence. CHRO participates only when broad human-capital scope
+has been explicitly reopened:
 
 - what can be simplified;
 - what can be automated;
