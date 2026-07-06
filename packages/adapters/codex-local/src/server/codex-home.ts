@@ -13,6 +13,46 @@ function nonEmpty(value: string | undefined): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
+function isPlaceholderOpenAiKey(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) return false;
+  return (
+    normalized.includes("REPLACE") ||
+    normalized.includes("PLACEHOLDER") ||
+    normalized.includes("YOUR_OPENAI_API_KEY") ||
+    normalized.includes("INSERT_OPENAI_API_KEY") ||
+    normalized.includes("PASTE_OPENAI_API_KEY") ||
+    normalized.includes("********")
+  );
+}
+
+async function sanitizeSharedAuthJson(source: string, target: string): Promise<boolean> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(source, "utf8");
+  } catch {
+    return false;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return false;
+  }
+
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return false;
+  const obj = parsed as Record<string, unknown>;
+  const existingKey = obj.OPENAI_API_KEY;
+  if (!isPlaceholderOpenAiKey(existingKey)) return false;
+
+  const cleaned = { ...obj };
+  delete cleaned.OPENAI_API_KEY;
+  await fs.writeFile(target, `${JSON.stringify(cleaned)}\n`, { mode: 0o600 });
+  return true;
+}
+
 export async function pathExists(candidate: string): Promise<boolean> {
   return fs.access(candidate).then(() => true).catch(() => false);
 }
@@ -188,7 +228,19 @@ export async function prepareManagedCodexHome(
   }
 
   if (seedFromShared) {
-    for (const name of SYMLINKED_SHARED_FILES) {
+    const sharedAuth = path.join(sourceHome, "auth.json");
+    const managedAuth = path.join(targetHome, "auth.json");
+    if (await pathExists(sharedAuth)) {
+      const sanitized = await sanitizeSharedAuthJson(sharedAuth, managedAuth).catch(() => false);
+      if (!sanitized && (await pathExists(managedAuth))) {
+        await fs.rm(managedAuth, { force: true });
+      }
+      if (!sanitized) {
+        await ensureSymlink(managedAuth, sharedAuth);
+      }
+    }
+
+    for (const name of SYMLINKED_SHARED_FILES.filter((value) => value !== "auth.json")) {
       const source = path.join(sourceHome, name);
       if (!(await pathExists(source))) continue;
       await ensureSymlink(path.join(targetHome, name), source);

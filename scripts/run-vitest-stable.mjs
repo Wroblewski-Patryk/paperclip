@@ -57,6 +57,7 @@ const generalWorkspacesBGroupName = "general-workspaces-b";
 const generalWorkspacesAProjects = ["@paperclipai/ui", "paperclipai"];
 const generalWorkspacesBProjects = nonServerProjects.filter((project) => !generalWorkspacesAProjects.includes(project));
 const generalGroupNames = [generalServerGroupName, generalWorkspacesAGroupName, generalWorkspacesBGroupName];
+const runPnpmInShell = process.platform === "win32";
 const serializedServerVitestArgs = [
   "--no-file-parallelism",
   "--maxWorkers=1",
@@ -259,6 +260,7 @@ function runVitest(args, label) {
     cwd: repoRoot,
     env,
     stdio: "inherit",
+    shell: runPnpmInShell,
   });
   if (result.error) {
     console.error(`[test:run] Failed to start Vitest: ${result.error.message}`);

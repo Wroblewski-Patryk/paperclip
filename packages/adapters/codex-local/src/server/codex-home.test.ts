@@ -101,6 +101,54 @@ describe("codex managed home", () => {
     }
   });
 
+  it("removes placeholder OPENAI_API_KEY when copying shared auth.json", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-codex-home-"));
+    const sharedCodexHome = path.join(root, "shared-codex-home");
+    const paperclipHome = path.join(root, "paperclip-home");
+    const managedCodexHome = path.join(
+      paperclipHome,
+      "instances",
+      "default",
+      "companies",
+      "company-1",
+      "codex-home",
+    );
+    const sharedAuth = path.join(sharedCodexHome, "auth.json");
+    const managedAuth = path.join(managedCodexHome, "auth.json");
+
+    await fs.mkdir(sharedCodexHome, { recursive: true });
+    await fs.writeFile(
+      sharedAuth,
+      JSON.stringify({
+        OPENAI_API_KEY: "REPLACE_*************_KEY",
+        tokens: { access_token: "legacy-token" },
+      }),
+      "utf8",
+    );
+
+    try {
+      await expect(
+        prepareManagedCodexHome(
+          {
+            CODEX_HOME: sharedCodexHome,
+            PAPERCLIP_HOME: paperclipHome,
+            PAPERCLIP_INSTANCE_ID: "default",
+          },
+          async () => {},
+          "company-1",
+        ),
+      ).resolves.toBe(managedCodexHome);
+
+      const raw = await fs.readFile(managedAuth, "utf8");
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      expect(parsed.OPENAI_API_KEY).toBeUndefined();
+      expect(parsed.tokens).toMatchObject({ access_token: "legacy-token" });
+      expect((await fs.lstat(managedAuth)).isSymbolicLink()).toBe(false);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("sanitizes shared config.toml before seeding the managed Codex home", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-codex-home-"));
     const sharedCodexHome = path.join(root, "shared-codex-home");

@@ -77,14 +77,27 @@ function firstNonEmptyLine(text: string): string {
   );
 }
 
-function hasNonEmptyEnvValue(env: Record<string, string>, key: string): boolean {
-  const raw = env[key];
-  return typeof raw === "string" && raw.trim().length > 0;
+export function usableOpenAiApiKey(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.toUpperCase();
+  if (
+    normalized.includes("REPLACE") ||
+    normalized.includes("PLACEHOLDER") ||
+    normalized.includes("YOUR_OPENAI_API_KEY") ||
+    normalized.includes("INSERT_OPENAI_API_KEY") ||
+    normalized.includes("PASTE_OPENAI_API_KEY") ||
+    normalized.includes("********")
+  ) {
+    return null;
+  }
+  return trimmed;
 }
 
 function resolveCodexBillingType(env: Record<string, string>): "api" | "subscription" {
   // Codex uses API-key auth when OPENAI_API_KEY is present; otherwise rely on local login/session auth.
-  return hasNonEmptyEnvValue(env, "OPENAI_API_KEY") ? "api" : "subscription";
+  return usableOpenAiApiKey(env.OPENAI_API_KEY) ? "api" : "subscription";
 }
 
 function resolveCodexBiller(env: Record<string, string>, billingType: "api" | "subscription"): string {
@@ -336,9 +349,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const desiredSkillNames = resolveCodexDesiredSkillNames(config, codexSkillEntries);
   await ensureAbsoluteDirectory(cwd, { createIfMissing: true });
   const configuredOpenAiApiKey =
-    typeof envConfig.OPENAI_API_KEY === "string" && envConfig.OPENAI_API_KEY.trim().length > 0
-      ? envConfig.OPENAI_API_KEY.trim()
-      : null;
+    usableOpenAiApiKey(envConfig.OPENAI_API_KEY) ??
+    usableOpenAiApiKey(process.env.OPENAI_API_KEY);
   const preparedManagedCodexHome =
     configuredCodexHome
       ? null
@@ -472,6 +484,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     executionTargetIsRemote,
     executionCwd: effectiveExecutionCwd,
   });
+  const effectiveOpenAiApiKey =
+    usableOpenAiApiKey(env.OPENAI_API_KEY) ??
+    configuredOpenAiApiKey;
+  if (effectiveOpenAiApiKey) {
+    env.OPENAI_API_KEY = effectiveOpenAiApiKey;
+  } else {
+    delete env.OPENAI_API_KEY;
+  }
   if (runtimeServiceIntents.length > 0) {
     env.PAPERCLIP_RUNTIME_SERVICE_INTENTS_JSON = JSON.stringify(runtimeServiceIntents);
   }
