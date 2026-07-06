@@ -55,6 +55,102 @@ describe("codex managed home", () => {
     }
   });
 
+  it.skipIf(process.platform === "win32")(
+    "replaces an existing regular auth file when creating a managed symlink",
+    async () => {
+      const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-codex-home-"));
+      const sharedCodexHome = path.join(root, "shared-codex-home");
+      const paperclipHome = path.join(root, "paperclip-home");
+      const managedCodexHome = path.join(
+        paperclipHome,
+        "instances",
+        "default",
+        "companies",
+        "company-1",
+        "codex-home",
+      );
+      const sharedAuth = path.join(sharedCodexHome, "auth.json");
+      const managedAuth = path.join(managedCodexHome, "auth.json");
+      const sharedAuthPayload = '{"token":"shared"}\n';
+
+      await fs.mkdir(sharedCodexHome, { recursive: true });
+      await fs.writeFile(sharedAuth, sharedAuthPayload, "utf8");
+      await fs.mkdir(managedCodexHome, { recursive: true });
+      await fs.writeFile(managedAuth, sharedAuthPayload, "utf8");
+
+      const originalSymlink = fs.symlink.bind(fs);
+      vi.spyOn(fs, "symlink").mockImplementationOnce(async (source, target, type) => {
+        await originalSymlink(source, target, type);
+        const error = new Error("file already exists") as NodeJS.ErrnoException;
+        error.code = "EEXIST";
+        throw error;
+      });
+
+      try {
+        await expect(
+          prepareManagedCodexHome(
+            {
+              CODEX_HOME: sharedCodexHome,
+              PAPERCLIP_HOME: paperclipHome,
+              PAPERCLIP_INSTANCE_ID: "default",
+            },
+            async () => {},
+            "company-1",
+          ),
+        ).resolves.toBe(managedCodexHome);
+
+        expect((await fs.lstat(managedAuth)).isSymbolicLink()).toBe(true);
+        expect(await fs.realpath(managedAuth)).toBe(await fs.realpath(sharedAuth));
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "replaces an existing regular instructions file when creating a managed symlink",
+    async () => {
+      const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-codex-home-"));
+      const sharedCodexHome = path.join(root, "shared-codex-home");
+      const paperclipHome = path.join(root, "paperclip-home");
+      const managedCodexHome = path.join(
+        paperclipHome,
+        "instances",
+        "default",
+        "companies",
+        "company-1",
+        "codex-home",
+      );
+      const sharedInstructions = path.join(sharedCodexHome, "instructions.md");
+      const managedInstructions = path.join(managedCodexHome, "instructions.md");
+      const sharedPayload = "shared instructions\n";
+
+      await fs.mkdir(sharedCodexHome, { recursive: true });
+      await fs.writeFile(sharedInstructions, sharedPayload, "utf8");
+      await fs.mkdir(managedCodexHome, { recursive: true });
+      await fs.writeFile(managedInstructions, "managed instructions\n", "utf8");
+
+      try {
+        await expect(
+          prepareManagedCodexHome(
+            {
+              CODEX_HOME: sharedCodexHome,
+              PAPERCLIP_HOME: paperclipHome,
+              PAPERCLIP_INSTANCE_ID: "default",
+            },
+            async () => {},
+            "company-1",
+          ),
+        ).resolves.toBe(managedCodexHome);
+
+        expect((await fs.lstat(managedInstructions)).isSymbolicLink()).toBe(true);
+        expect(await fs.realpath(managedInstructions)).toBe(await fs.realpath(sharedInstructions));
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+
   it("copies shared auth when the host refuses auth symlinks", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-codex-home-"));
     const sharedCodexHome = path.join(root, "shared-codex-home");

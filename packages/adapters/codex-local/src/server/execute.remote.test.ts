@@ -93,7 +93,11 @@ describe("codex remote execution", () => {
     await mkdir(workspaceDir, { recursive: true });
     await mkdir(codexHomeDir, { recursive: true });
     await writeFile(path.join(rootDir, "instructions.md"), "Use the remote workspace.\n", "utf8");
-    await writeFile(path.join(codexHomeDir, "auth.json"), "{}", "utf8");
+    await writeFile(
+      path.join(codexHomeDir, "auth.json"),
+      JSON.stringify({ tokens: { access_token: "dummy-access-token" } }),
+      "utf8",
+    );
     const alternateWorkspaceDir = path.join(rootDir, "alternate-workspace");
     await mkdir(alternateWorkspaceDir, { recursive: true });
 
@@ -210,7 +214,11 @@ describe("codex remote execution", () => {
     const codexHomeDir = path.join(rootDir, "codex-home");
     await mkdir(workspaceDir, { recursive: true });
     await mkdir(codexHomeDir, { recursive: true });
-    await writeFile(path.join(codexHomeDir, "auth.json"), "{}", "utf8");
+    await writeFile(
+      path.join(codexHomeDir, "auth.json"),
+      JSON.stringify({ tokens: { access_token: "dummy-access-token" } }),
+      "utf8",
+    );
 
     await execute({
       runId: "run-ssh-no-resume",
@@ -274,7 +282,11 @@ describe("codex remote execution", () => {
     const managedRemoteWorkspace = "/remote/workspace/.paperclip-runtime/runs/run-ssh-resume/workspace";
     await mkdir(workspaceDir, { recursive: true });
     await mkdir(codexHomeDir, { recursive: true });
-    await writeFile(path.join(codexHomeDir, "auth.json"), "{}", "utf8");
+    await writeFile(
+      path.join(codexHomeDir, "auth.json"),
+      JSON.stringify({ tokens: { access_token: "dummy-access-token" } }),
+      "utf8",
+    );
 
     await execute({
       runId: "run-ssh-resume",
@@ -347,7 +359,11 @@ describe("codex remote execution", () => {
     const managedRemoteWorkspace = "/remote/workspace/.paperclip-runtime/runs/run-target/workspace";
     await mkdir(workspaceDir, { recursive: true });
     await mkdir(codexHomeDir, { recursive: true });
-    await writeFile(path.join(codexHomeDir, "auth.json"), "{}", "utf8");
+    await writeFile(
+      path.join(codexHomeDir, "auth.json"),
+      JSON.stringify({ tokens: { access_token: "dummy-access-token" } }),
+      "utf8",
+    );
 
     await execute({
       runId: "run-target",

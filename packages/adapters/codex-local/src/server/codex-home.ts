@@ -101,7 +101,16 @@ async function createExpectedSymlink(target: string, source: string): Promise<vo
     await fs.symlink(source, target);
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
-    if (code === "EEXIST" && await isExpectedSymlink(target, source)) return;
+    if (code === "EEXIST") {
+      if (await isExpectedSymlink(target, source)) return;
+
+      const existing = await fs.lstat(target).catch(() => null);
+      if (existing) {
+        await fs.rm(target, { force: true, recursive: true });
+        await fs.symlink(source, target);
+        return;
+      }
+    }
     throw error;
   }
 }
@@ -131,6 +140,13 @@ async function ensureSymlink(target: string, source: string): Promise<void> {
   }
 
   if (!existing.isSymbolicLink()) {
+    await fs.rm(target, { force: true, recursive: true });
+    try {
+      await createExpectedSymlink(target, source);
+    } catch (error) {
+      if (!canFallbackToCopiedSharedFile(error)) throw error;
+      await copySharedFile(target, source);
+    }
     return;
   }
 

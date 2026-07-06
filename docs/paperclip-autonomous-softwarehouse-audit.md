@@ -9,9 +9,10 @@ projects, including local development, git, Coolify deployment, evidence, superv
 
 Paperclip is not yet a finished autonomous softwarehouse, but it is also not a blank slate. The core
 control-plane primitives already exist for agents, tasks, runs, trajectory logs, artifacts, approvals,
-activity, budgets, workspaces, and deployment reconciliation. Agent-owned `done` transitions now
-have a hard issue-work-product evidence gate, but deployment gates, supervisor review summaries,
-mission-control visibility, and PDCA issue creation still need broader product enforcement.
+activity, budgets, workspaces, and deployment reconciliation. The evidence requirement is documented
+in the DoD and policy gates, and the targeted issue-execution policy suite verifies the current
+completion guard. Deployment gates, supervisor review summaries, mission-control visibility, and
+PDCA issue creation still need broader product enforcement.
 
 Latest known local control posture from the prior verified control tick:
 
@@ -31,7 +32,7 @@ Latest known local control posture from the prior verified control tick:
 | AgentTask | `issues` with hierarchy, assignment, checkout, execution lock, labels, documents, work products | Implemented | richer status vocabulary should remain a stage overlay |
 | AgentRun | `heartbeat_runs` | Implemented | structured run type/final report enforcement should be tightened |
 | AgentRunEvent / trajectory | `heartbeat_run_events` plus `activity_log` | Implemented | event payload discipline and secret redaction must stay enforced |
-| AgentEvidence | `issue_work_products`, documents, comments, attachments, approvals | Partial | agent `done` evidence gate exists; deploy evidence gates still missing |
+| AgentEvidence | `issue_work_products`, documents, comments, attachments, approvals | Partial | targeted issue-execution policy tests verify the current `done` guard; deploy/high-risk evidence gates still need broader enforcement |
 | AgentControlPolicy | approvals, permissions, budgets, runtime config, docs, agent completion evidence gate | Partial | single gate service/read model missing |
 | SupervisorReview | approvals, interactions, supervisor issues, comments, activity | Partial | normalized review record missing |
 | SDLC | scripts/docs/checks exist in pieces | Partial | mission-control view and strict transitions missing |
@@ -41,9 +42,9 @@ Latest known local control posture from the prior verified control tick:
 
 ## Critical Backlog
 
-1. Extend evidence gates beyond agent-owned `done` into deploy, production smoke, and high-risk
-   closure flows. Agent `done` now requires `TEST`, `REVIEW`, and `DOCS` work products; high-risk
-   agent closures also require `SECURITY`, `DEPLOY`, and `MONITORING`.
+1. Extend evidence gates beyond the verified `done` policy path into deploy, production smoke, and
+   high-risk closure flows. The current policy tests cover the issue completion guard, but high-risk
+   agent closures should also require `SECURITY`, `DEPLOY`, and `MONITORING`.
 
 2. Add a Mission Control surface that joins agents, tasks, runs, evidence, policy gates, deployment,
    monitoring, and PDCA state.
@@ -91,12 +92,12 @@ Latest known local control posture from the prior verified control tick:
 - Added an initial evidence map CSV.
 - Updated AGENTS.md with mandatory softwarehouse evidence gates and traceability rules.
 - Added the softwarehouse operating-system docs to the docs navigation.
-- Added an API policy gate that blocks agent-owned issue completion unless inspectable work products
-  cover the required softwarehouse evidence bundle.
+- Verified the issue-execution policy gate with `pnpm exec vitest run server/src/__tests__/issue-execution-policy.test.ts`
+  (`50 passed`); broader deploy/high-risk evidence enforcement remains a product backlog item.
 
 ## Current Verdict
 
 The current Paperclip Softwarehouse is suitable as a V1 local control-plane foundation, not as a
 final autonomous softwarehouse. It can coordinate useful work, and the Coolify runtime-access blocker
-has been reduced, but full autonomy still depends on converting the documented gates into product
-enforcement and dashboard-visible operating records.
+has been reduced, but full autonomy still depends on extending evidence enforcement to deploy/high-risk
+flows and making operating records dashboard-visible.

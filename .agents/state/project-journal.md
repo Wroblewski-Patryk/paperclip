@@ -6,6 +6,31 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-06 / `LUC-206` (`04 Operations: PDCA Learning and Company Memory Review`) routine check:
+  - PDCA Check: pulled `/api/issues/LUC-206`, `/api/issues/LUC-206/comments`, and `/api/issues/LUC-206/heartbeat-context`; issue was in `in_progress` and checkout was already held by this assignee in run `d19c34e5-e70b-40ac-b4df-a184e9ca520b`.
+  - Evidence refresh: read `report/codex-automation/paperclip-liveness-watchdog.latest.md` and `report/codex-automation/paperclip-teacher-lessons.latest.md`; reviewed `.agents/state/project-memory.md`, `project-journal`, `next-steps.md`, and `responsibility-learning.md`.
+  - Operational check: `GET /api/health` returned `status: ok` and `bootstrapStatus: ready`; no fresh local downtime signal was found in this run.
+  - Act decision: no control-plane policy changes or issue dependencies were identified in this PDCA cycle; continue on the current Stage 1 loop with the next wake handling non-empty evidence gaps.
+  - Memory update: appended this durable session checkpoint in `project-journal` and set issue disposition to terminal (`done`) after leaving a progress comment.
+
+- 2026-07-06 / `LUC-201` (`04 Operations: PDCA Learning and Company Memory Review`) routine check:
+  - PDCA Check: `GET /api/issues/LUC-201`, `/api/issues/LUC-201/comments`, and `/api/issues/LUC-201/heartbeat-context`; issue was in `in_progress` before this wake, with `totalComments=0` and `latestCommentId=null`.
+  - Run outcome reviewed from continuity payload: run `6cfd2481-d421-400b-a07c-4d5462d60aa1` failed with `codex_transient_upstream` (`GPT-5.3-Codex-Spark` usage limit hit at `2026-07-06T02:20:41Z`), with no adapter result summary in the continuation payload.
+  - Action: no durable instruction/procedure changes are required in this cycle; no new evidence could be extracted from the failed run.
+  - Resolution: issue was closed with a threaded issue comment (`0a91fc0f-2a30-4b9c-b147-3123c8042a78`) stating this as a quota-gate no-op checkpoint.
+  - Follow-up: continue under the existing cost/quota-learning lane if the same usage-limit pattern appears on the next approved run.
+
+- 2026-07-06 / `LUC-201` disposition follow-up:
+  - The corrective wake `45466926-bc5c-4905-a458-448be47fad94` still had `successfulRunHandoff.state=required` because no valid terminal issue disposition was persisted.
+  - Posted a final `PATCH /api/issues/LUC-201` to set status `done` in run `7c0f6e8e-2e6b-49c6-bdf1-80e9ffa238c0`.
+  - Current state is terminal (`done`, no blockers, `successfulRunHandoff.state = resolved`).
+
+- 2026-07-06 / `LUC-193` (`04 Operations: PDCA Learning and Company Memory Review`) routine check:
+  - PDCA Check: pulled `/api/issues/LUC-193`, `/api/issues/LUC-193/comments`, `/api/issues/LUC-193/heartbeat-context`, and `/api/health`; issue remained `in_progress` with active checkout on this assignee, and comments thread is empty.
+  - Check outcome: no new blockers were surfaced by API state, no fresh evidence gates failed, and no policy/program updates are required in this cycle.
+  - Act decision: no-op by design for this wake; no learning packet is needed until a future run changes behavior or exposes a repeatable process gap.
+  - Durable evidence: `local-board` comment posted (`00ca3d98-8f91-4322-bbcd-e46e80dc8851`) and issue status changed to `done` with completion at `2026-07-06T00:22:08.064Z`.
+
 - 2026-07-06 / `LUC-167` (`04 Operations: PDCA Learning and Company Memory Review`) routine check:
   - PDCA Check: pulled `/api/issues/$id`, `/api/health`, and `/api/companies`; issue is still `in_progress`, assignee is `ed63e6f1-2388-4568-be2e-0e7b10263921`, and heartbeat comment cursor shows `totalComments=0`, `latestCommentId=null`.
   - Check outcome: API surface is healthy at `http://127.0.0.1:3200`, company is `LuckySparrow` and no blockers were reported on `LUC-167`; no immediate safety, security, or evidence gate regressions were discovered in this review cycle.

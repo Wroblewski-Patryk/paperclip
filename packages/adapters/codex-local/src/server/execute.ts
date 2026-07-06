@@ -48,6 +48,7 @@ import { pathExists, prepareManagedCodexHome, resolveManagedCodexHomeDir, resolv
 import { resolveCodexDesiredSkillNames } from "./skills.js";
 import { buildCodexExecArgs } from "./codex-args.js";
 import { SANDBOX_INSTALL_COMMAND } from "../index.js";
+import { readCodexAuthInfo } from "./quota.js";
 
 const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const CODEX_ROLLOUT_NOISE_RE =
@@ -525,6 +526,28 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     ),
   );
   const billingType = resolveCodexBillingType(effectiveEnv);
+  const managedCodexAuth = await readCodexAuthInfo(effectiveCodexHome).catch(() => null);
+  if (!effectiveOpenAiApiKey && !managedCodexAuth) {
+    const message =
+      "Codex authentication is not configured. Set OPENAI_API_KEY in adapter config or run `codex auth` to create a usable auth.json session.";
+    await onLog("stdout", `[paperclip] ${message}\n`);
+    return {
+      exitCode: 1,
+      signal: null,
+      timedOut: false,
+      errorMessage: message,
+      errorCode: "codex_auth_not_configured",
+      provider: "openai",
+      biller: resolveCodexBiller(effectiveEnv, billingType),
+      model,
+      billingType,
+      costUsd: null,
+      resultJson: {
+        errorCode: "codex_auth_not_configured",
+        details: "missing auth (OPENAI_API_KEY and usable auth.json token)",
+      },
+    };
+  }
   const runtimeEnv = Object.fromEntries(
     Object.entries(ensurePathInEnv(effectiveEnv)).filter(
       (entry): entry is [string, string] => typeof entry[1] === "string",
