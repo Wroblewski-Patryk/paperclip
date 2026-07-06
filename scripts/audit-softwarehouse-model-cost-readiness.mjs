@@ -14,6 +14,14 @@ async function request(route) {
   return Array.isArray(data) ? data : data?.value ?? data;
 }
 
+async function optionalRequest(route) {
+  try {
+    return await request(route);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 function countBy(items, selector) {
   const counts = {};
   for (const item of items) {
@@ -98,6 +106,37 @@ function summarizeAgents(agents) {
   };
 }
 
+async function summarizeErrorAgentRuns(agents) {
+  const errorAgents = agents.filter((agent) => agent.status === "error");
+  const rows = [];
+  for (const agent of errorAgents) {
+    const data = await optionalRequest(
+      `/api/companies/${companyId}/heartbeat-runs?agentId=${agent.id}&limit=5`,
+    );
+    const runs = Array.isArray(data) ? data : data?.runs ?? data?.items ?? [];
+    const latest = runs[0] ?? null;
+    const recentText = JSON.stringify(runs.map((run) => ({
+      status: run.status,
+      error: run.error,
+      errorCode: run.errorCode,
+      scheduledRetryReason: run.scheduledRetryReason,
+    })));
+    rows.push({
+      agentId: agent.id,
+      agentName: agent.name,
+      latestRunStatus: latest?.status ?? null,
+      latestScheduledRetryAt: latest?.scheduledRetryAt ?? null,
+      latestScheduledRetryReason: latest?.scheduledRetryReason ?? null,
+      hasQuotaLimitFailure:
+        /usage limit|quota|rate limit/i.test(recentText) ||
+        runs.some((run) => run.errorCode === "codex_transient_upstream"),
+      hasInvalidApiKeyFailure:
+        /incorrect api key|401 unauthorized/i.test(recentText),
+    });
+  }
+  return rows;
+}
+
 function summarizeBudgetPolicies(overview) {
   const policies = overview?.policies ?? [];
   const companyPolicies = policies.filter((policy) => policy.scopeType === "company");
@@ -127,6 +166,7 @@ const [quotaWindows, costSummary, budgetOverview, agents] = await Promise.all([
 
 const quota = quotaWindows.map(summarizeQuota);
 const agentSummary = summarizeAgents(agents);
+const errorAgentRuns = await summarizeErrorAgentRuns(agents);
 const anyHardQuotaHold = quota.some((provider) => provider.windows.some((window) => window.overHardHoldThreshold));
 const anyLongWindowPressure = quota.some((provider) =>
   provider.windows.some((window) => window.overShortHoldThreshold && !window.overHardHoldThreshold)
@@ -167,6 +207,26 @@ if (agentSummary.codexLocal.openAiApiKeyConfiguredCount === 0) {
     summary: "OPENAI_API_KEY is configured on at least one agent, but recorded spend is still zero. Verify adapter costUsd or explicit price mapping before broad API work.",
   });
 }
+const quotaRetryErrorAgents = errorAgentRuns.filter((row) =>
+  row.latestRunStatus === "scheduled_retry" &&
+  row.hasQuotaLimitFailure &&
+  row.latestScheduledRetryAt
+);
+if (quotaRetryErrorAgents.length > 0) {
+  risks.push({
+    code: "agent_error_status_quota_retry",
+    level: "info",
+    summary: `${quotaRetryErrorAgents.length} error-status agents currently have scheduled retries after quota-limit failures; avoid manual reset unless the retry gets stale.`,
+  });
+}
+const invalidApiKeyErrorAgents = errorAgentRuns.filter((row) => row.hasInvalidApiKeyFailure);
+if (invalidApiKeyErrorAgents.length > 0) {
+  risks.push({
+    code: "recent_invalid_openai_api_key_failures",
+    level: "warning",
+    summary: `${invalidApiKeyErrorAgents.length} error-status agents have recent invalid OpenAI API key failures. Confirm managed Codex auth has no placeholder values before retrying API-backed lanes.`,
+  });
+}
 
 console.log(JSON.stringify({
   checkedAt: new Date().toISOString(),
@@ -179,5 +239,6 @@ console.log(JSON.stringify({
   budget: summarizeBudgetPolicies(budgetOverview),
   quota,
   agents: agentSummary,
+  errorAgentRuns,
   risks,
 }, null, 2));

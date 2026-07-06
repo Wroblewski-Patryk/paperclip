@@ -309,8 +309,30 @@ test("softwarehouse model and cost readiness audit guards quota and future API l
   assert.match(source, /metadata\?\.modelLane === "fastTriage"/);
   assert.match(source, /openAiApiKeyConfiguredCount/);
   assert.match(source, /api_metering_unverified/);
+  assert.match(source, /summarizeErrorAgentRuns/);
+  assert.match(source, /agent_error_status_quota_retry/);
+  assert.match(source, /recent_invalid_openai_api_key_failures/);
   assert.match(roster, /"fastTriage"[\s\S]*"model": "gpt-5\.4"/);
   assert.match(roster, /"fastMode": true/);
+});
+
+test("softwarehouse runtime file-state audit protects active agent instruction bundles", async () => {
+  const source = await readFile("scripts/audit-softwarehouse-runtime-file-state.mjs", "utf8");
+  const packageJson = JSON.parse(await readFile("package.json", "utf8"));
+
+  assert.equal(
+    packageJson.scripts["softwarehouse:runtime-file-state-audit"],
+    "node scripts/audit-softwarehouse-runtime-file-state.mjs",
+  );
+  assert.match(source, /instructionsRootPath/);
+  assert.match(source, /instructionsFilePath/);
+  assert.match(source, /repoRuntimeMirrorRoot/);
+  assert.match(source, /collectPathReferences/);
+  assert.match(source, /managedCodexAuthPath/);
+  assert.match(source, /managed_codex_auth_placeholder_secret/);
+  assert.match(source, /agent_config_path_missing/);
+  assert.match(source, /agent_instructions_entry_missing/);
+  assert.match(source, /agent_runtime_mirror_entry_missing/);
 });
 
 test("learning loop scopes active issues and bounds API requests for large local instances", async () => {

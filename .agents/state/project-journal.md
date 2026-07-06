@@ -1834,3 +1834,44 @@ Evidence:
 - `pnpm run softwarehouse:workspace-boundary-audit` passed.
 - `node scripts/audit-softwarehouse-model-cost-readiness.mjs` exposed the stale
   95% fallback before the fix; canonical shared/UI/docs default is 90%.
+
+## 2026-07-06 - Pre-agent-restart V1 hardening sweep
+
+Context: the owner asked to close as many started Paperclip V1/model/cost/runtime
+hardening threads as possible before agents resume work.
+
+Actions:
+
+- Added `scripts/audit-softwarehouse-runtime-file-state.mjs` and package script
+  `softwarehouse:runtime-file-state-audit` to verify active agent instruction
+  roots, `AGENTS.md` entry files, repo-local runtime mirrors, managed Codex auth
+  placeholder safety, and absolute agent config path references.
+- Added gate-spec coverage so the runtime file-state audit cannot silently drift
+  out of the Softwarehouse readiness suite.
+- Updated `docs/softwarehouse-feature-regression-register.csv`: effective
+  model/profile UI observability is now implemented, cleanup safety is guarded
+  by the runtime audit, and backup/restore remains partial until a full restore
+  drill is performed.
+- Extended `scripts/audit-softwarehouse-model-cost-readiness.mjs` to classify
+  error-status agents whose newest run is a scheduled retry after quota-limit
+  failures, separately from recent invalid OpenAI API key failures.
+
+Findings:
+
+- Active runtime file-state audit passed: 39 agents checked, 117 managed path
+  references checked, 0 missing paths, 0 mirror warnings, 0 managed Codex auth
+  placeholder failures.
+- Four core agents were in `error`, but their newest runs are scheduled retries
+  at `2026-07-06T04:40:00Z` after Codex Spark quota-limit failures. Do not
+  manually reset these unless the retry becomes stale.
+- One AIA run history still contains a recent invalid OpenAI API key failure,
+  but current managed Codex auth no longer contains placeholder-looking values
+  and live agent env does not bind `OPENAI_API_KEY`.
+
+Evidence:
+
+- `pnpm run softwarehouse:runtime-file-state-audit` passed.
+- `node --test scripts/softwarehouse-gate-specs.test.mjs` passed 95/95.
+- `pnpm --filter @paperclipai/server typecheck` passed.
+- `pnpm --filter @paperclipai/ui typecheck` passed.
+- `pnpm run softwarehouse:workspace-boundary-audit` passed.
