@@ -138,23 +138,85 @@ function quotaWindowAppliesToProfile(window: QuotaWindow, profile: ModelProfileC
   return profile.quotaLane === "codex_standard";
 }
 
-function profileQuotaStatus(
-  profile: ModelProfileCatalogEntry,
-  windows: QuotaWindow[],
-  shortHoldPercent: number,
-  longHoldPercent: number,
-) {
+function quotaWindowThreshold(window: QuotaWindow, shortHoldPercent: number, longHoldPercent: number) {
+  const reset = window.resetsAt ? new Date(window.resetsAt) : null;
+  const resetInMs = reset && !Number.isNaN(reset.getTime()) ? reset.getTime() - Date.now() : null;
+  return resetInMs != null && resetInMs > 0 && resetInMs <= 24 * 60 * 60 * 1000
+    ? shortHoldPercent
+    : longHoldPercent;
+}
+
+function strongestQuotaWindow(profile: ModelProfileCatalogEntry, windows: QuotaWindow[]) {
   const relevant = windows.filter((window) => quotaWindowAppliesToProfile(window, profile));
-  if (relevant.length === 0) return "No matching live window";
-  const statuses = relevant.map((window) => ({
-    window,
-    status: quotaWindowStatus(window, shortHoldPercent, longHoldPercent),
-  }));
-  const held = statuses.find((entry) => entry.status.startsWith("Hold"));
-  if (held) return `${held.status} · ${held.window.label}`;
-  const pressured = statuses.find((entry) => entry.status.startsWith("Pressure"));
-  if (pressured) return `${pressured.status} · ${pressured.window.label}`;
-  return `Open · ${relevant.map((window) => window.label).join(", ")}`;
+  const withPercent = relevant.filter((window) => typeof window.usedPercent === "number");
+  if (withPercent.length === 0) return { relevant, window: null as QuotaWindow | null };
+  return {
+    relevant,
+    window: withPercent.reduce((best, window) =>
+      (window.usedPercent ?? 0) > (best.usedPercent ?? 0) ? window : best,
+    ),
+  };
+}
+
+function quotaTone(usedPercent: number | null, threshold: number | null) {
+  if (usedPercent == null || threshold == null) return "bg-muted";
+  if (usedPercent >= threshold) return "bg-destructive";
+  if (usedPercent >= Math.max(1, threshold - 15)) return "bg-amber-400";
+  return "bg-primary";
+}
+
+function modelProfileUsageTokens(row?: CostByModelProfile | null) {
+  if (!row) return 0;
+  return row.subscriptionInputTokens + row.subscriptionCachedInputTokens + row.subscriptionOutputTokens;
+}
+
+function ModelLaneLimitCell({
+  profile,
+  usage,
+  windows,
+  shortHoldPercent,
+  longHoldPercent,
+}: {
+  profile: ModelProfileCatalogEntry;
+  usage?: CostByModelProfile | null;
+  windows: QuotaWindow[];
+  shortHoldPercent: number;
+  longHoldPercent: number;
+}) {
+  const { relevant, window } = strongestQuotaWindow(profile, windows);
+  const usedPercent = typeof window?.usedPercent === "number" ? window.usedPercent : null;
+  const threshold = window ? quotaWindowThreshold(window, shortHoldPercent, longHoldPercent) : null;
+  const status = window
+    ? quotaWindowStatus(window, shortHoldPercent, longHoldPercent)
+    : relevant.length > 0
+      ? "Live window has no percent"
+      : "No live lane window";
+  const reset = window ? formatQuotaReset(window.resetsAt) : "provider did not report a reset";
+  const tokens = modelProfileUsageTokens(usage);
+
+  return (
+    <div className="min-w-[220px]">
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <span className="font-medium text-foreground">{status}</span>
+        <span className="font-mono tabular-nums text-muted-foreground">
+          {usedPercent == null ? "--" : `${usedPercent}%`}
+        </span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden bg-muted">
+        <div
+          className={cn("h-full transition-[width] duration-200", quotaTone(usedPercent, threshold))}
+          style={{ width: `${Math.max(0, Math.min(100, usedPercent ?? 0))}%` }}
+        />
+      </div>
+      <div className="mt-2 grid gap-1 text-[11px] leading-4 text-muted-foreground">
+        <span>{window ? `${window.label} - ${reset}` : "No provider percent for this lane"}</span>
+        <span>
+          {formatTokens(tokens)} profile tokens
+          {usage ? ` across ${usage.runCount} run${usage.runCount === 1 ? "" : "s"}` : " with no runs yet"}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function flattenQuotaWindows(results: ProviderQuotaResult[] | undefined) {
@@ -596,6 +658,13 @@ export function Costs() {
   const totalModelProfileTokens = (modelProfileData?.rows ?? []).reduce((sum, row) => sum + accountedTokens(row), 0);
   const quotaWindowRows = useMemo(() => flattenQuotaWindows(quotaData), [quotaData]);
   const codexQuotaResult = (quotaData ?? []).find((result) => result.provider === "openai" && result.source?.startsWith("codex-"));
+  const modelProfileRowsByProfile = useMemo(() => {
+    const rows = new Map<string, CostByModelProfile>();
+    for (const row of modelProfileData?.rows ?? []) {
+      rows.set(row.profile, row);
+    }
+    return rows;
+  }, [modelProfileData]);
   const codexShortHoldPercent = experimentalSettings?.codexLocalQuotaShortWindowHoldUsedPercent ?? 75;
   const codexLongHoldPercent = experimentalSettings?.codexLocalQuotaLongWindowHoldUsedPercent ?? 90;
   const quotaHoldEnabled = experimentalSettings?.codexLocalQuotaHoldEnabled !== false;
@@ -1488,6 +1557,7 @@ export function Costs() {
                     <CardTitle className="text-base">Live subscription limits</CardTitle>
                     <CardDescription>
                       Provider-reported usage windows used by budget estimates and codex_local start holds.
+                      Model-level bars appear when the provider exposes a lane/model window; token totals below come from Paperclip run usage.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 px-5 pb-5 pt-2">
@@ -1570,7 +1640,7 @@ export function Costs() {
                 <CardHeader className="px-5 pt-5 pb-2">
                   <CardTitle className="text-base">Model lanes and quota mapping</CardTitle>
                   <CardDescription>
-                    Configured router profiles, default models, and the quota lanes they are expected to consume.
+                    Configured router profiles, default models, live lane pressure, and token usage observed by Paperclip.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="px-5 pb-5 pt-2">
@@ -1578,38 +1648,40 @@ export function Costs() {
                     <p className="text-sm text-muted-foreground">No model profile catalog is configured.</p>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[900px] text-sm">
+                      <table className="w-full min-w-[1040px] text-sm">
                         <thead>
                           <tr className="border-b border-border text-left text-xs uppercase tracking-[0.14em] text-muted-foreground">
                             <th className="py-3 pr-4 font-medium">Profile</th>
                             <th className="py-3 pr-4 font-medium">Default model</th>
                             <th className="py-3 pr-4 font-medium">Quota lane</th>
-                            <th className="py-3 pr-4 font-medium">Status</th>
+                            <th className="py-3 pr-4 font-medium">Live limit / usage</th>
                             <th className="py-3 font-medium">Intent</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {(modelProfileData?.profiles ?? []).map((profile) => (
-                            <tr key={profile.profile} className="border-b border-border/70 align-top last:border-0">
-                              <td className="py-3 pr-4 font-medium">{profile.profile}</td>
-                              <td className="py-3 pr-4 font-mono text-xs">{profile.defaultModel}</td>
-                              <td className="py-3 pr-4">
-                                <div className="font-mono text-xs">{profile.quotaLane}</div>
-                                <div className="mt-1 text-xs text-muted-foreground">weight {profile.relativeCostWeight}</div>
-                              </td>
-                              <td className="py-3 pr-4 text-xs text-muted-foreground">
-                                {quotaWindowRows.length > 0
-                                  ? profileQuotaStatus(
-                                      profile,
-                                      quotaWindowRows.map((row) => row.window),
-                                      codexShortHoldPercent,
-                                      codexLongHoldPercent,
-                                    )
-                                  : "Awaiting live quota"}
-                              </td>
-                              <td className="py-3 text-xs leading-5 text-muted-foreground">{profile.intent}</td>
-                            </tr>
-                          ))}
+                          {(modelProfileData?.profiles ?? []).map((profile) => {
+                            const usage = modelProfileRowsByProfile.get(profile.profile);
+                            return (
+                              <tr key={profile.profile} className="border-b border-border/70 align-top last:border-0">
+                                <td className="py-3 pr-4 font-medium">{profile.profile}</td>
+                                <td className="py-3 pr-4 font-mono text-xs">{profile.defaultModel}</td>
+                                <td className="py-3 pr-4">
+                                  <div className="font-mono text-xs">{profile.quotaLane}</div>
+                                  <div className="mt-1 text-xs text-muted-foreground">weight {profile.relativeCostWeight}</div>
+                                </td>
+                                <td className="py-3 pr-4">
+                                  <ModelLaneLimitCell
+                                    profile={profile}
+                                    usage={usage}
+                                    windows={quotaWindowRows.map((row) => row.window)}
+                                    shortHoldPercent={codexShortHoldPercent}
+                                    longHoldPercent={codexLongHoldPercent}
+                                  />
+                                </td>
+                                <td className="py-3 text-xs leading-5 text-muted-foreground">{profile.intent}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

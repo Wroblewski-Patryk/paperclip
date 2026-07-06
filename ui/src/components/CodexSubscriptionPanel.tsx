@@ -52,14 +52,27 @@ function isModelSpecific(label: string): boolean {
   return normalized.includes("gpt53codexspark") || normalized.includes("gpt5");
 }
 
+function isLaneOrModelWindow(window: QuotaWindow): boolean {
+  if (window.scope === "model" || window.scope === "lane") return true;
+  if (window.quotaLane || window.model) return true;
+  return isModelSpecific(window.label);
+}
+
+function windowBadge(window: QuotaWindow): string | null {
+  if (window.model) return window.model;
+  if (window.quotaLane) return window.quotaLane;
+  if (window.scope) return window.scope;
+  return null;
+}
+
 export function CodexSubscriptionPanel({
   windows,
   source = null,
   error = null,
 }: CodexSubscriptionPanelProps) {
   const ordered = orderedWindows(windows);
-  const accountWindows = ordered.filter((window) => !isModelSpecific(window.label));
-  const modelWindows = ordered.filter((window) => isModelSpecific(window.label));
+  const accountWindows = ordered.filter((window) => !isLaneOrModelWindow(window));
+  const modelWindows = ordered.filter((window) => isLaneOrModelWindow(window));
 
   return (
     <div className="border border-border px-4 py-4">
@@ -116,11 +129,15 @@ export function CodexSubscriptionPanel({
 
 function QuotaWindowRow({ window }: { window: QuotaWindow }) {
   const detail = detailText(window);
+  const badge = windowBadge(window);
   if (window.usedPercent == null) {
     return (
       <div className="border border-border px-3.5 py-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-medium text-foreground">{window.label}</div>
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-foreground">{window.label}</div>
+            {badge ? <div className="mt-1 font-mono text-[11px] text-muted-foreground">{badge}</div> : null}
+          </div>
           {window.valueLabel ? (
             <div className="text-sm font-semibold tabular-nums text-foreground">{window.valueLabel}</div>
           ) : null}
@@ -137,6 +154,7 @@ function QuotaWindowRow({ window }: { window: QuotaWindow }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-medium text-foreground">{window.label}</div>
+          {badge ? <div className="mt-1 font-mono text-[11px] text-muted-foreground">{badge}</div> : null}
           {detail ? (
             <div className="mt-1 text-xs text-muted-foreground">{detail}</div>
           ) : null}
