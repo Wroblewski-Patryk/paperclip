@@ -283,6 +283,30 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
       .then((rows) => rows[0] ?? null);
   }
 
+  async function findRecentCancelledProductivityReview(
+    companyId: string,
+    sourceIssueId: string,
+    thresholds: ProductivityReviewThresholds,
+    now: Date,
+  ) {
+    const cutoff = new Date(now.getTime() - thresholds.resolvedSnoozeMs);
+    return db
+      .select({ id: issues.id, identifier: issues.identifier, status: issues.status, updatedAt: issues.updatedAt })
+      .from(issues)
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          eq(issues.originKind, PRODUCTIVITY_REVIEW_ORIGIN_KIND),
+          eq(issues.originId, sourceIssueId),
+          eq(issues.status, "cancelled"),
+          gt(issues.updatedAt, cutoff),
+        ),
+      )
+      .orderBy(desc(issues.updatedAt))
+      .limit(1)
+      .then((rows) => rows[0] ?? null);
+  }
+
   async function countRecentProductivityReviews(
     companyId: string,
     sourceIssueId: string,
@@ -668,6 +692,16 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
       return { kind: "updated" as const, reviewIssueId: existing.id };
     }
 
+    const recentlyCancelled = await findRecentCancelledProductivityReview(
+      evidence.sourceIssue.companyId,
+      evidence.sourceIssue.id,
+      opts.thresholds,
+      evidence.generatedAt,
+    );
+    if (recentlyCancelled) {
+      return { kind: "cancelled_snoozed" as const, reviewIssueId: null };
+    }
+
     const recentCreationCount = await countRecentProductivityReviews(
       evidence.sourceIssue.companyId,
       evidence.sourceIssue.id,
@@ -787,6 +821,7 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
       updated: 0,
       existing: 0,
       snoozed: 0,
+      cancelledSnoozed: 0,
       creationCapped: 0,
       skipped: 0,
       failed: 0,
@@ -828,6 +863,7 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
         if (outcome.kind === "created") result.created += 1;
         else if (outcome.kind === "updated") result.updated += 1;
         else if (outcome.kind === "creation_capped") result.creationCapped += 1;
+        else if (outcome.kind === "cancelled_snoozed") result.cancelledSnoozed += 1;
         else result.existing += 1;
         if (outcome.reviewIssueId) result.reviewIssueIds.push(outcome.reviewIssueId);
       } catch (err) {
