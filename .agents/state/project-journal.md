@@ -1796,3 +1796,41 @@ large company-wide context packets for every run.
 - Added heartbeat self-healing before queued-run resume: future provider quota holds are re-evaluated against the run's current model-router profile and are requeued when the selected lane is not currently blocked.
 - Verified on the live local Softwarehouse instance that active provider quota holds dropped to 0 and work resumed only in `codex_standard_light` and `codex_spark_preview`; no `codex_standard` runs were started while the standard weekly lane remains above threshold.
 - Validation passed for `@paperclipai/server` typecheck and the existing heartbeat model-profile test target.
+
+## 2026-07-06 - Runtime instruction bundle recovery and regression register
+
+Context: the owner opened the Client Success Manager instructions page and
+Paperclip reported `Instructions root does not exist` under the active
+`C:\Users\wrobl\.paperclip\instances\default` company tree. This revealed that
+active runtime instruction bundles had been removed or not restored even though
+the agent database rows and adapter configs still pointed to them.
+
+Actions:
+
+- Restored 38 full instruction bundles, including `AGENTS.md` and `references/`,
+  from the repo-local runtime mirror at
+  `.paperclip/runtime/home/instances/default/companies/<companyId>/agents`.
+- Reconstructed the missing `09 EDL (Engineering Delivery Lead)` bundle from
+  the live roster and Technology-agent instruction pattern, then wrote it to
+  both the active instance and repo-local runtime mirror.
+- Audited active agent path references in `adapterConfig` and `runtimeConfig`:
+  39 agents, 78 Windows path references, 0 missing paths after repair.
+- Added `docs/softwarehouse-feature-regression-register.csv` as a durable
+  feature/regression checklist for model routing, quota gating, costs UI,
+  workspace boundaries, served UI, backup/restore, and cleanup safety.
+- Fixed `scripts/audit-softwarehouse-model-cost-readiness.mjs` so its long
+  quota-window fallback matches the canonical 90% default instead of the stale
+  95% value.
+
+Decision: active Paperclip instance folders under `~/.paperclip/instances` are
+runtime state, not disposable temp. Cleanup must first run a path-reference
+audit and must not delete active company/agent instruction roots unless a
+verified backup/restore path exists.
+
+Evidence:
+
+- CSM and EDL `/instructions-bundle` API calls returned no warnings and listed
+  `AGENTS.md` plus shared `references/*` files.
+- `pnpm run softwarehouse:workspace-boundary-audit` passed.
+- `node scripts/audit-softwarehouse-model-cost-readiness.mjs` exposed the stale
+  95% fallback before the fix; canonical shared/UI/docs default is 90%.

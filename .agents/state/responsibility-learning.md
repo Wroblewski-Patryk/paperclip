@@ -351,3 +351,31 @@ Current evidence:
   event exists.
 - `scripts/softwarehouse-gate-specs.test.mjs` includes quota-gating coverage for
   local Codex starts.
+
+## 2026-07-06 - Do not classify active instance files as disposable cleanup
+
+Observed pattern: Paperclip can keep agent rows and adapter config in the
+database while the file-backed instruction bundle under
+`~/.paperclip/instances/default/companies/<companyId>/agents/<agentId>/instructions`
+is missing. The UI then fails with `Instructions root does not exist`, and
+agents may lose role-specific operating context even though the company still
+looks configured.
+
+Standing rule:
+
+- Before cleanup, scan live Paperclip config for absolute path references and
+  verify each referenced path exists.
+- Treat active instance folders, agent instruction roots, local object storage,
+  secrets metadata, database directories, and workspace roots as live runtime
+  state unless proven otherwise.
+- Prefer archive/recycle/backup over deletion when provenance is uncertain.
+- After any cleanup or restore, test a representative instruction bundle page
+  and at least one generated/restored agent bundle.
+
+Current evidence:
+
+- 2026-07-06 repair restored all 39 LuckySparrow managed instruction bundles.
+- Active agent `adapterConfig` and `runtimeConfig` path-reference audit checked
+  78 Windows paths and found 0 missing after the repair.
+- `docs/softwarehouse-feature-regression-register.csv` now tracks this as a
+  regression risk under `runtime_file_state` and `cleanup_safety`.

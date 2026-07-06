@@ -222,11 +222,14 @@ test("longevity watchdog covers autonomous softwarehouse contract checks", async
 
 test("heartbeat scheduler gates codex_local starts on provider quota pressure", async () => {
   const source = await readFile("server/src/services/heartbeat.ts", "utf8");
+  const instanceTypes = await readFile("packages/shared/src/types/instance.ts", "utf8");
 
   assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT/);
-  assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT"[\s\S]*75/);
+  assert.match(source, /DEFAULT_CODEX_LOCAL_QUOTA_SHORT_WINDOW_HOLD_USED_PERCENT/);
+  assert.match(instanceTypes, /DEFAULT_CODEX_LOCAL_QUOTA_SHORT_WINDOW_HOLD_USED_PERCENT = 75/);
   assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT/);
-  assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT"[\s\S]*95/);
+  assert.match(source, /DEFAULT_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT/);
+  assert.match(instanceTypes, /DEFAULT_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT = 90/);
   assert.match(source, /PAPERCLIP_CODEX_LOCAL_QUOTA_SHORT_WINDOW_MAX_MS/);
   assert.match(source, /function isShortQuotaWindow/);
   assert.match(source, /function quotaHoldThresholdForWindow/);
@@ -244,14 +247,18 @@ test("heartbeat scheduler gates codex_local starts on provider quota pressure", 
 
 test("dashboard surfaces provider quota separately from dollar spend", async () => {
   const source = await readFile("ui/src/pages/Dashboard.tsx", "utf8");
+  const dashboardService = await readFile("server/src/services/dashboard.ts", "utf8");
+  const dashboardTypes = await readFile("packages/shared/src/types/dashboard.ts", "utf8");
 
   assert.match(source, /costsApi\.quotaWindows/);
   assert.match(source, /queryKeys\.usageQuotaWindows/);
   assert.match(source, /Provider Quota/);
   assert.match(source, /Month Spend/);
   assert.match(source, /formatCents\(data\.costs\.monthSpendCents\)/);
-  assert.match(source, /subscriptionMonthBudgetCents/);
-  assert.match(source, /reportedMonthSpendCents/);
+  assert.match(source, /subscriptionMonthlyBudgetCents/);
+  assert.match(source, /subscriptionPlanLabel/);
+  assert.match(dashboardService, /reportedMonthSpendCents/);
+  assert.match(dashboardTypes, /reportedMonthSpendCents/);
 });
 
 test("local Codex subscription quota is converted into effective plan spend", async () => {
@@ -259,6 +266,7 @@ test("local Codex subscription quota is converted into effective plan spend", as
   const costs = await readFile("server/src/services/costs.ts", "utf8");
   const dashboard = await readFile("server/src/services/dashboard.ts", "utf8");
   const costsPage = await readFile("ui/src/pages/Costs.tsx", "utf8");
+  const billerCard = await readFile("ui/src/components/BillerSpendCard.tsx", "utf8");
 
   assert.match(helper, /DEFAULT_CODEX_LOCAL_SUBSCRIPTION_BUDGET_CENTS = 20_000/);
   assert.match(helper, /PAPERCLIP_CODEX_LOCAL_SUBSCRIPTION_BUDGET_CENTS/);
@@ -267,7 +275,9 @@ test("local Codex subscription quota is converted into effective plan spend", as
   assert.match(costs, /subscriptionSpendCents/);
   assert.match(dashboard, /subscriptionMonthSpendCents/);
   assert.match(costsPage, /hasSubscriptionEstimate/);
-  assert.match(costsPage, /Plan usage/);
+  assert.match(costsPage, /Plan quota ledger/);
+  assert.match(costsPage, /plan share estimate/);
+  assert.match(billerCard, /Plan usage/);
 });
 
 test("budget policies can govern effective local Codex plan usage separately from API billing", async () => {

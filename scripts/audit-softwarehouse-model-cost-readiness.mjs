@@ -1,7 +1,7 @@
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const quotaHoldPercent = Number(process.env.PAPERCLIP_CODEX_LOCAL_QUOTA_HOLD_USED_PERCENT ?? 75);
-const longWindowHoldPercent = Number(process.env.PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT ?? 95);
+const longWindowHoldPercent = Number(process.env.PAPERCLIP_CODEX_LOCAL_QUOTA_LONG_WINDOW_HOLD_USED_PERCENT ?? 90);
 const shortWindowMaxMs = Number(process.env.PAPERCLIP_CODEX_LOCAL_QUOTA_SHORT_WINDOW_MAX_MS ?? 24 * 60 * 60 * 1000);
 
 async function request(route) {
