@@ -7,6 +7,7 @@ import type { TranscriptEntry } from "../adapters";
 import { issuesApi } from "../api/issues";
 import { queryKeys } from "../lib/queryKeys";
 import { cn, relativeTime } from "../lib/utils";
+import { readModelProfileDisplay } from "../lib/model-profile-display";
 import {
   deriveActiveRecoveryDisplayState,
   RECOVERY_CHIP_DEFAULT_TONE,
@@ -168,6 +169,8 @@ const AgentRunCard = memo(function AgentRunCard({
   isActive: boolean;
   className?: string;
 }) {
+  const modelProfile = readModelProfileDisplay(run);
+
   return (
     <div className={cn(
       "flex h-[320px] flex-col overflow-hidden rounded-xl border shadow-sm",
@@ -193,6 +196,19 @@ const AgentRunCard = memo(function AgentRunCard({
             <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
               <span>{isActive ? "Live now" : run.finishedAt ? `Finished ${relativeTime(run.finishedAt)}` : `Started ${relativeTime(run.createdAt)}`}</span>
             </div>
+            {modelProfile ? (
+              <div
+                className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground"
+                title={modelProfile.title}
+              >
+                <span className="truncate">{modelProfile.label}</span>
+                {modelProfile.quotaLane ? (
+                  <span className="shrink-0 text-muted-foreground/70">
+                    {modelProfile.quotaLane.replace(/_/g, " ")}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <Link

@@ -14,6 +14,16 @@ export interface RunLivenessFields {
   nextAction: string | null;
 }
 
+export interface RunEffectiveModelProfileFields {
+  effectiveModelProfile?: string | null;
+  effectiveDefaultModel?: string | null;
+  effectiveQuotaLane?: string | null;
+  effectiveModelProfileRequested?: string | null;
+  effectiveModelProfileApplied?: string | null;
+  effectiveModelProfileSource?: string | null;
+  effectiveModelProfileFallbackReason?: string | null;
+}
+
 export interface ActiveRunForIssue {
   id: string;
   status: string;
@@ -37,6 +47,7 @@ export interface ActiveRunForIssue {
   nextAction?: string | null;
   outputSilence?: HeartbeatRun["outputSilence"];
 }
+export interface ActiveRunForIssue extends RunEffectiveModelProfileFields {}
 
 export interface LiveRunForIssue {
   id: string;
@@ -61,6 +72,7 @@ export interface LiveRunForIssue {
   nextAction?: string | null;
   outputSilence?: HeartbeatRun["outputSilence"];
 }
+export interface LiveRunForIssue extends RunEffectiveModelProfileFields {}
 
 export interface WatchdogDecisionInput {
   runId: string;

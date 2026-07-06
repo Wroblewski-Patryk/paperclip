@@ -1054,6 +1054,14 @@ const heartbeatRunListContextColumns = {
   contextWakeReason: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'wakeReason'`.as("contextWakeReason"),
   contextWakeSource: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'wakeSource'`.as("contextWakeSource"),
   contextWakeTriggerDetail: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'wakeTriggerDetail'`.as("contextWakeTriggerDetail"),
+  contextModelProfile: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'modelProfile'`.as("contextModelProfile"),
+  contextModelProfileRequested: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'requested'`.as("contextModelProfileRequested"),
+  contextModelProfileApplied: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'applied'`.as("contextModelProfileApplied"),
+  contextModelProfileSource: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'configSource'`.as("contextModelProfileSource"),
+  contextModelProfileFallbackReason: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'fallbackReason'`.as("contextModelProfileFallbackReason"),
+  contextModelRouterProfile: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'profile'`.as("contextModelRouterProfile"),
+  contextModelRouterSource: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'source'`.as("contextModelRouterSource"),
+  contextModelRouterReason: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'reason'`.as("contextModelRouterReason"),
 } as const;
 
 const heartbeatRunListResultColumns = {
@@ -1157,6 +1165,14 @@ const heartbeatRunIssueSummaryColumns = {
   lastOutputStream: heartbeatRuns.lastOutputStream,
   lastOutputBytes: heartbeatRuns.lastOutputBytes,
   issueId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'issueId'`.as("issueId"),
+  modelProfileContext: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'modelProfile'`.as("modelProfileContext"),
+  modelProfileRequested: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'requested'`.as("modelProfileRequested"),
+  modelProfileApplied: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'applied'`.as("modelProfileApplied"),
+  modelProfileSource: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'configSource'`.as("modelProfileSource"),
+  modelProfileFallbackReason: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'fallbackReason'`.as("modelProfileFallbackReason"),
+  modelRouterProfile: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'profile'`.as("modelRouterProfile"),
+  modelRouterSource: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'source'`.as("modelRouterSource"),
+  modelRouterReason: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'reason'`.as("modelRouterReason"),
 } as const;
 
 function appendExcerpt(prev: string, chunk: string) {
@@ -1500,6 +1516,32 @@ export function summarizeHeartbeatRunContextSnapshot(
   for (const key of allowedKeys) {
     const value = readNonEmptyString(contextSnapshot?.[key]);
     if (value) summary[key] = value;
+  }
+
+  const profile =
+    readNonEmptyString(contextSnapshot?.contextModelProfileApplied) ??
+    readNonEmptyString(contextSnapshot?.contextModelProfile) ??
+    readNonEmptyString(contextSnapshot?.contextModelRouterProfile) ??
+    readNonEmptyString(contextSnapshot?.contextModelProfileRequested);
+  if (profile) {
+    const catalogEntry = loadModelEconomicsConfig().profiles[profile];
+    summary.paperclipModelProfile = {
+      requested: readNonEmptyString(contextSnapshot?.contextModelProfileRequested) ?? null,
+      applied: profile,
+      configSource: readNonEmptyString(contextSnapshot?.contextModelProfileSource) ?? null,
+      fallbackReason: readNonEmptyString(contextSnapshot?.contextModelProfileFallbackReason) ?? null,
+      defaultModel: catalogEntry?.defaultModel ?? null,
+      quotaLane: catalogEntry?.quotaLane ?? null,
+    };
+  }
+
+  const routerProfile = readNonEmptyString(contextSnapshot?.contextModelRouterProfile);
+  if (routerProfile) {
+    summary.paperclipModelRouter = {
+      profile: routerProfile,
+      source: readNonEmptyString(contextSnapshot?.contextModelRouterSource) ?? null,
+      reason: readNonEmptyString(contextSnapshot?.contextModelRouterReason) ?? null,
+    };
   }
 
   return Object.keys(summary).length > 0 ? summary : null;
@@ -10587,6 +10629,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           contextWakeReason,
           contextWakeSource,
           contextWakeTriggerDetail,
+          contextModelProfile,
+          contextModelProfileRequested,
+          contextModelProfileApplied,
+          contextModelProfileSource,
+          contextModelProfileFallbackReason,
+          contextModelRouterProfile,
+          contextModelRouterSource,
+          contextModelRouterReason,
           resultSummary,
           resultResult,
           resultMessage,
@@ -10616,6 +10666,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             wakeReason: contextWakeReason,
             wakeSource: contextWakeSource,
             wakeTriggerDetail: contextWakeTriggerDetail,
+            contextModelProfile,
+            contextModelProfileRequested,
+            contextModelProfileApplied,
+            contextModelProfileSource,
+            contextModelProfileFallbackReason,
+            contextModelRouterProfile,
+            contextModelRouterSource,
+            contextModelRouterReason,
           }),
           resultJson: safeForLegacyEncoding
             ? null

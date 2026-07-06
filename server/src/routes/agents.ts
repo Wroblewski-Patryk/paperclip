@@ -77,6 +77,7 @@ import { redactEventPayload } from "../redaction.js";
 import { redactCurrentUserValue } from "../log-redaction.js";
 import { renderOrgChartSvg, renderOrgChartPng, type OrgNode, type OrgChartStyle, ORG_CHART_STYLES } from "./org-chart-svg.js";
 import { instanceSettingsService } from "../services/instance-settings.js";
+import { loadModelEconomicsConfig } from "../services/model-economics.js";
 import { runClaudeLogin } from "@paperclipai/adapter-claude-local/server";
 import {
   DEFAULT_ACPX_LOCAL_AGENT,
@@ -809,6 +810,32 @@ export function agentRoutes(
     if (typeof value !== "string") return null;
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : null;
+  }
+
+  function enrichRunModelProfile<T extends Record<string, unknown>>(run: T): T {
+    const catalog = loadModelEconomicsConfig().profiles;
+    const requested = asNonEmptyString(run.modelProfileRequested);
+    const applied =
+      asNonEmptyString(run.modelProfileApplied) ??
+      asNonEmptyString(run.modelProfileContext) ??
+      asNonEmptyString(run.modelRouterProfile);
+    const profile = applied ?? requested;
+    const entry = profile ? catalog[profile] : undefined;
+
+    return {
+      ...run,
+      effectiveModelProfile: profile ?? null,
+      effectiveDefaultModel: entry?.defaultModel ?? null,
+      effectiveQuotaLane: entry?.quotaLane ?? null,
+      effectiveModelProfileRequested: requested,
+      effectiveModelProfileApplied: applied,
+      effectiveModelProfileSource:
+        asNonEmptyString(run.modelProfileSource) ??
+        asNonEmptyString(run.modelRouterSource),
+      effectiveModelProfileFallbackReason:
+        asNonEmptyString(run.modelProfileFallbackReason) ??
+        asNonEmptyString(run.modelRouterReason),
+    };
   }
 
   function preserveInstructionsBundleConfig(
@@ -3135,6 +3162,14 @@ export function agentRoutes(
       lastOutputBytes: heartbeatRuns.lastOutputBytes,
       processStartedAt: heartbeatRuns.processStartedAt,
       issueId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'issueId'`.as("issueId"),
+      modelProfileContext: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'modelProfile'`.as("modelProfileContext"),
+      modelProfileRequested: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'requested'`.as("modelProfileRequested"),
+      modelProfileApplied: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'applied'`.as("modelProfileApplied"),
+      modelProfileSource: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'configSource'`.as("modelProfileSource"),
+      modelProfileFallbackReason: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'fallbackReason'`.as("modelProfileFallbackReason"),
+      modelRouterProfile: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'profile'`.as("modelRouterProfile"),
+      modelRouterSource: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'source'`.as("modelRouterSource"),
+      modelRouterReason: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'reason'`.as("modelRouterReason"),
     };
 
     const liveRunsQuery = db
@@ -3170,14 +3205,14 @@ export function agentRoutes(
 
       const rows = [...liveRuns, ...recentRuns];
       res.json(await Promise.all(rows.map(async (run) => ({
-        ...run,
+        ...enrichRunModelProfile(run),
         outputSilence: await heartbeat.buildRunOutputSilence(run),
       }))));
       return;
     }
 
     res.json(await Promise.all(liveRuns.map(async (run) => ({
-      ...run,
+      ...enrichRunModelProfile(run),
       outputSilence: await heartbeat.buildRunOutputSilence(run),
     }))));
   });
@@ -3372,6 +3407,14 @@ export function agentRoutes(
         lastOutputStream: heartbeatRuns.lastOutputStream,
         lastOutputBytes: heartbeatRuns.lastOutputBytes,
         processStartedAt: heartbeatRuns.processStartedAt,
+        modelProfileContext: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'modelProfile'`.as("modelProfileContext"),
+        modelProfileRequested: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'requested'`.as("modelProfileRequested"),
+        modelProfileApplied: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'applied'`.as("modelProfileApplied"),
+        modelProfileSource: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'configSource'`.as("modelProfileSource"),
+        modelProfileFallbackReason: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelProfile' ->> 'fallbackReason'`.as("modelProfileFallbackReason"),
+        modelRouterProfile: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'profile'`.as("modelRouterProfile"),
+        modelRouterSource: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'source'`.as("modelRouterSource"),
+        modelRouterReason: sql<string | null>`${heartbeatRuns.contextSnapshot} -> 'paperclipModelRouter' ->> 'reason'`.as("modelRouterReason"),
       })
       .from(heartbeatRuns)
       .innerJoin(agentsTable, eq(heartbeatRuns.agentId, agentsTable.id))
@@ -3385,7 +3428,7 @@ export function agentRoutes(
       .orderBy(desc(heartbeatRuns.createdAt));
 
     res.json(await Promise.all(liveRuns.map(async (run) => ({
-      ...run,
+      ...enrichRunModelProfile(run),
       outputSilence: await heartbeat.buildRunOutputSilence({ ...run, companyId: issue.companyId }),
     }))));
   });
@@ -3431,7 +3474,7 @@ export function agentRoutes(
     }
 
     res.json({
-      ...run,
+      ...enrichRunModelProfile(run),
       agentId: agent.id,
       agentName: agent.name,
       adapterType: agent.adapterType,

@@ -368,6 +368,60 @@ describe("agent live run routes", () => {
     expect(mockHeartbeatService.buildRunOutputSilence).toHaveBeenCalledTimes(50);
   });
 
+  it("enriches company live runs with the effective model profile and quota lane", async () => {
+    const rows = [{
+      id: "run-1",
+      companyId: "company-1",
+      status: "running",
+      invocationSource: "on_demand",
+      triggerDetail: "manual",
+      contextCommentId: "comment-1",
+      contextWakeCommentId: null,
+      startedAt: new Date("2026-04-10T09:30:00.000Z"),
+      finishedAt: null,
+      createdAt: new Date("2026-04-10T09:29:59.000Z"),
+      agentId: "agent-1",
+      agentName: "Builder",
+      adapterType: "codex_local",
+      logBytes: 0,
+      livenessState: "healthy",
+      livenessReason: null,
+      continuationAttempt: 0,
+      lastUsefulActionAt: null,
+      nextAction: null,
+      lastOutputAt: null,
+      lastOutputSeq: null,
+      lastOutputStream: null,
+      lastOutputBytes: 0,
+      processStartedAt: null,
+      issueId: "issue-1",
+      modelProfileRequested: "standard",
+      modelProfileApplied: "light",
+      modelProfileSource: "model_router",
+      modelProfileFallbackReason: "quota_pressure_high",
+      modelRouterProfile: "light",
+      modelRouterSource: "agent_group",
+      modelRouterReason: "routine_coordination",
+    }];
+    const { db } = createLiveRunsDbStub(rows);
+
+    const res = await requestApp(
+      await createApp(db),
+      (baseUrl) => request(baseUrl).get("/api/companies/company-1/live-runs"),
+    );
+
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body[0]).toMatchObject({
+      effectiveModelProfile: "light",
+      effectiveDefaultModel: "gpt-5.4-mini",
+      effectiveQuotaLane: "codex_standard_light",
+      effectiveModelProfileRequested: "standard",
+      effectiveModelProfileApplied: "light",
+      effectiveModelProfileSource: "model_router",
+      effectiveModelProfileFallbackReason: "quota_pressure_high",
+    });
+  });
+
   it("treats explicit zero or invalid live run limit as the capped default", async () => {
     const rows = Array.from({ length: 75 }, (_, index) => ({
       id: `run-${index}`,

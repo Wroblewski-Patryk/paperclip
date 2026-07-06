@@ -49,6 +49,7 @@ import { readSourceResolvedWatchdogFold } from "../lib/source-resolved-watchdog-
 import { buildSameOriginWebSocketUrl } from "../lib/websocket-url";
 import { formatCents, formatDate, relativeTime, formatTokens, visibleRunCostUsd } from "../lib/utils";
 import { cn } from "../lib/utils";
+import { readModelProfileDisplay } from "../lib/model-profile-display";
 import { describeRunRetryState } from "../lib/runRetryState";
 import { buildDuplicateAgentPayload, duplicateAgentName, type DuplicateInstructionsBundle } from "../lib/duplicate-agent-payload";
 import { Button } from "@/components/ui/button";
@@ -1371,6 +1372,7 @@ function LatestRunCard({ runs, agentId }: { runs: HeartbeatRun[]; agentId: strin
   const statusInfo = runStatusIcons[displayStatus] ?? { icon: Clock, color: "text-neutral-400" };
   const StatusIcon = statusInfo.icon;
   const summaryRaw = runSummaryText(run);
+  const modelProfile = readModelProfileDisplay(run);
 
   // Extract a clean 2-3 line excerpt: first non-empty, non-header, non-list-mark lines
   const summary = useMemo(() => {
@@ -1432,6 +1434,23 @@ function LatestRunCard({ runs, agentId }: { runs: HeartbeatRun[]; agentId: strin
           </span>
           <span className="ml-auto text-xs text-muted-foreground">{relativeTime(run.createdAt)}</span>
         </div>
+
+        {modelProfile ? (
+          <div
+            className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
+            title={modelProfile.title}
+          >
+            <span className="inline-flex items-center rounded-full border border-border bg-background/70 px-2 py-0.5 font-medium">
+              {modelProfile.label}
+            </span>
+            {modelProfile.quotaLane ? (
+              <span className="font-mono text-[11px]">{modelProfile.quotaLane}</span>
+            ) : null}
+            {modelProfile.fallbackReason ? (
+              <span className="text-[11px]">fallback: {modelProfile.fallbackReason}</span>
+            ) : null}
+          </div>
+        ) : null}
 
         {summary && (
           <div className="overflow-hidden max-h-16">
