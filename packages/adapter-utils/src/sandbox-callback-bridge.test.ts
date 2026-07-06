@@ -20,8 +20,10 @@ import {
 import type { RunProcessResult } from "./server-utils.js";
 
 const execFile = promisify(execFileCallback);
+const localPosixShell = "/bin/sh";
+const describeWithLocalPosixShell = process.platform === "win32" ? describe.skip : describe;
 
-describe("sandbox callback bridge", () => {
+describeWithLocalPosixShell("sandbox callback bridge", () => {
   const cleanupDirs: string[] = [];
   const cleanupFns: Array<() => Promise<void>> = [];
 
@@ -41,7 +43,9 @@ describe("sandbox callback bridge", () => {
           ...input.env,
         };
         const command =
-          input.command === "sh" ? "/bin/sh" : input.command === "bash" ? "/bin/bash" : input.command;
+          input.command === "sh" || input.command === "bash"
+            ? localPosixShell ?? input.command
+            : input.command;
         const args = [...(input.args ?? [])];
         if (
           input.stdin != null &&

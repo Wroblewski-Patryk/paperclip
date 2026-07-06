@@ -56,6 +56,23 @@ async function startSshEnvLabFixtureOrSkip(statePath: string, label: string) {
 
 describe("ssh env-lab fixture", () => {
   const cleanupDirs: string[] = [];
+  let canCreateFileSymlink: boolean | null = null;
+
+  async function supportsFileSymlink(): Promise<boolean> {
+    if (canCreateFileSymlink !== null) return canCreateFileSymlink;
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), "paperclip-ssh-symlink-probe-"));
+    cleanupDirs.push(rootDir);
+    const source = path.join(rootDir, "source.txt");
+    const target = path.join(rootDir, "target.txt");
+    await writeFile(source, "probe\n", "utf8");
+    try {
+      await symlink(source, target);
+      canCreateFileSymlink = true;
+    } catch {
+      canCreateFileSymlink = false;
+    }
+    return canCreateFileSymlink;
+  }
 
   afterEach(async () => {
     while (cleanupDirs.length > 0) {
@@ -200,6 +217,10 @@ describe("ssh env-lab fixture", () => {
   }, SSH_FIXTURE_TEST_TIMEOUT_MS);
 
   it("can dereference local symlinks while syncing to the remote fixture", async () => {
+    if (!(await supportsFileSymlink())) {
+      console.warn("Skipping SSH symlink sync test: file symlinks are unavailable on this host.");
+      return;
+    }
     const rootDir = await mkdtemp(path.join(os.tmpdir(), "paperclip-ssh-fixture-"));
     cleanupDirs.push(rootDir);
     const statePath = path.join(rootDir, "state.json");

@@ -9,8 +9,10 @@ import { prepareCommandManagedRuntime } from "./command-managed-runtime.js";
 import type { RunProcessResult } from "./server-utils.js";
 
 const execFile = promisify(execFileCallback);
+const localPosixShell = "/bin/sh";
+const describeWithLocalPosixShell = process.platform === "win32" ? describe.skip : describe;
 
-describe("command managed runtime", () => {
+describeWithLocalPosixShell("command managed runtime", () => {
   const cleanupDirs: string[] = [];
 
   afterEach(async () => {
@@ -56,7 +58,9 @@ describe("command managed runtime", () => {
           ...input.env,
         };
         const command =
-          input.command === "sh" ? "/bin/sh" : input.command === "bash" ? "/bin/bash" : input.command;
+          input.command === "sh" || input.command === "bash"
+            ? localPosixShell ?? input.command
+            : input.command;
         const args = [...(input.args ?? [])];
         if (
           input.stdin != null &&
@@ -163,7 +167,11 @@ describe("command managed runtime", () => {
         calls.push({ ...input });
         const startedAt = new Date().toISOString();
         try {
-          const result = await execFile(input.command === "sh" ? "/bin/sh" : input.command, input.args ?? [], {
+          const command =
+            input.command === "sh" || input.command === "bash"
+              ? localPosixShell ?? input.command
+              : input.command;
+          const result = await execFile(command, input.args ?? [], {
             cwd: input.cwd,
             env: {
               ...process.env,

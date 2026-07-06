@@ -20,6 +20,8 @@ import { runChildProcess } from "./server-utils.js";
 
 describe("sandbox adapter execution targets", () => {
   const cleanupDirs: string[] = [];
+  const localPosixShell = "/bin/sh";
+  const itWithLocalPosixShell = process.platform === "win32" ? it.skip : it;
 
   afterEach(async () => {
     vi.unstubAllEnvs();
@@ -44,7 +46,10 @@ describe("sandbox adapter execution targets", () => {
         onSpawn?: (meta: { pid: number; startedAt: string }) => Promise<void>;
       }) => {
         counter += 1;
-        const command = input.command === "bash" ? "/bin/bash" : input.command;
+        const command =
+          input.command === "sh" || input.command === "bash"
+            ? localPosixShell ?? input.command
+            : input.command;
         return runChildProcess(`sandbox-run-${counter}`, command, input.args ?? [], {
           cwd: input.cwd ?? process.cwd(),
           env: input.env ?? {},
@@ -376,7 +381,7 @@ describe("sandbox adapter execution targets", () => {
     }));
   });
 
-  it("starts a localhost Paperclip bridge for sandbox targets in bridge mode", async () => {
+  itWithLocalPosixShell("starts a localhost Paperclip bridge for sandbox targets in bridge mode", async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), "paperclip-execution-target-bridge-"));
     cleanupDirs.push(rootDir);
     const remoteCwd = path.join(rootDir, "workspace");
@@ -449,7 +454,7 @@ describe("sandbox adapter execution targets", () => {
     }
   });
 
-  it("uses the effective adapter timeout when starting the sandbox callback bridge", async () => {
+  itWithLocalPosixShell("uses the effective adapter timeout when starting the sandbox callback bridge", async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), "paperclip-execution-target-bridge-timeout-"));
     cleanupDirs.push(rootDir);
     const remoteCwd = path.join(rootDir, "workspace");
@@ -503,7 +508,7 @@ describe("sandbox adapter execution targets", () => {
     }
   });
 
-  it("fails oversized host responses with a 502 before returning them to the sandbox client", async () => {
+  itWithLocalPosixShell("fails oversized host responses with a 502 before returning them to the sandbox client", async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), "paperclip-execution-target-bridge-limit-"));
     cleanupDirs.push(rootDir);
     const remoteCwd = path.join(rootDir, "workspace");

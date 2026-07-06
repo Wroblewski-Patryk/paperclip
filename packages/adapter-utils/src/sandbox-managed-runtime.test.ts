@@ -15,6 +15,23 @@ const execFile = promisify(execFileCallback);
 
 describe("sandbox managed runtime", () => {
   const cleanupDirs: string[] = [];
+  let canCreateFileSymlink: boolean | null = null;
+
+  async function supportsFileSymlink(): Promise<boolean> {
+    if (canCreateFileSymlink !== null) return canCreateFileSymlink;
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), "paperclip-symlink-probe-"));
+    cleanupDirs.push(rootDir);
+    const source = path.join(rootDir, "source.txt");
+    const target = path.join(rootDir, "target.txt");
+    await writeFile(source, "probe\n", "utf8");
+    try {
+      await symlink(source, target);
+      canCreateFileSymlink = true;
+    } catch {
+      canCreateFileSymlink = false;
+    }
+    return canCreateFileSymlink;
+  }
 
   afterEach(async () => {
     while (cleanupDirs.length > 0) {
@@ -50,6 +67,10 @@ describe("sandbox managed runtime", () => {
   });
 
   it("syncs workspace and assets through a provider-neutral sandbox client", async () => {
+    if (!(await supportsFileSymlink())) {
+      console.warn("Skipping sandbox asset symlink test: file symlinks are unavailable on this host.");
+      return;
+    }
     const rootDir = await mkdtemp(path.join(os.tmpdir(), "paperclip-sandbox-managed-"));
     cleanupDirs.push(rootDir);
     const localWorkspaceDir = path.join(rootDir, "local-workspace");

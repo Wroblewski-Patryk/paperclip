@@ -24,6 +24,7 @@ import { isWorkerEntrypoint, startWorkerRpcHost } from "../src/worker-rpc-host.j
 
 describe("isWorkerEntrypoint", () => {
   const tempRoots: string[] = [];
+  let canCreateDirectorySymlink: boolean | null = null;
 
   afterEach(() => {
     for (const tempRoot of tempRoots.splice(0)) {
@@ -37,7 +38,27 @@ describe("isWorkerEntrypoint", () => {
     return tempRoot;
   }
 
+  function supportsDirectorySymlink(): boolean {
+    if (canCreateDirectorySymlink !== null) return canCreateDirectorySymlink;
+    const tempRoot = createTempRoot();
+    const realDir = path.join(tempRoot, "real-symlink-probe");
+    const linkDir = path.join(tempRoot, "link-symlink-probe");
+    try {
+      fs.mkdirSync(realDir);
+      fs.symlinkSync(realDir, linkDir, "dir");
+      canCreateDirectorySymlink = true;
+    } catch {
+      canCreateDirectorySymlink = false;
+    }
+    return canCreateDirectorySymlink;
+  }
+
   it("matches an entrypoint reached through a symlinked directory", () => {
+    if (!supportsDirectorySymlink()) {
+      console.warn("Skipping worker entrypoint symlink test: directory symlinks are unavailable on this host.");
+      return;
+    }
+
     const tempRoot = createTempRoot();
     const realDir = path.join(tempRoot, "real");
     const linkDir = path.join(tempRoot, "link");
