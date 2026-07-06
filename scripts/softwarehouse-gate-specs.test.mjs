@@ -335,6 +335,29 @@ test("softwarehouse runtime file-state audit protects active agent instruction b
   assert.match(source, /agent_runtime_mirror_entry_missing/);
 });
 
+test("softwarehouse agent instruction audit guards persona richness and duplicate bundles", async () => {
+  const source = await readFile("scripts/audit-softwarehouse-agent-instructions.mjs", "utf8");
+  const packageJson = JSON.parse(await readFile("package.json", "utf8"));
+  const docs = await readFile("docs/softwarehouse-agent-instruction-audit.md", "utf8");
+
+  assert.equal(
+    packageJson.scripts["softwarehouse:agent-instructions-audit"],
+    "node scripts/audit-softwarehouse-agent-instructions.mjs",
+  );
+  assert.match(source, /signalChecks/);
+  assert.match(source, /persona/);
+  assert.match(source, /scope/);
+  assert.match(source, /evidence/);
+  assert.match(source, /safety/);
+  assert.match(source, /model/);
+  assert.match(source, /hierarchy/);
+  assert.match(source, /agent_instruction_bundle_duplicate/);
+  assert.match(source, /frontMatterHasName/);
+  assert.match(source, /mirrorCompanyAgentsRoot/);
+  assert.match(docs, /per agent/i);
+  assert.match(docs, /personas\/` index/);
+});
+
 test("learning loop scopes active issues and bounds API requests for large local instances", async () => {
   const source = await readFile("scripts/run-softwarehouse-learning-loop.mjs", "utf8");
 

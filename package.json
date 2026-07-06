@@ -130,6 +130,7 @@
     "softwarehouse:repair-runtime-bindings:apply": "node scripts/repair-runtime-binding-assignees.mjs --apply",
     "softwarehouse:repair-runtime-gate-bindings": "node scripts/repair-runtime-gate-bindings.mjs",
     "softwarehouse:repair-runtime-gate-bindings:apply": "node scripts/repair-runtime-gate-bindings.mjs --apply",
+    "softwarehouse:agent-instructions-audit": "node scripts/audit-softwarehouse-agent-instructions.mjs",
     "softwarehouse:runtime-file-state-audit": "node scripts/audit-softwarehouse-runtime-file-state.mjs",
     "softwarehouse:seed-safe-lane": "node scripts/run-safe-nonproduction-lane-seeder.mjs",
     "softwarehouse:seed-safe-lane:apply": "node scripts/run-safe-nonproduction-lane-seeder.mjs --apply",
