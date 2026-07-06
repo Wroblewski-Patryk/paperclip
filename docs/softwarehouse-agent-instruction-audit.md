@@ -4,13 +4,13 @@ Date: 2026-07-06
 
 ## Verdict
 
-LuckySparrow Softwarehouse agents do have rich Markdown-based instruction bundles. The current runtime layout is not a single shared `personas/` directory; it is one instruction bundle per agent:
+LuckySparrow Softwarehouse agents do have rich Markdown-based instruction bundles. The current layout is not a single shared `personas/` directory; it is one tracked instruction bundle per agent:
+
+`C:\Personal\Projekty\Aplikacje\Paperclip_Softwarehouse\.paperclip\agent-instructions\ae26bb8b-8f5f-4a85-b341-78d4e1985975\agents\<agentId>\instructions`
+
+The legacy user-home instance copy may still exist as a runtime fallback, but it is no longer the canonical source for active Softwarehouse agent instructions:
 
 `C:\Users\wrobl\.paperclip\instances\default\companies\ae26bb8b-8f5f-4a85-b341-78d4e1985975\agents\<agentId>\instructions`
-
-The repo-local mirror lives at:
-
-`C:\Personal\Projekty\Aplikacje\Paperclip_Softwarehouse\.paperclip\runtime\home\instances\default\companies\ae26bb8b-8f5f-4a85-b341-78d4e1985975\agents\<agentId>\instructions`
 
 This is acceptable for the current `codex_local` runtime because each agent receives its own `AGENTS.md` plus shared reference Markdown files. The discoverability issue is real, though: a human cannot easily browse "all personalities" from one obvious directory.
 
@@ -33,9 +33,9 @@ Runtime audit on 2026-07-06 found:
 
 Agent instruction bundles should remain valid only when all are true:
 
-- The active runtime instruction root exists.
+- The tracked repo instruction root exists.
 - `AGENTS.md` exists.
-- The repo-local runtime mirror exists.
+- The active agent `adapterConfig.instructionsRootPath` points at the tracked repo instruction root.
 - The bundle has enough Markdown surface to be more than a stub.
 - The bundle contains role/persona, scope, evidence, safety, model/cost/quota, and hierarchy/reporting guidance.
 - No two active agents share an identical instruction bundle.

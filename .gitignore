@@ -23,6 +23,8 @@ feedback-export-*
 # Local Paperclip runtime state
 .paperclip/*
 !.paperclip/config.json
+!.paperclip/agent-instructions/
+!.paperclip/agent-instructions/**
 .paperclip/.env
 .paperclip/runtime/
 .paperclip/worktrees/
