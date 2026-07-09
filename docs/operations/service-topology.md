@@ -1,6 +1,6 @@
 # Service Topology
 
-Last updated: 2026-07-04
+Last updated: 2026-07-09
 
 ## Purpose
 
@@ -20,8 +20,8 @@ coordinates.
 
 | Project | Status | Workspace | Primary current gate | Owner |
 | --- | --- | --- | --- | --- |
-| Soar | primary sellable lane | `C:/Personal/Projekty/Aplikacje/Soar` | `LUC-241` protected workers/readiness gate | Soar Project Manager |
-| Roost | secondary thin-readiness lane | `C:/Personal/Projekty/Aplikacje/Roost` | `LUC-261` CompanyCore/Roost takeover gate | Roost Project Manager |
+| Soar | primary sellable lane | `C:/Personal/Projekty/Aplikacje/Soar` | `LUC-30` deployment path, `LUC-31` readiness proof, `LUC-32` security/secrets gate | Soar Project Manager |
+| Roost | secondary thin-readiness lane | `C:/Personal/Projekty/Aplikacje/Roost` | `LUC-30` deployment path, `LUC-31` readiness proof, `LUC-32` security/secrets gate | Roost Project Manager |
 | Softwarehouse Operating System | planned | this repo | improve autonomy/process observability | Portfolio / CTO |
 
 Stage 1 file operations are limited to:
@@ -44,7 +44,7 @@ board explicitly reopens a stream.
 
 | Surface | Use | Safety boundary |
 | --- | --- | --- |
-| Coolify VPS | Soar deploy/status/recovery checks | Use configured secrets only inside Paperclip/local env; never persist values. |
+| Coolify VPS | Soar/Roost deploy/status/recovery checks | Use configured secrets only inside Paperclip/local env; never persist values. |
 | Soar production | Public smoke and authenticated proof where approved | No LIVE mutation or account data capture without explicit gate. |
 | Git remotes | Source-control closure and optional deploy trigger | Commit locally when coherent; push only when explicitly allowed. |
 
@@ -61,7 +61,7 @@ operator
   -> project-local status and Paperclip evidence
 
 Ops lanes:
-Paperclip -> Coolify/VPS -> Soar API/Web/workers -> smoke/readiness evidence
+Paperclip -> Coolify/VPS -> Soar/Roost API/Web/workers -> smoke/readiness evidence
 ```
 
 ## Maintenance Rule

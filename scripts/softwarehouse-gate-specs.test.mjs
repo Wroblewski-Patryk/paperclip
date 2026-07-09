@@ -4,7 +4,7 @@ import test from "node:test";
 import { rootBlockerIdentifierFor } from "./lib/issue-blockers.mjs";
 import { resolveIssuesByIdentifier } from "./lib/issue-discovery.mjs";
 import { gateFreshnessObservation } from "./lib/gate-freshness.mjs";
-import { uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
+import { secretForKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { autonomyDispositionForMode, controlActionSummaryFor, controlActionTypeFor, deliveryPermissionForMode, gateBriefFor, staleGateOwnerActionLine } from "./lib/softwarehouse-control-brief.mjs";
 import { softwarehouseGateSpecs, softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
 
@@ -28,7 +28,7 @@ test("softwarehouse gate specs are complete and keyed by root blocker", () => {
   assert.equal(softwarehouseGateSpecs.length, 3);
   assert.deepEqual(
     softwarehouseGateSpecs.map((spec) => spec.rootBlocker).sort(),
-    ["LUC-241", "LUC-261", "LUC-3924"],
+    ["LUC-30", "LUC-31", "LUC-32"],
   );
   assert.equal(softwarehouseGateSpecsByRootBlocker.size, softwarehouseGateSpecs.length);
 
@@ -1271,20 +1271,28 @@ test("Coolify reconciler directly confirms configured resource ids", async () =>
 test("runtime gate repair binds complete Soar Coolify resource ids", async () => {
   const source = await readFile("scripts/repair-runtime-gate-bindings.mjs", "utf8");
 
+  assert.match(source, /"LUC-30"/);
   assert.match(source, /COOLIFY_SOAR_APP_ID: "coolify_soar_app_id"/);
+  assert.match(source, /COOLIFY_SOAR_PROJECT_UUID: "coolify_soar_project_uuid"/);
+  assert.match(source, /COOLIFY_SOAR_WORKER_BACKTEST_APP_ID: "coolify_soar_worker_backtest_app_id"/);
+  assert.match(source, /COOLIFY_SOAR_WORKER_EXECUTION_APP_ID: "coolify_soar_worker_execution_app_id"/);
+  assert.match(source, /COOLIFY_SOAR_WORKER_MARKET_DATA_APP_ID: "coolify_soar_worker_market_data_app_id"/);
+  assert.match(source, /COOLIFY_SOAR_WORKER_MARKET_STREAM_APP_ID: "coolify_soar_worker_market_stream_app_id"/);
   assert.match(source, /COOLIFY_SOAR_POSTGRES_RESOURCE_ID: "coolify_soar_postgres_resource_id"/);
   assert.match(source, /COOLIFY_SOAR_REDIS_RESOURCE_ID: "coolify_soar_redis_resource_id"/);
+  assert.match(source, /COOLIFY_ROOST_APP_ID: "coolify_roost_app_id"/);
 });
 
-test("runtime gate repair binds LIVEIMPORT_READBACK aliases for LUC-3924", async () => {
+test("runtime gate repair binds smoke and safety refs for current delivery gates", async () => {
   const source = await readFile("scripts/repair-runtime-gate-bindings.mjs", "utf8");
 
-  assert.match(source, /"LUC-3924"/);
-  assert.match(source, /"09 IDE \(Integration Domain Engineer\)"/);
-  assert.match(source, /LIVEIMPORT_READBACK_AUTH_TOKEN: "liveimport_readback_auth_token"/);
-  assert.match(source, /LIVEIMPORT_READBACK_AUTH_EMAIL: "liveimport_readback_auth_email"/);
-  assert.match(source, /LIVEIMPORT_READBACK_AUTH_PASSWORD: "liveimport_readback_auth_password"/);
-  assert.match(source, /LIVEIMPORT_READBACK_OPS_AUTH_HEADER_VALUE: "liveimport_readback_ops_auth_header_value"/);
+  assert.match(source, /"LUC-31"/);
+  assert.match(source, /SOAR_PROD_TEST_EMAIL: "soar_prod_test_email"/);
+  assert.match(source, /ROOST_PROD_TEST_EMAIL: "roost_prod_test_email"/);
+  assert.match(source, /SMOKE_AUTH_EMAIL: "smoke_auth_email"/);
+  assert.match(source, /"LUC-32"/);
+  assert.match(source, /COOLIFY_API_URL: "coolify_api_url"/);
+  assert.match(source, /ROOST_PROD_TEST_API_BASE_URL: "roost_api_base_url"/);
 });
 
 test("runtime gate repair can update open non-terminal gates", async () => {
@@ -1327,12 +1335,45 @@ test("secret aliases collapse duplicate tracked gate secrets", () => {
   assert.deepEqual(secrets.map((secret) => secret.key), ["prod_ui_audit_admin_token"]);
 });
 
+test("secret aliases resolve supplied Coolify refs into legacy gate names", () => {
+  const suppliedKeys = [
+    "coolify_read_api_token",
+    "coolify_team_id_luckysparrow",
+    "coolify_project_id_soar",
+    "coolify_project_uuid_soar",
+    "coolify_environment_uuid_soar_production",
+    "coolify_resource_uuid_soar_web",
+    "coolify_resource_uuid_soar_api",
+    "coolify_resource_uuid_soar_worker_backtest",
+    "coolify_resource_uuid_soar_worker_execution",
+    "coolify_resource_uuid_soar_worker_market_data",
+    "coolify_resource_uuid_soar_worker_market_stream",
+    "coolify_database_uuid_soar_postgresql",
+    "coolify_database_uuid_soar_redis",
+  ];
+  const secretByKey = new Map(suppliedKeys.map((key) => [key, { key }]));
+
+  assert.equal(secretForKey(secretByKey, "coolify_api_token")?.key, "coolify_read_api_token");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_team_id")?.key, "coolify_team_id_luckysparrow");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_project_id")?.key, "coolify_project_id_soar");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_project_uuid")?.key, "coolify_project_uuid_soar");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_production_environment")?.key, "coolify_environment_uuid_soar_production");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_web_app_id")?.key, "coolify_resource_uuid_soar_web");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_api_app_id")?.key, "coolify_resource_uuid_soar_api");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_worker_backtest_app_id")?.key, "coolify_resource_uuid_soar_worker_backtest");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_worker_execution_app_id")?.key, "coolify_resource_uuid_soar_worker_execution");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_worker_market_data_app_id")?.key, "coolify_resource_uuid_soar_worker_market_data");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_worker_market_stream_app_id")?.key, "coolify_resource_uuid_soar_worker_market_stream");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_postgres_resource_id")?.key, "coolify_database_uuid_soar_postgresql");
+  assert.equal(secretForKey(secretByKey, "coolify_soar_redis_resource_id")?.key, "coolify_database_uuid_soar_redis");
+});
+
 test("active direct blocker wins over stale blocker attention sample", () => {
   const issue = {
     identifier: "LUC-12",
     blockedBy: [
       {
-        identifier: "LUC-241",
+        identifier: "LUC-30",
         status: "blocked",
       },
     ],
@@ -1341,7 +1382,7 @@ test("active direct blocker wins over stale blocker attention sample", () => {
     },
   };
 
-  assert.equal(rootBlockerIdentifierFor(issue), "LUC-241");
+  assert.equal(rootBlockerIdentifierFor(issue), "LUC-30");
 });
 
 test("gate issue discovery falls back to exact identifier search for roots outside the bulk page", async () => {
@@ -1352,35 +1393,35 @@ test("gate issue discovery falls back to exact identifier search for roots outsi
 
   const byIdentifier = await resolveIssuesByIdentifier({
     companyId: "company-1",
-    identifiers: ["LUC-241", "LUC-261"],
+    identifiers: ["LUC-30", "LUC-31"],
     issues: bulkIssues,
     request: async (method, route) => {
       requests.push({ method, route });
       if (route.startsWith("/api/issues/")) {
         throw new Error("direct lookup unavailable");
       }
-      if (route.includes("q=LUC-241")) {
+      if (route.includes("q=LUC-30")) {
         return { value: [
-          { id: "wrong-partial", identifier: "LUC-2410", title: "Partial match" },
-          { id: "gate-soar", identifier: "LUC-241", title: "Soar gate" },
+          { id: "wrong-partial", identifier: "LUC-300", title: "Partial match" },
+          { id: "gate-deploy", identifier: "LUC-30", title: "Deployment gate" },
         ] };
       }
-      if (route.includes("q=LUC-261")) {
+      if (route.includes("q=LUC-31")) {
         return [
-          { id: "gate-roost", identifier: "LUC-261", title: "Roost gate" },
+          { id: "gate-readiness", identifier: "LUC-31", title: "Readiness gate" },
         ];
       }
       return [];
     },
   });
 
-  assert.equal(byIdentifier.get("LUC-241")?.id, "gate-soar");
-  assert.equal(byIdentifier.get("LUC-261")?.id, "gate-roost");
+  assert.equal(byIdentifier.get("LUC-30")?.id, "gate-deploy");
+  assert.equal(byIdentifier.get("LUC-31")?.id, "gate-readiness");
   assert.deepEqual(requests, [
-    { method: "GET", route: "/api/issues/LUC-241" },
-    { method: "GET", route: "/api/companies/company-1/issues?q=LUC-241&limit=20" },
-    { method: "GET", route: "/api/issues/LUC-261" },
-    { method: "GET", route: "/api/companies/company-1/issues?q=LUC-261&limit=20" },
+    { method: "GET", route: "/api/issues/LUC-30" },
+    { method: "GET", route: "/api/companies/company-1/issues?q=LUC-30&limit=20" },
+    { method: "GET", route: "/api/issues/LUC-31" },
+    { method: "GET", route: "/api/companies/company-1/issues?q=LUC-31&limit=20" },
   ]);
 });
 
@@ -1388,17 +1429,17 @@ test("gate issue discovery prefers direct identifier lookup for canonical roots"
   const requests = [];
   const byIdentifier = await resolveIssuesByIdentifier({
     companyId: "company-1",
-    identifiers: ["LUC-241"],
+    identifiers: ["LUC-30"],
     issues: [],
     request: async (method, route) => {
       requests.push({ method, route });
-      return { id: "gate-soar", companyId: "company-1", identifier: "LUC-241", title: "Soar gate" };
+      return { id: "gate-deploy", companyId: "company-1", identifier: "LUC-30", title: "Deployment gate" };
     },
   });
 
-  assert.equal(byIdentifier.get("LUC-241")?.id, "gate-soar");
+  assert.equal(byIdentifier.get("LUC-30")?.id, "gate-deploy");
   assert.deepEqual(requests, [
-    { method: "GET", route: "/api/issues/LUC-241" },
+    { method: "GET", route: "/api/issues/LUC-30" },
   ]);
 });
 
@@ -1406,60 +1447,60 @@ test("gate issue discovery skips failed exact searches without aborting later ro
   const requests = [];
   const byIdentifier = await resolveIssuesByIdentifier({
     companyId: "company-1",
-    identifiers: ["LUC-241", "LUC-261"],
+    identifiers: ["LUC-30", "LUC-31"],
     issues: [],
     request: async (method, route) => {
       requests.push({ method, route });
       if (route.startsWith("/api/issues/")) {
         throw new Error("direct lookup unavailable");
       }
-      if (route.includes("q=LUC-241")) {
+      if (route.includes("q=LUC-30")) {
         throw new Error("search timed out");
       }
-      if (route.includes("q=LUC-261")) {
+      if (route.includes("q=LUC-31")) {
         return [
-          { id: "gate-roost", identifier: "LUC-261", title: "Roost gate" },
+          { id: "gate-readiness", identifier: "LUC-31", title: "Readiness gate" },
         ];
       }
       return [];
     },
   });
 
-  assert.equal(byIdentifier.has("LUC-241"), false);
-  assert.equal(byIdentifier.get("LUC-261")?.id, "gate-roost");
+  assert.equal(byIdentifier.has("LUC-30"), false);
+  assert.equal(byIdentifier.get("LUC-31")?.id, "gate-readiness");
   assert.deepEqual(requests, [
-    { method: "GET", route: "/api/issues/LUC-241" },
-    { method: "GET", route: "/api/companies/company-1/issues?q=LUC-241&limit=20" },
-    { method: "GET", route: "/api/issues/LUC-261" },
-    { method: "GET", route: "/api/companies/company-1/issues?q=LUC-261&limit=20" },
+    { method: "GET", route: "/api/issues/LUC-30" },
+    { method: "GET", route: "/api/companies/company-1/issues?q=LUC-30&limit=20" },
+    { method: "GET", route: "/api/issues/LUC-31" },
+    { method: "GET", route: "/api/companies/company-1/issues?q=LUC-31&limit=20" },
   ]);
 });
 
 test("control brief turns stale delivery gates into owner actions", () => {
   const brief = gateBriefFor({
-    project: "Roost",
-    rootBlocker: "LUC-261",
-    owner: "Roost Project Manager",
+    project: "Soar/Roost",
+    rootBlocker: "LUC-31",
+    owner: "QA & Verification Engineer",
     latestEvidence: {
       updatedAt: "2026-05-27T01:53:10.873Z",
-      summary: "Missing approved secure `COMPANYCORE_API_KEY` for protected deploy smoke.",
+      summary: "Missing approved smoke account for protected production readiness.",
     },
     operatorPrompt: "Confirm credentials or approve one recheck.",
-    approvalDryRunCommand: "node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-261",
-    approvalApplyCommand: "node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-261 --apply",
+    approvalDryRunCommand: "node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-31",
+    approvalApplyCommand: "node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-31 --apply",
   }, new Date("2026-05-27T18:53:10.873Z").getTime());
 
   assert.equal(brief.stale, true);
   assert.equal(brief.waitAgeHours, 17);
-  assert.match(brief.ownerAction, /Escalate to Roost Project Manager/);
-  assert.match(staleGateOwnerActionLine(brief), /Stale gate owner action: Roost LUC-261/);
+  assert.match(brief.ownerAction, /Escalate to QA & Verification Engineer/);
+  assert.match(staleGateOwnerActionLine(brief), /Stale gate owner action: Soar\/Roost LUC-31/);
 });
 
 test("control brief keeps recent delivery gates in monitoring mode", () => {
   const brief = gateBriefFor({
     project: "Soar",
-    rootBlocker: "LUC-241",
-    owner: "Ops Release Lead",
+    rootBlocker: "LUC-30",
+    owner: "Deployment & Reliability Engineer",
     latestEvidence: {
       updatedAt: "2026-05-27T17:36:39.773Z",
       summary: "- FAIL: `API /workers/ready -> 401`",
@@ -1468,7 +1509,7 @@ test("control brief keeps recent delivery gates in monitoring mode", () => {
 
   assert.equal(brief.stale, false);
   assert.equal(brief.waitAgeHours, 1);
-  assert.match(brief.ownerAction, /Keep monitoring LUC-241/);
+  assert.match(brief.ownerAction, /Keep monitoring LUC-30/);
 });
 
 test("delivery permission blocks protected delivery while waiting for gate facts", () => {
@@ -1534,19 +1575,19 @@ test("autonomy disposition distinguishes intentional gate hold from delivery idl
 
 test("control action classification separates executable lanes from context", () => {
   assert.equal(controlActionTypeFor("Refresh control tick, source-control packet, and unblock packet."), "control_packet_refresh");
-  assert.equal(controlActionTypeFor("Stale gate owner action: Roost LUC-261 has waited 17h."), "stale_gate_owner_escalation");
+  assert.equal(controlActionTypeFor("Stale gate owner action: Soar/Roost LUC-31 has waited 17h."), "stale_gate_owner_escalation");
   assert.equal(controlActionTypeFor("Classify Soar source-control project-docs lane only: review docs."), "source_control_classification");
   assert.equal(controlActionTypeFor("Seed safe architecture planning lane from Soar architecture docs."), "safe_architecture_planning");
-  assert.equal(controlActionTypeFor("Seed infrastructure gate diagnosis lane for Soar LUC-241."), "infrastructure_gate_diagnosis");
-  assert.equal(controlActionTypeFor("Gate fact needed: Soar LUC-241"), "context_or_guardrail");
+  assert.equal(controlActionTypeFor("Seed infrastructure gate diagnosis lane for Soar/Roost LUC-30."), "infrastructure_gate_diagnosis");
+  assert.equal(controlActionTypeFor("Gate fact needed: Soar/Roost LUC-30"), "context_or_guardrail");
 
   const summary = controlActionSummaryFor([
     "Refresh control tick, source-control packet, and unblock packet.",
-    "Stale gate owner action: Roost LUC-261 has waited 17h.",
+    "Stale gate owner action: Soar/Roost LUC-31 has waited 17h.",
     "Classify Soar source-control project-docs lane only: review docs.",
     "Seed safe architecture planning lane from Soar architecture docs.",
-    "Seed infrastructure gate diagnosis lane for Soar LUC-241.",
-    "Gate fact needed: Soar LUC-241",
+    "Seed infrastructure gate diagnosis lane for Soar/Roost LUC-30.",
+    "Gate fact needed: Soar/Roost LUC-30",
   ], ["control_packet_refresh", "stale_gate_owner_escalation", "source_control_classification", "safe_architecture_planning", "infrastructure_gate_diagnosis"]);
 
   assert.equal(summary.allowedActionCount, 5);

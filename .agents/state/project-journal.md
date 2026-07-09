@@ -6,6 +6,13 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-09 / Coolify runtime access gate repair:
+  - Fixed the mismatch between current Coolify secret names and older Softwarehouse gate/runtime scripts. Legacy expected keys such as `coolify_api_token`, `coolify_soar_project_id`, and `coolify_soar_web_app_id` now resolve to the existing Paperclip-managed refs such as `coolify_read_api_token`, `coolify_project_id_soar`, and `coolify_resource_uuid_soar_web`.
+  - Extended Coolify runtime access bindings for DRE/SPA/CTO/TSA/QVE/TAE/IPM/SPM/RPM and deployment/security routines so Soar project, environment, web/api, worker, PostgreSQL, and Redis resource ids are available by `secret_ref` metadata without exposing values.
+  - Updated canonical protected delivery gate specs from retired historical roots (`LUC-241`, `LUC-261`, `LUC-3924`) to the current Stage 1 delivery tree (`LUC-30`, `LUC-31`, `LUC-32`) so unblock packets and gate repair scripts no longer report missing old issues.
+  - Verified `pnpm run softwarehouse:coolify-reconciler` now reaches Coolify with read-only metadata and reports `overall: ready`, 8 Soar resources discovered, and no missing credential/project/team/resource bindings.
+  - New production signal: Coolify currently reports Soar `workers-market-data` as `exited:unhealthy`; created `LUC-237` for DRE read-only diagnosis under `LUC-25`. This is not approval to deploy, restart, rollback, mutate env, push, expose secrets, or perform live trading/order actions.
+
 - 2026-07-09 / Global V1 softwarehouse audit:
   - Restored the local Paperclip runtime after an orphaned embedded Postgres worker kept the shared-memory block open; `http://127.0.0.1:3200/api/health` is healthy again.
   - Fixed `softwarehouse:operating-standard-audit` so it checks the active LuckySparrow company (`ae26bb8b-8f5f-4a85-b341-78d4e1985975`) instead of an old company id, and treats a missing/incomplete agent instruction root as an error.

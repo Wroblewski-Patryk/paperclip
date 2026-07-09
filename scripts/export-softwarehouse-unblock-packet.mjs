@@ -521,8 +521,11 @@ for (const spec of gateSpecs) {
       && candidate.status === "blocked"
       && rootBlockerIdentifierFor(candidate) === spec.rootBlocker
     );
-  const gateFresh = Boolean(actionableFreshGateFact);
-  const nextAction = gateFresh && !latestCommentIsPlaceholderOnly
+  const gateIsTerminal = Boolean(issue && terminalStatuses.has(issue.status));
+  const gateFresh = Boolean(actionableFreshGateFact) && !gateIsTerminal;
+  const nextAction = gateIsTerminal
+    ? "Gate issue is terminal in the current tree; route any new finding as a fresh child/work item instead of resuming this gate."
+    : gateFresh && !latestCommentIsPlaceholderOnly
     ? `Resume one ${spec.owner} recheck lane with evidence.`
     : "Stay quiet; wait for fresh credential metadata or explicit operator evidence.";
 
@@ -546,6 +549,7 @@ for (const spec of gateSpecs) {
       status: issue.status,
       updatedAt: issue.updatedAt,
     } : null,
+    gateIsTerminal,
     trackedSecrets,
     missingSecretKeys,
     coveredAliasKeys,
@@ -570,6 +574,7 @@ for (const spec of gateSpecs) {
 
 const freshGateCount = gates.filter((gate) =>
   gate.actionableFreshGateFact
+  && !gate.gateIsTerminal
   && !gate.latestCommentIsPlaceholderOnly
 ).length;
 const operatingDecision = freshGateCount > 0
@@ -609,6 +614,7 @@ console.log(JSON.stringify({
     status: gate.issue?.status ?? "missing",
     owner: gate.owner,
     fresh: Boolean(gate.actionableFreshGateFact)
+      && !gate.gateIsTerminal
       && !gate.latestCommentIsPlaceholderOnly,
     nextAction: gate.nextAction,
     evidenceRequired: gate.evidenceRequired,
