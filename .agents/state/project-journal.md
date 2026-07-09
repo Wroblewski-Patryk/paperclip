@@ -1,10 +1,30 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-06
+Last updated: 2026-07-09
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
 ## Entries
+
+- 2026-07-09 / Global V1 softwarehouse audit:
+  - Restored the local Paperclip runtime after an orphaned embedded Postgres worker kept the shared-memory block open; `http://127.0.0.1:3200/api/health` is healthy again.
+  - Fixed `softwarehouse:operating-standard-audit` so it checks the active LuckySparrow company (`ae26bb8b-8f5f-4a85-b341-78d4e1985975`) instead of an old company id, and treats a missing/incomplete agent instruction root as an error.
+  - Updated `softwarehouse:agent-settings-audit` to validate the current repo-backed reference bundle layout (`AGENTS.md`, `references/*`, `shared/*`) as well as the older `metadata.md`/`roles/*` layout.
+  - Applied live-run janitor cleanup for duplicate owner runs on `LUC-218` and `LUC-231`; no detached process runs remained in the final janitor dry run.
+  - Refreshed the unblock packet and control tick. Current hard blockers are not Codex quota; they are source-control closure, Coolify/runtime credential metadata, Soar evidence classification, and production smoke proof gates.
+
+- 2026-07-09 / `LUC-220` (`04 Operations: PDCA Learning and Company Memory Review`) routine check:
+  - PDCA Check: pulled `/api/issues/LUC-220`, `/api/issues/LUC-220/heartbeat-context`, and `/api/issues/LUC-220/comments`; the issue remained `in_progress`, the assignee was unchanged, the thread stayed empty, and no blockers were present.
+  - Wake interpretation: this heartbeat is a `process_lost_retry` of the same review lane rather than new company evidence; the adjacent productivity review issue is `LUC-222`, which remains the live monitoring path.
+  - Evidence check: no new comments, documents, or work products were added for this run, and no new memory/procedure changes were justified from the available state.
+  - Act decision: keep the memory model unchanged, record the no-op checkpoint for traceability, and close the routine issue cleanly after posting the summary comment.
+
+- 2026-07-06 / `LUC-220` (`04 Operations: PDCA Learning and Company Memory Review`) routine check:
+  - PDCA Check: pulled `/api/issues/LUC-220`, `/api/issues/LUC-220/heartbeat-context`, `/api/issues/LUC-220/comments`.
+  - State check: issue is `in_progress`, `assigneeAgentId` is set to this routine owner, no blockers, no comments, and no wake comments in context.
+  - Evidence check: `/api/health` responded `status: unhealthy` with `error: database_unreachable` on `127.0.0.1:3200`; no other issue-level evidence gates were available in this cycle.
+  - Memory/procedure review: refreshed and aligned `AGENTS`, board-context memory, active mission, and issue state; no company-level policy/procedure changes were required for this review window.
+  - Act decision: no-op checkpoint; no new learning packet is required from this cycle pending fresh signal.
 
 - 2026-07-06 / `LUC-206` (`04 Operations: PDCA Learning and Company Memory Review`) routine check:
   - PDCA Check: pulled `/api/issues/LUC-206`, `/api/issues/LUC-206/comments`, and `/api/issues/LUC-206/heartbeat-context`; issue was in `in_progress` and checkout was already held by this assignee in run `d19c34e5-e70b-40ac-b4df-a184e9ca520b`.

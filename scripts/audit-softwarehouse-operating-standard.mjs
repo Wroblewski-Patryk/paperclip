@@ -5,8 +5,9 @@ import path from "node:path";
 import process from "node:process";
 
 const repoRoot = process.cwd();
-const defaultCompanyId = "f13051a7-d0aa-4261-9254-d3ab90735de5";
+const defaultCompanyId = "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const companyId = process.env.PAPERCLIP_COMPANY_ID || defaultCompanyId;
+const companyIdSource = process.env.PAPERCLIP_COMPANY_ID ? "PAPERCLIP_COMPANY_ID" : "LuckySparrow Software House default";
 const home = process.env.PAPERCLIP_HOME || path.join(process.env.USERPROFILE || "", ".paperclip");
 const instanceId = process.env.PAPERCLIP_INSTANCE_ID || "default";
 const agentRoot = path.join(home, "instances", instanceId, "companies", companyId, "agents");
@@ -357,12 +358,24 @@ if (existsSync(agentRoot)) {
     }
   }
 } else {
-  findings.push({ severity: "warn", type: "agent_root_missing", path: agentRoot });
+  findings.push({ severity: "error", type: "agent_root_missing", path: agentRoot });
+}
+
+if (existsSync(agentRoot) && rosterAgentCount > 0 && agentCount < rosterAgentCount) {
+  findings.push({
+    severity: "error",
+    type: "agent_root_incomplete",
+    path: agentRoot,
+    agentCount,
+    rosterAgentCount,
+  });
 }
 
 const result = {
   ok: findings.every((finding) => finding.severity !== "error"),
   repoRoot,
+  companyId,
+  companyIdSource,
   agentRoot,
   requiredDocs: requiredDocs.length,
   requiredProcessDocs: requiredProcessDocs.length,

@@ -1,5 +1,37 @@
 # Responsibility Learning
 
+## 2026-07-06 - Structured in_review handoff contract
+
+Observed failure mode: tasks can enter `in_review` without enough structure to
+tell the next reviewer what decision is needed, what evidence proves readiness,
+or who owns the next move. That makes the review lane look live while the board
+cannot actually act on it.
+
+Standing rule:
+
+- Treat `in_review` as a waiting state only when the next owner is explicit.
+- Every review handoff must name:
+  - reviewer or typed execution participant;
+  - decision options (`approve`, `request changes`, `reject`, or a typed
+    equivalent);
+  - evidence links or artifacts that the reviewer must inspect;
+  - deadline or cooldown for the next check;
+  - next owner after the decision.
+- Prefer `request_confirmation` or a typed issue-thread interaction for the
+  decision path; do not rely on an unstructured markdown comment alone when the
+  decision controls follow-up work.
+- Update role instructions and issue-template guidance to require the contract.
+  Do not change janitor behavior for this gap unless a future audit shows a
+  separate cleanup defect.
+
+Verification:
+
+- Live example issue `LUC-149` is blocked and currently lacks a structured
+  decision path.
+- The current Paperclip API already supports `request_confirmation`,
+  `ask_user_questions`, and `in_review` waiting paths, so the missing piece is
+  operator discipline and template guidance rather than new lifecycle state.
+
 ## 2026-07-03 - App-completion proof before done
 
 Observed failure mode: agents can find a backend function that works and close

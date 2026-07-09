@@ -125,6 +125,10 @@ async function readInstructionFile(companyId, agentId, filePath) {
   return detail.content ?? "";
 }
 
+async function readInstructionsBundle(companyId, agentId) {
+  return request("GET", `/api/agents/${agentId}/instructions-bundle?companyId=${companyId}`);
+}
+
 const roster = JSON.parse(await readFile(rosterPath, "utf8"));
 const preferredCompanyNames = [
   process.env.SOFTWAREHOUSE_COMPANY_NAME,
@@ -224,11 +228,20 @@ for (const definition of roster.agents) {
     );
   }
 
-  const metadataFile = await readInstructionFile(company.id, agent.id, "metadata.md").catch((error) => {
-    record(findings, "error", agent.name, "instructions.metadata_unreadable", String(error));
-    return "";
+  const instructionsBundle = await readInstructionsBundle(company.id, agent.id).catch((error) => {
+    record(findings, "error", agent.name, "instructions.bundle_unreadable", String(error));
+    return null;
   });
-  if (metadataFile) {
+  const instructionPaths = new Set((instructionsBundle?.files ?? []).map((file) => file.path));
+  if (!instructionPaths.has("AGENTS.md")) {
+    record(findings, "error", agent.name, "instructions.entry_file_missing", { expected: "AGENTS.md" });
+  }
+
+  if (instructionPaths.has("metadata.md")) {
+    const metadataFile = await readInstructionFile(company.id, agent.id, "metadata.md").catch((error) => {
+      record(findings, "error", agent.name, "instructions.metadata_unreadable", String(error));
+      return "";
+    });
     for (const fragment of [
       `- Agent key: ${definition.key}`,
       `- Agent name: ${definition.name}`,
@@ -240,11 +253,43 @@ for (const definition of roster.agents) {
         record(findings, "error", agent.name, "instructions.metadata_drift", { missing: fragment });
       }
     }
-  }
 
-  await readInstructionFile(company.id, agent.id, `roles/${definition.key}.md`).catch((error) => {
-    record(findings, "error", agent.name, "instructions.role_file_unreadable", String(error));
-  });
+    await readInstructionFile(company.id, agent.id, `roles/${definition.key}.md`).catch((error) => {
+      record(findings, "error", agent.name, "instructions.role_file_unreadable", String(error));
+    });
+  } else {
+    const agentsFile = await readInstructionFile(company.id, agent.id, "AGENTS.md").catch((error) => {
+      record(findings, "error", agent.name, "instructions.entry_file_unreadable", String(error));
+      return "";
+    });
+    for (const fragment of [
+      `name: ${definition.name}`,
+      `title: ${definition.title}`,
+      `role: ${definition.role}`,
+      `# ${definition.name}`,
+      "## Required Reading",
+      "## Current Stage 1 Mission",
+      "references/cost-token-and-context-efficiency.md",
+      "references/paperclip-operating-mechanics.md",
+      "references/procedures-and-task-lifecycle.md",
+    ]) {
+      if (!agentsFile.includes(fragment)) {
+        record(findings, "error", agent.name, "instructions.reference_bundle_drift", { missing: fragment });
+      }
+    }
+    const requiredReferencePaths = [
+      "references/company-operating-model.md",
+      "references/standards.md",
+      "references/cost-token-and-context-efficiency.md",
+      "references/paperclip-operating-mechanics.md",
+      "references/procedures-and-task-lifecycle.md",
+      "references/owner-interface-and-language-policy.md",
+    ];
+    const missingReferencePaths = requiredReferencePaths.filter((relativePath) => !instructionPaths.has(relativePath));
+    if (missingReferencePaths.length > 0) {
+      record(findings, "error", agent.name, "instructions.reference_files_missing", { missing: missingReferencePaths });
+    }
+  }
 }
 
 const errors = findings.filter((finding) => finding.severity === "error");
