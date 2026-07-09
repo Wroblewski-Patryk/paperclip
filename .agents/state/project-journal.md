@@ -1,10 +1,16 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
 ## Entries
+
+- 2026-07-10 / LUC-247 Docs and Memory Loop:
+  - Reviewed the live issue state for `LUC-247` and confirmed it was still `in_progress` with no comments, no blockers, and no recovery action.
+  - Evidence checked: `/api/issues/LUC-247`, `/api/issues/LUC-247/heartbeat-context`, and `/api/issues/LUC-247/comments`.
+  - Decision: this heartbeat was a clean PDCA checkpoint only. I added a durable status note at `docs/status/2026-07-10-luc-247-docs-memory-loop.md` and found no reason to change project memory, instructions, or procedures.
+  - Operational note: no secret access, push, deploy, production mutation, or repository code mutation was performed.
 
 - 2026-07-09 / Coolify runtime access gate repair:
   - Fixed the mismatch between current Coolify secret names and older Softwarehouse gate/runtime scripts. Legacy expected keys such as `coolify_api_token`, `coolify_soar_project_id`, and `coolify_soar_web_app_id` now resolve to the existing Paperclip-managed refs such as `coolify_read_api_token`, `coolify_project_id_soar`, and `coolify_resource_uuid_soar_web`.
