@@ -7,6 +7,7 @@ const soarRoot = process.env.SOAR_REPO_PATH ?? path.join(appsRoot, "Soar");
 const prodUrl = process.env.SOAR_PRODUCTION_URL ?? process.env.SOAR_APP_URL ?? "https://soar.luckysparrow.ch";
 const timeoutMs = Number(process.env.SOAR_ACCEPTANCE_FETCH_TIMEOUT_MS ?? 8000);
 const coolifyReportPath = process.env.COOLIFY_PRODUCTION_RECONCILER_REPORT_PATH ?? "report/coolify-production-reconciler.latest.json";
+const paperclipApiBase = (process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200/api").replace(/\/$/, "");
 
 function git(args) {
   const result = spawnSync("git", args, { cwd: soarRoot, encoding: "utf8", windowsHide: true });
@@ -62,6 +63,39 @@ async function latestEvidenceFile(pattern) {
     .filter((item) => /\bPASS\b/i.test(item.body))
     .sort((left, right) => right.mtimeMs - left.mtimeMs || right.fileName.localeCompare(left.fileName))
     .at(0) ?? null;
+}
+
+async function issueWorkProductProof(issueIdentifier, predicate) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${paperclipApiBase}/issues/${encodeURIComponent(issueIdentifier)}`, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+    const issue = await response.json();
+    if (!["done", "closed"].includes(String(issue.status ?? "").toLowerCase())) return null;
+    const workProducts = Array.isArray(issue.workProducts) ? issue.workProducts : [];
+    const proof = workProducts.find((workProduct) => predicate(workProduct, issue));
+    if (!proof) return null;
+    return { issue, workProduct: proof };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function isOwnerLoginProof(workProduct) {
+  const title = String(workProduct?.title ?? "");
+  const metadata = workProduct?.metadata && typeof workProduct.metadata === "object" ? workProduct.metadata : {};
+  const evidenceKinds = Array.isArray(metadata.evidenceKinds) ? metadata.evidenceKinds.map(String) : [];
+  const text = `${title}\n${metadata.documentKey ?? ""}\n${metadata.issueIdentifier ?? ""}`;
+  return /owner-login|login verification|owner login/i.test(text)
+    && metadata.secretValuesStored === false
+    && evidenceKinds.includes("security")
+    && evidenceKinds.includes("test");
 }
 
 function coolifyResourceStatusCheck(report) {
@@ -121,6 +155,10 @@ const [testAccountEvidence, coolifyReport] = await Promise.all([
   latestEvidenceFile(/protected-test-account-smoke-path.*\.md$/i),
   readJson(coolifyReportPath, null),
 ]);
+const [ownerLoginEvidence, ownerLoginWorkProductProof] = await Promise.all([
+  latestEvidenceFile(/(?:owner-login|live-login|prod-test-account-auth-session-browser-proof).*\.md$/i),
+  issueWorkProductProof("LUC-228", isOwnerLoginProof),
+]);
 const coolifyCheck = coolifyResourceStatusCheck(coolifyReport);
 
 const checks = [
@@ -141,8 +179,12 @@ const checks = [
   },
   {
     id: "owner_login_verified",
-    status: "missing",
-    reason: "No browser login proof artifact is recorded yet.",
+    status: ownerLoginEvidence || ownerLoginWorkProductProof ? "pass" : "missing",
+    reason: ownerLoginWorkProductProof
+      ? `Paperclip work product confirms redacted owner-login verification path: ${ownerLoginWorkProductProof.issue.identifier}/${ownerLoginWorkProductProof.workProduct.id}.`
+      : ownerLoginEvidence
+        ? `Redacted owner-login proof found: ${path.relative(soarRoot, ownerLoginEvidence.filePath).replaceAll("\\", "/")}.`
+        : "No browser login proof artifact or Paperclip owner-login work product is recorded yet.",
   },
   {
     id: "test_account_verified",

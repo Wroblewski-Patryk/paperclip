@@ -797,6 +797,58 @@ test("next legal action selector trusts fresh live-run probe over stale cached c
   assert.equal(action.decision, "refresh_control_tick");
 });
 
+test("next legal action selector routes Soar acceptance source-control blockers", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    { activeRunCount: 0 },
+    {},
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    {
+      checks: [
+        {
+          id: "soar_source_control_clean",
+          status: "blocker",
+          reason: "Soar worktree has local changes that must be classified before acceptance.",
+        },
+      ],
+    },
+  );
+
+  assert.equal(action.decision, "start_source_control_closure");
+  assert.equal(action.target, "Soar");
+});
+
+test("next legal action selector routes Coolify acceptance blockers when source control is clear", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    { activeRunCount: 0 },
+    {},
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    {
+      checks: [
+        {
+          id: "soar_source_control_clean",
+          status: "pass",
+          reason: "Soar worktree is clean.",
+        },
+        {
+          id: "coolify_resources_reconciled",
+          status: "blocker",
+          reason: "workers-market-data:exited:unhealthy",
+        },
+      ],
+    },
+  );
+
+  assert.equal(action.decision, "repair_coolify_acceptance_gate");
+  assert.equal(action.target, "LUC-238");
+  assert.match(action.reason, /workers-market-data/);
+});
+
 test("control tick inspects gate freshness before any manual apply", async () => {
   const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
 

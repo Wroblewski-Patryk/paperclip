@@ -88,7 +88,16 @@ async function probeLiveRuns(companyId) {
   }
 }
 
-export function pickAction(control, readiness, appHealth = { checked: false, ok: true }, liveRunProbe = { checked: false }) {
+function acceptanceCheck(acceptanceLedger, id) {
+  return (acceptanceLedger?.checks ?? []).find((check) => check.id === id) ?? null;
+}
+
+function acceptanceCheckBlocks(acceptanceLedger, id) {
+  const check = acceptanceCheck(acceptanceLedger, id);
+  return check && ["blocker", "fail", "missing", "unknown"].includes(check.status);
+}
+
+export function pickAction(control, readiness, appHealth = { checked: false, ok: true }, liveRunProbe = { checked: false }, acceptanceLedger = null) {
   const reportedActiveRunCount = Number(control?.activeRunCount ?? readiness?.activeRunCount ?? 0);
   const activeRunCount =
     appHealth.ok && liveRunProbe?.checked && liveRunProbe.ok && liveRunProbe.liveRunCount != null
@@ -112,7 +121,10 @@ export function pickAction(control, readiness, appHealth = { checked: false, ok:
       forbidden: ["start duplicate owner lane", "push", "deploy", "restart"],
     };
   }
-  const dirtyProject = control?.controlBrief?.dirtyProjects?.[0] ?? readiness?.dirtyProjects?.[0];
+  const ledgerReportsDirtySoar = acceptanceCheckBlocks(acceptanceLedger, "soar_source_control_clean");
+  const dirtyProject = control?.controlBrief?.dirtyProjects?.[0]
+    ?? readiness?.dirtyProjects?.[0]
+    ?? (ledgerReportsDirtySoar ? { project: "Soar", source: "soar_acceptance_ledger" } : null);
   const runnableSourceControlGate = [
     ...(control?.sourceControlGateIssues ?? []),
     ...(readiness?.sourceControlGates ?? []),
@@ -125,6 +137,17 @@ export function pickAction(control, readiness, appHealth = { checked: false, ok:
       target: dirtyProject?.project ?? runnableSourceControlGate?.identifier ?? null,
       allowed: ["local diff classification", "local validation", "commit/no-commit decision"],
       forbidden: ["push", "deploy", "restart", "protected smoke", "secret disclosure"],
+    };
+  }
+  if (acceptanceCheckBlocks(acceptanceLedger, "coolify_resources_reconciled")) {
+    return {
+      decision: "repair_coolify_acceptance_gate",
+      reason: acceptanceCheck(acceptanceLedger, "coolify_resources_reconciled")?.reason
+        ?? "The Soar acceptance ledger reports an unresolved Coolify resource blocker.",
+      command: "pnpm softwarehouse:in-review-decision-path",
+      target: "LUC-238",
+      allowed: ["review or delegate the existing Coolify recovery gate", "record read-only status evidence", "route safe recovery approval"],
+      forbidden: ["push", "deploy", "restart", "secret disclosure", "mark production ready without Coolify evidence"],
     };
   }
   const inReviewFinding = (control?.auditFindings ?? []).find((finding) =>
@@ -170,9 +193,10 @@ function renderMarkdown(output) {
 }
 
 async function main() {
-  const [control, readiness, appHealth] = await Promise.all([
+  const [control, readiness, acceptanceLedger, appHealth] = await Promise.all([
     readJson("report/softwarehouse-control-tick.latest.json"),
     readJson("report/softwarehouse-readiness-snapshot.latest.json"),
+    readJson("report/soar-delivery-acceptance.latest.json"),
     probeAppHealth(),
   ]);
   const resolvedCompanyId = resolveCompanyId(control, readiness);
@@ -183,7 +207,7 @@ async function main() {
     mode: apply ? "apply" : "dry-run",
     appHealth,
     liveRunProbe: liveRunProbeResult,
-    action: pickAction(control, readiness, appHealth, liveRunProbeResult),
+    action: pickAction(control, readiness, appHealth, liveRunProbeResult, acceptanceLedger),
   };
 
   await mkdir("report", { recursive: true });
