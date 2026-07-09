@@ -1,10 +1,11 @@
-import { readdir, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
+const companyNames = ["LuckySparrow", "LuckySparrow Software House"];
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const apply = process.argv.includes("--apply");
@@ -14,6 +15,13 @@ const title = "[Soar][Architecture Planning] Convert architecture docs into exec
 const architectureRoot = path.join(appsRoot, "Soar", "docs", "architecture");
 const marker = "softwarehouse-safe-architecture-planning:v1";
 const recentPlanningWindowMs = Number(process.env.ARCHITECTURE_PLANNING_RECENT_WINDOW_MS ?? 12 * 60 * 60 * 1000);
+const acceptanceLedgerPath = process.env.SOAR_ACCEPTANCE_LEDGER_PATH ?? "report/soar-delivery-acceptance.latest.json";
+const acceptanceBlockingCheckIds = new Set([
+  "soar_source_control_clean",
+  "owner_login_verified",
+  "test_account_verified",
+  "coolify_resources_reconciled",
+]);
 
 async function request(method, route, body) {
   const signal = AbortSignal.timeout(requestTimeoutMs);
@@ -38,6 +46,20 @@ async function request(method, route, body) {
 
 function isRequestTimeoutError(error) {
   return error instanceof Error && error.name === "TimeoutError";
+}
+
+async function readJson(path, fallback = null) {
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return fallback;
+  }
+}
+
+function blockingAcceptanceChecks(ledger) {
+  return (ledger?.checks ?? [])
+    .filter((check) => acceptanceBlockingCheckIds.has(check.id))
+    .filter((check) => ["missing", "blocker", "fail", "unknown", "partial"].includes(check.status));
 }
 
 async function walkFiles(root, prefix = "") {
@@ -109,7 +131,8 @@ async function resolveCompany() {
   if (companyId) return { id: companyId, source: "PAPERCLIP_COMPANY_ID" };
 
   const companies = await request("GET", "/api/companies");
-  const company = companies.find((candidate) => candidate.name === companyName);
+  const company = companies.find((candidate) => companyNames.includes(candidate.name))
+    ?? companies.find((candidate) => /^LuckySparrow\b/i.test(candidate.name));
   if (!company) throw new Error(`Company not found: ${companyName}`);
   return { id: company.id, source: "company_name" };
 }
@@ -132,7 +155,7 @@ try {
     request("GET", `/api/companies/${company.id}/goals`),
     request("GET", `/api/companies/${company.id}/labels`),
     request("GET", `/api/companies/${company.id}/issues?limit=1000`),
-    request("GET", `/api/companies/${company.id}/live-runs`),
+    request("GET", `/api/companies/${company.id}/live-runs?limit=50&minCount=0`),
   ]);
   matchingTitleIssues = await request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent(title)}&limit=50`);
 } catch (error) {
@@ -159,6 +182,9 @@ try {
 
 const activeRunCount = health.devServer?.activeRunCount ?? liveRuns.length;
 const activeRunNoop = apply && activeRunCount > 0;
+const acceptanceLedger = await readJson(acceptanceLedgerPath, null);
+const acceptanceBlocks = blockingAcceptanceChecks(acceptanceLedger);
+const acceptanceLedgerNoop = apply && !activeRunNoop && acceptanceBlocks.length > 0;
 
 const soar = activeProjectByControlledName(projects, "Soar");
 if (!soar || soar.archivedAt) throw new Error("Active Soar project not found.");
@@ -253,7 +279,18 @@ const input = {
 };
 
 const actions = [];
-if (activeRunNoop) {
+if (acceptanceLedgerNoop) {
+  actions.push({
+    action: "noop_acceptance_ledger_gaps_before_architecture_planning",
+    acceptanceLedgerPath,
+    blockedChecks: acceptanceBlocks.map((check) => ({
+      id: check.id,
+      status: check.status,
+      reason: check.reason,
+    })),
+    ownerAction: "Run softwarehouse:access-unblock-tasks:apply or the assigned evidence lanes before starting architecture planning.",
+  });
+} else if (activeRunNoop) {
   actions.push({
     action: "noop_active_runs",
     activeRunCount,

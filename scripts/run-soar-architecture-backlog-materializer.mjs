@@ -11,6 +11,13 @@ const sourcePath = process.env.SOAR_ARCHITECTURE_BACKLOG_SOURCE_PATH
 const sourceLabel = path.basename(sourcePath);
 
 const maxCreate = Number(process.env.SOAR_ARCHITECTURE_BACKLOG_MAX_CREATE ?? 5);
+const acceptanceLedgerPath = process.env.SOAR_ACCEPTANCE_LEDGER_PATH ?? "report/soar-delivery-acceptance.latest.json";
+const acceptanceBlockingCheckIds = new Set([
+  "soar_source_control_clean",
+  "owner_login_verified",
+  "test_account_verified",
+  "coolify_resources_reconciled",
+]);
 
 async function request(method, route, body) {
   const headers = { "content-type": "application/json" };
@@ -98,6 +105,20 @@ async function ensureLabel(companyId, labelsByName, name, color) {
 const markdown = await readFile(sourcePath, "utf8");
 const rows = parseBacklogRows(markdown);
 
+async function readJson(path, fallback = null) {
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return fallback;
+  }
+}
+
+function blockingAcceptanceChecks(ledger) {
+  return (ledger?.checks ?? [])
+    .filter((check) => acceptanceBlockingCheckIds.has(check.id))
+    .filter((check) => ["missing", "blocker", "fail", "unknown", "partial"].includes(check.status));
+}
+
 async function resolveCompany() {
   if (companyId) return { id: companyId, source: "PAPERCLIP_COMPANY_ID" };
 
@@ -117,10 +138,36 @@ const [health, projects, agents, goals, labels, issues, liveRuns] = await Promis
   request("GET", `/api/companies/${company.id}/goals`),
   request("GET", `/api/companies/${company.id}/labels`),
   request("GET", `/api/companies/${company.id}/issues?limit=1000`),
-  request("GET", `/api/companies/${company.id}/live-runs`),
+  request("GET", `/api/companies/${company.id}/live-runs?limit=50&minCount=0`),
 ]);
 
 const activeRunCount = health.devServer?.activeRunCount ?? liveRuns.length;
+const acceptanceLedger = await readJson(acceptanceLedgerPath, null);
+const acceptanceBlocks = blockingAcceptanceChecks(acceptanceLedger);
+if (apply && activeRunCount === 0 && acceptanceBlocks.length > 0) {
+  console.log(JSON.stringify({
+    apiBase,
+    company: { id: company.id, name: company.name },
+    mode: "apply",
+    activeRunCount,
+    liveRunCount: liveRuns.length,
+    sourcePath,
+    parsedRows: rows.length,
+    maxCreate,
+    acceptanceLedgerPath,
+    actionCount: 1,
+    actions: [{
+      action: "noop_acceptance_ledger_gaps_before_architecture_backlog",
+      blockedChecks: acceptanceBlocks.map((check) => ({
+        id: check.id,
+        status: check.status,
+        reason: check.reason,
+      })),
+      ownerAction: "Run softwarehouse:access-unblock-tasks:apply or the assigned evidence lanes before materializing new architecture backlog.",
+    }],
+  }, null, 2));
+  process.exit(0);
+}
 if (apply && activeRunCount > 0) {
   console.log(JSON.stringify({
     apiBase,

@@ -25,7 +25,7 @@ export function agentWipBlockerFor(agentId, state) {
 export async function fetchAgentWipState({ request, companyId }) {
   const [health, liveRuns] = await Promise.all([
     request("GET", "/api/health"),
-    request("GET", `/api/companies/${companyId}/live-runs`),
+    request("GET", `/api/companies/${companyId}/live-runs?limit=50&minCount=0`),
   ]);
   return {
     ...summarizeAgentWip({

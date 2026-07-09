@@ -1969,3 +1969,41 @@ Current facts:
 Decision: the new CSV must be read/updated before broad Paperclip or
 Softwarehouse changes, because it is the concise v0/v1 mechanism map. It does
 not replace issue-level evidence or product specs.
+
+## 2026-07-10 - Acceptance evidence lane priority fix
+
+Context: the owner observed that Paperclip still lacked final evidence and that
+visible activity was not necessarily moving the v0 acceptance blockers.
+
+Actions:
+
+- Fixed `scripts/run-access-unblock-task-seeder.mjs` so evidence unblock tasks
+  can wake their assigned agent with a WIP guard instead of only creating/updating
+  backlog rows.
+- Fixed `scripts/lib/agent-wip-guard.mjs` and related seeders to use
+  `live-runs?limit=50&minCount=0`, avoiding false idle/live-run reads.
+- Added acceptance-ledger throttles to
+  `scripts/run-safe-architecture-planning-seeder.mjs` and
+  `scripts/run-soar-architecture-backlog-materializer.mjs`; they now stop new
+  architecture wakeups while source-control, owner-login, or Coolify acceptance
+  checks are red.
+- Improved `scripts/run-soar-acceptance-ledger.mjs` so it counts the latest
+  redacted protected test-account PASS artifact and blocks Coolify acceptance
+  when any resource is unhealthy/exited.
+- Updated `docs/softwarehouse-v0-v1-solution-index.csv` with the new
+  acceptance-lane priority rule and refreshed auth/ledger/architecture rows.
+
+Evidence:
+
+- `node --check` passed for the changed scripts.
+- `node --test scripts/softwarehouse-gate-specs.test.mjs` passed 99/99.
+- `pnpm run softwarehouse:soar-acceptance-ledger` now reports
+  `test_account_verified=pass`, `owner_login_verified=missing`, and
+  `coolify_resources_reconciled=blocker` for `workers-market-data:exited:unhealthy`.
+- `pnpm run softwarehouse:access-unblock-tasks:apply` invoked `LUC-228`; current
+  live run is `10 SPA` on `LUC-228`.
+
+Decision: when the acceptance ledger is red, Paperclip must prefer evidence and
+recovery lanes over new architecture/materialization work. Architecture backlog
+is useful, but it must not make the system look busy while v0 proof remains
+unresolved.

@@ -143,19 +143,24 @@ the current source of truth, evidence, open gap, and next owner/action.
 
 Latest verified state from the 2026-07-10 control sweep:
 
-- Paperclip, Soar, and Roost worktrees were clean after source-control closure.
+- Paperclip and Roost worktrees were clean after source-control closure; Soar is
+  currently dirty because active Paperclip agents produced LUC-252/LUC-253 task
+  evidence and module docs that still need source-control classification.
 - Soar protected auth smoke evidence was committed in the Soar repo as
   `50b9ebe4 docs: record protected auth smoke evidence`.
 - Paperclip unblock packet refreshes were committed as `f5ac4b85` and
   `31c270ae`.
-- A fresh Paperclip run was active for `LUC-240`, assigned to `11 SPM`, to turn
-  Soar architecture documents into an executable repair backlog.
+- The control loop was corrected so acceptance-ledger blockers outrank new
+  architecture backlog wakeups. `LUC-228` is now active with `10 SPA` for the
+  owner-login verification path. Architecture seeders/materializer must emit
+  `noop_acceptance_ledger_gaps_before_architecture_*` while the acceptance
+  ledger is red.
 - `LUC-25` remains blocked by design until Soar and Roost are owner-usable on
   VPS with inspectable proof.
-- Current v0 blockers are not missing Coolify metadata anymore; they are final
-  production acceptance proofs: owner-login proof, test-account smoke proof,
-  Coolify resource ledger, and the pending approval path for the unhealthy
-  `workers-market-data` resource in `LUC-238`.
+- Current v0 blockers are not missing Coolify metadata anymore. The acceptance
+  ledger now counts the latest redacted test-account proof as PASS, but still
+  blocks on Soar source-control dirt, missing current owner-login proof, and
+  `workers-market-data:exited:unhealthy` from the Coolify resource ledger.
 
 Do not claim v0 as complete until the acceptance ledger records these proofs
 or the relevant owners explicitly classify them as not required with evidence.

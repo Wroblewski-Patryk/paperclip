@@ -1055,6 +1055,8 @@ test("softwarehouse setup scripts resolve both current and legacy company names"
     "scripts/run-source-control-classification-commenter.mjs",
     "scripts/run-safe-nonproduction-lane-seeder.mjs",
     "scripts/run-autonomy-governor.mjs",
+    "scripts/run-access-unblock-task-seeder.mjs",
+    "scripts/run-safe-architecture-planning-seeder.mjs",
   ];
 
   for (const scriptPath of scripts) {
@@ -1213,6 +1215,36 @@ test("project truth dispatcher dedupes exact terminal visible issues", async () 
   assert.match(dispatcher, /updatedDelta/);
 });
 
+test("acceptance evidence lanes outrank architecture backlog wakeups", async () => {
+  const accessSeeder = await readFile("scripts/run-access-unblock-task-seeder.mjs", "utf8");
+  const architectureSeeder = await readFile("scripts/run-safe-architecture-planning-seeder.mjs", "utf8");
+  const architectureMaterializer = await readFile("scripts/run-soar-architecture-backlog-materializer.mjs", "utf8");
+  const acceptanceLedger = await readFile("scripts/run-soar-acceptance-ledger.mjs", "utf8");
+
+  assert.match(accessSeeder, /softwarehouse-access-unblock-task-seeder/);
+  assert.match(accessSeeder, /heartbeat\/invoke/);
+  assert.match(accessSeeder, /wakeStatus = "invoked"/);
+  assert.match(accessSeeder, /directWakeBoundaryForAgent/);
+  assert.match(accessSeeder, /cross_agent_direct_invoke_forbidden/);
+  assert.match(accessSeeder, /agentWipBlockerFor/);
+
+  for (const source of [architectureSeeder, architectureMaterializer]) {
+    assert.match(source, /SOAR_ACCEPTANCE_LEDGER_PATH/);
+    assert.match(source, /owner_login_verified/);
+    assert.match(source, /test_account_verified/);
+    assert.match(source, /coolify_resources_reconciled/);
+    assert.match(source, /blockingAcceptanceChecks/);
+    assert.match(source, /noop_acceptance_ledger_gaps_before_architecture/);
+    assert.match(source, /softwarehouse:access-unblock-tasks:apply/);
+  }
+
+  assert.match(acceptanceLedger, /protected-test-account-smoke-path/);
+  assert.match(acceptanceLedger, /coolify-production-reconciler\.latest\.json/);
+  assert.match(acceptanceLedger, /function coolifyResourceStatusCheck/);
+  assert.match(acceptanceLedger, /unhealthy\|exited\|failed\|error/);
+  assert.match(acceptanceLedger, /Coolify resource inventory found unhealthy resources/);
+});
+
 test("app completion index exposes full risk backlog counts when priority review rows are capped", async () => {
   const source = await readFile("scripts/build-app-completion-index.mjs", "utf8");
 
@@ -1248,6 +1280,7 @@ test("control seeder WIP guard preserves parallelism for different agents", asyn
 
   assert.match(source, /busyAgentIds = new Set/);
   assert.match(source, /state\?\.busyAgentIds\?\.has\(agentId\)/);
+  assert.match(source, /live-runs\?limit=50&minCount=0/);
   assert.match(source, /return null;/);
   assert.doesNotMatch(source, /activeRunCount > 0/);
 });

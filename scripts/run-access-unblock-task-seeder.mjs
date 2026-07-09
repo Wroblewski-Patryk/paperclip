@@ -6,8 +6,11 @@ import { isRunnableAgent } from "./lib/softwarehouse-agent-resolver.mjs";
 const apply = process.argv.includes("--apply");
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
+const companyNames = ["LuckySparrow", "LuckySparrow Software House"];
 const outputJson = "report/softwarehouse-access-unblock-tasks.latest.json";
 const outputMd = "report/softwarehouse-access-unblock-tasks.latest.md";
+const authToken = process.env.PAPERCLIP_API_KEY ?? null;
+const actorAgentId = process.env.PAPERCLIP_AGENT_ID ?? null;
 
 async function readJson(filePath, fallback = null) {
   try {
@@ -120,6 +123,13 @@ function semanticIssueKey(title) {
     return "ops:soar:reconcile-coolify-resource-inventory";
   }
   return `title:${normalized.replace(/\s+/g, " ").trim()}`;
+}
+
+function directWakeBoundaryForAgent(agentId) {
+  if (!authToken) return null;
+  if (!actorAgentId) return null;
+  if (actorAgentId === agentId) return null;
+  return "cross_agent_direct_invoke_forbidden";
 }
 
 function sameJson(a, b) {
@@ -322,7 +332,8 @@ if (apply && planned.length > 0) {
   let companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
   if (!companyId) {
     const companies = await request("GET", "/api/companies");
-    const company = companies.find((candidate) => candidate.name === companyName);
+    const company = companies.find((candidate) => companyNames.includes(candidate.name))
+      ?? companies.find((candidate) => /^LuckySparrow\b/i.test(candidate.name));
     if (!company) throw new Error(`Company not found: ${companyName}`);
     companyId = company.id;
   }
@@ -441,8 +452,25 @@ if (apply && planned.length > 0) {
       title: result.issue.title,
       assignee: plan.owner,
     });
-    if (wakeBlocker) {
-      applied.at(-1).wakeSkipped = wakeBlocker;
+    const wakeBoundary = result.issue.assigneeAgentId
+      ? directWakeBoundaryForAgent(result.issue.assigneeAgentId)
+      : "missing_assignee";
+    const wakeSkipped = wakeBlocker ?? wakeBoundary;
+    if (!wakeSkipped && ["created_issue", "updated_issue", "kept_existing_issue"].includes(result.action)) {
+      await request("POST", `/api/agents/${result.issue.assigneeAgentId}/heartbeat/invoke?companyId=${companyId}`, {
+        reason: "issue_assigned",
+        payload: {
+          issueId: result.issue.id,
+          taskId: result.issue.id,
+          taskKey: result.issue.identifier,
+          source: "softwarehouse-access-unblock-task-seeder",
+        },
+        idempotencyKey: `softwarehouse-access-unblock-task-seeder:${result.issue.id}:${result.issue.updatedAt ?? Date.now()}`,
+      });
+      applied.at(-1).wakeStatus = "invoked";
+    }
+    if (wakeSkipped) {
+      applied.at(-1).wakeSkipped = wakeSkipped;
       applied.at(-1).activeRunCount = freshWip.activeRunCount;
       applied.at(-1).liveRunCount = freshWip.liveRunCount;
       applied.at(-1).unknownActiveRunCount = freshWip.unknownActiveRunCount;
