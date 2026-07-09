@@ -1927,3 +1927,39 @@ Evidence:
 - `pnpm --filter @paperclipai/server typecheck` passed.
 - `pnpm --filter @paperclipai/ui typecheck` passed.
 - `pnpm run softwarehouse:workspace-boundary-audit` passed.
+
+## 2026-07-10 - v0/v1 solution index and closure checkpoint
+
+Context: the owner asked whether all requested and inferred Paperclip
+Softwarehouse mechanisms are durably indexed, and asked to preserve enough
+state that future Codex sessions can tell what remains before v0/v1 is real.
+
+Actions:
+
+- Created `docs/softwarehouse-v0-v1-solution-index.csv` as the durable index of
+  requested/inferred mechanisms, current v0/v1 status, source of truth,
+  evidence, open gap, next owner/action, and last verification date.
+- Linked the new solution index from
+  `docs/softwarehouse-feature-regression-register.csv`.
+- Updated `.agents/state/active-mission.md` with the latest v0 closure
+  checkpoint.
+- Closed the latest source-control drift before this entry: Soar protected auth
+  evidence was committed as `50b9ebe4`, and Paperclip unblock packet refreshes
+  were committed as `f5ac4b85` and `31c270ae`.
+
+Current facts:
+
+- Paperclip, Soar, and Roost worktrees were clean after the source-control
+  closure.
+- Paperclip is not idle: `11 SPM` had a live run on `LUC-240` for Soar
+  architecture backlog materialization.
+- `LUC-25` remains intentionally blocked until final VPS owner-usability proof
+  exists.
+- Coolify metadata and runtime bindings are no longer the main blocker; the
+  current acceptance blockers are owner-login proof, test-account smoke proof,
+  Coolify resource ledger, and approval-controlled recovery of the unhealthy
+  `workers-market-data` resource tracked by `LUC-238`.
+
+Decision: the new CSV must be read/updated before broad Paperclip or
+Softwarehouse changes, because it is the concise v0/v1 mechanism map. It does
+not replace issue-level evidence or product specs.
