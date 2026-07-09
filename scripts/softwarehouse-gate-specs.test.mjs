@@ -771,6 +771,32 @@ test("next legal action selector refuses stale supervision when the local app is
   assert.match(action.forbidden.join(" "), /restart/);
 });
 
+test("next legal action selector trusts fresh live-run probe over stale cached counts", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    {
+      activeRunCount: 7,
+    },
+    {
+      activeRunCount: 7,
+    },
+    {
+      checked: true,
+      ok: true,
+      status: 200,
+    },
+    {
+      checked: true,
+      ok: true,
+      liveRunCount: 0,
+    },
+  );
+
+  assert.notEqual(action.decision, "supervise_active_runs");
+  assert.equal(action.decision, "refresh_control_tick");
+});
+
 test("control tick inspects gate freshness before any manual apply", async () => {
   const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
 

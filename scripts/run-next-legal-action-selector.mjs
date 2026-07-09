@@ -5,6 +5,7 @@ const apply = process.argv.includes("--apply");
 const outputPathJson = "report/softwarehouse-next-legal-action.latest.json";
 const outputPathMd = "report/softwarehouse-next-legal-action.latest.md";
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
+const fallbackCompanyId = "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const healthTimeoutMs = Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_HEALTH_TIMEOUT_MS ?? 5_000);
 
 async function readJson(path, fallback = null) {
@@ -47,8 +48,52 @@ async function probeAppHealth() {
   }
 }
 
-export function pickAction(control, readiness, appHealth = { checked: false, ok: true }) {
-  const activeRunCount = Number(control?.activeRunCount ?? readiness?.activeRunCount ?? 0);
+function resolveCompanyId(control, readiness) {
+  return (
+    process.env.SOFTWAREHOUSE_COMPANY_ID ??
+    control?.company?.id ??
+    control?.operatorActionPacket?.company?.id ??
+    readiness?.company?.id ??
+    fallbackCompanyId
+  );
+}
+
+async function probeLiveRuns(companyId) {
+  try {
+    const response = await fetch(`${apiBase}/api/companies/${companyId}/live-runs?limit=50&minCount=0`, {
+      headers: { accept: "application/json" },
+    });
+    if (!response.ok) {
+      return {
+        checked: true,
+        ok: false,
+        status: response.status,
+        liveRunCount: null,
+      };
+    }
+    const data = await response.json();
+    const liveRuns = Array.isArray(data) ? data : data.runs ?? data.liveRuns ?? [];
+    return {
+      checked: true,
+      ok: true,
+      liveRunCount: Array.isArray(liveRuns) ? liveRuns.length : null,
+    };
+  } catch (error) {
+    return {
+      checked: true,
+      ok: false,
+      error: String(error?.message ?? error),
+      liveRunCount: null,
+    };
+  }
+}
+
+export function pickAction(control, readiness, appHealth = { checked: false, ok: true }, liveRunProbe = { checked: false }) {
+  const reportedActiveRunCount = Number(control?.activeRunCount ?? readiness?.activeRunCount ?? 0);
+  const activeRunCount =
+    appHealth.ok && liveRunProbe?.checked && liveRunProbe.ok && liveRunProbe.liveRunCount != null
+      ? Number(liveRunProbe.liveRunCount)
+      : reportedActiveRunCount;
   if (appHealth.checked && !appHealth.ok) {
     return {
       decision: "repair_local_paperclip_liveness",
@@ -130,12 +175,15 @@ async function main() {
     readJson("report/softwarehouse-readiness-snapshot.latest.json"),
     probeAppHealth(),
   ]);
+  const resolvedCompanyId = resolveCompanyId(control, readiness);
+  const liveRunProbeResult = await probeLiveRuns(resolvedCompanyId);
 
   const output = {
     generatedAt: new Date().toISOString(),
     mode: apply ? "apply" : "dry-run",
     appHealth,
-    action: pickAction(control, readiness, appHealth),
+    liveRunProbe: liveRunProbeResult,
+    action: pickAction(control, readiness, appHealth, liveRunProbeResult),
   };
 
   await mkdir("report", { recursive: true });
