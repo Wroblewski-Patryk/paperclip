@@ -469,6 +469,9 @@ test("blocked triage starter scopes issue scans and has a dedicated timeout", as
   assert.match(source, /candidateScanStatus: "ok"/);
   assert.match(source, /decision: "not_checked_active_run_guard"/);
   assert.match(source, /governorDecision = await readGovernorDecision\(\)/);
+  assert.match(source, /function isRecoverableOpenTriage/);
+  assert.match(source, /!issue\.activeRecoveryAction/);
+  assert.match(source, /attentionBlockerCount/);
   assert.doesNotMatch(source, /liveRuns, governorDecision\] = await Promise\.all/);
   assert.doesNotMatch(source, /issues\?limit=1000/);
 

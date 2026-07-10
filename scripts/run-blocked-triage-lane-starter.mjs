@@ -165,7 +165,11 @@ function isRecoverableOpenTriage(issue) {
   return issue?.status === "blocked"
     && String(issue.title ?? "").startsWith(triageTitlePrefix)
     && (issue.blockerAttention?.unresolvedBlockerCount ?? 0) === 0
-    && issue.activeRecoveryAction?.kind === "missing_disposition";
+    && (issue.blockerAttention?.attentionBlockerCount ?? 0) === 0
+    && (
+      issue.activeRecoveryAction?.kind === "missing_disposition"
+      || !issue.activeRecoveryAction
+    );
 }
 
 async function resolveCompany() {
