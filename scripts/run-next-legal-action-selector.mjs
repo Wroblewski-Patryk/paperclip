@@ -1,4 +1,5 @@
 import { readFile, mkdir, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 const apply = process.argv.includes("--apply");
@@ -7,6 +8,11 @@ const outputPathMd = "report/softwarehouse-next-legal-action.latest.md";
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const fallbackCompanyId = "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const healthTimeoutMs = Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_HEALTH_TIMEOUT_MS ?? 5_000);
+
+const applyCommands = new Map([
+  ["start_runnable_work", ["pnpm", ["softwarehouse:local-repair-lane-starter:apply"]]],
+  ["start_source_control_closure", ["pnpm", ["softwarehouse:local-repair-lane-starter:apply"]]],
+]);
 
 async function readJson(path, fallback = null) {
   try {
@@ -97,6 +103,11 @@ function acceptanceCheckBlocks(acceptanceLedger, id) {
   return check && ["blocker", "fail", "missing", "unknown"].includes(check.status);
 }
 
+function controlStepSummary(control, name) {
+  if (!Array.isArray(control?.steps)) return null;
+  return control.steps.find((step) => step?.name === name)?.summary ?? null;
+}
+
 export function pickAction(control, readiness, appHealth = { checked: false, ok: true }, liveRunProbe = { checked: false }, acceptanceLedger = null) {
   const reportedActiveRunCount = Number(control?.activeRunCount ?? readiness?.activeRunCount ?? 0);
   const activeRunCount =
@@ -162,6 +173,36 @@ export function pickAction(control, readiness, appHealth = { checked: false, ok:
       forbidden: ["leave narrative-only review"],
     };
   }
+  const autonomyGovernor = controlStepSummary(control, "autonomyGovernor");
+  const localRepairLaneStarter = controlStepSummary(control, "localRepairLaneStarter");
+  const governorDecision = control?.autonomyGovernor?.decision ?? autonomyGovernor?.decision ?? null;
+  const governorRunnableIssues = Number(
+    control?.autonomyGovernor?.counts?.runnableIssues
+      ?? autonomyGovernor?.runnableIssues
+      ?? control?.counts?.runnableIssues
+      ?? 0,
+  );
+  const localRepairCandidateCount = Number(localRepairLaneStarter?.candidateCount ?? 0);
+  const backlogRunnableIssues = Number(
+    readiness?.projects?.reduce((total, project) => total + Number(project.runnableIssueCount ?? 0), 0)
+      ?? readiness?.runnableIssueCount
+      ?? 0,
+  );
+  if (
+    governorDecision === "runnable_work_available"
+    || governorRunnableIssues > 0
+    || localRepairCandidateCount > 0
+    || backlogRunnableIssues > 0
+  ) {
+    return {
+      decision: "start_runnable_work",
+      reason: "Runnable project backlog exists and no live run is active; start the next one-owner evidence lane instead of waiting for a later routine.",
+      command: "pnpm softwarehouse:local-repair-lane-starter:apply",
+      target: governorDecision === "runnable_work_available" ? "governor:runnable_work_available" : "project_backlog",
+      allowed: ["wake the highest-priority eligible backlog/todo issue", "keep WIP guard active", "record local validation evidence"],
+      forbidden: ["start duplicate owner lane", "push", "deploy", "restart", "secret disclosure"],
+    };
+  }
   return {
     decision: "refresh_control_tick",
     reason: "No more specific safe action was selected.",
@@ -192,6 +233,35 @@ function renderMarkdown(output) {
   ].join("\n");
 }
 
+function runApplyCommand(action) {
+  const command = applyCommands.get(action.decision);
+  if (!command) {
+    return {
+      applied: false,
+      reason: "No allowlisted apply command exists for this decision.",
+    };
+  }
+  const [executable, args] = command;
+  const commandText = `${executable} ${args.join(" ")}`;
+  const result = spawnSync(executable, args, {
+    cwd: process.cwd(),
+    env: { ...process.env },
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    shell: process.platform === "win32",
+    timeout: Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_APPLY_TIMEOUT_MS ?? 180_000),
+  });
+  return {
+    applied: result.status === 0 && !result.error,
+    command: commandText,
+    status: result.status,
+    signal: result.signal,
+    error: result.error ? String(result.error.message ?? result.error) : null,
+    stdout: String(result.stdout ?? "").slice(0, 20_000),
+    stderr: String(result.stderr ?? "").slice(0, 20_000),
+  };
+}
+
 async function main() {
   const [control, readiness, acceptanceLedger, appHealth] = await Promise.all([
     readJson("report/softwarehouse-control-tick.latest.json"),
@@ -209,6 +279,9 @@ async function main() {
     liveRunProbe: liveRunProbeResult,
     action: pickAction(control, readiness, appHealth, liveRunProbeResult, acceptanceLedger),
   };
+  if (apply) {
+    output.applyResult = runApplyCommand(output.action);
+  }
 
   await mkdir("report", { recursive: true });
   await writeFile(outputPathJson, `${JSON.stringify(output, null, 2)}\n`);

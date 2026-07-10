@@ -849,6 +849,40 @@ test("next legal action selector routes Coolify acceptance blockers when source 
   assert.match(action.reason, /workers-market-data/);
 });
 
+test("next legal action selector starts runnable backlog instead of only refreshing", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+  const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
+  const packageJson = await readFile("package.json", "utf8");
+
+  const action = pickAction(
+    {
+      activeRunCount: 0,
+      steps: [
+        { name: "autonomyGovernor", summary: { decision: "runnable_work_available", runnableIssues: 3 } },
+        { name: "localRepairLaneStarter", summary: { candidateCount: 3 } },
+      ],
+    },
+    { projects: [{ runnableIssueCount: 3 }] },
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    {
+      checks: [
+        { id: "soar_source_control_clean", status: "pass", reason: "Soar worktree is clean." },
+        { id: "coolify_resources_reconciled", status: "pass", reason: "Coolify resources are healthy." },
+      ],
+    },
+  );
+
+  assert.equal(action.decision, "start_runnable_work");
+  assert.equal(action.command, "pnpm softwarehouse:local-repair-lane-starter:apply");
+  assert.match(action.reason, /instead of waiting for a later routine/);
+  assert.match(source, /const applyCommands = new Map/);
+  assert.match(source, /\["start_runnable_work", \["pnpm", \["softwarehouse:local-repair-lane-starter:apply"\]\]\]/);
+  assert.match(source, /function runApplyCommand\(action\)/);
+  assert.match(source, /output\.applyResult = runApplyCommand\(output\.action\)/);
+  assert.match(packageJson, /"softwarehouse:next-legal-action:apply": "node scripts\/run-next-legal-action-selector\.mjs --apply"/);
+});
+
 test("control tick inspects gate freshness before any manual apply", async () => {
   const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
 
