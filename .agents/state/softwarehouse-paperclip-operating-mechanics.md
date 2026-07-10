@@ -1,6 +1,6 @@
 # Softwarehouse Paperclip Operating Mechanics
 
-Last updated: 2026-07-04
+Last updated: 2026-07-10
 
 Purpose: define how LuckySparrow Softwarehouse agents should understand
 Paperclip itself during active Stage 1. This complements the company operating
@@ -87,7 +87,9 @@ Kanban hygiene:
 - `blocked` is temporary and must include owner, cause, unblock condition, and
   a parent/dependent notification path.
 - `in_review` is required when independent QA, PM, security, ops, or owner
-  acceptance must inspect evidence before done.
+  acceptance must inspect evidence before done. It must include the structured
+  handoff packet: reviewer, decision options, evidence, deadline/cooldown, and
+  next owner.
 - `done` means evidence-backed closure, not "the run stopped".
 
 ## Paperclip Work Object Playbook
@@ -119,6 +121,9 @@ Use these operations intentionally:
 - `paperclipSuggestTasks`, `paperclipAskUserQuestions`, and
   `paperclipRequestConfirmation`: use interactions when the board/owner/AIA
   must choose, approve, or answer before safe progress.
+- `paperclipUpdateIssue`: when setting `in_review`, include or link the
+  five-field handoff packet and name the concrete waiting primitive: execution
+  participant, issue-thread interaction, approval, human reviewer, or monitor.
 
 If the next action is known and safe, create or route the child issue instead
 of blocking forever. If the next action is a true decision, create an

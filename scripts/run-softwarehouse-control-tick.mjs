@@ -746,6 +746,28 @@ const steps = [
     }),
   },
   {
+    name: "finalLiveRunJanitor",
+    command: ["scripts/run-live-run-janitor.mjs", "--apply"],
+    timeoutMs: liveRunJanitorStepTimeoutMs,
+    summary: (data) => ({
+      liveRunCount: data.liveRunCount ?? null,
+      actionCount: data.actionCount ?? null,
+      appliedCount: data.applied?.length ?? 0,
+      skippedCount: data.skipped?.length ?? 0,
+      skipped: data.skipped?.map((action) => ({
+        kind: action.kind,
+        identifier: action.identifier,
+        skippedReason: action.skippedReason,
+        ownerAction: action.ownerAction,
+      })) ?? [],
+      actions: data.actions?.map((action) => ({
+        kind: action.kind,
+        identifier: action.identifier,
+        issueStatus: action.issueStatus,
+      })) ?? [],
+    }),
+  },
+  {
     name: "softwarehouseAudit",
     command: ["scripts/audit-luckysparrow-softwarehouse.mjs"],
     timeoutMs: softwarehouseAuditStepTimeoutMs,

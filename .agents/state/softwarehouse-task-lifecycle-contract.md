@@ -1,6 +1,6 @@
 # Softwarehouse Task Lifecycle Contract
 
-Last updated: 2026-07-04
+Last updated: 2026-07-10
 
 Purpose: define how agents should create, update, decompose, close, and learn
 from Paperclip tasks/issues in the context of the whole organization.
@@ -19,7 +19,8 @@ Kanban is the default standard for daily planning and task movement:
 - `backlog`: valid work exists but is not ready or not currently selected;
 - `todo`: ready or discovery-ready work with an owner and next action;
 - `in_progress`: only a live checked-out execution lane;
-- `in_review`: independent review, QA, security, ops, PM, or acceptance gate;
+- `in_review`: independent review, QA, security, ops, PM, acceptance gate, or
+  typed interaction with a named waiting path;
 - `blocked`: progress is stopped by a named blocker, owner, and unblock
   condition;
 - `done`: accepted or evidence-backed completion;
@@ -75,6 +76,7 @@ text. The expected primitive depends on the situation:
 | Need owner/AIA choice | Create an interaction (`suggest_tasks`, `ask_user_questions`, or `request_confirmation`) rather than blocking silently. |
 | Need to report progress | Add a concise issue comment with facts, evidence links, and next step. |
 | Need durable plan/proof | Upsert an issue document or attach a work product/artifact. |
+| Need review/acceptance | Move to `in_review` only with a structured handoff packet and a real Paperclip waiting primitive. |
 | Need to block | Set blocked status and attach or name the first-class blocker, unblock owner, and resume condition. |
 | Blocker is cleared | Resume/reclassify the dependent issue or notify the parent/assignee with the next action. |
 
@@ -82,6 +84,38 @@ Creating too many issues is bad, but failing to create the one issue that
 unblocks a specialist is also bad. The rule is: create the smallest executable
 child that preserves ownership and evidence; otherwise comment or ask the
 parent/AIA for a decision.
+
+## Structured `in_review` Handoff Packet
+
+`in_review` is valid only when the next decision path is inspectable. Before
+moving an issue into `in_review`, the handoff comment, issue document, or work
+product must name these five fields:
+
+- reviewer: the typed execution participant, human assignee, approval owner,
+  interaction responder, or monitoring owner;
+- decision options: the allowed outcomes, such as approve, request changes,
+  reject, answer questions, accept/reject confirmation, or continue monitoring;
+- evidence: links to comments, issue documents, work products, artifacts,
+  tests, screenshots, logs, or other proof the reviewer must inspect;
+- deadline/cooldown: when the reviewer should decide, or when the monitor
+  should wake/check again;
+- next owner: who resumes work after each decision outcome.
+
+The packet must be backed by a real Paperclip primitive, not only an
+unstructured comment. Valid waiting primitives include:
+
+- an execution-policy review participant on the issue;
+- an issue-thread interaction: `request_confirmation`, `ask_user_questions`, or
+  `suggest_tasks`;
+- a linked board approval;
+- reassignment to a named human reviewer or acceptance owner;
+- an explicit monitor/recovery path that will wake the owner after the stated
+  cooldown.
+
+If the typed waiter lives on a child issue, the parent should usually be
+`blocked` by that child via `blockedByIssueIds`, not `in_review`. The parent may
+sit in `in_review` only when the waiting primitive is attached directly to the
+parent or the named human reviewer owns the parent decision.
 
 ## Parent Issue Contract
 
