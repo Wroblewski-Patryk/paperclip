@@ -18,7 +18,7 @@ const governorTimeoutMs = Number(process.env.SOFTWAREHOUSE_LOCAL_REPAIR_GOVERNOR
 
 const terminalStatuses = new Set(["done", "cancelled"]);
 const runnableStatuses = new Set(["todo", "backlog"]);
-const protectedGateIdentifiers = new Set(["LUC-241", "LUC-261"]);
+const protectedGateIdentifiers = new Set(["LUC-25", "LUC-30", "LUC-31", "LUC-32"]);
 const localRepairCompatibleGovernorDecisions = new Set([
   "runnable_work_available",
   "gate_recheck_ready",
@@ -28,14 +28,14 @@ const localRepairCompatibleGovernorDecisions = new Set([
   "project_source_control_closure_needed",
 ]);
 const sourceControlClosureIssueByProject = new Map([
-  ["Soar", "LUC-402"],
-  ["Roost", "LUC-261"],
+  ["Soar", "LUC-149"],
+  ["Roost", "LUC-149"],
   ["Aviary", "LUC-420"],
   ["Nest", "LUC-438"],
 ]);
 const sourceControlClosureLaneTitleByProject = new Map([
-  ["Soar", "[Soar][Source Control Closure] Classify and close local dirty state for LUC-402"],
-  ["Roost", "[Roost][Source Control Closure] Classify and close local dirty state for LUC-261"],
+  ["Soar", "[Soar][Source Control Closure] Classify and close local dirty state for LUC-149"],
+  ["Roost", "[Roost][Source Control Closure] Classify and close local dirty state for LUC-149"],
   ["Aviary", "[Aviary][Source Control Closure] Classify and close local dirty state for LUC-420"],
   ["Nest", "[Nest][Source Control Closure] Classify and close local dirty state for LUC-438"],
 ]);

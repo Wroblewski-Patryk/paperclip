@@ -12,8 +12,8 @@ const apply = process.argv.includes("--apply");
 const markerVersion = "v3";
 
 const targetIssueByProject = new Map([
-  ["Soar", "LUC-402"],
-  ["Roost", "LUC-261"],
+  ["Soar", "LUC-149"],
+  ["Roost", "LUC-149"],
 ]);
 
 async function request(method, route, body) {

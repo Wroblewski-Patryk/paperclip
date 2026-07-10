@@ -6,6 +6,12 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-10 / V0 project workspace policy and duplicate-project repair:
+  - Found that `run-project-known-state-harvester.mjs --apply` created short-name Paperclip projects `Soar` and `Roost` because the harvester did not recognize canonical `11 Innovation: Soar` and `11 Innovation: Roost` aliases.
+  - Repaired runtime state through the Paperclip API: moved fresh known-state lanes `LUC-261` and `LUC-262` onto the canonical `11 Innovation:*` projects, enabled execution workspace policy on the canonical projects, and archived the short-name duplicate Paperclip projects.
+  - Updated harvester aliases so future known-state runs reuse canonical projects, and removed stale `Roost -> LUC-261` gate routing from source-control/readiness helpers.
+  - Verification: `node --check` on changed scripts passed; `node --test scripts/softwarehouse-gate-specs.test.mjs` passed 103/103.
+
 - 2026-07-10 / LUC-259 PDCA Learning and Company Memory Review:
   - Reviewed `/api/issues/LUC-259`, `/api/issues/LUC-259/heartbeat-context`, and `/api/issues/LUC-259/comments` for the current routine heartbeat.
   - State check: the issue is `in_progress`, the assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, and the thread is still empty with `totalComments=0` and `latestCommentId=null`.

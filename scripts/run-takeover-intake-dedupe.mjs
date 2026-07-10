@@ -10,7 +10,7 @@ const takeoverTitleSearch = "Full takeover audit and operating baseline";
 const takeoverTitlePattern = /^\[(?<project>.+?)\] Full takeover audit and operating baseline$/;
 const protectedKeepByProject = new Map([
   ["Soar", "LUC-12"],
-  ["Roost", "LUC-261"],
+  ["Roost", "LUC-262"],
   ["Aviary", "LUC-976"],
 ]);
 

@@ -22,10 +22,10 @@ const requiredProjectManagers = new Map([
   ["Aviary", "Aviary Project Manager"],
   ["Nest", "Nest Project Manager"],
 ]);
-const gateRoots = new Map([
-  ["Soar", "LUC-241"],
-  ["Roost", "LUC-261"],
-]);
+// Current Stage 1 protected gates are tracked by the control brief, unblock packet,
+// release governor, and Soar acceptance ledger. Do not bind readiness to retired
+// project-local issue numbers here; those identifiers can be reused by new lanes.
+const gateRoots = new Map();
 const projectAliases = new Map([
   ["Soar", ["Soar", "11 Innovation: Soar"]],
   ["Roost", ["Roost", "11 Innovation: Roost"]],

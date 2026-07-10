@@ -32,6 +32,8 @@ const terminalStatuses = new Set(["done", "cancelled"]);
 const issueStatuses = ["backlog", "todo", "in_progress", "in_review", "blocked", "done", "cancelled"];
 const refreshableStatuses = new Set(["blocked", "in_review"]);
 const projectAliases = new Map([
+  ["Soar", ["11 Innovation: Soar", "Soar"]],
+  ["Roost", ["11 Innovation: Roost", "Roost"]],
   ["Aviary", ["Aviary", "Personality"]],
 ]);
 

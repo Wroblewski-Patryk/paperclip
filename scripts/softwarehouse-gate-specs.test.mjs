@@ -1121,6 +1121,27 @@ test("softwarehouse setup scripts resolve both current and legacy company names"
   }
 });
 
+test("known-state harvester reuses canonical Soar and Roost projects", async () => {
+  const source = await readFile("scripts/run-project-known-state-harvester.mjs", "utf8");
+
+  assert.match(source, /\["Soar", \["11 Innovation: Soar", "Soar"\]\]/);
+  assert.match(source, /\["Roost", \["11 Innovation: Roost", "Roost"\]\]/);
+});
+
+test("softwarehouse routing does not reserve LUC-261 as a Roost gate", async () => {
+  const files = [
+    "scripts/run-local-repair-lane-starter.mjs",
+    "scripts/run-source-control-classification-commenter.mjs",
+    "scripts/check-two-project-readiness.mjs",
+  ];
+
+  for (const file of files) {
+    const source = await readFile(file, "utf8");
+    assert.doesNotMatch(source, /Roost", "LUC-261/);
+    assert.doesNotMatch(source, /protectedGateIdentifiers = new Set\(\["LUC-241", "LUC-261"\]\)/);
+  }
+});
+
 test("softwarehouse instructions preserve V1 to V3 autonomous roadmap", async () => {
   const currentPilot = await readFile("softwarehouse/instructions/shared/00-current-pilot.md", "utf8");
   const operatingManual = await readFile("softwarehouse/company-operating-system.md", "utf8");
