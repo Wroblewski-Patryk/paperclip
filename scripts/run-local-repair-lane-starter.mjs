@@ -197,6 +197,11 @@ function isSourceControlClosureTitle(title) {
       .some((projectName) => title?.startsWith(sourceControlClosureTitlePrefix(projectName)));
 }
 
+function sourceControlClosureAllowed(governorDecision, sourceControlPacket) {
+  return localRepairCompatibleGovernorDecisions.has(governorDecision.decision)
+    && (sourceControlPacket.dirtyProjectNames?.length ?? 0) > 0;
+}
+
 function issueRefsFromPaths(paths) {
   const refs = [];
   for (const filePath of paths ?? []) {
@@ -240,8 +245,8 @@ function issueSort(left, right) {
     || String(left.updatedAt).localeCompare(String(right.updatedAt));
 }
 
-function isSourceControlClosureCandidate(issue, project, governorDecision, liveIssueIds) {
-  if (governorDecision.decision !== "project_source_control_closure_needed") return false;
+function isSourceControlClosureCandidate(issue, project, governorDecision, liveIssueIds, sourceControlPacket) {
+  if (!sourceControlClosureAllowed(governorDecision, sourceControlPacket)) return false;
   if (!project || project.archivedAt) return false;
   if (!projectPriority.includes(project.name)) return false;
   if (!issue.title?.startsWith(sourceControlClosureTitlePrefix(project.name))) return false;
@@ -263,7 +268,7 @@ function isSourceControlClosureCandidate(issue, project, governorDecision, liveI
 
 function isLocalRepairCandidate(issue, projectById, liveIssueIds, governorDecision) {
   const project = projectById.get(issue.projectId);
-  if (isSourceControlClosureCandidate(issue, project, governorDecision, liveIssueIds)) return true;
+  if (isSourceControlClosureCandidate(issue, project, governorDecision, liveIssueIds, sourceControlPacket)) return true;
   if (!project || project.archivedAt) return false;
   if (!projectPriority.includes(project.name)) return false;
   if (!runnableStatuses.has(issue.status)) return false;
@@ -382,7 +387,7 @@ let candidates = issues
   .sort(issueSort);
 
 const sidecarCreations = [];
-if (governorDecision.decision === "project_source_control_closure_needed") {
+if (sourceControlClosureAllowed(governorDecision, sourceControlPacket)) {
   const dirtyProjectNames = new Set(sourceControlPacket.dirtyProjectNames ?? []);
   for (const projectName of projectPriority) {
     if (dirtyProjectNames.size > 0 && !dirtyProjectNames.has(projectName)) continue;
