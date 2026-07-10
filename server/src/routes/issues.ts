@@ -1864,6 +1864,22 @@ export function issueRoutes(
     return workspace;
   }
 
+  async function hasIssueDoneEvidence(issueId: string) {
+    const [documents, attachments, workProducts] = await Promise.all([
+      typeof documentsSvc.listIssueDocuments === "function"
+        ? documentsSvc.listIssueDocuments(issueId, { includeSystem: false })
+        : [],
+      typeof svc.listAttachments === "function" ? svc.listAttachments(issueId) : [],
+      typeof workProductsSvc.listForIssue === "function" ? workProductsSvc.listForIssue(issueId) : [],
+    ]);
+
+    return (
+      (documents?.length ?? 0) > 0 ||
+      (attachments?.length ?? 0) > 0 ||
+      (workProducts?.length ?? 0) > 0
+    );
+  }
+
   function respondClosedIssueExecutionWorkspace(
     res: Response,
     workspace: Pick<ExecutionWorkspace, "closedAt" | "id" | "mode" | "name" | "status">,
@@ -4265,6 +4281,22 @@ export function issueRoutes(
       updateFields,
       actorType: req.actor.type,
     });
+
+    if (
+      updateFields.status === "done" &&
+      existing.status !== "done" &&
+      !commentBody &&
+      !(await hasIssueDoneEvidence(existing.id))
+    ) {
+      res.status(422).json({
+        error: "Done status requires completion evidence",
+        details: {
+          issueId: existing.id,
+          requiredEvidence: ["comment", "document", "attachment", "work_product"],
+        },
+      });
+      return;
+    }
 
     const nextAssigneeAgentId =
       updateFields.assigneeAgentId === undefined ? existing.assigneeAgentId : (updateFields.assigneeAgentId as string | null);

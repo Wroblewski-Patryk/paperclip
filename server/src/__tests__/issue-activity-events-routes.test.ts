@@ -44,6 +44,9 @@ const mockInstanceSettingsService = vi.hoisted(() => ({
 const mockRoutineService = vi.hoisted(() => ({
   syncRunStatusForIssue: vi.fn(async () => undefined),
 }));
+const mockWorkProductService = vi.hoisted(() => ({
+  listForIssue: vi.fn(),
+}));
 
 function registerModuleMocks() {
   vi.doMock("../services/access.js", () => ({
@@ -116,7 +119,7 @@ function registerModuleMocks() {
     logActivity: mockLogActivity,
     projectService: () => ({}),
     routineService: () => mockRoutineService,
-    workProductService: () => ({}),
+    workProductService: () => mockWorkProductService,
   }));
 }
 
@@ -174,6 +177,12 @@ describe("issue activity event routes", () => {
     registerModuleMocks();
     vi.clearAllMocks();
     mockIssueService.assertCheckoutOwner.mockResolvedValue({ adoptedFromRunId: null });
+    mockIssueService.addComment.mockResolvedValue({
+      id: "comment-1",
+      issueId: "issue-1",
+      companyId: "company-1",
+      body: "Done evidence.",
+    });
     mockIssueService.findMentionedAgents.mockResolvedValue([]);
     mockIssueService.getRelationSummaries.mockResolvedValue({ blockedBy: [], blocks: [] });
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
@@ -200,6 +209,13 @@ describe("issue activity event routes", () => {
     });
     mockInstanceSettingsService.listCompanyIds.mockResolvedValue(["company-1"]);
     mockRoutineService.syncRunStatusForIssue.mockResolvedValue(undefined);
+    mockWorkProductService.listForIssue.mockResolvedValue([
+      {
+        id: "work-product-1",
+        issueId: "issue-1",
+        title: "Verification evidence",
+      },
+    ]);
   });
 
   it("logs blocker activity with added and removed issue summaries", async () => {

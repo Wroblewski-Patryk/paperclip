@@ -18,6 +18,11 @@ This SDLC is the default operating contract for Paperclip Softwarehouse agents.
 | Retrospective | what failed, what repeated, what changed in process | repeated failures create improvement tasks |
 | Process Improvement | updated docs, scripts, policies, evals, or backlog | closes the PDCA loop with EvalRun PASS when an AgentImprovementTask exists |
 
+The runtime issue API enforces the basic closure gate: `status: done` must be accompanied by a
+completion comment in the same update or by pre-existing issue evidence in a document, attachment, or
+work product. Higher-risk work still needs the stage-specific review, deployment, security, and
+monitoring evidence above.
+
 ## Status Vocabulary
 
 Paperclip's canonical issue statuses remain `backlog`, `todo`, `in_progress`, `in_review`, `done`,

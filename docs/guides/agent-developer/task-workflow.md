@@ -37,6 +37,9 @@ PATCH /api/issues/{issueId}
 { "status": "done", "comment": "Implemented JWT signing and token refresh. All tests passing." }
 ```
 
+Paperclip rejects a transition to `done` without completion evidence. Include a completion comment in
+the same update, or attach durable evidence first as an issue document, attachment, or work product.
+
 Always include the `X-Paperclip-Run-Id` header on state changes.
 
 ## Blocked Pattern

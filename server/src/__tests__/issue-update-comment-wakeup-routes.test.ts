@@ -10,9 +10,18 @@ const mockIssueService = vi.hoisted(() => ({
   addComment: vi.fn(),
   findMentionedAgents: vi.fn(),
   getRelationSummaries: vi.fn(),
+  listAttachments: vi.fn(),
   listWakeableBlockedDependents: vi.fn(),
   getWakeableParentAfterChildCompletion: vi.fn(),
   getCurrentScheduledRetry: vi.fn(),
+}));
+
+const mockDocumentService = vi.hoisted(() => ({
+  listIssueDocuments: vi.fn(),
+}));
+
+const mockWorkProductService = vi.hoisted(() => ({
+  listForIssue: vi.fn(),
 }));
 
 const mockHeartbeatService = vi.hoisted(() => ({
@@ -49,7 +58,7 @@ vi.mock("../services/index.js", () => ({
     })),
   }),
   documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
-  documentService: () => ({}),
+  documentService: () => mockDocumentService,
   executionWorkspaceService: () => ({}),
   feedbackService: () => ({
     listIssueVotesForUser: vi.fn(async () => []),
@@ -92,7 +101,7 @@ vi.mock("../services/index.js", () => ({
   routineService: () => ({
     syncRunStatusForIssue: vi.fn(async () => undefined),
   }),
-  workProductService: () => ({}),
+  workProductService: () => mockWorkProductService,
 }));
 
 function registerModuleMocks() {
@@ -118,7 +127,7 @@ function registerModuleMocks() {
       })),
     }),
     documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
-    documentService: () => ({}),
+    documentService: () => mockDocumentService,
     executionWorkspaceService: () => ({}),
     feedbackService: () => ({
       listIssueVotesForUser: vi.fn(async () => []),
@@ -161,7 +170,7 @@ function registerModuleMocks() {
     routineService: () => ({
       syncRunStatusForIssue: vi.fn(async () => undefined),
     }),
-    workProductService: () => ({}),
+    workProductService: () => mockWorkProductService,
   }));
 }
 
@@ -221,6 +230,72 @@ describe("issue update comment wakeups", () => {
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
     mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(null);
     mockIssueService.getCurrentScheduledRetry.mockResolvedValue(null);
+    mockIssueService.listAttachments.mockResolvedValue([]);
+    mockDocumentService.listIssueDocuments.mockResolvedValue([]);
+    mockWorkProductService.listForIssue.mockResolvedValue([]);
+  });
+
+  it("rejects direct done transitions without completion evidence", async () => {
+    const existing = makeIssue({ status: "in_progress" });
+    mockIssueService.getById.mockResolvedValue(existing);
+
+    const res = await request(await createApp())
+      .patch(`/api/issues/${existing.id}`)
+      .send({ status: "done" });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error).toBe("Done status requires completion evidence");
+    expect(mockIssueService.update).not.toHaveBeenCalled();
+  });
+
+  it("allows done transitions with a completion comment", async () => {
+    const existing = makeIssue({ status: "in_progress" });
+    const updated = makeIssue({ status: "done" });
+    mockIssueService.getById.mockResolvedValue(existing);
+    mockIssueService.update.mockResolvedValue(updated);
+    mockIssueService.addComment.mockResolvedValue({
+      id: "comment-done",
+      issueId: existing.id,
+      companyId: existing.companyId,
+      body: "Implemented and verified with focused route tests.",
+    });
+
+    const res = await request(await createApp())
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        status: "done",
+        comment: "Implemented and verified with focused route tests.",
+      });
+
+    expect(res.status).toBe(200);
+    expect(mockIssueService.update).toHaveBeenCalledWith(
+      existing.id,
+      expect.objectContaining({ status: "done" }),
+    );
+  });
+
+  it("allows artifact-backed done transitions without a duplicate close comment", async () => {
+    const existing = makeIssue({ status: "in_progress" });
+    const updated = makeIssue({ status: "done" });
+    mockIssueService.getById.mockResolvedValue(existing);
+    mockIssueService.update.mockResolvedValue(updated);
+    mockWorkProductService.listForIssue.mockResolvedValue([
+      {
+        id: "work-product-1",
+        issueId: existing.id,
+        title: "Verification report",
+      },
+    ]);
+
+    const res = await request(await createApp())
+      .patch(`/api/issues/${existing.id}`)
+      .send({ status: "done" });
+
+    expect(res.status).toBe(200);
+    expect(mockIssueService.update).toHaveBeenCalledWith(
+      existing.id,
+      expect.objectContaining({ status: "done" }),
+    );
   });
 
   it("includes the new comment in assignment wakes from issue updates", async () => {

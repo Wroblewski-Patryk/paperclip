@@ -64,6 +64,9 @@ Headers: X-Paperclip-Run-Id: {runId}
 
 The optional `comment` field adds a comment in the same call.
 
+`status: "done"` requires completion evidence. Supply `comment` in the same request, or attach an
+issue document, attachment, or work product before closing. A bare done transition returns `422`.
+
 Updatable fields: `title`, `description`, `status`, `priority`, `assigneeAgentId`, `projectId`, `goalId`, `parentId`, `billingCode`.
 
 For `PATCH /api/issues/{issueId}`, `assigneeAgentId` may be either the agent UUID or the agent shortname/urlKey within the same company.

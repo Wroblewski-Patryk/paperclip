@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockWakeup = vi.hoisted(() => vi.fn(async () => undefined));
 const mockIssueService = vi.hoisted(() => ({
+  addComment: vi.fn(),
   getAncestors: vi.fn(),
   getById: vi.fn(),
   getByIdentifier: vi.fn(async () => null),
@@ -14,6 +15,9 @@ const mockIssueService = vi.hoisted(() => ({
   listWakeableBlockedDependents: vi.fn(),
   getWakeableParentAfterChildCompletion: vi.fn(),
   findMentionedAgents: vi.fn(async () => []),
+}));
+const mockWorkProductService = vi.hoisted(() => ({
+  listForIssue: vi.fn(),
 }));
 
 vi.mock("../services/index.js", () => ({
@@ -81,7 +85,7 @@ vi.mock("../services/index.js", () => ({
     syncRunStatusForIssue: vi.fn(async () => undefined),
   }),
   workProductService: () => ({
-    listForIssue: vi.fn(async () => []),
+    listForIssue: mockWorkProductService.listForIssue,
   }),
 }));
 
@@ -121,9 +125,22 @@ describe("issue dependency wakeups in issue routes", () => {
       latestCommentId: null,
       latestCommentAt: null,
     });
+    mockIssueService.addComment.mockResolvedValue({
+      id: "comment-1",
+      issueId: "issue-1",
+      companyId: "company-1",
+      body: "Done evidence.",
+    });
     mockIssueService.getRelationSummaries.mockResolvedValue({ blockedBy: [], blocks: [] });
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
     mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(null);
+    mockWorkProductService.listForIssue.mockResolvedValue([
+      {
+        id: "work-product-1",
+        issueId: "issue-1",
+        title: "Verification evidence",
+      },
+    ]);
   });
 
   it("wakes dependents when the final blocker transitions to done", async () => {
@@ -170,7 +187,7 @@ describe("issue dependency wakeups in issue routes", () => {
     ]);
 
     const res = await request(await createApp()).patch("/api/issues/issue-1").send({ status: "done" });
-    expect(res.status).toBe(200);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
     await vi.waitFor(() => {
       expect(mockWakeup).toHaveBeenCalledWith(
         "agent-2",
@@ -252,7 +269,7 @@ describe("issue dependency wakeups in issue routes", () => {
     });
 
     const res = await request(await createApp()).patch("/api/issues/child-1").send({ status: "done" });
-    expect(res.status).toBe(200);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
     await vi.waitFor(() => {
       expect(mockWakeup).toHaveBeenCalledWith(
         "agent-9",

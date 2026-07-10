@@ -41,7 +41,7 @@ This packet is generated from the local Paperclip API. It intentionally redacts 
 | Approval dry-run command | node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-30 |
 | Approval apply command | node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-30 --apply |
 | Recheck handoff | After current Coolify metadata exists, 09 DRE may run exactly one read-only Coolify status/log/resource recheck, then must post pass/fail evidence and route any unhealthy resource without mutating production. |
-| Latest tracked secret metadata | 2026-07-10T00:45:17.205Z |
+| Latest tracked secret metadata | 2026-07-10T00:55:15.419Z |
 | Missing direct company secret keys | none |
 | Covered by runtime aliases | coolify_api_token -> coolify_read_api_token, coolify_token -> coolify_read_api_token, coolify_team_id -> coolify_team_id_luckysparrow, coolify_soar_team_id -> coolify_team_id_luckysparrow, coolify_soar_project_id -> coolify_project_id_soar, coolify_soar_project_uuid -> coolify_project_uuid_soar, coolify_soar_production_environment -> coolify_environment_uuid_soar_production, coolify_soar_app_id -> coolify_resource_uuid_soar_web, coolify_soar_api_app_id -> coolify_resource_uuid_soar_api, coolify_soar_web_app_id -> coolify_resource_uuid_soar_web, coolify_soar_worker_backtest_app_id -> coolify_resource_uuid_soar_worker_backtest, coolify_soar_worker_execution_app_id -> coolify_resource_uuid_soar_worker_execution, coolify_soar_worker_market_data_app_id -> coolify_resource_uuid_soar_worker_market_data, coolify_soar_worker_market_stream_app_id -> coolify_resource_uuid_soar_worker_market_stream, coolify_soar_postgres_resource_id -> coolify_database_uuid_soar_postgresql, coolify_soar_redis_resource_id -> coolify_database_uuid_soar_redis, coolify_roost_app_id -> coolify_resource_uuid_roost_app |
 | Secret updated after blocker | true |
@@ -57,21 +57,21 @@ Tracked secret metadata:
 
 | Key | Status | Updated at | Created at | Has value metadata |
 | --- | --- | --- | --- | --- |
-| coolify_base_url | active | 2026-07-10T00:45:16.338Z | 2026-07-04T00:21:08.334Z | true |
-| coolify_read_api_token | active | 2026-07-10T00:45:16.464Z | 2026-07-04T00:37:27.407Z | true |
-| coolify_team_id_luckysparrow | active | 2026-07-10T00:45:17.016Z | 2026-07-04T00:37:27.502Z | true |
-| coolify_project_id_soar | active | 2026-07-10T00:45:16.883Z | 2026-07-04T00:37:27.601Z | true |
-| coolify_project_uuid_soar | active | 2026-07-10T00:45:16.998Z | 2026-07-04T00:37:27.654Z | true |
-| coolify_environment_uuid_soar_production | active | 2026-07-10T00:45:17.145Z | 2026-07-04T00:37:27.700Z | true |
-| coolify_resource_uuid_soar_web | active | 2026-07-10T00:45:17.033Z | 2026-07-04T00:37:27.751Z | true |
-| coolify_resource_uuid_soar_api | active | 2026-07-10T00:45:17.024Z | 2026-07-04T00:37:27.792Z | true |
-| coolify_resource_uuid_soar_worker_backtest | active | 2026-07-10T00:45:17.168Z | 2026-07-04T00:37:27.834Z | true |
-| coolify_resource_uuid_soar_worker_execution | active | 2026-07-10T00:45:17.175Z | 2026-07-04T00:37:27.872Z | true |
-| coolify_resource_uuid_soar_worker_market_data | active | 2026-07-10T00:45:17.192Z | 2026-07-04T00:37:27.913Z | true |
-| coolify_resource_uuid_soar_worker_market_stream | active | 2026-07-10T00:45:17.205Z | 2026-07-04T00:37:27.961Z | true |
-| coolify_database_uuid_soar_postgresql | active | 2026-07-10T00:45:17.127Z | 2026-07-04T00:37:27.999Z | true |
-| coolify_database_uuid_soar_redis | active | 2026-07-10T00:45:17.079Z | 2026-07-04T00:37:28.048Z | true |
-| coolify_resource_uuid_roost_app | active | 2026-07-10T00:45:17.072Z | 2026-07-04T00:37:28.261Z | true |
+| coolify_base_url | active | 2026-07-10T00:55:15.189Z | 2026-07-04T00:21:08.334Z | true |
+| coolify_read_api_token | active | 2026-07-10T00:55:15.246Z | 2026-07-04T00:37:27.407Z | true |
+| coolify_team_id_luckysparrow | active | 2026-07-10T00:55:15.293Z | 2026-07-04T00:37:27.502Z | true |
+| coolify_project_id_soar | active | 2026-07-10T00:55:15.264Z | 2026-07-04T00:37:27.601Z | true |
+| coolify_project_uuid_soar | active | 2026-07-10T00:55:15.286Z | 2026-07-04T00:37:27.654Z | true |
+| coolify_environment_uuid_soar_production | active | 2026-07-10T00:55:15.384Z | 2026-07-04T00:37:27.700Z | true |
+| coolify_resource_uuid_soar_web | active | 2026-07-10T00:55:15.304Z | 2026-07-04T00:37:27.751Z | true |
+| coolify_resource_uuid_soar_api | active | 2026-07-10T00:55:15.299Z | 2026-07-04T00:37:27.792Z | true |
+| coolify_resource_uuid_soar_worker_backtest | active | 2026-07-10T00:55:15.396Z | 2026-07-04T00:37:27.834Z | true |
+| coolify_resource_uuid_soar_worker_execution | active | 2026-07-10T00:55:15.404Z | 2026-07-04T00:37:27.872Z | true |
+| coolify_resource_uuid_soar_worker_market_data | active | 2026-07-10T00:55:15.411Z | 2026-07-04T00:37:27.913Z | true |
+| coolify_resource_uuid_soar_worker_market_stream | active | 2026-07-10T00:55:15.419Z | 2026-07-04T00:37:27.961Z | true |
+| coolify_database_uuid_soar_postgresql | active | 2026-07-10T00:55:15.372Z | 2026-07-04T00:37:27.999Z | true |
+| coolify_database_uuid_soar_redis | active | 2026-07-10T00:55:15.337Z | 2026-07-04T00:37:28.048Z | true |
+| coolify_resource_uuid_roost_app | active | 2026-07-10T00:55:15.328Z | 2026-07-04T00:37:28.261Z | true |
 
 Blocked issue sample:
 
@@ -95,7 +95,7 @@ Blocked issue sample:
 | Approval dry-run command | node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-31 |
 | Approval apply command | node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-31 --apply |
 | Recheck handoff | After current smoke-account metadata exists, 09 QVE may run exactly one non-destructive production readiness recheck and must post pass/fail evidence. |
-| Latest tracked secret metadata | 2026-07-10T00:45:17.063Z |
+| Latest tracked secret metadata | 2026-07-10T00:55:15.324Z |
 | Missing direct company secret keys | smoke_auth_email, smoke_auth_password |
 | Covered by runtime aliases | none |
 | Secret updated after blocker | true |
@@ -111,17 +111,17 @@ Tracked secret metadata:
 
 | Key | Status | Updated at | Created at | Has value metadata |
 | --- | --- | --- | --- | --- |
-| soar_prod_base_url | active | 2026-07-10T00:45:16.405Z | 2026-07-04T00:37:28.088Z | true |
-| soar_api_base_url | active | 2026-07-10T00:45:16.381Z | 2026-07-04T00:37:28.129Z | true |
-| soar_prod_test_email | active | 2026-07-10T00:45:16.440Z | 2026-07-04T00:37:28.180Z | true |
-| soar_prod_test_password | active | 2026-07-10T00:45:16.964Z | 2026-07-04T00:37:28.216Z | true |
+| soar_prod_base_url | active | 2026-07-10T00:55:15.215Z | 2026-07-04T00:37:28.088Z | true |
+| soar_api_base_url | active | 2026-07-10T00:55:15.205Z | 2026-07-04T00:37:28.129Z | true |
+| soar_prod_test_email | active | 2026-07-10T00:55:13.371Z | 2026-07-04T00:37:28.180Z | true |
+| soar_prod_test_password | active | 2026-07-10T00:55:13.404Z | 2026-07-04T00:37:28.216Z | true |
 | soar_prod_admin_smoke_email | active | 2026-07-10T00:45:16.355Z | 2026-07-04T17:00:52.114Z | true |
 | soar_prod_admin_smoke_password | active | 2026-07-10T00:45:16.427Z | 2026-07-04T17:00:52.175Z | true |
-| roost_prod_base_url | active | 2026-07-10T00:45:16.421Z | 2026-07-04T00:37:28.302Z | true |
-| roost_api_base_url | active | 2026-07-10T00:45:16.398Z | 2026-07-04T00:37:28.342Z | true |
-| roost_prod_test_email | active | 2026-07-10T00:45:16.445Z | 2026-07-04T00:37:28.384Z | true |
-| roost_prod_test_password | active | 2026-07-10T00:45:16.971Z | 2026-07-04T00:37:28.433Z | true |
-| roost_prod_test_workspace_name | active | 2026-07-10T00:45:17.063Z | 2026-07-04T00:37:28.474Z | true |
+| roost_prod_base_url | active | 2026-07-10T00:55:15.231Z | 2026-07-04T00:37:28.302Z | true |
+| roost_api_base_url | active | 2026-07-10T00:55:15.211Z | 2026-07-04T00:37:28.342Z | true |
+| roost_prod_test_email | active | 2026-07-10T00:55:15.239Z | 2026-07-04T00:37:28.384Z | true |
+| roost_prod_test_password | active | 2026-07-10T00:55:15.276Z | 2026-07-04T00:37:28.433Z | true |
+| roost_prod_test_workspace_name | active | 2026-07-10T00:55:15.324Z | 2026-07-04T00:37:28.474Z | true |
 
 Blocked issue sample:
 
@@ -145,7 +145,7 @@ Blocked issue sample:
 | Approval dry-run command | node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-32 |
 | Approval apply command | node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-32 --apply |
 | Recheck handoff | After current secret/resource metadata exists, 10 SPA may run exactly one redacted safety-gate recheck and must post names-only evidence plus residual risk. |
-| Latest tracked secret metadata | 2026-07-10T00:45:17.145Z |
+| Latest tracked secret metadata | 2026-07-10T00:55:15.384Z |
 | Missing direct company secret keys | none |
 | Covered by runtime aliases | none |
 | Secret updated after blocker | true |
@@ -161,21 +161,21 @@ Tracked secret metadata:
 
 | Key | Status | Updated at | Created at | Has value metadata |
 | --- | --- | --- | --- | --- |
-| coolify_read_api_token | active | 2026-07-10T00:45:16.464Z | 2026-07-04T00:37:27.407Z | true |
+| coolify_read_api_token | active | 2026-07-10T00:55:15.246Z | 2026-07-04T00:37:27.407Z | true |
 | coolify_deploy_api_token | active | 2026-07-09T23:39:17.854Z | 2026-07-04T00:37:27.447Z | true |
-| coolify_base_url | active | 2026-07-10T00:45:16.338Z | 2026-07-04T00:21:08.334Z | true |
-| coolify_api_url | active | 2026-07-10T00:45:16.297Z | 2026-07-04T00:21:08.385Z | true |
-| coolify_team_id_luckysparrow | active | 2026-07-10T00:45:17.016Z | 2026-07-04T00:37:27.502Z | true |
-| coolify_project_id_soar | active | 2026-07-10T00:45:16.883Z | 2026-07-04T00:37:27.601Z | true |
-| coolify_project_uuid_soar | active | 2026-07-10T00:45:16.998Z | 2026-07-04T00:37:27.654Z | true |
-| coolify_environment_uuid_soar_production | active | 2026-07-10T00:45:17.145Z | 2026-07-04T00:37:27.700Z | true |
-| coolify_resource_uuid_soar_web | active | 2026-07-10T00:45:17.033Z | 2026-07-04T00:37:27.751Z | true |
-| coolify_resource_uuid_soar_api | active | 2026-07-10T00:45:17.024Z | 2026-07-04T00:37:27.792Z | true |
-| coolify_resource_uuid_roost_app | active | 2026-07-10T00:45:17.072Z | 2026-07-04T00:37:28.261Z | true |
-| soar_prod_base_url | active | 2026-07-10T00:45:16.405Z | 2026-07-04T00:37:28.088Z | true |
-| soar_api_base_url | active | 2026-07-10T00:45:16.381Z | 2026-07-04T00:37:28.129Z | true |
-| roost_prod_base_url | active | 2026-07-10T00:45:16.421Z | 2026-07-04T00:37:28.302Z | true |
-| roost_api_base_url | active | 2026-07-10T00:45:16.398Z | 2026-07-04T00:37:28.342Z | true |
+| coolify_base_url | active | 2026-07-10T00:55:15.189Z | 2026-07-04T00:21:08.334Z | true |
+| coolify_api_url | active | 2026-07-10T00:55:15.181Z | 2026-07-04T00:21:08.385Z | true |
+| coolify_team_id_luckysparrow | active | 2026-07-10T00:55:15.293Z | 2026-07-04T00:37:27.502Z | true |
+| coolify_project_id_soar | active | 2026-07-10T00:55:15.264Z | 2026-07-04T00:37:27.601Z | true |
+| coolify_project_uuid_soar | active | 2026-07-10T00:55:15.286Z | 2026-07-04T00:37:27.654Z | true |
+| coolify_environment_uuid_soar_production | active | 2026-07-10T00:55:15.384Z | 2026-07-04T00:37:27.700Z | true |
+| coolify_resource_uuid_soar_web | active | 2026-07-10T00:55:15.304Z | 2026-07-04T00:37:27.751Z | true |
+| coolify_resource_uuid_soar_api | active | 2026-07-10T00:55:15.299Z | 2026-07-04T00:37:27.792Z | true |
+| coolify_resource_uuid_roost_app | active | 2026-07-10T00:55:15.328Z | 2026-07-04T00:37:28.261Z | true |
+| soar_prod_base_url | active | 2026-07-10T00:55:15.215Z | 2026-07-04T00:37:28.088Z | true |
+| soar_api_base_url | active | 2026-07-10T00:55:15.205Z | 2026-07-04T00:37:28.129Z | true |
+| roost_prod_base_url | active | 2026-07-10T00:55:15.231Z | 2026-07-04T00:37:28.302Z | true |
+| roost_api_base_url | active | 2026-07-10T00:55:15.211Z | 2026-07-04T00:37:28.342Z | true |
 
 Blocked issue sample:
 

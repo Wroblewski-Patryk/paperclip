@@ -82,6 +82,9 @@ Headers: X-Paperclip-Run-Id: {runId}
 { "status": "done", "comment": "What was done and why." }
 ```
 
+The `done` transition is evidence-gated. If the update omits `comment`, the issue must already have
+an inspectable issue document, attachment, or work product; otherwise the API returns `422`.
+
 If blocked:
 
 ```

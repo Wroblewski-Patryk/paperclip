@@ -6,6 +6,48 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-10 / LUC-305 PDCA Learning and Company Memory Review:
+  - Reviewed `/api/issues/LUC-305`, `/api/issues/LUC-305/heartbeat-context`, and `/api/issues/LUC-305/comments` for the current routine heartbeat.
+  - State check: the issue was `in_progress`, still assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, the thread was empty, and blocker attention was `none`.
+  - Evidence check: no attachments, recovery actions, scheduled retries, or other issue-level evidence were present.
+  - Decision: this was a clean PDCA checkpoint only. The live state did not justify any memory, instruction, or procedure update beyond recording the checkpoint.
+  - Action taken: append this durable journal entry, post a no-op issue comment, and close the issue `done` so the routine does not remain open without a live continuation path.
+
+- 2026-07-10 / LUC-299 PDCA Learning and Company Memory Review:
+  - Reviewed `/api/issues/LUC-299` and `/api/issues/LUC-299/comments` for the current routine heartbeat.
+  - State check: the issue was `in_progress`, still assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, the thread was empty, and blocker attention was `none`.
+  - Evidence check: no wake comment, no scheduled retry, no recovery action, no attachments, and no issue documents were present.
+  - Decision: this was a clean PDCA checkpoint only. The live state did not justify any memory, instruction, or procedure update beyond recording the checkpoint.
+  - Action taken: append this durable journal entry, post a terminal no-op note on the issue, and close the issue `done` so the routine does not remain open without a live continuation path.
+
+- 2026-07-10 / LUC-294 PDCA Learning and Company Memory Review:
+  - Reviewed `/api/issues/LUC-294`, `/api/issues/LUC-294/heartbeat-context`, and `/api/issues/LUC-294/comments` for the current routine heartbeat.
+  - State check: the issue remained `in_progress`, the assignee stayed `ed63e6f1-2388-4568-be2e-0e7b10263921`, the thread was empty, and blocker attention was `none`.
+  - Evidence check: no wake comment, no scheduled retry, no recovery action, no attachments, and no issue documents were present.
+  - Decision: this was a clean PDCA checkpoint only. No memory, instruction, or procedure update was justified from the available state.
+  - Action taken: record the no-op outcome in durable memory and close the issue with a clear terminal note.
+
+- 2026-07-10 / LUC-288 PDCA Learning and Company Memory Review:
+  - Reviewed `/api/issues/LUC-288`, `/api/issues/LUC-288/heartbeat-context`, and `/api/issues/LUC-288/comments` for the current routine heartbeat.
+  - State check: the issue remained `in_progress`, assignee stayed `ed63e6f1-2388-4568-be2e-0e7b10263921`, the thread was empty, and blocker attention was `none`.
+  - Evidence check: no wake comment, no scheduled retry, no recovery action, no attachments, and no issue documents were present.
+  - Decision: this was a clean PDCA checkpoint only. No memory, instruction, or procedure update was justified from the available state.
+  - Action taken: record the no-op outcome in durable memory and close the issue with a clear terminal note.
+
+- 2026-07-10 / LUC-281 PDCA Learning and Company Memory Review:
+  - Reviewed `/api/issues/LUC-281`, `/api/issues/LUC-281/heartbeat-context`, and `/api/issues/LUC-281/comments` for the current routine heartbeat.
+  - State check: the issue remained `in_progress`, assignee stayed `ed63e6f1-2388-4568-be2e-0e7b10263921`, the thread was empty, and blocker attention was `none`.
+  - Evidence check: no wake comment, no scheduled retry, no recovery action, no attachments, and no issue documents were present.
+  - Decision: this was a clean PDCA checkpoint only. No memory, instruction, or procedure update was justified from the available state.
+  - Action taken: record the no-op outcome in durable memory and close the issue with a clear terminal note.
+
+- 2026-07-10 / LUC-275 PDCA Learning and Company Memory Review:
+  - Reviewed `/api/issues/LUC-275`, `/api/issues/LUC-275/heartbeat-context`, and `/api/issues/LUC-275/comments` for the current routine heartbeat.
+  - State check: the issue remained `in_progress`, assignee stayed `ed63e6f1-2388-4568-be2e-0e7b10263921`, thread comments were still empty, and blocker attention was `none`.
+  - Evidence check: no wake comment, no scheduled retry, no recovery action, no attachments, and no issue documents were present.
+  - Decision: this was a clean PDCA checkpoint only. No memory, instruction, or procedure update was justified from the available state.
+  - Action taken: record the no-op outcome in durable memory and close the issue with a clear terminal note.
+
 - 2026-07-10 / V0 project workspace policy and duplicate-project repair:
   - Found that `run-project-known-state-harvester.mjs --apply` created short-name Paperclip projects `Soar` and `Roost` because the harvester did not recognize canonical `11 Innovation: Soar` and `11 Innovation: Roost` aliases.
   - Repaired runtime state through the Paperclip API: moved fresh known-state lanes `LUC-261` and `LUC-262` onto the canonical `11 Innovation:*` projects, enabled execution workspace policy on the canonical projects, and archived the short-name duplicate Paperclip projects.
