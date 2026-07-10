@@ -360,6 +360,9 @@ const openActiveIssues = issues.filter((issue) =>
 );
 const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean));
 const issueById = new Map(issues.map((issue) => [issue.id, issue]));
+const liveIssueIdentifiers = new Set([...liveIssueIds]
+  .map((issueId) => issueById.get(issueId)?.identifier)
+  .filter(Boolean));
 const liveProjectIds = new Set(liveRuns
   .map((run) => issueById.get(run.issueId)?.projectId)
   .filter(Boolean));
@@ -528,6 +531,7 @@ const unknownBlockedIssues = blockedIssues
     && !isKnownIntentionalBlockedIssue(issue)
     && !isProductivityReviewIssue(issue)
     && !pendingReviewInteractionIdentifiers.has(rootBlocker)
+    && !liveIssueIdentifiers.has(rootBlocker)
     && !hasRecentTerminalTriageDisposition(issue, terminalTriageByTarget)
   );
 const productivityReviewBlockedIssues = blockedIssues.filter(isProductivityReviewIssue);

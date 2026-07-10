@@ -1049,6 +1049,13 @@ test("autonomy governor treats pending review interactions as known root blocker
   assert.match(source, /pendingReviewInteractionIdentifiers\.has\(rootBlocker\)/);
 });
 
+test("autonomy governor treats live root blockers as already covered", async () => {
+  const source = await readFile("scripts/run-autonomy-governor.mjs", "utf8");
+
+  assert.match(source, /liveIssueIdentifiers/);
+  assert.match(source, /liveIssueIdentifiers\.has\(rootBlocker\)/);
+});
+
 test("autonomy governor uses gate freshness evidence instead of a diagnostic false override", async () => {
   const source = await readFile("scripts/run-autonomy-governor.mjs", "utf8");
 
