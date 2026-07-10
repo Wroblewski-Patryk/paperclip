@@ -1,5 +1,6 @@
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
+const companyNameAliases = [companyName, "LuckySparrow"];
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const apply = process.argv.includes("--apply");
 
@@ -42,7 +43,7 @@ async function resolveCompany() {
   if (companyId) return { id: companyId, source: "PAPERCLIP_COMPANY_ID" };
 
   const companies = await request("GET", "/api/companies");
-  const company = companies.find((candidate) => candidate.name === companyName);
+  const company = companies.find((candidate) => companyNameAliases.includes(candidate.name));
   if (!company) throw new Error(`Company not found: ${companyName}`);
   return { id: company.id, source: "company_name" };
 }

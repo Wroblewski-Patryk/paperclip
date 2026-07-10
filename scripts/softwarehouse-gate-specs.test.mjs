@@ -1301,6 +1301,15 @@ test("softwarehouse setup scripts resolve both current and legacy company names"
   }
 });
 
+test("known blocker link repair resolves both current and legacy company names", async () => {
+  const source = await readFile("scripts/repair-known-blocker-links.mjs", "utf8");
+
+  assert.match(source, /companyNameAliases/);
+  assert.match(source, /"LuckySparrow"/);
+  assert.match(source, /"LuckySparrow Software House"/);
+  assert.match(source, /companyNameAliases\.includes\(candidate\.name\)/);
+});
+
 test("known-state harvester reuses canonical Soar and Roost projects", async () => {
   const source = await readFile("scripts/run-project-known-state-harvester.mjs", "utf8");
 
