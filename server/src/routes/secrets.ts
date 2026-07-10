@@ -269,6 +269,14 @@ export function secretRoutes(db: Db) {
     res.json(secrets);
   });
 
+  router.get("/companies/:companyId/secrets/metadata", async (req, res) => {
+    assertBoard(req);
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    const secrets = await svc.list(companyId);
+    res.json(secrets);
+  });
+
   router.post("/companies/:companyId/secrets", validate(createSecretSchema), async (req, res) => {
     assertBoard(req);
     const companyId = req.params.companyId as string;

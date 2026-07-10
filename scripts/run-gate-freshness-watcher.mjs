@@ -6,6 +6,7 @@ import { agentWipBlockerFor, fetchAgentWipState, summarizeAgentWip } from "./lib
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
+const companyNameAliases = [companyName, "LuckySparrow"];
 const apply = process.argv.includes("--apply");
 const currentWatcherRunId = process.env.PAPERCLIP_RUN_ID ?? null;
 const heartbeatCompanyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
@@ -52,6 +53,17 @@ async function captureRequest(name, method, route, body) {
   }
 }
 
+async function captureSecretsMetadata(resolvedCompanyId) {
+  const metadata = await captureRequest("secrets", "GET", `/api/companies/${resolvedCompanyId}/secrets/metadata`);
+  if (metadata.ok || !/\b404\b/.test(metadata.error ?? "")) return metadata;
+  const legacy = await captureRequest("secrets", "GET", `/api/companies/${resolvedCompanyId}/secrets`);
+  if (!legacy.ok) return metadata;
+  return {
+    ...legacy,
+    routeFallback: "/secrets",
+  };
+}
+
 function dataOrFallback(result, fallback) {
   return result.ok ? result.data : fallback;
 }
@@ -62,7 +74,7 @@ async function resolveCompany() {
   }
 
   const companies = await request("GET", "/api/companies");
-  const company = companies.find((candidate) => candidate.name === companyName);
+  const company = companies.find((candidate) => companyNameAliases.includes(candidate.name));
   if (!company) throw new Error(`Company not found: ${companyName}`);
   return { ...company, source: "/api/companies" };
 }
@@ -114,7 +126,7 @@ const missingCompanyTelemetry = (name) => ({
 const telemetry = await Promise.all([
   captureRequest("health", "GET", "/api/health"),
   companyIdAvailable
-    ? captureRequest("secrets", "GET", `/api/companies/${company.id}/secrets/metadata`)
+    ? captureSecretsMetadata(company.id)
     : missingCompanyTelemetry("secrets"),
   companyIdAvailable
     ? captureRequest("liveRuns", "GET", `/api/companies/${company.id}/live-runs`)

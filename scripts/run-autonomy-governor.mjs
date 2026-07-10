@@ -175,6 +175,23 @@ async function requestGovernorIssues(resolvedCompanyId) {
   return uniqueIssues([openIssues, recentTerminalIssues, terminalTriageIssues, safeLaneIssues]);
 }
 
+async function requestSecretsMetadata(resolvedCompanyId) {
+  try {
+    return {
+      secrets: await request("GET", `/api/companies/${resolvedCompanyId}/secrets/metadata`),
+      unavailable: false,
+      fallbackRoute: null,
+    };
+  } catch (error) {
+    if (error?.status !== 404) throw error;
+  }
+  return {
+    secrets: await request("GET", `/api/companies/${resolvedCompanyId}/secrets`),
+    unavailable: false,
+    fallbackRoute: "/secrets",
+  };
+}
+
 function ageMs(timestamp) {
   return timestamp ? Date.now() - new Date(timestamp).getTime() : Number.POSITIVE_INFINITY;
 }
@@ -270,6 +287,7 @@ let projects;
 let issues;
 let liveRuns;
 let secrets;
+let secretsMetadataFallbackRoute = null;
 let secretsMetadataUnavailable = false;
 try {
   [health, projects, issues, liveRuns] = await Promise.all([
@@ -279,7 +297,9 @@ try {
     request("GET", `/api/companies/${company.id}/live-runs`),
   ]);
   try {
-    secrets = await request("GET", `/api/companies/${company.id}/secrets/metadata`);
+    const metadata = await requestSecretsMetadata(company.id);
+    secrets = metadata.secrets;
+    secretsMetadataFallbackRoute = metadata.fallbackRoute;
   } catch (error) {
     if (error?.status !== 404) throw error;
     secrets = [];
@@ -734,6 +754,7 @@ console.log(JSON.stringify({
     unavailable: secretsMetadataUnavailable,
     warning: metadataUnavailableGateWarning,
     trackedMetadataCount: secrets.length,
+    fallbackRoute: secretsMetadataFallbackRoute,
   },
   nextRunnableIssues: runnableIssues.slice(0, 10).map((issue) => ({
     identifier: issue.identifier,

@@ -559,7 +559,9 @@ test("gate freshness watcher requires exactly one action and no blocking live ru
   assert.match(source, /signal: controller\.signal/);
   assert.match(source, /timed out after \$\{requestTimeoutMs\}ms/);
   assert.match(source, /\/secrets\/metadata/);
-  assert.doesNotMatch(source, /\/secrets`\)/);
+  assert.match(source, /async function captureSecretsMetadata/);
+  assert.match(source, /if \(metadata\.ok \|\| !\/\\b404\\b\/\.test\(metadata\.error \?\? ""\)\) return metadata/);
+  assert.match(source, /routeFallback: "\/secrets"/);
   assert.match(source, /requestTimeoutMs/);
   assert.match(source, /async function captureRequest\(name, method, route, body\)/);
   assert.match(source, /async function captureCompanyResolution\(\)/);
@@ -1044,7 +1046,8 @@ test("autonomy governor uses gate freshness evidence instead of a diagnostic fal
   const source = await readFile("scripts/run-autonomy-governor.mjs", "utf8");
 
   assert.match(source, /\/secrets\/metadata/);
-  assert.doesNotMatch(source, /\/secrets`\)/);
+  assert.match(source, /async function requestSecretsMetadata/);
+  assert.match(source, /fallbackRoute: "\/secrets"/);
   assert.match(source, /resolveIssuesByIdentifier/);
   assert.match(source, /const gateIssueByIdentifier = await resolveIssuesByIdentifier/);
   assert.match(source, /const issue = gateIssueByIdentifier\.get\(identifier\)/);

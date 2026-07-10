@@ -8,6 +8,7 @@ import { HttpError, unprocessable } from "../errors.js";
 const mockSecretService = vi.hoisted(() => ({
   listProviders: vi.fn(),
   checkProviders: vi.fn(),
+  list: vi.fn(),
   listProviderConfigs: vi.fn(),
   previewProviderConfigDiscovery: vi.fn(),
   getProviderConfigById: vi.fn(),
@@ -80,6 +81,35 @@ describe("secret routes", () => {
         },
       ],
     });
+  });
+
+  it("returns redacted secret metadata for governor freshness checks", async () => {
+    mockSecretService.list.mockResolvedValue([
+      {
+        id: "secret-1",
+        companyId: "company-1",
+        key: "SOAR_PROD_URL",
+        name: "Soar production URL",
+        provider: "local_encrypted",
+        status: "active",
+        latestVersion: 1,
+        createdAt: "2026-07-10T10:00:00.000Z",
+        updatedAt: "2026-07-10T10:05:00.000Z",
+      },
+    ]);
+
+    const res = await request(createApp()).get("/api/companies/company-1/secrets/metadata");
+
+    expect(res.status).toBe(200);
+    expect(mockSecretService.list).toHaveBeenCalledWith("company-1");
+    expect(res.body).toEqual([
+      expect.objectContaining({
+        key: "SOAR_PROD_URL",
+        status: "active",
+        latestVersion: 1,
+      }),
+    ]);
+    expect(JSON.stringify(res.body)).not.toContain("secret-value");
   });
 
   it("rejects managed secret creation when externalRef is supplied", async () => {
