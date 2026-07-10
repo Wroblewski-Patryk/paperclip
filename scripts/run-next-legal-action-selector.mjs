@@ -10,6 +10,7 @@ const fallbackCompanyId = "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const healthTimeoutMs = Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_HEALTH_TIMEOUT_MS ?? 5_000);
 
 const applyCommands = new Map([
+  ["assign_runnable_work_owner", ["node", ["scripts/run-project-ownership-assignment.mjs", "--apply"]]],
   ["start_runnable_work", ["pnpm", ["softwarehouse:local-repair-lane-starter:apply"]]],
   ["start_source_control_closure", ["pnpm", ["softwarehouse:local-repair-lane-starter:apply"]]],
   ["start_blocked_triage", ["pnpm", ["run", "softwarehouse:blocked-triage-lane-starter:apply"]]],
@@ -171,10 +172,17 @@ export function pickAction(
       forbidden: ["start duplicate owner lane", "push", "deploy", "restart"],
     };
   }
-  const ledgerReportsDirtySoar = acceptanceCheckBlocks(acceptanceLedger, "soar_source_control_clean");
-  const dirtyProject = control?.controlBrief?.dirtyProjects?.[0]
+  const freshGovernorSourceControlClean =
+    governorProbe?.checked
+    && governorProbe.ok
+    && Number(governorProbe?.counts?.dirtyProjectRepos ?? 0) === 0
+    && Number(governorProbe?.counts?.dirtyOperatingRepos ?? 0) === 0;
+  const ledgerReportsDirtySoar =
+    !freshGovernorSourceControlClean && acceptanceCheckBlocks(acceptanceLedger, "soar_source_control_clean");
+  const staleDirtyProject = control?.controlBrief?.dirtyProjects?.[0]
     ?? readiness?.dirtyProjects?.[0]
     ?? (ledgerReportsDirtySoar ? { project: "Soar", source: "soar_acceptance_ledger" } : null);
+  const dirtyProject = freshGovernorSourceControlClean ? null : staleDirtyProject;
   const runnableSourceControlGate = [
     ...(control?.sourceControlGateIssues ?? []),
     ...(readiness?.sourceControlGates ?? []),
@@ -216,6 +224,17 @@ export function pickAction(
   const localRepairLaneStarter = controlStepSummary(control, "localRepairLaneStarter");
   const governorDecision = governorProbe?.decision ?? control?.autonomyGovernor?.decision ?? autonomyGovernor?.decision ?? null;
   const governorEligibleRunnableIssues = Number(governorProbe?.counts?.eligibleRunnableIssues ?? governorProbe?.counts?.runnableIssues ?? Number.NaN);
+  if (governorProbe?.checked && governorProbe.ok && governorDecision === "runnable_work_assignment_needed") {
+    return {
+      decision: "assign_runnable_work_owner",
+      reason: governorProbe.recommendedAction
+        ?? "Runnable work exists, but no current controlled-project issue has both an owner and an execution lane.",
+      command: "node scripts/run-project-ownership-assignment.mjs --apply",
+      target: "controlled_project_assignment",
+      allowed: ["assign one runnable issue to the owning PM", "do not wake duplicate work", "preserve WIP guard"],
+      forbidden: ["push", "deploy", "restart", "secret disclosure", "assign broad speculative backlog"],
+    };
+  }
   if (
     governorProbe?.checked
     && governorProbe.ok

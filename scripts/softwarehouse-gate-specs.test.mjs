@@ -894,6 +894,51 @@ test("next legal action selector starts runnable backlog instead of only refresh
   assert.match(packageJson, /"softwarehouse:next-legal-action:apply": "node scripts\/run-next-legal-action-selector\.mjs --apply"/);
 });
 
+test("next legal action selector ignores stale dirty reports when fresh governor says source control is clean", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    {
+      activeRunCount: 0,
+      controlBrief: {
+        dirtyProjects: [
+          {
+            project: "Soar",
+            dirtyCount: 8,
+          },
+        ],
+      },
+    },
+    {},
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    {
+      checks: [
+        {
+          id: "soar_source_control_clean",
+          status: "blocker",
+          reason: "Stale acceptance ledger still reports dirty source control.",
+        },
+      ],
+    },
+    {
+      checked: true,
+      ok: true,
+      decision: "runnable_work_assignment_needed",
+      counts: {
+        dirtyProjectRepos: 0,
+        dirtyOperatingRepos: 0,
+        runnableIssues: 1,
+        eligibleRunnableIssues: 0,
+      },
+    },
+  );
+
+  assert.notEqual(action.decision, "start_source_control_closure");
+  assert.equal(action.decision, "assign_runnable_work_owner");
+  assert.equal(action.command, "node scripts/run-project-ownership-assignment.mjs --apply");
+});
+
 test("next legal action selector routes fresh blocked triage before stale runnable snapshots", async () => {
   const { pickAction } = await import("./run-next-legal-action-selector.mjs");
   const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
