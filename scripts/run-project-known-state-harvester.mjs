@@ -7,7 +7,14 @@ import { agentWipBlockerFor, fetchAgentWipState } from "./lib/agent-wip-guard.mj
 import { buildAgentLookup } from "./lib/softwarehouse-agent-resolver.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
+const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow Software House";
+const companyNames = [
+  process.env.SOFTWAREHOUSE_COMPANY_NAME,
+  process.env.PAPERCLIP_COMPANY_NAME,
+  companyName,
+  "LuckySparrow",
+  "LuckySparrow Software House",
+].filter(Boolean);
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const apply = process.argv.includes("--apply");
@@ -464,7 +471,8 @@ async function resolveCompany() {
   if (companyId) return { id: companyId, source: "PAPERCLIP_COMPANY_ID" };
 
   const companies = await request("GET", "/api/companies");
-  const company = companies.find((candidate) => candidate.name === companyName);
+  const company = companies.find((candidate) => companyNames.includes(candidate.name))
+    ?? companies.find((candidate) => /^LuckySparrow\b/i.test(candidate.name));
   if (!company) throw new Error(`Company not found: ${companyName}`);
   return { id: company.id, source: "company_name" };
 }

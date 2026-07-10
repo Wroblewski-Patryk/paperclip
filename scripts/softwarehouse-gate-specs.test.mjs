@@ -1109,6 +1109,7 @@ test("softwarehouse setup scripts resolve both current and legacy company names"
     "scripts/run-autonomy-governor.mjs",
     "scripts/run-access-unblock-task-seeder.mjs",
     "scripts/run-safe-architecture-planning-seeder.mjs",
+    "scripts/run-project-known-state-harvester.mjs",
   ];
 
   for (const scriptPath of scripts) {
