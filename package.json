@@ -94,6 +94,8 @@
     "softwarehouse:run-disposition-enforcer:apply": "node scripts/run-run-disposition-enforcer.mjs --apply",
     "softwarehouse:next-legal-action": "node scripts/run-next-legal-action-selector.mjs",
     "softwarehouse:next-legal-action:apply": "node scripts/run-next-legal-action-selector.mjs --apply",
+    "softwarehouse:continuation-watchdog": "node scripts/run-softwarehouse-continuation-watchdog.mjs --once",
+    "softwarehouse:continuation-watchdog:loop": "node scripts/run-softwarehouse-continuation-watchdog.mjs --loop",
     "softwarehouse:soar-acceptance-ledger": "node scripts/run-soar-acceptance-ledger.mjs",
     "softwarehouse:coolify-reconciler": "node scripts/run-coolify-production-reconciler.mjs",
     "softwarehouse:coolify-runtime-access": "node scripts/configure-coolify-runtime-access.mjs",

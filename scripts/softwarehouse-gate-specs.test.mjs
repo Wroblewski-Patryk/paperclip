@@ -883,6 +883,20 @@ test("next legal action selector starts runnable backlog instead of only refresh
   assert.match(packageJson, /"softwarehouse:next-legal-action:apply": "node scripts\/run-next-legal-action-selector\.mjs --apply"/);
 });
 
+test("continuation watchdog applies the next legal action when Paperclip goes idle", async () => {
+  const source = await readFile("scripts/run-softwarehouse-continuation-watchdog.mjs", "utf8");
+  const packageJson = await readFile("package.json", "utf8");
+
+  assert.match(source, /SOFTWAREHOUSE_CONTINUATION_INTERVAL_MS/);
+  assert.match(source, /SOFTWAREHOUSE_CONTINUATION_CHILD_TIMEOUT_MS/);
+  assert.match(source, /liveRunCount/);
+  assert.match(source, /A live run exists, so the watchdog must not start duplicate owner work/);
+  assert.match(source, /"pnpm", \["run", "softwarehouse:next-legal-action:apply"\]/);
+  assert.match(source, /report\/softwarehouse-continuation-watchdog\.latest\.json/);
+  assert.match(packageJson, /"softwarehouse:continuation-watchdog": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --once"/);
+  assert.match(packageJson, /"softwarehouse:continuation-watchdog:loop": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --loop"/);
+});
+
 test("control tick inspects gate freshness before any manual apply", async () => {
   const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
 
