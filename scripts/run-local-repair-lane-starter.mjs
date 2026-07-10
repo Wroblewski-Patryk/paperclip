@@ -151,7 +151,8 @@ function priorityRank(priority) {
 }
 
 function projectRank(projectName) {
-  const index = projectPriority.indexOf(projectName);
+  const controlledName = controlledProjectNameFor(projectName) ?? projectName;
+  const index = projectPriority.indexOf(controlledName);
   return index === -1 ? 999 : index;
 }
 
@@ -162,6 +163,19 @@ function byName(items, name) {
 function activeProjectForControlledName(projects, controlledName) {
   const aliases = projectAliases.get(controlledName) ?? [controlledName];
   return projects.find((project) => aliases.includes(project.name) && !project.archivedAt) ?? null;
+}
+
+function controlledProjectNameFor(projectName) {
+  for (const [controlledName, aliases] of projectAliases) {
+    if (aliases.includes(projectName)) return controlledName;
+  }
+  return null;
+}
+
+function projectInPriority(project) {
+  if (!project?.name) return false;
+  const controlledName = controlledProjectNameFor(project.name) ?? project.name;
+  return projectPriority.includes(controlledName);
 }
 
 function defaultProjectWorkspaceId(project) {
@@ -248,7 +262,7 @@ function issueSort(left, right) {
 function isSourceControlClosureCandidate(issue, project, governorDecision, liveIssueIds, sourceControlPacket) {
   if (!sourceControlClosureAllowed(governorDecision, sourceControlPacket)) return false;
   if (!project || project.archivedAt) return false;
-  if (!projectPriority.includes(project.name)) return false;
+  if (!projectInPriority(project)) return false;
   if (!issue.title?.startsWith(sourceControlClosureTitlePrefix(project.name))) return false;
   const isRunnable = ["todo", "backlog"].includes(issue.status);
   const isSelfBlockedDispositionRecovery = issue.status === "blocked"
@@ -270,7 +284,7 @@ function isLocalRepairCandidate(issue, projectById, liveIssueIds, governorDecisi
   const project = projectById.get(issue.projectId);
   if (isSourceControlClosureCandidate(issue, project, governorDecision, liveIssueIds, sourceControlPacket)) return true;
   if (!project || project.archivedAt) return false;
-  if (!projectPriority.includes(project.name)) return false;
+  if (!projectInPriority(project)) return false;
   if (!runnableStatuses.has(issue.status)) return false;
   if (terminalStatuses.has(issue.status)) return false;
   if (liveIssueIds.has(issue.id)) return false;

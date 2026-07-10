@@ -1197,6 +1197,16 @@ test("local repair lane starter treats cross-boundary patch denial as routed ski
   assert.match(source, /if \(updated && isBacklogWake && updated\.assigneeAgentId\)/);
 });
 
+test("local repair lane starter matches controlled project aliases before waking backlog", async () => {
+  const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+
+  assert.match(source, /function controlledProjectNameFor\(projectName\)/);
+  assert.match(source, /function projectInPriority\(project\)/);
+  assert.match(source, /controlledProjectNameFor\(project\.name\) \?\? project\.name/);
+  assert.match(source, /\["Soar", \["Soar", "11 Innovation: Soar"\]\]/);
+  assert.doesNotMatch(source, /projectPriority\.includes\(project\.name\)/);
+});
+
 test("control seeders use per-agent WIP guard before wake or resume", async () => {
   const guardedScripts = [
     "scripts/run-blocked-triage-lane-starter.mjs",
