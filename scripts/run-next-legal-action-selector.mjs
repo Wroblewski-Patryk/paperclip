@@ -208,18 +208,6 @@ export function pickAction(
       forbidden: ["push", "deploy", "restart", "secret disclosure", "mark production ready without Coolify evidence"],
     };
   }
-  const inReviewFinding = (control?.auditFindings ?? []).find((finding) =>
-    finding.area === "issues" && /in review/i.test(finding.message ?? "")
-  );
-  if (inReviewFinding) {
-    return {
-      decision: "repair_in_review_decision_path",
-      reason: inReviewFinding.message,
-      command: "pnpm softwarehouse:in-review-decision-path",
-      allowed: ["name reviewer", "accept/reject/block/delegate decision"],
-      forbidden: ["leave narrative-only review"],
-    };
-  }
   const autonomyGovernor = controlStepSummary(control, "autonomyGovernor");
   const localRepairLaneStarter = controlStepSummary(control, "localRepairLaneStarter");
   const governorDecision = governorProbe?.decision ?? control?.autonomyGovernor?.decision ?? autonomyGovernor?.decision ?? null;
@@ -279,6 +267,22 @@ export function pickAction(
       target: governorDecision === "runnable_work_available" ? "governor:runnable_work_available" : "project_backlog",
       allowed: ["wake the highest-priority eligible backlog/todo issue", "keep WIP guard active", "record local validation evidence"],
       forbidden: ["start duplicate owner lane", "push", "deploy", "restart", "secret disclosure"],
+    };
+  }
+  const inReviewFinding = (control?.auditFindings ?? []).find((finding) =>
+    finding.area === "issues" && /in review/i.test(finding.message ?? "")
+  );
+  const freshGovernorHasNoReviewClosureWork =
+    governorProbe?.checked
+    && governorProbe.ok
+    && Number(governorProbe?.counts?.reviewIssuesWithoutPendingDecision ?? Number.NaN) === 0;
+  if (inReviewFinding && !freshGovernorHasNoReviewClosureWork) {
+    return {
+      decision: "repair_in_review_decision_path",
+      reason: inReviewFinding.message,
+      command: "pnpm softwarehouse:in-review-decision-path",
+      allowed: ["name reviewer", "accept/reject/block/delegate decision"],
+      forbidden: ["leave narrative-only review"],
     };
   }
   return {

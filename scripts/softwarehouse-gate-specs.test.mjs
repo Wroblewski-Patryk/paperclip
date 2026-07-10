@@ -939,6 +939,39 @@ test("next legal action selector ignores stale dirty reports when fresh governor
   assert.equal(action.command, "node scripts/run-project-ownership-assignment.mjs --apply");
 });
 
+test("next legal action selector does not let stale in-review audit block fresh runnable work", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    {
+      activeRunCount: 0,
+      auditFindings: [
+        {
+          area: "issues",
+          message: "Issues are in review without a structured decision path; close, block, delegate, or return them before treating autonomy as idle.",
+        },
+      ],
+    },
+    {},
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    {},
+    {
+      checked: true,
+      ok: true,
+      decision: "runnable_work_available",
+      counts: {
+        runnableIssues: 1,
+        eligibleRunnableIssues: 1,
+        reviewIssuesWithoutPendingDecision: 0,
+      },
+    },
+  );
+
+  assert.equal(action.decision, "start_runnable_work");
+  assert.equal(action.command, "pnpm softwarehouse:local-repair-lane-starter:apply");
+});
+
 test("next legal action selector routes fresh blocked triage before stale runnable snapshots", async () => {
   const { pickAction } = await import("./run-next-legal-action-selector.mjs");
   const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
