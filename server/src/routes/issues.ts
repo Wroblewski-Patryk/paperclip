@@ -1354,6 +1354,43 @@ export function issueRoutes(
     });
   }
 
+  function buildCreateIssueExecutionPatch(input: {
+    body: {
+      status?: string;
+      assigneeAgentId?: string | null;
+      assigneeUserId?: string | null;
+      executionPolicy?: unknown;
+    };
+    executionPolicy: NormalizedExecutionPolicy | null;
+    actor: ReturnType<typeof getActorInfo>;
+  }) {
+    const transition = applyIssueExecutionPolicyTransition({
+      issue: {
+        status: "todo",
+        assigneeAgentId: input.body.assigneeAgentId ?? null,
+        assigneeUserId: input.body.assigneeUserId ?? null,
+        executionPolicy: null,
+        executionState: null,
+        monitorNextCheckAt: null,
+        monitorAttemptCount: 0,
+      },
+      policy: input.executionPolicy,
+      previousPolicy: null,
+      requestedStatus: typeof input.body.status === "string" ? input.body.status : undefined,
+      requestedAssigneePatch: {
+        assigneeAgentId: input.body.assigneeAgentId ?? null,
+        assigneeUserId: input.body.assigneeUserId ?? null,
+      },
+      actor: {
+        agentId: input.actor.agentId ?? null,
+        userId: input.actor.actorType === "user" ? input.actor.actorId : null,
+      },
+      monitorExplicitlyUpdated: input.body.executionPolicy !== undefined,
+    });
+
+    return transition.patch;
+  }
+
   async function logExpiredRequestConfirmations(input: {
     issue: { id: string; companyId: string; identifier?: string | null };
     interactions: Array<{ id: string; kind: string; status: string; result?: unknown }>;
@@ -3654,7 +3691,36 @@ export function issueRoutes(
     assertCompanyAccess(req, companyId);
     assertNoAgentHostWorkspaceCommandMutation(req, collectIssueWorkspaceCommandPaths(req.body));
     if (!(await assertCheapRecoveryIssueAssigneeProfileAllowed(req, res, { companyId }, req.body))) return;
-    if (req.body.assigneeAgentId || req.body.assigneeUserId) {
+
+    const actor = getActorInfo(req);
+    const executionPolicy = applyActorMonitorScheduledBy(
+      normalizeIssueExecutionPolicy(req.body.executionPolicy),
+      actor.actorType,
+    );
+    const createExecutionPatch = buildCreateIssueExecutionPatch({
+      body: req.body,
+      executionPolicy,
+      actor,
+    });
+    const createFields = {
+      ...req.body,
+      ...createExecutionPatch,
+      executionPolicy,
+    };
+    await assertAgentInReviewReviewPath({
+      existing: {
+        id: randomUUID(),
+        companyId,
+        status: "todo",
+        assigneeUserId: null,
+        executionState: null,
+        monitorNextCheckAt: null,
+      },
+      updateFields: createFields,
+      actorType: actor.actorType,
+    });
+
+    if (createFields.assigneeAgentId || createFields.assigneeUserId) {
       await assertCanAssignTasks(req, companyId, {
         projectId: await resolveAssignmentProjectId({
           companyId,
@@ -3662,21 +3728,15 @@ export function issueRoutes(
           parentIssueId: req.body.parentId,
         }),
         parentIssueId: req.body.parentId ?? null,
-        assigneeAgentId: req.body.assigneeAgentId ?? null,
-        assigneeUserId: req.body.assigneeUserId ?? null,
+        assigneeAgentId: createFields.assigneeAgentId ?? null,
+        assigneeUserId: createFields.assigneeUserId ?? null,
       });
     }
     await assertIssueEnvironmentSelection(companyId, req.body.executionWorkspaceSettings?.environmentId);
 
-    const actor = getActorInfo(req);
-    const executionPolicy = applyActorMonitorScheduledBy(
-      normalizeIssueExecutionPolicy(req.body.executionPolicy),
-      actor.actorType,
-    );
-    assertCanManageIssueMonitor(req, req.body.assigneeAgentId ?? null, Boolean(executionPolicy?.monitor));
+    assertCanManageIssueMonitor(req, createFields.assigneeAgentId ?? null, Boolean(executionPolicy?.monitor));
     const issue = await svc.create(companyId, {
-      ...req.body,
-      executionPolicy,
+      ...createFields,
       createdByAgentId: actor.agentId,
       createdByUserId: actor.actorType === "user" ? actor.actorId : null,
     });
@@ -3759,25 +3819,48 @@ export function issueRoutes(
     assertCompanyAccess(req, parent.companyId);
     assertNoAgentHostWorkspaceCommandMutation(req, collectIssueWorkspaceCommandPaths(req.body));
     if (!(await assertCheapRecoveryIssueAssigneeProfileAllowed(req, res, parent, req.body))) return;
-    if (req.body.assigneeAgentId || req.body.assigneeUserId) {
-      await assertCanAssignTasks(req, parent.companyId, {
-        projectId: req.body.projectId ?? parent.projectId ?? null,
-        parentIssueId: parent.id,
-        assigneeAgentId: req.body.assigneeAgentId ?? null,
-        assigneeUserId: req.body.assigneeUserId ?? null,
-      });
-    }
-    await assertIssueEnvironmentSelection(parent.companyId, req.body.executionWorkspaceSettings?.environmentId);
 
     const actor = getActorInfo(req);
     const executionPolicy = applyActorMonitorScheduledBy(
       normalizeIssueExecutionPolicy(req.body.executionPolicy),
       actor.actorType,
     );
-    assertCanManageIssueMonitor(req, req.body.assigneeAgentId ?? null, Boolean(executionPolicy?.monitor));
-    const { issue, parentBlockerAdded } = await svc.createChild(parent.id, {
-      ...req.body,
+    const createExecutionPatch = buildCreateIssueExecutionPatch({
+      body: req.body,
       executionPolicy,
+      actor,
+    });
+    const createFields = {
+      ...req.body,
+      ...createExecutionPatch,
+      executionPolicy,
+    };
+    await assertAgentInReviewReviewPath({
+      existing: {
+        id: randomUUID(),
+        companyId: parent.companyId,
+        status: "todo",
+        assigneeUserId: null,
+        executionState: null,
+        monitorNextCheckAt: null,
+      },
+      updateFields: createFields,
+      actorType: actor.actorType,
+    });
+
+    if (createFields.assigneeAgentId || createFields.assigneeUserId) {
+      await assertCanAssignTasks(req, parent.companyId, {
+        projectId: req.body.projectId ?? parent.projectId ?? null,
+        parentIssueId: parent.id,
+        assigneeAgentId: createFields.assigneeAgentId ?? null,
+        assigneeUserId: createFields.assigneeUserId ?? null,
+      });
+    }
+    await assertIssueEnvironmentSelection(parent.companyId, req.body.executionWorkspaceSettings?.environmentId);
+
+    assertCanManageIssueMonitor(req, createFields.assigneeAgentId ?? null, Boolean(executionPolicy?.monitor));
+    const { issue, parentBlockerAdded } = await svc.createChild(parent.id, {
+      ...createFields,
       createdByAgentId: actor.agentId,
       createdByUserId: actor.actorType === "user" ? actor.actorId : null,
       actorAgentId: actor.agentId,
@@ -3863,36 +3946,57 @@ export function issueRoutes(
     assertCompanyAccess(req, sourceIssue.companyId);
     if (!(await assertAgentIssueMutationAllowed(req, res, sourceIssue))) return;
 
+    const actor = getActorInfo(req);
+    const normalizedChildren = [];
     for (const child of req.body.children as Array<typeof req.body.children[number]>) {
       assertNoAgentHostWorkspaceCommandMutation(req, collectIssueWorkspaceCommandPaths(child));
       if (!(await assertCheapRecoveryIssueAssigneeProfileAllowed(req, res, sourceIssue, child))) return;
-      if (child.assigneeAgentId || child.assigneeUserId) {
-        await assertCanAssignTasks(req, sourceIssue.companyId, {
-          projectId: child.projectId ?? sourceIssue.projectId ?? null,
-          parentIssueId: sourceIssue.id,
-          assigneeAgentId: child.assigneeAgentId ?? null,
-          assigneeUserId: child.assigneeUserId ?? null,
-        });
-      }
-      await assertIssueEnvironmentSelection(sourceIssue.companyId, child.executionWorkspaceSettings?.environmentId);
-    }
 
-    const actor = getActorInfo(req);
-    const normalizedChildren = req.body.children.map((child: typeof req.body.children[number]) => {
       const executionPolicy = applyActorMonitorScheduledBy(
         normalizeIssueExecutionPolicy(child.executionPolicy),
         actor.actorType,
       );
-      assertCanManageIssueMonitor(req, child.assigneeAgentId ?? null, Boolean(executionPolicy?.monitor));
-      return {
-        ...child,
+      const createExecutionPatch = buildCreateIssueExecutionPatch({
+        body: child,
         executionPolicy,
+        actor,
+      });
+      const createFields = {
+        ...child,
+        ...createExecutionPatch,
+        executionPolicy,
+      };
+      await assertAgentInReviewReviewPath({
+        existing: {
+          id: randomUUID(),
+          companyId: sourceIssue.companyId,
+          status: "todo",
+          assigneeUserId: null,
+          executionState: null,
+          monitorNextCheckAt: null,
+        },
+        updateFields: createFields,
+        actorType: actor.actorType,
+      });
+
+      if (createFields.assigneeAgentId || createFields.assigneeUserId) {
+        await assertCanAssignTasks(req, sourceIssue.companyId, {
+          projectId: child.projectId ?? sourceIssue.projectId ?? null,
+          parentIssueId: sourceIssue.id,
+          assigneeAgentId: createFields.assigneeAgentId ?? null,
+          assigneeUserId: createFields.assigneeUserId ?? null,
+        });
+      }
+      await assertIssueEnvironmentSelection(sourceIssue.companyId, child.executionWorkspaceSettings?.environmentId);
+      assertCanManageIssueMonitor(req, createFields.assigneeAgentId ?? null, Boolean(executionPolicy?.monitor));
+      normalizedChildren.push({
+        ...createFields,
         createdByAgentId: actor.agentId,
         createdByUserId: actor.actorType === "user" ? actor.actorId : null,
         actorAgentId: actor.agentId,
         actorUserId: actor.actorType === "user" ? actor.actorId : null,
-      };
-    });
+      });
+    }
 
     const result = await svc.decomposeAcceptedPlan(sourceIssue.id, {
       acceptedPlanRevisionId: req.body.acceptedPlanRevisionId,

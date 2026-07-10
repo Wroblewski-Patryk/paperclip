@@ -6,6 +6,7 @@ import { normalizeIssueExecutionPolicy } from "../services/issue-execution-polic
 const mockIssueService = vi.hoisted(() => ({
   getById: vi.fn(),
   assertCheckoutOwner: vi.fn(),
+  create: vi.fn(),
   update: vi.fn(),
   createChild: vi.fn(),
   addComment: vi.fn(),
@@ -152,6 +153,18 @@ describe("issue execution policy routes", () => {
     mockIssueThreadInteractionService.listForIssue.mockResolvedValue([]);
     mockIssueThreadInteractionService.expireRequestConfirmationsSupersededByComment.mockResolvedValue([]);
     mockIssueApprovalService.listApprovalsForIssue.mockResolvedValue([]);
+    mockIssueService.create.mockImplementation(async (_companyId: string, data: Record<string, unknown>) => ({
+      id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      companyId: "company-1",
+      identifier: "PAP-1001",
+      title: data.title ?? "Created issue",
+      status: data.status ?? "todo",
+      priority: data.priority ?? "medium",
+      assigneeAgentId: data.assigneeAgentId ?? null,
+      assigneeUserId: data.assigneeUserId ?? null,
+      executionPolicy: data.executionPolicy ?? null,
+      executionState: data.executionState ?? null,
+    }));
     mockIssueService.createChild.mockResolvedValue({
       issue: {
         id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -208,6 +221,129 @@ describe("issue execution policy routes", () => {
       missing: "review_path",
     });
     expect(mockIssueService.update).not.toHaveBeenCalled();
+  }, 10000);
+
+  it("rejects an agent-authored in_review issue create without a review path", async () => {
+    const res = await request(await createApp({
+      type: "agent",
+      agentId: "33333333-3333-4333-8333-333333333333",
+      companyId: "company-1",
+      runId: "run-1",
+    }))
+      .post("/api/companies/company-1/issues")
+      .send({
+        title: "Missing create review path",
+        status: "in_review",
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error).toContain("invalid_issue_disposition");
+    expect(res.body.details).toMatchObject({
+      code: "invalid_issue_disposition",
+      missing: "review_path",
+    });
+    expect(mockIssueService.create).not.toHaveBeenCalled();
+  });
+
+  it("allows an agent-authored in_review issue create with a human reviewer", async () => {
+    mockAccessService.hasPermission.mockResolvedValue(true);
+
+    const res = await request(await createApp({
+      type: "agent",
+      agentId: "33333333-3333-4333-8333-333333333333",
+      companyId: "company-1",
+      runId: "run-1",
+    }))
+      .post("/api/companies/company-1/issues")
+      .send({
+        title: "Human review create path",
+        status: "in_review",
+        assigneeUserId: "local-board",
+      });
+
+    expect(res.status).toBe(201);
+    expect(mockIssueService.create).toHaveBeenCalledWith(
+      "company-1",
+      expect.objectContaining({
+        title: "Human review create path",
+        status: "in_review",
+        assigneeUserId: "local-board",
+      }),
+    );
+  });
+
+  it("allows an agent-authored in_review issue create with an execution-policy reviewer", async () => {
+    mockAccessService.hasPermission.mockResolvedValue(true);
+    const policy = normalizeIssueExecutionPolicy({
+      stages: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          type: "review",
+          participants: [{ type: "agent", agentId: "44444444-4444-4444-8444-444444444444" }],
+        },
+      ],
+    })!;
+
+    const res = await request(await createApp({
+      type: "agent",
+      agentId: "33333333-3333-4333-8333-333333333333",
+      companyId: "company-1",
+      runId: "run-1",
+    }))
+      .post("/api/companies/company-1/issues")
+      .send({
+        title: "Execution review create path",
+        status: "in_review",
+        executionPolicy: policy,
+      });
+
+    expect(res.status).toBe(201);
+    expect(mockIssueService.create).toHaveBeenCalledWith(
+      "company-1",
+      expect.objectContaining({
+        title: "Execution review create path",
+        status: "in_review",
+        assigneeAgentId: "44444444-4444-4444-8444-444444444444",
+        executionState: expect.objectContaining({
+          status: "pending",
+          currentParticipant: expect.objectContaining({
+            type: "agent",
+            agentId: "44444444-4444-4444-8444-444444444444",
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("rejects an agent-authored in_review child create without a review path", async () => {
+    mockIssueService.getById.mockResolvedValue({
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      companyId: "company-1",
+      status: "in_progress",
+      assigneeAgentId: "33333333-3333-4333-8333-333333333333",
+      assigneeUserId: null,
+      createdByUserId: "local-board",
+      identifier: "PAP-1001",
+      title: "Parent issue",
+      executionPolicy: null,
+      executionState: null,
+    });
+
+    const res = await request(await createApp({
+      type: "agent",
+      agentId: "33333333-3333-4333-8333-333333333333",
+      companyId: "company-1",
+      runId: "run-1",
+    }))
+      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/children")
+      .send({
+        title: "Missing child review path",
+        status: "in_review",
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error).toContain("invalid_issue_disposition");
+    expect(mockIssueService.createChild).not.toHaveBeenCalled();
   });
 
   it("allows an agent-authored in_review transition with a pending confirmation interaction", async () => {
