@@ -20,6 +20,30 @@ export function secretRoutes(db: Db) {
   const svc = secretService(db);
   const defaultProvider = getConfiguredSecretProvider();
 
+  function toSecretMetadata(secret: Awaited<ReturnType<typeof svc.list>>[number]) {
+    return {
+      id: secret.id,
+      companyId: secret.companyId,
+      key: secret.key,
+      name: secret.name,
+      provider: secret.provider,
+      status: secret.status,
+      managedMode: secret.managedMode,
+      providerConfigId: secret.providerConfigId,
+      latestVersion: secret.latestVersion,
+      description: secret.description,
+      lastResolvedAt: secret.lastResolvedAt,
+      lastRotatedAt: secret.lastRotatedAt,
+      createdByAgentId: secret.createdByAgentId,
+      createdByUserId: secret.createdByUserId,
+      referenceCount: secret.referenceCount,
+      createdAt: secret.createdAt,
+      updatedAt: secret.updatedAt,
+      hasExternalRef: Boolean(secret.externalRef),
+      hasProviderMetadata: Boolean(secret.providerMetadata && Object.keys(secret.providerMetadata).length > 0),
+    };
+  }
+
   router.get("/companies/:companyId/secret-providers", (req, res) => {
     assertBoard(req);
     const companyId = req.params.companyId as string;
@@ -270,11 +294,10 @@ export function secretRoutes(db: Db) {
   });
 
   router.get("/companies/:companyId/secrets/metadata", async (req, res) => {
-    assertBoard(req);
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
     const secrets = await svc.list(companyId);
-    res.json(secrets);
+    res.json(secrets.map(toSecretMetadata));
   });
 
   router.post("/companies/:companyId/secrets", validate(createSecretSchema), async (req, res) => {

@@ -92,6 +92,10 @@ describe("secret routes", () => {
         name: "Soar production URL",
         provider: "local_encrypted",
         status: "active",
+        managedMode: "paperclip_managed",
+        value: "secret-value",
+        externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret/prod/soar",
+        providerMetadata: { arn: "arn:aws:secretsmanager:us-east-1:123456789012:secret/prod/soar" },
         latestVersion: 1,
         createdAt: "2026-07-10T10:00:00.000Z",
         updatedAt: "2026-07-10T10:05:00.000Z",
@@ -110,6 +114,49 @@ describe("secret routes", () => {
       }),
     ]);
     expect(JSON.stringify(res.body)).not.toContain("secret-value");
+    expect(JSON.stringify(res.body)).not.toContain("arn:aws");
+    expect(res.body[0]).toMatchObject({
+      hasExternalRef: true,
+      hasProviderMetadata: true,
+    });
+    expect(res.body[0]).not.toHaveProperty("value");
+    expect(res.body[0]).not.toHaveProperty("externalRef");
+    expect(res.body[0]).not.toHaveProperty("providerMetadata");
+  });
+
+  it("allows same-company agents to read redaction-safe secret metadata", async () => {
+    mockSecretService.list.mockResolvedValue([
+      {
+        id: "secret-1",
+        companyId: "company-1",
+        key: "COOLIFY_API_TOKEN",
+        name: "Coolify API token",
+        provider: "local_encrypted",
+        status: "active",
+        managedMode: "paperclip_managed",
+        externalRef: null,
+        providerMetadata: null,
+        latestVersion: 2,
+        createdAt: "2026-07-10T10:00:00.000Z",
+        updatedAt: "2026-07-10T10:05:00.000Z",
+      },
+    ]);
+
+    const res = await request(createApp({
+      type: "agent",
+      agentId: "agent-1",
+      companyId: "company-1",
+    })).get("/api/companies/company-1/secrets/metadata");
+
+    expect(res.status).toBe(200);
+    expect(mockSecretService.list).toHaveBeenCalledWith("company-1");
+    expect(res.body).toEqual([
+      expect.objectContaining({
+        id: "secret-1",
+        key: "COOLIFY_API_TOKEN",
+        latestVersion: 2,
+      }),
+    ]);
   });
 
   it("rejects managed secret creation when externalRef is supplied", async () => {
