@@ -110,6 +110,8 @@
     "softwarehouse:stale-gate-escalation:apply": "node scripts/run-stale-gate-owner-escalation.mjs --apply",
     "softwarehouse:blocked-root-guardrail": "node scripts/run-blocked-root-guardrail.mjs",
     "softwarehouse:blocked-root-guardrail:apply": "node scripts/run-blocked-root-guardrail.mjs --apply",
+    "softwarehouse:blocked-triage-lane-starter": "node scripts/run-blocked-triage-lane-starter.mjs",
+    "softwarehouse:blocked-triage-lane-starter:apply": "node scripts/run-blocked-triage-lane-starter.mjs --apply",
     "softwarehouse:test-gates": "node --test scripts/softwarehouse-gate-specs.test.mjs",
     "softwarehouse:gate-approval": "node scripts/record-softwarehouse-gate-approval.mjs",
     "softwarehouse:gate-approval:apply": "node scripts/record-softwarehouse-gate-approval.mjs --apply",

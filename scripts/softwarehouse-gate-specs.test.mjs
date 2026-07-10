@@ -447,6 +447,14 @@ test("blocked triage starter scopes issue scans and has a dedicated timeout", as
   const source = await readFile("scripts/run-blocked-triage-lane-starter.mjs", "utf8");
   const controlTick = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
 
+  assert.match(source, /SOFTWAREHOUSE_COMPANY_ID/);
+  assert.match(source, /companyNameAliases/);
+  assert.match(source, /\^LuckySparrow\\b/);
+  assert.match(source, /projectAliases/);
+  assert.match(source, /"00 General: Softwarehouse"/);
+  assert.match(source, /"11 Innovation: Soar"/);
+  assert.match(source, /"11 Innovation: Roost"/);
+  assert.match(source, /function projectIsInPriority/);
   assert.match(source, /const requestTimeoutMs = Number\(process\.env\.SOFTWAREHOUSE_BLOCKED_TRIAGE_REQUEST_TIMEOUT_MS \?\? 30_000\)/);
   assert.match(source, /const activeIssueStatuses = \["backlog", "todo", "in_progress", "in_review", "blocked"\]/);
   assert.match(source, /const terminalIssueStatuses = \["done", "cancelled"\]/);
@@ -881,6 +889,46 @@ test("next legal action selector starts runnable backlog instead of only refresh
   assert.match(source, /function runApplyCommand\(action\)/);
   assert.match(source, /output\.applyResult = runApplyCommand\(output\.action\)/);
   assert.match(packageJson, /"softwarehouse:next-legal-action:apply": "node scripts\/run-next-legal-action-selector\.mjs --apply"/);
+});
+
+test("next legal action selector routes fresh blocked triage before stale runnable snapshots", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+  const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
+  const packageJson = await readFile("package.json", "utf8");
+
+  const action = pickAction(
+    {
+      activeRunCount: 0,
+      steps: [
+        { name: "autonomyGovernor", summary: { decision: "runnable_work_available", runnableIssues: 3 } },
+        { name: "localRepairLaneStarter", summary: { candidateCount: 3 } },
+      ],
+    },
+    { projects: [{ runnableIssueCount: 3 }] },
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    {
+      checks: [
+        { id: "soar_source_control_clean", status: "pass", reason: "Soar worktree is clean." },
+        { id: "coolify_resources_reconciled", status: "pass", reason: "Coolify resources are healthy." },
+      ],
+    },
+    {
+      checked: true,
+      ok: true,
+      decision: "blocked_needs_triage",
+      counts: { eligibleRunnableIssues: 0, runnableIssues: 0, blockedIssues: 7 },
+      recommendedAction: "Triage one blocked issue without a known gate root and write owner/action/evidence.",
+    },
+  );
+
+  assert.equal(action.decision, "start_blocked_triage");
+  assert.equal(action.command, "pnpm run softwarehouse:blocked-triage-lane-starter:apply");
+  assert.match(action.reason, /Triage one blocked issue/);
+  assert.match(source, /probeAutonomyGovernor/);
+  assert.match(source, /\["start_blocked_triage", \["pnpm", \["run", "softwarehouse:blocked-triage-lane-starter:apply"\]\]\]/);
+  assert.match(packageJson, /"softwarehouse:blocked-triage-lane-starter": "node scripts\/run-blocked-triage-lane-starter\.mjs"/);
+  assert.match(packageJson, /"softwarehouse:blocked-triage-lane-starter:apply": "node scripts\/run-blocked-triage-lane-starter\.mjs --apply"/);
 });
 
 test("continuation watchdog applies the next legal action when Paperclip goes idle", async () => {

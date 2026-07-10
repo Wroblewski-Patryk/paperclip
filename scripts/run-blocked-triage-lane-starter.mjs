@@ -4,8 +4,8 @@ import { agentWipBlockerFor, fetchAgentWipState, summarizeAgentWip } from "./lib
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
-const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
+const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? process.env.PAPERCLIP_COMPANY_NAME ?? "LuckySparrow Software House";
+const companyId = process.env.PAPERCLIP_COMPANY_ID ?? process.env.SOFTWAREHOUSE_COMPANY_ID ?? null;
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_BLOCKED_TRIAGE_REQUEST_TIMEOUT_MS ?? 30_000);
 
@@ -29,6 +29,16 @@ const projectPriority = (process.env.SOFTWAREHOUSE_BLOCKED_TRIAGE_PROJECTS
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
+const projectAliases = new Map([
+  ["Softwarehouse Operating System", ["Softwarehouse Operating System", "00 General: Softwarehouse"]],
+  ["Soar", ["Soar", "11 Innovation: Soar"]],
+  ["Roost", ["Roost", "11 Innovation: Roost"]],
+]);
+const companyNameAliases = [
+  companyName,
+  "LuckySparrow Software House",
+  "LuckySparrow",
+].filter(Boolean);
 
 async function request(method, route, body) {
   const signal = AbortSignal.timeout(requestTimeoutMs);
@@ -81,8 +91,22 @@ function byTitle(items, title) {
 }
 
 function projectRank(projectName) {
-  const index = projectPriority.indexOf(projectName);
+  const controlledName = controlledProjectNameFor(projectName) ?? projectName;
+  const index = projectPriority.indexOf(controlledName);
   return index === -1 ? 999 : index;
+}
+
+function controlledProjectNameFor(projectName) {
+  for (const [controlledName, aliases] of projectAliases) {
+    if (aliases.includes(projectName)) return controlledName;
+  }
+  return null;
+}
+
+function projectIsInPriority(projectName) {
+  if (!projectName) return false;
+  const controlledName = controlledProjectNameFor(projectName) ?? projectName;
+  return projectPriority.includes(controlledName);
 }
 
 function priorityRank(priority) {
@@ -96,7 +120,7 @@ function isUnknownBlockedCandidate(issue, projectById, liveIssueIds) {
   if (knownGateRoots.has(rootBlockerIdentifierFor(issue))) return false;
   const project = projectById.get(issue.projectId);
   if (!project || project.archivedAt || project.pausedAt) return false;
-  if (!projectPriority.includes(project.name)) return false;
+  if (!projectIsInPriority(project.name)) return false;
   const title = `${issue.title ?? ""}`.toLowerCase();
   if (title.includes("[blocked triage]")) return false;
   if (title.startsWith("review productivity for ")) return false;
@@ -148,7 +172,8 @@ async function resolveCompany() {
   if (companyId) return { id: companyId, source: "PAPERCLIP_COMPANY_ID" };
 
   const companies = await request("GET", "/api/companies");
-  const company = companies.find((candidate) => candidate.name === companyName);
+  const company = companies.find((candidate) => companyNameAliases.includes(candidate.name))
+    ?? companies.find((candidate) => /^LuckySparrow\b/i.test(candidate.name));
   if (!company) throw new Error(`Company not found: ${companyName}`);
   return { id: company.id, source: "company_name" };
 }

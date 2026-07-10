@@ -12,6 +12,7 @@ const healthTimeoutMs = Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_HEALT
 const applyCommands = new Map([
   ["start_runnable_work", ["pnpm", ["softwarehouse:local-repair-lane-starter:apply"]]],
   ["start_source_control_closure", ["pnpm", ["softwarehouse:local-repair-lane-starter:apply"]]],
+  ["start_blocked_triage", ["pnpm", ["run", "softwarehouse:blocked-triage-lane-starter:apply"]]],
 ]);
 
 async function readJson(path, fallback = null) {
@@ -94,6 +95,37 @@ async function probeLiveRuns(companyId) {
   }
 }
 
+function parseJsonOutput(stdout) {
+  try {
+    return JSON.parse(stdout);
+  } catch {
+    return null;
+  }
+}
+
+function probeAutonomyGovernor() {
+  const result = spawnSync(process.execPath, ["scripts/run-autonomy-governor.mjs"], {
+    cwd: process.cwd(),
+    env: { ...process.env },
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_GOVERNOR_TIMEOUT_MS ?? 60_000),
+  });
+  const parsed = result.status === 0 && !result.error ? parseJsonOutput(result.stdout) : null;
+  return {
+    checked: true,
+    ok: result.status === 0 && !result.error && Boolean(parsed),
+    status: result.status,
+    signal: result.signal,
+    error: result.error ? String(result.error.message ?? result.error) : null,
+    stderr: String(result.stderr ?? "").slice(0, 2_000),
+    decision: parsed?.decision ?? null,
+    operatingPosture: parsed?.operatingPosture ?? null,
+    counts: parsed?.counts ?? null,
+    recommendedAction: parsed?.recommendedAction ?? null,
+  };
+}
+
 function acceptanceCheck(acceptanceLedger, id) {
   return (acceptanceLedger?.checks ?? []).find((check) => check.id === id) ?? null;
 }
@@ -108,7 +140,14 @@ function controlStepSummary(control, name) {
   return control.steps.find((step) => step?.name === name)?.summary ?? null;
 }
 
-export function pickAction(control, readiness, appHealth = { checked: false, ok: true }, liveRunProbe = { checked: false }, acceptanceLedger = null) {
+export function pickAction(
+  control,
+  readiness,
+  appHealth = { checked: false, ok: true },
+  liveRunProbe = { checked: false },
+  acceptanceLedger = null,
+  governorProbe = { checked: false },
+) {
   const reportedActiveRunCount = Number(control?.activeRunCount ?? readiness?.activeRunCount ?? 0);
   const activeRunCount =
     appHealth.ok && liveRunProbe?.checked && liveRunProbe.ok && liveRunProbe.liveRunCount != null
@@ -175,9 +214,29 @@ export function pickAction(control, readiness, appHealth = { checked: false, ok:
   }
   const autonomyGovernor = controlStepSummary(control, "autonomyGovernor");
   const localRepairLaneStarter = controlStepSummary(control, "localRepairLaneStarter");
-  const governorDecision = control?.autonomyGovernor?.decision ?? autonomyGovernor?.decision ?? null;
+  const governorDecision = governorProbe?.decision ?? control?.autonomyGovernor?.decision ?? autonomyGovernor?.decision ?? null;
+  const governorEligibleRunnableIssues = Number(governorProbe?.counts?.eligibleRunnableIssues ?? governorProbe?.counts?.runnableIssues ?? Number.NaN);
+  if (
+    governorProbe?.checked
+    && governorProbe.ok
+    && governorDecision === "blocked_needs_triage"
+    && Number.isFinite(governorEligibleRunnableIssues)
+    && governorEligibleRunnableIssues === 0
+  ) {
+    return {
+      decision: "start_blocked_triage",
+      reason: governorProbe.recommendedAction
+        ?? "Fresh autonomy governor reports blocked_needs_triage and no runnable work; create or recover one blocked-triage lane instead of applying a stale runnable-work snapshot.",
+      command: "pnpm run softwarehouse:blocked-triage-lane-starter:apply",
+      target: "blocked_triage",
+      allowed: ["classify one blocked issue", "write owner/action/evidence", "create or wake at most one narrow follow-up lane"],
+      forbidden: ["start duplicate owner lane", "push", "deploy", "restart", "secret disclosure"],
+    };
+  }
   const governorRunnableIssues = Number(
-    control?.autonomyGovernor?.counts?.runnableIssues
+    governorProbe?.counts?.eligibleRunnableIssues
+      ?? governorProbe?.counts?.runnableIssues
+      ?? control?.autonomyGovernor?.counts?.runnableIssues
       ?? autonomyGovernor?.runnableIssues
       ?? control?.counts?.runnableIssues
       ?? 0,
@@ -263,11 +322,12 @@ function runApplyCommand(action) {
 }
 
 async function main() {
-  const [control, readiness, acceptanceLedger, appHealth] = await Promise.all([
+  const [control, readiness, acceptanceLedger, appHealth, governorProbe] = await Promise.all([
     readJson("report/softwarehouse-control-tick.latest.json"),
     readJson("report/softwarehouse-readiness-snapshot.latest.json"),
     readJson("report/soar-delivery-acceptance.latest.json"),
     probeAppHealth(),
+    Promise.resolve(probeAutonomyGovernor()),
   ]);
   const resolvedCompanyId = resolveCompanyId(control, readiness);
   const liveRunProbeResult = await probeLiveRuns(resolvedCompanyId);
@@ -277,7 +337,8 @@ async function main() {
     mode: apply ? "apply" : "dry-run",
     appHealth,
     liveRunProbe: liveRunProbeResult,
-    action: pickAction(control, readiness, appHealth, liveRunProbeResult, acceptanceLedger),
+    governorProbe,
+    action: pickAction(control, readiness, appHealth, liveRunProbeResult, acceptanceLedger, governorProbe),
   };
   if (apply) {
     output.applyResult = runApplyCommand(output.action);
