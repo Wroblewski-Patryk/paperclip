@@ -1042,6 +1042,13 @@ test("autonomy governor does not classify fresh own runs as self-supervision loo
   assert.match(source, /ageMs\(run\.lastOutputAt \?\? run\.startedAt \?\? run\.createdAt\) >= governorSelfSupervisionMinAgeMs/);
 });
 
+test("autonomy governor treats pending review interactions as known root blockers", async () => {
+  const source = await readFile("scripts/run-autonomy-governor.mjs", "utf8");
+
+  assert.match(source, /pendingReviewInteractionIdentifiers/);
+  assert.match(source, /pendingReviewInteractionIdentifiers\.has\(rootBlocker\)/);
+});
+
 test("autonomy governor uses gate freshness evidence instead of a diagnostic false override", async () => {
   const source = await readFile("scripts/run-autonomy-governor.mjs", "utf8");
 

@@ -398,6 +398,10 @@ for (const issue of openActiveIssues.filter((entry) => entry.status === "in_revi
     .catch(() => []);
   if (hasPendingReviewInteraction(interactions)) pendingReviewInteractionIssueIds.add(issue.id);
 }
+const pendingReviewInteractionIdentifiers = new Set(openActiveIssues
+  .filter((issue) => pendingReviewInteractionIssueIds.has(issue.id))
+  .map((issue) => issue.identifier)
+  .filter(Boolean));
 const reviewIssuesWithoutPendingDecision = openActiveIssues.filter((issue) =>
   issue.status === "in_review"
   && !liveIssueIds.has(issue.id)
@@ -523,6 +527,7 @@ const unknownBlockedIssues = blockedIssues
     && !staleBlockerRepairs.has(issue.identifier)
     && !isKnownIntentionalBlockedIssue(issue)
     && !isProductivityReviewIssue(issue)
+    && !pendingReviewInteractionIdentifiers.has(rootBlocker)
     && !hasRecentTerminalTriageDisposition(issue, terminalTriageByTarget)
   );
 const productivityReviewBlockedIssues = blockedIssues.filter(isProductivityReviewIssue);
