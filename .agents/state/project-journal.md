@@ -6,6 +6,42 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-11 / LUC-442 PDCA Learning and Company Memory Review:
+  - Reviewed the inline wake payload, `/api/issues/LUC-442`, and `/api/issues/LUC-442/heartbeat-context` for the current routine heartbeat.
+  - State check: the issue is `in_progress`, assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and there is no execution workspace or recovery action to continue.
+  - Memory review: the current board context, active mission, project journal, and related `.agents/state` memory already capture the live Stage 1 posture, Soar/Roost delivery scope, and governed PDCA rules. No durable instruction, procedure, or board-context update was justified.
+  - Action taken: record the checkpoint in durable memory and close the issue with a concise no-drift note so the routine does not linger without a live continuation path.
+
+- 2026-07-11 / LUC-430 PDCA Learning and Company Memory Review:
+  - Reviewed `/api/issues/LUC-430`, `/api/issues/LUC-430/heartbeat-context`, `/api/issues/LUC-430/comments`, and the current repo-local memory files for the live checkpoint.
+  - State check: the issue is `in_progress`, assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and there is no execution workspace or recovery action to continue.
+  - Decision: this is a clean PDCA checkpoint only. The current board context and active mission already capture the live Stage 1 posture, so no durable memory, instruction, or procedure update was justified.
+  - Action taken: record the checkpoint in durable memory and close the issue with a concise no-drift note so the routine does not linger without a live continuation path.
+
+- 2026-07-11 / LUC-417 PDCA Learning and Company Memory Review:
+  - Reviewed `/api/issues/LUC-417`, `/api/issues/LUC-417/heartbeat-context`, and `/api/issues/LUC-417/comments` for the current routine heartbeat.
+  - State check: the issue is `in_progress`, assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and there is no execution workspace or recovery action.
+  - Decision: this is a clean PDCA checkpoint only. The active Stage 1 board context and mission already capture the live Soar/Roost delivery posture, so no durable memory, instruction, or procedure update was justified.
+  - Action taken: record the checkpoint in durable memory and close the issue with a concise evidence note so the routine does not linger without a live continuation path.
+
+- 2026-07-11 / LUC-407 PDCA Learning and Company Memory Review:
+  - Reviewed the inline wake payload for `/api/issues/LUC-407` and the repo-local operating memory files listed in the memory workflow.
+  - State check: the issue was `in_progress`, assignee remained `ed63e6f1-2388-4568-be2e-0e7b10263921`, `totalComments=0`, `latestCommentId=null`, `fallbackFetchNeeded=no`, and there was no blocker, interaction, attachment, or execution path to continue.
+  - Governance check: the current board context, active mission, current focus, next steps, and decision register already capture the live Stage 1 posture; the missing reference paths under the agent-instruction bundle were not authoritative and did not justify a memory-policy change.
+  - Action taken: record the checkpoint in durable memory and close the issue with a concise no-drift note.
+
+- 2026-07-11 / LUC-399 PDCA Learning and Company Memory Review:
+  - Reviewed `/api/issues/LUC-399`, `/api/issues/LUC-399/comments`, and `/api/issues/LUC-399/heartbeat-context` for the current routine heartbeat.
+  - State check: the issue is `in_progress`, assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and there is no active recovery action or execution workspace.
+  - Decision: this is a clean PDCA checkpoint only. The current board context, active mission, and memory files already capture the live Stage 1 posture, so no instruction, procedure, or board-context update was justified.
+  - Action taken: record the checkpoint in durable memory and close the issue with a concise evidence note so the routine does not linger without a live continuation path.
+
+- 2026-07-11 / LUC-388 PDCA Learning and Company Memory Review:
+  - Reviewed `/api/issues/LUC-388`, `/api/issues/LUC-388/comments`, and `/api/issues/LUC-388/heartbeat-context` for the current routine heartbeat.
+  - State check: the issue is `in_progress`, assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and there is no active recovery action or execution workspace.
+  - Decision: this is a clean PDCA checkpoint only. The current board context, active mission, and memory files already capture the live Stage 1 posture, so no instruction, procedure, or board-context update was justified.
+  - Action taken: record the checkpoint in durable memory and close the issue with a concise evidence note so the routine does not linger without a live continuation path.
+
 - 2026-07-11 / LUC-376 PDCA Learning and Company Memory Review:
   - Reviewed `/api/issues/LUC-376`, `/api/issues/LUC-376/heartbeat-context`, `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/project-journal.md`, `.agents/state/project-memory.md`, `.agents/state/responsibility-learning.md`, and `.agents/state/agent-evals.md` for the current checkpoint.
   - State check: the issue is `in_progress`, assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `attachments=[]`, and there is no live blocker, recovery action, or execution workspace.
@@ -2087,3 +2123,18 @@ Decision: when the acceptance ledger is red, Paperclip must prefer evidence and
 recovery lanes over new architecture/materialization work. Architecture backlog
 is useful, but it must not make the system look busy while v0 proof remains
 unresolved.
+
+## 2026-07-11 - LUC-399 PDCA closure review
+
+Context: rechecked the live issue wake for `LUC-399` after the two newest
+board comments both confirmed the routine PDCA checkpoint was a clean no-op.
+
+Actions:
+
+- Verified the current workspace state and confirmed no additional repo change
+  was needed for instruction, procedure, or memory hygiene.
+- Recorded this closure review as durable evidence in the project journal.
+
+Decision: when the issue wake and latest comments agree there is no drift,
+blocker, or recovery action, the correct output is a concise closure note plus
+no further mutation.
