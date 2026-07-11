@@ -29,6 +29,11 @@ export const secretAliasByKey = new Map([
   ["liveimport_readback_ops_auth_header_value", "prod_ui_audit_ops_header_value"],
   ["liveimport_readback_ops_basic_user", "prod_ui_audit_ops_basic_user"],
   ["liveimport_readback_ops_basic_password", "prod_ui_audit_ops_basic_password"],
+  ["vps_host", "vps_ssh_host"],
+  ["vps_ssh_hostname", "vps_ssh_host"],
+  ["vps_ssh_key_path", "vps_ssh_private_key_path"],
+  ["vps_ssh_key_passphrase", "vps_ssh_private_key_passphrase"],
+  ["vps_ssh_private_key", "vps_ssh_private_key_path"],
 ]);
 
 export function normalizeKey(value) {

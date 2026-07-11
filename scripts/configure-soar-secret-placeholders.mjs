@@ -250,8 +250,20 @@ const secretDefinitions = [
   {
     key: "VPS_HOST",
     name: "VPS host",
-    description: "VPS host used by Ops for approved deploy/log/health checks.",
+    description: "Compatibility alias for VPS_SSH_HOST used by Ops for approved deploy/log/health checks.",
     placeholderValue: "REPLACE_ME_VPS_HOST",
+  },
+  {
+    key: "VPS_SSH_HOST",
+    name: "VPS SSH host",
+    description: "VPS SSH host used by Ops for approved deploy/log/health checks.",
+    placeholderValue: "REPLACE_ME_VPS_SSH_HOST",
+  },
+  {
+    key: "VPS_SSH_PORT",
+    name: "VPS SSH port",
+    description: "VPS SSH port used by Ops for approved deploy/log/health checks.",
+    placeholderValue: "22",
   },
   {
     key: "VPS_SSH_USER",
@@ -261,9 +273,33 @@ const secretDefinitions = [
   },
   {
     key: "VPS_SSH_PRIVATE_KEY",
-    name: "VPS SSH private key",
-    description: "SSH private key for approved Ops checks. Prefer read/log/status scope and rotate if exposed.",
+    name: "VPS SSH private key compatibility alias",
+    description: "Compatibility alias for VPS_SSH_PRIVATE_KEY_PATH. Prefer path/passphrase refs and rotate if exposed.",
     placeholderValue: "REPLACE_ME_VPS_SSH_PRIVATE_KEY",
+  },
+  {
+    key: "VPS_SSH_PRIVATE_KEY_PATH",
+    name: "VPS SSH private key path",
+    description: "Local private-key path for approved Ops SSH checks. The key material itself should stay outside issue text and repo files.",
+    placeholderValue: "REPLACE_ME_VPS_SSH_PRIVATE_KEY_PATH",
+  },
+  {
+    key: "VPS_SSH_PRIVATE_KEY_PASSPHRASE",
+    name: "VPS SSH private key passphrase",
+    description: "Passphrase for the approved Ops SSH private key. Never print or paste into issues.",
+    placeholderValue: "REPLACE_ME_VPS_SSH_PRIVATE_KEY_PASSPHRASE",
+  },
+  {
+    key: "VPS_SSH_PASSWORD",
+    name: "VPS SSH account password",
+    description: "Fallback account password for approved Ops SSH checks when key auth is insufficient. Prefer key auth.",
+    placeholderValue: "REPLACE_ME_VPS_SSH_PASSWORD",
+  },
+  {
+    key: "VPS_SSH_KNOWN_HOSTS",
+    name: "VPS SSH known hosts entry",
+    description: "Pinned SSH known_hosts entry for the VPS host. Populate from ssh-keyscan before strict host verification.",
+    placeholderValue: "REPLACE_ME_VPS_SSH_KNOWN_HOSTS",
   },
 ];
 
@@ -281,7 +317,21 @@ const secretAliasByEnvKey = {
   SMOKE_OPS_BASIC_USER: "PROD_UI_AUDIT_OPS_BASIC_USER",
   SMOKE_OPS_BASIC_PASSWORD: "PROD_UI_AUDIT_OPS_BASIC_PASSWORD",
   COOLIFY_TOKEN: "COOLIFY_API_TOKEN",
+  VPS_HOST: "VPS_SSH_HOST",
+  VPS_SSH_PRIVATE_KEY: "VPS_SSH_PRIVATE_KEY_PATH",
 };
+
+const vpsSshEnvKeys = [
+  "VPS_HOST",
+  "VPS_SSH_HOST",
+  "VPS_SSH_PORT",
+  "VPS_SSH_USER",
+  "VPS_SSH_PRIVATE_KEY",
+  "VPS_SSH_PRIVATE_KEY_PATH",
+  "VPS_SSH_PRIVATE_KEY_PASSPHRASE",
+  "VPS_SSH_PASSWORD",
+  "VPS_SSH_KNOWN_HOSTS",
+];
 
 const agentBindings = {
   "Soar Project Manager": ["SOAR_LIVE_BASE_URL"],
@@ -384,9 +434,7 @@ const agentBindings = {
     "COOLIFY_SOAR_WEB_APP_ID",
     "COOLIFY_SOAR_POSTGRES_RESOURCE_ID",
     "COOLIFY_SOAR_REDIS_RESOURCE_ID",
-    "VPS_HOST",
-    "VPS_SSH_USER",
-    "VPS_SSH_PRIVATE_KEY",
+    ...vpsSshEnvKeys,
   ],
   "Ops Release Lead": [
     "SOAR_LIVE_BASE_URL",
@@ -424,9 +472,7 @@ const agentBindings = {
     "COOLIFY_SOAR_WEB_APP_ID",
     "COOLIFY_SOAR_POSTGRES_RESOURCE_ID",
     "COOLIFY_SOAR_REDIS_RESOURCE_ID",
-    "VPS_HOST",
-    "VPS_SSH_USER",
-    "VPS_SSH_PRIVATE_KEY",
+    ...vpsSshEnvKeys,
   ],
 };
 
