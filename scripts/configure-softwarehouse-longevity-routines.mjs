@@ -32,6 +32,10 @@ function byName(items, name) {
   return items.find((item) => item.name === name);
 }
 
+function byNameOrUrlKey(items, names, urlKeys = []) {
+  return items.find((item) => names.includes(item.name) || urlKeys.includes(item.urlKey));
+}
+
 async function ensureGoal(companyId, goalsByTitle, input) {
   const existing = goalsByTitle.get(input.title);
   if (existing) {
@@ -82,7 +86,7 @@ const [agents, projects, goals, routines] = await Promise.all([
   request("GET", `/api/companies/${company.id}/routines`),
 ]);
 
-const operating = byName(projects, "Softwarehouse Operating System") ?? byName(projects, "Softwarehouse");
+const operating = byNameOrUrlKey(projects, ["Softwarehouse Operating System", "Softwarehouse", "00 General: Softwarehouse"], ["softwarehouse"]);
 if (!operating) throw new Error("Softwarehouse operating project not found.");
 const portfolio = byName(agents, "11 IPM (Innovation Portfolio Manager)") ?? byName(agents, "Portfolio Director");
 const cto = byName(agents, "09 CTO (Chief Technology Officer)") ?? byName(agents, "CTO Architect");
@@ -118,6 +122,19 @@ const specs = [
       "Command: `node scripts/run-softwarehouse-longevity-doctor.mjs --apply`.",
     ].join("\n"),
     schedule: ["Hourly longevity doctor", "20 * * * *"],
+  },
+  {
+    title: "[Softwarehouse] Continuation watchdog",
+    assignee: cto ?? portfolio,
+    priority: "critical",
+    description: [
+      "Keep the softwarehouse from going idle while current Soar/Roost delivery gaps still have legal non-production work.",
+      "Run `pnpm run softwarehouse:continuation-watchdog` and follow its output.",
+      "The watchdog must not start duplicate owner work when live runs exist. When no live runs exist, it may apply the next legal action selected by `softwarehouse:next-legal-action:apply`.",
+      "Allowed actions are limited to Paperclip issue/routine routing, project-truth proof/repair lane creation, control packet refresh, and local non-production evidence work.",
+      "Forbidden without a fresh accepted gate fact: push, deploy, restart, rollback, protected smoke, live account mutation, secret disclosure, or destructive repository changes.",
+    ].join("\n"),
+    schedule: ["Every 15 minutes continuation watchdog", "*/15 * * * *"],
   },
   {
     title: "[Softwarehouse] Longevity snapshot backup",

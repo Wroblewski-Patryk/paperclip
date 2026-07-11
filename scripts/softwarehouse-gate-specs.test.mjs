@@ -1058,6 +1058,8 @@ test("next legal action selector routes fresh blocked triage before stale runnab
 test("continuation watchdog applies the next legal action when Paperclip goes idle", async () => {
   const source = await readFile("scripts/run-softwarehouse-continuation-watchdog.mjs", "utf8");
   const packageJson = await readFile("package.json", "utf8");
+  const activeRoutines = await readFile("scripts/lib/softwarehouse-active-routines.mjs", "utf8");
+  const longevityConfigurator = await readFile("scripts/configure-softwarehouse-longevity-routines.mjs", "utf8");
 
   assert.match(source, /SOFTWAREHOUSE_CONTINUATION_INTERVAL_MS/);
   assert.match(source, /SOFTWAREHOUSE_CONTINUATION_CHILD_TIMEOUT_MS/);
@@ -1065,6 +1067,10 @@ test("continuation watchdog applies the next legal action when Paperclip goes id
   assert.match(source, /A live run exists, so the watchdog must not start duplicate owner work/);
   assert.match(source, /"pnpm", \["run", "softwarehouse:next-legal-action:apply"\]/);
   assert.match(source, /report\/softwarehouse-continuation-watchdog\.latest\.json/);
+  assert.match(activeRoutines, /"\[Softwarehouse\] Continuation watchdog"/);
+  assert.match(activeRoutines, /"Every 15 minutes continuation watchdog"/);
+  assert.match(longevityConfigurator, /title: "\[Softwarehouse\] Continuation watchdog"/);
+  assert.match(longevityConfigurator, /pnpm run softwarehouse:continuation-watchdog/);
   assert.match(packageJson, /"softwarehouse:continuation-watchdog": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --once"/);
   assert.match(packageJson, /"softwarehouse:continuation-watchdog:loop": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --loop"/);
 });

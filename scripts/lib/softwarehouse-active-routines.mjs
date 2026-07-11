@@ -21,6 +21,7 @@ export const activeApplicationRoutineSpecs = softwarehouseActiveApplicationProje
 
 export const softwarehousePilotActiveRoutineTitles = new Set([
   "[Softwarehouse] Autonomy governor",
+  "[Softwarehouse] Continuation watchdog",
   "[Softwarehouse] Gate freshness watcher",
   "[Soar] Daily project status refresh",
   "[Soar][PM] No-stall queue expeditor",
@@ -49,6 +50,7 @@ export const softwarehousePilotActiveRoutineTitles = new Set([
 
 export const softwarehousePilotRoutineScheduleLabels = new Map([
   ["[Softwarehouse] Autonomy governor", "Every 30 minutes autonomy governor"],
+  ["[Softwarehouse] Continuation watchdog", "Every 15 minutes continuation watchdog"],
   ["[Softwarehouse] Gate freshness watcher", "Every 30 minutes gate freshness watcher"],
   ["[Soar] Daily project status refresh", "Daily PM status at 09:30"],
   ["[Soar][PM] No-stall queue expeditor", "Every 30 minutes while Soar is in V1 takeover"],
