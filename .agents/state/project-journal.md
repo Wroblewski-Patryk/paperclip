@@ -6,6 +6,12 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-11 / LUC-458 PDCA Learning and Company Memory Review:
+  - Reviewed the inline wake payload and live issue state for [LUC-458](/LUC/issues/LUC-458) during the current routine heartbeat.
+  - State check: the issue was `in_progress`, assignee remained `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and there was no execution workspace or recovery action.
+  - Memory check: the current board context, active mission, and project journal already capture the live Stage 1 posture and the Soar/Roost delivery scope, so no durable instruction, procedure, or board-context update was justified.
+  - Action taken: record this as a clean PDCA checkpoint and close the issue with a concise no-drift note so the routine does not linger without a live continuation path.
+
 - 2026-07-11 / LUC-442 PDCA Learning and Company Memory Review:
   - Reviewed the inline wake payload, `/api/issues/LUC-442`, and `/api/issues/LUC-442/heartbeat-context` for the current routine heartbeat.
   - State check: the issue is `in_progress`, assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and there is no execution workspace or recovery action to continue.
