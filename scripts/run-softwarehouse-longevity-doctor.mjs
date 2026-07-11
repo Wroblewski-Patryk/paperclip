@@ -29,9 +29,16 @@ async function requestJson(method, route, body) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
     try {
+      const headers = { "content-type": "application/json" };
+      if (process.env.PAPERCLIP_API_KEY) {
+        headers.authorization = `Bearer ${process.env.PAPERCLIP_API_KEY}`;
+      }
+      if (process.env.PAPERCLIP_RUN_ID) {
+        headers["x-paperclip-run-id"] = process.env.PAPERCLIP_RUN_ID;
+      }
       const response = await fetch(`${apiBase}${route}`, {
         method,
-        headers: { "content-type": "application/json" },
+        headers,
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });
@@ -171,6 +178,24 @@ function findingsDigest(rows) {
   }).join("\n");
 }
 
+function normalizeName(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function projectMatchesTarget(project, targetName) {
+  const projectName = normalizeName(project.name);
+  const target = normalizeName(targetName);
+  return projectName === target || projectName.endsWith(`: ${target}`);
+}
+
+function findActiveProjectByTarget(projects, targetName) {
+  return projects.find((project) => !project.archivedAt && projectMatchesTarget(project, targetName)) ?? null;
+}
+
+function hasActiveRoutine(activeRoutineTitles, aliases) {
+  return aliases.some((title) => activeRoutineTitles.has(title));
+}
+
 async function searchIssues(companyId, query) {
   const params = new URLSearchParams({ q: query, limit: "50" });
   return request(`/api/companies/${companyId}/issues?${params.toString()}`);
@@ -269,17 +294,39 @@ function handleChildCheck({ id, result, passSummary, failSeverity = "warn", fail
   return false;
 }
 
-try {
+async function resolveCompany() {
+  if (companyId) {
+    return request(`/api/companies/${companyId}`);
+  }
+
   const companies = await request("/api/companies");
   const companyList = Array.isArray(companies) ? companies : companies?.value ?? [];
-  company = companyList.find((candidate) => candidate.id === companyId)
-    ?? companyList.find((candidate) => candidate.name === companyName)
-    ?? companyList.find((candidate) => candidate.name === "LuckySparrow Software House");
+  return companyList.find((candidate) => candidate.name === companyName)
+    ?? companyList.find((candidate) => candidate.name === "LuckySparrow Software House")
+    ?? null;
+}
+
+function shouldWriteRestartRequest(error) {
+  return error?.name === "AbortError"
+    || error?.status === undefined
+    || error?.status >= 500;
+}
+
+try {
+  company = await resolveCompany();
   if (!company) throw new Error(`Company not found: ${companyId ?? companyName}`);
   apiReachable = true;
 } catch (error) {
-  pushFinding(findings, "critical", "api", `Paperclip API is not reachable: ${error.message}`);
-  if (apply) {
+  const restartable = shouldWriteRestartRequest(error);
+  pushFinding(
+    findings,
+    "critical",
+    "api",
+    restartable
+      ? `Paperclip API is not reachable: ${error.message}`
+      : `Paperclip API is reachable but the watchdog is not authorized for its company discovery route: ${error.message}`,
+  );
+  if (apply && restartable) {
     await mkdir(path.dirname(restartRequestPath), { recursive: true });
     await writeFile(restartRequestPath, `${JSON.stringify({
       requestedAt: new Date().toISOString(),
@@ -314,11 +361,12 @@ if (apiReachable) {
     function issueForLiveRun(run) {
       return issueById.get(run.issueId) ?? issueByExecutionRunId.get(run.id) ?? null;
     }
-    const liveIssueIds = new Set(liveRuns
+    const runningLiveRuns = liveRuns.filter((run) => run.status === "running");
+    const liveIssueIds = new Set(runningLiveRuns
       .map((run) => run.issueId ?? issueByExecutionRunId.get(run.id)?.id)
       .filter(Boolean));
     const liveRunsByAgent = new Map();
-    for (const run of liveRuns) {
+    for (const run of runningLiveRuns) {
       if (!run.agentId) continue;
       if (!liveRunsByAgent.has(run.agentId)) liveRunsByAgent.set(run.agentId, []);
       liveRunsByAgent.get(run.agentId).push(run);
@@ -350,8 +398,8 @@ if (apiReachable) {
   const liveRunSummaries = liveRuns.map((run) => {
     const issue = issueForLiveRun(run);
     const agent = agentById.get(run.agentId);
-    const age = ageMinutes(run.lastOutputAt ?? run.startedAt);
-    if (age >= staleRunMinutes) {
+    const age = run.lastOutputAt || run.startedAt ? ageMinutes(run.lastOutputAt ?? run.startedAt) : null;
+    if (run.status === "running" && age !== null && age >= staleRunMinutes) {
       pushFinding(findings, "warn", "live-run", "Live run has stale output and should be inspected before starting duplicate work.", {
         issue: issue?.identifier ?? run.issueId,
         agent: agent?.name ?? run.agentId,
@@ -370,6 +418,7 @@ if (apiReachable) {
       agentName: agent?.name ?? null,
       issueIdentifier: issue?.identifier ?? null,
       issueStatus: issue?.status ?? null,
+      runStatus: run.status ?? null,
       ageMinutes: age,
       lastOutputAt: run.lastOutputAt ?? null,
     };
@@ -402,7 +451,7 @@ if (apiReachable) {
 
   for (const projectName of targetProjects) {
     const names = projectName === "Aviary" ? ["Aviary", "Personality"] : [projectName];
-    const project = names.map((name) => projectByName.get(name)).find(Boolean);
+    const project = names.map((name) => findActiveProjectByTarget(projects, name)).find(Boolean);
     if (!project) {
       pushFinding(findings, "warn", "projects", `Target project is not active in Paperclip: ${projectName}`);
       continue;
@@ -419,15 +468,46 @@ if (apiReachable) {
   }
 
   const activeRoutineTitles = new Set(routines.filter((routine) => routine.status === "active").map((routine) => routine.title));
-  for (const title of [
-    "[Softwarehouse] Autonomy governor",
-    "[Softwarehouse] Stale board janitor",
-    "[Softwarehouse] Agent health and model governance",
-    "[Softwarehouse] Docs and memory loop",
-    "[Softwarehouse] AI-agent development review",
+  for (const routineCoverage of [
+    {
+      label: "autonomy and liveness governance",
+      aliases: [
+        "[Softwarehouse] Autonomy governor",
+        "00 General: Owner Direction and Proposal Review",
+        "00 General: Softwarehouse Liveness and Active Work Review",
+      ],
+    },
+    {
+      label: "board/project truth hygiene",
+      aliases: [
+        "[Softwarehouse] Stale board janitor",
+        "04 Operations: Portfolio Truth and Workspace Boundary Review",
+      ],
+    },
+    {
+      label: "agent health and model governance",
+      aliases: [
+        "[Softwarehouse] Agent health and model governance",
+        "06 People: Agent Hiring and Governance Review",
+      ],
+    },
+    {
+      label: "docs, memory, and learning loop",
+      aliases: [
+        "[Softwarehouse] Docs and memory loop",
+        "[Softwarehouse] Organizational learning loop",
+        "04 Operations: PDCA Learning and Company Memory Review",
+      ],
+    },
+    {
+      label: "AI-agent development review",
+      aliases: ["[Softwarehouse] AI-agent development review"],
+    },
   ]) {
-    if (!activeRoutineTitles.has(title)) {
-      pushFinding(findings, "warn", "routines", `Core routine is not active: ${title}`);
+    if (!hasActiveRoutine(activeRoutineTitles, routineCoverage.aliases)) {
+      pushFinding(findings, "warn", "routines", `Core routine coverage is not active: ${routineCoverage.label}`, {
+        acceptableTitles: routineCoverage.aliases,
+      });
     }
   }
 
@@ -626,8 +706,8 @@ if (apiReachable) {
 
     if (apply && findings.length > 0) {
       const repairTitle = "[Softwarehouse][Longevity Watchdog] Repair autonomous softwarehouse control gaps";
-      const softwarehouseProject = projectByName.get("Softwarehouse")
-        ?? projectByName.get("Softwarehouse Operating System")
+      const softwarehouseProject = findActiveProjectByTarget(projects, "Softwarehouse")
+        ?? findActiveProjectByTarget(projects, "Softwarehouse Operating System")
         ?? null;
       const repairOwner = agents.find((agent) => agent.name === "09 CTO (Chief Technology Officer)")
         ?? agents.find((agent) => agent.name === "11 IPM (Innovation Portfolio Manager)")
@@ -655,6 +735,11 @@ if (apiReachable) {
         "- close or return with concrete next blocker",
       ].join("\n");
       if (existingRepairIssue) {
+        await requestJson("PATCH", `/api/issues/${existingRepairIssue.id}`, {
+          description: repairBody,
+          projectId: softwarehouseProject?.id ?? existingRepairIssue.projectId ?? null,
+          priority: findings.some((finding) => finding.severity === "critical") ? "critical" : "high",
+        });
         await requestJson("POST", `/api/issues/${existingRepairIssue.id}/comments`, {
           body: repairBody,
           resume: false,

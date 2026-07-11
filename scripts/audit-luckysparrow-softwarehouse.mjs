@@ -336,12 +336,13 @@ for (const routine of routines) {
   else routinesWithTriggers.push(entry);
 }
 
-const liveAgentIds = new Set(liveRuns.map((run) => run.agentId).filter(Boolean));
+const runningLiveRuns = liveRuns.filter((run) => run.status === "running");
+const liveAgentIds = new Set(runningLiveRuns.map((run) => run.agentId).filter(Boolean));
 const liveRunDetails = await Promise.all(liveRuns.map((run) =>
   request("GET", `/api/heartbeat-runs/${run.id}`).catch(() => run)
 ));
 const liveRunsByAgentId = groupBy(
-  liveRuns.filter((run) => run.agentId),
+  runningLiveRuns.filter((run) => run.agentId),
   (run) => run.agentId,
 );
 const agentsWithMultipleLiveRuns = Array.from(liveRunsByAgentId.entries())
@@ -379,7 +380,7 @@ const detachedProcessRuns = liveRunDetails
       error: run.error ?? null,
     };
   });
-const closedIssueLiveRuns = liveRuns
+const closedIssueLiveRuns = runningLiveRuns
   .map((run) => {
     const issue = issues.find((candidate) => candidate.id === run.issueId);
     if (!issue || !["done", "cancelled"].includes(issue.status)) return null;
@@ -394,7 +395,7 @@ const closedIssueLiveRuns = liveRuns
     };
   })
   .filter(Boolean);
-const liveRunsOnNonProgressIssues = liveRuns
+const liveRunsOnNonProgressIssues = runningLiveRuns
   .map((run) => {
     const issue = issues.find((candidate) => candidate.id === run.issueId);
     if (!issue || ["in_progress", "done", "cancelled"].includes(issue.status)) return null;
@@ -410,7 +411,7 @@ const liveRunsOnNonProgressIssues = liveRuns
     };
   })
   .filter(Boolean);
-const blockedIssueLiveRuns = liveRuns
+const blockedIssueLiveRuns = runningLiveRuns
   .map((run) => {
     const issue = issues.find((candidate) => candidate.id === run.issueId);
     if (!issue || issue.status !== "blocked") return null;
@@ -628,7 +629,7 @@ for (const issue of openIssues) {
   }
 }
 
-const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean));
+const liveIssueIds = new Set(runningLiveRuns.map((run) => run.issueId).filter(Boolean));
 const statusSyncChurnIssues = [];
 for (const issue of openIssues) {
   if (!liveIssueIds.has(issue.id) && !["todo", "in_progress"].includes(issue.status)) continue;
@@ -881,10 +882,10 @@ const plannedSupervisorIssues = supervisorIssues.filter((issue) =>
   && !liveIssueIds.has(issue.id)
   && !pendingDecisionIdentifiers.has(issue.identifier)
 );
-const activeWorkerRunCount = liveRuns.filter((run) =>
+const activeWorkerRunCount = runningLiveRuns.filter((run) =>
   isWorkerAgent(activeAgentById.get(run.agentId))
 ).length;
-const activeSupervisorRunCount = liveRuns.filter((run) =>
+const activeSupervisorRunCount = runningLiveRuns.filter((run) =>
   isSupervisorAgent(activeAgentById.get(run.agentId))
 ).length;
 const plannedWorkerIssuesByAgent = Array.from(groupBy(plannedWorkerIssues, (issue) => {
@@ -944,10 +945,10 @@ let autonomyState = "monitoring_only";
 let recommendedNextAction = "No runnable issue is available; keep monitoring and wait for new operator input.";
 if (runnableIssues.length > 0) {
   autonomyState = "can_start_parallel_lanes";
-  recommendedNextAction = liveRuns.length > 0
+  recommendedNextAction = runningLiveRuns.length > 0
     ? "Supervise live runs and wake only safe independent lanes with idle owners; keep owner, scope, evidence, and dependency contracts explicit."
     : "Start or resume the next highest-value independent lane with one accountable owner, one narrow scope, and an evidence contract.";
-} else if (liveRuns.length > 0) {
+} else if (runningLiveRuns.length > 0) {
   autonomyState = "active_work_running";
   recommendedNextAction = "Supervise active lanes, close stale board state, and avoid waking new work until each active owner has a clear next handoff.";
 } else if (reviewIssuesWithoutPendingDecision.length > 0) {
