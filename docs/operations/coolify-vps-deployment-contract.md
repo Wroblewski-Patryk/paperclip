@@ -1,6 +1,6 @@
 # Coolify VPS Deployment Contract
 
-Last updated: 2026-05-31
+Last updated: 2026-07-11
 
 ## Purpose
 
@@ -77,6 +77,27 @@ The permit must name:
 
 No agent may treat a broad "fix deploy" request as approval for several
 production operations. Split the permit into one narrow operation.
+
+### Standing Push Approval For Stage 1 Soar/Roost
+
+The owner has approved a narrow Stage 1 default for constructive Soar/Roost
+delivery pushes:
+
+- If DRE/SPA/QVE evidence says the local repo is clean, the source-control lane
+  has classified the change as constructive, and the release/push/deploy
+  governor reports a push candidate whose expected effect is normal Coolify
+  auto-redeploy, agents may push without requesting a new board approval.
+- Immediately after the push, agents must run post-push verification: Coolify
+  resource/readiness check, production root/API reachability where applicable,
+  deployment/readback evidence, and redacted failure summary if anything breaks.
+- If auto-redeploy does not happen, deploy fails, health regresses, or logs show
+  a concrete runtime failure, create or resume the narrow recovery issue with
+  the observed resource, commit/build id, log/status evidence, and next safe
+  action.
+
+This standing approval does not authorize force-push, manual deploy, restart,
+rollback, env mutation, database mutation, protected smoke outside the approved
+proof path, live account mutation, paid resource changes, or secret disclosure.
 
 ## Per-Project Contract Stub
 

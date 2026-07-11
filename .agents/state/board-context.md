@@ -68,6 +68,15 @@ with Roost as part of the autonomous company layer.
   state, but should not commit product-agent work by default. If a product repo
   remains dirty because an agent is active or work is blocked, state the owner,
   reason, and relevant files instead of silently cleaning it up.
+- Owner standing deployment preference as of 2026-07-11: constructive
+  Soar/Roost delivery pushes that satisfy the existing DRE/SPA/QVE evidence
+  gates may proceed without asking again when the expected effect is a normal
+  Coolify auto-redeploy. After such a push, agents must verify the redeploy,
+  resource health, production reachability, and relevant smoke/readback
+  evidence, then report any failure as a concrete recovery issue. This standing
+  direction does not authorize force-push, manual deploy, restart, rollback,
+  protected smoke beyond the approved proof path, live account mutation, paid
+  resource changes, or secret disclosure.
 
 ## Current Company Shape
 
