@@ -13,6 +13,7 @@ const applyCommands = new Map([
   ["assign_runnable_work_owner", ["node", ["scripts/run-project-ownership-assignment.mjs", "--apply"]]],
   ["start_runnable_work", ["pnpm", ["softwarehouse:local-repair-lane-starter:apply"]]],
   ["start_source_control_closure", ["pnpm", ["softwarehouse:local-repair-lane-starter:apply"]]],
+  ["start_project_truth_gap", ["pnpm", ["softwarehouse:project-truth-dispatch:apply"]]],
   ["start_blocked_triage", ["pnpm", ["run", "softwarehouse:blocked-triage-lane-starter:apply"]]],
 ]);
 
@@ -267,6 +268,20 @@ export function pickAction(
       target: governorDecision === "runnable_work_available" ? "governor:runnable_work_available" : "project_backlog",
       allowed: ["wake the highest-priority eligible backlog/todo issue", "keep WIP guard active", "record local validation evidence"],
       forbidden: ["start duplicate owner lane", "push", "deploy", "restart", "secret disclosure"],
+    };
+  }
+  if (
+    control?.controlDecision === "project_truth_gap_routing_needed"
+    || control?.effectiveOperatingPosture === "project_truth_repair_allowed"
+  ) {
+    return {
+      decision: "start_project_truth_gap",
+      reason: control?.recommendedAction
+        ?? "Project truth indexes still contain current delivery gaps; dispatch the smallest owner-scoped proof or repair lane instead of waiting for a later routine.",
+      command: "pnpm softwarehouse:project-truth-dispatch:apply",
+      target: "project_truth_gap",
+      allowed: ["create or wake the smallest project-truth proof/repair lane", "refresh indexes", "record local validation evidence"],
+      forbidden: ["start duplicate owner lane", "push", "deploy", "restart", "protected smoke", "secret disclosure"],
     };
   }
   const inReviewFinding = (control?.auditFindings ?? []).find((finding) =>

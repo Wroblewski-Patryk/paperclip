@@ -974,6 +974,47 @@ test("next legal action selector does not let stale in-review audit block fresh 
   assert.equal(action.command, "pnpm softwarehouse:local-repair-lane-starter:apply");
 });
 
+test("next legal action selector starts project truth gap dispatch when control tick allows it", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    {
+      activeRunCount: 0,
+      controlDecision: "project_truth_gap_routing_needed",
+      effectiveOperatingPosture: "project_truth_repair_allowed",
+      recommendedAction: "Route the first Soar truth gap before claiming app readiness.",
+    },
+    {},
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    {},
+    {
+      checked: true,
+      ok: true,
+      decision: "known_gates_only",
+      counts: {
+        dirtyProjectRepos: 0,
+        dirtyOperatingRepos: 0,
+        runnableIssues: 0,
+        eligibleRunnableIssues: 0,
+        reviewIssuesWithoutPendingDecision: 0,
+      },
+    },
+  );
+
+  assert.equal(action.decision, "start_project_truth_gap");
+  assert.equal(action.command, "pnpm softwarehouse:project-truth-dispatch:apply");
+});
+
+test("project truth dispatcher does not treat terminal issues as active gap coverage", async () => {
+  const source = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
+
+  assert.match(source, /function canonicalExistingIssue\(title, issues\)/);
+  assert.match(source, /\.filter\(\(issue\) => !terminalStatuses\.has\(issue\.status\)\)/);
+  assert.doesNotMatch(source, /filter\(\(issue\) => terminalStatuses\.has\(issue\.status\)\)/);
+  assert.match(source, /"kept_existing_project_truth_gap_issue"/);
+});
+
 test("next legal action selector routes fresh blocked triage before stale runnable snapshots", async () => {
   const { pickAction } = await import("./run-next-legal-action-selector.mjs");
   const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
@@ -1502,14 +1543,13 @@ test("project truth indexes route app-completion proof gaps instead of treating 
   assert.match(dispatcher, /kind: runtime_error/);
 });
 
-test("project truth dispatcher dedupes exact terminal visible issues", async () => {
+test("project truth dispatcher ignores exact terminal visible issues for current gaps", async () => {
   const dispatcher = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
 
   assert.match(dispatcher, /const exactTitleIssues = issues/);
   assert.match(dispatcher, /issue\.title === title && !issue\.hiddenAt/);
-  assert.match(dispatcher, /const openMatch = exactTitleIssues/);
-  assert.match(dispatcher, /terminalStatuses\.has\(issue\.status\)/);
-  assert.match(dispatcher, /updatedDelta/);
+  assert.match(dispatcher, /\.filter\(\(issue\) => !terminalStatuses\.has\(issue\.status\)\)/);
+  assert.doesNotMatch(dispatcher, /updatedDelta/);
 });
 
 test("acceptance evidence lanes outrank architecture backlog wakeups", async () => {
