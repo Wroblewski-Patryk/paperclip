@@ -131,7 +131,7 @@ export function costService(db: Db, budgetHooks: BudgetServiceHooks = {}) {
       const spendCents = Number(total);
       const reportedSpendCents = spendCents;
       const reportedBudgetCents = company.budgetMonthlyCents;
-      const subscription = await fetchAllQuotaWindows()
+      const subscription = await fetchAllQuotaWindows(db)
         .then(estimateCodexLocalSubscriptionCost)
         .catch(() => null);
       const effectiveSpendCents = reportedSpendCents;

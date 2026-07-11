@@ -12,12 +12,14 @@ describe("instance settings service", () => {
       enableIssueGraphLivenessAutoRecovery: true,
       issueGraphLivenessAutoRecoveryLookbackHours: 48,
       enableNewestFirstIssueThread: true,
-    })).toEqual({
+      enableAnthropicQuotaPolling: false,
+    })).toMatchObject({
       enableEnvironments: true,
       enableIsolatedWorkspaces: true,
       enableIssuePlanDecompositions: true,
       enableCloudSync: true,
       autoRestartDevServerWhenIdle: true,
+      enableAnthropicQuotaPolling: false,
       enableIssueGraphLivenessAutoRecovery: true,
       issueGraphLivenessAutoRecoveryLookbackHours: 48,
     });

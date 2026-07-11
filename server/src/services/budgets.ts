@@ -79,6 +79,15 @@ function budgetStatusFromObserved(
   return "ok";
 }
 
+function normalizeHardStopEnabled(
+  scopeType: BudgetScopeType,
+  isActive: boolean,
+  hardStopEnabled: boolean,
+) {
+  if ((scopeType === "company" || scopeType === "agent") && isActive) return true;
+  return hardStopEnabled;
+}
+
 function normalizeScopeName(scopeType: BudgetScopeType, name: string) {
   if (scopeType === "company") return name;
   return name.trim().length > 0 ? name : scopeType;
@@ -276,7 +285,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
   let effectiveSubscriptionCostPromise: Promise<EffectiveSubscriptionCost | null> | null = null;
   function getEffectiveSubscriptionCost() {
     if (!effectiveSubscriptionCostPromise) {
-      effectiveSubscriptionCostPromise = fetchAllQuotaWindows()
+      effectiveSubscriptionCostPromise = fetchAllQuotaWindows(db)
         .then(estimateCodexLocalSubscriptionCost)
         .catch(() => null);
     }
@@ -398,6 +407,11 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
     const observedAmount = await observedForPolicy(policy);
     const { start, end } = resolveWindow(policy.windowKind as BudgetWindowKind);
     const amount = policy.isActive ? policy.amount : 0;
+    const hardStopEnabled = normalizeHardStopEnabled(
+      policy.scopeType as BudgetScopeType,
+      policy.isActive,
+      policy.hardStopEnabled,
+    );
     const utilizationPercent =
       amount > 0 ? Number(((observedAmount / amount) * 100).toFixed(2)) : 0;
     return {
@@ -413,7 +427,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
       remainingAmount: amount > 0 ? Math.max(0, amount - observedAmount) : 0,
       utilizationPercent,
       warnPercent: policy.warnPercent,
-      hardStopEnabled: policy.hardStopEnabled,
+      hardStopEnabled,
       notifyEnabled: policy.notifyEnabled,
       isActive: policy.isActive,
       status: policy.isActive
@@ -612,13 +626,18 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
         .then((rows) => rows[0] ?? null);
 
       const now = new Date();
+      const nextHardStopEnabled = normalizeHardStopEnabled(
+        input.scopeType,
+        nextIsActive,
+        input.hardStopEnabled ?? existing?.hardStopEnabled ?? true,
+      );
       const row = existing
         ? await db
           .update(budgetPolicies)
           .set({
             amount,
             warnPercent: input.warnPercent ?? existing.warnPercent,
-            hardStopEnabled: input.hardStopEnabled ?? existing.hardStopEnabled,
+            hardStopEnabled: nextHardStopEnabled,
             notifyEnabled: input.notifyEnabled ?? existing.notifyEnabled,
             isActive: nextIsActive,
             updatedByUserId: actorUserId,
@@ -637,7 +656,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
             windowKind,
             amount,
             warnPercent: input.warnPercent ?? 80,
-            hardStopEnabled: input.hardStopEnabled ?? true,
+            hardStopEnabled: nextHardStopEnabled,
             notifyEnabled: input.notifyEnabled ?? true,
             isActive: nextIsActive,
             createdByUserId: actorUserId,
@@ -676,7 +695,12 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
           if (row.notifyEnabled && observedAmount >= softThreshold) {
             await createIncidentIfNeeded(row, "soft", observedAmount);
           }
-          if (row.hardStopEnabled && observedAmount >= row.amount) {
+          const hardStopEnabled = normalizeHardStopEnabled(
+            row.scopeType as BudgetScopeType,
+            row.isActive,
+            row.hardStopEnabled,
+          );
+          if (hardStopEnabled && observedAmount >= row.amount) {
             await resolveOpenSoftIncidents(row.id);
             await createIncidentIfNeeded(row, "hard", observedAmount);
             await pauseAndCancelScopeForBudget(row);
@@ -747,6 +771,11 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
         if (policy.amount <= 0) continue;
         const observedAmount = await observedForPolicy(policy);
         const softThreshold = Math.ceil((policy.amount * policy.warnPercent) / 100);
+        const hardStopEnabled = normalizeHardStopEnabled(
+          policy.scopeType as BudgetScopeType,
+          policy.isActive,
+          policy.hardStopEnabled,
+        );
 
         if (policy.notifyEnabled && observedAmount >= softThreshold) {
           const softIncident = await createIncidentIfNeeded(policy, "soft", observedAmount);
@@ -768,7 +797,7 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
           }
         }
 
-        if (policy.hardStopEnabled && observedAmount >= policy.amount) {
+        if (hardStopEnabled && observedAmount >= policy.amount) {
           await resolveOpenSoftIncidents(policy.id);
           const hardIncident = await createIncidentIfNeeded(policy, "hard", observedAmount);
           await pauseAndCancelScopeForBudget(policy);
@@ -844,7 +873,12 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
           ),
         );
       for (const companyPolicy of companyPolicies) {
-        if (!companyPolicy.hardStopEnabled || companyPolicy.amount <= 0) continue;
+        const hardStopEnabled = normalizeHardStopEnabled(
+          companyPolicy.scopeType as BudgetScopeType,
+          companyPolicy.isActive,
+          companyPolicy.hardStopEnabled,
+        );
+        if (!hardStopEnabled || companyPolicy.amount <= 0) continue;
         const observed = await observedForPolicy(companyPolicy);
         if (observed >= companyPolicy.amount) {
           return {
@@ -877,7 +911,12 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
           ),
         );
       for (const agentPolicy of agentPolicies) {
-        if (!agentPolicy.hardStopEnabled || agentPolicy.amount <= 0) continue;
+        const hardStopEnabled = normalizeHardStopEnabled(
+          agentPolicy.scopeType as BudgetScopeType,
+          agentPolicy.isActive,
+          agentPolicy.hardStopEnabled,
+        );
+        if (!hardStopEnabled || agentPolicy.amount <= 0) continue;
         const observed = await observedForPolicy(agentPolicy);
         if (observed >= agentPolicy.amount) {
           return {

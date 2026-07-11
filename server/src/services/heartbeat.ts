@@ -537,7 +537,7 @@ export function buildProviderQuotaStartBlock(
   };
 }
 
-function resolveModelRouterQuotaPressure(
+export function resolveModelRouterQuotaPressure(
   quota: ProviderQuotaResult | null | undefined,
   now = new Date(),
   settings: CodexLocalQuotaGateSettings = DEFAULT_CODEX_LOCAL_QUOTA_GATE_SETTINGS,

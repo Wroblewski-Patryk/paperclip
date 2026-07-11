@@ -7,6 +7,7 @@ import {
   buildProviderQuotaStartBlock,
   mergeModelProfileAdapterConfig,
   normalizeModelProfileWakeContext,
+  resolveModelRouterQuotaPressure,
   resolveModelProfileApplication,
 } from "../services/heartbeat.ts";
 import { loadModelEconomicsConfig, resetModelEconomicsConfigCacheForTests } from "../services/model-economics.js";
@@ -365,5 +366,41 @@ describe("model-aware provider quota gates", () => {
     expect(
       buildProviderQuotaStartBlock(quota, new Date("2026-07-06T12:00:00.000Z"), undefined, profiles.spark),
     ).not.toBeNull();
+  });
+
+  it("does not treat unknown percent as a hard-stop trigger", () => {
+    const now = new Date("2026-07-06T12:00:00.000Z");
+    resetModelEconomicsConfigCacheForTests();
+    const profiles = loadModelEconomicsConfig().profiles;
+    const quota = {
+      provider: "openai",
+      source: "test",
+      ok: true,
+      windows: [
+        {
+          label: "Model lane limit",
+          scope: "lane" as const,
+          quotaLane: "codex_standard",
+          model: null,
+          usedPercent: null,
+          resetsAt: "2026-07-09T19:22:48.000Z",
+          valueLabel: null,
+          detail: null,
+        },
+        {
+          label: "Unused credits",
+          scope: null,
+          quotaLane: null,
+          model: null,
+          usedPercent: 0,
+          resetsAt: "2026-07-09T19:22:48.000Z",
+          valueLabel: null,
+          detail: null,
+        },
+      ],
+    };
+
+    expect(buildProviderQuotaStartBlock(quota, now, undefined, profiles.standard)).toBeNull();
+    expect(resolveModelRouterQuotaPressure(quota, now, undefined)).toBe("normal");
   });
 });

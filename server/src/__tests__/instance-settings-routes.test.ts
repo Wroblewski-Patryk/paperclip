@@ -67,6 +67,7 @@ describe("instance settings routes", () => {
       enableIssuePlanDecompositions: false,
       enableCloudSync: false,
       autoRestartDevServerWhenIdle: false,
+      enableAnthropicQuotaPolling: true,
       enableIssueGraphLivenessAutoRecovery: true,
       issueGraphLivenessAutoRecoveryLookbackHours: 24,
     });
@@ -86,6 +87,7 @@ describe("instance settings routes", () => {
         enableIssuePlanDecompositions: true,
         enableCloudSync: true,
         autoRestartDevServerWhenIdle: false,
+        enableAnthropicQuotaPolling: false,
         enableIssueGraphLivenessAutoRecovery: true,
         issueGraphLivenessAutoRecoveryLookbackHours: 24,
       },
@@ -130,6 +132,7 @@ describe("instance settings routes", () => {
       enableIssuePlanDecompositions: false,
       enableCloudSync: false,
       autoRestartDevServerWhenIdle: false,
+      enableAnthropicQuotaPolling: true,
       enableIssueGraphLivenessAutoRecovery: true,
       issueGraphLivenessAutoRecoveryLookbackHours: 24,
     });

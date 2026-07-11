@@ -1,5 +1,7 @@
 import type { ProviderQuotaResult } from "@paperclipai/shared";
+import type { Db } from "@paperclipai/db";
 import { listServerAdapters } from "../adapters/registry.js";
+import { instanceSettingsService } from "./instance-settings.js";
 
 const QUOTA_PROVIDER_TIMEOUT_MS = 20_000;
 
@@ -20,16 +22,20 @@ function providerSlugForAdapterType(type: string): string {
  * Individual adapter failures are caught and returned as error results rather than
  * letting one provider's outage block the entire response.
  */
-export async function fetchAllQuotaWindows(): Promise<ProviderQuotaResult[]> {
+export async function fetchAllQuotaWindows(db?: Db): Promise<ProviderQuotaResult[]> {
   const adapters = listServerAdapters().filter((a) => a.getQuotaWindows != null);
+  const shouldPollAnthropic = await shouldPollAnthropicAdapter(db);
+  const adaptersToQuery = shouldPollAnthropic
+    ? adapters
+    : adapters.filter((adapter) => providerSlugForAdapterType(adapter.type) !== "anthropic");
 
   const settled = await Promise.allSettled(
-    adapters.map((adapter) => withQuotaTimeout(adapter.type, adapter.getQuotaWindows!())),
+    adaptersToQuery.map((adapter) => withQuotaTimeout(adapter.type, adapter.getQuotaWindows!())),
   );
 
   return settled.map((result, i) => {
     if (result.status === "fulfilled") return result.value;
-    const adapterType = adapters[i]!.type;
+    const adapterType = adaptersToQuery[i]!.type;
     return {
       provider: providerSlugForAdapterType(adapterType),
       ok: false,
@@ -37,6 +43,16 @@ export async function fetchAllQuotaWindows(): Promise<ProviderQuotaResult[]> {
       windows: [],
     };
   });
+}
+
+async function shouldPollAnthropicAdapter(db?: Db) {
+  if (!db) return true;
+  try {
+    const experimental = await instanceSettingsService(db).getExperimental();
+    return experimental.enableAnthropicQuotaPolling;
+  } catch {
+    return true;
+  }
 }
 
 async function withQuotaTimeout(

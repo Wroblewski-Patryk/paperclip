@@ -11,9 +11,13 @@ type SelectResult = unknown[];
 
 function createDbStub(selectResults: SelectResult[]) {
   const pendingSelects = [...selectResults];
-  const selectWhere = vi.fn(async () => pendingSelects.shift() ?? []);
+  const nextSelect = () => pendingSelects.shift() ?? [];
+  const selectOrderBy = vi.fn(async () => nextSelect());
+  const selectWhere = vi.fn(() => ({
+    orderBy: selectOrderBy,
+    then: (resolve: (value: unknown[]) => unknown) => Promise.resolve(resolve(nextSelect())),
+  }));
   const selectThen = vi.fn((resolve: (value: unknown[]) => unknown) => Promise.resolve(resolve(pendingSelects.shift() ?? [])));
-  const selectOrderBy = vi.fn(async () => pendingSelects.shift() ?? []);
   const selectFrom = vi.fn(() => ({
     where: selectWhere,
     then: selectThen,
@@ -32,7 +36,11 @@ function createDbStub(selectResults: SelectResult[]) {
   }));
 
   const updateSet = vi.fn();
-  const updateWhere = vi.fn(async () => pendingUpdates.shift() ?? []);
+  const updateReturning = vi.fn(async () => pendingUpdates.shift() ?? []);
+  const updateWhere = vi.fn(() => ({
+    returning: updateReturning,
+    then: (resolve: (value: unknown[]) => unknown) => Promise.resolve(resolve(pendingUpdates.shift() ?? [])),
+  }));
   const update = vi.fn(() => ({
     set: updateSet.mockImplementation(() => ({
       where: updateWhere,
@@ -219,6 +227,109 @@ describe("budgetService", () => {
     });
   });
 
+  it("forces hard-stop enabled for active company budgets even when false is provided", async () => {
+    const existingPolicy = {
+      id: "policy-1",
+      companyId: "company-1",
+      scopeType: "company",
+      scopeId: "company-1",
+      metric: "billed_cents",
+      windowKind: "calendar_month_utc",
+      amount: 100,
+      warnPercent: 80,
+      hardStopEnabled: false,
+      notifyEnabled: true,
+      isActive: true,
+      createdByUserId: null,
+      updatedByUserId: "board-user",
+    };
+
+    const dbStub = createDbStub([
+      [{
+        companyId: "company-1",
+        name: "Paperclip",
+        status: "active",
+        pauseReason: null,
+        pausedAt: null,
+      }],
+      [existingPolicy],
+      [{ total: 0 }],
+      [{
+        companyId: "company-1",
+        name: "Paperclip",
+        status: "active",
+        pauseReason: null,
+        pausedAt: null,
+      }],
+      [{ total: 0 }],
+    ]);
+    dbStub.queueUpdate([
+      {
+        ...existingPolicy,
+        hardStopEnabled: false,
+      },
+    ]);
+    dbStub.queueUpdate([{}]);
+    dbStub.queueUpdate([{}]);
+
+    const service = budgetService(dbStub.db as any);
+    const summary = await service.upsertPolicy(
+      "company-1",
+      {
+        scopeType: "company",
+        scopeId: "company-1",
+        amount: 2500,
+        hardStopEnabled: false,
+      },
+      "board-user",
+    );
+
+    expect(summary.hardStopEnabled).toBe(true);
+    expect(dbStub.updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hardStopEnabled: true,
+      }),
+    );
+  });
+
+  it("blocks company work when budget is exceeded even if hard-stop is stored as false", async () => {
+    const dbStub = createDbStub([
+      [{
+        status: "running",
+        pauseReason: null,
+        companyId: "company-1",
+        name: "Budget Agent",
+      }],
+      [{
+        status: "active",
+        name: "Paperclip",
+      }],
+      [{
+        id: "policy-company-1",
+        companyId: "company-1",
+        scopeType: "company",
+        scopeId: "company-1",
+        metric: "billed_cents",
+        windowKind: "calendar_month_utc",
+        amount: 100,
+        warnPercent: 80,
+        hardStopEnabled: false,
+        isActive: true,
+      }],
+      [{ total: 120 }],
+    ]);
+
+    const service = budgetService(dbStub.db as any);
+    const block = await service.getInvocationBlock("company-1", "agent-1");
+
+    expect(block).toEqual({
+      scopeType: "company",
+      scopeId: "company-1",
+      scopeName: "Paperclip",
+      reason: "Company cannot start new work because its budget hard-stop is exceeded.",
+    });
+  });
+
   it("uses live observed spend when raising a budget incident", async () => {
     const dbStub = createDbStub([
       [{
@@ -249,6 +360,39 @@ describe("budgetService", () => {
         "board-user",
       ),
     ).rejects.toThrow("New budget must exceed current observed spend");
+  });
+
+  it("normalizes active company/agent hard-stop flags to true in overview", async () => {
+    const dbStub = createDbStub([
+      [{
+        id: "policy-company-1",
+        companyId: "company-1",
+        scopeType: "company",
+        scopeId: "company-1",
+        metric: "billed_cents",
+        windowKind: "calendar_month_utc",
+        amount: 1000,
+        warnPercent: 80,
+        hardStopEnabled: false,
+        notifyEnabled: true,
+        isActive: true,
+      }],
+      [{
+        companyId: "company-1",
+        name: "Paperclip",
+        status: "active",
+        pauseReason: null,
+        pausedAt: null,
+      }],
+      [{ total: 10 }],
+      [],
+    ]);
+
+    const service = budgetService(dbStub.db as any);
+    const overview = await service.overview("company-1");
+
+    expect(overview.policies[0].hardStopEnabled).toBe(true);
+    expect(overview.policies[0].scopeType).toBe("company");
   });
 
   it("syncs company monthly budget when raising and resuming a company incident", async () => {

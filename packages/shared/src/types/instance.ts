@@ -42,6 +42,7 @@ export interface InstanceExperimentalSettings {
   enableIssuePlanDecompositions: boolean;
   enableCloudSync: boolean;
   autoRestartDevServerWhenIdle: boolean;
+  enableAnthropicQuotaPolling: boolean;
   enableIssueGraphLivenessAutoRecovery: boolean;
   issueGraphLivenessAutoRecoveryLookbackHours: number;
   codexLocalQuotaHoldEnabled: boolean;

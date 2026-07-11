@@ -54,6 +54,7 @@ export function normalizeExperimentalSettings(raw: unknown): InstanceExperimenta
       issueGraphLivenessAutoRecoveryLookbackHours:
         parsed.data.issueGraphLivenessAutoRecoveryLookbackHours ??
         DEFAULT_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS,
+      enableAnthropicQuotaPolling: parsed.data.enableAnthropicQuotaPolling ?? true,
       codexLocalQuotaHoldEnabled: parsed.data.codexLocalQuotaHoldEnabled ?? true,
       codexLocalQuotaShortWindowHoldUsedPercent:
         parsed.data.codexLocalQuotaShortWindowHoldUsedPercent ??
@@ -78,6 +79,7 @@ export function normalizeExperimentalSettings(raw: unknown): InstanceExperimenta
     enableIssueGraphLivenessAutoRecovery: false,
     issueGraphLivenessAutoRecoveryLookbackHours:
       DEFAULT_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS,
+    enableAnthropicQuotaPolling: true,
     codexLocalQuotaHoldEnabled: true,
     codexLocalQuotaShortWindowHoldUsedPercent:
       DEFAULT_CODEX_LOCAL_QUOTA_SHORT_WINDOW_HOLD_USED_PERCENT,

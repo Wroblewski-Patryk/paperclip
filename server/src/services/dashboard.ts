@@ -98,7 +98,7 @@ export function dashboardService(db: Db) {
         );
 
       const monthSpendCents = Number(monthSpend);
-      const subscription = await fetchAllQuotaWindows()
+      const subscription = await fetchAllQuotaWindows(db)
         .then(estimateCodexLocalSubscriptionCost)
         .catch(() => null);
       const effectiveMonthSpendCents = monthSpendCents;

@@ -1,7 +1,14 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
+const mockGetExperimental = vi.hoisted(() => vi.fn());
+
 vi.mock("../adapters/registry.js", () => ({
   listServerAdapters: vi.fn(),
+}));
+vi.mock("../services/instance-settings.js", () => ({
+  instanceSettingsService: () => ({
+    getExperimental: mockGetExperimental,
+  }),
 }));
 
 import { listServerAdapters } from "../adapters/registry.js";
@@ -52,5 +59,44 @@ describe("fetchAllQuotaWindows", () => {
         windows: [],
       },
     ]);
+  });
+
+  it("can skip Anthropic quota polling when disabled in instance settings", async () => {
+    vi.mocked(listServerAdapters).mockReturnValue([
+      {
+        type: "codex_local",
+        getQuotaWindows: vi.fn().mockResolvedValue({
+          provider: "openai",
+          source: "codex-rpc",
+          ok: true,
+          windows: [{ label: "5h limit", usedPercent: 2, resetsAt: null, valueLabel: null, detail: null }],
+        }),
+      },
+      {
+        type: "claude_local",
+        getQuotaWindows: vi.fn().mockResolvedValue({
+          provider: "anthropic",
+          source: "claude-cli",
+          ok: true,
+          windows: [{ label: "15m limit", usedPercent: 30, resetsAt: null, valueLabel: null, detail: null }],
+        }),
+      },
+    ] as never);
+    mockGetExperimental.mockResolvedValue({
+      enableAnthropicQuotaPolling: false,
+    });
+
+    const results = await fetchAllQuotaWindows({} as any);
+
+    expect(results).toHaveLength(1);
+    expect(results).toEqual([
+      {
+        provider: "openai",
+        source: "codex-rpc",
+        ok: true,
+        windows: [{ label: "5h limit", usedPercent: 2, resetsAt: null, valueLabel: null, detail: null }],
+      },
+    ]);
+    expect(mockGetExperimental).toHaveBeenCalled();
   });
 });
