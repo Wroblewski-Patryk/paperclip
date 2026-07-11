@@ -11,6 +11,53 @@ const gateArg = argValue("--gate");
 const maxGates = Number.parseInt(argValue("--max-gates") ?? "1", 10);
 
 const gateBindingPlans = {
+  "LUC-372": {
+    agentNames: [
+      "00 AIA (AI Assistant)",
+      "09 DRE (Deployment & Reliability Engineer)",
+      "09 QVE (QA & Verification Engineer)",
+      "09 TAE (Test Automation Engineer)",
+      "10 SPA (Security & Privacy Auditor)",
+      "11 SPM (Soar Product Manager)",
+    ],
+    env: {
+      ROLLBACK_GUARD_COOLIFY_BASE_URL: "coolify_base_url",
+      ROLLBACK_GUARD_COOLIFY_API_TOKEN: "coolify_read_api_token",
+      ROLLBACK_GUARD_SOAR_WEB_RESOURCE_ID: "coolify_resource_uuid_soar_web",
+      ROLLBACK_GUARD_SOAR_API_RESOURCE_ID: "coolify_resource_uuid_soar_api",
+      PROD_DB_CHECK_POSTGRES_RESOURCE_ID: "coolify_database_uuid_soar_postgresql",
+      PROD_DB_CHECK_REDIS_RESOURCE_ID: "coolify_database_uuid_soar_redis",
+      PROD_DB_CHECK_COOLIFY_BASE_URL: "coolify_base_url",
+      PROD_DB_CHECK_COOLIFY_API_TOKEN: "coolify_read_api_token",
+      PRODUCTION_DB_CHECK_POSTGRES_RESOURCE_ID: "coolify_database_uuid_soar_postgresql",
+      PRODUCTION_DB_CHECK_REDIS_RESOURCE_ID: "coolify_database_uuid_soar_redis",
+      RC_SOAR_WEB_RESOURCE_ID: "coolify_resource_uuid_soar_web",
+      RC_SOAR_API_RESOURCE_ID: "coolify_resource_uuid_soar_api",
+      RC_SOAR_PROD_BASE_URL: "soar_prod_base_url",
+      RC_SOAR_API_BASE_URL: "soar_api_base_url",
+      GATE_COOLIFY_BASE_URL: "coolify_base_url",
+      GATE_COOLIFY_API_TOKEN: "coolify_read_api_token",
+      GATE_SOAR_PROJECT_ID: "coolify_project_id_soar",
+      GATE_SOAR_PROJECT_UUID: "coolify_project_uuid_soar",
+      GATE_SOAR_ENVIRONMENT_UUID: "coolify_environment_uuid_soar_production",
+      GATE_SOAR_WEB_RESOURCE_ID: "coolify_resource_uuid_soar_web",
+      GATE_SOAR_API_RESOURCE_ID: "coolify_resource_uuid_soar_api",
+      LIVEIMPORT_READBACK_WEB_BASE_URL: "soar_prod_base_url",
+      LIVEIMPORT_READBACK_API_BASE_URL: "soar_api_base_url",
+      LIVEIMPORT_READBACK_AUTH_EMAIL: "soar_prod_test_email",
+      LIVEIMPORT_READBACK_AUTH_PASSWORD: "soar_prod_test_password",
+      PROD_UI_AUDIT_WEB_BASE_URL: "soar_prod_base_url",
+      PROD_UI_AUDIT_API_BASE_URL: "soar_api_base_url",
+      PROD_UI_AUDIT_AUTH_EMAIL: "soar_prod_test_email",
+      PROD_UI_AUDIT_AUTH_PASSWORD: "soar_prod_test_password",
+      PROD_UI_AUDIT_ADMIN_EMAIL: "soar_prod_admin_smoke_email",
+      PROD_UI_AUDIT_ADMIN_PASSWORD: "soar_prod_admin_smoke_password",
+      PROD_UI_WEB_BASE_URL: "soar_prod_base_url",
+      PROD_UI_API_BASE_URL: "soar_api_base_url",
+      PROD_UI_AUTH_EMAIL: "soar_prod_test_email",
+      PROD_UI_AUTH_PASSWORD: "soar_prod_test_password",
+    },
+  },
   "LUC-30": {
     agentNames: [
       "11 IPM (Innovation Portfolio Manager)",
@@ -178,6 +225,13 @@ async function resolveCompany() {
 }
 
 const company = await resolveCompany();
+const derivedGateSpecs = [
+  {
+    project: "Soar",
+    rootBlocker: "LUC-372",
+    owner: "00 AIA (AI Assistant)",
+  },
+];
 
 let health = null;
 let liveRuns = [];
@@ -226,9 +280,10 @@ const issueByIdentifier = new Map();
 const agentById = new Map(agents.map((agent) => [agent.id, agent]));
 const agentsByName = new Map(agents.map((agent) => [agent.name, agent]));
 const secretByKey = new Map(secrets.map((secret) => [normalizeKey(secret.key), secret]));
+const allGateSpecs = [...derivedGateSpecs, ...softwarehouseGateSpecs];
 const gateSpecs = gateArg
-  ? softwarehouseGateSpecs.filter((spec) => spec.rootBlocker === gateArg)
-  : softwarehouseGateSpecs;
+  ? allGateSpecs.filter((spec) => spec.rootBlocker === gateArg)
+  : allGateSpecs;
 
 const planned = [];
 const skipped = [];

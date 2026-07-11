@@ -1641,6 +1641,21 @@ test("runtime gate repair binds smoke and safety refs for current delivery gates
   assert.match(source, /ROOST_PROD_TEST_API_BASE_URL: "roost_api_base_url"/);
 });
 
+test("runtime gate repair binds accepted LUC-372 protected input families", async () => {
+  const source = await readFile("scripts/repair-runtime-gate-bindings.mjs", "utf8");
+
+  assert.match(source, /"LUC-372"/);
+  assert.match(source, /derivedGateSpecs/);
+  assert.match(source, /ROLLBACK_GUARD_COOLIFY_API_TOKEN: "coolify_read_api_token"/);
+  assert.match(source, /PROD_DB_CHECK_POSTGRES_RESOURCE_ID: "coolify_database_uuid_soar_postgresql"/);
+  assert.match(source, /PRODUCTION_DB_CHECK_REDIS_RESOURCE_ID: "coolify_database_uuid_soar_redis"/);
+  assert.match(source, /RC_SOAR_PROD_BASE_URL: "soar_prod_base_url"/);
+  assert.match(source, /GATE_SOAR_WEB_RESOURCE_ID: "coolify_resource_uuid_soar_web"/);
+  assert.match(source, /LIVEIMPORT_READBACK_AUTH_EMAIL: "soar_prod_test_email"/);
+  assert.match(source, /PROD_UI_AUDIT_ADMIN_PASSWORD: "soar_prod_admin_smoke_password"/);
+  assert.match(source, /PROD_UI_AUTH_PASSWORD: "soar_prod_test_password"/);
+});
+
 test("runtime gate repair can update open non-terminal gates", async () => {
   const source = await readFile("scripts/repair-runtime-gate-bindings.mjs", "utf8");
 
