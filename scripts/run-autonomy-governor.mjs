@@ -4,7 +4,12 @@ import { resolveIssuesByIdentifier } from "./lib/issue-discovery.mjs";
 import { normalizeKey } from "./lib/secret-aliases.mjs";
 import { gateFreshnessObservation } from "./lib/gate-freshness.mjs";
 import { softwarehouseGateSpecs } from "./lib/softwarehouse-gates.mjs";
-import { hasPendingReviewInteraction, interactionRows } from "./lib/softwarehouse-routine-gates.mjs";
+import {
+  approvalRows,
+  hasPendingIssueApproval,
+  hasPendingReviewInteraction,
+  interactionRows,
+} from "./lib/softwarehouse-routine-gates.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyNames = [
@@ -395,20 +400,28 @@ const assignableRunnableIssues = independentRunnableIssues.filter((issue) =>
 );
 const blockedIssues = openActiveIssues.filter((issue) => issue.status === "blocked");
 const pendingReviewInteractionIssueIds = new Set();
+const pendingReviewApprovalIssueIds = new Set();
 for (const issue of openActiveIssues.filter((entry) => entry.status === "in_review")) {
-  const interactions = await request("GET", `/api/issues/${issue.id}/interactions`)
-    .then(interactionRows)
-    .catch(() => []);
+  const [interactions, approvals] = await Promise.all([
+    request("GET", `/api/issues/${issue.id}/interactions`)
+      .then(interactionRows)
+      .catch(() => []),
+    request("GET", `/api/issues/${issue.id}/approvals`)
+      .then(approvalRows)
+      .catch(() => []),
+  ]);
   if (hasPendingReviewInteraction(interactions)) pendingReviewInteractionIssueIds.add(issue.id);
+  if (hasPendingIssueApproval(approvals)) pendingReviewApprovalIssueIds.add(issue.id);
 }
 const pendingReviewInteractionIdentifiers = new Set(openActiveIssues
-  .filter((issue) => pendingReviewInteractionIssueIds.has(issue.id))
+  .filter((issue) => pendingReviewInteractionIssueIds.has(issue.id) || pendingReviewApprovalIssueIds.has(issue.id))
   .map((issue) => issue.identifier)
   .filter(Boolean));
 const reviewIssuesWithoutPendingDecision = openActiveIssues.filter((issue) =>
   issue.status === "in_review"
   && !liveIssueIds.has(issue.id)
   && !pendingReviewInteractionIssueIds.has(issue.id)
+  && !pendingReviewApprovalIssueIds.has(issue.id)
 );
 const liveRunIssuePairs = liveRuns.map((run) => ({ run, issue: issueById.get(run.issueId) ?? null }));
 const unknownActiveRunCount = Math.max(0, activeRunCount - liveRuns.length);

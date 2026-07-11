@@ -1049,6 +1049,16 @@ test("autonomy governor treats pending review interactions as known root blocker
   assert.match(source, /pendingReviewInteractionIdentifiers\.has\(rootBlocker\)/);
 });
 
+test("autonomy governor treats pending review approvals as structured review paths", async () => {
+  const source = await readFile("scripts/run-autonomy-governor.mjs", "utf8");
+
+  assert.match(source, /hasPendingIssueApproval/);
+  assert.match(source, /pendingReviewApprovalIssueIds/);
+  assert.match(source, /\/api\/issues\/\$\{issue\.id\}\/approvals/);
+  assert.match(source, /&& !pendingReviewApprovalIssueIds\.has\(issue\.id\)/);
+  assert.match(source, /pendingReviewInteractionIssueIds\.has\(issue\.id\) \|\| pendingReviewApprovalIssueIds\.has\(issue\.id\)/);
+});
+
 test("autonomy governor treats live root blockers as already covered", async () => {
   const source = await readFile("scripts/run-autonomy-governor.mjs", "utf8");
 
