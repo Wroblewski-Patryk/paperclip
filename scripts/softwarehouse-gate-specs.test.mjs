@@ -848,6 +848,67 @@ test("next legal action selector routes Soar acceptance source-control blockers"
   assert.equal(action.target, "Soar");
 });
 
+test("next legal action selector prefers fresh source-control target over stale reports", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+  const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
+
+  const action = pickAction(
+    { controlBrief: { dirtyProjects: [{ project: "Soar", source: "stale_control_tick" }] } },
+    {},
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    null,
+    {
+      checked: true,
+      ok: true,
+      counts: { dirtyProjectRepos: 1, dirtyOperatingRepos: 0 },
+    },
+    {
+      checked: true,
+      ok: true,
+      repos: [
+        { name: "Paperclip_Softwarehouse", required: true, clean: true, dirtyCount: 0 },
+        { name: "Soar", required: false, clean: true, dirtyCount: 0 },
+        { name: "Roost", required: false, clean: false, dirtyCount: 87 },
+      ],
+    },
+  );
+
+  assert.equal(action.decision, "start_source_control_closure");
+  assert.equal(action.target, "Roost");
+  assert.match(source, /probeSourceControl/);
+  assert.match(source, /fresh_source_control_probe/);
+});
+
+test("next legal action selector pauses delivery when fresh source-control sees dirty Paperclip OS", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    {},
+    {},
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    null,
+    {
+      checked: true,
+      ok: true,
+      counts: { dirtyProjectRepos: 0, dirtyOperatingRepos: 1 },
+    },
+    {
+      checked: true,
+      ok: true,
+      repos: [
+        { name: "Paperclip_Softwarehouse", required: true, clean: false, dirtyCount: 1 },
+        { name: "Roost", required: false, clean: false, dirtyCount: 87 },
+      ],
+    },
+  );
+
+  assert.equal(action.decision, "refresh_control_tick");
+  assert.equal(action.target, "Paperclip_Softwarehouse");
+  assert.match(action.reason, /operating repo/);
+});
+
 test("next legal action selector routes Coolify acceptance blockers when source control is clear", async () => {
   const { pickAction } = await import("./run-next-legal-action-selector.mjs");
 

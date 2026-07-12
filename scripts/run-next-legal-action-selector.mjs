@@ -147,6 +147,35 @@ function probeAutonomyGovernor() {
   };
 }
 
+function probeSourceControl() {
+  const result = spawnSync(process.execPath, ["scripts/check-softwarehouse-source-control.mjs"], {
+    cwd: process.cwd(),
+    env: { ...process.env },
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_SOURCE_CONTROL_TIMEOUT_MS ?? 60_000),
+  });
+  const parsed = result.status === 0 && !result.error ? parseJsonOutput(result.stdout) : null;
+  return {
+    checked: true,
+    ok: result.status === 0 && !result.error && Boolean(parsed),
+    status: result.status,
+    signal: result.signal,
+    error: result.error ? String(result.error.message ?? result.error) : null,
+    stderr: String(result.stderr ?? "").slice(0, 2_000),
+    clean: parsed?.clean ?? null,
+    repos: Array.isArray(parsed?.repos)
+      ? parsed.repos.map((repo) => ({
+          name: repo.name,
+          clean: repo.clean,
+          dirtyCount: repo.dirtyCount,
+          required: repo.required,
+          sourceControlClosureLanes: repo.sourceControlClosureLanes ?? [],
+        }))
+      : [],
+  };
+}
+
 function acceptanceCheck(acceptanceLedger, id) {
   return (acceptanceLedger?.checks ?? []).find((check) => check.id === id) ?? null;
 }
@@ -168,6 +197,7 @@ export function pickAction(
   liveRunProbe = { checked: false },
   acceptanceLedger = null,
   governorProbe = { checked: false },
+  sourceControlProbe = { checked: false },
 ) {
   const reportedActiveRunCount = Number(control?.activeRunCount ?? readiness?.activeRunCount ?? 0);
   const activeRunCount =
@@ -192,18 +222,41 @@ export function pickAction(
       forbidden: ["start duplicate owner lane", "push", "deploy", "restart"],
     };
   }
+  const freshSourceControlRepos = sourceControlProbe?.checked && sourceControlProbe.ok
+    ? (sourceControlProbe.repos ?? [])
+    : null;
+  const freshOperatingDirtyRepo = freshSourceControlRepos?.find((repo) => repo.required && !repo.clean) ?? null;
+  const freshProjectDirtyRepo = freshSourceControlRepos?.find((repo) => !repo.required && !repo.clean) ?? null;
   const freshGovernorSourceControlClean =
     governorProbe?.checked
     && governorProbe.ok
     && Number(governorProbe?.counts?.dirtyProjectRepos ?? 0) === 0
     && Number(governorProbe?.counts?.dirtyOperatingRepos ?? 0) === 0;
+  if (freshOperatingDirtyRepo) {
+    return {
+      decision: "refresh_control_tick",
+      reason: "The Paperclip operating repo has local changes; refresh control evidence and close OS source-control before starting delivery work.",
+      command: "pnpm softwarehouse:control-tick",
+      target: freshOperatingDirtyRepo.name,
+      allowed: ["refresh reports", "classify operating repo changes", "commit or explicitly close OS source-control state"],
+      forbidden: ["start duplicate owner lane", "push", "deploy", "restart"],
+    };
+  }
   const ledgerReportsDirtySoar =
     !freshGovernorSourceControlClean && acceptanceCheckBlocks(acceptanceLedger, "soar_source_control_clean");
   const staleDirtyProject = control?.controlBrief?.dirtyProjects?.[0]
     ?? readiness?.dirtyProjects?.[0]
     ?? (ledgerReportsDirtySoar ? { project: "Soar", source: "soar_acceptance_ledger" } : null);
-  const dirtyProject = freshGovernorSourceControlClean ? null : staleDirtyProject;
+  const dirtyProject = freshSourceControlRepos
+    ? (freshProjectDirtyRepo ? { project: freshProjectDirtyRepo.name, source: "fresh_source_control_probe" } : null)
+    : freshGovernorSourceControlClean
+    ? null
+    : staleDirtyProject;
   const runnableSourceControlGate = [
+    ...((freshProjectDirtyRepo?.sourceControlClosureLanes ?? []).map((lane) => ({
+      ...lane,
+      identifier: freshProjectDirtyRepo.name,
+    }))),
     ...(control?.sourceControlGateIssues ?? []),
     ...(readiness?.sourceControlGates ?? []),
   ].find(isRunnableSourceControlGate);
@@ -379,12 +432,13 @@ function runApplyCommand(action) {
 }
 
 async function main() {
-  const [control, readiness, acceptanceLedger, appHealth, governorProbe] = await Promise.all([
+  const [control, readiness, acceptanceLedger, appHealth, governorProbe, sourceControlProbe] = await Promise.all([
     readJson("report/softwarehouse-control-tick.latest.json"),
     readJson("report/softwarehouse-readiness-snapshot.latest.json"),
     readJson("report/soar-delivery-acceptance.latest.json"),
     probeAppHealth(),
     Promise.resolve(probeAutonomyGovernor()),
+    Promise.resolve(probeSourceControl()),
   ]);
   const resolvedCompanyId = resolveCompanyId(control, readiness);
   const liveRunProbeResult = await probeLiveRuns(resolvedCompanyId);
@@ -395,7 +449,8 @@ async function main() {
     appHealth,
     liveRunProbe: liveRunProbeResult,
     governorProbe,
-    action: pickAction(control, readiness, appHealth, liveRunProbeResult, acceptanceLedger, governorProbe),
+    sourceControlProbe,
+    action: pickAction(control, readiness, appHealth, liveRunProbeResult, acceptanceLedger, governorProbe, sourceControlProbe),
   };
   if (apply) {
     output.applyResult = runApplyCommand(output.action);

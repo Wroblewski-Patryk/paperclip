@@ -6,6 +6,17 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-12 / LUC-561 PDCA Learning and Company Memory Review:
+  - Reviewed the inline wake payload and `/api/issues/LUC-561/heartbeat-context` for the current routine heartbeat.
+  - State check: the issue is `in_progress`, assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and there is no execution workspace or recovery action to continue.
+  - Memory check: the current board context, active mission, and project journal already capture the live Stage 1 posture and Soar/Roost delivery scope, so no durable instruction, procedure, or board-context update was justified.
+  - Action taken: record this checkpoint in durable memory and close the issue with a concise no-drift note so the routine does not linger without a live continuation path.
+
+- 2026-07-12 / Next legal action fresh source-control probe:
+  - Root cause found after Soar/Roost source-control closures: `softwarehouse:next-legal-action` could select a stale project target from an older control/readiness report even after the source-control packet had changed.
+  - Updated `scripts/run-next-legal-action-selector.mjs` to run a fresh source-control probe before selecting the next action and to pause delivery if the Paperclip operating repo is dirty.
+  - Verification: `pnpm run softwarehouse:test-gates` passed 119/119, and dry-run `softwarehouse:next-legal-action` now reports Soar/Roost clean while correctly holding on Paperclip OS closure.
+
 - 2026-07-12 / LUC-534 PDCA Learning and Company Memory Review:
   - Reviewed the inline wake payload and live issue state for [LUC-534](/LUC/issues/LUC-534) during the current routine heartbeat.
   - State check: the issue is `in_progress`, assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and there is no execution workspace or recovery action to continue.
