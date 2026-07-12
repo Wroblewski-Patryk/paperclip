@@ -38,7 +38,15 @@ include both:
   quota-derived plan usage when available;
 - `subscriptionSpendCents`, `subscriptionBudgetCents`, and
   `subscriptionUtilizationPercent`: the subscription estimate used by dashboard
-  and cost views.
+  and cost views for the currently most constrained provider window;
+- `subscriptionMonthlyBudgetCents`: the configured monthly plan value. Use this
+  value when creating `calendar_month_utc` effective-plan budget policies.
+
+Do not size calendar-month agent policies from the current 5-hour or weekly
+window estimate. Those windows can alternate as the most constrained window and
+would create false per-agent hard stops. Provider quota holds govern short and
+long quota windows independently; monthly effective-plan policies allocate the
+monthly plan value across agents.
 
 Subscription estimates are operational capacity signals, not proof of provider
 invoicing. Metered API integrations should still report explicit `cost_events`.

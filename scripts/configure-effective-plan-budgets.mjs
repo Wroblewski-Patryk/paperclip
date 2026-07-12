@@ -37,7 +37,7 @@ const [summary, agents, byAgent] = await Promise.all([
 ]);
 
 const subscriptionSpendCents = Number(summary.subscriptionSpendCents ?? 0);
-const effectivePlanBudgetCents = Number(summary.subscriptionBudgetCents ?? planBudgetCents);
+const effectivePlanBudgetCents = Number(summary.subscriptionMonthlyBudgetCents ?? planBudgetCents);
 const totalTokens = byAgent.reduce((sum, row) => sum + accountedTokens(row), 0);
 const byAgentId = new Map(byAgent.map((row) => [row.agentId, row]));
 
@@ -56,11 +56,11 @@ const policies = [
   ...agents.map((agent) => {
     const usage = byAgentId.get(agent.id);
     const tokens = usage ? accountedTokens(usage) : 0;
-    const currentShare = totalTokens > 0
-      ? Math.round((subscriptionSpendCents * tokens) / totalTokens)
+    const monthlyPlanShare = totalTokens > 0
+      ? Math.round((effectivePlanBudgetCents * tokens) / totalTokens)
       : 0;
-    const bufferedBudget = currentShare > 0
-      ? roundUpCents(currentShare * agentBuffer)
+    const bufferedBudget = monthlyPlanShare > 0
+      ? roundUpCents(monthlyPlanShare * agentBuffer)
       : minAgentBudgetCents;
     const amount = Math.max(
       minAgentBudgetCents,
@@ -77,16 +77,16 @@ const policies = [
       notifyEnabled: true,
       isActive: true,
       _agentName: agent.name,
-      _currentShare: currentShare,
+      _monthlyPlanShare: monthlyPlanShare,
       _tokens: tokens,
     };
   }),
 ];
 
-const publicPlan = policies.map(({ _agentName, _currentShare, _tokens, ...policy }) => ({
+const publicPlan = policies.map(({ _agentName, _monthlyPlanShare, _tokens, ...policy }) => ({
   ...policy,
   agentName: _agentName,
-  currentShareCents: _currentShare,
+  monthlyPlanShareCents: _monthlyPlanShare,
   accountedTokens: _tokens,
 }));
 
@@ -105,7 +105,7 @@ if (!apply) {
 }
 
 const results = [];
-for (const { _agentName, _currentShare, _tokens, ...policy } of policies) {
+for (const { _agentName, _monthlyPlanShare, _tokens, ...policy } of policies) {
   const result = await request(`/api/companies/${companyId}/budgets/policies`, {
     method: "POST",
     body: JSON.stringify(policy),
