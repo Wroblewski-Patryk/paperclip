@@ -8,6 +8,7 @@ import { secretForKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { autonomyDispositionForMode, controlActionSummaryFor, controlActionTypeFor, deliveryPermissionForMode, gateBriefFor, staleGateOwnerActionLine } from "./lib/softwarehouse-control-brief.mjs";
 import { softwarehouseGateSpecs, softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
 import { finalizeRecurringIssue } from "./run-softwarehouse-continuation-watchdog.mjs";
+import { shouldShellExecuteApplyCommand } from "./run-next-legal-action-selector.mjs";
 
 const requiredFields = [
   "project",
@@ -1264,6 +1265,16 @@ test("continuation watchdog applies the next legal action when Paperclip goes id
   assert.match(longevityConfigurator, /pnpm run softwarehouse:continuation-watchdog/);
   assert.match(packageJson, /"softwarehouse:continuation-watchdog": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --once"/);
   assert.match(packageJson, /"softwarehouse:continuation-watchdog:loop": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --loop"/);
+});
+
+test("next legal action apply only uses the Windows shell for bare launcher names", async () => {
+  const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
+
+  assert.match(source, /export function shouldShellExecuteApplyCommand\(executable\)/);
+  assert.match(source, /shell: shouldShellExecuteApplyCommand\(executable\)/);
+  assert.equal(shouldShellExecuteApplyCommand("pnpm"), process.platform === "win32");
+  assert.equal(shouldShellExecuteApplyCommand(process.execPath), false);
+  assert.equal(shouldShellExecuteApplyCommand("C:\\\\Program Files\\\\nodejs\\\\node.exe"), false);
 });
 
 test("finalizeRecurringIssue authenticates the recurring disposition patch when an agent API key is present", async () => {

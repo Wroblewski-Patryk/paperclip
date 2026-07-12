@@ -439,7 +439,12 @@ function renderMarkdown(output) {
   ].join("\n");
 }
 
-function runApplyCommand(action) {
+export function shouldShellExecuteApplyCommand(executable) {
+  if (process.platform !== "win32") return false;
+  return !String(executable).includes("\\") && !String(executable).includes("/") && !String(executable).includes(":");
+}
+
+export function runApplyCommand(action) {
   const command = applyCommands.get(action.decision);
   if (!command) {
     return {
@@ -454,7 +459,7 @@ function runApplyCommand(action) {
     env: { ...process.env, ...env },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-    shell: process.platform === "win32",
+    shell: shouldShellExecuteApplyCommand(executable),
     timeout: Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_APPLY_TIMEOUT_MS ?? 180_000),
   });
   return {
