@@ -8,6 +8,8 @@ const outputPathMd = "report/softwarehouse-next-legal-action.latest.md";
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const fallbackCompanyId = "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const healthTimeoutMs = Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_HEALTH_TIMEOUT_MS ?? 5_000);
+const currentRunId = process.env.PAPERCLIP_RUN_ID ?? null;
+const currentIssueId = process.env.PAPERCLIP_ISSUE_ID ?? process.env.PAPERCLIP_TASK_ID ?? null;
 
 const applyCommands = new Map([
   ["assign_runnable_work_owner", ["node", ["scripts/run-project-ownership-assignment.mjs", "--apply"]]],
@@ -82,10 +84,27 @@ async function probeLiveRuns(companyId) {
     }
     const data = await response.json();
     const liveRuns = Array.isArray(data) ? data : data.runs ?? data.liveRuns ?? [];
+    const normalizedLiveRuns = Array.isArray(liveRuns)
+      ? liveRuns.map((run) => ({
+          id: run.id,
+          issueId: run.issueId ?? null,
+          issueIdentifier: run.issueIdentifier ?? null,
+        }))
+      : [];
+    const selfRuns = normalizedLiveRuns.filter(
+      (run) =>
+        (currentRunId && run.id === currentRunId) ||
+        (currentIssueId && run.issueId === currentIssueId) ||
+        (currentIssueId && run.issueIdentifier === currentIssueId),
+    );
+    const selfRunSet = new Set(selfRuns);
+    const externalLiveRuns = normalizedLiveRuns.filter((run) => !selfRunSet.has(run));
     return {
       checked: true,
       ok: true,
-      liveRunCount: Array.isArray(liveRuns) ? liveRuns.length : null,
+      observedLiveRunCount: normalizedLiveRuns.length,
+      ignoredSelfRunCount: selfRuns.length,
+      liveRunCount: externalLiveRuns.length,
     };
   } catch (error) {
     return {

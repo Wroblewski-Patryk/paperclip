@@ -2189,3 +2189,10 @@ Actions:
 Decision: continuation watchdogs and similar self-supervision routines must not
 let their own Paperclip run count as external work. If the company is otherwise
 idle, they should dispatch the next legal action instead of going quiet.
+
+Follow-up: the same self-run rule must also live inside
+`scripts/run-next-legal-action-selector.mjs`, because the watchdog delegates to
+`softwarehouse:next-legal-action:apply`. Without that second filter, the
+watchdog can correctly decide to dispatch work and then the selector can still
+block on the watchdog's own run. The selector now reports observed versus
+ignored self runs and uses the filtered live-run count for dispatch decisions.

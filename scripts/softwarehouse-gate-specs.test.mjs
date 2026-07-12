@@ -794,6 +794,7 @@ test("next legal action selector refuses stale supervision when the local app is
 
 test("next legal action selector trusts fresh live-run probe over stale cached counts", async () => {
   const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+  const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
 
   const action = pickAction(
     {
@@ -816,6 +817,12 @@ test("next legal action selector trusts fresh live-run probe over stale cached c
 
   assert.notEqual(action.decision, "supervise_active_runs");
   assert.equal(action.decision, "refresh_control_tick");
+  assert.match(source, /const currentRunId = process\.env\.PAPERCLIP_RUN_ID \?\? null/);
+  assert.match(source, /const currentIssueId = process\.env\.PAPERCLIP_ISSUE_ID \?\? process\.env\.PAPERCLIP_TASK_ID \?\? null/);
+  assert.match(source, /observedLiveRunCount/);
+  assert.match(source, /ignoredSelfRunCount/);
+  assert.match(source, /run\.id === currentRunId/);
+  assert.match(source, /run\.issueId === currentIssueId/);
 });
 
 test("next legal action selector routes Soar acceptance source-control blockers", async () => {
