@@ -64,7 +64,10 @@ function uniqueIssues(rows) {
 function gitClean(projectName) {
   const cwd = path.join(appsRoot, projectName);
   const status = spawnSync("git", ["status", "--short"], { cwd, encoding: "utf8" });
-  if (status.status !== 0) return { exists: false, clean: false, error: (status.stderr || status.stdout).trim() };
+  if (status.status !== 0) {
+    const errorText = `${status.stderr ?? ""}${status.stdout ?? ""}`.trim();
+    return { exists: false, clean: false, error: errorText || `git status failed with exit code ${status.status}` };
+  }
   const head = spawnSync("git", ["rev-parse", "--short", "HEAD"], { cwd, encoding: "utf8" });
   return {
     exists: true,
