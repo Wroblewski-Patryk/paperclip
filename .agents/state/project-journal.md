@@ -6,6 +6,11 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-12 / LUC-719 PDCA Learning and Company Memory Review:
+  - Reviewed `GET /api/issues/LUC-719`, `GET /api/issues/LUC-719/heartbeat-context`, and `GET /api/issues/LUC-719/comments?order=asc`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, and no attachments or work products.
+  - Ran `pnpm softwarehouse:control-tick`; the control tick reported `operating_source_control_closure_needed`, noted the Paperclip OS worktree is dirty, and already dispatched the specific truth-gap follow-ups as `LUC-721` for Roost and `LUC-722` for Soar.
+  - Decision: no new durable policy, instruction, or procedure change was justified. The correct memory outcome is to keep LUC-719 scoped to PDCA learning and let the routed OS-closure and project-truth issues carry the concrete follow-up work.
+
 - 2026-07-12 / Windows agent process-tree cleanup:
   - A live supervision audit found one stale DRE run plus two orphaned Codex descendants whose Paperclip run records had already been cancelled; the Windows cancellation path had terminated only the recorded wrapper process.
   - Cleared the two verified orphan process trees, applied the live-run and routine-duplicate janitors, and confirmed the DRE queue resumed with one active recovery run and one queued source-control closure.

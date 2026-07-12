@@ -454,7 +454,6 @@ function runApplyCommand(action) {
     env: { ...process.env, ...env },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-    shell: process.platform === "win32",
     timeout: Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_APPLY_TIMEOUT_MS ?? 180_000),
   });
   return {
