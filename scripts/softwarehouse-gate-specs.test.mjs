@@ -979,7 +979,15 @@ test("local source-control starter can close safe Paperclip operating docs", asy
   assert.match(source, /"operating_source_control_closure_needed"/);
   assert.match(source, /\["Softwarehouse Operating System", "LUC-545"\]/);
   assert.match(source, /operatingSourceControlSafe/);
+  assert.match(source, /operatingSourceControlClosureRequested/);
+  assert.match(source, /projectPriority\.length === 1/);
+  assert.match(source, /!operatingSourceControlClosureRequested \|\| isSourceControlClosureTitle\(issue\.title\)/);
   assert.match(source, /safeSourceControlGroups/);
+  assert.match(source, /const currentIssueId = process\.env\.PAPERCLIP_ISSUE_ID \?\? process\.env\.PAPERCLIP_TASK_ID \?\? null/);
+  assert.match(source, /wipStateIgnoringCurrentRun/);
+  assert.match(source, /ignoredSelfRunCount/);
+  assert.match(source, /run\.id === runId/);
+  assert.match(source, /run\.issueId === currentIssueId/);
 });
 
 test("longevity configuration keeps the continuation watchdog frequent without duplicate triggers", async () => {

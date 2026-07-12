@@ -1,4 +1,4 @@
-import { agentWipBlockerFor, fetchAgentWipState } from "./lib/agent-wip-guard.mjs";
+import { agentWipBlockerFor, fetchAgentWipState, summarizeAgentWip } from "./lib/agent-wip-guard.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
 
@@ -12,6 +12,7 @@ const companyNames = [
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const authToken = process.env.PAPERCLIP_API_KEY ?? null;
 const runId = process.env.PAPERCLIP_RUN_ID ?? null;
+const currentIssueId = process.env.PAPERCLIP_ISSUE_ID ?? process.env.PAPERCLIP_TASK_ID ?? null;
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_LOCAL_REPAIR_REQUEST_TIMEOUT_MS ?? 30_000);
 const governorTimeoutMs = Number(process.env.SOFTWAREHOUSE_LOCAL_REPAIR_GOVERNOR_TIMEOUT_MS ?? 30_000);
@@ -213,6 +214,34 @@ function sidecarHasActiveConflict(sidecar, liveProjectIds, busyAgentIds, unknown
     || Boolean(sidecar.assignee?.id && busyAgentIds.has(sidecar.assignee.id));
 }
 
+function isCurrentControlRun(run) {
+  return Boolean(
+    (runId && run.id === runId)
+    || (currentIssueId && run.issueId === currentIssueId)
+    || (currentIssueId && run.issueIdentifier === currentIssueId)
+  );
+}
+
+function wipStateIgnoringCurrentRun(state) {
+  const observedLiveRuns = Array.isArray(state?.liveRuns) ? state.liveRuns : [];
+  const ignoredSelfRuns = observedLiveRuns.filter(isCurrentControlRun);
+  const externalLiveRuns = observedLiveRuns.filter((run) => !isCurrentControlRun(run));
+  const observedActiveRunCount = Number.isFinite(Number(state?.activeRunCount))
+    ? Math.max(0, Number(state.activeRunCount))
+    : observedLiveRuns.length;
+  return {
+    ...state,
+    ...summarizeAgentWip({
+      activeRunCount: Math.max(0, observedActiveRunCount - ignoredSelfRuns.length),
+      liveRuns: externalLiveRuns,
+    }),
+    liveRuns: externalLiveRuns,
+    observedActiveRunCount,
+    observedLiveRunCount: observedLiveRuns.length,
+    ignoredSelfRunCount: ignoredSelfRuns.length,
+  };
+}
+
 function sourceControlClosureTitlePrefix(projectName) {
   return `[${projectName}][Source Control Closure] Classify and close local dirty state`;
 }
@@ -389,8 +418,20 @@ try {
 
 const sourceControlPacket = await readSourceControlPacket();
 const dirtyProjectNames = new Set(sourceControlPacket.dirtyProjectNames ?? []);
-const activeRunCount = health.devServer?.activeRunCount ?? liveRuns.length;
-const unknownActiveRunCount = Math.max(0, activeRunCount - liveRuns.length);
+const operatingSourceControlClosureRequested =
+  sourceControlPacket.operatingSourceControlSafe === true
+  && projectPriority.length === 1
+  && projectPriority[0] === "Softwarehouse Operating System";
+const initialWip = wipStateIgnoringCurrentRun({
+  activeRunCount: health.devServer?.activeRunCount ?? liveRuns.length,
+  liveRuns,
+});
+const observedActiveRunCount = initialWip.observedActiveRunCount;
+const observedLiveRunCount = initialWip.observedLiveRunCount;
+const ignoredSelfRunCount = initialWip.ignoredSelfRunCount;
+liveRuns = initialWip.liveRuns;
+const activeRunCount = initialWip.activeRunCount;
+const unknownActiveRunCount = initialWip.unknownActiveRunCount;
 const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean));
 const projectById = new Map(projects.map((project) => [project.id, project]));
 const agentById = new Map(agents.map((agent) => [agent.id, agent]));
@@ -401,6 +442,7 @@ const liveProjectIds = new Set(liveRuns
 const busyAgentIds = new Set(liveRuns.map((run) => run.agentId).filter(Boolean));
 let candidates = issues
   .filter((issue) => isLocalRepairCandidate(issue, projectById, liveIssueIds, governorDecision))
+  .filter((issue) => !operatingSourceControlClosureRequested || isSourceControlClosureTitle(issue.title))
   .filter((issue) => {
     if (!isSourceControlClosureTitle(issue.title)) return true;
     const project = projectById.get(issue.projectId);
@@ -480,7 +522,7 @@ if (activeRunCount > 0 && candidates.length === 0 && sidecarCreations.length > 0
     governorDecision: governorDecision.decision,
     operatingPosture: governorDecision.operatingPosture,
   });
-} else if (sourceControlPacket.operatingRepoClean === false) {
+} else if (sourceControlPacket.operatingRepoClean === false && !operatingSourceControlClosureRequested) {
   actions.push({
     action: "noop_operating_repo_dirty",
     operatingDirtyCount: sourceControlPacket.operatingDirtyCount,
@@ -628,7 +670,9 @@ if (activeRunCount > 0 && candidates.length === 0 && sidecarCreations.length > 0
       }
       throw error;
     }
-    const freshWip = await fetchAgentWipState({ request, companyId: company.id });
+    const freshWip = wipStateIgnoringCurrentRun(
+      await fetchAgentWipState({ request, companyId: company.id }),
+    );
     const wakeBlocker = agentWipBlockerFor(created.assigneeAgentId, freshWip);
     try {
       await request("POST", `/api/issues/${created.id}/comments`, { body: comment, resume: !wakeBlocker });
@@ -771,7 +815,9 @@ if (activeRunCount > 0 && candidates.length === 0 && sidecarCreations.length > 0
       }
     }
     if (updated && isBacklogWake && updated.assigneeAgentId) {
-      const freshWip = await fetchAgentWipState({ request, companyId: company.id });
+      const freshWip = wipStateIgnoringCurrentRun(
+        await fetchAgentWipState({ request, companyId: company.id }),
+      );
       const wakeBlocker = agentWipBlockerFor(updated.assigneeAgentId, freshWip);
       if (wakeBlocker) {
         actions.at(-1).wakeSkipped = wakeBlocker;
@@ -815,10 +861,14 @@ console.log(JSON.stringify({
   company: { id: company.id, name: company.name },
   mode: apply ? "apply" : "dry-run",
   candidateScanStatus: "ok",
+  observedActiveRunCount,
+  observedLiveRunCount,
+  ignoredSelfRunCount,
   activeRunCount,
   liveRunCount: liveRuns.length,
   governorDecision,
   sourceControlPacket,
+  operatingSourceControlClosureRequested,
   projectPriority,
   candidateCount: candidates.length,
   candidates: candidates.slice(0, 5).map((issue) => ({

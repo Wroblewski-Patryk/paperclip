@@ -2342,3 +2342,28 @@ Decision: task volume is not itself progress. One run silence epoch must map to
 one reusable evaluation issue, while serial project-truth work must identify the
 exact source symbol. Control-plane churn should be repaired in code and tests,
 not accepted as normal autonomous-company activity.
+
+## 2026-07-12 - Continuation pipeline nested self-run fix
+
+Context: the continuation watchdog correctly ignored its own live run and
+selected operating source-control closure, but the nested local-repair starter
+counted that same run as external WIP. It therefore deferred the lane and ended
+with another report while executable closure work remained open.
+
+Actions:
+
+- Extended current run/issue filtering into
+  `scripts/run-local-repair-lane-starter.mjs`, including the fresh WIP check
+  immediately before assignment wakeups.
+- Preserved observed, ignored-self, and external run counts in output for
+  inspectable control decisions.
+- Allowed an explicitly requested `Softwarehouse Operating System` closure to
+  proceed while the operating repo is dirty only when the source-control packet
+  classifies every dirty group as safe docs/state evidence.
+- Restricted that mode to source-control closure lanes so unrelated project or
+  product work cannot bypass the operating-repo gate.
+
+Decision: every nested dispatch component must apply the same self-run filter.
+A supervisor's own run is evidence of orchestration, not competing owner work,
+and safe OS source-control closure must not be blocked merely because its purpose
+is to close an already-classified dirty OS worktree.
