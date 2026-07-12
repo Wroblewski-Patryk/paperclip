@@ -1,4 +1,4 @@
-import { Link } from "@/lib/router";
+import { useNavigate } from "@/lib/router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { deriveInitials } from "./Identity";
 import { IssueReferenceActivitySummary } from "./IssueReferenceActivitySummary";
@@ -29,6 +29,7 @@ interface ActivityRowProps {
 }
 
 export function ActivityRow({ event, agentMap, userProfileMap, entityNameMap, entityTitleMap, className }: ActivityRowProps) {
+  const navigate = useNavigate();
   const verb = formatActivityVerb(event.action, event.details, { agentMap, userProfileMap });
 
   const isHeartbeatEvent = event.entityType === "heartbeat_run";
@@ -80,9 +81,28 @@ export function ActivityRow({ event, agentMap, userProfileMap, entityNameMap, en
 
   if (link) {
     return (
-      <Link to={link} className={cn(classes, "no-underline text-inherit block")}>
+      <div
+        role="link"
+        tabIndex={0}
+        aria-label={`Open activity ${name ?? entityTitle ?? event.action}`}
+        className={cn(classes, "block")}
+        onClick={(clickEvent) => {
+          const target = clickEvent.target instanceof Element ? clickEvent.target : null;
+          const nestedInteractive = target?.closest("a, button, input, select, textarea, [role='button'], [role='link']");
+          if (nestedInteractive && nestedInteractive !== clickEvent.currentTarget) return;
+          navigate(link);
+        }}
+        onKeyDown={(keyEvent) => {
+          if (keyEvent.key !== "Enter") return;
+          const target = keyEvent.target instanceof Element ? keyEvent.target : null;
+          const nestedInteractive = target?.closest("a, button, input, select, textarea, [role='button'], [role='link']");
+          if (nestedInteractive && nestedInteractive !== keyEvent.currentTarget) return;
+          keyEvent.preventDefault();
+          navigate(link);
+        }}
+      >
         {inner}
-      </Link>
+      </div>
     );
   }
 

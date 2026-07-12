@@ -431,3 +431,24 @@ Current evidence:
   78 Windows paths and found 0 missing after the repair.
 - `docs/softwarehouse-feature-regression-register.csv` now tracks this as a
   regression risk under `runtime_file_state` and `cleanup_safety`.
+
+## 2026-07-12 - Distinguish dev-server cold render from a UI crash
+
+Observed pattern: after source or configuration changes, the local trusted
+Paperclip server and Vite middleware may restart together. The health endpoint
+can recover before the first UI module graph and dashboard queries finish, so a
+fresh browser tab may briefly show only `Loading...` even though the app is
+healthy. Dashboard activity content can also contain issue-reference links;
+wrapping the whole activity row in another anchor creates invalid nested links
+and React hydration warnings.
+
+Standing rule:
+
+- Verify `/api/health`, root HTML, Vite source assets, and the rendered DOM
+  before classifying a temporary blank/loading view as a crash.
+- After HMR or a watcher restart, repeat the browser check once the process
+  start time is stable; do not diagnose from the restart window alone.
+- Clickable activity rows that can contain issue mentions must use a
+  keyboard-accessible non-anchor container and preserve nested link behavior.
+- Keep a DOM regression check for `a a` nesting and confirm current timestamps
+  before treating retained browser console history as a fresh error.
