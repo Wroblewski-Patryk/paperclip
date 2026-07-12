@@ -6,6 +6,18 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-12 / LUC-660 PDCA Learning and Company Memory Review:
+  - Reviewed the live issue state for `LUC-660` through `GET /api/issues/LUC-660` and `/api/issues/LUC-660/heartbeat-context`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and no execution workspace or recovery action.
+  - Memory check: `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/project-memory.md`, `.agents/state/responsibility-learning.md`, `.agents/state/current-focus.md`, and `.agents/state/next-steps.md` already capture the current Stage 1 posture, recent PDCA lessons, and Soar/Roost delivery scope.
+  - Decision: no new durable memory, instruction, or procedure update was justified by this clean checkpoint.
+  - Action taken: record the review in the journal and close the issue with a concise no-drift note so the routine does not remain open without a live continuation path.
+
+- 2026-07-12 / LUC-647 PDCA Learning and Company Memory Review:
+  - Reviewed wake contract and live issue artifacts for the current checkpoint: `GET /api/issues/LUC-647`, `/api/issues/LUC-647/heartbeat-context`, and `/api/issues/LUC-647/comments`.
+  - State check: the issue is `in_progress`, assignee remains `ed63e6f1-2388-4568-be2e-0e7b10263921`, `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, no execution workspace, no recovery action, and no active continuation blocker.
+  - Memory check: board context (`.agents/state/board-context.md`), mission (`.agents/state/active-mission.md`), project journal (`.agents/state/project-journal.md`), project memory (`.agents/state/project-memory.md`), and operating learning ledgers already capture current Stage 1 reality; no durable memory/procedure/strategy delta was justified.
+  - Action taken: record this checkpoint as a clean no-op PDCA cycle and prepare terminal closure with evidence references only.
+
 - 2026-07-12 / LUC-595 PDCA Learning and Company Memory Review:
   - Reviewed the live issue state for `LUC-595` through `GET /api/issues/LUC-595` and confirmed it had no blockers, comments, attachments, or work products; this was a clean memory-promotion lane.
   - Reconciled the latest learning outputs against the durable memory files and promoted the reusable rules into `responsibility-learning.md`.
