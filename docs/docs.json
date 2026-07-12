@@ -140,6 +140,41 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Softwarehouse",
+        "groups": [
+          {
+            "group": "Operating Model",
+            "pages": [
+              "architecture",
+              "softwarehouse-sdlc",
+              "agent-governance",
+              "agent-runtime-layer",
+              "agent-policy-gates",
+              "agent-evidence",
+              "agent-trajectory-log",
+              "supervisor-agents"
+            ]
+          },
+          {
+            "group": "Evidence Gates",
+            "pages": [
+              "testing",
+              "security",
+              "deployment",
+              "monitoring"
+            ]
+          },
+          {
+            "group": "Improvement Loop",
+            "pages": [
+              "retrospectives",
+              "process-improvement",
+              "paperclip-autonomous-softwarehouse-audit"
+            ]
+          }
+        ]
       }
     ]
   },

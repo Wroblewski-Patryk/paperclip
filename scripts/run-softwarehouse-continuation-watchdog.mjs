@@ -9,6 +9,8 @@ const intervalMs = Number(process.env.SOFTWAREHOUSE_CONTINUATION_INTERVAL_MS ?? 
 const maxIterations = Number(process.env.SOFTWAREHOUSE_CONTINUATION_MAX_ITERATIONS ?? (once ? 1 : 0));
 const childTimeoutMs = Number(process.env.SOFTWAREHOUSE_CONTINUATION_CHILD_TIMEOUT_MS ?? 240_000);
 const outputPath = "report/softwarehouse-continuation-watchdog.latest.json";
+const currentRunId = process.env.PAPERCLIP_RUN_ID ?? null;
+const currentIssueId = process.env.PAPERCLIP_ISSUE_ID ?? process.env.PAPERCLIP_TASK_ID ?? null;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -35,22 +37,34 @@ async function probeLiveRuns() {
     }
     const data = await response.json();
     const liveRuns = Array.isArray(data) ? data : data.runs ?? data.liveRuns ?? [];
+    const normalizedLiveRuns = Array.isArray(liveRuns)
+      ? liveRuns.map((run) => ({
+          id: run.id,
+          status: run.status,
+          issueId: run.issueId ?? null,
+          issueIdentifier: run.issueIdentifier ?? null,
+          agentName: run.agentName ?? null,
+          lastOutputAt: run.lastOutputAt ?? null,
+          effectiveQuotaLane: run.effectiveQuotaLane ?? null,
+          effectiveModel: run.effectiveModel ?? null,
+        }))
+      : [];
+    const selfRuns = normalizedLiveRuns.filter(
+      (run) =>
+        (currentRunId && run.id === currentRunId) ||
+        (currentIssueId && run.issueId === currentIssueId) ||
+        (currentIssueId && run.issueIdentifier === currentIssueId),
+    );
+    const selfRunSet = new Set(selfRuns);
+    const externalLiveRuns = normalizedLiveRuns.filter((run) => !selfRunSet.has(run));
     return {
       checked: true,
       ok: true,
-      liveRunCount: Array.isArray(liveRuns) ? liveRuns.length : null,
-      liveRuns: Array.isArray(liveRuns)
-        ? liveRuns.map((run) => ({
-            id: run.id,
-            status: run.status,
-            issueId: run.issueId ?? null,
-            issueIdentifier: run.issueIdentifier ?? null,
-            agentName: run.agentName ?? null,
-            lastOutputAt: run.lastOutputAt ?? null,
-            effectiveQuotaLane: run.effectiveQuotaLane ?? null,
-            effectiveModel: run.effectiveModel ?? null,
-          }))
-        : [],
+      observedLiveRunCount: normalizedLiveRuns.length,
+      ignoredSelfRunCount: selfRuns.length,
+      liveRunCount: externalLiveRuns.length,
+      liveRuns: externalLiveRuns,
+      ignoredSelfRuns: selfRuns,
     };
   } catch (error) {
     return { checked: true, ok: false, error: String(error?.message ?? error), liveRunCount: null };

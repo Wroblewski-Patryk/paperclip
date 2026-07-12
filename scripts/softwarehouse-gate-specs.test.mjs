@@ -72,6 +72,14 @@ test("execution scripts import the canonical gate specs", async () => {
   }
 });
 
+test("softwarehouse audit recognizes the renamed canonical operating project", async () => {
+  const source = await readFile("scripts/audit-luckysparrow-softwarehouse.mjs", "utf8");
+
+  assert.match(source, /const softwarehouseOperatingProjectNames = new Set\(\[/);
+  assert.match(source, /"00 General: Softwarehouse"/);
+  assert.match(source, /project\.urlKey === "softwarehouse"/);
+});
+
 test("live-run janitor protects Paperclip OS closure lanes from ordinary duplicate cleanup", async () => {
   const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
 
@@ -1063,6 +1071,12 @@ test("continuation watchdog applies the next legal action when Paperclip goes id
 
   assert.match(source, /SOFTWAREHOUSE_CONTINUATION_INTERVAL_MS/);
   assert.match(source, /SOFTWAREHOUSE_CONTINUATION_CHILD_TIMEOUT_MS/);
+  assert.match(source, /const currentRunId = process\.env\.PAPERCLIP_RUN_ID \?\? null/);
+  assert.match(source, /const currentIssueId = process\.env\.PAPERCLIP_ISSUE_ID \?\? process\.env\.PAPERCLIP_TASK_ID \?\? null/);
+  assert.match(source, /ignoredSelfRunCount/);
+  assert.match(source, /observedLiveRunCount/);
+  assert.match(source, /run\.id === currentRunId/);
+  assert.match(source, /run\.issueId === currentIssueId/);
   assert.match(source, /liveRunCount/);
   assert.match(source, /A live run exists, so the watchdog must not start duplicate owner work/);
   assert.match(source, /"pnpm", \["run", "softwarehouse:next-legal-action:apply"\]/);

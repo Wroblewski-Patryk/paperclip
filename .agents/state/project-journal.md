@@ -2168,3 +2168,24 @@ Actions:
 Decision: when the issue wake and latest comments agree there is no drift,
 blocker, or recovery action, the correct output is a concise closure note plus
 no further mutation.
+
+## 2026-07-12 - Softwarehouse continuation watchdog self-run filter
+
+Context: the owner repeatedly observed that Paperclip went idle even though
+open Stage 1 Soar/Roost and Softwarehouse improvement work remained. The
+continuation watchdog routine was active, but its latest report showed it could
+choose `supervise_active_runs` when the only observed live work included the
+watchdog routine itself.
+
+Actions:
+
+- Updated `scripts/run-softwarehouse-continuation-watchdog.mjs` to separate
+  observed live runs from actionable external live runs by ignoring the current
+  `PAPERCLIP_RUN_ID` / current issue context.
+- Added gate-spec coverage so future changes must preserve
+  `observedLiveRunCount`, `ignoredSelfRunCount`, and the self-run filter.
+- Verified `pnpm run softwarehouse:test-gates` passes 117/117.
+
+Decision: continuation watchdogs and similar self-supervision routines must not
+let their own Paperclip run count as external work. If the company is otherwise
+idle, they should dispatch the next legal action instead of going quiet.

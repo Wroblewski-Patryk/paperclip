@@ -476,8 +476,12 @@ const projectManagers = activeAgents.filter((agent) =>
   || agent.metadata?.rosterKey === "delivery-project-manager"
   || agent.metadata?.rosterKey === "chief-operating-officer"
 );
+const softwarehouseOperatingProjectNames = new Set([
+  "Softwarehouse Operating System",
+  "00 General: Softwarehouse",
+]);
 const activeProjectsWithoutPm = activeProjects.filter((project) => {
-  if (project.name === "Softwarehouse Operating System") return false;
+  if (softwarehouseOperatingProjectNames.has(project.name) || project.urlKey === "softwarehouse") return false;
   return !projectManagers.some((agent) => project.leadAgentId === agent.id);
 });
 
