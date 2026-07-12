@@ -162,11 +162,22 @@ function nextCronTickInTimeZone(expression: string, timeZone: string, after: Dat
 
 function nextResultText(status: string, issueId?: string | null) {
   if (status === "issue_created" && issueId) return `Created execution issue ${issueId}`;
+  if (status === "issue_reused" && issueId) return `Reused idle execution issue ${issueId}`;
   if (status === "coalesced") return "Coalesced into an existing live execution issue";
   if (status === "skipped") return "Skipped because a live execution issue already exists";
   if (status === "completed") return "Execution issue completed";
   if (status === "failed") return "Execution failed";
   return status;
+}
+
+export function shouldReuseIdleRoutineIssue(input: {
+  concurrencyPolicy: string;
+  issueStatus: string;
+  hasLiveExecution: boolean;
+}) {
+  return input.concurrencyPolicy === "reuse_idle_issue"
+    && input.issueStatus === "todo"
+    && !input.hasLiveExecution;
 }
 
 function normalizeWebhookTimestampMs(rawTimestamp: string) {
@@ -1204,7 +1215,8 @@ export function routineService(
       title,
       description,
     });
-    const run = await db.transaction(async (tx) => {
+    let reusedIssueForWakeup: typeof issues.$inferSelect | null = null;
+    let run = await db.transaction(async (tx) => {
       const txDb = tx as unknown as Db;
       await tx.execute(
         sql`select id from ${routines} where ${routines.id} = ${input.routine.id} and ${routines.companyId} = ${input.routine.companyId} for update`,
@@ -1259,6 +1271,50 @@ export function routineService(
               kind: issueOriginKind,
               id: issueOriginId,
             }, title);
+        if (activeIssue && input.routine.concurrencyPolicy === "reuse_idle_issue" && activeIssue.status === "todo") {
+          const liveIssue = await findLiveExecutionIssue(input.routine, txDb, dispatchFingerprint, {
+            kind: issueOriginKind,
+            id: issueOriginId,
+          });
+          if (shouldReuseIdleRoutineIssue({
+            concurrencyPolicy: input.routine.concurrencyPolicy,
+            issueStatus: activeIssue.status,
+            hasLiveExecution: Boolean(liveIssue),
+          })) {
+            const reusedIssue = await txDb
+              .update(issues)
+              .set({
+                projectId,
+                goalId: input.routine.goalId,
+                title,
+                description,
+                priority: input.routine.priority,
+                assigneeAgentId,
+                originRunId: createdRun.id,
+                originFingerprint: dispatchFingerprint,
+                updatedAt: triggeredAt,
+              })
+              .where(eq(issues.id, activeIssue.id))
+              .returning()
+              .then((rows) => rows[0] ?? null);
+            if (!reusedIssue) throw notFound("Routine execution issue not found");
+
+            reusedIssueForWakeup = reusedIssue;
+            const updated = await finalizeRun(createdRun.id, {
+              status: "issue_reused",
+              linkedIssueId: reusedIssue.id,
+            }, txDb);
+            await updateRoutineTouchedState({
+              routineId: input.routine.id,
+              triggerId: input.trigger?.id ?? null,
+              triggeredAt,
+              status: "issue_reused",
+              issueId: reusedIssue.id,
+              nextRunAt,
+            }, txDb);
+            return updated ?? createdRun;
+          }
+        }
         if (activeIssue && input.routine.concurrencyPolicy !== "always_enqueue") {
           const status = input.routine.concurrencyPolicy === "skip_if_active" ? "skipped" : "coalesced";
           if (manualRunnerUserId) {
@@ -1393,6 +1449,27 @@ export function routineService(
         return failed ?? createdRun;
       }
     });
+
+    if (reusedIssueForWakeup) {
+      try {
+        await queueIssueAssignmentWakeup({
+          heartbeat,
+          issue: reusedIssueForWakeup,
+          reason: "routine_issue_reused",
+          mutation: "reuse",
+          contextSource: "routine.dispatch.reuse",
+          requestedByActorType: input.source === "schedule" ? "system" : undefined,
+          rethrowOnError: true,
+        });
+      } catch (error) {
+        const failureReason = error instanceof Error ? error.message : String(error);
+        run = await finalizeRun(run.id, {
+          status: "failed",
+          failureReason,
+          completedAt: new Date(),
+        }) ?? run;
+      }
+    }
 
     if (input.source === "schedule" || input.source === "webhook") {
       const actorId = input.source === "schedule" ? "routine-scheduler" : "routine-webhook";
@@ -2422,12 +2499,26 @@ export function routineService(
           id: issues.id,
           status: issues.status,
           originKind: issues.originKind,
+          originId: issues.originId,
           originRunId: issues.originRunId,
         })
         .from(issues)
         .where(eq(issues.id, issueId))
         .then((rows) => rows[0] ?? null);
       if (!issue || issue.originKind !== "routine_execution" || !issue.originRunId) return null;
+      if (issue.status === "todo" && issue.originId) {
+        const routine = await db
+          .select({ concurrencyPolicy: routines.concurrencyPolicy })
+          .from(routines)
+          .where(eq(routines.id, issue.originId))
+          .then((rows) => rows[0] ?? null);
+        if (routine?.concurrencyPolicy === "reuse_idle_issue") {
+          return finalizeRun(issue.originRunId, {
+            status: "completed",
+            completedAt: new Date(),
+          });
+        }
+      }
       if (issue.status === "done") {
         return finalizeRun(issue.originRunId, {
           status: "completed",

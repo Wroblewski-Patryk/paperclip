@@ -7,6 +7,7 @@ import { gateFreshnessObservation } from "./lib/gate-freshness.mjs";
 import { secretForKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { autonomyDispositionForMode, controlActionSummaryFor, controlActionTypeFor, deliveryPermissionForMode, gateBriefFor, staleGateOwnerActionLine } from "./lib/softwarehouse-control-brief.mjs";
 import { softwarehouseGateSpecs, softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
+import { finalizeRecurringIssue } from "./run-softwarehouse-continuation-watchdog.mjs";
 
 const requiredFields = [
   "project",
@@ -1247,6 +1248,7 @@ test("continuation watchdog applies the next legal action when Paperclip goes id
   assert.match(source, /SOFTWAREHOUSE_CONTINUATION_CHILD_TIMEOUT_MS/);
   assert.match(source, /const currentRunId = process\.env\.PAPERCLIP_RUN_ID \?\? null/);
   assert.match(source, /const currentIssueId = process\.env\.PAPERCLIP_ISSUE_ID \?\? process\.env\.PAPERCLIP_TASK_ID \?\? null/);
+  assert.match(source, /const currentApiKey = process\.env\.PAPERCLIP_API_KEY \?\? null/);
   assert.match(source, /ignoredSelfRunCount/);
   assert.match(source, /observedLiveRunCount/);
   assert.match(source, /run\.id === currentRunId/);
@@ -1254,6 +1256,7 @@ test("continuation watchdog applies the next legal action when Paperclip goes id
   assert.match(source, /liveRunCount/);
   assert.match(source, /A live run exists, so the watchdog must not start duplicate owner work/);
   assert.match(source, /spawnSync\("pnpm", \["run", "softwarehouse:next-legal-action:apply"\]/);
+  assert.match(source, /\.\.\.\(apiKey \? \{ authorization: `Bearer \$\{apiKey\}` \} : \{\}\)/);
   assert.match(source, /report\/softwarehouse-continuation-watchdog\.latest\.json/);
   assert.match(activeRoutines, /"\[Softwarehouse\] Continuation watchdog"/);
   assert.match(activeRoutines, /"Every 5 minutes continuation watchdog"/);
@@ -1261,6 +1264,37 @@ test("continuation watchdog applies the next legal action when Paperclip goes id
   assert.match(longevityConfigurator, /pnpm run softwarehouse:continuation-watchdog/);
   assert.match(packageJson, /"softwarehouse:continuation-watchdog": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --once"/);
   assert.match(packageJson, /"softwarehouse:continuation-watchdog:loop": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --loop"/);
+});
+
+test("finalizeRecurringIssue authenticates the recurring disposition patch when an agent API key is present", async () => {
+  const calls = [];
+  const response = {
+    ok: true,
+    status: 200,
+    text: async () => "ok",
+  };
+
+  await finalizeRecurringIssue({
+    apiBase: "http://127.0.0.1:3200",
+    currentIssueId: "issue-123",
+    currentRunId: "run-123",
+    currentApiKey: "token-123",
+    step: {
+      action: {
+        decision: "supervise_active_runs",
+      },
+    },
+    fetchImpl: async (...args) => {
+      calls.push(args);
+      return response;
+    },
+  });
+
+  assert.equal(calls.length, 1);
+  const [, init] = calls[0];
+  assert.equal(init?.method, "PATCH");
+  assert.equal(init?.headers?.authorization, "Bearer token-123");
+  assert.equal(init?.headers?.["x-paperclip-run-id"], "run-123");
 });
 
 test("control tick inspects gate freshness before any manual apply", async () => {
@@ -2248,4 +2282,43 @@ test("supervision actions remain allowed while a narrower lane type is active", 
   assert.equal(summary.actions[0].allowedByDeliveryPermission, true);
   assert.equal(summary.actions[1].allowedByDeliveryPermission, true);
   assert.equal(summary.allowedActionCount, 2);
+});
+
+test("continuation watchdog records a todo disposition for its recurring issue", async () => {
+  const requests = [];
+  const result = await finalizeRecurringIssue({
+    apiBase: "http://127.0.0.1:3200",
+    currentIssueId: "LUC-770",
+    currentRunId: "run-123",
+    step: { action: { decision: "supervise_active_runs" } },
+    fetchImpl: async (url, init) => {
+      requests.push({ url, init });
+      return new Response(JSON.stringify({ status: "todo" }), { status: 200 });
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, "http://127.0.0.1:3200/api/issues/LUC-770");
+  assert.equal(requests[0].init.method, "PATCH");
+  assert.equal(requests[0].init.headers["x-paperclip-run-id"], "run-123");
+  const body = JSON.parse(requests[0].init.body);
+  assert.equal(body.status, "todo");
+  assert.match(body.comment, /Final disposition: `todo`/);
+});
+
+test("AI-agent development review prefers the active AIM role over paused people roles", async () => {
+  const source = await readFile("scripts/configure-softwarehouse-longevity-routines.mjs", "utf8");
+
+  assert.match(source, /const aiAgentManager = byName\(agents, "06 AIM \(AI Agent Manager\)"\)/);
+  assert.match(
+    source,
+    /assignee: aiAgentDevelopment \?\? aiAgentManager \?\? chro \?\? docs \?\? cto \?\? portfolio/,
+  );
+});
+
+test("softwarehouse audit flags active routines with unavailable assignees", async () => {
+  const auditSource = await readFile("scripts/audit-luckysparrow-softwarehouse.mjs", "utf8");
+  assert.match(auditSource, /routinesWithUnavailableAssignees/);
+  assert.match(auditSource, /Active routines are assigned to missing or non-invokable agents/);
 });

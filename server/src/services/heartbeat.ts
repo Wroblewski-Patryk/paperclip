@@ -4605,6 +4605,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         assigneeUserId: issues.assigneeUserId,
         executionState: issues.executionState,
         projectId: issues.projectId,
+        originKind: issues.originKind,
+        originRunId: issues.originRunId,
       })
       .from(issues)
       .where(and(eq(issues.id, issueId), eq(issues.companyId, run.companyId)))
@@ -4771,6 +4773,35 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       budgetBlocked: Boolean(budgetBlock),
       idempotentWakeExists: Boolean(existingWake),
     });
+
+    if (decision.kind === "reset_routine_todo" && issue) {
+      const resetIssue = await issuesSvc.update(issue.id, { status: "todo" });
+      if (issue.originRunId) {
+        await db
+          .update(routineRuns)
+          .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
+          .where(eq(routineRuns.id, issue.originRunId));
+      }
+      if (resetIssue) {
+        await logActivity(db, {
+          companyId: issue.companyId,
+          actorType: "system",
+          actorId: "heartbeat",
+          agentId: run.agentId,
+          runId: run.id,
+          action: "issue.routine_cycle_reset",
+          entityType: "issue",
+          entityId: issue.id,
+          details: {
+            status: "todo",
+            sourceRunId: run.id,
+            reason: decision.reason,
+            issue: issueUiLink(issue),
+          },
+        });
+      }
+      return;
+    }
 
     if (decision.kind !== "enqueue" || !issue) return;
 

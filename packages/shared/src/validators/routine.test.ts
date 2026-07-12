@@ -83,4 +83,10 @@ describe("routine validators", () => {
       baseRevisionId,
     }).baseRevisionId).toBe(baseRevisionId);
   });
+
+  it("accepts the reusable idle issue concurrency policy", () => {
+    expect(updateRoutineSchema.parse({
+      concurrencyPolicy: "reuse_idle_issue",
+    }).concurrencyPolicy).toBe("reuse_idle_issue");
+  });
 });

@@ -93,6 +93,7 @@ if (!operating) throw new Error("Softwarehouse operating project not found.");
 const portfolio = byName(agents, "11 IPM (Innovation Portfolio Manager)") ?? byName(agents, "Portfolio Director");
 const cto = byName(agents, "09 CTO (Chief Technology Officer)") ?? byName(agents, "CTO Architect");
 const docs = byName(agents, "04 DSM (Documentation Steward)") ?? byName(agents, "Docs Memory Lead");
+const aiAgentManager = byName(agents, "06 AIM (AI Agent Manager)");
 const chro = byName(agents, "06 CHRO (Chief Human Resources Officer)");
 const aiAgentDevelopment = byName(agents, "06 AID (AI Agent Development Partner)");
 
@@ -133,6 +134,7 @@ const specs = [
       "Keep the softwarehouse from going idle while current Soar/Roost delivery gaps still have legal non-production work.",
       "Run `pnpm run softwarehouse:continuation-watchdog` and follow its output.",
       "The watchdog must not start duplicate owner work when live runs exist. When no live runs exist, it may apply the next legal action selected by `softwarehouse:next-legal-action:apply`.",
+      "After each cycle, the watchdog must return its own recurring issue to `todo` with a clear final disposition. It must never stay `in_progress` between scheduled runs or create a missing-disposition recovery loop.",
       "Allowed actions are limited to Paperclip issue/routine routing, project-truth proof/repair lane creation, control packet refresh, and local non-production evidence work.",
       "Forbidden without a fresh accepted gate fact: push, deploy, restart, rollback, protected smoke, live account mutation, secret disclosure, or destructive repository changes.",
     ].join("\n"),
@@ -162,7 +164,7 @@ const specs = [
   },
   {
     title: "[Softwarehouse] AI-agent development review",
-    assignee: aiAgentDevelopment ?? chro ?? docs ?? cto ?? portfolio,
+    assignee: aiAgentDevelopment ?? aiAgentManager ?? chro ?? docs ?? cto ?? portfolio,
     priority: "high",
     description: [
       "Review recent completed, blocked, reopened, and productivity-review issues for repeatable AI-agent improvement lessons.",
@@ -183,7 +185,7 @@ for (const spec of specs) {
     assigneeAgentId: spec.assignee?.id ?? null,
     priority: spec.priority,
     status: "active",
-    concurrencyPolicy: "coalesce_if_active",
+    concurrencyPolicy: "reuse_idle_issue",
     catchUpPolicy: "skip_missed",
   });
   await ensureScheduleTrigger(routine.id, {

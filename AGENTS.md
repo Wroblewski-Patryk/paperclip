@@ -177,6 +177,12 @@ pnpm test:run
 pnpm build
 ```
 
+Windows resource safety:
+- Run package typechecks and embedded-Postgres suites sequentially; do not overlap them with repo-wide validation.
+- Prefer targeted Vitest files with one worker while the live local Paperclip database is running.
+- After any external timeout or interrupted test, verify that no `vitest` process or temporary `paperclip-*-service-*` Postgres master remains before retrying.
+- A command timeout is not a passing test. Record the unverified suite and continue with narrower evidence instead of repeatedly spawning it.
+
 If anything cannot be run, explicitly report what was not run and why.
 
 ## 8. API and Auth Expectations

@@ -109,8 +109,8 @@ Goals:
 
 Routines:
 
-- 9 app-factory routines are active.
-- The old controlled-dry-run routine is paused/historical.
+- 13 app-factory/longevity routines are active.
+- The old controlled-dry-run routine and superseded liveness review are paused/historical.
 
 ## Durable References
 

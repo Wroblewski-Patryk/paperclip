@@ -1,6 +1,6 @@
 # Softwarehouse V1 Goals And Routines Audit
 
-Last updated: 2026-07-04
+Last updated: 2026-07-12
 
 Purpose: verify whether Paperclip goals and routines now guide the current
 Stage 1 app-factory mission without pulling the company back to Stage 0
@@ -10,7 +10,9 @@ quiet/dry-run behavior.
 
 The goals/routines layer is now aligned with active Stage 1 delivery.
 
-Estimated readiness: about 96%.
+Configuration readiness is high, but delivery readiness is still blocked by
+source-control, deployment-provenance, worker-health, and credential-rotation
+gates. See `docs/status/softwarehouse-full-configuration-audit-2026-07-12.md`.
 
 The remaining gap is behavioral proof: agents must keep converting blockers
 into executable work until Soar and Roost are usable on VPS. Configuration now
@@ -44,7 +46,6 @@ Active routines:
 | Routine | Owner | V1 purpose |
 | --- | --- | --- |
 | `00 General: Owner Direction and Proposal Review` | `00 AIA` | Convert owner notes/direction into Polish proposals, routed work, memory updates, or clarifying questions. |
-| `00 General: Softwarehouse Liveness and Active Work Review` | `00 AIA` | Confirm Paperclip is intentionally running toward `LUC-25` and not accidentally idle/noisy. |
 | `04 Operations: Portfolio Truth and Project Index Review` | `04 COO` | Keep active lanes, repo paths, parked apps, and task hygiene aligned. |
 | `04 Operations: PDCA Learning and Company Memory Review` | `04 COO` / `04 DSM` | Turn run lessons into governed memory/procedure/instruction improvements. |
 | `06 People: Agent Hiring and Governance Review` | `06 AIM` | Handle hiring/role-change requests through governed AI workforce path. |
@@ -52,11 +53,18 @@ Active routines:
 | `09 Technology: Evidence Gate and Definition of Done Review` | `09 QVE` | Prevent completion without inspectable evidence and parent synthesis. |
 | `09 Technology: Source Control and Deploy Readiness Review` | `09 DRE` | Check repo, branch, push, Coolify, and production-smoke readiness before deploy-impacting work. |
 | `10 Legal: Secrets Coolify and VPS Access Readiness Review` | `10 SPA` | Verify secret refs, least privilege, and production mutation gates. |
+| `[Softwarehouse] Continuation watchdog` | `09 CTO` | Every five minutes, select one legal next action and reuse its idle recurring `todo` issue without duplicate issue churn. |
+| `[Softwarehouse] Longevity doctor and watchdog` | `09 CTO` | Audit health, source control, evidence, routines, and recovery posture hourly. |
+| `[Softwarehouse] Longevity snapshot backup` | `04 DSM` | Preserve a daily redacted control-plane snapshot. |
+| `[Softwarehouse] Organizational learning loop` | `04 DSM` | Convert repeated failures into bounded process improvements. |
+| `[Softwarehouse] AI-agent development review` | `06 AIM` | Review agent effectiveness without waking paused HR roles. |
 
-Paused historical routine:
+Paused routines:
 
 - `00 General - v1 Draft Paused - Controlled Activation Dry Run`, because the
   controlled dry run has completed and is no longer the current operating mode.
+- `00 General: Softwarehouse Liveness and Active Work Review`, because its
+  purpose is superseded by the continuation and longevity watchdogs.
 
 ## Current Activation Rule
 
@@ -89,9 +97,9 @@ Verified after Stage 1 delivery reconfiguration:
 - Stage 1 delivery goal active.
 - Soar/Roost delivery goals active.
 - v0 readiness goal marked achieved.
-- 9 app-factory routines active.
-- Old controlled dry-run routine paused.
-- 29 app-factory agents active.
+- 13 app-factory/longevity routines active.
+- Old controlled dry-run and superseded liveness routines paused.
+- 30 in-scope agents idle/running.
 - 9 out-of-scope agents paused.
 - `LUC-25` plus delivery children active/open.
 - New live issue titles normalized to English department prefixes.

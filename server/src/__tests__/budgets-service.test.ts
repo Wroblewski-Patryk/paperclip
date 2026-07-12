@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { budgetService } from "../services/budgets.ts";
+import { budgetService, countPausedBudgetScopes } from "../services/budgets.ts";
 
 const mockLogActivity = vi.hoisted(() => vi.fn());
 
@@ -225,6 +225,19 @@ describe("budgetService", () => {
       scopeName: "Paperclip",
       reason: "Company is paused because its budget hard-stop was reached.",
     });
+  });
+
+  it("counts paused agents once when multiple budget metrics pause the same scope", () => {
+    const policies = [
+      { scopeType: "agent", scopeId: "agent-1", paused: true },
+      { scopeType: "agent", scopeId: "agent-1", paused: true },
+      { scopeType: "agent", scopeId: "agent-2", paused: false },
+      { scopeType: "project", scopeId: "project-1", paused: true },
+      { scopeType: "project", scopeId: "project-1", paused: true },
+    ];
+
+    expect(countPausedBudgetScopes(policies, "agent")).toBe(1);
+    expect(countPausedBudgetScopes(policies, "project")).toBe(1);
   });
 
   it("forces hard-stop enabled for active company budgets even when false is provided", async () => {

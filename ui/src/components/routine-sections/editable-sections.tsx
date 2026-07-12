@@ -48,6 +48,11 @@ const concurrencyPolicyOptions = [
     description: "Queue every trigger occurrence, even if several runs stack up.",
   },
   {
+    value: "reuse_idle_issue",
+    title: "Reuse idle issue",
+    description: "Wake the same todo issue for each new cycle without creating duplicate issue history.",
+  },
+  {
     value: "skip_if_active",
     title: "Skip if active",
     description: "Drop overlapping trigger occurrences while the routine is already active.",

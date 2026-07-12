@@ -74,13 +74,14 @@ import type {
   RoutineVariable,
 } from "@paperclipai/shared";
 
-const concurrencyPolicies = ["coalesce_if_active", "always_enqueue", "skip_if_active"];
+const concurrencyPolicies = ["coalesce_if_active", "reuse_idle_issue", "always_enqueue", "skip_if_active"];
 const catchUpPolicies = ["skip_missed", "enqueue_missed_with_cap"];
 const triggerKinds = ["schedule", "webhook"];
 const signingModes = ["bearer", "hmac_sha256", "github_hmac", "none"];
 const routineTabs = ["triggers", "runs", "activity", "secrets", "history"] as const;
 const concurrencyPolicyDescriptions: Record<string, string> = {
   coalesce_if_active: "Keep one follow-up run queued while an active run is still working.",
+  reuse_idle_issue: "Reuse and wake the same todo issue after its previous cycle becomes idle.",
   always_enqueue: "Queue every trigger occurrence, even if several runs stack up.",
   skip_if_active: "Drop overlapping trigger occurrences while the routine is already active.",
 };

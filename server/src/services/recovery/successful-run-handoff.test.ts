@@ -30,6 +30,7 @@ const issue = {
   assigneeAgentId: "agent-1",
   assigneeUserId: null,
   executionState: null,
+  originKind: null,
 } as any;
 
 const agent = {
@@ -97,6 +98,13 @@ describe("successful run handoff decision", () => {
     expect(decide({ issue: { ...issue, status: "done" } as any })).toEqual({
       kind: "skip",
       reason: "issue status done is a valid disposition",
+    });
+  });
+
+  it("resets an unfinished recurring routine issue instead of queuing corrective handoffs", () => {
+    expect(decide({ issue: { ...issue, originKind: "routine_execution" } as any })).toEqual({
+      kind: "reset_routine_todo",
+      reason: "successful recurring routine cycle returns its execution issue to todo",
     });
   });
 

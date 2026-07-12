@@ -46,10 +46,11 @@ import {
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import type { RoutineListItem, RoutineVariable } from "@paperclipai/shared";
 
-const concurrencyPolicies = ["coalesce_if_active", "always_enqueue", "skip_if_active"];
+const concurrencyPolicies = ["coalesce_if_active", "reuse_idle_issue", "always_enqueue", "skip_if_active"];
 const catchUpPolicies = ["skip_missed", "enqueue_missed_with_cap"];
 const concurrencyPolicyDescriptions: Record<string, string> = {
   coalesce_if_active: "If a run is already active, keep just one follow-up run queued.",
+  reuse_idle_issue: "Reuse and wake the same todo issue after its previous cycle becomes idle.",
   always_enqueue: "Queue every trigger occurrence, even if the routine is already running.",
   skip_if_active: "Drop new trigger occurrences while a run is still active.",
 };

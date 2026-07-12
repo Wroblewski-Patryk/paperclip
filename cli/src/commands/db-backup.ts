@@ -15,6 +15,8 @@ type DbBackupOptions = {
   dir?: string;
   retentionDays?: number;
   filenamePrefix?: string;
+  maxTotalBytes?: number;
+  minFreeBytes?: number;
   json?: boolean;
 };
 
@@ -42,6 +44,22 @@ function normalizeRetentionDays(value: number | undefined, fallback: number): nu
   return candidate;
 }
 
+function normalizeMaxTotalBytes(value: number | undefined): number | null {
+  if (value === undefined) return null;
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`Invalid backup max total bytes '${String(value)}'. Use a non-negative integer.`);
+  }
+  return Math.trunc(value);
+}
+
+function normalizeMinFreeBytes(value: number | undefined): number | null {
+  if (value === undefined) return null;
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`Invalid backup min free bytes '${String(value)}'. Use a positive integer.`);
+  }
+  return Math.trunc(value);
+}
+
 function resolveBackupDir(raw: string): string {
   return path.resolve(expandHomePrefix(raw.trim()));
 }
@@ -60,12 +78,30 @@ export async function dbBackupCommand(opts: DbBackupOptions): Promise<void> {
     opts.retentionDays,
     config?.database.backup.retentionDays ?? 30,
   );
+  const maxTotalBytes = normalizeMaxTotalBytes(
+    opts.maxTotalBytes ??
+      (process.env.PAPERCLIP_DB_BACKUP_MAX_TOTAL_BYTES !== undefined
+        ? Number(process.env.PAPERCLIP_DB_BACKUP_MAX_TOTAL_BYTES)
+        : config?.database.backup.maxTotalBytes),
+  );
+  const minFreeBytes = normalizeMinFreeBytes(
+    opts.minFreeBytes ??
+      (process.env.PAPERCLIP_DB_BACKUP_MIN_FREE_BYTES !== undefined
+        ? Number(process.env.PAPERCLIP_DB_BACKUP_MIN_FREE_BYTES)
+        : config?.database.backup.minFreeBytes),
+  );
   const filenamePrefix = opts.filenamePrefix?.trim() || "paperclip";
 
   p.log.message(pc.dim(`Config: ${configPath}`));
   p.log.message(pc.dim(`Connection source: ${connection.source}`));
   p.log.message(pc.dim(`Backup dir: ${backupDir}`));
   p.log.message(pc.dim(`Retention: ${retentionDays} day(s)`));
+  if (maxTotalBytes !== null) {
+    p.log.message(pc.dim(`Retention size cap: ${maxTotalBytes} byte(s)`));
+  }
+  if (minFreeBytes !== null) {
+    p.log.message(pc.dim(`Minimum free space: ${minFreeBytes} byte(s)`));
+  }
 
   const spinner = p.spinner();
   spinner.start("Creating database backup...");
@@ -73,8 +109,9 @@ export async function dbBackupCommand(opts: DbBackupOptions): Promise<void> {
     const result = await runDatabaseBackup({
       connectionString: connection.value,
       backupDir,
-      retention: { dailyDays: retentionDays, weeklyWeeks: 4, monthlyMonths: 1 },
+      retention: { dailyDays: retentionDays, weeklyWeeks: 4, monthlyMonths: 1, maxTotalBytes },
       filenamePrefix,
+      diskSpaceGuard: minFreeBytes === null ? undefined : { minFreeBytes },
     });
     spinner.stop(`Backup saved: ${formatDatabaseBackupResult(result)}`);
 
@@ -87,6 +124,9 @@ export async function dbBackupCommand(opts: DbBackupOptions): Promise<void> {
             prunedCount: result.prunedCount,
             backupDir,
             retentionDays,
+            maxTotalBytes,
+            minFreeBytes,
+            diskSpace: result.diskSpace ?? null,
             connectionSource: connection.source,
           },
           null,

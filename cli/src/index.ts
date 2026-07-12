@@ -93,6 +93,8 @@ program
   .option("-d, --data-dir <path>", DATA_DIR_OPTION_HELP)
   .option("--dir <path>", "Backup output directory (overrides config)")
   .option("--retention-days <days>", "Retention window used for pruning", (value) => Number(value))
+  .option("--max-total-bytes <bytes>", "Maximum total retained backup bytes after pruning (0 disables)", (value) => Number(value))
+  .option("--min-free-bytes <bytes>", "Minimum free bytes required on the backup volume", (value) => Number(value))
   .option("--filename-prefix <prefix>", "Backup filename prefix", "paperclip")
   .option("--json", "Print backup metadata as JSON")
   .action(async (opts) => {

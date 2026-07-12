@@ -323,6 +323,7 @@ const dormantBacklogIntakeIssues = issues.filter((issue) => {
 
 const routinesWithTriggers = [];
 const routinesWithoutTriggers = [];
+const routinesWithUnavailableAssignees = [];
 for (const routine of routines) {
   const detail = await request("GET", `/api/routines/${routine.id}`);
   const triggers = detail.triggers ?? [];
@@ -334,6 +335,15 @@ for (const routine of routines) {
   };
   if (triggers.length === 0) routinesWithoutTriggers.push(entry);
   else routinesWithTriggers.push(entry);
+  const assignee = routine.assigneeAgentId ? activeAgentById.get(routine.assigneeAgentId) : null;
+  if (routine.status === "active" && (!assignee || !["idle", "running"].includes(assignee.status))) {
+    routinesWithUnavailableAssignees.push({
+      title: routine.title,
+      assigneeAgentId: routine.assigneeAgentId ?? null,
+      assigneeName: assignee?.name ?? null,
+      assigneeStatus: assignee?.status ?? "missing",
+    });
+  }
 }
 
 const runningLiveRuns = liveRuns.filter((run) => run.status === "running");
@@ -1005,6 +1015,12 @@ if (orphanActiveWorkIssues.length > 0) findings.push({
 });
 if (projectsWithActiveIssueStatusDrift.length > 0) findings.push({ severity: "warn", area: "project-management", message: "Projects have in-progress issues but project status is not in_progress.", items: projectsWithActiveIssueStatusDrift.map((project) => ({ name: project.name, status: project.status })) });
 if (routinesWithoutTriggers.length > 0) findings.push({ severity: "warn", area: "routines", message: "Routines exist without triggers.", items: routinesWithoutTriggers.map((routine) => routine.title) });
+if (routinesWithUnavailableAssignees.length > 0) findings.push({
+  severity: "warn",
+  area: "routines",
+  message: "Active routines are assigned to missing or non-invokable agents.",
+  items: routinesWithUnavailableAssignees,
+});
 if (detachedProcessRuns.length > 0) findings.push({
   severity: detachedProcessRuns.some((run) => run.silenceLevel === "critical" || run.silenceLevel === "suspicious") ? "critical" : "warn",
   area: "runs",
@@ -1276,6 +1292,7 @@ console.log(JSON.stringify({
   },
   routinesWithTriggers,
   routinesWithoutTriggers,
+  routinesWithUnavailableAssignees,
   duplicateTakeoverGroups,
   staleErrorAgents,
   openIssuesWithoutAssignee: openIssuesWithoutAssignee.map((issue) => ({

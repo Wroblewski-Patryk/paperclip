@@ -270,6 +270,51 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
     expect(routineIssues[0]?.id).toBe(previousIssue.id);
   });
 
+  it("reuses and wakes an idle todo issue when the routine opts into reuse", async () => {
+    const { companyId, issueSvc, routine, svc, wakeups } = await seedFixture();
+    await db
+      .update(routines)
+      .set({ concurrencyPolicy: "reuse_idle_issue" })
+      .where(eq(routines.id, routine.id));
+    const previousRunId = randomUUID();
+    const previousIssue = await issueSvc.create(companyId, {
+      projectId: routine.projectId,
+      title: routine.title,
+      description: routine.description,
+      status: "todo",
+      priority: routine.priority,
+      assigneeAgentId: routine.assigneeAgentId,
+      originKind: "routine_execution",
+      originId: routine.id,
+      originRunId: previousRunId,
+    });
+    await db.insert(routineRuns).values({
+      id: previousRunId,
+      companyId,
+      routineId: routine.id,
+      triggerId: null,
+      source: "manual",
+      status: "completed",
+      triggeredAt: new Date("2026-03-20T12:00:00.000Z"),
+      linkedIssueId: previousIssue.id,
+      completedAt: new Date("2026-03-20T12:01:00.000Z"),
+    });
+
+    const run = await svc.runRoutine(routine.id, { source: "manual" });
+    expect(run.status).toBe("issue_reused");
+    expect(run.linkedIssueId).toBe(previousIssue.id);
+    expect(run.coalescedIntoRunId).toBeNull();
+    expect(wakeups).toHaveLength(1);
+    expect(wakeups[0]?.opts.reason).toBe("routine_issue_reused");
+
+    const reusedIssue = await db
+      .select({ id: issues.id, originRunId: issues.originRunId })
+      .from(issues)
+      .where(eq(issues.id, previousIssue.id))
+      .then((rows) => rows[0]);
+    expect(reusedIssue).toEqual({ id: previousIssue.id, originRunId: run.id });
+  });
+
   it("creates draft routines without a project or default assignee", async () => {
     const { companyId, svc } = await seedFixture();
 

@@ -70,7 +70,7 @@ describe("previewFirePolicies", () => {
   ];
 
   it("always queues the first fire regardless of policy", () => {
-    for (const policy of ["coalesce_if_active", "always_enqueue", "skip_if_active"]) {
+    for (const policy of ["coalesce_if_active", "reuse_idle_issue", "always_enqueue", "skip_if_active"]) {
       expect(previewFirePolicies(fires, policy)[0]?.disposition).toBe("queued");
     }
   });

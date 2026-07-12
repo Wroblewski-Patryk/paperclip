@@ -742,8 +742,8 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
         companyId,
         policies,
         activeIncidents,
-        pausedAgentCount: policies.filter((policy) => policy.scopeType === "agent" && policy.paused).length,
-        pausedProjectCount: policies.filter((policy) => policy.scopeType === "project" && policy.paused).length,
+        pausedAgentCount: countPausedBudgetScopes(policies, "agent"),
+        pausedProjectCount: countPausedBudgetScopes(policies, "project"),
         pendingApprovalCount: activeIncidents.filter((incident) => incident.approvalStatus === "pending").length,
       };
     },
@@ -1071,4 +1071,15 @@ export function budgetService(db: Db, hooks: BudgetServiceHooks = {}) {
       return updated!;
     },
   };
+}
+
+export function countPausedBudgetScopes(
+  policies: Array<Pick<BudgetPolicySummary, "scopeType" | "scopeId" | "paused">>,
+  scopeType: "agent" | "project",
+): number {
+  return new Set(
+    policies
+      .filter((policy) => policy.scopeType === scopeType && policy.paused)
+      .map((policy) => policy.scopeId),
+  ).size;
 }

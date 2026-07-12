@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.SOFTWAREHOUSE_COMPANY_ID ?? "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
@@ -11,6 +12,7 @@ const childTimeoutMs = Number(process.env.SOFTWAREHOUSE_CONTINUATION_CHILD_TIMEO
 const outputPath = "report/softwarehouse-continuation-watchdog.latest.json";
 const currentRunId = process.env.PAPERCLIP_RUN_ID ?? null;
 const currentIssueId = process.env.PAPERCLIP_ISSUE_ID ?? process.env.PAPERCLIP_TASK_ID ?? null;
+const currentApiKey = process.env.PAPERCLIP_API_KEY ?? null;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -91,6 +93,51 @@ function runNextLegalActionApply() {
   };
 }
 
+export async function finalizeRecurringIssue({
+  apiBase: targetApiBase,
+  currentIssueId: issueId,
+  currentRunId: runId,
+  currentApiKey: apiKey = currentApiKey,
+  step,
+  fetchImpl = fetch,
+}) {
+  if (!issueId) {
+    return { attempted: false, reason: "not_running_from_paperclip_issue" };
+  }
+
+  const decision = step?.action?.parsedOutput?.action?.decision
+    ?? step?.action?.parsedOutput?.decision
+    ?? step?.action?.decision
+    ?? "cycle_complete";
+  const response = await fetchImpl(`${targetApiBase}/api/issues/${encodeURIComponent(issueId)}`, {
+    method: "PATCH",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+      ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+      ...(runId ? { "x-paperclip-run-id": runId } : {}),
+    },
+    body: JSON.stringify({
+      status: "todo",
+      comment: [
+        "Continuation watchdog cycle complete.",
+        `Decision: \`${decision}\`.`,
+        "Final disposition: `todo` for the next scheduled cycle; this recurring controller does not remain `in_progress` between runs.",
+      ].join("\n"),
+    }),
+  });
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(`Failed to finalize recurring watchdog issue (${response.status}): ${responseText}`);
+  }
+  return {
+    attempted: true,
+    ok: true,
+    status: response.status,
+    decision,
+  };
+}
+
 async function writeSnapshot(snapshot) {
   await mkdir("report", { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(snapshot, null, 2)}\n`);
@@ -110,6 +157,7 @@ async function main() {
       liveBefore,
       action: null,
       liveAfter: null,
+      finalDisposition: null,
     };
 
     if (liveBefore.ok && Number(liveBefore.liveRunCount ?? 0) > 0) {
@@ -121,6 +169,13 @@ async function main() {
       step.action = runNextLegalActionApply();
       step.liveAfter = await probeLiveRuns();
     }
+
+    step.finalDisposition = await finalizeRecurringIssue({
+      apiBase,
+      currentIssueId,
+      currentRunId,
+      step,
+    });
 
     iterations.push(step);
     await writeSnapshot({
@@ -140,4 +195,6 @@ async function main() {
   }
 }
 
-await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main();
+}
