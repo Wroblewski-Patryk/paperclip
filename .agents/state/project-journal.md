@@ -6,6 +6,11 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-12 / LUC-760 Owner Direction and Proposal Review:
+  - Reviewed the live issue state for `LUC-760` through `GET /api/issues/LUC-760`, `/comments?order=asc&limit=20`, `/interactions`, and `/heartbeat-context`; the issue remains `in_progress`, assigned to `8ec5d83c-966f-483e-9fcd-c5b6092ff717`, with `blockerAttention.state=none`, `totalComments=0` before the new note, `latestCommentId=null`, and no recovery path or pending interaction.
+  - Added a durable issue comment recording that no new owner direction or proposal signal is present yet, that the lane should continue consolidating future signals into clear decision packets, and that the active continuation path stays `in_progress`.
+  - Decision: no new durable memory, instruction, or procedure update was justified by this checkpoint; the correct state is to keep monitoring for the next owner signal instead of creating duplicate asks.
+
 - 2026-07-12 / LUC-719 PDCA Learning and Company Memory Review:
   - Reviewed `GET /api/issues/LUC-719`, `GET /api/issues/LUC-719/heartbeat-context`, and `GET /api/issues/LUC-719/comments?order=asc`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, and no attachments or work products.
   - Ran `pnpm softwarehouse:control-tick`; the control tick reported `operating_source_control_closure_needed`, noted the Paperclip OS worktree is dirty, and already dispatched the specific truth-gap follow-ups as `LUC-721` for Roost and `LUC-722` for Soar.
@@ -2308,3 +2313,32 @@ Decision: the organizational learning loop is working as an evidence-producing
 routine. New repeated blocker patterns should continue to become dedicated
 learning issues, while compliant chains and duplicate learning issues should be
 suppressed rather than cloned.
+
+## 2026-07-12 - Overnight task portfolio and stale-run churn audit
+
+Context: the owner observed roughly 200 overnight task transitions and asked
+whether they remained aligned with Soar, Roost, and autonomous Softwarehouse
+delivery. A live 24-hour API audit found that most completed work was scoped to
+delivery evidence, project truth, QA/security, or Softwarehouse control, but it
+also found 24 separate silent-run review issues for one heartbeat run.
+
+Actions:
+
+- Changed stale active-run recovery to reuse and reopen the latest terminal
+  evaluation for the same uninterrupted silence epoch instead of creating an
+  unbounded sequence of review issues.
+- Kept the existing quiet-window behavior and added regression coverage for
+  both recorded `continue` decisions and terminal evaluations closed without a
+  watchdog decision.
+- Added the indexed source symbol to app-completion Project Truth issue titles,
+  so serial proof work for different functions is distinguishable without
+  weakening first-gap dispatch or evidence gates.
+- Resolved `LUC-755` and `LUC-758` as false-positive missing-disposition
+  recoveries after verifying their explicit completion/supervision evidence.
+  Real production provenance, protected smoke, and credential-rotation gates
+  remain open.
+
+Decision: task volume is not itself progress. One run silence epoch must map to
+one reusable evaluation issue, while serial project-truth work must identify the
+exact source symbol. Control-plane churn should be repaired in code and tests,
+not accepted as normal autonomous-company activity.

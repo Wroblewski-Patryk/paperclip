@@ -635,7 +635,7 @@ describeEmbeddedPostgres("active-run output watchdog", () => {
     });
     expect(decision.snoozedUntil?.toISOString()).toBe(rearmAt.toISOString());
 
-    await db.update(issues).set({ status: "done" }).where(eq(issues.id, evaluationIssueId));
+    await db.update(issues).set({ status: "done", updatedAt: now }).where(eq(issues.id, evaluationIssueId));
 
     const beforeRearm = await heartbeat.scanSilentActiveRuns({
       now: new Date(rearmAt.getTime() - 60_000),
@@ -647,14 +647,51 @@ describeEmbeddedPostgres("active-run output watchdog", () => {
       now: new Date(rearmAt.getTime() + 60_000),
       companyId,
     });
-    expect(afterRearm.created).toBe(1);
-    expect(afterRearm.evaluationIssueIds[0]).not.toBe(evaluationIssueId);
+    expect(afterRearm).toMatchObject({ created: 0, reopened: 1 });
+    expect(afterRearm.evaluationIssueIds[0]).toBe(evaluationIssueId);
 
     const evaluations = await db
       .select()
       .from(issues)
       .where(and(eq(issues.companyId, companyId), eq(issues.originKind, "stale_active_run_evaluation")));
-    expect(evaluations.filter((issue) => !["done", "cancelled"].includes(issue.status))).toHaveLength(1);
+    expect(evaluations).toHaveLength(1);
+    expect(evaluations[0]).toMatchObject({ id: evaluationIssueId, status: "todo" });
+  });
+
+  it("reuses a terminal evaluation when it was closed without a watchdog decision", async () => {
+    const now = new Date("2026-04-22T21:00:00.000Z");
+    const { companyId, runId } = await seedRunningRun({
+      now,
+      ageMs: ACTIVE_RUN_OUTPUT_SUSPICION_THRESHOLD_MS + 60_000,
+    });
+    const heartbeat = heartbeatService(db);
+
+    const initial = await heartbeat.scanSilentActiveRuns({ now, companyId });
+    const evaluationIssueId = initial.evaluationIssueIds[0];
+    expect(evaluationIssueId).toBeTruthy();
+    await db
+      .update(issues)
+      .set({ status: "done", updatedAt: now })
+      .where(eq(issues.id, evaluationIssueId));
+
+    const beforeRearm = await heartbeat.scanSilentActiveRuns({
+      now: new Date(now.getTime() + ACTIVE_RUN_OUTPUT_CONTINUE_REARM_MS - 60_000),
+      companyId,
+    });
+    expect(beforeRearm).toMatchObject({ created: 0, existing: 1, reopened: 0 });
+
+    const afterRearm = await heartbeat.scanSilentActiveRuns({
+      now: new Date(now.getTime() + ACTIVE_RUN_OUTPUT_CONTINUE_REARM_MS + 60_000),
+      companyId,
+    });
+    expect(afterRearm).toMatchObject({ created: 0, reopened: 1 });
+    expect(afterRearm.evaluationIssueIds).toEqual([evaluationIssueId]);
+
+    const evaluations = await db
+      .select()
+      .from(issues)
+      .where(and(eq(issues.companyId, companyId), eq(issues.originKind, "stale_active_run_evaluation")));
+    expect(evaluations).toHaveLength(1);
   });
 
   it("rejects agent watchdog decisions using issues not bound to the target run", async () => {

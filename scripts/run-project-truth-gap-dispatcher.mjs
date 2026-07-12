@@ -63,6 +63,17 @@ function slugFor(value) {
     .slice(0, 64) || "gap";
 }
 
+function sourceItemSlug(gap) {
+  const sourceItemId = String(gap.sourceItemId ?? "").trim();
+  if (sourceItemId) {
+    const parts = sourceItemId.split(":").filter(Boolean);
+    return slugFor(parts.length >= 2 ? parts[1] : parts[0]);
+  }
+  const evidence = Array.isArray(gap.evidence) ? gap.evidence.find(Boolean) : null;
+  const symbol = String(evidence ?? "").split("#").at(-1);
+  return symbol && symbol !== evidence ? slugFor(symbol) : "gap";
+}
+
 function issueTitleForGap(gap) {
   const project = gap.project ?? "Project";
   if (gap.kind === "runtime_error" && gap.severity === "critical") {
@@ -72,7 +83,7 @@ function issueTitleForGap(gap) {
     return `[${project}][Project Truth][Event Chain] Complete ${gap.userFlow ?? "unclassified workflow"} chain`;
   }
   if (gap.kind === "app_completion_gap") {
-    return `[${project}][Project Truth][App Completion] Prove ${gap.userFlow ?? "unclassified workflow"} ${slugFor(gap.risk ?? gap.summary)}`;
+    return `[${project}][Project Truth][App Completion] Prove ${gap.userFlow ?? "unclassified workflow"} ${slugFor(gap.risk ?? gap.summary)} for ${sourceItemSlug(gap)}`;
   }
   return `[${project}][Project Truth] Route ${gap.kind ?? "gap"} ${slugFor(gap.userFlow ?? gap.summary)}`;
 }

@@ -841,6 +841,31 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     return row ?? null;
   }
 
+  async function findLatestTerminalStaleRunEvaluation(companyId: string, runId: string) {
+    const [row] = await db
+      .select({
+        id: issues.id,
+        identifier: issues.identifier,
+        status: issues.status,
+        priority: issues.priority,
+        assigneeAgentId: issues.assigneeAgentId,
+        updatedAt: issues.updatedAt,
+      })
+      .from(issues)
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          eq(issues.originKind, STALE_ACTIVE_RUN_EVALUATION_ORIGIN_KIND),
+          eq(issues.originId, runId),
+          isNull(issues.hiddenAt),
+          inArray(issues.status, ["done", "cancelled"]),
+        ),
+      )
+      .orderBy(desc(issues.updatedAt))
+      .limit(1);
+    return row ?? null;
+  }
+
   async function buildRunOutputSilence(
     run: Pick<
       typeof heartbeatRuns.$inferSelect,
@@ -1540,6 +1565,82 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       level,
       now: input.now,
     });
+    const latestTerminal = await findLatestTerminalStaleRunEvaluation(input.run.companyId, input.run.id);
+    const sameSilenceEpoch = latestTerminal
+      ? !silenceStartedAt || silenceStartedAt.getTime() <= latestTerminal.updatedAt.getTime()
+      : false;
+    if (latestTerminal && sameSilenceEpoch) {
+      const rearmAt = new Date(latestTerminal.updatedAt.getTime() + ACTIVE_RUN_OUTPUT_CONTINUE_REARM_MS);
+      if (input.now.getTime() < rearmAt.getTime()) {
+        return { kind: "existing" as const, evaluationIssueId: latestTerminal.id };
+      }
+
+      const reopened = await issuesSvc.update(latestTerminal.id, {
+        status: "todo",
+        priority: level === "critical" ? "high" : "medium",
+        assigneeAgentId: ownerAgentId,
+        description,
+      });
+      if (!reopened) return { kind: "skipped" as const };
+      await issuesSvc.addComment(latestTerminal.id, [
+        "Reopened the existing silent-run evaluation after its quiet window elapsed.",
+        "",
+        `- Run: \`${input.run.id}\``,
+        `- Silent for: ${formatDuration(evidence.silenceAgeMs)}`,
+        `- Last output at: ${input.run.lastOutputAt?.toISOString() ?? "none recorded"}`,
+        "- Reason: the run has not produced new output since this evaluation was last closed.",
+        "",
+        "Paperclip reuses this issue so one silence incident cannot create an unbounded review backlog.",
+      ].join("\n"), { runId: input.run.id });
+      await logActivity(db, {
+        companyId: input.run.companyId,
+        actorType: "system",
+        actorId: "system",
+        agentId: ownerAgentId,
+        runId: input.run.id,
+        action: "heartbeat.output_stale_evaluation_reopened",
+        entityType: "issue",
+        entityId: latestTerminal.id,
+        details: {
+          source: "recovery.scan_silent_active_runs",
+          level,
+          sourceIssueId: sourceIssue?.id ?? null,
+          silenceAgeMs: evidence.silenceAgeMs,
+          lastOutputAt: input.run.lastOutputAt?.toISOString() ?? null,
+        },
+      });
+      if (level === "critical") {
+        await ensureSourceIssueBlockedByStaleEvaluation({
+          sourceIssue,
+          evaluationIssue: latestTerminal,
+          run: input.run,
+        });
+      }
+      if (ownerAgentId) {
+        await deps.enqueueWakeup(ownerAgentId, {
+          source: "assignment",
+          triggerDetail: "system",
+          reason: "issue_assigned",
+          payload: withRecoveryModelProfileHint({
+            issueId: latestTerminal.id,
+            staleRunId: input.run.id,
+            sourceIssueId: sourceIssue?.id ?? null,
+          }, "status_only"),
+          requestedByActorType: "system",
+          requestedByActorId: null,
+          contextSnapshot: withRecoveryModelProfileHint({
+            issueId: latestTerminal.id,
+            taskId: latestTerminal.id,
+            wakeReason: "issue_assigned",
+            source: STALE_ACTIVE_RUN_EVALUATION_ORIGIN_KIND,
+            staleRunId: input.run.id,
+            sourceIssueId: sourceIssue?.id ?? null,
+          }, "status_only"),
+        });
+      }
+      return { kind: "reopened" as const, evaluationIssueId: latestTerminal.id };
+    }
+
     let evaluation: Awaited<ReturnType<typeof issuesSvc.create>>;
     try {
       evaluation = await issuesSvc.create(input.run.companyId, {
@@ -1634,6 +1735,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       scanned: candidates.length,
       created: 0,
       existing: 0,
+      reopened: 0,
       escalated: 0,
       folded: 0,
       snoozed: 0,
@@ -1649,6 +1751,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       const outcome = await createOrUpdateStaleRunEvaluation({ run, now });
       if (outcome.kind === "created") result.created += 1;
       else if (outcome.kind === "existing") result.existing += 1;
+      else if (outcome.kind === "reopened") result.reopened += 1;
       else if (outcome.kind === "escalated") result.escalated += 1;
       else if (outcome.kind === "folded") result.folded += 1;
       else result.skipped += 1;
