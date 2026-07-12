@@ -522,9 +522,9 @@ const commentsByRunId = new Map(liveRuns.map((run) => [
 const liveRunsByOwnerKey = new Map();
 for (const run of liveRuns) {
   if (!run.agentId) continue;
-  // maxConcurrentRuns may intentionally let one agent own different issues at
-  // the same time. Only two live runs for the same agent and issue are true
-  // duplicate-owner executions.
+  // Queued work for a different issue is legitimate serialization, and
+  // maxConcurrentRuns may also permit deliberate parallelism. Only two live
+  // runs for the same agent and issue are true duplicate-owner executions.
   const ownerKey = `${run.agentId}:${run.issueId ?? "__orphan__"}`;
   const runs = liveRunsByOwnerKey.get(ownerKey) ?? [];
   runs.push(run);
@@ -648,7 +648,7 @@ for (const run of liveRuns) {
     continue;
   }
 
-  if (isRunnableIssueWithLiveRun(issue)) {
+  if (run.status === "running" && isRunnableIssueWithLiveRun(issue)) {
     actions.push({
       kind: "sync_live_issue_in_progress",
       runId: run.id,

@@ -128,6 +128,13 @@ test("live-run janitor only treats the same agent and issue as duplicate owner w
   assert.match(source, /preserved issue status because the kept owner run remains active/);
 });
 
+test("live-run janitor does not present queued work as already in progress", async () => {
+  const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
+
+  assert.match(source, /if \(run\.status === "running" && isRunnableIssueWithLiveRun\(issue\)\) \{/);
+  assert.doesNotMatch(source, /if \(isRunnableIssueWithLiveRun\(issue\)\) \{\s*actions\.push\(\{\s*kind: "sync_live_issue_in_progress"/);
+});
+
 test("live-run janitor does not let orphan direct wakes outrank issue-bound recovery", async () => {
   const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
 
