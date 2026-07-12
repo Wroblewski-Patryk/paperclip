@@ -1,5 +1,25 @@
 # Responsibility Learning
 
+## 2026-07-12 - Self-run filtering for supervisor dispatch
+
+Observed failure mode: supervisor-style routing can accidentally count its own current Paperclip run as external work. That can make the next-action selector or watchdog choose `supervise_active_runs` when the only live work is the supervisor itself.
+
+Standing rule:
+
+- When a supervisor delegates to next-legal-action or similar dispatch logic, filter out the current `PAPERCLIP_RUN_ID` and current issue context before deciding whether external work exists.
+- Keep the observed run count and ignored-self-run count visible in the selector or watchdog output so the decision can be audited.
+- Verify the filter with a gate/spec test before treating a quiet board as idle.
+
+## 2026-07-12 - Terminal-gate freshness alignment
+
+Observed failure mode: exported unblock packets can show terminal gates as fresh runnable work even when the operating decision correctly refuses to resume them.
+
+Standing rule:
+
+- Treat terminal delivery gates with good evidence as preserved evidence, not as fresh runnable gates.
+- Use the same non-terminal actionable-fresh definition in both the exported packet and the operating selector logic.
+- If the packet and selector disagree, repair the definition instead of re-queuing the gate.
+
 ## 2026-07-06 - Structured in_review handoff contract
 
 Observed failure mode: tasks can enter `in_review` without enough structure to

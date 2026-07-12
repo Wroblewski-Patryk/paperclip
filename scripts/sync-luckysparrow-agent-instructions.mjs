@@ -64,7 +64,7 @@ function adapterConfigFor(definition, laneKey = definition.modelLane) {
     cwd: workspaceCwd(definition),
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,
-    ...(lane.fastMode ? { fastMode: true } : {}),
+    fastMode: Boolean(lane.fastMode),
     search: false,
     dangerouslyBypassApprovalsAndSandbox: true,
     timeoutSec: 0,

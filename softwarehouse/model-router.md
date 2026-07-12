@@ -7,16 +7,16 @@ explicit profile was requested.
 
 ## Profiles
 
-- `cheap`: legacy low-cost/status-only lane. Used for recovery, liveness, and
+- `cheap`: GPT-5.4 mini low-effort/status-only lane. Used for recovery, liveness, and
   small system follow-ups.
-- `spark`: tiny coding and documentation lane.
-- `light`: coordination, routine analysis, product/design/ops summaries, and
+- `spark`: optional Codex Spark preview lane for tiny coding and documentation.
+- `light`: GPT-5.4 mini lane for coordination and routine summaries.
   low-risk planning.
-- `standard`: normal implementation, debugging, review, and verification.
-- `reasoning`: architecture, security, deployment, schema, production, and
+- `standard`: GPT-5.4 lane for normal implementation, debugging, review, and verification.
+- `reasoning`: GPT-5.4 high-effort lane for architecture, deployment, schema, and
   cross-module work.
-- `strategic`: explicit highest-reasoning lane. Keep this manual or rare until
-  the local Codex account confirms the Pro model is available.
+- `strategic`: GPT-5.5 xhigh compatibility lane for security, cross-system architecture, difficult
+  recovery, and final high-risk review.
 
 ## Configuration
 
@@ -33,16 +33,17 @@ versioned without hardcoding it into agent instructions.
 
 ## Current OpenAI/Codex Notes
 
-Official OpenAI docs currently recommend GPT-5.5 for complex reasoning/coding
-and GPT-5.4 mini/nano where lower latency or cost matters. Codex documentation
-also marks `gpt-5.2` and `gpt-5.3-codex` as deprecated for ChatGPT-signed-in
-Codex usage. `gpt-5.3-codex-spark` is a Pro research-preview lane with separate
-usage limits, so Paperclip treats it as a profile and not as the only default.
+Official OpenAI docs position GPT-5.6 Sol for complex professional work, Terra
+for balancing intelligence and cost, and Luna for cost-sensitive high-volume
+workloads. The unsuffixed `gpt-5.6` alias routes to Sol, so Paperclip uses
+explicit model IDs and defaults normal work to Terra.
 
-Operationally this means:
+The local Codex cache can advertise models that require a newer CLI than the
+version pinned by Paperclip. Operationally this means:
 
-- Prefer `gpt-5.5` only where quality matters.
-- Use `gpt-5.4-mini` and Spark for lightweight work.
+- Use only models that pass a live `codex exec` probe with the pinned CLI.
+- Keep GPT-5.4 and GPT-5.4 mini as compatibility defaults.
+- Use GPT-5.5 for deep work until GPT-5.6 passes the same probe.
 - Keep deprecated model IDs in the adapter list only for legacy/manual configs.
 - Reduce prompt and AGENTS.md bloat before buying more capacity; smaller context
   is a real quota lever.

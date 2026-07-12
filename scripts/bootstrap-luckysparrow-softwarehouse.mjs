@@ -51,7 +51,7 @@ function adapterConfigForLane(roster, laneKey) {
     cwd: workspaceCwd(roster, null),
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,
-    ...(lane.fastMode ? { fastMode: true } : {}),
+    fastMode: Boolean(lane.fastMode),
     search: false,
     dangerouslyBypassApprovalsAndSandbox: true,
     timeoutSec: 0,

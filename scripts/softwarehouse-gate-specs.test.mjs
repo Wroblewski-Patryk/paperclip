@@ -320,8 +320,8 @@ test("softwarehouse model and cost readiness audit guards quota and future API l
   assert.match(source, /summarizeErrorAgentRuns/);
   assert.match(source, /agent_error_status_quota_retry/);
   assert.match(source, /recent_invalid_openai_api_key_failures/);
-  assert.match(roster, /"fastTriage"[\s\S]*"model": "gpt-5\.4"/);
-  assert.match(roster, /"fastMode": true/);
+  assert.match(roster, /"fastTriage"[\s\S]*"model": "gpt-5\.4-mini"/);
+  assert.doesNotMatch(roster, /"fastMode": true/);
 });
 
 test("softwarehouse runtime file-state audit protects active agent instruction bundles", async () => {

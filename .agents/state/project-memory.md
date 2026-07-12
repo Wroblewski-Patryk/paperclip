@@ -1,6 +1,13 @@
 # Paperclip Softwarehouse Project Memory
 
-Last updated: 2026-07-03
+Last updated: 2026-07-12
+
+## 2026-07-12 Current Operating Note
+
+- Stage 1 remains active and Soar/Roost stay the current delivery proof for LuckySparrow Software House.
+- The latest PDCA review promoted two reusable lessons into the learning ledger: supervisor self-run filtering and terminal-gate freshness alignment.
+- The organizational learning loop is now producing dedicated learning issues for repeated blocker patterns and suppressing compliant or duplicate chains instead of cloning them.
+- No change to user intent, active mission, or parked-app policy was justified by the review.
 
 ## 2026-07-03 Archived Thread: App-Completion And Company-Standards Context
 

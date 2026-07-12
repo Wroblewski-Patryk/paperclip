@@ -6,6 +6,19 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-12 / LUC-595 PDCA Learning and Company Memory Review:
+  - Reviewed the live issue state for `LUC-595` through `GET /api/issues/LUC-595` and confirmed it had no blockers, comments, attachments, or work products; this was a clean memory-promotion lane.
+  - Reconciled the latest learning outputs against the durable memory files and promoted the reusable rules into `responsibility-learning.md`.
+  - Updated `project-memory.md` with the current operating note so the newest learning is visible in the compact bootstrap memory.
+  - Decision: current truth updated for company memory only; no active mission, board-context, or product-source change was justified.
+
+- 2026-07-12 / LUC-585 Longevity snapshot backup:
+  - Exported the redacted Softwarehouse longevity snapshot with `node scripts/export-softwarehouse-longevity-snapshot.mjs`.
+  - Verification: the snapshot wrote `report/longevity/softwarehouse-longevity-snapshot.latest.md`, `report/longevity/softwarehouse-longevity-snapshot.latest.json`, and the stamped JSON snapshot `report/longevity/softwarehouse-longevity-snapshot.2026-07-12T01-15-06-671Z.json`.
+  - Snapshot contents were checked in the latest Markdown/JSON outputs and include company/project/issue/routine/goal/label/live-run/secret-metadata records only; secret values are excluded.
+  - Attached the Markdown snapshot to LUC-585 as work product `c7f01e61-0445-4fd8-87ad-5da659dd4f4c` with issue-safe links to the uploaded artifact.
+  - Decision: this is a durable evidence snapshot, not a product or code change. Current truth updated for longevity-backup evidence only; no broader mission or policy change.
+
 - 2026-07-12 / Continuation control-loop repair:
   - Conversation summary and runtime evidence confirmed a real idle-loop gap: after live runs completed, the next-action selector could stop at `refresh_control_tick` whenever the Paperclip repo had an uncommitted change. That action had no allowlisted apply path, while the control tick correctly refused to open delivery work against a dirty operating repo.
   - Repaired the loop in `scripts/run-next-legal-action-selector.mjs` and `scripts/run-local-repair-lane-starter.mjs`: docs/evidence/context/agent-state-only Paperclip changes now receive one explicit operating-system source-control closure lane, with a single CTO owner, local validation/commit evidence, and no push/deploy/restart/protected-smoke authority. Code, dependency, or other risky operating changes remain fail-closed.
@@ -2239,3 +2252,25 @@ Decision: terminal delivery gates with good evidence should remain visible as
 passed evidence, but must not be advertised as fresh runnable gates. This keeps
 the owner view and control-plane routing aligned while avoiding duplicate gate
 rechecks.
+
+## 2026-07-12 - Organizational learning loop heartbeat
+
+Context: routine execution of `LUC-589` (`[Softwarehouse] Organizational
+learning loop`) was run with
+`node scripts/run-softwarehouse-learning-loop.mjs --apply`.
+
+Actions:
+
+- The learning loop completed successfully in apply mode.
+- It processed 4 blocked groups, with 2 eligible groups and 2 processed
+  groups.
+- It created a new learning issue for the repeated ops/release blocker pattern:
+  `LUC-590` (`[Softwarehouse][Learning] Ops/release blocker pattern LUC-450`).
+- It suppressed one compliant ops/release blocker chain for `LUC-496`.
+- It suppressed one duplicate learning issue in the review-decision-path area,
+  mapped to `LUC-526`.
+
+Decision: the organizational learning loop is working as an evidence-producing
+routine. New repeated blocker patterns should continue to become dedicated
+learning issues, while compliant chains and duplicate learning issues should be
+suppressed rather than cloned.

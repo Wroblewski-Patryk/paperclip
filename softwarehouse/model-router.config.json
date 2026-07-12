@@ -3,10 +3,10 @@
   "defaultProfile": "standard",
   "roleDefaults": {
     "ceo": "reasoning",
-    "cto": "reasoning",
+    "cto": "strategic",
     "cmo": "light",
     "cfo": "light",
-    "security": "reasoning",
+    "security": "strategic",
     "engineer": "standard",
     "designer": "light",
     "pm": "light",
@@ -33,8 +33,8 @@
     "06 POP": "light",
     "07 CFO": "light",
     "08 CAO": "light",
-    "09 CTO": "reasoning",
-    "09 TSA": "reasoning",
+    "09 CTO": "strategic",
+    "09 TSA": "strategic",
     "09 EDL": "standard",
     "09 CBE": "standard",
     "09 FEW": "standard",
@@ -43,10 +43,10 @@
     "09 RTE": "standard",
     "09 TAE": "standard",
     "09 QVE": "standard",
-    "09 CRS": "standard",
+    "09 CRS": "strategic",
     "09 DRE": "reasoning",
     "10 CLO": "reasoning",
-    "10 SPA": "reasoning",
+    "10 SPA": "strategic",
     "11 CINO": "reasoning",
     "11 APM": "light",
     "11 FPM": "light",
@@ -100,6 +100,18 @@
       "reason": "wake context is status/recovery oriented"
     }
   ],
+  "escalationPolicy": {
+    "order": ["cheap", "spark", "light", "standard", "reasoning", "strategic"],
+    "conditions": [
+      "task scope expands beyond the assigned bounded operation",
+      "requirements or evidence remain materially ambiguous",
+      "the current lane produces one failed implementation attempt",
+      "work crosses repositories, systems, or production boundaries",
+      "security, destructive data, secrets, deployment, or final release decisions are involved"
+    ],
+    "terraToSolAfterFailedAttempts": 2,
+    "maximumAutomaticProfile": "strategic"
+  },
   "quotaPressureFallbacks": {
     "high": {
       "strategic": "reasoning",

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastReviewed": "2026-07-06",
+  "lastReviewed": "2026-07-12",
   "sources": [
     {
       "label": "OpenAI API model guide",
@@ -21,9 +21,9 @@
   ],
   "profiles": {
     "cheap": {
-      "defaultModel": "gpt-5.3-codex-spark",
-      "relativeCostWeight": 0.15,
-      "quotaLane": "codex_spark_preview",
+      "defaultModel": "gpt-5.4-mini",
+      "relativeCostWeight": 0.3,
+      "quotaLane": "codex_standard_light",
       "intent": "Status-only recovery, liveness, tiny follow-ups, and very low-risk housekeeping.",
       "successTargetPercent": 85,
       "escalateBelowPercent": 70,
@@ -36,7 +36,7 @@
       "intent": "Small code edits, formatting, simple docs, tiny tests, and quick triage.",
       "successTargetPercent": 85,
       "escalateBelowPercent": 72,
-      "notes": "Spark has its own preview limits; queueing can happen when demand is high."
+      "notes": "Use for bounded, repeatable work. Escalate ambiguity or failed attempts to Terra."
     },
     "light": {
       "defaultModel": "gpt-5.4-mini",
@@ -45,10 +45,10 @@
       "intent": "Routine coordination, PM/design/doc summaries, basic analysis, and narrow subagent work.",
       "successTargetPercent": 88,
       "escalateBelowPercent": 75,
-      "notes": "OpenAI positions GPT-5.4 mini as a lower-cost/faster Codex option for lighter coding tasks and subagents."
+      "notes": "Verified against the pinned local Codex CLI for lower-cost routine work."
     },
     "standard": {
-      "defaultModel": "gpt-5.5",
+      "defaultModel": "gpt-5.4",
       "relativeCostWeight": 1,
       "quotaLane": "codex_standard",
       "intent": "Normal implementation, debugging, review, verification, and most engineering work.",
@@ -57,8 +57,8 @@
       "notes": "Default high-quality lane; use this until evidence says a lighter lane is sufficient."
     },
     "reasoning": {
-      "defaultModel": "gpt-5.5",
-      "relativeCostWeight": 1.35,
+      "defaultModel": "gpt-5.4",
+      "relativeCostWeight": 1.15,
       "quotaLane": "codex_standard",
       "intent": "Architecture, deployment, security, schema, production, and cross-module decisions.",
       "successTargetPercent": 92,
@@ -66,13 +66,13 @@
       "notes": "Uses higher reasoning effort; protect this lane from routine paperwork."
     },
     "strategic": {
-      "defaultModel": "gpt-5.5-pro",
-      "relativeCostWeight": 3,
-      "quotaLane": "codex_pro",
+      "defaultModel": "gpt-5.5",
+      "relativeCostWeight": 2,
+      "quotaLane": "codex_standard",
       "intent": "Explicit owner-approved strategic decisions, multi-system design, and high-risk platform direction.",
       "successTargetPercent": 95,
       "escalateBelowPercent": 88,
-      "notes": "Rare/manual by default until live account limits prove this lane is consistently available."
+      "notes": "Compatibility strategic lane until the repo-pinned Codex CLI is upgraded and GPT-5.6 passes the live probe."
     }
   }
 }

@@ -34,7 +34,7 @@ function expectedAdapterConfig(roster, laneKey) {
     cwd: expectedWorkspaceCwd(roster, null),
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,
-    ...(lane.fastMode ? { fastMode: true } : {}),
+    fastMode: Boolean(lane.fastMode),
     search: false,
     dangerouslyBypassApprovalsAndSandbox: true,
     timeoutSec: 0,
@@ -107,12 +107,12 @@ function assertSafeModelPolicy(findings, definition, roster) {
     record(findings, "error", definition.name, "modelPolicy.missingLane", { modelLane: definition.modelLane });
     return;
   }
-  const allowedModels = new Set(["gpt-5.5", "gpt-5.4"]);
-  if (!allowedModels.has(lane.model) || /spark/i.test(lane.model)) {
+  const allowedModels = new Set(["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex-spark"]);
+  if (!allowedModels.has(lane.model)) {
     record(findings, "error", definition.name, "modelPolicy.model", {
       modelLane: definition.modelLane,
       model: lane.model,
-      expected: "gpt-5.5 for primary lanes or gpt-5.4 for fastTriage, and no Spark model",
+      expected: "a model verified by a live Codex CLI probe",
     });
   }
 }

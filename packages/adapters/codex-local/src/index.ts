@@ -5,7 +5,10 @@ export const label = "Codex (local)";
 
 export const SANDBOX_INSTALL_COMMAND = "npm install -g @openai/codex";
 
-export const DEFAULT_CODEX_LOCAL_MODEL = "gpt-5.5";
+export const CODEX_LOCAL_SOL_MODEL = "gpt-5.6-sol";
+export const CODEX_LOCAL_TERRA_MODEL = "gpt-5.6-terra";
+export const CODEX_LOCAL_LUNA_MODEL = "gpt-5.6-luna";
+export const DEFAULT_CODEX_LOCAL_MODEL = "gpt-5.4";
 export const DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX = true;
 export const CODEX_LOCAL_FAST_MODE_SUPPORTED_MODELS = ["gpt-5.4", "gpt-5.4-mini"] as const;
 
@@ -33,37 +36,31 @@ export function isCodexLocalFastModeSupported(model: string | null | undefined):
 }
 
 export const models = [
+  { id: CODEX_LOCAL_SOL_MODEL, label: CODEX_LOCAL_SOL_MODEL },
+  { id: CODEX_LOCAL_TERRA_MODEL, label: CODEX_LOCAL_TERRA_MODEL },
+  { id: CODEX_LOCAL_LUNA_MODEL, label: CODEX_LOCAL_LUNA_MODEL },
+  { id: "gpt-5.6", label: "gpt-5.6 (alias: gpt-5.6-sol)" },
+  { id: "gpt-5.5", label: "gpt-5.5" },
   { id: DEFAULT_CODEX_LOCAL_MODEL, label: DEFAULT_CODEX_LOCAL_MODEL },
-  { id: "gpt-5.5-pro", label: "gpt-5.5-pro" },
-  { id: "gpt-5.4", label: "gpt-5.4" },
   { id: "gpt-5.4-mini", label: "gpt-5.4-mini" },
-  { id: "gpt-5.4-nano", label: "gpt-5.4-nano" },
-  { id: "gpt-5.3-codex", label: "gpt-5.3-codex (deprecated)" },
   { id: "gpt-5.3-codex-spark", label: "gpt-5.3-codex-spark" },
-  { id: "gpt-5", label: "gpt-5" },
-  { id: "o3", label: "o3" },
-  { id: "o4-mini", label: "o4-mini" },
-  { id: "gpt-5-mini", label: "gpt-5-mini" },
-  { id: "gpt-5-nano", label: "gpt-5-nano" },
-  { id: "o3-mini", label: "o3-mini" },
-  { id: "codex-mini-latest", label: "Codex Mini" },
 ];
 
 export const modelProfiles: AdapterModelProfileDefinition[] = [
   {
     key: "cheap",
-    label: "Cheap / Spark",
-    description: "Legacy low-cost profile for recovery, status, and tiny follow-up runs.",
+    label: "Cheap / 5.4 mini",
+    description: "Lowest-cost lane for recovery, status, and tiny bounded follow-up runs.",
     adapterConfig: {
-      model: "gpt-5.3-codex-spark",
-      modelReasoningEffort: "medium",
+      model: "gpt-5.4-mini",
+      modelReasoningEffort: "low",
     },
     source: "adapter_default",
   },
   {
     key: "spark",
-    label: "Spark",
-    description: "Fast coding lane for small fixes, formatting, documentation, and lightweight tests.",
+    label: "Spark / Batch",
+    description: "Optional Pro preview lane for bounded formatting, summaries, and rapid coding iteration.",
     adapterConfig: {
       model: "gpt-5.3-codex-spark",
       modelReasoningEffort: "medium",
@@ -72,18 +69,17 @@ export const modelProfiles: AdapterModelProfileDefinition[] = [
   },
   {
     key: "light",
-    label: "Light",
+    label: "5.4 mini / Light",
     description: "General lightweight lane for triage, coordination, and routine analysis.",
     adapterConfig: {
       model: "gpt-5.4-mini",
       modelReasoningEffort: "medium",
-      fastMode: true,
     },
     source: "adapter_default",
   },
   {
     key: "standard",
-    label: "Standard",
+    label: "5.4 / Standard",
     description: "Default high-quality lane for normal implementation, debugging, review, and verification.",
     adapterConfig: {
       model: DEFAULT_CODEX_LOCAL_MODEL,
@@ -93,7 +89,7 @@ export const modelProfiles: AdapterModelProfileDefinition[] = [
   },
   {
     key: "reasoning",
-    label: "Reasoning",
+    label: "5.4 / Reasoning",
     description: "Stronger lane for architecture, security, deployment, and cross-module reasoning.",
     adapterConfig: {
       model: DEFAULT_CODEX_LOCAL_MODEL,
@@ -103,11 +99,11 @@ export const modelProfiles: AdapterModelProfileDefinition[] = [
   },
   {
     key: "strategic",
-    label: "Strategic",
+    label: "5.5 / Strategic",
     description: "Highest-reasoning lane for explicit strategic or multi-system decisions.",
     adapterConfig: {
-      model: "gpt-5.5-pro",
-      modelReasoningEffort: "high",
+      model: "gpt-5.5",
+      modelReasoningEffort: "xhigh",
     },
     source: "adapter_default",
   },
@@ -121,7 +117,7 @@ Core fields:
 - cwd (string, optional): default absolute working directory fallback for the agent process (created if missing when possible)
 - instructionsFilePath (string, optional): absolute path to a markdown instructions file prepended to stdin prompt at runtime
 - model (string, optional): Codex model id
-- modelReasoningEffort (string, optional): reasoning effort override (minimal|low|medium|high|xhigh) passed via -c model_reasoning_effort=...
+- modelReasoningEffort (string, optional): reasoning effort override (none|low|medium|high|xhigh|max) passed via -c model_reasoning_effort=...
 - modelProfiles (runtime config): Paperclip can apply cheap, spark, light, standard, reasoning, or strategic profiles before each run via the central model router.
 - promptTemplate (string, optional): run prompt template
 - search (boolean, optional): run codex with --search
@@ -144,6 +140,7 @@ Notes:
 - Paperclip injects desired local skills into the effective CODEX_HOME/skills/ directory at execution time so Codex can discover "$paperclip" and related skills without polluting the project working directory. In managed-home mode (the default) this is ~/.paperclip/instances/<id>/companies/<companyId>/codex-home/skills/; when CODEX_HOME is explicitly overridden in adapter config, that override is used instead.
 - Unless explicitly overridden in adapter config, Paperclip runs Codex with a per-company managed CODEX_HOME under the active Paperclip instance and seeds auth/config from the shared Codex home (the CODEX_HOME env var, when set, or ~/.codex).
 - Some model/tool combinations reject certain effort levels (for example minimal with web search enabled).
+- GPT-5.6 IDs are listed for current Codex releases, but the committed CLI version must support them before assignment. The compatibility defaults use GPT-5.4, GPT-5.4 mini, and GPT-5.5. The unsuffixed gpt-5.6 alias points to Sol.
 - Fast mode is supported on GPT-5.4, GPT-5.4 mini, and manual model IDs. When enabled for those models, Paperclip applies \`service_tier="fast"\` and \`features.fast_mode=true\`.
 - When Paperclip realizes a workspace/runtime for a run, it injects PAPERCLIP_WORKSPACE_* and PAPERCLIP_RUNTIME_* env vars for agent-side tooling.
 `;

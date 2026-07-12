@@ -205,7 +205,7 @@ describe("server adapter registry", () => {
     await expect(listAdapterModelProfiles("codex_local")).resolves.toEqual([
       expect.objectContaining({
         key: "cheap",
-        adapterConfig: expect.objectContaining({ model: "gpt-5.3-codex-spark" }),
+        adapterConfig: expect.objectContaining({ model: "gpt-5.4-mini" }),
         source: "adapter_default",
       }),
       expect.objectContaining({
@@ -220,17 +220,17 @@ describe("server adapter registry", () => {
       }),
       expect.objectContaining({
         key: "standard",
-        adapterConfig: expect.objectContaining({ model: "gpt-5.5" }),
+        adapterConfig: expect.objectContaining({ model: "gpt-5.4" }),
         source: "adapter_default",
       }),
       expect.objectContaining({
         key: "reasoning",
-        adapterConfig: expect.objectContaining({ model: "gpt-5.5" }),
+        adapterConfig: expect.objectContaining({ model: "gpt-5.4" }),
         source: "adapter_default",
       }),
       expect.objectContaining({
         key: "strategic",
-        adapterConfig: expect.objectContaining({ model: "gpt-5.5-pro" }),
+        adapterConfig: expect.objectContaining({ model: "gpt-5.5" }),
         source: "adapter_default",
       }),
     ]);

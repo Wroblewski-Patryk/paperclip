@@ -15,12 +15,12 @@ The `codex_local` adapter runs OpenAI's Codex CLI locally. It supports session p
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `cwd` | string | Yes | Working directory for the agent process (absolute path; created automatically if missing when permissions allow) |
-| `model` | string | No | Model to use |
+| `model` | string | No | Model to use (compatibility default: `gpt-5.4`) |
 | `promptTemplate` | string | No | Prompt used for all runs |
 | `env` | object | No | Environment variables (supports secret refs) |
 | `timeoutSec` | number | No | Process timeout (0 = no timeout) |
 | `graceSec` | number | No | Grace period before force-kill |
-| `fastMode` | boolean | No | Enables Codex Fast mode. Currently supported on `gpt-5.4` only and burns credits faster |
+| `fastMode` | boolean | No | Enables Codex Fast service tier. Currently supported on `gpt-5.4`, `gpt-5.4-mini`, and manual model IDs |
 | `dangerouslyBypassApprovalsAndSandbox` | boolean | No | Skip safety checks (dev only) |
 
 ## Session Persistence
@@ -39,7 +39,11 @@ When `fastMode` is enabled, Paperclip adds Codex config overrides equivalent to:
 -c 'service_tier="fast"' -c 'features.fast_mode=true'
 ```
 
-Paperclip currently applies that only when the selected model is `gpt-5.4`. On other models, the toggle is preserved in config but ignored at execution time to avoid unsupported runs.
+Paperclip currently applies that only when the selected model is `gpt-5.4`, `gpt-5.4-mini`, or a manually entered model ID. On other known models, the toggle is preserved in config but ignored at execution time to avoid unsupported runs. Model tier and Fast service tier are independent, so selecting GPT-5.6 Luna does not enable `fastMode` automatically.
+
+## GPT-5.6 Model Policy
+
+The adapter lists the current GPT-5.6 family, but assignments must also match the Codex CLI version pinned by the Paperclip installation. The compatibility profiles use GPT-5.4 for normal work, GPT-5.4 mini for bounded high-volume work, and GPT-5.5 for strategic work. Move profiles to explicit GPT-5.6 IDs only after all three pass a live `codex exec` probe; the unsuffixed `gpt-5.6` alias routes to Sol.
 
 ## Managed `CODEX_HOME`
 

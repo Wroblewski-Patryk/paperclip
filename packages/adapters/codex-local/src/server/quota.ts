@@ -344,6 +344,15 @@ function buildCodexRpcWindow(label: string, window: CodexRpcWindow | null | unde
 
 function codexQuotaScopeForLabel(label: string): Pick<QuotaWindow, "scope" | "quotaLane" | "model"> {
   const normalized = label.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  if (normalized.includes("luna") || normalized.includes("gpt56luna")) {
+    return { scope: "lane", quotaLane: "codex_5_6_luna", model: "gpt-5.6-luna" };
+  }
+  if (normalized.includes("terra") || normalized.includes("gpt56terra")) {
+    return { scope: "lane", quotaLane: "codex_5_6_terra", model: "gpt-5.6-terra" };
+  }
+  if (normalized.includes("sol") || normalized.includes("gpt56sol") || normalized === "gpt56") {
+    return { scope: "lane", quotaLane: "codex_5_6_sol", model: "gpt-5.6-sol" };
+  }
   if (normalized.includes("spark") || normalized.includes("gpt53codexspark")) {
     return { scope: "lane", quotaLane: "codex_spark_preview", model: "gpt-5.3-codex-spark" };
   }
