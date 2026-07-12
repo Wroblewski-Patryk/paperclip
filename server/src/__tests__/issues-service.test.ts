@@ -1493,6 +1493,33 @@ describeEmbeddedPostgres("issueService.list participantAgentId", () => {
     expect(result?.description).toHaveLength(1200);
     expect(result?.description?.endsWith("—")).toBe(true);
   });
+  it("does not overwrite a newer issue disposition when expectedStatus is stale", async () => {
+    const companyId = randomUUID();
+    const issueId = randomUUID();
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      title: "Freshly completed issue",
+      status: "done",
+      priority: "medium",
+    });
+
+    const staleUpdate = await svc.update(issueId, {
+      status: "blocked",
+      expectedStatus: "in_progress",
+    });
+
+    expect(staleUpdate).toBeNull();
+    const persisted = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0]);
+    expect(persisted?.status).toBe("done");
+  });
 });
 
 describeEmbeddedPostgres("issueService.create workspace inheritance", () => {

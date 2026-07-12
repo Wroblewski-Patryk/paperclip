@@ -2416,8 +2416,19 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       status: "blocked",
       blockedByIssueIds: blockerIds,
       assigneeAgentId: recoveryAction.ownerAgentId ?? input.issue.assigneeAgentId,
+      expectedStatus: input.previousStatus,
     });
-    if (!updated) return null;
+    if (!updated) {
+      await recoveryActionsSvc.resolveActiveForIssue({
+        companyId: input.issue.companyId,
+        sourceIssueId: input.issue.id,
+        actionId: recoveryAction.id,
+        status: "cancelled",
+        outcome: "false_positive",
+        resolutionNote: "Source issue received a newer disposition before recovery escalation could be applied.",
+      });
+      return null;
+    }
 
     const prefix = await getCompanyIssuePrefix(input.issue.companyId);
     const recoveryOwner = recoveryAction.ownerAgentId ? await getAgent(recoveryAction.ownerAgentId) : null;
