@@ -1,5 +1,6 @@
 import {
   buildOpenIssueTitles,
+  classifyLearningGapFromIssues,
   collectTransitiveBlockerRelatedIssues,
   findActiveRunCoveredOpsReleaseBlockerChain,
   findBoardAuthorizationWaitChain,
@@ -17,6 +18,7 @@ import {
   findSuppressibleV2WorkerFanoutDuplicate,
   resolveLearningOwner,
 } from "./lib/softwarehouse-learning-loop.mjs";
+import { formatWeakTrackSummary, summarizeWorkerBacklogTracks } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -90,40 +92,6 @@ function rootBlockerKey(issue) {
   }
   if (issue.blockerAttention?.sampleBlockerIdentifier) return issue.blockerAttention.sampleBlockerIdentifier;
   return issue.identifier;
-}
-
-function classifyGap(key, issues) {
-  const text = issues.map((issue) => `${issue.title}\n${issue.description ?? ""}`).join("\n").toLowerCase();
-  if (/deploy|coolify|vps|smoke|runtime|restart/.test(text)) return {
-    area: "ops-release",
-    owner: "Ops Release Lead",
-    title: `[Softwarehouse][Learning] Ops/release blocker pattern ${key}`,
-    boundary: "release/deploy evidence, rollback, and protected gate contract",
-  };
-  if (/auth|secret|credential|token|permission|account|security/.test(text)) return {
-    area: "security-credentials",
-    owner: "Security Review Lead",
-    title: `[Softwarehouse][Learning] Security/credential blocker pattern ${key}`,
-    boundary: "credential/account proof and least-privilege unblock path",
-  };
-  if (/test|qa|regression|e2e|smoke|proof|evidence/.test(text)) return {
-    area: "qa-proof",
-    owner: "QA Regression Lead",
-    title: `[Softwarehouse][Learning] QA/evidence blocker pattern ${key}`,
-    boundary: "repeatable proof command and regression guard ownership",
-  };
-  if (/architecture|graph|map|trace|dependency|entity/.test(text)) return {
-    area: "architecture-awareness",
-    owner: "CTO Architect",
-    title: `[Softwarehouse][Learning] Architecture-awareness blocker pattern ${key}`,
-    boundary: "canonical graph/entity/status mapping and task linkage",
-  };
-  return {
-    area: "project-management",
-    owner: "Portfolio Director",
-    title: `[Softwarehouse][Learning] Project-management blocker pattern ${key}`,
-    boundary: "smaller ownership, clearer handoff, and issue disposition rules",
-  };
 }
 
 function rosterKey(agent) {
@@ -236,6 +204,16 @@ const plannedIssues = openIssues.filter((issue) =>
 );
 const plannedWorkerIssues = plannedIssues.filter((issue) => isWorker(agentById.get(issue.assigneeAgentId)));
 const plannedSupervisorIssues = plannedIssues.filter((issue) => isSupervisor(agentById.get(issue.assigneeAgentId)));
+const trackBacklog = summarizeWorkerBacklogTracks({
+  issues,
+  projects,
+  agentById,
+  isWorker,
+  isSupervisor,
+  terminalStatuses,
+  plannedStatuses,
+});
+const weakTrackLines = trackBacklog.weakTracks.map(formatWeakTrackSummary);
 const blockedGroups = new Map();
 for (const issue of openIssues.filter((issue) => issue.status === "blocked")) {
   const key = rootBlockerKey(issue);
@@ -334,7 +312,7 @@ async function enrichIssuesForBlockerChain(baseIssues, rootKey, sourceIssues) {
 }
 
 for (const [key, groupedIssues] of processedBlockedGroups) {
-  const gap = classifyGap(key, groupedIssues);
+  const gap = classifyLearningGapFromIssues(key, groupedIssues);
   const owner = resolveLearningOwner(activeAgents, gap.owner, ["Portfolio Director"]);
   const sourceProjects = [...new Set(groupedIssues.map((issue) => projectByName.get(issue.projectId)?.name ?? "unknown"))];
   const sourceList = groupedIssues
@@ -682,9 +660,7 @@ for (const [key, groupedIssues] of processedBlockedGroups) {
 }
 
 const engineeringLead = agentByName.get("Engineering Delivery Lead") ?? agentByName.get("CTO Architect") ?? null;
-const workerFanoutWeak =
-  plannedSupervisorIssues.length > plannedWorkerIssues.length
-  && plannedWorkerIssues.length < Math.min(3, Math.max(1, plannedIssues.length));
+const workerFanoutWeak = trackBacklog.weakTracks.length > 0;
 if (workerFanoutWeak) {
   const duplicate = findSuppressibleV2WorkerFanoutDuplicate({
     issues,
@@ -692,6 +668,7 @@ if (workerFanoutWeak) {
     plannedWorkerIssueCount: plannedWorkerIssues.length,
     plannedSupervisorIssueCount: plannedSupervisorIssues.length,
     plannedIssueCount: plannedIssues.length,
+    weakTrackSummaries: weakTrackLines,
     sourceIssues: plannedIssues,
   });
   if (duplicate) {
@@ -718,8 +695,12 @@ if (workerFanoutWeak) {
         `Planned worker issue count: ${plannedWorkerIssues.length}`,
         `Planned issue count: ${plannedIssues.length}`,
         "",
+        "Weak tracks:",
+        ...weakTrackLines.map((line) => `- ${line}`),
+        "",
         "Capability gap:",
         "- managers/leads are not consistently turning parent intent into narrow worker-ready issues;",
+        "- aggregate worker counts can hide a starved Soar or Roost track;",
         "- this can make the softwarehouse look busy while implementation workers remain idle.",
         "",
         "Required proposal:",
@@ -754,6 +735,7 @@ if (workerFanoutWeak) {
       assignee: engineeringLead?.name ?? null,
       plannedWorkerIssueCount: plannedWorkerIssues.length,
       plannedSupervisorIssueCount: plannedSupervisorIssues.length,
+      weakTracks: weakTrackLines,
     });
   }
 }

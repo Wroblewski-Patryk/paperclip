@@ -201,20 +201,29 @@ async function searchIssues(companyId, query) {
   return request(`/api/companies/${companyId}/issues?${params.toString()}`);
 }
 
+function isKnownStateEvidenceLane(issue) {
+  const title = String(issue?.title ?? "");
+  if (["done", "cancelled"].includes(issue?.status)) return false;
+  if (title.includes("[Known State] Evidence collection")) return true;
+  return title.includes("[Project Truth]")
+    && (
+      title.includes("[App Completion]")
+      || /\b(Prove|Proof|Reconcile|Evidence)\b/i.test(title)
+    );
+}
+
 async function findKnownStateEvidenceLane(companyId, project, projectName, issues) {
   const fromLoadedIssues = issues.find((issue) =>
     issue.projectId === project.id
-    && String(issue.title ?? "").includes("[Known State] Evidence collection")
-    && !["cancelled"].includes(issue.status)
+    && isKnownStateEvidenceLane(issue)
   );
   if (fromLoadedIssues) return fromLoadedIssues;
 
-  const searchResult = await searchIssues(companyId, `${projectName} known-state`);
+  const searchResult = await searchIssues(companyId, `${projectName} known-state project truth app completion`);
   const searchIssuesValue = Array.isArray(searchResult) ? searchResult : searchResult?.value ?? [];
   return searchIssuesValue.find((issue) =>
     issue.projectId === project.id
-    && String(issue.title ?? "").includes("[Known State] Evidence collection")
-    && !["cancelled"].includes(issue.status)
+    && isKnownStateEvidenceLane(issue)
   ) ?? null;
 }
 

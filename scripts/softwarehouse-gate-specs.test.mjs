@@ -163,6 +163,16 @@ test("longevity doctor maps current live runs through issue lock columns", async
   assert.match(source, /run\.issueId \?\? issueByExecutionRunId\.get\(run\.id\)\?\.id/);
 });
 
+test("longevity doctor treats active project-truth proof lanes as known-state evidence", async () => {
+  const source = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
+
+  assert.match(source, /function isKnownStateEvidenceLane\(issue\)/);
+  assert.match(source, /title\.includes\("\[Known State\] Evidence collection"\)/);
+  assert.match(source, /title\.includes\("\[Project Truth\]"\)/);
+  assert.match(source, /title\.includes\("\[App Completion\]"\)/);
+  assert.match(source, /\\b\(Prove\|Proof\|Reconcile\|Evidence\)\\b/);
+});
+
 test("longevity scripts use resilient issue pagination and retry defaults", async () => {
   const snapshot = await readFile("scripts/export-softwarehouse-longevity-snapshot.mjs", "utf8");
   const doctor = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");

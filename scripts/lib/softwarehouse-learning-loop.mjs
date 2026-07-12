@@ -18,6 +18,15 @@ const legacyOwnerAliases = new Map([
       "09-dre-deployment-reliability-engineer",
     ],
   ],
+  [
+    "security review lead",
+    [
+      "10 SPA (Security & Privacy Auditor)",
+      "Security & Privacy Auditor",
+      "security-privacy-auditor",
+      "10-spa-security-privacy-auditor",
+    ],
+  ],
 ]);
 
 function normalizedOwnerKey(value) {
@@ -59,6 +68,40 @@ export function resolveLearningOwner(agents, ownerName, fallbackOwnerNames = [])
   }
 
   return null;
+}
+
+export function classifyLearningGapFromIssues(key, issues) {
+  const text = issues.map((issue) => `${issue.title}\n${issue.description ?? ""}`).join("\n").toLowerCase();
+  if (/auth|secret|credential|token|permission|account|security/.test(text)) return {
+    area: "security-credentials",
+    owner: "Security Review Lead",
+    title: `[Softwarehouse][Learning] Security/credential blocker pattern ${key}`,
+    boundary: "credential/account proof and least-privilege unblock path",
+  };
+  if (/deploy|coolify|vps|smoke|runtime|restart/.test(text)) return {
+    area: "ops-release",
+    owner: "Ops Release Lead",
+    title: `[Softwarehouse][Learning] Ops/release blocker pattern ${key}`,
+    boundary: "release/deploy evidence, rollback, and protected gate contract",
+  };
+  if (/test|qa|regression|e2e|smoke|proof|evidence/.test(text)) return {
+    area: "qa-proof",
+    owner: "QA Regression Lead",
+    title: `[Softwarehouse][Learning] QA/evidence blocker pattern ${key}`,
+    boundary: "repeatable proof command and regression guard ownership",
+  };
+  if (/architecture|graph|map|trace|dependency|entity/.test(text)) return {
+    area: "architecture-awareness",
+    owner: "CTO Architect",
+    title: `[Softwarehouse][Learning] Architecture-awareness blocker pattern ${key}`,
+    boundary: "canonical graph/entity/status mapping and task linkage",
+  };
+  return {
+    area: "project-management",
+    owner: "Portfolio Director",
+    title: `[Softwarehouse][Learning] Project-management blocker pattern ${key}`,
+    boundary: "smaller ownership, clearer handoff, and issue disposition rules",
+  };
 }
 
 function learningField(description, label) {
@@ -103,6 +146,7 @@ function fanoutLearningSignature(input) {
     input.plannedWorkerIssueCount,
     input.plannedSupervisorIssueCount,
     input.plannedIssueCount,
+    ...(input.weakTrackSummaries ?? []).slice().sort(),
   ].map((value) => String(value ?? "").trim().toLowerCase()).join("\n");
 }
 
@@ -122,6 +166,9 @@ export function parseV2WorkerFanoutLearningSignature(issue) {
   const plannedWorkerIssueCount = numericLearningField(description, "Planned worker issue count");
   const plannedSupervisorIssueCount = numericLearningField(description, "Planned supervisor issue count");
   const plannedIssueCount = numericLearningField(description, "Planned issue count");
+  const weakTrackSummaries = [...description.matchAll(/^- ([A-Za-z0-9_-]+: planned worker=\d+, planned supervisor=\d+, open=\d+, blocked=\d+)$/gm)]
+    .map((match) => match[1])
+    .sort();
   if (
     plannedWorkerIssueCount === null
     || plannedSupervisorIssueCount === null
@@ -133,11 +180,13 @@ export function parseV2WorkerFanoutLearningSignature(issue) {
     plannedWorkerIssueCount,
     plannedSupervisorIssueCount,
     plannedIssueCount,
+    weakTrackSummaries,
     signature: fanoutLearningSignature({
       title,
       plannedWorkerIssueCount,
       plannedSupervisorIssueCount,
       plannedIssueCount,
+      weakTrackSummaries,
     }),
   };
 }
@@ -197,17 +246,20 @@ function hasNamedUnblockPacket(issue) {
 
 function isOperatorProtectedBindingWait(issue) {
   if (issue?.status !== "in_review") return false;
-  if (!issue.assigneeUserId) return false;
+  if (!issue.assigneeUserId && !issue.assigneeAgentId) return false;
   const text = `${issue.title ?? ""}\n${issue.description ?? ""}`.toLowerCase();
   const protectedRunnerBinding = /protected/.test(text)
     && /(prod_db_check|production_db_check|accepted .*input|accepted .*family|runner|env refs?|secret refs?)/.test(text);
   const protectedSmokePrincipal = /(protected|production-smoke|smoke)/.test(text)
     && /(auth|principal|session|token|smoke_auth|workers\/ready)/.test(text)
     && /(secret-store|secret store|approved path|paperclip secrets|encrypted local secret store)/.test(text);
-  return (protectedRunnerBinding || protectedSmokePrincipal)
+  const protectedSecretCoordination = /companycore_api_key|companycore api key/.test(text)
+    && /(board approval is accepted|approval is accepted|request-confirmation|request confirmation|board-only|secret-management|secret management|protected-binding coordination lane)/.test(text)
+    && /(secret refs?|protected bindings?|no raw secret|no-secret|without raw secret disclosure|never request, print, store, paste, or attach raw secret values)/.test(text);
+  return (protectedRunnerBinding || protectedSmokePrincipal || protectedSecretCoordination)
     && /(bind|binding|bound|propagat|inject|provision|rotate)/.test(text)
     && /(without exposing|no raw secret|no secret values|redacted|redaction)/.test(text)
-    && /(do not deploy|no deploy|do not .*restart|no .*restart|do not .*production mutation|no .*production mutation|do not .*db write|no .*db write|do not .*migrations|no .*migrations|no .*repo mutation)/.test(text);
+    && /(do not deploy|no deploy|do not .*restart|no .*restart|do not .*production mutation|no .*production mutation|do not .*db write|no .*db write|do not .*migrations|no .*migrations|no .*repo mutation|no push|do not .*push|no raw secret disclosure)/.test(text);
 }
 
 function isOpsReleaseIssue(issue) {
@@ -976,6 +1028,7 @@ export function findSuppressibleV2WorkerFanoutDuplicate({
   plannedWorkerIssueCount,
   plannedSupervisorIssueCount,
   plannedIssueCount,
+  weakTrackSummaries = [],
   sourceIssues,
 }) {
   const title = "[Softwarehouse][Learning] Worker queue fan-out capability gap";
@@ -984,11 +1037,21 @@ export function findSuppressibleV2WorkerFanoutDuplicate({
     plannedWorkerIssueCount,
     plannedSupervisorIssueCount,
     plannedIssueCount,
+    weakTrackSummaries,
   });
   const matches = issues.filter((issue) => {
     const parsed = parseV2WorkerFanoutLearningSignature(issue);
     if (!parsed) return false;
     if (parsed.signature === signature) return true;
+    if (weakTrackSummaries.length > 0) {
+      const parsedWeakTracks = parsed.weakTrackSummaries ?? [];
+      if (parsedWeakTracks.length === 0) return false;
+      const parsedWeakTrackSet = new Set(parsedWeakTracks.map((item) => item.toLowerCase()));
+      const allWeakTracksCovered = weakTrackSummaries.every((item) =>
+        parsedWeakTrackSet.has(String(item).toLowerCase())
+      );
+      if (!allWeakTracksCovered) return false;
+    }
     return parsed.plannedWorkerIssueCount >= plannedWorkerIssueCount
       && parsed.plannedSupervisorIssueCount >= plannedSupervisorIssueCount
       && parsed.plannedIssueCount >= plannedIssueCount;

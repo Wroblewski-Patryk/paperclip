@@ -1,5 +1,6 @@
 import { agentWipBlockerFor, fetchAgentWipState, summarizeAgentWip } from "./lib/agent-wip-guard.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
+import { formatWeakTrackSummary, summarizeWorkerBacklogTracks } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -144,6 +145,15 @@ const plannedIssues = openIssues.filter((issue) =>
 );
 const plannedWorkerIssues = plannedIssues.filter((issue) => isWorker(agentById.get(issue.assigneeAgentId)));
 const plannedSupervisorIssues = plannedIssues.filter((issue) => isSupervisor(agentById.get(issue.assigneeAgentId)));
+const trackBacklog = summarizeWorkerBacklogTracks({
+  issues,
+  projects,
+  agentById,
+  isWorker,
+  isSupervisor,
+  terminalStatuses,
+  plannedStatuses,
+});
 const existing = issues.find((issue) => issue.title === targetTitle && !terminalStatuses.has(issue.status));
 const operatingRepoState = await operatingRepoDirty();
 const engineeringLead = byName(agents, "04 DPM (Delivery Project Manager)")
@@ -158,12 +168,8 @@ const goal = byName(goals, "LuckySparrow Software House autonomy")
   ?? goals[0]
   ?? null;
 
-const supervisorQueueNeedsSplit = plannedSupervisorIssues.length > plannedWorkerIssues.length
-  && plannedWorkerIssues.length < Math.min(3, Math.max(1, plannedIssues.length));
-const noWorkerQueueWhileBlocked = plannedWorkerIssues.length === 0
-  && openIssues.some((issue) => issue.status === "blocked")
-  && plannedSupervisorIssues.length > 0;
-const shouldSeed = supervisorQueueNeedsSplit || noWorkerQueueWhileBlocked;
+const shouldSeed = trackBacklog.weakTracks.length > 0;
+const weakTrackLines = trackBacklog.weakTracks.map(formatWeakTrackSummary);
 const activeExistingRuns = existing
   ? liveRuns.filter((run) => run.issueId === existing.id)
   : [];
@@ -208,6 +214,7 @@ if (agentWip.unknownActiveRunCount > 0) {
     plannedWorkerIssueCount: plannedWorkerIssues.length,
     plannedSupervisorIssueCount: plannedSupervisorIssues.length,
     plannedIssueCount: plannedIssues.length,
+    trackSummaries: trackBacklog.trackSummaries,
   });
 } else if (existing) {
   actions.push({
@@ -232,6 +239,7 @@ if (agentWip.unknownActiveRunCount > 0) {
           "softwarehouse-worker-backlog-decomposition-seeder:v1",
           "",
           "Re-waking this lane because the control audit still shows weak worker backlog depth.",
+          ...weakTrackLines.map((line) => `- ${line}`),
           "Produce worker-ready child issues or record the exact legal blocker for each missing worker lane.",
         ].join("\n"),
         resume: true,
@@ -265,12 +273,14 @@ if (agentWip.unknownActiveRunCount > 0) {
     `- planned worker issue count: ${plannedWorkerIssues.length}`,
     `- planned supervisor issue count: ${plannedSupervisorIssues.length}`,
     `- planned issue count: ${plannedIssues.length}`,
+    ...(weakTrackLines.length > 0 ? ["- weak active tracks:", ...weakTrackLines.map((line) => `  - ${line}`)] : []),
     "",
     "Supervisor lanes to inspect first:",
     ...topSupervisorIssues.map((line) => `- ${line}`),
     "",
     "Required output:",
     "- create or update at least three worker-ready todo/backlog issues across idle leaf workers when legal;",
+    "- evaluate Soar and Roost independently; one track being healthy does not satisfy another weak track;",
     "- prioritize Soar V1 first, then unblock/prepare Roost/Aviary/Nest only where local non-production work is legal;",
     "- each worker-ready issue must name project, scope, affected files/entities, acceptance criteria, local proof, blocker policy, and handoff owner;",
     "- if fewer than three worker lanes are legal, comment the exact reason for each missing lane: protected gate, missing architecture map, duplicate active owner, source-control closure, or explicit deferral;",
@@ -318,6 +328,7 @@ if (agentWip.unknownActiveRunCount > 0) {
         "softwarehouse-worker-backlog-decomposition-seeder:v1",
         "",
         "Created because manager/lead queues are non-empty while leaf-worker backlog depth is weak.",
+        ...weakTrackLines.map((line) => `- ${line}`),
         "This lane must split work downward into worker-ready issues or record concrete legal blockers.",
       ].join("\n"),
       resume: !wakeBlocker,
@@ -346,6 +357,7 @@ console.log(JSON.stringify({
     plannedWorkerIssues: plannedWorkerIssues.length,
     plannedSupervisorIssues: plannedSupervisorIssues.length,
   },
+  trackBacklog,
   shouldSeed,
   existing: existing ? {
     identifier: existing.identifier,

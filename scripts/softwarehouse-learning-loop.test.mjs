@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   buildOpenIssueTitles,
+  classifyLearningGapFromIssues,
   collectTransitiveBlockerRelatedIssues,
   findActiveRunCoveredOpsReleaseBlockerChain,
   findBoardAuthorizationWaitChain,
@@ -94,6 +95,9 @@ test("parseV2WorkerFanoutLearningSignature extracts the title and queue counts",
       "Planned supervisor issue count: 7",
       "Planned worker issue count: 1",
       "Planned issue count: 9",
+      "",
+      "Weak tracks:",
+      "- Roost: planned worker=1, planned supervisor=0, open=3, blocked=2",
     ].join("\n"),
   });
 
@@ -103,12 +107,14 @@ test("parseV2WorkerFanoutLearningSignature extracts the title and queue counts",
     plannedWorkerIssueCount: 1,
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 9,
+    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
     signature: [
       "[softwarehouse][learning] worker queue fan-out capability gap",
       "worker-fanout",
       "1",
       "7",
       "9",
+      "roost: planned worker=1, planned supervisor=0, open=3, blocked=2",
     ].join("\n"),
   });
 });
@@ -175,6 +181,50 @@ test("resolveLearningOwner falls back when no requested owner or alias exists", 
   ], "Unknown Historical Owner", ["Portfolio Director"]);
 
   assert.equal(owner.id, "portfolio");
+});
+
+test("resolveLearningOwner maps legacy Security Review Lead to current SPA roster", () => {
+  const owner = resolveLearningOwner([
+    {
+      id: "spa",
+      name: "10 SPA (Security & Privacy Auditor)",
+      title: "Security & Privacy Auditor",
+      status: "active",
+      urlKey: "10-spa-security-privacy-auditor",
+      metadata: {
+        rosterKey: "security-privacy-auditor",
+        luckysparrowFinalRole: "10 SPA (Security & Privacy Auditor)",
+      },
+    },
+    {
+      id: "portfolio",
+      name: "Portfolio Director",
+      status: "active",
+      urlKey: "portfolio-director",
+    },
+  ], "Security Review Lead", ["Portfolio Director"]);
+
+  assert.equal(owner.id, "spa");
+});
+
+test("classifyLearningGapFromIssues prioritizes credential rotation over deploy-smoke wording", () => {
+  const gap = classifyLearningGapFromIssues("LUC-496", [
+    {
+      title: "Coordinate Credential Rotation for Transcript Exposure",
+      description: "Rotate exposed Coolify and production account credentials after deploy smoke transcript leakage.",
+    },
+    {
+      title: "Deliver usable VPS production",
+      description: "Blocked until credential rotation gate clears.",
+    },
+  ]);
+
+  assert.deepEqual(gap, {
+    area: "security-credentials",
+    owner: "Security Review Lead",
+    title: "[Softwarehouse][Learning] Security/credential blocker pattern LUC-496",
+    boundary: "credential/account proof and least-privilege unblock path",
+  });
 });
 
 test("findSuppressibleV1LearningDuplicate suppresses a closed exact root blocker duplicate", () => {
@@ -897,6 +947,62 @@ test("findCompliantOpsReleaseBlockerChain suppresses operator in-review protecte
 
   assert.equal(sourceIssues.length, 13);
   assert.equal(compliant.identifier, "LUC-4019");
+});
+
+test("findCompliantOpsReleaseBlockerChain suppresses agent-owned in-review Roost protected binding coordination waits", () => {
+  const sourceIssues = [
+    {
+      identifier: "LUC-447",
+      title: "09 Technology: Bind protected Roost COMPANYCORE_API_KEY for deeper smoke",
+      description: "Blocked until the protected Roost COMPANYCORE_API_KEY binding coordination lane completes.",
+      status: "blocked",
+      assigneeAgentId: "aia",
+      blockerAttention: {
+        state: "covered",
+        reason: "active_child",
+        sampleBlockerIdentifier: "LUC-450",
+      },
+    },
+    {
+      identifier: "LUC-387",
+      title: "09 Technology: Roost source-control and authenticated smoke closure after LUC-383",
+      description: "Blocked until COMPANYCORE_API_KEY is available as a protected binding for deeper smoke.",
+      status: "blocked",
+      assigneeAgentId: "dre",
+      blockedBy: [{ identifier: "LUC-447", status: "blocked" }],
+      blockerAttention: {
+        state: "covered",
+        reason: "active_child",
+        sampleBlockerIdentifier: "LUC-450",
+      },
+    },
+  ];
+  const issues = [
+    ...sourceIssues,
+    {
+      identifier: "LUC-450",
+      title: "00 General: Coordinate approved Roost COMPANYCORE_API_KEY protected binding",
+      description: [
+        "The board approval is accepted, but the current Technology runner cannot inspect or bind company secrets because /api/companies/{companyId}/secrets returns board-only access.",
+        "The next legal action is a protected-binding coordination lane, not a repo/code/deploy lane.",
+        "Use secret refs / protected bindings only. Never request, print, store, paste, or attach raw secret values.",
+        "No raw secret disclosure.",
+        "No push, deploy, restart, rollback, production mutation, paid-resource action, database mutation, or live/customer action.",
+      ].join("\n"),
+      status: "in_review",
+      assigneeAgentId: "aia",
+      executionRunId: "run-450",
+    },
+  ];
+
+  const compliant = findCompliantOpsReleaseBlockerChain({
+    rootBlocker: "LUC-450",
+    terminalStatuses,
+    sourceIssues,
+    relatedIssues: issues,
+  });
+
+  assert.equal(compliant.identifier, "LUC-450");
 });
 
 test("findCompliantOpsReleaseBlockerChain follows nested blocker attention to operator waits", () => {
@@ -2570,6 +2676,9 @@ function workerFanoutLearningIssue(overrides = {}) {
       "Planned supervisor issue count: 7",
       "Planned worker issue count: 1",
       "Planned issue count: 9",
+      "",
+      "Weak tracks:",
+      "- Roost: planned worker=1, planned supervisor=0, open=3, blocked=2",
     ].join("\n"),
     ...overrides,
   };
@@ -2592,6 +2701,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate suppresses an existing done duplic
     plannedWorkerIssueCount: 1,
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 9,
+    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
     sourceIssues: workerFanoutSourceIssues,
   });
 
@@ -2608,6 +2718,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate suppresses an existing blocked dup
     plannedWorkerIssueCount: 1,
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 9,
+    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
     sourceIssues: workerFanoutSourceIssues,
   });
 
@@ -2621,6 +2732,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate suppresses a narrower repeat of a 
     plannedWorkerIssueCount: 0,
     plannedSupervisorIssueCount: 1,
     plannedIssueCount: 1,
+    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
     sourceIssues: [
       {
         identifier: "LUC-1505",
@@ -2642,6 +2754,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate ignores source timestamp churn for
     plannedWorkerIssueCount: 1,
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 9,
+    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
     sourceIssues: [
       {
         identifier: "LUC-1505",
@@ -2656,6 +2769,30 @@ test("findSuppressibleV2WorkerFanoutDuplicate ignores source timestamp churn for
   assert.equal(duplicate.identifier, "LUC-1471");
 });
 
+test("findSuppressibleV2WorkerFanoutDuplicate does not suppress per-track fanout evidence with only legacy aggregate history", () => {
+  const duplicate = findSuppressibleV2WorkerFanoutDuplicate({
+    issues: [workerFanoutLearningIssue({
+      description: [
+        "softwarehouse-learning-loop:v2",
+        "",
+        "Observed process gap: runnable work is concentrated above the leaf worker layer.",
+        "",
+        "Planned supervisor issue count: 7",
+        "Planned worker issue count: 1",
+        "Planned issue count: 9",
+      ].join("\n"),
+    })],
+    terminalStatuses,
+    plannedWorkerIssueCount: 0,
+    plannedSupervisorIssueCount: 2,
+    plannedIssueCount: 2,
+    weakTrackSummaries: ["Roost: planned worker=0, planned supervisor=0, open=3, blocked=0"],
+    sourceIssues: workerFanoutSourceIssues,
+  });
+
+  assert.equal(duplicate, null);
+});
+
 test("findSuppressibleV2WorkerFanoutDuplicate does not suppress a true new worker-fanout delta", () => {
   const duplicate = findSuppressibleV2WorkerFanoutDuplicate({
     issues: [workerFanoutLearningIssue()],
@@ -2663,6 +2800,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate does not suppress a true new worke
     plannedWorkerIssueCount: 2,
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 10,
+    weakTrackSummaries: ["Roost: planned worker=2, planned supervisor=0, open=3, blocked=1"],
     sourceIssues: [
       {
         identifier: "LUC-1480",
