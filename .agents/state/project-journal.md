@@ -11,6 +11,8 @@ This is a durable diary for project-level context that should survive across Cod
   - Repaired the loop in `scripts/run-next-legal-action-selector.mjs` and `scripts/run-local-repair-lane-starter.mjs`: docs/evidence/context/agent-state-only Paperclip changes now receive one explicit operating-system source-control closure lane, with a single CTO owner, local validation/commit evidence, and no push/deploy/restart/protected-smoke authority. Code, dependency, or other risky operating changes remain fail-closed.
   - Tightened cadence in `scripts/configure-softwarehouse-longevity-routines.mjs` from 15 to 5 minutes and made schedule reconciliation rename the existing single schedule trigger instead of creating a duplicate.
   - Verification before runtime configuration: `pnpm run softwarehouse:test-gates` passed 123/123 and `node --check` passed for all changed execution scripts.
+  - Applied the routine configuration to the live local company. API readback reports the single enabled `Every 5 minutes continuation watchdog` trigger. The first scheduled run fired at `2026-07-12T00:45:06Z`, advanced its next run to `00:50:00Z`, and created `LUC-574`.
+  - Immediate apply/readback also created and started `LUC-572`, the Soar source-control closure sidecar for the generated docs/evidence state. It runs under `11 SPM` with a governed local-only scope; no push, deploy, restart, protected smoke, or secret access was authorized.
 
 - 2026-07-12 / LUC-561 PDCA Learning and Company Memory Review:
   - Reviewed the inline wake payload and `/api/issues/LUC-561/heartbeat-context` for the current routine heartbeat.
