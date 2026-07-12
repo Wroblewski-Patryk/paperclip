@@ -632,5 +632,6 @@ console.log(JSON.stringify({
     status: projectTruthIndex.status,
     counts: projectTruthIndex.counts,
     firstGap: projectTruthIndex.firstGap,
+    gaps: projectTruthIndex.gaps,
   },
 }, null, 2));

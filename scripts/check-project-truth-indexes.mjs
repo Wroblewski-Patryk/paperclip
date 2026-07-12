@@ -49,7 +49,12 @@ for (const name of projectNames) {
     eventChain: data?.eventChain ?? null,
     runtimeErrors: data?.runtimeErrors ?? null,
     operationalReadiness: data?.operationalReadiness ?? null,
-    projectTruth: data?.projectTruth ?? null,
+    projectTruth: data?.projectTruth ? {
+      status: data.projectTruth.status ?? null,
+      counts: data.projectTruth.counts ?? null,
+      firstGap: data.projectTruth.firstGap ?? null,
+      gaps: Array.isArray(data.projectTruth.gaps) ? data.projectTruth.gaps : [],
+    } : null,
   });
 }
 
@@ -79,4 +84,3 @@ console.log(JSON.stringify({
 }, null, 2));
 
 if (projects.some((project) => !project.ok)) process.exitCode = 1;
-

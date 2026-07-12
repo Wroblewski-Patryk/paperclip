@@ -1,6 +1,10 @@
 import { spawnSync } from "node:child_process";
 
 import { agentWipBlockerFor, fetchAgentWipState } from "./lib/agent-wip-guard.mjs";
+import {
+  activeProjectTruthTrackIssues,
+  parseProjectTruthSourceItemId,
+} from "./lib/project-truth-gap-dispatcher.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
 
@@ -12,7 +16,8 @@ const runId = process.env.PAPERCLIP_RUN_ID ?? null;
 const actorAgentId = process.env.PAPERCLIP_AGENT_ID ?? null;
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_REQUEST_TIMEOUT_MS ?? 30_000);
-const maxDispatchGaps = Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_MAX_GAPS ?? 2);
+const perTrackDispatchDepth = Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_PER_TRACK_DEPTH ?? 3);
+const maxDispatchGaps = Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_MAX_GAPS ?? (perTrackDispatchDepth * 2));
 const terminalStatuses = new Set(["done", "cancelled"]);
 const marker = "softwarehouse-project-truth-gap-dispatcher:v1";
 const supersededMarker = `${marker}:superseded`;
@@ -155,6 +160,22 @@ async function findExistingIssueByTitle(companyId, title, initialIssues) {
   return canonicalExistingIssue(title, [...initialIssues, ...searched]);
 }
 
+async function findExistingIssueBySourceItemId(companyId, sourceItemId, initialIssues) {
+  if (!sourceItemId) return null;
+  const normalized = String(sourceItemId).trim();
+  const localMatch = initialIssues
+    .filter((issue) => !terminalStatuses.has(issue.status))
+    .find((issue) => parseProjectTruthSourceItemId(issue) === normalized) ?? null;
+  if (localMatch) return localMatch;
+  const searched = await request(
+    "GET",
+    `/api/companies/${companyId}/issues?q=${encodeURIComponent(normalized)}&limit=25`,
+  );
+  return searched
+    .filter((issue) => !terminalStatuses.has(issue.status))
+    .find((issue) => parseProjectTruthSourceItemId(issue) === normalized) ?? null;
+}
+
 function relatedRuntimeProbeTerms(gap) {
   if (gap.kind !== "runtime_error" || gap.severity !== "critical") return [];
   const summary = String(gap.summary ?? "").toLowerCase();
@@ -184,6 +205,8 @@ function relatedExistingIssue(gap, issues) {
 }
 
 async function findExistingIssueForGap(companyId, title, gap, initialIssues) {
+  const bySourceItem = await findExistingIssueBySourceItemId(companyId, gap.sourceItemId, initialIssues);
+  if (bySourceItem) return bySourceItem;
   const exact = await findExistingIssueByTitle(companyId, title, initialIssues);
   if (exact) return exact;
   const relatedTerms = relatedRuntimeProbeTerms(gap);
@@ -234,6 +257,7 @@ function descriptionForGap(gap, audit) {
     `- severity: ${gap.severity ?? "unknown"}`,
     `- userFlow: ${gap.userFlow ?? "n/a"}`,
     `- summary: ${String(gap.summary ?? "").trim() || "n/a"}`,
+    `- source item: ${gap.sourceItemId ?? "n/a"}`,
     `- indexed owner: ${gap.nextOwner ?? "n/a"}`,
     `- indexed next action: ${gap.nextAction ?? "n/a"}`,
     "",
@@ -303,13 +327,14 @@ function severityRank(gap) {
 
 function dispatchableGaps(audit) {
   return (audit.projects ?? [])
-    .map((project) => project.projectTruth?.firstGap ? {
+    .map((project) => ({
       project: project.name,
-      ...project.projectTruth.firstGap,
-    } : null)
-    .filter(Boolean)
-    .sort((left, right) => severityRank(left) - severityRank(right) || String(left.project).localeCompare(String(right.project)))
-    .slice(0, Math.max(1, maxDispatchGaps));
+      gaps: Array.isArray(project.projectTruth?.gaps)
+        ? project.projectTruth.gaps.map((gap) => ({ project: project.name, ...gap }))
+        : [],
+    }))
+    .filter((project) => project.gaps.length > 0)
+    .sort((left, right) => String(left.project).localeCompare(String(right.project)));
 }
 
 function isProjectTruthIssue(issue) {
@@ -350,8 +375,11 @@ try {
 }
 
 const gapsToDispatch = dispatchableGaps(audit);
-const firstGap = gapsToDispatch[0] ?? audit.firstGap ?? null;
-const currentDispatchTitles = new Set(gapsToDispatch.map(issueTitleForGap));
+const firstGap = gapsToDispatch.flatMap((project) => project.gaps).find((gap) => gap.severity === "critical")
+  ?? gapsToDispatch.flatMap((project) => project.gaps)[0]
+  ?? audit.firstGap
+  ?? null;
+const currentDispatchTitles = new Set();
 if (gapsToDispatch.length === 0) {
   console.log(JSON.stringify({
     apiBase,
@@ -402,114 +430,187 @@ try {
 const labelsByName = new Map(labels.map((label) => [label.name, label]));
 const wip = apply ? await fetchAgentWipState({ request, companyId: company.id }) : null;
 const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean));
+const retainedDispatchTitles = new Set();
+const retainedDispatchIds = new Set();
+const trackPlans = [];
+let plannedDispatchCount = 0;
 
-for (const gap of gapsToDispatch) {
-  const title = issueTitleForGap(gap);
-  const project = findProject(projects, gap.project);
-  const assignee = findOwner(agents, gap);
-  const goal = projectGoalTitles(gap.project)
-    .map((goalTitle) => byTitle(goals, goalTitle))
-    .find(Boolean) ?? null;
-  const existing = await findExistingIssueForGap(company.id, title, gap, issues);
-
+for (const projectGapSet of gapsToDispatch) {
+  const projectName = projectGapSet.project;
+  const project = findProject(projects, projectName);
   if (!project) {
     actions.push({
       action: "noop_project_not_found",
-      project: gap.project,
-      title,
+      project: projectName,
     });
     continue;
   }
-  if (!assignee) {
-    actions.push({
-      action: "noop_assignee_not_found",
-      project: gap.project,
-      ownerCandidates: ownerNamesForGap(gap),
-      title,
-    });
-    continue;
-  }
-  if (existing) {
-    actions.push({
-      action: "kept_existing_project_truth_gap_issue",
-      identifier: existing.identifier,
-      status: existing.status,
-      title: existing.title,
-      project: gap.project,
-      assignee: agents.find((agent) => agent.id === existing.assigneeAgentId)?.name ?? null,
-    });
-    continue;
+  const goal = projectGoalTitles(projectName)
+    .map((goalTitle) => byTitle(goals, goalTitle))
+    .find(Boolean) ?? null;
+  const activeTrackIssues = activeProjectTruthTrackIssues({
+    projectName,
+    issues,
+    projects,
+    marker,
+    terminalStatuses,
+  });
+  for (const issue of activeTrackIssues) {
+    retainedDispatchTitles.add(issue.title);
+    retainedDispatchIds.add(issue.id);
   }
 
-  actions.push({
-    action: apply ? "create_project_truth_gap_issue" : "would_create_project_truth_gap_issue",
-    project: gap.project,
-    title,
-    assignee: assignee.name,
-    gap,
+  let trackDepth = activeTrackIssues.length;
+  const projectActionsStart = actions.length;
+  const missingDepthReasons = [];
+  for (const gap of projectGapSet.gaps) {
+    if (trackDepth >= perTrackDispatchDepth || plannedDispatchCount >= maxDispatchGaps) break;
+    const title = issueTitleForGap(gap);
+    currentDispatchTitles.add(title);
+    const assignee = findOwner(agents, gap);
+    if (!assignee) {
+      missingDepthReasons.push({
+        reason: "no_owner",
+        title,
+        ownerCandidates: ownerNamesForGap(gap),
+      });
+      actions.push({
+        action: "noop_assignee_not_found",
+        project: gap.project,
+        ownerCandidates: ownerNamesForGap(gap),
+        title,
+      });
+      continue;
+    }
+    const existing = await findExistingIssueForGap(company.id, title, gap, issues);
+    if (existing) {
+      retainedDispatchTitles.add(existing.title);
+      retainedDispatchIds.add(existing.id);
+      actions.push({
+        action: "kept_existing_project_truth_gap_issue",
+        identifier: existing.identifier,
+        status: existing.status,
+        title: existing.title,
+        project: gap.project,
+        assignee: agents.find((agent) => agent.id === existing.assigneeAgentId)?.name ?? null,
+      });
+      if (["backlog", "todo", "in_progress", "in_review"].includes(existing.status)) {
+        trackDepth += 1;
+      } else {
+        missingDepthReasons.push({
+          reason: "existing_issue_not_active_queue_lane",
+          identifier: existing.identifier,
+          status: existing.status,
+          title: existing.title,
+        });
+      }
+      continue;
+    }
+
+    actions.push({
+      action: apply ? "create_project_truth_gap_issue" : "would_create_project_truth_gap_issue",
+      project: gap.project,
+      title,
+      assignee: assignee.name,
+      gap,
+      trackDepthBefore: trackDepth,
+      trackDepthTarget: perTrackDispatchDepth,
+    });
+
+    if (apply) {
+      for (const [name, color] of [
+        [String(gap.project).toLowerCase(), "#0f766e"],
+        ["project-truth", "#7c3aed"],
+        ["runtime", "#dc2626"],
+        ["ops", "#0369a1"],
+        ["architecture", "#475569"],
+      ]) {
+        await ensureLabel(company.id, labelsByName, name, color);
+      }
+      const labelNames = [
+        String(gap.project).toLowerCase(),
+        "project-truth",
+        gap.kind === "event_chain_gap" ? "architecture" : "runtime",
+        gap.kind === "runtime_error" ? "ops" : "architecture",
+      ];
+      const created = await request("POST", `/api/companies/${company.id}/issues`, {
+        title,
+        description: descriptionForGap(gap, audit),
+        status: "todo",
+        priority: gap.severity === "critical" ? "critical" : "high",
+        assigneeAgentId: assignee.id,
+        projectId: project.id,
+        goalId: goal?.id ?? null,
+        requestDepth: 2,
+        labelIds: labelNames
+          .map((name) => labelsByName.get(name)?.id)
+          .filter(Boolean),
+        executionWorkspacePreference: "shared_workspace",
+        acceptanceCriteria: [
+          "Diagnosis names the affected indexed flow, layer, service, endpoint, or provider resource.",
+          "A required code/config repair is delegated to the smallest owner-scoped issue with validation commands.",
+          "A required verification step is delegated to QA/Test Automation with expected evidence.",
+          "Docs/status/project truth indexes are refreshed or a Docs Memory follow-up exists.",
+          "Source-control, push, deploy, redeploy, and monitoring steps are each routed to the proper owner when needed.",
+          "For runtime findings, production health is restored with smoke proof or an exact remaining provider/permission blocker is assigned.",
+        ],
+      });
+      const wakeBlocker = activeConflictForCreatedIssue(created, wip);
+      const wakeBoundary = directWakeBoundaryForAgent(created.assigneeAgentId);
+      const wakeSkipped = wakeBlocker ?? wakeBoundary;
+      if (!wakeSkipped) {
+        await request("POST", `/api/agents/${created.assigneeAgentId}/heartbeat/invoke?companyId=${company.id}`, {
+          reason: "issue_assigned",
+          payload: {
+            issueId: created.id,
+            taskId: created.id,
+            taskKey: created.identifier,
+            source: "softwarehouse-project-truth-gap-dispatcher",
+          },
+          idempotencyKey: `softwarehouse-project-truth-gap-dispatcher:${created.id}:${created.updatedAt ?? Date.now()}`,
+        });
+      }
+      actions.at(-1).identifier = created.identifier;
+      actions.at(-1).status = created.status;
+      actions.at(-1).wakeSkipped = wakeSkipped;
+      actions.at(-1).handoff = wakeBoundary
+        ? "created_todo_issue_for_assignee_without_cross_agent_direct_invoke"
+        : "direct_wake_allowed_or_guarded";
+      actions.at(-1).activeRunCount = wip?.activeRunCount ?? null;
+      actions.at(-1).liveRunCount = wip?.liveRunCount ?? null;
+      retainedDispatchTitles.add(created.title);
+      retainedDispatchIds.add(created.id);
+    }
+    trackDepth += 1;
+    plannedDispatchCount += 1;
+  }
+
+  const createdOrKeptActions = actions.slice(projectActionsStart);
+  trackPlans.push({
+    project: projectName,
+    targetDepth: perTrackDispatchDepth,
+    startingActiveDepth: activeTrackIssues.length,
+    resultingPlannedDepth: trackDepth,
+    indexedGapCount: projectGapSet.gaps.length,
+    activeIssueIdentifiers: activeTrackIssues.map((issue) => issue.identifier ?? issue.id),
+    actions: createdOrKeptActions.map((action) => ({
+      action: action.action,
+      identifier: action.identifier ?? null,
+      status: action.status ?? null,
+      title: action.title ?? null,
+    })),
+    missingDepthReasons,
   });
 
-  if (apply) {
-    for (const [name, color] of [
-      [String(gap.project).toLowerCase(), "#0f766e"],
-      ["project-truth", "#7c3aed"],
-      ["runtime", "#dc2626"],
-      ["ops", "#0369a1"],
-      ["architecture", "#475569"],
-    ]) {
-      await ensureLabel(company.id, labelsByName, name, color);
-    }
-    const labelNames = [
-      String(gap.project).toLowerCase(),
-      "project-truth",
-      gap.kind === "event_chain_gap" ? "architecture" : "runtime",
-      gap.kind === "runtime_error" ? "ops" : "architecture",
-    ];
-    const created = await request("POST", `/api/companies/${company.id}/issues`, {
-      title,
-      description: descriptionForGap(gap, audit),
-      status: "todo",
-      priority: gap.severity === "critical" ? "critical" : "high",
-      assigneeAgentId: assignee.id,
-      projectId: project.id,
-      goalId: goal?.id ?? null,
-      requestDepth: 2,
-      labelIds: labelNames
-        .map((name) => labelsByName.get(name)?.id)
-        .filter(Boolean),
-      executionWorkspacePreference: "shared_workspace",
-      acceptanceCriteria: [
-        "Diagnosis names the affected indexed flow, layer, service, endpoint, or provider resource.",
-        "A required code/config repair is delegated to the smallest owner-scoped issue with validation commands.",
-        "A required verification step is delegated to QA/Test Automation with expected evidence.",
-        "Docs/status/project truth indexes are refreshed or a Docs Memory follow-up exists.",
-        "Source-control, push, deploy, redeploy, and monitoring steps are each routed to the proper owner when needed.",
-        "For runtime findings, production health is restored with smoke proof or an exact remaining provider/permission blocker is assigned.",
-      ],
+  if (trackDepth < perTrackDispatchDepth) {
+    actions.push({
+      action: "track_dispatch_depth_shortfall",
+      project: projectName,
+      targetDepth: perTrackDispatchDepth,
+      resultingPlannedDepth: trackDepth,
+      indexedGapCount: projectGapSet.gaps.length,
+      missingDepthReasons,
     });
-    const wakeBlocker = activeConflictForCreatedIssue(created, wip);
-    const wakeBoundary = directWakeBoundaryForAgent(created.assigneeAgentId);
-    const wakeSkipped = wakeBlocker ?? wakeBoundary;
-    if (!wakeSkipped) {
-      await request("POST", `/api/agents/${created.assigneeAgentId}/heartbeat/invoke?companyId=${company.id}`, {
-        reason: "issue_assigned",
-        payload: {
-          issueId: created.id,
-          taskId: created.id,
-          taskKey: created.identifier,
-          source: "softwarehouse-project-truth-gap-dispatcher",
-        },
-        idempotencyKey: `softwarehouse-project-truth-gap-dispatcher:${created.id}:${created.updatedAt ?? Date.now()}`,
-      });
-    }
-    actions.at(-1).identifier = created.identifier;
-    actions.at(-1).status = created.status;
-    actions.at(-1).wakeSkipped = wakeSkipped;
-    actions.at(-1).handoff = wakeBoundary
-      ? "created_todo_issue_for_assignee_without_cross_agent_direct_invoke"
-      : "direct_wake_allowed_or_guarded";
-    actions.at(-1).activeRunCount = wip?.activeRunCount ?? null;
-    actions.at(-1).liveRunCount = wip?.liveRunCount ?? null;
   }
 }
 
@@ -518,6 +619,8 @@ const supersededProjectTruthCandidates = issues
   .filter((issue) => !terminalStatuses.has(issue.status))
   .filter(isProjectTruthIssue)
   .filter((issue) => !String(issue.description ?? "").includes(supersededMarker))
+  .filter((issue) => !retainedDispatchIds.has(issue.id))
+  .filter((issue) => !retainedDispatchTitles.has(issue.title))
   .filter((issue) => !currentDispatchTitles.has(issue.title))
   .filter((issue, index, all) => all.findIndex((candidate) => candidate.id === issue.id) === index);
 const supersededProjectTruthIssues = [];
@@ -568,6 +671,8 @@ console.log(JSON.stringify({
   ok: true,
   ...activeRunSummary({ health, liveRuns }),
   projectTruth: audit.summary ?? {},
+  perTrackDispatchDepth,
+  trackPlans,
   maxDispatchGaps,
   firstGap,
   gapsToDispatch,
