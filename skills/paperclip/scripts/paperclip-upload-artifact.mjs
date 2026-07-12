@@ -15,6 +15,9 @@ for Windows-safe and cross-platform use without ad-hoc PowerShell/curl chains.
 Required environment for live uploads:
   PAPERCLIP_API_URL, PAPERCLIP_API_KEY, PAPERCLIP_COMPANY_ID, PAPERCLIP_TASK_ID, PAPERCLIP_RUN_ID
 
+Optional environment:
+  PAPERCLIP_ARTIFACT_UPLOAD_TIMEOUT_MS (default: 120000)
+
 Options:
   --issue-id ID
   --company-id ID
@@ -50,12 +53,28 @@ function detectContentType(filePath) {
   return "application/octet-stream";
 }
 
+function resolveRequestTimeoutMs(raw) {
+  const parsed = Number.parseInt(raw ?? "", 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 120_000;
+}
+
+const requestTimeoutMs = resolveRequestTimeoutMs(process.env.PAPERCLIP_ARTIFACT_UPLOAD_TIMEOUT_MS);
+
 async function requestJson(method, url, { body, headers = {} } = {}) {
-  const response = await fetch(url, {
-    method,
-    headers,
-    body,
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers,
+      body,
+      signal: AbortSignal.timeout(requestTimeoutMs),
+    });
+  } catch (error) {
+    if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+      throw new Error(`Request timed out after ${requestTimeoutMs}ms: ${method} ${url}`);
+    }
+    throw error;
+  }
 
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;
