@@ -6,6 +6,23 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-12 / Windows agent process-tree cleanup:
+  - A live supervision audit found one stale DRE run plus two orphaned Codex descendants whose Paperclip run records had already been cancelled; the Windows cancellation path had terminated only the recorded wrapper process.
+  - Cleared the two verified orphan process trees, applied the live-run and routine-duplicate janitors, and confirmed the DRE queue resumed with one active recovery run and one queued source-control closure.
+  - Updated the shared adapter process runner and local-service supervisor to terminate the full Windows process tree with `taskkill /T /F`; targeted regression tests and adapter/server typechecks pass.
+  - Fixed issue-update wake routing so a completion comment attached to a `done` or `cancelled` transition remains evidence without waking the assignee on the newly terminal issue; dependent and parent handoff wakes remain enabled.
+  - Decision: a cancelled or timed-out Windows agent run must leave no descendant Codex process consuming quota or CPU. Supervision should compare Paperclip live runs with OS process ownership before treating high local load as productive work.
+
+- 2026-07-12 / LUC-704 PDCA Learning and Company Memory Review:
+  - Reviewed `GET /api/issues/LUC-704`, `/comments?limit=20`, and `/interactions`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and no interaction or recovery path requiring action.
+  - Checked `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/project-memory.md`, `.agents/state/current-focus.md`, `.agents/state/next-steps.md`, `.agents/state/responsibility-learning.md`, and `.agents/state/agent-evals.md`; they already capture the current Stage 1 posture and the latest reusable learning, so no memory delta was justified.
+  - Decision: record this as a clean no-drift PDCA checkpoint and close the issue without changing durable memory assets.
+
+- 2026-07-12 / LUC-678 PDCA Learning and Company Memory Review:
+  - Reviewed the live issue state for `LUC-678` via `GET /api/issues/LUC-678`, `/comments?limit=20`, and `/interactions`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and no interaction or recovery path needing action.
+  - Memory check against `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/current-focus.md`, and this journal found the current Stage 1 Soar/Roost posture already captured; no new durable memory, instruction, or procedure update was justified.
+  - Decision: treat this as a clean PDCA checkpoint and close the issue with a concise no-drift note so the routine does not remain open without a live continuation path.
+
 - 2026-07-12 / LUC-660 PDCA Learning and Company Memory Review:
   - Reviewed the live issue state for `LUC-660` through `GET /api/issues/LUC-660` and `/api/issues/LUC-660/heartbeat-context`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, `attachments=[]`, and no execution workspace or recovery action.
   - Memory check: `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/project-memory.md`, `.agents/state/responsibility-learning.md`, `.agents/state/current-focus.md`, and `.agents/state/next-steps.md` already capture the current Stage 1 posture, recent PDCA lessons, and Soar/Roost delivery scope.
