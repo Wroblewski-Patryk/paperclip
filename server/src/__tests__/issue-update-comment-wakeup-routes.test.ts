@@ -274,6 +274,33 @@ describe("issue update comment wakeups", () => {
     );
   });
 
+  it("does not wake the assignee when a completion comment closes the issue", async () => {
+    const existing = makeIssue({
+      status: "in_progress",
+      assigneeAgentId: ASSIGNEE_AGENT_ID,
+      assigneeUserId: null,
+    });
+    const updated = { ...existing, status: "done" };
+    mockIssueService.getById.mockResolvedValue(existing);
+    mockIssueService.update.mockResolvedValue(updated);
+    mockIssueService.addComment.mockResolvedValue({
+      id: "comment-done-no-wake",
+      issueId: existing.id,
+      companyId: existing.companyId,
+      body: "Implemented and verified with focused route tests.",
+    });
+
+    const res = await request(await createApp())
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        status: "done",
+        comment: "Implemented and verified with focused route tests.",
+      });
+
+    expect(res.status).toBe(200);
+    expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
+  });
+
   it("allows artifact-backed done transitions without a duplicate close comment", async () => {
     const existing = makeIssue({ status: "in_progress" });
     const updated = makeIssue({ status: "done" });

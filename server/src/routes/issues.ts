@@ -5010,7 +5010,7 @@ export function issueRoutes(
         });
       }
 
-      if (commentBody && comment) {
+      if (commentBody && comment && !isClosedIssueStatus(issue.status)) {
         const assigneeId = issue.assigneeAgentId;
         const actorIsAgent = actor.actorType === "agent";
         const selfComment = actorIsAgent && actor.actorId === assigneeId;
