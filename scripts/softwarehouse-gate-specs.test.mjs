@@ -142,15 +142,14 @@ test("live-run janitor does not let orphan direct wakes outrank issue-bound reco
   assert.match(source, /if \(issue\.status === "blocked"\) return 80;/);
 });
 
-test("live-run janitor skips cross-boundary closed-tail comments without retrying", async () => {
+test("live-run janitor skips cross-boundary closed-tail status comments without retrying", async () => {
   const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
 
   assert.match(source, /function isIssueAuthorizationBoundaryError\(error\)/);
   assert.match(source, /Issue is outside this actor\(\?:'\|\\\\u0027\)s authorization boundary/);
-  assert.match(source, /POST"\s*,\s*`\/api\/issues\/\$\{action\.issueId\}\/comments`/);
+  assert.match(source, /request\("PATCH", `\/api\/issues\/\$\{action\.issueId\}`, body\)/);
   assert.match(source, /skippedReason: "issue_authorization_boundary"/);
-  assert.match(source, /ownerAction: "Route this closed-tail comment through the owning issue actor; do not retry the mutation from this agent\."/);
-  assert.doesNotMatch(source, /if \(isIssueAuthorizationBoundaryError\(error\)\)[\s\S]{0,280}request\("POST", `\/api\/issues\/\$\{action\.issueId\}\/comments`/);
+  assert.match(source, /ownerAction: "An authorized board\/user or issue-scoped janitor must apply this issue status\/comment update\."/);
 });
 
 test("longevity doctor maps current live runs through issue lock columns", async () => {
@@ -1331,6 +1330,19 @@ test("live-run janitor preserves issue state while cancelling a true duplicate r
   assert.match(source, /item\.issueStatusSyncSkipped = "preserved_active_owner_status"/);
   assert.doesNotMatch(source, /action\.kind === "cancel_duplicate_owner_run"[\s\S]{0,500}status: "blocked"/);
   assert.doesNotMatch(source, /duplicateOwnerRunMarker\(action\.identifier\)[\s\S]*Kept run:/);
+});
+
+test("live-run janitor records closed-tail cleanup without reopening the issue", async () => {
+  const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
+
+  assert.match(
+    source,
+    /action\.kind === "cancel_closed_issue_tail" && action\.writeComment !== false[\s\S]{0,900}patchIssueForJanitor\(action, item, \{[\s\S]{0,220}status: action\.issueStatus/,
+  );
+  assert.doesNotMatch(
+    source,
+    /action\.kind === "cancel_closed_issue_tail" && action\.writeComment !== false[\s\S]{0,900}request\("POST", `\/api\/issues\/\$\{action\.issueId\}\/comments`/,
+  );
 });
 
 test("routine duplicate janitor archives terminal duplicate routine issues", async () => {

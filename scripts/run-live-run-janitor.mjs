@@ -852,39 +852,18 @@ if (apply) {
     }
 
     if (action.kind === "cancel_closed_issue_tail" && action.writeComment !== false) {
-      try {
-        await request("POST", `/api/issues/${action.issueId}/comments`, {
-          body: [
-            closedTailCancelMarker(action.identifier),
-            "",
-            "Live-run janitor cancelled a closed-issue tail for this issue.",
-            "Idempotency guard: skip repeated closed-tail cancellation for a short cooldown window.",
-            "No product, deploy, production, secret, or project-code mutation was performed.",
-          ].join("\n"),
-        });
-      } catch (error) {
-        if (isIssueAuthorizationBoundaryError(error)) {
-          skipped.push({
-            ...item,
-            skipped: true,
-            skippedReason: "issue_authorization_boundary",
-            ownerAction: "Route this closed-tail comment through the owning issue actor; do not retry the mutation from this agent.",
-            error: error.message,
-          });
-          continue;
-        }
-        if (isRequestTimeoutError(error)) {
-          skipped.push({
-            ...item,
-            skipped: true,
-            skippedReason: "closed_tail_comment_timeout",
-            ownerAction: "Retry this bookkeeping comment after the local Paperclip API is responsive; do not infer the comment was written.",
-            error: error.message,
-          });
-          continue;
-        }
-        throw error;
-      }
+      const updated = await patchIssueForJanitor(action, item, {
+        status: action.issueStatus,
+        comment: [
+          closedTailCancelMarker(action.identifier),
+          "",
+          "Live-run janitor cancelled a closed-issue tail for this issue.",
+          "Idempotency guard: skip repeated closed-tail cancellation for a short cooldown window.",
+          "No product, deploy, production, secret, or project-code mutation was performed.",
+        ].join("\n"),
+      });
+      if (!updated) continue;
+      item.issueStatus = updated.status;
     }
 
     if (action.kind === "cancel_closed_issue_tail" && action.writeComment === false) {
