@@ -26,15 +26,24 @@ force pushes, broad dependency upgrades, security/auth changes, and cross-reposi
 ## Enforcement Sources
 
 Current enforcement is split across issue status rules, approvals, activity logging, budgets,
-runtime permissions, and scripts. Agent-owned issue completion now has a hard API gate: when an
-agent moves an issue to `done`, Paperclip inspects issue work products and requires test, docs, and
-review evidence. If the issue is high risk, the same transition also requires security, deployment,
-and monitoring evidence.
+runtime permissions, and scripts. Agent-owned issue completion has a hard API minimum gate: when an
+agent moves an issue to `done`, Paperclip requires inspectable completion evidence through one of:
 
-The remaining product gap is a broader gate service/read model that applies the same bundle
-consistently to deployment, production smoke, supervisor review, and dashboard-visible mission
-control flows. Until that exists, agents and supervisors must record any bypass as a blocker or
-incident.
+- a completion comment in the same update;
+- an issue document;
+- an attachment; or
+- a work product.
+
+That route does not yet validate typed evidence bundles such as `TEST`, `REVIEW`, `DOCS`,
+`SECURITY`, `DEPLOY`, or `MONITORING`.
+
+The stronger Softwarehouse bundle remains an operating and review requirement: normal work should
+carry `TEST`, `REVIEW`, and `DOCS` evidence, and applicable high-risk work should also carry
+`SECURITY`, `DEPLOY`, and `MONITORING` evidence before the work is treated as truly complete. The
+remaining product gap is a broader gate service/read model that validates that bundle consistently
+for issue closure, deployment, production smoke, supervisor review, and dashboard-visible mission
+control flows. Until that exists, agents and supervisors must record missing bundle categories as a
+blocker, review finding, or incident instead of claiming product-enforced coverage.
 
 ## Agent Improvement Flywheel
 

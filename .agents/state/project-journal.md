@@ -6,6 +6,16 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-12 / LUC-816 PDCA Learning and Company Memory Review:
+  - Reviewed the live issue state for `LUC-816` via `GET /api/issues/LUC-816`, `/comments`, and `/work-products`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, and no attachments or work products.
+  - Rechecked the current memory and learning sources used by the PDCA routine: `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/responsibility-learning.md`, `.agents/state/project-memory.md`, and `report/codex-automation/paperclip-teacher-lessons.latest.md/json`. They already capture the Stage 1 Soar/Roost mission, governed PDCA rules, and the latest reusable lessons.
+  - Decision: no new durable memory, instruction, or procedure update was justified. This checkpoint is a clean no-drift review, so the correct follow-up is a concise terminal issue note and closure.
+
+- 2026-07-12 / LUC-804 PDCA Learning and Company Memory Review:
+  - Reviewed the live issue state for `LUC-804` via `GET /api/issues/LUC-804` and `GET /api/issues/LUC-804/heartbeat-context`; the issue is `in_progress`, unassigned, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, no attachments, and no execution workspace.
+  - Rechecked the durable memory targets used by the PDCA routine: `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/current-focus.md`, `.agents/state/project-memory.md`, and `.agents/state/responsibility-learning.md`. They already capture the current Stage 1 posture, active Soar/Roost delivery scope, and the latest reusable learning.
+  - Decision: this heartbeat produced a clean no-drift outcome. No additional durable memory, instruction, or procedure update was justified, so the correct follow-up is to close the issue with a concise review note.
+
 - 2026-07-12 / LUC-760 Owner Direction and Proposal Review:
   - Reviewed the live issue state for `LUC-760` through `GET /api/issues/LUC-760`, `/comments?order=asc&limit=20`, `/interactions`, and `/heartbeat-context`; the issue remains `in_progress`, assigned to `8ec5d83c-966f-483e-9fcd-c5b6092ff717`, with `blockerAttention.state=none`, `totalComments=0` before the new note, `latestCommentId=null`, and no recovery path or pending interaction.
   - Added a durable issue comment recording that no new owner direction or proposal signal is present yet, that the lane should continue consolidating future signals into clear decision packets, and that the active continuation path stays `in_progress`.

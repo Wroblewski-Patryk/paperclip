@@ -94,6 +94,13 @@ issue is in DISCOVERY until Product/PM/Portfolio can classify it.
 - One agent has at most one active `in_progress` lane, but may have many planned
   `todo/backlog` lanes. Managers and leads are responsible for maintaining a
   useful ordered worker backlog at the lowest accountable layer.
+- Each active controlled application track is evaluated independently for worker
+  backlog health. Today that means Soar and Roost each need at least three
+  legal worker-ready `todo/backlog` lanes, or an explicit legal blocker for
+  every missing lane.
+- `in_progress` worker execution is useful delivery evidence, but it does not by
+  itself retire planned backlog starvation. A track with live worker execution
+  is still weak when it lacks the required per-track `todo/backlog` depth.
 - Coordination agents block only duplicate work, dependency conflicts, missing
   ownership/evidence, or unsafe production/secrets/live-account mutations.
 - Parallel wakeups should preserve one accountable owner per lane and a clear

@@ -203,7 +203,7 @@ async function searchIssues(companyId, query) {
 
 function isKnownStateEvidenceLane(issue) {
   const title = String(issue?.title ?? "");
-  if (["done", "cancelled"].includes(issue?.status)) return false;
+  if (issue?.status === "cancelled") return false;
   if (title.includes("[Known State] Evidence collection")) return true;
   return title.includes("[Project Truth]")
     && (
@@ -219,12 +219,22 @@ async function findKnownStateEvidenceLane(companyId, project, projectName, issue
   );
   if (fromLoadedIssues) return fromLoadedIssues;
 
-  const searchResult = await searchIssues(companyId, `${projectName} known-state project truth app completion`);
-  const searchIssuesValue = Array.isArray(searchResult) ? searchResult : searchResult?.value ?? [];
-  return searchIssuesValue.find((issue) =>
-    issue.projectId === project.id
-    && isKnownStateEvidenceLane(issue)
-  ) ?? null;
+  for (const query of [
+    "[Known State] Evidence collection",
+    "[Project Truth] [App Completion]",
+    `${projectName} known state evidence collection architecture baseline`,
+    `${projectName} known-state project truth app completion`,
+  ]) {
+    const searchResult = await searchIssues(companyId, query);
+    const searchIssuesValue = Array.isArray(searchResult) ? searchResult : searchResult?.value ?? [];
+    const match = searchIssuesValue.find((issue) =>
+      issue.projectId === project.id
+      && isKnownStateEvidenceLane(issue)
+    );
+    if (match) return match;
+  }
+
+  return null;
 }
 
 function markdownFor(report) {

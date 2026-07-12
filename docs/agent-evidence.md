@@ -18,10 +18,22 @@ documented, deployed, or monitored.
 
 ## Done Bundle
 
-Normal work requires `TEST`, `REVIEW`, and `DOCS` evidence before `done`.
+Softwarehouse completion policy expects:
 
-High-risk work also requires `SECURITY`, `DEPLOY`, and `MONITORING` evidence where it affects
-runtime behavior or production.
+- normal work to carry `TEST`, `REVIEW`, and `DOCS` evidence;
+- high-risk work to also carry `SECURITY`, `DEPLOY`, and `MONITORING` evidence where it affects
+  runtime behavior or production.
+
+Current product enforcement is narrower. The issue close API only hard-requires inspectable
+completion evidence existence, satisfied by:
+
+- a completion comment in the same `done` update;
+- an issue document;
+- an attachment; or
+- a work product.
+
+Treat the typed bundle above as the review and operating requirement until Paperclip ships a typed
+evidence validator for `done`.
 
 Evidence should be attached through issue work products, issue documents, comments, attachments,
 or activity records. A local path alone is not enough for a deliverable.

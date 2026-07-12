@@ -34,6 +34,13 @@ parallelism:
   decision or handoff at a time.
 - Leaf/specialist agents should often have many planned `todo/backlog` issues.
   WIP=1 prevents simultaneous execution, not a useful ordered queue.
+- Queue health is measured per active controlled track, not only in aggregate.
+  Soar and Roost each need at least three legal worker-ready `todo/backlog`
+  lanes, or explicit legal blockers for every missing lane, before the track is
+  considered backlog-healthy.
+- A live `in_progress` worker lane proves execution is happening, but it does
+  not replace planned queue depth. A track can show useful live work and still
+  fail the fan-out closure rule if its worker-ready queue is shallow.
 - A healthy active project should show work accumulating at the lowest
   responsible layer: Frontend, Backend, Data, Integration, AI Runtime, Test
   Automation, QA/Security/Ops, Docs, or UX as applicable.
