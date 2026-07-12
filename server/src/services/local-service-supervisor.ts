@@ -293,8 +293,29 @@ export async function terminateLocalService(
   record: Pick<LocalServiceRegistryRecord, "pid" | "processGroupId">,
   opts?: { signal?: NodeJS.Signals; forceAfterMs?: number },
 ) {
+  if (process.platform === "win32") {
+    try {
+      await execFileAsync(
+        "taskkill.exe",
+        ["/PID", String(record.pid), "/T", "/F"],
+        { windowsHide: true },
+      );
+    } catch {
+      // A missing PID is a successful cleanup outcome. Fall back to the
+      // direct process signal only when the recorded parent is still alive.
+      if (isPidAlive(record.pid)) {
+        try {
+          process.kill(record.pid, "SIGKILL");
+        } catch {
+          // Ignore cleanup races.
+        }
+      }
+    }
+    return;
+  }
+
   const signal = opts?.signal ?? "SIGTERM";
-  const targetProcessGroup = process.platform !== "win32" && record.processGroupId && record.processGroupId > 0;
+  const targetProcessGroup = record.processGroupId && record.processGroupId > 0;
   try {
     if (targetProcessGroup) {
       process.kill(-record.processGroupId!, signal);

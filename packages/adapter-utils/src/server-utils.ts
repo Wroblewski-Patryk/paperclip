@@ -62,6 +62,18 @@ function signalRunningProcess(
   running: Pick<RunningProcess, "child" | "processGroupId">,
   signal: NodeJS.Signals,
 ) {
+  if (process.platform === "win32" && running.child.pid && running.child.pid > 0) {
+    const killer = spawn(
+      "taskkill.exe",
+      ["/PID", String(running.child.pid), "/T", "/F"],
+      { windowsHide: true, stdio: "ignore" },
+    );
+    killer.once("error", () => {
+      if (!running.child.killed) running.child.kill(signal);
+    });
+    killer.unref();
+    return;
+  }
   if (process.platform !== "win32" && running.processGroupId && running.processGroupId > 0) {
     try {
       process.kill(-running.processGroupId, signal);
