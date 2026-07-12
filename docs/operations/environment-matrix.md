@@ -33,6 +33,27 @@ before agents can claim an environment is healthy.
 - `workers-market-stream` explicit readiness proof;
 - temp-stack acceptance being unavailable under accepted no-temp routing.
 
+## Protected-Gate Preflight Checklist
+
+Use this checklist before deploy-impacting release smoke work that needs
+runtime secrets or protected environment bindings. Record answers in the
+release-smoke issue before rerunning the smoke command.
+
+1. Name the required protected secret refs or environment bindings by name only,
+   never by value.
+2. Name the binding or confirmation owner who can verify that the refs are
+   attached to the smoke runner.
+3. Name the exact downstream command, smoke, deploy observation, or release gate
+   that the protected binding unblocks.
+4. State the rollback/deploy evidence required for the lane, including pushed
+   SHA or deploy status when applicable, smoke result, rollback note, and
+   residual risk.
+5. If a missing binding blocks the lane, create or link a first-class Paperclip
+   blocker relation instead of leaving only a comment.
+6. Create a protected coordination child instead of rerunning blocked smoke when
+   the missing fact is a secret binding, owner confirmation, protected account
+   availability, deploy approval, or rollback/deploy evidence gate.
+
 ## Rule
 
 Do not assume parity between environments. Record differences explicitly and

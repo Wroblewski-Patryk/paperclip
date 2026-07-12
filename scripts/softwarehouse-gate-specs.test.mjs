@@ -919,6 +919,58 @@ test("next legal action selector pauses delivery when fresh source-control sees 
   assert.match(action.reason, /operating repo/);
 });
 
+test("next legal action closes safe Paperclip docs before project delivery", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    {},
+    {},
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    null,
+    {
+      checked: true,
+      ok: true,
+      decision: "operating_source_control_closure_needed",
+      counts: { dirtyProjectRepos: 1, dirtyOperatingRepos: 1 },
+    },
+    {
+      checked: true,
+      ok: true,
+      repos: [
+        {
+          name: "Paperclip_Softwarehouse",
+          required: true,
+          clean: false,
+          dirtyCount: 1,
+          sourceControlClosureLanes: [{ group: "project-docs", status: "os_closure_allowed" }],
+        },
+        { name: "Roost", required: false, clean: false, dirtyCount: 87 },
+      ],
+    },
+  );
+
+  assert.equal(action.decision, "start_operating_source_control_closure");
+  assert.equal(action.target, "Paperclip_Softwarehouse");
+  assert.match(action.command, /SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS/);
+});
+
+test("local source-control starter can close safe Paperclip operating docs", async () => {
+  const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+
+  assert.match(source, /"operating_source_control_closure_needed"/);
+  assert.match(source, /\["Softwarehouse Operating System", "LUC-545"\]/);
+  assert.match(source, /operatingSourceControlSafe/);
+  assert.match(source, /safeSourceControlGroups/);
+});
+
+test("longevity configuration keeps the continuation watchdog frequent without duplicate triggers", async () => {
+  const source = await readFile("scripts/configure-softwarehouse-longevity-routines.mjs", "utf8");
+
+  assert.match(source, /"Every 5 minutes continuation watchdog", "\*\/5 \* \* \* \*"/);
+  assert.match(source, /scheduleTriggers\.length === 1/);
+});
+
 test("next legal action selector routes Coolify acceptance blockers when source control is clear", async () => {
   const { pickAction } = await import("./run-next-legal-action-selector.mjs");
 
@@ -976,7 +1028,7 @@ test("next legal action selector starts runnable backlog instead of only refresh
   assert.equal(action.command, "pnpm softwarehouse:local-repair-lane-starter:apply");
   assert.match(action.reason, /instead of waiting for a later routine/);
   assert.match(source, /const applyCommands = new Map/);
-  assert.match(source, /\["start_runnable_work", \["pnpm", \["softwarehouse:local-repair-lane-starter:apply"\]\]\]/);
+  assert.match(source, /\["start_runnable_work", \{ executable: "pnpm", args: \["softwarehouse:local-repair-lane-starter:apply"\] \}\]/);
   assert.match(source, /function runApplyCommand\(action\)/);
   assert.match(source, /output\.applyResult = runApplyCommand\(output\.action\)/);
   assert.match(packageJson, /"softwarehouse:next-legal-action:apply": "node scripts\/run-next-legal-action-selector\.mjs --apply"/);
@@ -1136,7 +1188,7 @@ test("next legal action selector routes fresh blocked triage before stale runnab
   assert.equal(action.command, "pnpm run softwarehouse:blocked-triage-lane-starter:apply");
   assert.match(action.reason, /Triage one blocked issue/);
   assert.match(source, /probeAutonomyGovernor/);
-  assert.match(source, /\["start_blocked_triage", \["pnpm", \["run", "softwarehouse:blocked-triage-lane-starter:apply"\]\]\]/);
+  assert.match(source, /\["start_blocked_triage", \{ executable: "pnpm", args: \["run", "softwarehouse:blocked-triage-lane-starter:apply"\] \}\]/);
   assert.match(packageJson, /"softwarehouse:blocked-triage-lane-starter": "node scripts\/run-blocked-triage-lane-starter\.mjs"/);
   assert.match(packageJson, /"softwarehouse:blocked-triage-lane-starter:apply": "node scripts\/run-blocked-triage-lane-starter\.mjs --apply"/);
 });
@@ -1157,10 +1209,10 @@ test("continuation watchdog applies the next legal action when Paperclip goes id
   assert.match(source, /run\.issueId === currentIssueId/);
   assert.match(source, /liveRunCount/);
   assert.match(source, /A live run exists, so the watchdog must not start duplicate owner work/);
-  assert.match(source, /"pnpm", \["run", "softwarehouse:next-legal-action:apply"\]/);
+  assert.match(source, /spawnSync\("pnpm", \["run", "softwarehouse:next-legal-action:apply"\]/);
   assert.match(source, /report\/softwarehouse-continuation-watchdog\.latest\.json/);
   assert.match(activeRoutines, /"\[Softwarehouse\] Continuation watchdog"/);
-  assert.match(activeRoutines, /"Every 15 minutes continuation watchdog"/);
+  assert.match(activeRoutines, /"Every 5 minutes continuation watchdog"/);
   assert.match(longevityConfigurator, /title: "\[Softwarehouse\] Continuation watchdog"/);
   assert.match(longevityConfigurator, /pnpm run softwarehouse:continuation-watchdog/);
   assert.match(packageJson, /"softwarehouse:continuation-watchdog": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --once"/);

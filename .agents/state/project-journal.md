@@ -1,10 +1,16 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
 ## Entries
+
+- 2026-07-12 / Continuation control-loop repair:
+  - Conversation summary and runtime evidence confirmed a real idle-loop gap: after live runs completed, the next-action selector could stop at `refresh_control_tick` whenever the Paperclip repo had an uncommitted change. That action had no allowlisted apply path, while the control tick correctly refused to open delivery work against a dirty operating repo.
+  - Repaired the loop in `scripts/run-next-legal-action-selector.mjs` and `scripts/run-local-repair-lane-starter.mjs`: docs/evidence/context/agent-state-only Paperclip changes now receive one explicit operating-system source-control closure lane, with a single CTO owner, local validation/commit evidence, and no push/deploy/restart/protected-smoke authority. Code, dependency, or other risky operating changes remain fail-closed.
+  - Tightened cadence in `scripts/configure-softwarehouse-longevity-routines.mjs` from 15 to 5 minutes and made schedule reconciliation rename the existing single schedule trigger instead of creating a duplicate.
+  - Verification before runtime configuration: `pnpm run softwarehouse:test-gates` passed 123/123 and `node --check` passed for all changed execution scripts.
 
 - 2026-07-12 / LUC-561 PDCA Learning and Company Memory Review:
   - Reviewed the inline wake payload and `/api/issues/LUC-561/heartbeat-context` for the current routine heartbeat.

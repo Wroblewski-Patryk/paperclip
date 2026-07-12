@@ -10,13 +10,27 @@ const fallbackCompanyId = "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const healthTimeoutMs = Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_HEALTH_TIMEOUT_MS ?? 5_000);
 const currentRunId = process.env.PAPERCLIP_RUN_ID ?? null;
 const currentIssueId = process.env.PAPERCLIP_ISSUE_ID ?? process.env.PAPERCLIP_TASK_ID ?? null;
+const safeOperatingSourceControlGroups = new Set([
+  "project-docs",
+  "history-evidence",
+  "codex-context",
+  "agent-state",
+]);
 
 const applyCommands = new Map([
-  ["assign_runnable_work_owner", ["node", ["scripts/run-project-ownership-assignment.mjs", "--apply"]]],
-  ["start_runnable_work", ["pnpm", ["softwarehouse:local-repair-lane-starter:apply"]]],
-  ["start_source_control_closure", ["pnpm", ["softwarehouse:local-repair-lane-starter:apply"]]],
-  ["start_project_truth_gap", ["pnpm", ["softwarehouse:project-truth-dispatch:apply"]]],
-  ["start_blocked_triage", ["pnpm", ["run", "softwarehouse:blocked-triage-lane-starter:apply"]]],
+  ["assign_runnable_work_owner", { executable: "node", args: ["scripts/run-project-ownership-assignment.mjs", "--apply"] }],
+  ["start_runnable_work", { executable: "pnpm", args: ["softwarehouse:local-repair-lane-starter:apply"] }],
+  ["start_source_control_closure", { executable: "pnpm", args: ["softwarehouse:local-repair-lane-starter:apply"] }],
+  [
+    "start_operating_source_control_closure",
+    {
+      executable: process.execPath,
+      args: ["scripts/run-local-repair-lane-starter.mjs", "--apply"],
+      env: { SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS: "Softwarehouse Operating System" },
+    },
+  ],
+  ["start_project_truth_gap", { executable: "pnpm", args: ["softwarehouse:project-truth-dispatch:apply"] }],
+  ["start_blocked_triage", { executable: "pnpm", args: ["run", "softwarehouse:blocked-triage-lane-starter:apply"] }],
 ]);
 
 async function readJson(path, fallback = null) {
@@ -190,6 +204,19 @@ function controlStepSummary(control, name) {
   return control.steps.find((step) => step?.name === name)?.summary ?? null;
 }
 
+function isSafeOperatingSourceControlClosure(repo) {
+  const lanes = repo?.sourceControlClosureLanes ?? [];
+  return Boolean(
+    repo?.required
+      && repo.clean === false
+      && lanes.length > 0
+      && lanes.every((lane) =>
+        lane?.status === "os_closure_allowed"
+        && safeOperatingSourceControlGroups.has(lane?.group),
+      ),
+  );
+}
+
 export function pickAction(
   control,
   readiness,
@@ -232,6 +259,16 @@ export function pickAction(
     && governorProbe.ok
     && Number(governorProbe?.counts?.dirtyProjectRepos ?? 0) === 0
     && Number(governorProbe?.counts?.dirtyOperatingRepos ?? 0) === 0;
+  if (isSafeOperatingSourceControlClosure(freshOperatingDirtyRepo)) {
+    return {
+      decision: "start_operating_source_control_closure",
+      reason: "Paperclip has only safe documentation/state closure work; route one explicit OS source-control lane before returning to project delivery.",
+      command: "node scripts/run-local-repair-lane-starter.mjs --apply (SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS=Softwarehouse Operating System)",
+      target: freshOperatingDirtyRepo.name,
+      allowed: ["classify local docs/state evidence", "run diff validation", "make one local commit when evidence supports closure"],
+      forbidden: ["push", "deploy", "restart", "protected smoke", "secret disclosure", "mix product-repo changes"],
+    };
+  }
   if (freshOperatingDirtyRepo) {
     return {
       decision: "refresh_control_tick",
@@ -410,11 +447,11 @@ function runApplyCommand(action) {
       reason: "No allowlisted apply command exists for this decision.",
     };
   }
-  const [executable, args] = command;
+  const { executable, args, env } = command;
   const commandText = `${executable} ${args.join(" ")}`;
   const result = spawnSync(executable, args, {
     cwd: process.cwd(),
-    env: { ...process.env },
+    env: { ...process.env, ...env },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     shell: process.platform === "win32",

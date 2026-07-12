@@ -26,20 +26,25 @@ const localRepairCompatibleGovernorDecisions = new Set([
   "safe_nonproduction_cooldown",
   "safe_nonproduction_no_evidence_cooldown",
   "project_source_control_closure_needed",
+  "operating_source_control_closure_needed",
 ]);
+const safeSourceControlGroups = new Set(["project-docs", "history-evidence", "codex-context", "agent-state"]);
 const sourceControlClosureIssueByProject = new Map([
+  ["Softwarehouse Operating System", "LUC-545"],
   ["Soar", "LUC-149"],
   ["Roost", "LUC-149"],
   ["Aviary", "LUC-420"],
   ["Nest", "LUC-438"],
 ]);
 const sourceControlClosureLaneTitleByProject = new Map([
+  ["Softwarehouse Operating System", "[Softwarehouse Operating System][Source Control Closure] Classify and close local dirty state for LUC-545"],
   ["Soar", "[Soar][Source Control Closure] Classify and close local dirty state for LUC-149"],
   ["Roost", "[Roost][Source Control Closure] Classify and close local dirty state for LUC-149"],
   ["Aviary", "[Aviary][Source Control Closure] Classify and close local dirty state for LUC-420"],
   ["Nest", "[Nest][Source Control Closure] Classify and close local dirty state for LUC-438"],
 ]);
 const sourceControlClosureAssigneeByProject = new Map([
+  ["Softwarehouse Operating System", "09 CTO (Chief Technology Officer)"],
   ["Soar", "Soar Project Manager"],
   ["Roost", "Roost Project Manager"],
   ["Aviary", "Aviary Project Manager"],
@@ -69,16 +74,23 @@ async function readSourceControlPacket() {
     return {
       sourceControlPacketRead: true,
       repos,
+      operatingRepo,
       operatingRepoClean: operatingRepo?.clean ?? null,
       operatingDirtyCount: operatingRepo?.dirtyCount ?? 0,
+      operatingSourceControlSafe:
+        operatingRepo?.clean === false
+        && (operatingRepo.dirtyGroups?.length ?? 0) > 0
+        && operatingRepo.dirtyGroups.every((group) => safeSourceControlGroups.has(group.group)),
       dirtyProjectNames,
     };
   } catch {
     return {
       sourceControlPacketRead: false,
       repos: [],
+      operatingRepo: null,
       operatingRepoClean: null,
       operatingDirtyCount: null,
+      operatingSourceControlSafe: false,
       dirtyProjectNames: [],
     };
   }
@@ -212,8 +224,9 @@ function isSourceControlClosureTitle(title) {
 }
 
 function sourceControlClosureAllowed(governorDecision, sourceControlPacket) {
-  return localRepairCompatibleGovernorDecisions.has(governorDecision.decision)
-    && (sourceControlPacket.dirtyProjectNames?.length ?? 0) > 0;
+  if (!localRepairCompatibleGovernorDecisions.has(governorDecision.decision)) return false;
+  return (sourceControlPacket.dirtyProjectNames?.length ?? 0) > 0
+    || sourceControlPacket.operatingSourceControlSafe === true;
 }
 
 function issueRefsFromPaths(paths) {
@@ -403,6 +416,9 @@ let candidates = issues
 const sidecarCreations = [];
 if (sourceControlClosureAllowed(governorDecision, sourceControlPacket)) {
   const dirtyProjectNames = new Set(sourceControlPacket.dirtyProjectNames ?? []);
+  if (sourceControlPacket.operatingSourceControlSafe) {
+    dirtyProjectNames.add("Softwarehouse Operating System");
+  }
   for (const projectName of projectPriority) {
     if (dirtyProjectNames.size > 0 && !dirtyProjectNames.has(projectName)) continue;
     const { refs, linkedIssues, targetIssue, title, fallbackIdentifier } = sourceControlSidecarSpec({

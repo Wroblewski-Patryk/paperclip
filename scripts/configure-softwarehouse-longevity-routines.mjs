@@ -62,7 +62,9 @@ async function ensureRoutine(companyId, routinesByTitle, input) {
 
 async function ensureScheduleTrigger(routineId, input) {
   const detail = await request("GET", `/api/routines/${routineId}`);
-  const existing = detail.triggers?.find((trigger) => trigger.kind === "schedule" && trigger.label === input.label);
+  const scheduleTriggers = detail.triggers?.filter((trigger) => trigger.kind === "schedule") ?? [];
+  const existing = scheduleTriggers.find((trigger) => trigger.label === input.label)
+    ?? (scheduleTriggers.length === 1 ? scheduleTriggers[0] : null);
   if (existing) return request("PATCH", `/api/routine-triggers/${existing.id}`, input);
   return request("POST", `/api/routines/${routineId}/triggers`, { kind: "schedule", ...input });
 }
@@ -134,7 +136,7 @@ const specs = [
       "Allowed actions are limited to Paperclip issue/routine routing, project-truth proof/repair lane creation, control packet refresh, and local non-production evidence work.",
       "Forbidden without a fresh accepted gate fact: push, deploy, restart, rollback, protected smoke, live account mutation, secret disclosure, or destructive repository changes.",
     ].join("\n"),
-    schedule: ["Every 15 minutes continuation watchdog", "*/15 * * * *"],
+    schedule: ["Every 5 minutes continuation watchdog", "*/5 * * * *"],
   },
   {
     title: "[Softwarehouse] Longevity snapshot backup",
