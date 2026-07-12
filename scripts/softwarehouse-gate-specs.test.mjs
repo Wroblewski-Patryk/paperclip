@@ -116,15 +116,16 @@ test("live-run janitor cancels duplicate owner runs that have no issue row", asy
   assert.match(source, /issueId: duplicateRun\.issueId \?\? null/);
 });
 
-test("live-run janitor treats blocked duplicate owner runs as safe duplicate cleanup", async () => {
+test("live-run janitor only treats the same agent and issue as duplicate owner work", async () => {
   const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
 
-  assert.doesNotMatch(source, /terminalStatuses\.has\(issue\.status\) \|\| issue\.status === "blocked"/);
+  assert.match(source, /const liveRunsByOwnerKey = new Map\(\)/);
+  assert.match(source, /const ownerKey = `\$\{run\.agentId\}:\$\{run\.issueId \?\? "__orphan__"\}`/);
+  assert.doesNotMatch(source, /const liveRunsByAgentId = new Map\(\)/);
   assert.match(source, /if \(terminalStatuses\.has\(issue\.status\)\) continue;/);
   assert.match(source, /kind: "cancel_duplicate_owner_run"/);
-  assert.match(source, /status: "blocked"/);
-  assert.match(source, /action\.issueStatus === "blocked"/);
-  assert.match(source, /Skipped duplicate-run bookkeeping comment to avoid waking a blocked duplicate lane/);
+  assert.match(source, /item\.issueStatusSyncSkipped = "preserved_active_owner_status"/);
+  assert.match(source, /preserved issue status because the kept owner run remains active/);
 });
 
 test("live-run janitor does not let orphan direct wakes outrank issue-bound recovery", async () => {
@@ -1314,12 +1315,13 @@ test("live-run janitor falls back to API reads when direct database is unavailab
   assert.match(source, /if \(liveRuns\.length === 0 && fullIssueScanAvailable\)/);
 });
 
-test("live-run janitor avoids duplicate-run comments that re-wake blocked lanes", async () => {
+test("live-run janitor preserves issue state while cancelling a true duplicate run", async () => {
   const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
 
   assert.match(source, /action\.kind === "cancel_duplicate_owner_run"/);
-  assert.match(source, /action\.issueStatus === "blocked"/);
-  assert.match(source, /Skipped duplicate-run bookkeeping comment to avoid waking a blocked duplicate lane/);
+  assert.match(source, /item\.issueStatus = action\.issueStatus \?\? null/);
+  assert.match(source, /item\.issueStatusSyncSkipped = "preserved_active_owner_status"/);
+  assert.doesNotMatch(source, /action\.kind === "cancel_duplicate_owner_run"[\s\S]{0,500}status: "blocked"/);
   assert.doesNotMatch(source, /duplicateOwnerRunMarker\(action\.identifier\)[\s\S]*Kept run:/);
 });
 

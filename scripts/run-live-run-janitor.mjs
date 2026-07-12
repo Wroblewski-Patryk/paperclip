@@ -519,16 +519,21 @@ const commentsByRunId = new Map(liveRuns.map((run) => [
   run.id,
   commentsByIssueId.get(issueById.get(run.issueId)?.id) ?? [],
 ]));
-const liveRunsByAgentId = new Map();
+const liveRunsByOwnerKey = new Map();
 for (const run of liveRuns) {
   if (!run.agentId) continue;
-  const runs = liveRunsByAgentId.get(run.agentId) ?? [];
+  // maxConcurrentRuns may intentionally let one agent own different issues at
+  // the same time. Only two live runs for the same agent and issue are true
+  // duplicate-owner executions.
+  const ownerKey = `${run.agentId}:${run.issueId ?? "__orphan__"}`;
+  const runs = liveRunsByOwnerKey.get(ownerKey) ?? [];
   runs.push(run);
-  liveRunsByAgentId.set(run.agentId, runs);
+  liveRunsByOwnerKey.set(ownerKey, runs);
 }
 
-for (const [agentId, agentRuns] of liveRunsByAgentId.entries()) {
+for (const agentRuns of liveRunsByOwnerKey.values()) {
   if (agentRuns.length <= 1) continue;
+  const agentId = agentRuns[0]?.agentId ?? null;
   const sortedRuns = [...agentRuns].sort((left, right) => {
     const leftRank = runSortRank(left, issueById);
     const rightRank = runSortRank(right, issueById);
@@ -960,16 +965,10 @@ if (apply) {
     }
 
     if (action.kind === "cancel_duplicate_owner_run") {
-      if (action.issueStatus === "blocked") {
-        item.issueStatusSyncSkipped = "already_blocked";
-        item.issueStatusSyncReason = "Skipped duplicate-run bookkeeping comment to avoid waking a blocked duplicate lane.";
-      } else {
-        const updated = await patchIssueForJanitor(action, item, {
-          status: "blocked",
-        });
-        if (!updated) continue;
-        item.issueStatus = updated.status;
-      }
+      item.issueStatus = action.issueStatus ?? null;
+      item.issueStatusSyncSkipped = "preserved_active_owner_status";
+      item.issueStatusSyncReason =
+        "Cancelled only the duplicate run; preserved issue status because the kept owner run remains active.";
     }
 
     applied.push(item);
