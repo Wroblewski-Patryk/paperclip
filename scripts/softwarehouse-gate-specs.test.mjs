@@ -1019,6 +1019,16 @@ test("local source-control starter cannot route project closure into a generic c
   assert.match(source, /controlledProjectNameFor\(project\?\.name\) \?\? project\?\.name/);
 });
 
+test("local source-control sidecars preserve parallelism across independent projects and agents", async () => {
+  const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+
+  assert.match(source, /const availableSidecarCreations = sidecarCreations\.filter/);
+  assert.match(source, /!sidecarHasActiveConflict\(sidecar, liveProjectIds, busyAgentIds, unknownActiveRunCount\)/);
+  assert.match(source, /sidecarCreations\.length > 0 && availableSidecarCreations\.length === 0/);
+  assert.match(source, /const sidecar = availableSidecarCreations\[0\]/);
+  assert.doesNotMatch(source, /defer_source_control_sidecar_active_runs/);
+});
+
 test("longevity configuration keeps the continuation watchdog frequent without duplicate triggers", async () => {
   const source = await readFile("scripts/configure-softwarehouse-longevity-routines.mjs", "utf8");
 

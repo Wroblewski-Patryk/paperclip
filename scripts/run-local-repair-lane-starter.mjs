@@ -488,6 +488,9 @@ if (sourceControlClosureAllowed(governorDecision, sourceControlPacket)) {
     break;
   }
 }
+const availableSidecarCreations = sidecarCreations.filter((sidecar) =>
+  !sidecarHasActiveConflict(sidecar, liveProjectIds, busyAgentIds, unknownActiveRunCount)
+);
 
 async function refreshIssueByExactTitle(companyId, title) {
   const matches = await request("GET", `/api/companies/${companyId}/issues?q=${encodeURIComponent(title)}&limit=100`);
@@ -505,17 +508,8 @@ async function findIssueByIdentifier(companyId, identifier) {
 }
 
 const actions = [];
-if (activeRunCount > 0 && candidates.length === 0 && sidecarCreations.length > 0) {
-  actions.push({
-    action: "defer_source_control_sidecar_active_runs",
-    activeRunCount,
-    liveRunCount: liveRuns.length,
-    unknownActiveRunCount,
-    sidecarCount: sidecarCreations.length,
-  });
-} else if (activeRunCount > 0 && candidates.length === 0 && sidecarCreations.every((sidecar) =>
-  sidecarHasActiveConflict(sidecar, liveProjectIds, busyAgentIds, unknownActiveRunCount)
-)) {
+if (activeRunCount > 0 && candidates.length === 0
+  && sidecarCreations.length > 0 && availableSidecarCreations.length === 0) {
   actions.push({
     action: "noop_active_runs",
     activeRunCount,
@@ -533,13 +527,13 @@ if (activeRunCount > 0 && candidates.length === 0 && sidecarCreations.length > 0
     action: "noop_operating_repo_dirty",
     operatingDirtyCount: sourceControlPacket.operatingDirtyCount,
   });
-} else if (candidates.length === 0 && sidecarCreations.length === 0) {
+} else if (candidates.length === 0 && availableSidecarCreations.length === 0) {
   actions.push({
     action: "noop_no_local_repair_candidate",
     projectPriority,
   });
-} else if (candidates.length === 0 && sidecarCreations.length > 0) {
-  const sidecar = sidecarCreations[0];
+} else if (candidates.length === 0 && availableSidecarCreations.length > 0) {
+  const sidecar = availableSidecarCreations[0];
   const description = [
     "softwarehouse-source-control-closure-sidecar:v1",
     "",
