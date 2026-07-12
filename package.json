@@ -100,6 +100,8 @@
     "softwarehouse:coolify-reconciler": "node scripts/run-coolify-production-reconciler.mjs",
     "softwarehouse:coolify-runtime-access": "node scripts/configure-coolify-runtime-access.mjs",
     "softwarehouse:coolify-runtime-access:apply": "node scripts/configure-coolify-runtime-access.mjs --apply",
+    "softwarehouse:least-privilege-bindings": "node scripts/repair-stage1-least-privilege-bindings.mjs",
+    "softwarehouse:least-privilege-bindings:apply": "node scripts/repair-stage1-least-privilege-bindings.mjs --apply",
     "softwarehouse:release-governor": "node scripts/run-release-push-deploy-governor.mjs",
     "softwarehouse:access-unblock-tasks": "node scripts/run-access-unblock-task-seeder.mjs",
     "softwarehouse:access-unblock-tasks:apply": "node scripts/run-access-unblock-task-seeder.mjs --apply",

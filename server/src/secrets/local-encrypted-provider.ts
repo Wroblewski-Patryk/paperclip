@@ -1,5 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { resolveDefaultSecretsKeyFilePath } from "../home-paths.js";
 import type {
@@ -81,6 +83,9 @@ function loadOrCreateMasterKey(): Buffer {
 }
 
 function enforceKeyFilePermissionsBestEffort(keyPath: string) {
+  if (process.platform === "win32") {
+    return;
+  }
   try {
     const mode = statSync(keyPath).mode & 0o777;
     if ((mode & 0o077) !== 0) {
@@ -89,6 +94,98 @@ function enforceKeyFilePermissionsBestEffort(keyPath: string) {
   } catch {
     // best effort only; health checks surface persistent permission problems.
   }
+}
+
+interface WindowsAclEntry {
+  sid: string | null;
+  identity: string;
+  type: string;
+  rights: string;
+  inherited: boolean;
+}
+
+interface WindowsAclSnapshot {
+  currentUserSid: string | null;
+  entries: WindowsAclEntry[];
+}
+
+function inspectWindowsAcl(keyPath: string): WindowsAclSnapshot | null {
+  try {
+    const quotedKeyPath = `'${keyPath.replace(/'/g, "''")}'`;
+    const stdout = execFileSync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        `
+& {
+  param([string]$KeyPath)
+  $ErrorActionPreference = 'Stop'
+  $acl = Get-Acl -LiteralPath $KeyPath
+  $currentUserSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+  $entries = foreach ($rule in $acl.Access) {
+    $sid = $null
+    try {
+      $sid = $rule.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value
+    } catch {
+      $sid = $null
+    }
+    [PSCustomObject]@{
+      sid = $sid
+      identity = $rule.IdentityReference.Value
+      type = [string]$rule.AccessControlType
+      rights = [string]$rule.FileSystemRights
+      inherited = [bool]$rule.IsInherited
+    }
+  }
+  [PSCustomObject]@{
+    currentUserSid = $currentUserSid
+    entries = @($entries)
+  } | ConvertTo-Json -Compress -Depth 4
+} ${quotedKeyPath}
+        `,
+      ],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    );
+    return JSON.parse(stdout) as WindowsAclSnapshot;
+  } catch {
+    return null;
+  }
+}
+
+function windowsAclWarnings(keyPath: string): string[] {
+  const snapshot = inspectWindowsAcl(keyPath);
+  if (!snapshot) {
+    return [
+      `Could not inspect Windows ACLs for ${keyPath}; verify only the current user, SYSTEM, and Administrators can read it.`,
+    ];
+  }
+
+  const allowedSids = new Set(
+    [
+      snapshot.currentUserSid,
+      "S-1-5-18", // Local System
+      "S-1-5-32-544", // Built-in Administrators
+    ].filter((value): value is string => Boolean(value)),
+  );
+
+  const unexpectedReaders = snapshot.entries.filter((entry) => {
+    if (entry.type.toLowerCase() !== "allow") return false;
+    if (!entry.sid) return true;
+    return !allowedSids.has(entry.sid);
+  });
+
+  if (unexpectedReaders.length === 0) return [];
+
+  const summary = unexpectedReaders
+    .map((entry) => `${entry.identity} (${entry.rights})`)
+    .join(", ");
+  return [
+    `Secrets key file ACL is broader than expected; remove extra readers from ${keyPath}: ${summary}`,
+  ];
 }
 
 function sha256Hex(value: string): string {
@@ -175,8 +272,9 @@ async function inspectLocalEncryptedHealth(): Promise<SecretProviderHealthCheck>
     };
   }
 
-  const warnings =
-    mode !== null && (mode & 0o077) !== 0
+  const warnings = process.platform === "win32"
+    ? windowsAclWarnings(keyPath)
+    : mode !== null && (mode & 0o077) !== 0
       ? [`Secrets key file permissions are ${mode.toString(8)}; run chmod 600 ${keyPath}`]
       : [];
   return {
@@ -187,6 +285,9 @@ async function inspectLocalEncryptedHealth(): Promise<SecretProviderHealthCheck>
     backupGuidance: [
       "Back up the key file together with database backups.",
       "The database alone cannot restore local encrypted secret values.",
+      ...(process.platform === "win32"
+        ? ["On Windows, verify the file ACL is limited to the runtime user, SYSTEM, and Administrators."]
+        : []),
     ],
     details: { keySource: "file", keyFilePath: keyPath },
   };
