@@ -173,6 +173,24 @@ test("longevity doctor treats active project-truth proof lanes as known-state ev
   assert.match(source, /\\b\(Prove\|Proof\|Reconcile\|Evidence\)\\b/);
 });
 
+test("project-truth dispatcher requires a complete closure packet for proof lanes", async () => {
+  const source = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
+
+  assert.match(source, /Closure contract references:/);
+  assert.match(source, /docs\/softwarehouse\/05-definition-of-done\.md/);
+  assert.match(source, /docs\/softwarehouse\/06-quality-gates\.md/);
+  assert.match(source, /docs\/softwarehouse\/local-first-shippable-gate-bundle\.md/);
+  assert.match(source, /Required closure packet on this lane:/);
+  assert.match(source, /affected files list, or an explicit `no files changed` statement/);
+  assert.match(source, /exact verification commands\/results, or the explicit missing-proof blocker/);
+  assert.match(source, /inspectable artifact\/work-product links/);
+  assert.match(source, /local commit SHA, or an exact no-commit blocker plus linked open source-control closure sidecar\/owner issue/);
+  assert.match(source, /push status and deploy impact/);
+  assert.match(source, /residual risk and next owner/);
+  assert.match(source, /Final closure records the affected files, exact verification commands\/results, inspectable artifact or work-product links when applicable, commit SHA or exact no-commit\/source-control-sidecar evidence, push status, deploy impact, residual risk, and next owner\./);
+  assert.match(source, /If the lane leaves repo changes uncommitted, it does not close done without a linked open source-control closure sidecar or exact no-commit blocker\./);
+});
+
 test("longevity scripts use resilient issue pagination and retry defaults", async () => {
   const snapshot = await readFile("scripts/export-softwarehouse-longevity-snapshot.mjs", "utf8");
   const doctor = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
@@ -1716,9 +1734,11 @@ test("project truth indexes route app-completion proof gaps instead of treating 
   assert.match(dispatcher, /\[App Completion\]/);
   assert.match(dispatcher, /gap\.kind === "app_completion_gap"/);
   assert.match(dispatcher, /App-completion rule/);
-  assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_MAX_GAPS \?\? 2/);
+  assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_PER_TRACK_DEPTH \?\? 3/);
+  assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_MAX_GAPS \?\? \(perTrackDispatchDepth \* 2\)/);
   assert.match(dispatcher, /function dispatchableGaps/);
-  assert.match(dispatcher, /project\.projectTruth\?\.firstGap/);
+  assert.match(dispatcher, /project\.projectTruth\?\.gaps/);
+  assert.match(dispatcher, /audit\.firstGap/);
   assert.match(dispatcher, /gapsToDispatch/);
   assert.match(dispatcher, /function isProjectTruthIssue/);
   assert.match(dispatcher, /supersededProjectTruthIssues/);

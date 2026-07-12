@@ -278,6 +278,19 @@ function descriptionForGap(gap, audit) {
     "6. If push/deploy/redeploy is required, route Ops release/deploy with SHA/resource/rollback/smoke proof.",
     "7. If Coolify/VPS did not redeploy or runtime stays down, create the next recovery issue with observed provider/resource/log evidence.",
     "",
+    "Closure contract references:",
+    "- docs/softwarehouse/05-definition-of-done.md",
+    "- docs/softwarehouse/06-quality-gates.md",
+    "- docs/softwarehouse/local-first-shippable-gate-bundle.md",
+    "",
+    "Required closure packet on this lane:",
+    "- affected files list, or an explicit `no files changed` statement;",
+    "- exact verification commands/results, or the explicit missing-proof blocker;",
+    "- inspectable artifact/work-product links when evidence lives in workspace files, screenshots, logs, or generated reports;",
+    "- local commit SHA, or an exact no-commit blocker plus linked open source-control closure sidecar/owner issue when the repo stays dirty;",
+    "- push status and deploy impact;",
+    "- residual risk and next owner.",
+    "",
     isCriticalRuntime
       ? "Critical runtime rule: do not stop at `blocked` just because production is down. Perform read-only Coolify/VPS/runtime diagnosis when credentials are available. If restart/redeploy/rollback/DNS/proxy mutation is required, create the exact mutation permit or recovery issue and keep the chain alive until production health is proven or a concrete permission gate is the only remaining blocker."
       : gap.kind === "app_completion_gap"
@@ -552,6 +565,8 @@ for (const projectGapSet of gapsToDispatch) {
           "A required verification step is delegated to QA/Test Automation with expected evidence.",
           "Docs/status/project truth indexes are refreshed or a Docs Memory follow-up exists.",
           "Source-control, push, deploy, redeploy, and monitoring steps are each routed to the proper owner when needed.",
+          "Final closure records the affected files, exact verification commands/results, inspectable artifact or work-product links when applicable, commit SHA or exact no-commit/source-control-sidecar evidence, push status, deploy impact, residual risk, and next owner.",
+          "If the lane leaves repo changes uncommitted, it does not close done without a linked open source-control closure sidecar or exact no-commit blocker.",
           "For runtime findings, production health is restored with smoke proof or an exact remaining provider/permission blocker is assigned.",
         ],
       });
