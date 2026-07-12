@@ -448,11 +448,12 @@ test("unblock packet scopes issue scans and resolves canonical gate roots direct
   assert.doesNotMatch(source, /issues\?limit=1000/);
 });
 
-test("unblock packet writes a fresh degraded packet for board-only secret metadata", async () => {
+test("unblock packet falls back to redacted secret metadata for agent runs", async () => {
   const source = await readFile("scripts/export-softwarehouse-unblock-packet.mjs", "utf8");
 
+  assert.match(source, /request\("GET", `\/api\/companies\/\$\{company\.id\}\/secrets\/metadata`\)/);
+  assert.match(source, /secretReadMode = "redacted_metadata"/);
   assert.match(source, /function skippedOperatingDecision/);
-  assert.match(source, /board-access-required secret metadata gap/);
   assert.match(source, /candidate-scan timeout/);
   assert.match(source, /await writePacketFiles\(packet\);\s+console\.log\(JSON\.stringify\(\{/);
   assert.match(source, /"docs\/status\/softwarehouse-unblock-packet\.md"/);

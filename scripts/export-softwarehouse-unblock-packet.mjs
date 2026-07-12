@@ -420,14 +420,21 @@ let agents = [];
 let issues = [];
 let secrets = [];
 let liveRuns = [];
+let secretReadMode = "board";
 try {
-  [health, agents, issues, secrets, liveRuns] = await Promise.all([
+  [health, agents, issues, liveRuns] = await Promise.all([
     request("GET", "/api/health"),
     request("GET", `/api/companies/${company.id}/agents`),
     requestAllPages(`/api/companies/${company.id}/issues?status=${activeIssueStatuses.join(",")}`),
-    request("GET", `/api/companies/${company.id}/secrets`),
     request("GET", `/api/companies/${company.id}/live-runs`),
   ]);
+  try {
+    secrets = await request("GET", `/api/companies/${company.id}/secrets`);
+  } catch (error) {
+    if (!isBoardAccessRequiredError(error)) throw error;
+    secrets = await request("GET", `/api/companies/${company.id}/secrets/metadata`);
+    secretReadMode = "redacted_metadata";
+  }
 } catch (error) {
   if (!isRequestTimeoutError(error) && !isBoardAccessRequiredError(error)) throw error;
   const reason = isBoardAccessRequiredError(error) ? "board_access_required" : "candidate_scan_timeout";
@@ -611,6 +618,7 @@ console.log(JSON.stringify({
     activeRunCount: health.devServer?.activeRunCount ?? liveRuns.length,
     liveRunCount: liveRuns.length,
   },
+  secretReadMode,
   gateCount: gates.length,
   freshGateCount,
   gates: gates.map((gate) => ({
