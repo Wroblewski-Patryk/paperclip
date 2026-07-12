@@ -422,6 +422,11 @@ const operatingSourceControlClosureRequested =
   sourceControlPacket.operatingSourceControlSafe === true
   && projectPriority.length === 1
   && projectPriority[0] === "Softwarehouse Operating System";
+const projectSourceControlClosureRequested =
+  governorDecision.decision === "project_source_control_closure_needed"
+  && dirtyProjectNames.size > 0;
+const dedicatedSourceControlClosureRequested =
+  operatingSourceControlClosureRequested || projectSourceControlClosureRequested;
 const initialWip = wipStateIgnoringCurrentRun({
   activeRunCount: health.devServer?.activeRunCount ?? liveRuns.length,
   liveRuns,
@@ -442,11 +447,12 @@ const liveProjectIds = new Set(liveRuns
 const busyAgentIds = new Set(liveRuns.map((run) => run.agentId).filter(Boolean));
 let candidates = issues
   .filter((issue) => isLocalRepairCandidate(issue, projectById, liveIssueIds, governorDecision))
-  .filter((issue) => !operatingSourceControlClosureRequested || isSourceControlClosureTitle(issue.title))
+  .filter((issue) => !dedicatedSourceControlClosureRequested || isSourceControlClosureTitle(issue.title))
   .filter((issue) => {
     if (!isSourceControlClosureTitle(issue.title)) return true;
     const project = projectById.get(issue.projectId);
-    return Boolean(project?.name && dirtyProjectNames.has(project.name));
+    const controlledProjectName = controlledProjectNameFor(project?.name) ?? project?.name;
+    return Boolean(controlledProjectName && dirtyProjectNames.has(controlledProjectName));
   })
   .filter((issue) => !issueHasActiveConflict(issue, liveProjectIds, busyAgentIds, unknownActiveRunCount))
   .map((issue) => ({
@@ -869,6 +875,8 @@ console.log(JSON.stringify({
   governorDecision,
   sourceControlPacket,
   operatingSourceControlClosureRequested,
+  projectSourceControlClosureRequested,
+  dedicatedSourceControlClosureRequested,
   projectPriority,
   candidateCount: candidates.length,
   candidates: candidates.slice(0, 5).map((issue) => ({

@@ -1001,13 +1001,22 @@ test("local source-control starter can close safe Paperclip operating docs", asy
   assert.match(source, /operatingSourceControlSafe/);
   assert.match(source, /operatingSourceControlClosureRequested/);
   assert.match(source, /projectPriority\.length === 1/);
-  assert.match(source, /!operatingSourceControlClosureRequested \|\| isSourceControlClosureTitle\(issue\.title\)/);
+  assert.match(source, /!dedicatedSourceControlClosureRequested \|\| isSourceControlClosureTitle\(issue\.title\)/);
   assert.match(source, /safeSourceControlGroups/);
   assert.match(source, /const currentIssueId = process\.env\.PAPERCLIP_ISSUE_ID \?\? process\.env\.PAPERCLIP_TASK_ID \?\? null/);
   assert.match(source, /wipStateIgnoringCurrentRun/);
   assert.match(source, /ignoredSelfRunCount/);
   assert.match(source, /run\.id === runId/);
   assert.match(source, /run\.issueId === currentIssueId/);
+});
+
+test("local source-control starter cannot route project closure into a generic controller issue", async () => {
+  const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+
+  assert.match(source, /governorDecision\.decision === "project_source_control_closure_needed"/);
+  assert.match(source, /const dedicatedSourceControlClosureRequested =/);
+  assert.match(source, /!dedicatedSourceControlClosureRequested \|\| isSourceControlClosureTitle\(issue\.title\)/);
+  assert.match(source, /controlledProjectNameFor\(project\?\.name\) \?\? project\?\.name/);
 });
 
 test("longevity configuration keeps the continuation watchdog frequent without duplicate triggers", async () => {
