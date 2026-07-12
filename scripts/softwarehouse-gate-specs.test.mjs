@@ -1850,6 +1850,18 @@ test("runtime gate repair binds smoke and safety refs for current delivery gates
   assert.match(source, /ROOST_PROD_TEST_API_BASE_URL: "roost_api_base_url"/);
 });
 
+test("Roost protected key bootstrap is approval-gated and never uses placeholder material", async () => {
+  const source = await readFile("scripts/bootstrap-roost-protected-api-key.ts", "utf8");
+
+  assert.match(source, /approval\.status !== "approved"/);
+  assert.match(source, /profileId: "mcp_company_os_reader"/);
+  assert.match(source, /provider: "local_encrypted"/);
+  assert.match(source, /COMPANYCORE_API_KEY: secretRef\(protectedSecret\.id\)/);
+  assert.match(source, /rawSecretOutput: false/);
+  assert.match(source, /confirmationStatus: pendingConfirmation\?\.id \? "accepted" : "already_resolved"/);
+  assert.doesNotMatch(source, /REPLACE_ME_COMPANYCORE_API_KEY/);
+});
+
 test("runtime gate repair binds accepted LUC-372 protected input families", async () => {
   const source = await readFile("scripts/repair-runtime-gate-bindings.mjs", "utf8");
 
