@@ -451,6 +451,16 @@ test("unblock packet writes a fresh degraded packet for board-only secret metada
   assert.doesNotMatch(source, /Unblock packet refresh skipped because the local Paperclip API scan timed out/);
 });
 
+test("unblock packet reports terminal gates and zero-failure evidence accurately", async () => {
+  const source = await readFile("scripts/export-softwarehouse-unblock-packet.mjs", "utf8");
+
+  assert.match(source, /if \(\/\\b\(\?:0\|zero\)\\s\+fail\(\?:ed\|ures\?\)\\b\/i\.test\(line\)\) return false/);
+  assert.match(source, /gate\.actionableFreshGateFact\s+&& !gate\.gateIsTerminal\s+&& !gate\.latestCommentIsPlaceholderOnly\s+\? "yes"\s+: "no"/);
+  assert.match(source, /No non-terminal gate is fresh/);
+  assert.doesNotMatch(source, /gate\.secretUpdatedAfterIssue \|\| gate\.hasExplicitApprovalOrEvidence \? "yes" : "no"/);
+  assert.doesNotMatch(source, /No gate is fresh\. Do not resume blocked delivery lanes/);
+});
+
 test("blocked triage starter scopes issue scans and has a dedicated timeout", async () => {
   const source = await readFile("scripts/run-blocked-triage-lane-starter.mjs", "utf8");
   const controlTick = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");

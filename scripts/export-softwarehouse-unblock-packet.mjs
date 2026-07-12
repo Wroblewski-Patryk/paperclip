@@ -139,6 +139,7 @@ function lineIsInstructionalNoise(line) {
 
 function lineIsFailureSignal(line) {
   if (lineIsInstructionalNoise(line)) return false;
+  if (/\b(?:0|zero)\s+fail(?:ed|ures?)\b/i.test(line)) return false;
   return /\b(fail(?:ed)?|error|unauthorized|denied|missing)\b|(?:->\s*)?(?:401|403|500)\b/i
     .test(line);
 }
@@ -279,7 +280,11 @@ function markdownFor(packet) {
       gate.rootBlocker,
       gate.issue?.status ?? "missing",
       gate.owner,
-      gate.secretUpdatedAfterIssue || gate.hasExplicitApprovalOrEvidence ? "yes" : "no",
+      gate.actionableFreshGateFact
+        && !gate.gateIsTerminal
+        && !gate.latestCommentIsPlaceholderOnly
+        ? "yes"
+        : "no",
       gate.latestEvidence?.summary
         ? `${gate.latestEvidence.status}: ${gate.latestEvidence.summary}`
         : gate.latestEvidence?.status ?? "none",
@@ -579,7 +584,7 @@ const freshGateCount = gates.filter((gate) =>
 ).length;
 const operatingDecision = freshGateCount > 0
   ? `There are ${freshGateCount} fresh gate(s). Apply at most one responsible gate recheck lane per tick.`
-  : "No gate is fresh. Do not resume blocked delivery lanes; keep monitoring and wait for a new operator/credential fact.";
+  : "No non-terminal gate is fresh. Do not resume blocked delivery lanes; keep monitoring and wait for a new operator/credential fact.";
 
 const packet = {
   generatedAt: stateStableTimestampLabel,

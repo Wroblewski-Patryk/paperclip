@@ -2207,3 +2207,27 @@ Follow-up: the same self-run rule must also live inside
 watchdog can correctly decide to dispatch work and then the selector can still
 block on the watchdog's own run. The selector now reports observed versus
 ignored self runs and uses the filtered live-run count for dispatch decisions.
+
+## 2026-07-12 - Unblock packet terminal-gate freshness fix
+
+Context: after source-control closure and control tick refreshes, Paperclip
+still appeared to pause often while open Stage 1 work remained. A fresh audit
+showed there was only one local Paperclip server on port 3200, but the
+Softwarehouse unblock packet mixed signals: terminal gates could show
+`Fresh? = yes` in the markdown while the operating decision correctly refused
+to resume terminal gate lanes.
+
+Actions:
+
+- Updated `scripts/export-softwarehouse-unblock-packet.mjs` so the markdown
+  `Fresh?` column uses the same non-terminal actionable-fresh definition as the
+  operating decision and selector logic.
+- Fixed evidence parsing so phrases such as `0 failed` are not treated as gate
+  failures.
+- Regenerated the redacted unblock packet and verified the gate suite with
+  `pnpm run softwarehouse:test-gates`.
+
+Decision: terminal delivery gates with good evidence should remain visible as
+passed evidence, but must not be advertised as fresh runnable gates. This keeps
+the owner view and control-plane routing aligned while avoiding duplicate gate
+rechecks.
