@@ -1,6 +1,7 @@
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { classifyLiveRuns } from "./lib/softwarehouse-live-run-classifier.mjs";
 
 const apply = process.argv.includes("--apply");
 const outputPathJson = "report/softwarehouse-next-legal-action.latest.json";
@@ -99,27 +100,16 @@ async function probeLiveRuns(companyId) {
     }
     const data = await response.json();
     const liveRuns = Array.isArray(data) ? data : data.runs ?? data.liveRuns ?? [];
-    const normalizedLiveRuns = Array.isArray(liveRuns)
-      ? liveRuns.map((run) => ({
-          id: run.id,
-          issueId: run.issueId ?? null,
-          issueIdentifier: run.issueIdentifier ?? null,
-        }))
-      : [];
-    const selfRuns = normalizedLiveRuns.filter(
-      (run) =>
-        (currentRunId && run.id === currentRunId) ||
-        (currentIssueId && run.issueId === currentIssueId) ||
-        (currentIssueId && run.issueIdentifier === currentIssueId),
-    );
-    const selfRunSet = new Set(selfRuns);
-    const externalLiveRuns = normalizedLiveRuns.filter((run) => !selfRunSet.has(run));
+    const classification = await classifyLiveRuns({
+      apiBase,
+      liveRuns,
+      currentRunId,
+      currentIssueId,
+    });
     return {
       checked: true,
       ok: true,
-      observedLiveRunCount: normalizedLiveRuns.length,
-      ignoredSelfRunCount: selfRuns.length,
-      liveRunCount: externalLiveRuns.length,
+      ...classification,
     };
   } catch (error) {
     return {

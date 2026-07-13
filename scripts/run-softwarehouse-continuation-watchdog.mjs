@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import { classifyLiveRuns } from "./lib/softwarehouse-live-run-classifier.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.SOFTWAREHOUSE_COMPANY_ID ?? "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
@@ -39,34 +40,16 @@ async function probeLiveRuns() {
     }
     const data = await response.json();
     const liveRuns = Array.isArray(data) ? data : data.runs ?? data.liveRuns ?? [];
-    const normalizedLiveRuns = Array.isArray(liveRuns)
-      ? liveRuns.map((run) => ({
-          id: run.id,
-          status: run.status,
-          issueId: run.issueId ?? null,
-          issueIdentifier: run.issueIdentifier ?? null,
-          agentName: run.agentName ?? null,
-          lastOutputAt: run.lastOutputAt ?? null,
-          effectiveQuotaLane: run.effectiveQuotaLane ?? null,
-          effectiveModel: run.effectiveModel ?? null,
-        }))
-      : [];
-    const selfRuns = normalizedLiveRuns.filter(
-      (run) =>
-        (currentRunId && run.id === currentRunId) ||
-        (currentIssueId && run.issueId === currentIssueId) ||
-        (currentIssueId && run.issueIdentifier === currentIssueId),
-    );
-    const selfRunSet = new Set(selfRuns);
-    const externalLiveRuns = normalizedLiveRuns.filter((run) => !selfRunSet.has(run));
+    const classification = await classifyLiveRuns({
+      apiBase,
+      liveRuns,
+      currentRunId,
+      currentIssueId,
+    });
     return {
       checked: true,
       ok: true,
-      observedLiveRunCount: normalizedLiveRuns.length,
-      ignoredSelfRunCount: selfRuns.length,
-      liveRunCount: externalLiveRuns.length,
-      liveRuns: externalLiveRuns,
-      ignoredSelfRuns: selfRuns,
+      ...classification,
     };
   } catch (error) {
     return { checked: true, ok: false, error: String(error?.message ?? error), liveRunCount: null };
@@ -163,7 +146,7 @@ async function main() {
     if (liveBefore.ok && Number(liveBefore.liveRunCount ?? 0) > 0) {
       step.action = {
         decision: "supervise_active_runs",
-        reason: "A live run exists, so the watchdog must not start duplicate owner work.",
+        reason: "A productive live run exists, so the watchdog must not start duplicate owner work.",
       };
     } else {
       step.action = runNextLegalActionApply();

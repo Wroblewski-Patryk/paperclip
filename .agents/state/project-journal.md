@@ -2533,3 +2533,30 @@ Runtime reads of secrets are not credential changes, and timestamp-only source
 activity must not create another learning issue during the cooldown. New issue
 numbers are reserved for materially new product work, distinct blockers, or a
 new learning signal after the cooldown.
+
+## 2026-07-13 - Productive WIP separated from controller WIP
+
+Context: the canonical autonomy governor and continuation watchdog were reusing
+their issues correctly, but each still counted the other controller run as
+productive WIP. That made the next-action selector stop at
+`supervise_active_runs` even while an independent Soar/Roost owner was idle.
+
+Actions:
+
+- Added one fail-closed live-run classifier shared by the next-action selector
+  and continuation watchdog.
+- Classified an external run as non-blocking control work only when its current
+  issue can be read and has `originKind: routine_execution`; unresolved issue
+  provenance remains blocking.
+- Kept real product runs and unknown runs inside the WIP guard, while exposing
+  observed, self, controller, productive, and classification-error counts.
+- Added focused regressions for mixed controller/product work and failed issue
+  provenance lookup.
+- Woke existing Roost proof lane LUC-895 without creating another issue. Live
+  readback showed LUC-895 on 09 TAE plus the canonical LUC-770 controller, and
+  the selector reported one controller and one productive run.
+
+Decision: controller activity proves the control plane is alive, not that an
+application is advancing. Controller-only WIP may coexist with one independent
+owner-scoped product lane; real or unclassifiable WIP still suppresses duplicate
+starts.

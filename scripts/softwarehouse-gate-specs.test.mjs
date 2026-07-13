@@ -9,6 +9,7 @@ import { autonomyDispositionForMode, controlActionSummaryFor, controlActionTypeF
 import { softwarehouseGateSpecs, softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
 import { finalizeRecurringIssue } from "./run-softwarehouse-continuation-watchdog.mjs";
 import { shouldShellExecuteApplyCommand } from "./run-next-legal-action-selector.mjs";
+import { classifyLiveRuns } from "./lib/softwarehouse-live-run-classifier.mjs";
 
 const requiredFields = [
   "project",
@@ -943,6 +944,7 @@ test("next legal action selector refuses stale supervision when the local app is
 test("next legal action selector trusts fresh live-run probe over stale cached counts", async () => {
   const { pickAction } = await import("./run-next-legal-action-selector.mjs");
   const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
+  const classifierSource = await readFile("scripts/lib/softwarehouse-live-run-classifier.mjs", "utf8");
 
   const action = pickAction(
     {
@@ -967,10 +969,43 @@ test("next legal action selector trusts fresh live-run probe over stale cached c
   assert.equal(action.decision, "refresh_control_tick");
   assert.match(source, /const currentRunId = process\.env\.PAPERCLIP_RUN_ID \?\? null/);
   assert.match(source, /const currentIssueId = process\.env\.PAPERCLIP_ISSUE_ID \?\? process\.env\.PAPERCLIP_TASK_ID \?\? null/);
-  assert.match(source, /observedLiveRunCount/);
-  assert.match(source, /ignoredSelfRunCount/);
-  assert.match(source, /run\.id === currentRunId/);
-  assert.match(source, /run\.issueId === currentIssueId/);
+  assert.match(classifierSource, /observedLiveRunCount/);
+  assert.match(classifierSource, /ignoredSelfRunCount/);
+  assert.match(classifierSource, /run\.id === currentRunId/);
+  assert.match(classifierSource, /run\.issueId === currentIssueId/);
+});
+
+test("controller-only routine runs do not block an independent product lane", async () => {
+  const classification = await classifyLiveRuns({
+    apiBase: "http://paperclip.test",
+    liveRuns: [
+      { id: "run-governor", issueId: "issue-governor" },
+      { id: "run-product", issueId: "issue-product" },
+    ],
+    fetchImpl: async (url) => ({
+      ok: true,
+      json: async () => ({
+        originKind: url.endsWith("issue-governor") ? "routine_execution" : "manual",
+      }),
+    }),
+  });
+
+  assert.equal(classification.observedLiveRunCount, 2);
+  assert.equal(classification.ignoredControllerRunCount, 1);
+  assert.equal(classification.liveRunCount, 1);
+  assert.equal(classification.liveRuns[0].id, "run-product");
+});
+
+test("live-run classification fails closed when issue provenance cannot be read", async () => {
+  const classification = await classifyLiveRuns({
+    apiBase: "http://paperclip.test",
+    liveRuns: [{ id: "run-unknown", issueId: "issue-unknown" }],
+    fetchImpl: async () => ({ ok: false, status: 503 }),
+  });
+
+  assert.equal(classification.liveRunCount, 1);
+  assert.equal(classification.ignoredControllerRunCount, 0);
+  assert.equal(classification.classificationErrors.length, 1);
 });
 
 test("next legal action selector routes Soar acceptance source-control blockers", async () => {
@@ -1362,6 +1397,7 @@ test("next legal action selector routes fresh blocked triage before stale runnab
 
 test("continuation watchdog applies the next legal action when Paperclip goes idle", async () => {
   const source = await readFile("scripts/run-softwarehouse-continuation-watchdog.mjs", "utf8");
+  const classifierSource = await readFile("scripts/lib/softwarehouse-live-run-classifier.mjs", "utf8");
   const packageJson = await readFile("package.json", "utf8");
   const activeRoutines = await readFile("scripts/lib/softwarehouse-active-routines.mjs", "utf8");
   const longevityConfigurator = await readFile("scripts/configure-softwarehouse-longevity-routines.mjs", "utf8");
@@ -1371,12 +1407,12 @@ test("continuation watchdog applies the next legal action when Paperclip goes id
   assert.match(source, /const currentRunId = process\.env\.PAPERCLIP_RUN_ID \?\? null/);
   assert.match(source, /const currentIssueId = process\.env\.PAPERCLIP_ISSUE_ID \?\? process\.env\.PAPERCLIP_TASK_ID \?\? null/);
   assert.match(source, /const currentApiKey = process\.env\.PAPERCLIP_API_KEY \?\? null/);
-  assert.match(source, /ignoredSelfRunCount/);
-  assert.match(source, /observedLiveRunCount/);
-  assert.match(source, /run\.id === currentRunId/);
-  assert.match(source, /run\.issueId === currentIssueId/);
+  assert.match(classifierSource, /ignoredSelfRunCount/);
+  assert.match(classifierSource, /observedLiveRunCount/);
+  assert.match(classifierSource, /run\.id === currentRunId/);
+  assert.match(classifierSource, /run\.issueId === currentIssueId/);
   assert.match(source, /liveRunCount/);
-  assert.match(source, /A live run exists, so the watchdog must not start duplicate owner work/);
+  assert.match(source, /A productive live run exists, so the watchdog must not start duplicate owner work/);
   assert.match(source, /spawnSync\("pnpm", \["run", "softwarehouse:next-legal-action:apply"\]/);
   assert.match(source, /\.\.\.\(apiKey \? \{ authorization: `Bearer \$\{apiKey\}` \} : \{\}\)/);
   assert.match(source, /report\/softwarehouse-continuation-watchdog\.latest\.json/);

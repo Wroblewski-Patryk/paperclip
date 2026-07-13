@@ -196,6 +196,10 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Prefer the two concrete app-completion proof lanes over another governance
   report when no real production/security blocker prevents them: LUC-895 for
   Roost and LUC-902 for Soar.
+- Count `routine_execution` runs as controller WIP, not productive WIP, when
+  deciding whether an independent app-completion lane may start. Keep unknown
+  run provenance blocking. LUC-895 is the current productive lane; do not wake
+  LUC-902 concurrently because both belong to 09 TAE.
 - LUC-25 remains blocked until owner-usable VPS evidence exists; convergence
   reduces control noise but does not waive credential rotation or production
   provenance requirements.
