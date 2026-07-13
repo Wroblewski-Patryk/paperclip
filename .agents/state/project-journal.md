@@ -6,6 +6,11 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-14 / LUC-987 silent-run false-positive review:
+  - Reviewed `GET /api/issues/LUC-987`, `/heartbeat-context`, `/comments`, and `/work-products`; the issue had no comments, attachments, or work products, and no blocker attention.
+  - Reviewed `GET /api/heartbeat-runs/c35b7e33-0777-4f91-b70f-65f9fffd02c5`, `/events`, `/log`, and `/issues`; the run ended `succeeded` with `exitCode: 0`, and the last output/log activity was present, so the silence flag was no longer current.
+  - Decision: treat the original silent-output alert as a false positive review result, not an active blocker. The durable closeout belongs in the issue thread with typed completion evidence; no code or doc change was required beyond this journal entry.
+
 - 2026-07-13 / LUC-25 closure-mode and Windows build repair:
   - Audited 490 live issues: LUC-25 has no open descendants and remains held only by the explicit Soar provenance chain (`LUC-448` -> `LUC-507`) and credential-rotation chain (`LUC-494` -> `LUC-496`). These are terminal technical/operator blockers, not reasons to create more review trees.
   - Paused the repeated Evidence Gate, Portfolio Truth, PDCA, and Owner Direction review routines during closure mode; removed recurring controller `LUC-770` as an invalid blocker of repair issue `LUC-751`; closed/cancelled completed or superseded routine work; cancelled duplicate `LUC-892` after its exact regression suite was already green.
