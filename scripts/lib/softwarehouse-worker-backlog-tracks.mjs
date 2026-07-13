@@ -57,6 +57,7 @@ export function summarizeWorkerBacklogTracks({
     plannedSupervisorIssueCount: 0,
     blockedIssueCount: 0,
     inProgressIssueCount: 0,
+    inProgressWorkerIssueCount: 0,
   }));
   const summaryByTrack = new Map(trackSummaries.map((summary) => [summary.track, summary]));
 
@@ -68,15 +69,22 @@ export function summarizeWorkerBacklogTracks({
     summary.openIssueCount += 1;
     if (issue.status === "blocked") summary.blockedIssueCount += 1;
     if (issue.status === "in_progress") summary.inProgressIssueCount += 1;
+    const assignee = agentById.get(issue.assigneeAgentId);
+    if (issue.status === "in_progress" && isWorker(assignee)) {
+      summary.inProgressWorkerIssueCount += 1;
+    }
     if (!plannedStatuses.has(issue.status) || !issue.assigneeAgentId) continue;
     summary.plannedIssueCount += 1;
-    const assignee = agentById.get(issue.assigneeAgentId);
     if (isWorker(assignee)) summary.plannedWorkerIssueCount += 1;
     if (isSupervisor(assignee)) summary.plannedSupervisorIssueCount += 1;
   }
 
   const weakTracks = trackSummaries.filter((summary) => {
     if (summary.openIssueCount === 0) return false;
+    if (
+      summary.blockedIssueCount === 0
+      && summary.openIssueCount === summary.inProgressWorkerIssueCount
+    ) return false;
     if (summary.plannedWorkerIssueCount >= 3) return false;
     return summary.plannedSupervisorIssueCount > summary.plannedWorkerIssueCount
       || summary.blockedIssueCount > 0

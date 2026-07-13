@@ -202,6 +202,7 @@ const plannedIssues = openIssues.filter((issue) =>
   activeProjectIds.has(issue.projectId)
   && plannedStatuses.has(issue.status)
   && issue.assigneeAgentId
+  && issue.originKind !== "routine_execution"
 );
 const plannedWorkerIssues = plannedIssues.filter((issue) => isWorker(agentById.get(issue.assigneeAgentId)));
 const plannedSupervisorIssues = plannedIssues.filter((issue) => isSupervisor(agentById.get(issue.assigneeAgentId)));

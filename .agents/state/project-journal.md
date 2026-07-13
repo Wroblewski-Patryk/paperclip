@@ -2560,3 +2560,28 @@ Decision: controller activity proves the control plane is alive, not that an
 application is advancing. Controller-only WIP may coexist with one independent
 owner-scoped product lane; real or unclassifiable WIP still suppresses duplicate
 starts.
+
+## 2026-07-13 - Active leaf work no longer triggers fan-out meta lanes
+
+Context: while LUC-895 was the only open Roost issue and was actively running
+on 09 TAE, worker-backlog and learning seeders interpreted `open=1,
+planned=0` as a starved worker queue. They created LUC-921 and LUC-922 even
+though Roost already had a healthy leaf-worker closure path.
+
+Actions:
+
+- Added `inProgressWorkerIssueCount` to per-track backlog telemetry.
+- Declared a track healthy when every open issue is currently owned by an
+  in-progress leaf worker and no blocked issue exists.
+- Excluded `routine_execution` controller issues from planned supervisor and
+  worker queue metrics.
+- Made the worker-backlog seeder resolve both current company aliases and both
+  supported company-id environment variables for reliable manual recovery.
+- Cancelled false-positive LUC-921/LUC-922 and removed their stale blocker
+  link; retained real LUC-923 triage, which completed with evidence.
+- Proved the current dry-run reports Roost active-worker=1, Soar planned-worker=1,
+  `weakTracks=[]`, and `shouldSeed=false`.
+
+Decision: queued backlog depth is not a closure goal by itself. Never create
+fan-out or learning work merely because a controlled track's only remaining
+issue has already moved from planned to active leaf-worker execution.

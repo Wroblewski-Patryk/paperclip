@@ -3,8 +3,8 @@ import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 import { formatWeakTrackSummary, summarizeWorkerBacklogTracks } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
-const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
+const companyNames = new Set(["LuckySparrow Software House", "LuckySparrow"]);
+const companyId = process.env.PAPERCLIP_COMPANY_ID ?? process.env.SOFTWAREHOUSE_COMPANY_ID ?? null;
 const apply = process.argv.includes("--apply");
 
 const terminalStatuses = new Set(["done", "cancelled"]);
@@ -114,8 +114,8 @@ async function resolveCompany() {
   if (companyId) return { id: companyId, source: "PAPERCLIP_COMPANY_ID" };
 
   const companies = await request("GET", "/api/companies");
-  const company = companies.find((candidate) => candidate.name === companyName);
-  if (!company) throw new Error(`Company not found: ${companyName}`);
+  const company = companies.find((candidate) => companyNames.has(candidate.name));
+  if (!company) throw new Error(`Company not found: ${[...companyNames].join(" or ")}`);
   return { id: company.id, source: "company_name" };
 }
 
@@ -141,7 +141,9 @@ const openIssues = issues.filter((issue) =>
   && !String(issue.title ?? "").startsWith("Review productivity for ")
 );
 const plannedIssues = openIssues.filter((issue) =>
-  plannedStatuses.has(issue.status) && issue.assigneeAgentId
+  plannedStatuses.has(issue.status)
+  && issue.assigneeAgentId
+  && issue.originKind !== "routine_execution"
 );
 const plannedWorkerIssues = plannedIssues.filter((issue) => isWorker(agentById.get(issue.assigneeAgentId)));
 const plannedSupervisorIssues = plannedIssues.filter((issue) => isSupervisor(agentById.get(issue.assigneeAgentId)));

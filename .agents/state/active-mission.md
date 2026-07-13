@@ -200,6 +200,9 @@ or the relevant owners explicitly classify them as not required with evidence.
   deciding whether an independent app-completion lane may start. Keep unknown
   run provenance blocking. LUC-895 is the current productive lane; do not wake
   LUC-902 concurrently because both belong to 09 TAE.
+- Worker-backlog and learning fan-out must treat an active leaf-worker issue as
+  a healthy closure path. Do not recreate cancelled LUC-921/LUC-922 while
+  LUC-895 is active; select LUC-902 only after the shared TAE owner is idle.
 - LUC-25 remains blocked until owner-usable VPS evidence exists; convergence
   reduces control noise but does not waive credential rotation or production
   provenance requirements.

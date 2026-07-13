@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import {
   controlledProjectNameFor,
@@ -79,4 +80,40 @@ test("summarizeWorkerBacklogTracks flags a weak Roost track even when company-wi
     formatWeakTrackSummary(summary.weakTracks[0]),
     "Roost: planned worker=0, planned supervisor=1, open=3, blocked=1",
   );
+});
+
+test("an active leaf worker is a healthy closure path when it owns the entire track backlog", () => {
+  const projects = [
+    { id: "roost", name: "11 Innovation: Roost", status: "in_progress" },
+  ];
+  const agentById = new Map([
+    ["tae", { id: "tae", metadata: { rosterKey: "test-automation-engineer" } }],
+  ]);
+  const summary = summarizeWorkerBacklogTracks({
+    issues: [{
+      projectId: "roost",
+      title: "[Roost][Project Truth] Active proof",
+      status: "in_progress",
+      assigneeAgentId: "tae",
+    }],
+    projects,
+    agentById,
+    isWorker: (agent) => agent?.metadata?.rosterKey === "test-automation-engineer",
+    isSupervisor: () => false,
+    terminalStatuses: new Set(["done", "cancelled"]),
+    plannedStatuses: new Set(["todo", "backlog"]),
+  });
+
+  assert.equal(summary.trackSummaries[0].inProgressWorkerIssueCount, 1);
+  assert.deepEqual(summary.weakTracks, []);
+});
+
+test("worker backlog and learning planners exclude recurring controller issues", async () => {
+  const workerSeeder = await readFile("scripts/run-worker-backlog-decomposition-seeder.mjs", "utf8");
+  const learningLoop = await readFile("scripts/run-softwarehouse-learning-loop.mjs", "utf8");
+
+  assert.match(workerSeeder, /issue\.originKind !== "routine_execution"/);
+  assert.match(workerSeeder, /"LuckySparrow Software House", "LuckySparrow"/);
+  assert.match(workerSeeder, /process\.env\.PAPERCLIP_COMPANY_ID \?\? process\.env\.SOFTWAREHOUSE_COMPANY_ID/);
+  assert.match(learningLoop, /issue\.originKind !== "routine_execution"/);
 });
