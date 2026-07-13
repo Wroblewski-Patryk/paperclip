@@ -98,6 +98,8 @@
     "softwarehouse:continuation-watchdog:loop": "node scripts/run-softwarehouse-continuation-watchdog.mjs --loop",
     "softwarehouse:soar-acceptance-ledger": "node scripts/run-soar-acceptance-ledger.mjs",
     "softwarehouse:coolify-reconciler": "node scripts/run-coolify-production-reconciler.mjs",
+    "softwarehouse:coolify-resource-recovery": "node scripts/run-coolify-resource-recovery-seeder.mjs",
+    "softwarehouse:coolify-resource-recovery:apply": "node scripts/run-coolify-resource-recovery-seeder.mjs --apply",
     "softwarehouse:coolify-runtime-access": "node scripts/configure-coolify-runtime-access.mjs",
     "softwarehouse:coolify-runtime-access:apply": "node scripts/configure-coolify-runtime-access.mjs --apply",
     "softwarehouse:least-privilege-bindings": "node scripts/repair-stage1-least-privilege-bindings.mjs",

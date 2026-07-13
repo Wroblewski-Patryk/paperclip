@@ -31,6 +31,7 @@ const applyCommands = new Map([
   ],
   ["start_project_truth_gap", { executable: "pnpm", args: ["softwarehouse:project-truth-dispatch:apply"] }],
   ["start_blocked_triage", { executable: "pnpm", args: ["run", "softwarehouse:blocked-triage-lane-starter:apply"] }],
+  ["repair_coolify_acceptance_gate", { executable: "pnpm", args: ["softwarehouse:coolify-resource-recovery:apply"] }],
 ]);
 
 async function readJson(path, fallback = null) {
@@ -199,6 +200,12 @@ function acceptanceCheckBlocks(acceptanceLedger, id) {
   return check && ["blocker", "fail", "missing", "unknown"].includes(check.status);
 }
 
+function coolifyAcceptanceTarget(acceptanceLedger) {
+  const reason = acceptanceCheck(acceptanceLedger, "coolify_resources_reconciled")?.reason ?? "";
+  const match = String(reason).match(/(?:^|[\s,])([a-z0-9._-]+):(?:exited|stopped|starting|restarting|running):/i);
+  return match?.[1] ?? "coolify_resources_reconciled";
+}
+
 function controlStepSummary(control, name) {
   if (!Array.isArray(control?.steps)) return null;
   return control.steps.find((step) => step?.name === name)?.summary ?? null;
@@ -312,9 +319,9 @@ export function pickAction(
       decision: "repair_coolify_acceptance_gate",
       reason: acceptanceCheck(acceptanceLedger, "coolify_resources_reconciled")?.reason
         ?? "The Soar acceptance ledger reports an unresolved Coolify resource blocker.",
-      command: "pnpm softwarehouse:in-review-decision-path",
-      target: "LUC-238",
-      allowed: ["review or delegate the existing Coolify recovery gate", "record read-only status evidence", "route safe recovery approval"],
+      command: "pnpm softwarehouse:coolify-resource-recovery:apply",
+      target: coolifyAcceptanceTarget(acceptanceLedger),
+      allowed: ["create or reuse one resource-scoped DRE recovery gate", "record read-only status evidence", "route the smallest governed recovery"],
       forbidden: ["push", "deploy", "restart", "secret disclosure", "mark production ready without Coolify evidence"],
     };
   }

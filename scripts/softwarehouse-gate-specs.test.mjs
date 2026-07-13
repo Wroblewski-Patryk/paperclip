@@ -1061,7 +1061,8 @@ test("next legal action selector routes Coolify acceptance blockers when source 
   );
 
   assert.equal(action.decision, "repair_coolify_acceptance_gate");
-  assert.equal(action.target, "LUC-238");
+  assert.equal(action.target, "workers-market-data");
+  assert.equal(action.command, "pnpm softwarehouse:coolify-resource-recovery:apply");
   assert.match(action.reason, /workers-market-data/);
 });
 

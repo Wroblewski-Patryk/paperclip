@@ -2433,3 +2433,33 @@ When repeated blocker patterns appear, the loop should create one bounded
 follow-up learning issue rather than mutating application code or duplicating
 noise. The next steward-facing step is to let `LUC-843` resolve the security
 pattern analysis.
+
+## 2026-07-13 - Source-control convergence and resource-scoped Coolify recovery
+
+Context: after nearly 900 terminal issue transitions, LUC-25 still appeared to
+stall. Fresh inspection showed only a small real open set, while stale local
+source-control packets and a hardcoded selector target kept closure work from
+converging cleanly.
+
+Actions:
+
+- Closed the local source-control chain across Paperclip, Soar, and Roost;
+  `scripts/check-softwarehouse-source-control.mjs` now reports all three repos
+  clean, and LUC-759 carries typed completion evidence.
+- Reconciled the Roost LUC-905 point-in-time dirty snapshot after committing
+  the generated architecture/status bundle; the full architecture refresh is
+  GREEN with zero drift, dead nodes, and evidence queue.
+- Replaced the selector's hardcoded completed `LUC-238` Coolify target with a
+  resource name parsed from current acceptance evidence.
+- Added an idempotent Coolify resource recovery seeder that creates or reuses
+  exactly one DRE-owned LUC-25 child, refuses to fan out during live work, and
+  requires redacted before/after evidence around any governed mutation.
+- Verified parser tests, selector/gate contracts (135/135), current Coolify
+  inventory (8/8), and the Soar acceptance ledger. The only current resource
+  health blocker is `workers-backtest` in `exited:unhealthy` state.
+
+Decision: high issue counts are historical throughput, not active WIP. The
+control plane must converge by current evidence: close stale source-control
+tails, route one named failing resource to one owner, and only then resume one
+bounded product-completion lane. Never route a current provider fact to a
+hardcoded, terminal issue number.
