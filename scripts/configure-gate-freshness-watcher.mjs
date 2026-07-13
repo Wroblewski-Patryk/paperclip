@@ -10,6 +10,7 @@ const companyNames = [
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const routineTitle = "[Softwarehouse] Gate freshness watcher";
 const scheduleLabel = "Every 30 minutes gate freshness watcher";
+const scheduleCron = "17,47 * * * *";
 const currentRunId = process.env.PAPERCLIP_RUN_ID ?? null;
 const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_GATE_FRESHNESS_REQUEST_TIMEOUT_MS ?? 30_000);
 const legacyScheduleLabels = new Set([
@@ -129,7 +130,12 @@ if (blockingActiveRunCount > 0) {
   throw new Error(`Refusing to reconfigure gate watcher while ${blockingActiveRunCount} non-watcher run(s) are active.`);
 }
 
-const operating = byNameOrUrlKey(projects, ["Softwarehouse Operating System", "Softwarehouse"], ["softwarehouse"]);
+const activeProjects = projects.filter((project) => !project.archivedAt);
+const operating = byNameOrUrlKey(
+  activeProjects,
+  ["Softwarehouse Operating System", "Softwarehouse", "00 General: Softwarehouse"],
+  ["softwarehouse", "00-general-softwarehouse"],
+);
 const delivery = byName(agents, "Engineering Delivery Lead")
   ?? byNameOrUrlKey(agents, ["04 DPM (Delivery Project Manager)"], ["delivery-project-manager", "04-dpm-delivery-project-manager"])
   ?? byTitle(agents, "Delivery Project Manager")
@@ -190,7 +196,7 @@ const routine = await ensureRoutine(company.id, routinesByTitle, {
 const triggerResult = await ensureScheduleTrigger(routine.id, {
   label: scheduleLabel,
   enabled: true,
-  cronExpression: "*/30 * * * *",
+  cronExpression: scheduleCron,
   timezone: "Europe/Berlin",
 });
 const trigger = triggerResult.trigger?.trigger ?? triggerResult.trigger;

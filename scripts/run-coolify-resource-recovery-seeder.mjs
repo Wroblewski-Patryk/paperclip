@@ -3,14 +3,20 @@ import { pathToFileURL } from "node:url";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const configuredCompanyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
+const currentRunId = process.env.PAPERCLIP_RUN_ID ?? null;
 const apply = process.argv.includes("--apply");
 const ledgerPath = process.env.SOFTWAREHOUSE_SOAR_ACCEPTANCE_LEDGER
   ?? "report/soar-delivery-acceptance.latest.json";
 
 async function request(method, route, body) {
+  const headers = { "content-type": "application/json" };
+  if (process.env.PAPERCLIP_API_KEY) headers.authorization = `Bearer ${process.env.PAPERCLIP_API_KEY}`;
+  if (currentRunId && ["POST", "PATCH", "PUT", "DELETE"].includes(method)) {
+    headers["x-paperclip-run-id"] = currentRunId;
+  }
   const response = await fetch(`${apiBase}${route}`, {
     method,
-    headers: { "content-type": "application/json" },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
@@ -33,6 +39,15 @@ export function parseUnhealthyCoolifyResources(reason) {
       return { name: normalizedName, status };
     })
     .filter(Boolean);
+}
+
+export function blockingLiveRunCount({ activeRunCount, liveRuns, currentRunId: ownRunId }) {
+  const ownRunCount = ownRunId
+    ? liveRuns.filter((run) => run.id === ownRunId).length
+    : 0;
+  const healthBlockingCount = Math.max(0, Number(activeRunCount ?? 0) - ownRunCount);
+  const listedBlockingCount = liveRuns.filter((run) => !ownRunId || run.id !== ownRunId).length;
+  return Math.max(healthBlockingCount, listedBlockingCount);
 }
 
 async function resolveCompany() {
@@ -62,9 +77,14 @@ export async function main() {
     request("GET", `/api/companies/${company.id}/issues?limit=2000`),
     request("GET", `/api/companies/${company.id}/live-runs`),
   ]);
-  const activeRunCount = Math.max(Number(health.devServer?.activeRunCount ?? 0), liveRuns.length);
-  if (apply && activeRunCount > 0) {
-    throw new Error(`Refusing to seed Coolify recovery while ${activeRunCount} live run(s) exist.`);
+  const observedActiveRunCount = Math.max(Number(health.devServer?.activeRunCount ?? 0), liveRuns.length);
+  const blockingActiveRunCount = blockingLiveRunCount({
+    activeRunCount: health.devServer?.activeRunCount,
+    liveRuns,
+    currentRunId,
+  });
+  if (apply && blockingActiveRunCount > 0) {
+    throw new Error(`Refusing to seed Coolify recovery while ${blockingActiveRunCount} non-seeder live run(s) exist.`);
   }
 
   const actions = [];
@@ -88,12 +108,15 @@ export async function main() {
       const project = projects.find((candidate) =>
         !candidate.archivedAt && /(?:^|:\s*)Soar$/i.test(candidate.name),
       );
+      const projectWorkspace = project?.workspaces?.find((workspace) => workspace.isPrimary)
+        ?? project?.workspaces?.[0]
+        ?? null;
       const assignee = agents.find((candidate) =>
         candidate.name === "09 DRE (Deployment & Reliability Engineer)",
       ) ?? agents.find((candidate) => /Deployment.*Reliability|DevOps Release/i.test(candidate.name));
       const goal = goals.find((candidate) => candidate.title === "Soar V1 audit-to-completion loop") ?? null;
-      if (!parent || !project || !assignee) {
-        throw new Error("Cannot resolve LUC-25, active Soar project, or DRE owner for Coolify recovery.");
+      if (!parent || !project || !projectWorkspace || !assignee) {
+        throw new Error("Cannot resolve LUC-25, active Soar project/workspace, or DRE owner for Coolify recovery.");
       }
 
       const title = `[Soar][Coolify] Diagnose and recover ${resource.name} ${resource.status}`;
@@ -123,6 +146,7 @@ export async function main() {
         priority: "critical",
         assigneeAgentId: assignee.id,
         projectId: project.id,
+        projectWorkspaceId: projectWorkspace.id,
         goalId: goal?.id ?? null,
         parentId: parent.id,
         requestDepth: 1,
@@ -153,7 +177,9 @@ export async function main() {
     mode: apply ? "apply" : "dry-run",
     companyId: company.id,
     ledgerGeneratedAt: ledger.generatedAt ?? null,
-    activeRunCount,
+    activeRunCount: observedActiveRunCount,
+    blockingActiveRunCount,
+    currentRunId,
     resources,
     actions,
   };

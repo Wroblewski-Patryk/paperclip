@@ -164,3 +164,18 @@ Latest verified state from the 2026-07-10 control sweep:
 
 Do not claim v0 as complete until the acceptance ledger records these proofs
 or the relevant owners explicitly classify them as not required with evidence.
+
+## 2026-07-13 Current Closure Lane
+
+- Source-control closure is complete and locally committed across Paperclip,
+  Soar, and Roost; LUC-759 is done with typed evidence.
+- The current Soar acceptance ledger passes public reachability, owner login,
+  test-account evidence, and source-control cleanliness. Its only resource
+  health blocker is `workers-backtest:exited:unhealthy`.
+- `LUC-910` is the single active DRE-owned LUC-25 child for that resource. It is
+  bound to the active `11 Innovation: Soar` project and primary Soar workspace.
+- Governance and gate-watching are no longer serialized on CTO: autonomy is
+  owned by 11 IPM at minutes 02/32, and gate freshness by 04 DPM at 17/47.
+- LUC-25 remains blocked until current provider readback proves Soar/Roost
+  owner usability and the credential-rotation/provenance gates are resolved;
+  reports and issue volume do not satisfy that condition.

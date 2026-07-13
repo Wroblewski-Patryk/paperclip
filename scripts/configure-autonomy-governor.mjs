@@ -13,6 +13,7 @@ const companyNames = [
 const legacyAutonomyRoutineTitle = "[Softwarehouse] Single-lane autonomy governor";
 const autonomyRoutineTitle = "[Softwarehouse] Autonomy governor";
 const autonomyScheduleLabel = "Every 30 minutes autonomy governor";
+const autonomyScheduleCron = "2,32 * * * *";
 
 async function request(method, route, body) {
   const response = await fetch(`${apiBase}${route}`, {
@@ -36,6 +37,10 @@ function byNameAlias(items, names) {
 
 function byNameOrUrlKey(items, names, urlKeys = []) {
   return items.find((item) => names.includes(item.name) || urlKeys.includes(item.urlKey));
+}
+
+function byRosterKey(items, rosterKey) {
+  return items.find((item) => item.metadata?.rosterKey === rosterKey);
 }
 
 function byTitle(items, title) {
@@ -128,10 +133,21 @@ async function main() {
     throw new Error(`Refusing to reconfigure autonomy while ${activeRunCount} run(s) are active.`);
   }
 
-  const operating = byNameOrUrlKey(projects, ["Softwarehouse Operating System", "Softwarehouse"], ["softwarehouse"]);
-  const soar = byName(projects, "Soar");
-  const portfolio = byNameAlias(agents, ["Portfolio Director", "11 IPM (Innovation Portfolio Manager)"]);
-  const innovations = byNameAlias(agents, ["11 Innovations Director", "11 CINO (Chief Innovation Officer)"]);
+  const activeProjects = projects.filter((project) => !project.archivedAt);
+  const operating = byNameOrUrlKey(
+    activeProjects,
+    ["Softwarehouse Operating System", "Softwarehouse", "00 General: Softwarehouse"],
+    ["softwarehouse", "00-general-softwarehouse"],
+  );
+  const soar = byNameOrUrlKey(
+    activeProjects,
+    ["Soar", "11 Innovation: Soar"],
+    ["soar", "11-innovation-soar"],
+  );
+  const portfolio = byNameAlias(agents, ["Portfolio Director", "11 IPM (Innovation Portfolio Manager)"])
+    ?? byRosterKey(agents, "innovation-portfolio-manager");
+  const innovations = byNameAlias(agents, ["11 Innovations Director", "11 CINO (Chief Innovation Officer)"])
+    ?? byRosterKey(agents, "chief-innovation-officer");
   const cto = byNameAlias(agents, ["CTO Architect", "09 CTO (Chief Technology Officer)"]);
   const soarPm = byNameAlias(agents, ["Soar Project Manager", "11 SPM (Soar Product Manager)"]);
   const governorOwner = portfolio ?? innovations ?? cto ?? soarPm ?? agents.find((agent) => agent.role === "pm") ?? null;
@@ -216,7 +232,7 @@ async function main() {
   await ensureScheduleTrigger(governor.id, {
     label: autonomyScheduleLabel,
     enabled: true,
-    cronExpression: "*/30 * * * *",
+    cronExpression: autonomyScheduleCron,
     timezone: "Europe/Berlin",
   });
 

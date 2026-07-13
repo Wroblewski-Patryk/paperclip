@@ -2463,3 +2463,34 @@ control plane must converge by current evidence: close stale source-control
 tails, route one named failing resource to one owner, and only then resume one
 bounded product-completion lane. Never route a current provider fact to a
 hardcoded, terminal issue number.
+
+## 2026-07-13 - Controller lane separation and Coolify dispatcher self-run fix
+
+Context: after source-control closure, the company still appeared to pause
+between short controller runs. Live inspection found autonomy governor, gate
+freshness watcher, continuation watchdog, and longevity doctor all assigned to
+09 CTO, with two new 30-minute triggers firing on the same minute. The Coolify
+resource seeder also counted its invoking continuation watchdog as competing
+WIP and could not create the DRE recovery lane it had selected.
+
+Actions:
+
+- Restored the autonomy governor owner to 11 IPM through name and roster-key
+  resolution and moved its 30-minute trigger to minutes 02/32.
+- Restored the gate freshness watcher owner to 04 DPM (with DRE fallback) and
+  moved its trigger to minutes 17/47.
+- Made both configurators resolve the active prefixed project names
+  `00 General: Softwarehouse` and `11 Innovation: Soar`, ignoring archived
+  legacy projects.
+- Changed the Coolify resource recovery seeder to ignore only its own
+  `PAPERCLIP_RUN_ID`, block independent live work, and bind new issues to the
+  active Soar project's primary workspace.
+- Created exactly one resource-scoped DRE child, `LUC-910`, under LUC-25 for
+  `workers-backtest:exited:unhealthy`; it started on the DRE agent and Soar
+  workspace.
+
+Decision: controller routines must be distributed by responsibility and
+staggered in time. Nested dispatchers treat their own run as orchestration, not
+external WIP, while every cross-project child must carry the selected project's
+workspace explicitly. Historical issue count is not a reason to fan out; one
+current blocker maps to one accountable recovery lane.

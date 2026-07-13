@@ -743,7 +743,8 @@ test("gate freshness watcher configurator reconciles legacy schedules without bl
   assert.match(source, /disabledLegacyTriggers/);
   assert.match(source, /enabled: false/);
   assert.match(source, /Every 30 minutes gate freshness watcher/);
-  assert.match(source, /cronExpression: "\*\/30 \* \* \* \*"/);
+  assert.match(source, /const scheduleCron = "17,47 \* \* \* \*"/);
+  assert.match(source, /cronExpression: scheduleCron/);
 });
 
 test("autonomy governor configurator uses the central active routine matrix", async () => {
@@ -754,6 +755,11 @@ test("autonomy governor configurator uses the central active routine matrix", as
   assert.match(source, /const activeRoutineTitles = softwarehousePilotActiveRoutineTitles/);
   assert.match(source, /const activeRoutineSchedules = softwarehousePilotRoutineScheduleLabels/);
   assert.match(source, /const shouldBeActive = activeRoutineTitles\.has\(routine\.title\)/);
+  assert.match(source, /const autonomyScheduleCron = "2,32 \* \* \* \*"/);
+  assert.match(source, /byRosterKey\(agents, "innovation-portfolio-manager"\)/);
+  assert.match(source, /"00 General: Softwarehouse"/);
+  assert.match(source, /"11 Innovation: Soar"/);
+  assert.match(source, /cronExpression: autonomyScheduleCron/);
   assert.doesNotMatch(source, /const activeRoutineSchedules = new Map\(\[/);
 });
 
