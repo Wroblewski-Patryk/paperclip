@@ -128,7 +128,7 @@ const specs = [
   },
   {
     title: "[Softwarehouse] Continuation watchdog",
-    assignee: cto ?? portfolio,
+    assignee: portfolio ?? cto,
     priority: "critical",
     description: [
       "Keep the softwarehouse from going idle while current Soar/Roost delivery gaps still have legal non-production work.",

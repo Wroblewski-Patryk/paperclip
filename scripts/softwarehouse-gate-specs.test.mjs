@@ -1038,6 +1038,7 @@ test("local source-control sidecars preserve parallelism across independent proj
 test("longevity configuration keeps the continuation watchdog frequent without duplicate triggers", async () => {
   const source = await readFile("scripts/configure-softwarehouse-longevity-routines.mjs", "utf8");
 
+  assert.match(source, /title: "\[Softwarehouse\] Continuation watchdog",[\s\S]*?assignee: portfolio \?\? cto/);
   assert.match(source, /"Every 5 minutes continuation watchdog", "\*\/5 \* \* \* \*"/);
   assert.match(source, /scheduleTriggers\.length === 1/);
 });

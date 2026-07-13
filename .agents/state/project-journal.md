@@ -2479,6 +2479,8 @@ Actions:
   resolution and moved its 30-minute trigger to minutes 02/32.
 - Restored the gate freshness watcher owner to 04 DPM (with DRE fallback) and
   moved its trigger to minutes 17/47.
+- Moved the five-minute continuation watchdog from CTO to 11 IPM (with CTO
+  fallback), leaving CTO responsible for the hourly technical longevity check.
 - Made both configurators resolve the active prefixed project names
   `00 General: Softwarehouse` and `11 Innovation: Soar`, ignoring archived
   legacy projects.
