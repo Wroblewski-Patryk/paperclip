@@ -2487,6 +2487,8 @@ Actions:
 - Changed the Coolify resource recovery seeder to ignore only its own
   `PAPERCLIP_RUN_ID`, block independent live work, and bind new issues to the
   active Soar project's primary workspace.
+- Made the recovery contract name the Paperclip control-plane workspace as the
+  execution root for reconciler and acceptance-ledger proof commands.
 - Created exactly one resource-scoped DRE child, `LUC-910`, under LUC-25 for
   `workers-backtest:exited:unhealthy`; it started on the DRE agent and Soar
   workspace.

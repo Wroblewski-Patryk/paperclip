@@ -56,4 +56,7 @@ test("binds recovery work to the active project's own primary workspace", async 
   assert.match(source, /!candidate\.archivedAt/);
   assert.match(source, /project\?\.workspaces\?\.find\(\(workspace\) => workspace\.isPrimary\)/);
   assert.match(source, /projectWorkspaceId: projectWorkspace\.id/);
+  assert.match(source, /const controlPlaneRoot = process\.cwd\(\)/);
+  assert.match(source, /run the proof commands from the Paperclip control-plane workspace/);
+  assert.match(source, /pnpm run softwarehouse:soar-acceptance-ledger/);
 });

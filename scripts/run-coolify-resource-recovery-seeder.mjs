@@ -7,6 +7,7 @@ const currentRunId = process.env.PAPERCLIP_RUN_ID ?? null;
 const apply = process.argv.includes("--apply");
 const ledgerPath = process.env.SOFTWAREHOUSE_SOAR_ACCEPTANCE_LEDGER
   ?? "report/soar-delivery-acceptance.latest.json";
+const controlPlaneRoot = process.cwd();
 
 async function request(method, route, body) {
   const headers = { "content-type": "application/json" };
@@ -131,12 +132,13 @@ export async function main() {
         "- never print secret values; report only configured/missing and redacted identifiers;",
         "- if a config repair, restart, or redeploy is necessary, record DRE/SPA/QVE evidence first and perform only the smallest governed recovery with before/after readback;",
         "- do not broaden into unrelated Soar resources, trading activity, or speculative infrastructure changes;",
-        "- refresh the Coolify reconciler and Soar acceptance ledger after recovery.",
+        `- run the proof commands from the Paperclip control-plane workspace \`${controlPlaneRoot}\`, not from the Soar checkout;`,
+        "- refresh `pnpm run softwarehouse:coolify-reconciler` and `pnpm run softwarehouse:soar-acceptance-ledger` after recovery.",
         "",
         "Definition of done:",
         `- \`${resource.name}\` is running and no longer unhealthy, or a precise external permission blocker is recorded;`,
-        "- `pnpm softwarehouse:coolify-reconciler` records 8/8 resources without exposing secrets;",
-        "- `pnpm softwarehouse:soar-acceptance-ledger` no longer blocks on `coolify_resources_reconciled`;",
+        "- `pnpm run softwarehouse:coolify-reconciler` records 8/8 resources without exposing secrets;",
+        "- `pnpm run softwarehouse:soar-acceptance-ledger` no longer blocks on `coolify_resources_reconciled`;",
         "- public Soar reachability remains healthy and LUC-25 receives the evidence link.",
       ].join("\n");
       const input = {
