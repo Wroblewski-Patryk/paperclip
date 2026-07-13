@@ -150,6 +150,7 @@ test("live-run janitor skips cross-boundary closed-tail status comments without 
 
   assert.match(source, /function isIssueAuthorizationBoundaryError\(error\)/);
   assert.match(source, /Issue is outside this actor\(\?:'\|\\\\u0027\)s authorization boundary/);
+  assert.match(source, /Agent cannot mutate another agent\(\?:'\|\\\\u0027\)\?s issue/);
   assert.match(source, /request\("PATCH", `\/api\/issues\/\$\{action\.issueId\}`, body\)/);
   assert.match(source, /skippedReason: "issue_authorization_boundary"/);
   assert.match(source, /ownerAction: "An authorized board\/user or issue-scoped janitor must apply this issue status\/comment update\."/);
@@ -1436,11 +1437,6 @@ test("next legal action apply only uses the Windows shell for bare launcher name
 
 test("finalizeRecurringIssue authenticates the recurring disposition patch when an agent API key is present", async () => {
   const calls = [];
-  const response = {
-    ok: true,
-    status: 200,
-    text: async () => "ok",
-  };
 
   await finalizeRecurringIssue({
     apiBase: "http://127.0.0.1:3200",
@@ -1454,15 +1450,32 @@ test("finalizeRecurringIssue authenticates the recurring disposition patch when 
     },
     fetchImpl: async (...args) => {
       calls.push(args);
-      return response;
+      const [, init] = args;
+      if (!init?.method) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ checkoutRunId: "run-123", executionRunId: "run-123" }),
+          text: async () => "",
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        text: async () => "ok",
+      };
     },
   });
 
-  assert.equal(calls.length, 1);
-  const [, init] = calls[0];
-  assert.equal(init?.method, "PATCH");
-  assert.equal(init?.headers?.authorization, "Bearer token-123");
-  assert.equal(init?.headers?.["x-paperclip-run-id"], "run-123");
+  assert.equal(calls.length, 2);
+  const [, getInit] = calls[0];
+  assert.equal(getInit?.method, undefined);
+  assert.equal(getInit?.headers?.authorization, "Bearer token-123");
+  assert.equal(getInit?.headers?.["x-paperclip-run-id"], "run-123");
+  const [, patchInit] = calls[1];
+  assert.equal(patchInit?.method, "PATCH");
+  assert.equal(patchInit?.headers?.authorization, "Bearer token-123");
+  assert.equal(patchInit?.headers?.["x-paperclip-run-id"], "run-123");
 });
 
 test("control tick inspects gate freshness before any manual apply", async () => {
@@ -2467,13 +2480,50 @@ test("continuation watchdog records a todo disposition for its recurring issue",
   });
 
   assert.equal(result.ok, true);
-  assert.equal(requests.length, 1);
+  assert.equal(requests.length, 2);
   assert.equal(requests[0].url, "http://127.0.0.1:3200/api/issues/LUC-770");
-  assert.equal(requests[0].init.method, "PATCH");
-  assert.equal(requests[0].init.headers["x-paperclip-run-id"], "run-123");
-  const body = JSON.parse(requests[0].init.body);
+  assert.equal(requests[0].init?.method, undefined);
+  assert.equal(requests[1].url, "http://127.0.0.1:3200/api/issues/LUC-770");
+  assert.equal(requests[1].init.method, "PATCH");
+  assert.equal(requests[1].init.headers["x-paperclip-run-id"], "run-123");
+  const body = JSON.parse(requests[1].init.body);
   assert.equal(body.status, "todo");
   assert.match(body.comment, /Final disposition: `todo`/);
+});
+
+test("continuation watchdog defers finalization when another run holds the issue lock", async () => {
+  const requests = [];
+  const result = await finalizeRecurringIssue({
+    apiBase: "http://127.0.0.1:3200",
+    currentIssueId: "LUC-770",
+    currentRunId: "run-123",
+    step: { action: { decision: "supervise_active_runs" } },
+    fetchImpl: async (url, init) => {
+      requests.push({ url, init });
+      if (String(url).endsWith("/api/issues/LUC-770") && !init?.method) {
+        return new Response(
+          JSON.stringify({
+            checkoutRunId: "run-locked",
+            executionRunId: "run-locked",
+          }),
+          { status: 200 },
+        );
+      }
+      throw new Error(`Unexpected request: ${String(url)}`);
+    },
+  });
+
+  assert.deepEqual(result, {
+    attempted: false,
+    ok: false,
+    status: 409,
+    decision: "supervise_active_runs",
+    deferred: true,
+    reason: "issue_locked_by_run-locked",
+  });
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, "http://127.0.0.1:3200/api/issues/LUC-770");
+  assert.equal(requests[0].init?.method, undefined);
 });
 
 test("AI-agent development review prefers the active AIM role over paused people roles", async () => {

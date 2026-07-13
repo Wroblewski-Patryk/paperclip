@@ -197,6 +197,52 @@ describe("codex managed home", () => {
     }
   });
 
+  it("copies shared auth when auth symlink creation keeps colliding with an existing target", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-codex-home-"));
+    const sharedCodexHome = path.join(root, "shared-codex-home");
+    const paperclipHome = path.join(root, "paperclip-home");
+    const managedCodexHome = path.join(
+      paperclipHome,
+      "instances",
+      "default",
+      "companies",
+      "company-1",
+      "codex-home",
+    );
+    const sharedAuth = path.join(sharedCodexHome, "auth.json");
+    const managedAuth = path.join(managedCodexHome, "auth.json");
+
+    await fs.mkdir(sharedCodexHome, { recursive: true });
+    await fs.writeFile(sharedAuth, '{"token":"shared"}\n', "utf8");
+
+    vi.spyOn(fs, "symlink").mockImplementation(async () => {
+      const error = new Error("file already exists") as NodeJS.ErrnoException;
+      error.code = "EEXIST";
+      throw error;
+    });
+
+    try {
+      await expect(
+        prepareManagedCodexHome(
+          {
+            CODEX_HOME: sharedCodexHome,
+            PAPERCLIP_HOME: paperclipHome,
+            PAPERCLIP_INSTANCE_ID: "default",
+          },
+          async () => {},
+          "company-1",
+        ),
+      ).resolves.toBe(managedCodexHome);
+
+      const managedAuthStat = await fs.lstat(managedAuth);
+      expect(managedAuthStat.isFile()).toBe(true);
+      expect(managedAuthStat.isSymbolicLink()).toBe(false);
+      expect(await fs.readFile(managedAuth, "utf8")).toBe('{"token":"shared"}\n');
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("removes placeholder OPENAI_API_KEY when copying shared auth.json", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-codex-home-"));
     const sharedCodexHome = path.join(root, "shared-codex-home");

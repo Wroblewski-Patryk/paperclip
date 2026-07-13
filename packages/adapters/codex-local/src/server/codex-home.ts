@@ -117,11 +117,12 @@ async function createExpectedSymlink(target: string, source: string): Promise<vo
 
 function canFallbackToCopiedSharedFile(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException).code;
-  return code === "EPERM" || code === "EACCES" || code === "EINVAL" || code === "ENOTSUP";
+  return code === "EPERM" || code === "EACCES" || code === "EINVAL" || code === "ENOTSUP" || code === "EEXIST";
 }
 
 async function copySharedFile(target: string, source: string): Promise<void> {
   await ensureParentDir(target);
+  await fs.rm(target, { force: true, recursive: true }).catch(() => {});
   await fs.copyFile(source, target);
   await fs.chmod(target, 0o600).catch(() => {});
 }

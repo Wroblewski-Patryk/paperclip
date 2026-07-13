@@ -92,6 +92,31 @@ export async function finalizeRecurringIssue({
     ?? step?.action?.parsedOutput?.decision
     ?? step?.action?.decision
     ?? "cycle_complete";
+
+  const currentIssueResponse = await fetchImpl(`${targetApiBase}/api/issues/${encodeURIComponent(issueId)}`, {
+    headers: {
+      accept: "application/json",
+      ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+      ...(runId ? { "x-paperclip-run-id": runId } : {}),
+    },
+  });
+  if (!currentIssueResponse.ok) {
+    const responseText = await currentIssueResponse.text();
+    throw new Error(`Failed to load recurring watchdog issue before finalizing (${currentIssueResponse.status}): ${responseText}`);
+  }
+  const currentIssue = await currentIssueResponse.json();
+  const currentLockRunId = currentIssue?.checkoutRunId ?? currentIssue?.executionRunId ?? null;
+  if (currentLockRunId && currentLockRunId !== runId) {
+    return {
+      attempted: false,
+      ok: false,
+      status: 409,
+      decision,
+      deferred: true,
+      reason: `issue_locked_by_${currentLockRunId}`,
+    };
+  }
+
   const response = await fetchImpl(`${targetApiBase}/api/issues/${encodeURIComponent(issueId)}`, {
     method: "PATCH",
     headers: {
@@ -111,6 +136,16 @@ export async function finalizeRecurringIssue({
   });
   const responseText = await response.text();
   if (!response.ok) {
+    if (response.status === 409) {
+      return {
+        attempted: true,
+        ok: false,
+        status: response.status,
+        decision,
+        deferred: true,
+        reason: responseText,
+      };
+    }
     throw new Error(`Failed to finalize recurring watchdog issue (${response.status}): ${responseText}`);
   }
   return {

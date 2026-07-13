@@ -135,7 +135,8 @@ function isRequestTimeoutError(error) {
 function isIssueAuthorizationBoundaryError(error) {
   const message = error instanceof Error ? error.message : String(error ?? "");
   const isIssueMutation = /(?:PATCH|POST) \/api\/issues\/[^/\s]+(?:\/comments)? failed with 403:/i.test(message);
-  const isBoundaryDenial = /Issue is outside this actor(?:'|\\u0027)s authorization boundary/i.test(message);
+  const isBoundaryDenial = /(?:Issue is outside this actor(?:'|\\u0027)s authorization boundary|Agent cannot mutate another agent(?:'|\\u0027)?s issue)/i
+    .test(message);
   return isIssueMutation && isBoundaryDenial;
 }
 
