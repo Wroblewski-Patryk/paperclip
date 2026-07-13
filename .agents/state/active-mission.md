@@ -198,11 +198,12 @@ or the relevant owners explicitly classify them as not required with evidence.
   Roost and LUC-902 for Soar.
 - Count `routine_execution` runs as controller WIP, not productive WIP, when
   deciding whether an independent app-completion lane may start. Keep unknown
-  run provenance blocking. LUC-895 is the current productive lane; do not wake
-  LUC-902 concurrently because both belong to 09 TAE.
+  run provenance blocking. LUC-895 and source-control sidecar LUC-926 are done;
+  Roost proof bundle commit is `36df18e7`. LUC-902 is now the current productive
+  TAE lane.
 - Worker-backlog and learning fan-out must treat an active leaf-worker issue as
-  a healthy closure path. Do not recreate cancelled LUC-921/LUC-922 while
-  LUC-895 is active; select LUC-902 only after the shared TAE owner is idle.
+  a healthy closure path. Do not recreate cancelled LUC-921/LUC-922 or their
+  downstream LUC-924/LUC-925; LUC-902 is the retained canonical Soar proof.
 - LUC-25 remains blocked until owner-usable VPS evidence exists; convergence
   reduces control noise but does not waive credential rotation or production
   provenance requirements.

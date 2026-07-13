@@ -2581,6 +2581,13 @@ Actions:
   link; retained real LUC-923 triage, which completed with evidence.
 - Proved the current dry-run reports Roost active-worker=1, Soar planned-worker=1,
   `weakTracks=[]`, and `shouldSeed=false`.
+- Cancelled downstream false fan-out issues LUC-924/LUC-925 as well as their
+  source LUC-921/LUC-922; retained the pre-existing canonical Soar lane LUC-902.
+- Closed the real Roost sequence: LUC-895 added focused proof, final index
+  readback changed the row from `missing_test_link` to `missing_doc_link`, and
+  source-control sidecar LUC-926 committed the coherent bundle as `36df18e7`.
+- Woke existing LUC-902 only after Roost returned clean and the shared TAE
+  owner became available.
 
 Decision: queued backlog depth is not a closure goal by itself. Never create
 fan-out or learning work merely because a controlled track's only remaining
