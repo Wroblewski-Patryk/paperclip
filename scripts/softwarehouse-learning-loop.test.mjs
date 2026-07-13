@@ -286,6 +286,7 @@ test("findSuppressibleV1LearningDuplicate does not suppress after a new source i
     rootBlocker: "LUC-1439",
     area: "ops-release",
     boundary: "release/deploy evidence, rollback, and protected gate contract",
+    now: new Date("2026-06-04T08:36:59.047Z"),
     sourceIssues: [
       {
         identifier: "LUC-1439",
@@ -299,6 +300,43 @@ test("findSuppressibleV1LearningDuplicate does not suppress after a new source i
   });
 
   assert.equal(duplicate, null);
+});
+
+test("findSuppressibleV1LearningDuplicate cools down a just-closed identical lesson", () => {
+  const duplicate = findSuppressibleV1LearningDuplicate({
+    issues: [
+      {
+        id: "learning-1",
+        identifier: "LUC-1465",
+        status: "done",
+        updatedAt: "2026-06-02T08:36:59.047Z",
+        description: [
+          "softwarehouse-learning-loop:v1",
+          "",
+          "Root/blocker key: LUC-1439",
+          "Area: ops-release",
+          "Smallest responsibility boundary: release/deploy evidence, rollback, and protected gate contract",
+        ].join("\n"),
+      },
+    ],
+    terminalStatuses,
+    rootBlocker: "LUC-1439",
+    area: "ops-release",
+    boundary: "release/deploy evidence, rollback, and protected gate contract",
+    now: new Date("2026-06-02T09:00:00.000Z"),
+    sourceIssues: [
+      {
+        identifier: "LUC-1439",
+        title: "Provide approved production smoke auth binding",
+        description: "A new system comment touched the issue timestamp.",
+        status: "blocked",
+        assigneeAgentId: "security",
+        updatedAt: "2026-06-02T08:50:00.000Z",
+      },
+    ],
+  });
+
+  assert.equal(duplicate.identifier, "LUC-1465");
 });
 
 test("findSuppressibleV1LearningDuplicate does not suppress when blocker disposition is missing", () => {

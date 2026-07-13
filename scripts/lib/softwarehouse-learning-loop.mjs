@@ -1002,6 +1002,8 @@ export function findSuppressibleV1LearningDuplicate({
   area,
   boundary,
   sourceIssues,
+  now = new Date(),
+  minimumRepeatIntervalMs = 24 * 60 * 60 * 1000,
 }) {
   const signature = learningSignature({ rootBlocker, area, boundary });
   const matches = issues.filter((issue) => parseV1LearningSignature(issue)?.signature === signature);
@@ -1012,6 +1014,15 @@ export function findSuppressibleV1LearningDuplicate({
 
   const latest = latestIssue(matches);
   if (!latest || latest.status !== "done") return null;
+  const latestUpdatedAt = Date.parse(latest.updatedAt ?? latest.createdAt ?? "");
+  const nowTime = now instanceof Date ? now.getTime() : Date.parse(String(now));
+  if (
+    Number.isFinite(latestUpdatedAt)
+    && Number.isFinite(nowTime)
+    && nowTime - latestUpdatedAt < minimumRepeatIntervalMs
+  ) {
+    return latest;
+  }
   if (sourceHasNewDelta(sourceIssues, latest)) return null;
   if (sourceHasMissingBlockerDisposition(sourceIssues)) return null;
 

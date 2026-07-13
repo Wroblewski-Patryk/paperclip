@@ -164,6 +164,7 @@ try {
 
 let issues = initialIssues;
 const targetedLearningIssues = await Promise.all([
+  request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent("[Softwarehouse][Learning]")}&limit=500`),
   request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent("[Softwarehouse][Learning] Worker queue fan-out capability gap")}&limit=50`),
   request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent("[Softwarehouse][Learning] In-review decision path capability gap")}&limit=50`),
 ]);
