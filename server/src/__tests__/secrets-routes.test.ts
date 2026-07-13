@@ -159,6 +159,17 @@ describe("secret routes", () => {
     ]);
   });
 
+  it("rejects cross-company agents from reading secret metadata", async () => {
+    const res = await request(createApp({
+      type: "agent",
+      agentId: "agent-1",
+      companyId: "company-2",
+    })).get("/api/companies/company-1/secrets/metadata");
+
+    expect(res.status).toBe(403);
+    expect(mockSecretService.list).not.toHaveBeenCalled();
+  });
+
   it("rejects managed secret creation when externalRef is supplied", async () => {
     const res = await request(createApp()).post("/api/companies/company-1/secrets").send({
       name: "OpenAI API Key",

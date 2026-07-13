@@ -6,9 +6,11 @@ const ASSIGNEE_AGENT_ID = "11111111-1111-4111-8111-111111111111";
 
 const mockIssueService = vi.hoisted(() => ({
   getById: vi.fn(),
+  assertCheckoutOwner: vi.fn(),
   update: vi.fn(),
   addComment: vi.fn(),
   findMentionedAgents: vi.fn(),
+  listComments: vi.fn(),
   getRelationSummaries: vi.fn(),
   listAttachments: vi.fn(),
   listWakeableBlockedDependents: vi.fn(),
@@ -174,7 +176,10 @@ function registerModuleMocks() {
   }));
 }
 
-async function createApp() {
+async function createApp(
+  actorType: "board" | "agent" = "board",
+  actorRunId: string | null = "22222222-2222-4222-8222-222222222222",
+) {
   const [{ errorHandler }, { issueRoutes }] = await Promise.all([
     vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
     vi.importActual<typeof import("../routes/issues.js")>("../routes/issues.js"),
@@ -182,13 +187,21 @@ async function createApp() {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
-    (req as any).actor = {
-      type: "board",
-      userId: "local-board",
-      companyIds: ["company-1"],
-      source: "local_implicit",
-      isInstanceAdmin: false,
-    };
+    (req as any).actor = actorType === "agent"
+      ? {
+        type: "agent",
+        agentId: ASSIGNEE_AGENT_ID,
+        companyId: "company-1",
+        source: "agent_key",
+        runId: actorRunId,
+      }
+      : {
+          type: "board",
+          userId: "local-board",
+          companyIds: ["company-1"],
+          source: "local_implicit",
+          isInstanceAdmin: false,
+        };
     next();
   });
   app.use("/api", issueRoutes({} as any, {} as any));
@@ -227,6 +240,8 @@ describe("issue update comment wakeups", () => {
     vi.clearAllMocks();
     mockIssueService.findMentionedAgents.mockResolvedValue([]);
     mockIssueService.getRelationSummaries.mockResolvedValue({ blockedBy: [], blocks: [] });
+    mockIssueService.assertCheckoutOwner.mockResolvedValue({ adoptedFromRunId: null });
+    mockIssueService.listComments.mockResolvedValue([]);
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
     mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(null);
     mockIssueService.getCurrentScheduledRetry.mockResolvedValue(null);
@@ -248,6 +263,72 @@ describe("issue update comment wakeups", () => {
     expect(mockIssueService.update).not.toHaveBeenCalled();
   });
 
+  it("requires typed completion evidence from agent actors", async () => {
+    const existing = makeIssue({
+      status: "in_progress",
+      assigneeAgentId: ASSIGNEE_AGENT_ID,
+      assigneeUserId: null,
+    });
+    mockIssueService.getById.mockResolvedValue(existing);
+
+    const res = await request(await createApp("agent"))
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        status: "done",
+        comment: "Implemented and verified with focused route tests.",
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error).toBe("Done status requires a typed completionEvidence bundle");
+    expect(mockIssueService.update).not.toHaveBeenCalled();
+  });
+
+  it("returns completion-evidence validation errors before run-id errors for self-assigned agents", async () => {
+    const existing = makeIssue({
+      status: "in_progress",
+      assigneeAgentId: ASSIGNEE_AGENT_ID,
+      assigneeUserId: null,
+    });
+    mockIssueService.getById.mockResolvedValue(existing);
+
+    const res = await request(await createApp("agent", null))
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        status: "done",
+        comment: "Implemented and verified with focused route tests.",
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error).toBe("Done status requires a typed completionEvidence bundle");
+    expect(mockIssueService.update).not.toHaveBeenCalled();
+  });
+
+  it("allows a board override with a completion comment", async () => {
+    const existing = makeIssue({ status: "in_progress" });
+    const updated = makeIssue({ status: "done" });
+    mockIssueService.getById.mockResolvedValue(existing);
+    mockIssueService.update.mockResolvedValue(updated);
+    mockIssueService.addComment.mockResolvedValue({
+      id: "comment-board-done",
+      issueId: existing.id,
+      companyId: existing.companyId,
+      body: "Board reviewed the attached evidence and accepted closure.",
+    });
+
+    const res = await request(await createApp())
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        status: "done",
+        comment: "Board reviewed the attached evidence and accepted closure.",
+      });
+
+    expect(res.status).toBe(200);
+    expect(mockIssueService.update).toHaveBeenCalledWith(
+      existing.id,
+      expect.objectContaining({ status: "done" }),
+    );
+  });
+
   it("allows done transitions with a completion comment", async () => {
     const existing = makeIssue({ status: "in_progress" });
     const updated = makeIssue({ status: "done" });
@@ -265,12 +346,34 @@ describe("issue update comment wakeups", () => {
       .send({
         status: "done",
         comment: "Implemented and verified with focused route tests.",
+        completionEvidence: {
+          summary: "Closeout evidence recorded in the issue thread.",
+          riskLevel: "standard",
+          testEvidence: {
+            summary: "Focused route coverage passed.",
+            refs: [{ kind: "request_comment", label: "Closeout comment" }],
+          },
+          reviewEvidence: {
+            summary: "Self-review captured in the closeout comment.",
+            refs: [{ kind: "request_comment", label: "Closeout comment" }],
+          },
+          documentationEvidence: {
+            summary: "No doc delta required for this route-only change.",
+            refs: [{ kind: "request_comment", label: "Closeout comment" }],
+          },
+        },
       });
 
     expect(res.status).toBe(200);
     expect(mockIssueService.update).toHaveBeenCalledWith(
       existing.id,
-      expect.objectContaining({ status: "done" }),
+      expect.objectContaining({
+        status: "done",
+        completionEvidence: expect.objectContaining({
+          summary: "Closeout evidence recorded in the issue thread.",
+          riskLevel: "standard",
+        }),
+      }),
     );
   });
 
@@ -295,20 +398,36 @@ describe("issue update comment wakeups", () => {
       .send({
         status: "done",
         comment: "Implemented and verified with focused route tests.",
+        completionEvidence: {
+          summary: "Closeout evidence recorded in the issue thread.",
+          riskLevel: "standard",
+          testEvidence: {
+            summary: "Focused route coverage passed.",
+            refs: [{ kind: "request_comment", label: "Closeout comment" }],
+          },
+          reviewEvidence: {
+            summary: "Self-review captured in the closeout comment.",
+            refs: [{ kind: "request_comment", label: "Closeout comment" }],
+          },
+          documentationEvidence: {
+            summary: "No doc delta required for this route-only change.",
+            refs: [{ kind: "request_comment", label: "Closeout comment" }],
+          },
+        },
       });
 
     expect(res.status).toBe(200);
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
   });
 
-  it("allows artifact-backed done transitions without a duplicate close comment", async () => {
+  it("allows artifact-backed done transitions with typed evidence references", async () => {
     const existing = makeIssue({ status: "in_progress" });
     const updated = makeIssue({ status: "done" });
     mockIssueService.getById.mockResolvedValue(existing);
     mockIssueService.update.mockResolvedValue(updated);
     mockWorkProductService.listForIssue.mockResolvedValue([
       {
-        id: "work-product-1",
+        id: "44444444-4444-4444-8444-444444444444",
         issueId: existing.id,
         title: "Verification report",
       },
@@ -316,13 +435,62 @@ describe("issue update comment wakeups", () => {
 
     const res = await request(await createApp())
       .patch(`/api/issues/${existing.id}`)
-      .send({ status: "done" });
+      .send({
+        status: "done",
+        completionEvidence: {
+          summary: "Existing issue outputs cover test, review, and docs evidence.",
+          riskLevel: "standard",
+          testEvidence: {
+            summary: "Verification report attached as work product.",
+            refs: [{ kind: "work_product", id: "44444444-4444-4444-8444-444444444444" }],
+          },
+          reviewEvidence: {
+            summary: "Verification report was reviewed before closing.",
+            refs: [{ kind: "work_product", id: "44444444-4444-4444-8444-444444444444" }],
+          },
+          documentationEvidence: {
+            summary: "Verification report documents the shipped behavior.",
+            refs: [{ kind: "work_product", id: "44444444-4444-4444-8444-444444444444" }],
+          },
+        },
+      });
 
     expect(res.status).toBe(200);
     expect(mockIssueService.update).toHaveBeenCalledWith(
       existing.id,
       expect.objectContaining({ status: "done" }),
     );
+  });
+
+  it("rejects completion bundles that reference issue-thread comments without sending one", async () => {
+    const existing = makeIssue({ status: "in_progress" });
+    mockIssueService.getById.mockResolvedValue(existing);
+
+    const res = await request(await createApp())
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        status: "done",
+        completionEvidence: {
+          summary: "Attempted to rely on a missing closeout comment.",
+          riskLevel: "standard",
+          testEvidence: {
+            summary: "Would be in the comment.",
+            refs: [{ kind: "request_comment", label: "Missing comment" }],
+          },
+          reviewEvidence: {
+            summary: "Would be in the comment.",
+            refs: [{ kind: "request_comment", label: "Missing comment" }],
+          },
+          documentationEvidence: {
+            summary: "Would be in the comment.",
+            refs: [{ kind: "request_comment", label: "Missing comment" }],
+          },
+        },
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error).toBe("Completion evidence bundle references missing or invalid issue evidence");
+    expect(mockIssueService.update).not.toHaveBeenCalled();
   });
 
   it("includes the new comment in assignment wakes from issue updates", async () => {

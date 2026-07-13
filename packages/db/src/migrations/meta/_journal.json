@@ -694,6 +694,13 @@
       "when": 1780040470891,
       "tag": "0098_project_icon",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1784025000000,
+      "tag": "0099_issue_completion_evidence",
+      "breakpoints": true
     }
   ]
 }

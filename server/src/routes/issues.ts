@@ -48,6 +48,8 @@ import {
   getClosedIsolatedExecutionWorkspaceMessage,
   isClosedIsolatedExecutionWorkspace,
   normalizeIssueIdentifier as normalizeIssueReferenceIdentifier,
+  type IssueCompletionEvidenceBundle,
+  type IssueCompletionEvidenceRef,
   type CompanySearchQuery,
   type CompanySearchResponse,
   type ExecutionWorkspace,
@@ -145,6 +147,12 @@ type ActivityExecutionParticipant = Pick<
   NormalizedExecutionPolicy["stages"][number]["participants"][number],
   "type" | "agentId" | "userId"
 >;
+type IssueCompletionEvidenceInventory = {
+  commentIds: Set<string>;
+  documentIds: Set<string>;
+  attachmentIds: Set<string>;
+  workProductIds: Set<string>;
+};
 type ExecutionStageWakeContext = {
   wakeRole: "reviewer" | "approver" | "executor";
   stageId: string | null;
@@ -1901,8 +1909,9 @@ export function issueRoutes(
     return workspace;
   }
 
-  async function hasIssueDoneEvidence(issueId: string) {
-    const [documents, attachments, workProducts] = await Promise.all([
+  async function loadIssueCompletionEvidenceInventory(issueId: string): Promise<IssueCompletionEvidenceInventory> {
+    const [comments, documents, attachments, workProducts] = await Promise.all([
+      typeof svc.listComments === "function" ? svc.listComments(issueId, { limit: 500 }) : [],
       typeof documentsSvc.listIssueDocuments === "function"
         ? documentsSvc.listIssueDocuments(issueId, { includeSystem: false })
         : [],
@@ -1910,11 +1919,76 @@ export function issueRoutes(
       typeof workProductsSvc.listForIssue === "function" ? workProductsSvc.listForIssue(issueId) : [],
     ]);
 
+    return {
+      commentIds: new Set((comments ?? []).map((item) => item.id)),
+      documentIds: new Set((documents ?? []).map((item) => item.id)),
+      attachmentIds: new Set((attachments ?? []).map((item) => item.id)),
+      workProductIds: new Set((workProducts ?? []).map((item) => item.id)),
+    };
+  }
+
+  function hasStoredCompletionEvidence(inventory: IssueCompletionEvidenceInventory) {
     return (
-      (documents?.length ?? 0) > 0 ||
-      (attachments?.length ?? 0) > 0 ||
-      (workProducts?.length ?? 0) > 0
+      inventory.commentIds.size > 0 ||
+      inventory.documentIds.size > 0 ||
+      inventory.attachmentIds.size > 0 ||
+      inventory.workProductIds.size > 0
     );
+  }
+
+  function resolveCompletionEvidenceRef(input: {
+    ref: IssueCompletionEvidenceRef;
+    hasRequestComment: boolean;
+    inventory: IssueCompletionEvidenceInventory;
+  }): string | null {
+    const { ref, hasRequestComment, inventory } = input;
+    if (ref.kind === "request_comment") {
+      return hasRequestComment ? null : "request_comment evidence requires the same update to include comment text";
+    }
+    if (ref.kind === "comment") {
+      return inventory.commentIds.has(ref.id) ? null : `comment evidence not found on issue: ${ref.id}`;
+    }
+    if (ref.kind === "document") {
+      return inventory.documentIds.has(ref.id) ? null : `document evidence not found on issue: ${ref.id}`;
+    }
+    if (ref.kind === "attachment") {
+      return inventory.attachmentIds.has(ref.id) ? null : `attachment evidence not found on issue: ${ref.id}`;
+    }
+    return inventory.workProductIds.has(ref.id) ? null : `work product evidence not found on issue: ${ref.id}`;
+  }
+
+  function validateCompletionEvidenceBundle(input: {
+    bundle: IssueCompletionEvidenceBundle;
+    hasRequestComment: boolean;
+    inventory: IssueCompletionEvidenceInventory;
+  }) {
+    const categories = [
+      ["testEvidence", input.bundle.testEvidence],
+      ["reviewEvidence", input.bundle.reviewEvidence],
+      ["documentationEvidence", input.bundle.documentationEvidence],
+      ["securityEvidence", input.bundle.securityEvidence ?? null],
+      ["deploymentEvidence", input.bundle.deploymentEvidence ?? null],
+      ["monitoringEvidence", input.bundle.monitoringEvidence ?? null],
+    ] as const;
+
+    const errors: Array<{ path: string[]; message: string }> = [];
+    for (const [categoryKey, category] of categories) {
+      if (!category) continue;
+      category.refs.forEach((ref, index) => {
+        const error = resolveCompletionEvidenceRef({
+          ref,
+          hasRequestComment: input.hasRequestComment,
+          inventory: input.inventory,
+        });
+        if (!error) return;
+        errors.push({
+          path: [categoryKey, "refs", String(index)],
+          message: error,
+        });
+      });
+    }
+
+    return errors;
   }
 
   function respondClosedIssueExecutionWorkspace(
@@ -4158,7 +4232,12 @@ export function issueRoutes(
     }
     assertCompanyAccess(req, existing.companyId);
     assertNoAgentHostWorkspaceCommandMutation(req, collectIssueWorkspaceCommandPaths(req.body));
-    if (!(await assertAgentIssueMutationAllowed(req, res, existing))) return;
+    const isSelfAssigneeInProgressDoneTransition =
+      req.actor.type === "agent" &&
+      existing.assigneeAgentId === req.actor.agentId &&
+      existing.status === "in_progress" &&
+      req.body.status === "done";
+    if (!isSelfAssigneeInProgressDoneTransition && !(await assertAgentIssueMutationAllowed(req, res, existing))) return;
     if (!(await assertCheapRecoveryIssueAssigneeProfileAllowed(req, res, existing, req.body))) return;
 
     const actor = getActorInfo(req);
@@ -4175,6 +4254,7 @@ export function issueRoutes(
         : null;
     const {
       comment: commentBody,
+      completionEvidence,
       reviewRequest,
       reopen: reopenRequested,
       resume: resumeRequested,
@@ -4386,21 +4466,51 @@ export function issueRoutes(
       actorType: req.actor.type,
     });
 
-    if (
-      updateFields.status === "done" &&
-      existing.status !== "done" &&
-      !commentBody &&
-      !(await hasIssueDoneEvidence(existing.id))
-    ) {
-      res.status(422).json({
-        error: "Done status requires completion evidence",
-        details: {
-          issueId: existing.id,
-          requiredEvidence: ["comment", "document", "attachment", "work_product"],
-        },
-      });
-      return;
+    if (updateFields.status === "done" && existing.status !== "done") {
+      const agentRequiresTypedCompletionEvidence = req.actor.type === "agent";
+      if (!completionEvidence && agentRequiresTypedCompletionEvidence) {
+        res.status(422).json({
+          error: "Done status requires a typed completionEvidence bundle",
+          details: {
+            issueId: existing.id,
+            requiredEvidence: ["testEvidence", "reviewEvidence", "documentationEvidence"],
+            highRiskAdds: ["securityEvidence", "deploymentEvidence", "monitoringEvidence"],
+          },
+        });
+        return;
+      }
+
+      const completionEvidenceInventory = await loadIssueCompletionEvidenceInventory(existing.id);
+      if (!completionEvidence && !commentBody && !hasStoredCompletionEvidence(completionEvidenceInventory)) {
+        res.status(422).json({
+          error: "Done status requires completion evidence",
+          details: {
+            issueId: existing.id,
+            requiredEvidence: ["comment", "document", "attachment", "work_product"],
+          },
+        });
+        return;
+      }
+
+      if (completionEvidence) {
+        const completionEvidenceErrors = validateCompletionEvidenceBundle({
+          bundle: completionEvidence,
+          hasRequestComment: Boolean(commentBody),
+          inventory: completionEvidenceInventory,
+        });
+        if (completionEvidenceErrors.length > 0) {
+          res.status(422).json({
+            error: "Completion evidence bundle references missing or invalid issue evidence",
+            details: {
+              issueId: existing.id,
+              errors: completionEvidenceErrors,
+            },
+          });
+          return;
+        }
+      }
     }
+    if (isSelfAssigneeInProgressDoneTransition && !(await assertAgentIssueMutationAllowed(req, res, existing))) return;
 
     const nextAssigneeAgentId =
       updateFields.assigneeAgentId === undefined ? existing.assigneeAgentId : (updateFields.assigneeAgentId as string | null);
@@ -4448,6 +4558,7 @@ export function issueRoutes(
             id,
             {
               ...updateFields,
+              ...(completionEvidence ? { completionEvidence } : {}),
               actorAgentId: actor.agentId ?? null,
               actorUserId: actor.actorType === "user" ? actor.actorId : null,
             },
@@ -4473,6 +4584,7 @@ export function issueRoutes(
       } else {
         issue = await svc.update(id, {
           ...updateFields,
+          ...(completionEvidence ? { completionEvidence } : {}),
           actorAgentId: actor.agentId ?? null,
           actorUserId: actor.actorType === "user" ? actor.actorId : null,
         });
@@ -4646,6 +4758,7 @@ export function issueRoutes(
       details: {
         ...updateFields,
         identifier: issue.identifier,
+        ...(completionEvidence ? { completionEvidence } : {}),
         ...(commentBody ? { source: "comment" } : {}),
         ...(resumeRequested === true ? { resumeIntent: true, followUpRequested: true } : {}),
         ...(reopened ? { reopened: true, reopenedFrom: reopenFromStatus } : {}),

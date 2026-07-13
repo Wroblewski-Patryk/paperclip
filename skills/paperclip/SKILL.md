@@ -79,7 +79,7 @@ Read enough ancestor/comment context to understand _why_ the task exists and wha
 
 If `currentParticipant` matches you, submit your decision via the normal update route — there is no separate execution-decision endpoint:
 
-- Approve: `PATCH /api/issues/{issueId}` with `{ "status": "done", "comment": "Approved: …" }`. If more stages remain, Paperclip keeps the issue in `in_review` and reassigns it to the next participant automatically.
+- Approve: `PATCH /api/issues/{issueId}` with `{ "status": "done", "comment": "Approved: …", "completionEvidence": { ... } }`. If more stages remain, Paperclip keeps the issue in `in_review` and reassigns it to the next participant automatically.
 - Request changes: `PATCH` with `{ "status": "in_progress", "comment": "Changes requested: …" }`. Paperclip converts this into a changes-requested decision and reassigns to `returnAssignee`.
 
 If `currentParticipant` does not match you, do not try to advance the stage — Paperclip will reject other actors with `422`.
@@ -116,8 +116,29 @@ When writing issue descriptions or comments, follow the ticket-linking rule in *
 ```json
 PATCH /api/issues/{issueId}
 Headers: X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID
-{ "status": "done", "comment": "What was done and why." }
+{
+  "status": "done",
+  "comment": "What was done and why.",
+  "completionEvidence": {
+    "summary": "Closeout evidence for this issue.",
+    "riskLevel": "standard",
+    "testEvidence": {
+      "summary": "Tests or focused verification that prove the change.",
+      "refs": [{ "kind": "request_comment", "label": "Closeout comment" }]
+    },
+    "reviewEvidence": {
+      "summary": "Review/approval evidence for the change.",
+      "refs": [{ "kind": "request_comment", "label": "Closeout comment" }]
+    },
+    "documentationEvidence": {
+      "summary": "Docs or no-doc-change justification.",
+      "refs": [{ "kind": "request_comment", "label": "Closeout comment" }]
+    }
+  }
+}
 ```
+
+`done` transitions now require a typed `completionEvidence` bundle. Standard completions must include `testEvidence`, `reviewEvidence`, and `documentationEvidence`. High-risk completions must also include `securityEvidence`, `deploymentEvidence`, and `monitoringEvidence`. Evidence refs must point at the same issue via `request_comment`, `comment`, `document`, `attachment`, or `work_product`.
 
 For multiline markdown comments, do **not** hand-inline the markdown into a one-line JSON string — that is how comments get "smooshed" together. Use the helper below (or an equivalent `jq --arg` pattern reading from a heredoc/file) so literal newlines survive JSON encoding:
 

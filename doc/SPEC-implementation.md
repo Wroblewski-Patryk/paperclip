@@ -535,6 +535,7 @@ The approved term set is:
 - **Assignment/invocation permission**: who may modify or execute a task.
 - **Work-object visibility**: who can read/write issues, comments, projects, and attachments.
 - **Tool/secret policy**: what tools and secret-backed credentials an agent can use and what appears in logs.
+- **Secret inventory metadata**: company-scoped names-only/freshness metadata used for runtime safety checks; distinct from secret values, provider refs, or board-only config management.
 - **Escalation authority**: where refusal/blocked decisions route (manager, then board).
 
 ## 9.5 Core V1 Rule: what “private” means
@@ -551,6 +552,7 @@ The approved term set is:
 | Simple roles | Board + agent roles with existing approval/budget gates | Additional role aliases + scoped approver roles |
 | Profile visibility | Full profile visibility for coordination and audit | Optional profile redaction / selective sharing for external surfaces |
 | Config visibility | Board full read with redacted secret fields; agent config read/write constrained by own agent identity | Scoped config visibility controls and central policy enforcement |
+| Secret inventory metadata | Board and same-company agents may read redacted secret inventory/freshness metadata; values, provider refs, and provider config stay hidden | Finer-grained secret inventory ACLs and scoped freshness channels |
 | Assignment/invocation | Assignment creates execution authority; board can reassign or force release | Delegation policies and scoped invokers with deny-listed tool classes |
 | Work-object visibility | All issues and projects in-company are visible to board and agents | Project/issue ACLs and reviewer-only channels |
 | Tool/secret policy | Secret refs, log redaction, and adapter-level command/webhook restrictions | Tool allowlists with centralized policy evaluation |

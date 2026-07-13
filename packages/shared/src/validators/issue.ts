@@ -426,10 +426,79 @@ export const createIssueLabelSchema = z.object({
 
 export type CreateIssueLabel = z.infer<typeof createIssueLabelSchema>;
 
+const issueCompletionEvidenceRefLabelSchema = z.string().trim().min(1).max(200);
+
+export const issueCompletionEvidenceRefSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("request_comment"),
+    label: issueCompletionEvidenceRefLabelSchema.optional().nullable(),
+  }).strict(),
+  z.object({
+    kind: z.literal("comment"),
+    id: z.string().uuid(),
+    label: issueCompletionEvidenceRefLabelSchema.optional().nullable(),
+  }).strict(),
+  z.object({
+    kind: z.literal("document"),
+    id: z.string().uuid(),
+    label: issueCompletionEvidenceRefLabelSchema.optional().nullable(),
+  }).strict(),
+  z.object({
+    kind: z.literal("attachment"),
+    id: z.string().uuid(),
+    label: issueCompletionEvidenceRefLabelSchema.optional().nullable(),
+  }).strict(),
+  z.object({
+    kind: z.literal("work_product"),
+    id: z.string().uuid(),
+    label: issueCompletionEvidenceRefLabelSchema.optional().nullable(),
+  }).strict(),
+]);
+
+export type IssueCompletionEvidenceRef = z.infer<typeof issueCompletionEvidenceRefSchema>;
+
+export const issueCompletionEvidenceCategorySchema = z.object({
+  summary: z.string().trim().min(1).max(1000),
+  refs: z.array(issueCompletionEvidenceRefSchema).min(1).max(20),
+}).strict();
+
+export type IssueCompletionEvidenceCategory = z.infer<typeof issueCompletionEvidenceCategorySchema>;
+
+export const issueCompletionEvidenceBundleSchema = z.object({
+  summary: z.string().trim().min(1).max(2000),
+  riskLevel: z.enum(["standard", "high"]).optional().default("standard"),
+  testEvidence: issueCompletionEvidenceCategorySchema,
+  reviewEvidence: issueCompletionEvidenceCategorySchema,
+  documentationEvidence: issueCompletionEvidenceCategorySchema,
+  securityEvidence: issueCompletionEvidenceCategorySchema.optional().nullable(),
+  deploymentEvidence: issueCompletionEvidenceCategorySchema.optional().nullable(),
+  monitoringEvidence: issueCompletionEvidenceCategorySchema.optional().nullable(),
+}).strict().superRefine((value, ctx) => {
+  if (value.riskLevel !== "high") return;
+
+  const requiredHighRiskEvidence = [
+    ["securityEvidence", value.securityEvidence],
+    ["deploymentEvidence", value.deploymentEvidence],
+    ["monitoringEvidence", value.monitoringEvidence],
+  ] as const;
+
+  for (const [key, evidence] of requiredHighRiskEvidence) {
+    if (evidence) continue;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [key],
+      message: "High-risk completions require security, deployment, and monitoring evidence",
+    });
+  }
+});
+
+export type IssueCompletionEvidenceBundle = z.infer<typeof issueCompletionEvidenceBundleSchema>;
+
 export const updateIssueSchema = createIssueBaseSchema.partial().extend({
   requestDepth: issueRequestDepthInputSchema.optional(),
   assigneeAgentId: z.string().trim().min(1).optional().nullable(),
   comment: multilineTextSchema.pipe(z.string().min(1)).optional(),
+  completionEvidence: issueCompletionEvidenceBundleSchema.optional(),
   reviewRequest: issueReviewRequestSchema.optional().nullable(),
   reopen: z.boolean().optional(),
   resume: z.boolean().optional(),

@@ -1920,6 +1920,7 @@ const issueListSelect = {
   requestDepth: issues.requestDepth,
   billingCode: issues.billingCode,
   assigneeAdapterOverrides: issues.assigneeAdapterOverrides,
+  completionEvidence: issues.completionEvidence,
   executionPolicy: sql<null>`null`,
   executionState: sql<null>`null`,
   monitorNextCheckAt: issues.monitorNextCheckAt,

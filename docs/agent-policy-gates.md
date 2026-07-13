@@ -27,23 +27,25 @@ force pushes, broad dependency upgrades, security/auth changes, and cross-reposi
 
 Current enforcement is split across issue status rules, approvals, activity logging, budgets,
 runtime permissions, and scripts. Agent-owned issue completion has a hard API minimum gate: when an
-agent moves an issue to `done`, Paperclip requires inspectable completion evidence through one of:
+agent moves an issue to `done`, Paperclip requires a typed `completionEvidence` bundle. The board
+keeps its V1 override authority, but even a board override needs a completion comment or existing
+same-issue document, attachment, work product, or comment.
 
-- a completion comment in the same update;
-- an issue document;
-- an attachment; or
-- a work product.
-
-That route does not yet validate typed evidence bundles such as `TEST`, `REVIEW`, `DOCS`,
-`SECURITY`, `DEPLOY`, or `MONITORING`.
+- Normal completions must provide `testEvidence`, `reviewEvidence`, and `documentationEvidence`.
+- High-risk completions must also provide `securityEvidence`, `deploymentEvidence`, and
+  `monitoringEvidence`.
+- Each evidence category must reference same-issue evidence via `request_comment`, `comment`,
+  `document`, `attachment`, or `work_product`.
+- Missing bundles or refs to nonexistent issue evidence are rejected with `422`.
 
 The stronger Softwarehouse bundle remains an operating and review requirement: normal work should
 carry `TEST`, `REVIEW`, and `DOCS` evidence, and applicable high-risk work should also carry
 `SECURITY`, `DEPLOY`, and `MONITORING` evidence before the work is treated as truly complete. The
-remaining product gap is a broader gate service/read model that validates that bundle consistently
-for issue closure, deployment, production smoke, supervisor review, and dashboard-visible mission
-control flows. Until that exists, agents and supervisors must record missing bundle categories as a
-blocker, review finding, or incident instead of claiming product-enforced coverage.
+remaining product gap is a broader gate service/read model that evaluates those bundle categories
+consistently outside the issue-close route as well, including deployment, production smoke,
+supervisor review, and dashboard-visible mission-control flows. Until that broader read model
+exists, agents and supervisors must still record missing non-route evidence as a blocker, review
+finding, or incident instead of claiming end-to-end product-enforced coverage.
 
 ## Agent Improvement Flywheel
 

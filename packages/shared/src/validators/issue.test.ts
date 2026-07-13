@@ -4,6 +4,7 @@ import {
   addIssueCommentSchema,
   createIssueSchema,
   issueBlockedInboxAttentionSchema,
+  issueCompletionEvidenceBundleSchema,
   resolveIssueRecoveryActionSchema,
   respondIssueThreadInteractionSchema,
   suggestedTaskDraftSchema,
@@ -46,6 +47,47 @@ describe("issue validators", () => {
     });
 
     expect(parsed.comment).toBe("Done\n\n- Verified the route");
+  });
+
+  it("accepts typed completion evidence bundles for standard done transitions", () => {
+    const parsed = issueCompletionEvidenceBundleSchema.parse({
+      summary: "Completion evidence bundle",
+      riskLevel: "standard",
+      testEvidence: {
+        summary: "Focused tests passed.",
+        refs: [{ kind: "work_product", id: "11111111-1111-4111-8111-111111111111" }],
+      },
+      reviewEvidence: {
+        summary: "Review notes attached.",
+        refs: [{ kind: "document", id: "22222222-2222-4222-8222-222222222222" }],
+      },
+      documentationEvidence: {
+        summary: "Docs updated.",
+        refs: [{ kind: "request_comment", label: "Closeout comment" }],
+      },
+    });
+
+    expect(parsed.riskLevel).toBe("standard");
+    expect(parsed.testEvidence.refs[0]).toMatchObject({ kind: "work_product" });
+  });
+
+  it("requires security, deployment, and monitoring evidence for high-risk completions", () => {
+    expect(issueCompletionEvidenceBundleSchema.safeParse({
+      summary: "High-risk completion",
+      riskLevel: "high",
+      testEvidence: {
+        summary: "Focused tests passed.",
+        refs: [{ kind: "work_product", id: "11111111-1111-4111-8111-111111111111" }],
+      },
+      reviewEvidence: {
+        summary: "Review notes attached.",
+        refs: [{ kind: "document", id: "22222222-2222-4222-8222-222222222222" }],
+      },
+      documentationEvidence: {
+        summary: "Runbook updated.",
+        refs: [{ kind: "attachment", id: "33333333-3333-4333-8333-333333333333" }],
+      },
+    }).success).toBe(false);
   });
 
   it("allows false-positive recovery resolutions to atomically restore the source issue status", () => {

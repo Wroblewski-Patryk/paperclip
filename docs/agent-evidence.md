@@ -24,16 +24,19 @@ Softwarehouse completion policy expects:
 - high-risk work to also carry `SECURITY`, `DEPLOY`, and `MONITORING` evidence where it affects
   runtime behavior or production.
 
-Current product enforcement is narrower. The issue close API only hard-requires inspectable
-completion evidence existence, satisfied by:
+Current product enforcement is narrower. Agent-owned issue closure hard-requires inspectable
+completion evidence through a typed `completionEvidence` bundle:
 
-- a completion comment in the same `done` update;
-- an issue document;
-- an attachment; or
-- a work product.
+- normal `done` transitions require `TEST`, `REVIEW`, and `DOCS` categories;
+- high-risk `done` transitions also require `SECURITY`, `DEPLOY`, and `MONITORING`; and
+- each category must point at same-issue evidence through `request_comment`, `comment`, `document`,
+  `attachment`, or `work_product`.
 
-Treat the typed bundle above as the review and operating requirement until Paperclip ships a typed
-evidence validator for `done`.
+The board retains an audited V1 override with legacy inspectable evidence so operators and older
+board-side janitors can resolve exceptional state without impersonating an agent. That enforcement
+is scoped to issue closure. Treat the same typed bundle as the review and
+operating requirement for broader release, deploy, and supervision flows until Paperclip ships a
+shared read model that evaluates the same categories everywhere.
 
 Evidence should be attached through issue work products, issue documents, comments, attachments,
 or activity records. A local path alone is not enough for a deliverable.

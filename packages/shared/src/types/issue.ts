@@ -81,6 +81,29 @@ export interface IssueAssigneeAdapterOverrides {
   useProjectWorkspace?: boolean;
 }
 
+export type IssueCompletionEvidenceRef =
+  | { kind: "request_comment"; label?: string | null }
+  | { kind: "comment"; id: string; label?: string | null }
+  | { kind: "document"; id: string; label?: string | null }
+  | { kind: "attachment"; id: string; label?: string | null }
+  | { kind: "work_product"; id: string; label?: string | null };
+
+export interface IssueCompletionEvidenceCategory {
+  summary: string;
+  refs: IssueCompletionEvidenceRef[];
+}
+
+export interface IssueCompletionEvidenceBundle {
+  summary: string;
+  riskLevel: "standard" | "high";
+  testEvidence: IssueCompletionEvidenceCategory;
+  reviewEvidence: IssueCompletionEvidenceCategory;
+  documentationEvidence: IssueCompletionEvidenceCategory;
+  securityEvidence?: IssueCompletionEvidenceCategory | null;
+  deploymentEvidence?: IssueCompletionEvidenceCategory | null;
+  monitoringEvidence?: IssueCompletionEvidenceCategory | null;
+}
+
 export type DocumentFormat = "markdown";
 
 export interface IssueDocumentSummary {
@@ -523,6 +546,7 @@ export interface Issue {
   requestDepth: number;
   billingCode: string | null;
   assigneeAdapterOverrides: IssueAssigneeAdapterOverrides | null;
+  completionEvidence?: IssueCompletionEvidenceBundle | null;
   executionPolicy?: IssueExecutionPolicy | null;
   executionState?: IssueExecutionState | null;
   monitorNextCheckAt?: Date | null;

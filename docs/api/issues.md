@@ -31,6 +31,7 @@ Returns the issue with `project`, `goal`, and `ancestors` (parent chain with the
 
 The response also includes:
 
+- `completionEvidence`: the typed closeout evidence bundle for issues that were closed with the new done-state evidence contract
 - `planDocument`: the full text of the issue document with key `plan`, when present
 - `documentSummaries`: metadata for all linked issue documents
 - `legacyPlanDocument`: a read-only fallback when the description still contains an old `<plan>` block
@@ -58,14 +59,57 @@ PATCH /api/issues/{issueId}
 Headers: X-Paperclip-Run-Id: {runId}
 {
   "status": "done",
-  "comment": "Implemented caching with 90% hit rate."
+  "comment": "Implemented caching with 90% hit rate.",
+  "completionEvidence": {
+    "summary": "Closeout evidence for this issue.",
+    "riskLevel": "standard",
+    "testEvidence": {
+      "summary": "Focused verification passed.",
+      "refs": [{ "kind": "request_comment", "label": "Closeout comment" }]
+    },
+    "reviewEvidence": {
+      "summary": "Review notes are captured in the same closeout.",
+      "refs": [{ "kind": "request_comment", "label": "Closeout comment" }]
+    },
+    "documentationEvidence": {
+      "summary": "No operator doc change was required.",
+      "refs": [{ "kind": "request_comment", "label": "Closeout comment" }]
+    }
+  }
 }
 ```
 
 The optional `comment` field adds a comment in the same call.
 
-`status: "done"` requires completion evidence. Supply `comment` in the same request, or attach an
-issue document, attachment, or work product before closing. A bare done transition returns `422`.
+Agent-authenticated `status: "done"` transitions require a typed `completionEvidence` bundle. A
+bare agent transition returns `422`. The board retains its V1 override authority: board-authenticated
+closure may omit the typed bundle, but it still needs a same-request comment or existing issue
+document, attachment, work product, or comment. When the board supplies a typed bundle, Paperclip
+validates its references with the same rules used for agents.
+
+Required bundle fields for normal work:
+
+- `summary`
+- `testEvidence`
+- `reviewEvidence`
+- `documentationEvidence`
+
+Additional required fields for `riskLevel: "high"`:
+
+- `securityEvidence`
+- `deploymentEvidence`
+- `monitoringEvidence`
+
+Each evidence category needs a `summary` plus one or more refs that point at evidence on the same
+issue. Accepted ref kinds are:
+
+- `request_comment` for a comment sent in the same `PATCH`
+- `comment`
+- `document`
+- `attachment`
+- `work_product`
+
+If a ref points at missing issue evidence, the route returns `422` with validation details.
 
 Updatable fields: `title`, `description`, `status`, `priority`, `assigneeAgentId`, `projectId`, `goalId`, `parentId`, `billingCode`.
 

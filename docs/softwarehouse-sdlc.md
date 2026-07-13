@@ -18,10 +18,18 @@ This SDLC is the default operating contract for Paperclip Softwarehouse agents.
 | Retrospective | what failed, what repeated, what changed in process | repeated failures create improvement tasks |
 | Process Improvement | updated docs, scripts, policies, evals, or backlog | closes the PDCA loop with EvalRun PASS when an AgentImprovementTask exists |
 
-The runtime issue API enforces the basic closure gate: `status: done` must be accompanied by a
-completion comment in the same update or by pre-existing issue evidence in a document, attachment, or
-work product. Higher-risk work still needs the stage-specific review, deployment, security, and
-monitoring evidence above.
+For agent-authenticated work, the runtime issue API enforces a typed closure gate: `status: done` must include a
+`completionEvidence` bundle with `testEvidence`, `reviewEvidence`, and `documentationEvidence`.
+When the bundle declares `riskLevel: "high"`, it must also include `securityEvidence`,
+`deploymentEvidence`, and `monitoringEvidence`. Each category must reference evidence attached to
+the same issue through a same-request comment or an existing comment, document, attachment, or work
+product.
+
+Board-authenticated closure remains an explicit operator override. It may use legacy inspectable
+evidence instead of a typed bundle, but cannot close a completely evidence-free issue.
+
+Higher-risk work still needs the stage-specific review, deployment, security, and monitoring
+evidence above as part of the broader operating flow, not just the close route.
 
 ## Status Vocabulary
 

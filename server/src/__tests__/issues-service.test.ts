@@ -610,6 +610,68 @@ describeEmbeddedPostgres("issueService.list participantAgentId", () => {
   it("returns null instead of throwing for malformed non-uuid issue refs", async () => {
     await expect(svc.getById("not-a-uuid")).resolves.toBeNull();
   });
+
+  it("persists completion evidence and returns it from issue readback", async () => {
+    const companyId = randomUUID();
+    const issueId = randomUUID();
+    const completionEvidence = {
+      summary: "Closeout evidence is stored on the issue record.",
+      riskLevel: "standard" as const,
+      testEvidence: {
+        summary: "Focused issue-service regression covers persistence and readback.",
+        refs: [{ kind: "comment" as const, id: randomUUID(), label: "Closeout comment" }],
+      },
+      reviewEvidence: {
+        summary: "Service readback was checked after update.",
+        refs: [{ kind: "work_product" as const, id: randomUUID(), label: "Verification packet" }],
+      },
+      documentationEvidence: {
+        summary: "API contract updated for issue readback.",
+        refs: [{ kind: "document" as const, id: randomUUID(), label: "API docs" }],
+      },
+    };
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      title: "Persist completion evidence",
+      status: "in_progress",
+      priority: "medium",
+    });
+
+    const updated = await svc.update(issueId, {
+      status: "done",
+      completionEvidence,
+    });
+
+    expect(updated).toEqual(
+      expect.objectContaining({
+        id: issueId,
+        status: "done",
+        completionEvidence,
+      }),
+    );
+
+    const persisted = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0] ?? null);
+    expect(persisted?.completionEvidence).toEqual(completionEvidence);
+
+    const readback = await svc.getById(issueId);
+    expect(readback).toEqual(
+      expect.objectContaining({
+        id: issueId,
+        status: "done",
+        completionEvidence,
+      }),
+    );
+  });
+
   it("filters issues by execution workspace id", async () => {
     const companyId = randomUUID();
     const projectId = randomUUID();

@@ -295,6 +295,9 @@ export function secretRoutes(db: Db) {
 
   router.get("/companies/:companyId/secrets/metadata", async (req, res) => {
     const companyId = req.params.companyId as string;
+    // Intentionally readable by same-company agents: gate/governor flows need
+    // names-only freshness inventory, but never secret values, provider refs,
+    // or provider metadata.
     assertCompanyAccess(req, companyId);
     const secrets = await svc.list(companyId);
     res.json(secrets.map(toSecretMetadata));

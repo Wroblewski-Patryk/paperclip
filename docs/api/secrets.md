@@ -11,7 +11,25 @@ Manage encrypted secrets that agents reference in their environment configuratio
 GET /api/companies/{companyId}/secrets
 ```
 
-Returns secret metadata (not decrypted values).
+Requires board auth plus company access. Returns secret metadata (not decrypted
+values).
+
+## Read Redacted Secret Inventory Metadata
+
+```
+GET /api/companies/{companyId}/secrets/metadata
+```
+
+Returns a redaction-safe inventory view for the company. This route is
+available to board actors and same-company agent API keys because Paperclip's
+runtime governors and safety gates need names-only secret freshness evidence
+without exposing secret material.
+
+Returned fields are intentionally limited to inventory metadata such as `id`,
+`key`, `name`, `status`, `managedMode`, `latestVersion`, `lastResolvedAt`,
+`lastRotatedAt`, `referenceCount`, and audit timestamps. The response never
+includes secret values, `externalRef`, `providerMetadata`, provider credential
+config, or other provider reference details.
 
 ## Create Secret
 
