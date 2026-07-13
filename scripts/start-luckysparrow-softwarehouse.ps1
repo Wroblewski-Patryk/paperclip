@@ -68,12 +68,13 @@ pnpm dev
 "@
 
 $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
-$launcher = "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encodedCommand 1>> ""$OutPath"" 2>> ""$ErrPath"""
 $process = Start-Process `
-  -FilePath 'cmd.exe' `
-  -ArgumentList "/c $launcher" `
+  -FilePath 'powershell.exe' `
+  -ArgumentList @('-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encodedCommand) `
   -WorkingDirectory "$Root" `
   -WindowStyle Hidden `
+  -RedirectStandardOutput $OutPath `
+  -RedirectStandardError $ErrPath `
   -PassThru
 
 Start-Sleep -Seconds 3
