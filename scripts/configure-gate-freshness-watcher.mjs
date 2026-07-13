@@ -189,7 +189,7 @@ const routine = await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: delivery?.id ?? ops?.id ?? portfolio?.id ?? tsa?.id ?? null,
   priority: "critical",
   status: "active",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 

@@ -55,6 +55,7 @@ function decide(overrides: Partial<Parameters<typeof decideSuccessfulRunHandoff>
     hasPauseHold: false,
     budgetBlocked: false,
     idempotentWakeExists: false,
+    reuseRoutineIssue: false,
     ...overrides,
   });
 }
@@ -105,6 +106,26 @@ describe("successful run handoff decision", () => {
     expect(decide({ issue: { ...issue, originKind: "routine_execution" } as any })).toEqual({
       kind: "reset_routine_todo",
       reason: "successful recurring routine cycle returns its execution issue to todo",
+    });
+  });
+
+  it("resets a completed reusable routine issue so the next schedule reuses it", () => {
+    expect(decide({
+      issue: { ...issue, status: "done", originKind: "routine_execution", originId: "routine-1" } as any,
+      reuseRoutineIssue: true,
+    })).toEqual({
+      kind: "reset_routine_todo",
+      reason: "successful recurring routine cycle returns its execution issue to todo",
+    });
+  });
+
+  it("keeps a completed non-reusable routine issue closed", () => {
+    expect(decide({
+      issue: { ...issue, status: "done", originKind: "routine_execution", originId: "routine-1" } as any,
+      reuseRoutineIssue: false,
+    })).toEqual({
+      kind: "skip",
+      reason: "issue status done is a valid disposition",
     });
   });
 

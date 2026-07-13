@@ -185,7 +185,7 @@ for (const projectName of softwarehouseActiveApplicationProjectNames) {
       assigneeAgentId: pm?.id ?? project.leadAgentId ?? null,
       priority: kind === "no-stall" ? "critical" : "high",
       status: "active",
-      concurrencyPolicy: "coalesce_if_active",
+      concurrencyPolicy: "reuse_idle_issue",
       catchUpPolicy: "skip_missed",
     });
     const trigger = await ensureScheduleTrigger(routine.id, {

@@ -4606,6 +4606,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         executionState: issues.executionState,
         projectId: issues.projectId,
         originKind: issues.originKind,
+        originId: issues.originId,
         originRunId: issues.originRunId,
       })
       .from(issues)
@@ -4630,6 +4631,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       existingWake,
       budgetBlock,
       pauseHold,
+      routinePolicy,
     ] = await Promise.all([
       issue
         ? db
@@ -4755,6 +4757,13 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       issue
         ? treeControlSvc.getActivePauseHoldGate(issue.companyId, issue.id)
         : Promise.resolve(null),
+      issue?.originKind === "routine_execution" && issue.originId
+        ? db
+          .select({ concurrencyPolicy: routines.concurrencyPolicy })
+          .from(routines)
+          .where(and(eq(routines.id, issue.originId), eq(routines.companyId, issue.companyId)))
+          .then((rows) => rows[0] ?? null)
+        : Promise.resolve(null),
     ]);
 
     const decision = decideSuccessfulRunHandoff({
@@ -4772,6 +4781,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       hasPauseHold: Boolean(pauseHold),
       budgetBlocked: Boolean(budgetBlock),
       idempotentWakeExists: Boolean(existingWake),
+      reuseRoutineIssue: routinePolicy?.concurrencyPolicy === "reuse_idle_issue",
     });
 
     if (decision.kind === "reset_routine_todo" && issue) {

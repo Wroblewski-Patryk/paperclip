@@ -329,7 +329,7 @@ for (const spec of routineSpecs) {
     assigneeAgentId: spec.assigneeAgentId,
     priority: spec.priority,
     status: active ? "active" : "archived",
-    concurrencyPolicy: "coalesce_if_active",
+    concurrencyPolicy: "reuse_idle_issue",
     catchUpPolicy: "skip_missed",
   });
   await ensureScheduleTrigger(routine.id, {

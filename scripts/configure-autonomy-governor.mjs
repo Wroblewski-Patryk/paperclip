@@ -225,7 +225,7 @@ async function main() {
     assigneeAgentId: governorOwner.id,
     priority: "critical",
     status: "active",
-    concurrencyPolicy: "coalesce_if_active",
+    concurrencyPolicy: "reuse_idle_issue",
     catchUpPolicy: "skip_missed",
   });
 

@@ -758,7 +758,7 @@ await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: agent.projectManager?.id ?? agent.portfolio?.id ?? null,
   priority: "high",
   status: activeRoutineTitles.has("[Soar] Daily project status refresh") ? "active" : "archived",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 const pmExpeditorRoutine = await ensureRoutine(company.id, routinesByTitle, {
@@ -770,7 +770,7 @@ const pmExpeditorRoutine = await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: agent.projectManager?.id ?? agent.portfolio?.id ?? null,
   priority: "critical",
   status: activeRoutineTitles.has("[Soar][PM] No-stall queue expeditor") ? "active" : "archived",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 await ensureScheduleTrigger(pmExpeditorRoutine.id, {
@@ -788,7 +788,7 @@ await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: agent.docs?.id ?? null,
   priority: "high",
   status: activeRoutineTitles.has("[Soar] Autonomous idle and map drift sweep") ? "active" : "archived",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 await ensureRoutine(company.id, routinesByTitle, {
@@ -799,7 +799,7 @@ await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: agent.qa?.id ?? null,
   priority: "high",
   status: activeRoutineTitles.has("[Soar] Regression evidence sweep") ? "active" : "archived",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 await ensureRoutine(company.id, routinesByTitle, {
@@ -811,7 +811,7 @@ await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: agent.delivery?.id ?? null,
   priority: "critical",
   status: activeRoutineTitles.has("[Soar] V1 audit-to-completion controller") ? "active" : "archived",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 await ensureRoutine(company.id, routinesByTitle, {
@@ -823,7 +823,7 @@ await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: agent.delivery?.id ?? null,
   priority: "critical",
   status: activeRoutineTitles.has("[Soar] Gap register and repair lane refresh") ? "active" : "archived",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 await ensureRoutine(company.id, routinesByTitle, {
@@ -840,7 +840,7 @@ await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: agent.ops?.id ?? null,
   priority: "critical",
   status: activeRoutineTitles.has("[Soar] Coolify production deploy health sweep") ? "active" : "archived",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 await ensureRoutine(company.id, routinesByTitle, {
@@ -852,7 +852,7 @@ await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: agent.security?.id ?? null,
   priority: "critical",
   status: activeRoutineTitles.has("[Soar] Security and account-access gate sweep") ? "active" : "archived",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 await ensureRoutine(company.id, routinesByTitle, {
@@ -862,7 +862,7 @@ await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: agent.docs?.id ?? null,
   priority: "medium",
   status: activeRoutineTitles.has("[Softwarehouse] Template feedback sweep") ? "active" : "archived",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 await ensureRoutine(company.id, routinesByTitle, {
@@ -874,7 +874,7 @@ await ensureRoutine(company.id, routinesByTitle, {
   assigneeAgentId: agent.product?.id ?? null,
   priority: "high",
   status: "archived",
-  concurrencyPolicy: "coalesce_if_active",
+  concurrencyPolicy: "reuse_idle_issue",
   catchUpPolicy: "skip_missed",
 });
 
