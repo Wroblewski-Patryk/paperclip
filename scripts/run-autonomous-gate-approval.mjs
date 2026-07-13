@@ -1,3 +1,4 @@
+import { secretFreshnessTimestamp } from "./lib/gate-freshness.mjs";
 import { normalizeKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { softwarehouseGateSpecs } from "./lib/softwarehouse-gates.mjs";
 
@@ -167,7 +168,7 @@ for (const spec of softwarehouseGateSpecs) {
     issue,
     trackedSecretCount: trackedSecrets.length,
     latestCredentialMetadataAt: trackedSecrets
-      .map((secret) => secret.updatedAt ?? secret.createdAt)
+      .map((secret) => secretFreshnessTimestamp(secret))
       .filter(Boolean)
       .sort()
       .at(-1) ?? null,

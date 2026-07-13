@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { stableSecretMetadata } from "./lib/gate-freshness.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow";
@@ -279,11 +280,9 @@ const snapshot = {
   labels: labels.map((label) => ({ id: label.id, name: label.name, color: label.color })),
   secrets: secrets.map((secret) => ({
     id: secret.id,
-    key: secret.key,
     targetType: secret.targetType ?? null,
     targetId: secret.targetId ?? null,
-    updatedAt: secret.updatedAt ?? null,
-    createdAt: secret.createdAt ?? null,
+    ...stableSecretMetadata(secret),
   })),
   liveRuns: liveRuns.map((run) => {
     const issue = issueById.get(run.issueId);

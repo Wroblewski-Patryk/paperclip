@@ -1,5 +1,6 @@
 import { access, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { secretFreshnessTimestamp, stableSecretMetadata } from "./lib/gate-freshness.mjs";
 import { rootBlockerIdentifierFor, terminalBlockersFor } from "./lib/issue-blockers.mjs";
 import { normalizeKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
@@ -839,14 +840,9 @@ const gateSecretFreshness = Array.from(knownGateRootIdentifiers)
   .map((rootBlocker) => {
     const keys = secretKeysForGateRoot(rootBlocker);
     const matchingSecrets = uniqueSecretsForKeys(secretByKey, keys);
-    const trackedSecrets = matchingSecrets.map((secret) => ({
-      key: secret.key,
-      status: secret.status ?? null,
-      updatedAt: secret.updatedAt ?? null,
-      createdAt: secret.createdAt ?? null,
-    }));
-    const latestSecretUpdatedAt = matchingSecrets
-      .map((secret) => secret.updatedAt ?? secret.createdAt)
+    const trackedSecrets = matchingSecrets.map((secret) => stableSecretMetadata(secret));
+    const latestSecretFreshnessAt = matchingSecrets
+      .map((secret) => secretFreshnessTimestamp(secret))
       .filter(Boolean)
       .sort()
       .at(-1) ?? null;
@@ -858,11 +854,11 @@ const gateSecretFreshness = Array.from(knownGateRootIdentifiers)
       trackedSecretKeys: keys,
       trackedSecretCount: matchingSecrets.length,
       trackedSecrets,
-      latestSecretUpdatedAt,
+      latestSecretFreshnessAt,
       secretUpdatedAfterIssue: Boolean(
-        latestSecretUpdatedAt
+        latestSecretFreshnessAt
         && rootIssue?.updatedAt
-        && new Date(latestSecretUpdatedAt).getTime() > new Date(rootIssue.updatedAt).getTime()
+        && new Date(latestSecretFreshnessAt).getTime() > new Date(rootIssue.updatedAt).getTime()
       ),
     };
   })

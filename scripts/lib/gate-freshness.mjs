@@ -47,6 +47,25 @@ export function commentTimestamp(comment) {
   return comment.updatedAt ?? comment.createdAt ?? null;
 }
 
+export function secretFreshnessTimestamp(secret) {
+  if (!secret) return null;
+  return secret.lastRotatedAt
+    ?? secret.createdAt
+    ?? null;
+}
+
+export function stableSecretMetadata(secret) {
+  if (!secret) return null;
+  return {
+    key: secret.key,
+    status: secret.status ?? null,
+    latestVersion: secret.latestVersion ?? null,
+    lastRotatedAt: secret.lastRotatedAt ?? null,
+    createdAt: secret.createdAt ?? null,
+    freshnessAt: secretFreshnessTimestamp(secret),
+  };
+}
+
 export function isFreshForIssue(comment, issue) {
   const timestamp = commentTimestamp(comment);
   if (!timestamp || !issue?.updatedAt) return false;
@@ -73,20 +92,15 @@ export function gateFreshnessObservation({
   );
 
   const trackedSecrets = uniqueSecretsForKeys(secretByKey, secretKeys)
-    .map((secret) => ({
-      key: secret.key,
-      status: secret.status ?? null,
-      updatedAt: secret.updatedAt ?? null,
-      createdAt: secret.createdAt ?? null,
-    }));
-  const latestSecretUpdatedAt = latestTimestamp(trackedSecrets.map((secret) => secret.updatedAt ?? secret.createdAt));
-  const secretUpdatedAfterIssue = isAfter(latestSecretUpdatedAt, issue?.updatedAt);
+    .map((secret) => stableSecretMetadata(secret));
+  const latestSecretFreshnessAt = latestTimestamp(trackedSecrets.map((secret) => secretFreshnessTimestamp(secret)));
+  const secretUpdatedAfterIssue = isAfter(latestSecretFreshnessAt, issue?.updatedAt);
   const hasSecretFreshnessSignal = secretUpdatedAfterIssue && !latestCommentIsPlaceholderOnly;
 
   return {
     trackedSecrets,
     trackedSecretCount: trackedSecrets.length,
-    latestSecretUpdatedAt,
+    latestSecretFreshnessAt,
     secretUpdatedAfterIssue,
     hasSecretFreshnessSignal,
     actionableFreshGateFact: hasExplicitApprovalOrEvidence || hasSecretFreshnessSignal,

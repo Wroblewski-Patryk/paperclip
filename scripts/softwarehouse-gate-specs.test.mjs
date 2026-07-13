@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { rootBlockerIdentifierFor } from "./lib/issue-blockers.mjs";
 import { resolveIssuesByIdentifier } from "./lib/issue-discovery.mjs";
-import { gateFreshnessObservation } from "./lib/gate-freshness.mjs";
+import { gateFreshnessObservation, stableSecretMetadata } from "./lib/gate-freshness.mjs";
 import { secretForKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { autonomyDispositionForMode, controlActionSummaryFor, controlActionTypeFor, deliveryPermissionForMode, gateBriefFor, staleGateOwnerActionLine } from "./lib/softwarehouse-control-brief.mjs";
 import { softwarehouseGateSpecs, softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
@@ -494,6 +494,9 @@ test("unblock packet reports terminal gates and zero-failure evidence accurately
 
   assert.match(source, /if \(\/\\b\(\?:0\|zero\)\\s\+fail\(\?:ed\|ures\?\)\\b\/i\.test\(line\)\) return false/);
   assert.match(source, /gate\.actionableFreshGateFact\s+&& !gate\.gateIsTerminal\s+&& !gate\.latestCommentIsPlaceholderOnly\s+\? "yes"\s+: "no"/);
+  assert.match(source, /freshnessAt/);
+  assert.match(source, /lastRotatedAt/);
+  assert.match(source, /gateFreshnessObservation\(/);
   assert.match(source, /No non-terminal gate is fresh/);
   assert.doesNotMatch(source, /gate\.secretUpdatedAfterIssue \|\| gate\.hasExplicitApprovalOrEvidence \? "yes" : "no"/);
   assert.doesNotMatch(source, /No gate is fresh\. Do not resume blocked delivery lanes/);
@@ -678,6 +681,7 @@ test("gate freshness classifier rejects placeholder-only comments and accepts re
       key: "prod_ui_audit_admin_token",
       status: "active",
       updatedAt: "2026-06-01T10:05:00.000Z",
+      createdAt: "2026-05-30T10:05:00.000Z",
     }],
   ]);
 
@@ -692,10 +696,37 @@ test("gate freshness classifier rejects placeholder-only comments and accepts re
   });
 
   assert.equal(placeholderOnly.trackedSecretCount, 1);
-  assert.equal(placeholderOnly.secretUpdatedAfterIssue, true);
+  assert.deepEqual(placeholderOnly.trackedSecrets[0], {
+    key: "prod_ui_audit_admin_token",
+    status: "active",
+    latestVersion: null,
+    lastRotatedAt: null,
+    createdAt: "2026-05-30T10:05:00.000Z",
+    freshnessAt: "2026-05-30T10:05:00.000Z",
+  });
+  assert.equal(placeholderOnly.secretUpdatedAfterIssue, false);
   assert.equal(placeholderOnly.latestCommentIsPlaceholderOnly, true);
   assert.equal(placeholderOnly.hasSecretFreshnessSignal, false);
   assert.equal(placeholderOnly.actionableFreshGateFact, false);
+
+  const rotatedCredential = gateFreshnessObservation({
+    issue,
+    comments: [],
+    secretByKey: new Map([
+      ["prod_ui_audit_admin_token", {
+        key: "prod_ui_audit_admin_token",
+        status: "active",
+        updatedAt: "2026-06-01T10:20:00.000Z",
+        createdAt: "2026-05-30T10:05:00.000Z",
+        lastRotatedAt: "2026-06-01T10:10:00.000Z",
+      }],
+    ]),
+    secretKeys: ["smoke_auth_token"],
+  });
+
+  assert.equal(rotatedCredential.secretUpdatedAfterIssue, true);
+  assert.equal(rotatedCredential.hasSecretFreshnessSignal, true);
+  assert.equal(rotatedCredential.actionableFreshGateFact, true);
 
   const explicitApproval = gateFreshnessObservation({
     issue,
@@ -709,6 +740,53 @@ test("gate freshness classifier rejects placeholder-only comments and accepts re
 
   assert.equal(explicitApproval.hasExplicitApprovalOrEvidence, true);
   assert.equal(explicitApproval.actionableFreshGateFact, true);
+});
+
+test("stable secret metadata excludes volatile bookkeeping timestamps", () => {
+  assert.deepEqual(
+    stableSecretMetadata({
+      key: "smoke_auth_token",
+      status: "active",
+      latestVersion: 3,
+      lastRotatedAt: "2026-06-01T10:10:00.000Z",
+      lastResolvedAt: "2026-06-01T10:20:00.000Z",
+      updatedAt: "2026-06-01T10:30:00.000Z",
+      createdAt: "2026-05-30T10:05:00.000Z",
+    }),
+    {
+      key: "smoke_auth_token",
+      status: "active",
+      latestVersion: 3,
+      lastRotatedAt: "2026-06-01T10:10:00.000Z",
+      createdAt: "2026-05-30T10:05:00.000Z",
+      freshnessAt: "2026-06-01T10:10:00.000Z",
+    },
+  );
+});
+
+test("canonical secret exports omit volatile bookkeeping fields", async () => {
+  const unblockPacket = await readFile("scripts/export-softwarehouse-unblock-packet.mjs", "utf8");
+  const audit = await readFile("scripts/audit-luckysparrow-softwarehouse.mjs", "utf8");
+  const autonomousApproval = await readFile("scripts/run-autonomous-gate-approval.mjs", "utf8");
+  const longevitySnapshot = await readFile("scripts/export-softwarehouse-longevity-snapshot.mjs", "utf8");
+
+  assert.match(unblockPacket, /stableSecretMetadata/);
+  assert.match(unblockPacket, /Latest tracked secret freshness/);
+  assert.match(unblockPacket, /Latest version/);
+  assert.doesNotMatch(unblockPacket, /Last resolved/);
+  assert.doesNotMatch(unblockPacket, /Updated at", gate\.latestSecret/);
+  assert.doesNotMatch(unblockPacket, /secret\.updatedAt/);
+  assert.doesNotMatch(unblockPacket, /secret\.lastResolvedAt/);
+
+  assert.match(audit, /stableSecretMetadata/);
+  assert.match(audit, /secretFreshnessTimestamp/);
+  assert.doesNotMatch(audit, /secret\.updatedAt \?\? secret\.createdAt/);
+
+  assert.match(autonomousApproval, /secretFreshnessTimestamp/);
+  assert.doesNotMatch(autonomousApproval, /secret\.updatedAt \?\? secret\.createdAt/);
+
+  assert.match(longevitySnapshot, /stableSecretMetadata/);
+  assert.doesNotMatch(longevitySnapshot, /updatedAt: secret\.updatedAt/);
 });
 
 test("gate freshness scripts share the same classifier", async () => {

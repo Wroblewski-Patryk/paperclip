@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { rootBlockerIdentifierFor } from "./lib/issue-blockers.mjs";
 import { resolveIssuesByIdentifier } from "./lib/issue-discovery.mjs";
+import { gateFreshnessObservation, stableSecretMetadata } from "./lib/gate-freshness.mjs";
 import {
   aliasCoverageForKeys,
   missingKeysAfterAliasCoverage,
@@ -82,12 +83,16 @@ function isAfter(left, right) {
 
 function redactedSecretState(secret) {
   if (!secret) return null;
+  const stable = stableSecretMetadata(secret);
   return {
-    key: secret.key,
-    status: secret.status ?? null,
-    updatedAt: secret.updatedAt ?? null,
-    createdAt: secret.createdAt ?? null,
-    hasValue: Boolean(secret.hasValue ?? secret.valueHash ?? secret.updatedAt ?? secret.createdAt),
+    ...stable,
+    hasValue: Boolean(
+      secret.hasValue
+      ?? secret.valueHash
+      ?? secret.latestVersion
+      ?? secret.lastRotatedAt
+      ?? secret.createdAt
+    ),
   };
 }
 
@@ -315,7 +320,7 @@ function markdownFor(packet) {
       row(["Approval dry-run command", gate.approvalDryRunCommand]),
       row(["Approval apply command", gate.approvalApplyCommand]),
       row(["Recheck handoff", gate.recheckHandoff]),
-      row(["Latest tracked secret metadata", gate.latestSecretUpdatedAt ?? "none"]),
+      row(["Latest tracked secret freshness", gate.latestSecretFreshnessAt ?? "none"]),
       row(["Missing direct company secret keys", gate.missingSecretKeys.length > 0 ? gate.missingSecretKeys.join(", ") : "none"]),
       row(["Covered by runtime aliases", gate.coveredAliasKeys.length > 0 ? gate.coveredAliasKeys.map((alias) => `${alias.key} -> ${alias.sourceKey}`).join(", ") : "none"]),
       row(["Secret updated after blocker", gate.secretUpdatedAfterIssue]),
@@ -329,12 +334,14 @@ function markdownFor(packet) {
       "",
       "Tracked secret metadata:",
       "",
-      row(["Key", "Status", "Updated at", "Created at", "Has value metadata"]),
-      row(["---", "---", "---", "---", "---"]),
+      row(["Key", "Status", "Latest version", "Freshness at", "Last rotated", "Created at", "Has value metadata"]),
+      row(["---", "---", "---", "---", "---", "---", "---"]),
       ...gate.trackedSecrets.map((secret) => row([
         secret.key,
         secret.status ?? "unknown",
-        secret.updatedAt ?? "",
+        secret.latestVersion ?? "",
+        secret.freshnessAt ?? "",
+        secret.lastRotatedAt ?? "",
         secret.createdAt ?? "",
         secret.hasValue,
       ])),
@@ -521,11 +528,15 @@ for (const spec of gateSpecs) {
     .filter(Boolean);
   const missingSecretKeys = missingKeysAfterAliasCoverage(secretByKey, spec.secretKeys);
   const coveredAliasKeys = aliasCoverageForKeys(secretByKey, spec.secretKeys);
-  const latestSecretUpdatedAt = latestTimestamp(trackedSecrets.map((secret) => secret.updatedAt ?? secret.createdAt));
-  const secretUpdatedAfterIssue = isAfter(latestSecretUpdatedAt, issue?.updatedAt);
-  // Secret updatedAt currently changes during runtime binding/access bookkeeping.
-  // Treat it as operator context, not autonomous permission to re-run protected gates.
-  const hasSecretFreshnessSignal = secretUpdatedAfterIssue && !latestCommentIsPlaceholderOnly;
+  const freshness = gateFreshnessObservation({
+    issue,
+    comments,
+    secretByKey,
+    secretKeys: spec.secretKeys,
+  });
+  const latestSecretFreshnessAt = freshness.latestSecretFreshnessAt;
+  const secretUpdatedAfterIssue = freshness.secretUpdatedAfterIssue;
+  const hasSecretFreshnessSignal = freshness.hasSecretFreshnessSignal;
   const actionableFreshGateFact = hasExplicitApprovalOrEvidence || hasSecretFreshnessSignal;
   const blockedIssues = issues
     .filter((candidate) =>
@@ -565,7 +576,7 @@ for (const spec of gateSpecs) {
     trackedSecrets,
     missingSecretKeys,
     coveredAliasKeys,
-    latestSecretUpdatedAt,
+    latestSecretFreshnessAt,
     secretUpdatedAfterIssue,
     hasSecretFreshnessSignal,
     actionableFreshGateFact,
