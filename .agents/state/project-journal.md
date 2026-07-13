@@ -1,10 +1,43 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
 ## Entries
+
+- 2026-07-13 / LUC-25 closure-mode and Windows build repair:
+  - Audited 490 live issues: LUC-25 has no open descendants and remains held only by the explicit Soar provenance chain (`LUC-448` -> `LUC-507`) and credential-rotation chain (`LUC-494` -> `LUC-496`). These are terminal technical/operator blockers, not reasons to create more review trees.
+  - Paused the repeated Evidence Gate, Portfolio Truth, PDCA, and Owner Direction review routines during closure mode; removed recurring controller `LUC-770` as an invalid blocker of repair issue `LUC-751`; closed/cancelled completed or superseded routine work; cancelled duplicate `LUC-892` after its exact regression suite was already green.
+  - Project-truth dispatch now defaults to one active evidence lane per product track (override remains configurable) after the previous depth of three produced six CPU-heavy Soar/Roost runs and risked another Windows workstation freeze.
+  - Repaired cross-platform builds: DB migration copying and CLI executable marking now use Node helpers instead of Unix-only `cp` and `chmod`; restored current upstream support for pinned `catalog-ref.json` skills so Skills and Teams manifests resolve correctly.
+  - Verification: completion-evidence route/shared tests `36/36`, issue/secrets suites passed, five affected package typechecks passed, softwarehouse gate specs `135/135`, workspace-boundary audit passed, sensitive-pattern scan found no raw secret material, and full `pnpm build` completed successfully across DB/server/plugins/UI/CLI.
+  - Remaining owner/operator facts are intentionally fail-closed: rotate the credentials covered by `LUC-496`, and provide/execute a write-capable Coolify metadata correction for `LUC-507`. After repo commit/restart/control refresh, the continuation loop should resume backlog evidence one Soar and one Roost lane at a time.
+
+- 2026-07-13 / LUC-868 PDCA Learning and Company Memory Review:
+  - Reviewed the live issue state for `LUC-868` via `/api/issues/49e915d5-7c6c-4a31-a037-73d339668277` and `/heartbeat-context`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, and no attachments or work products.
+  - Rechecked the durable memory sources used by the PDCA routine: `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/current-focus.md`, `.agents/state/responsibility-learning.md`, and `.codex/PROJECT_CONTEXT.md`. They already capture the current Stage 1 Soar/Roost posture and governed memory-review workflow.
+  - Decision: no new durable memory, instruction, or procedure update was justified from this checkpoint. Record it as a clean no-drift review and close the issue with a terminal note rather than leaving the lane open.
+
+- 2026-07-13 / LUC-860 PDCA Learning and Company Memory Review:
+  - Reviewed the durable memory sources used by the PDCA routine: `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/current-focus.md`, `.agents/state/project-journal.md`, `.agents/state/project-memory.md`, `.agents/state/responsibility-learning.md`, and `.codex/PROJECT_CONTEXT.md`.
+  - The current Stage 1 Soar/Roost posture, governed memory-review workflow, and the existing reusable learning notes are still current. No new durable policy, instruction, or procedure change was justified from this checkpoint.
+  - Decision: record this as a clean no-drift review and close the issue with a concise terminal note so the PDCA lane does not remain open without a live continuation path.
+
+- 2026-07-13 / LUC-846 PDCA Learning and Company Memory Review:
+  - Reviewed the live issue state for `LUC-846` via `GET /api/issues/LUC-846`, `/comments`, `/work-products`, and `/heartbeat-context`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, and no attachments or work products.
+  - Rechecked the durable memory sources used by the PDCA routine: `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/project-journal.md`, `.agents/state/current-focus.md`, and `.codex/PROJECT_CONTEXT.md`. They already capture the current Stage 1 Soar/Roost posture and the governed memory-review workflow.
+  - Decision: no new durable memory, instruction, or procedure update was justified. This checkpoint is a clean no-drift review, so the correct follow-up is a concise terminal issue note and closure.
+
+- 2026-07-13 / LUC-837 PDCA Learning and Company Memory Review:
+  - Reviewed the live issue state for `LUC-837` via `GET /api/issues/LUC-837`, `/comments`, and `/work-products`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, and no attachments or work products.
+  - Rechecked the durable memory sources used by the PDCA routine: `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/current-focus.md`, `.agents/state/project-memory.md`, and `.agents/state/responsibility-learning.md`. They already capture the current Stage 1 Soar/Roost posture and the latest reusable learning.
+  - Decision: no new durable memory, instruction, or procedure update was justified. This checkpoint is a clean no-drift review, so the correct follow-up is a concise terminal issue note and closure.
+
+- 2026-07-13 / LUC-828 PDCA Learning and Company Memory Review:
+  - Reviewed the live issue state for `LUC-828` via `GET /api/issues/LUC-828`, `/comments`, `/work-products`, and `/heartbeat-context`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, and no attachments or work products.
+  - Rechecked the durable memory sources used by the PDCA routine: `.agents/state/board-context.md`, `.agents/state/active-mission.md`, `.agents/state/responsibility-learning.md`, `.agents/state/project-memory.md`, `.agents/state/current-focus.md`, and the latest journal entries. They already capture the current Stage 1 Soar/Roost posture, PDCA loop rules, and the two latest reusable lessons.
+  - Decision: no new durable memory, instruction, or procedure update was justified. This checkpoint is a clean no-drift review, so the correct follow-up is a concise terminal issue note and closure.
 
 - 2026-07-12 / LUC-816 PDCA Learning and Company Memory Review:
   - Reviewed the live issue state for `LUC-816` via `GET /api/issues/LUC-816`, `/comments`, and `/work-products`; the issue is `in_progress`, assigned to `ed63e6f1-2388-4568-be2e-0e7b10263921`, with `blockerAttention.state=none`, `totalComments=0`, `latestCommentId=null`, and no attachments or work products.
@@ -2377,3 +2410,25 @@ Decision: every nested dispatch component must apply the same self-run filter.
 A supervisor's own run is evidence of orchestration, not competing owner work,
 and safe OS source-control closure must not be blocked merely because its purpose
 is to close an already-classified dirty OS worktree.
+
+## 2026-07-13 - Organizational learning loop apply run
+
+Context: `LUC-842` was the active organizational learning loop routine issue.
+The issue description pointed at `node scripts/run-softwarehouse-learning-loop.mjs --apply`.
+
+Actions:
+
+- Ran `node scripts/run-softwarehouse-learning-loop.mjs --apply` against the
+  local Paperclip API at `http://127.0.0.1:3200`.
+- The loop completed successfully, examined four blocked groups, and processed
+  one eligible group.
+- The loop created `LUC-843`:
+  `[Softwarehouse][Learning] Security/credential blocker pattern LUC-507`.
+- Verified `LUC-843` through `GET /api/issues/LUC-843`, which showed it as an
+  in-progress follow-up assigned to `10 SPA (Security & Privacy Auditor)`.
+
+Decision: the learning loop is functioning as an evidence-producing process.
+When repeated blocker patterns appear, the loop should create one bounded
+follow-up learning issue rather than mutating application code or duplicating
+noise. The next steward-facing step is to let `LUC-843` resolve the security
+pattern analysis.

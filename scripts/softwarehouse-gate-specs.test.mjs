@@ -1798,7 +1798,7 @@ test("project truth indexes route app-completion proof gaps instead of treating 
   assert.match(dispatcher, /\[App Completion\]/);
   assert.match(dispatcher, /gap\.kind === "app_completion_gap"/);
   assert.match(dispatcher, /App-completion rule/);
-  assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_PER_TRACK_DEPTH \?\? 3/);
+  assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_PER_TRACK_DEPTH \?\? 1/);
   assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_MAX_GAPS \?\? \(perTrackDispatchDepth \* 2\)/);
   assert.match(dispatcher, /function dispatchableGaps/);
   assert.match(dispatcher, /project\.projectTruth\?\.gaps/);

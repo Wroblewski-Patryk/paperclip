@@ -16,7 +16,9 @@ const runId = process.env.PAPERCLIP_RUN_ID ?? null;
 const actorAgentId = process.env.PAPERCLIP_AGENT_ID ?? null;
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_REQUEST_TIMEOUT_MS ?? 30_000);
-const perTrackDispatchDepth = Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_PER_TRACK_DEPTH ?? 3);
+// Keep the Windows owner workstation responsive by default. Operators on larger
+// hosts can opt into broader fan-out through the existing environment override.
+const perTrackDispatchDepth = Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_PER_TRACK_DEPTH ?? 1);
 const maxDispatchGaps = Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_MAX_GAPS ?? (perTrackDispatchDepth * 2));
 const terminalStatuses = new Set(["done", "cancelled"]);
 const marker = "softwarehouse-project-truth-gap-dispatcher:v1";

@@ -26,3 +26,10 @@ repo files, issue comments, screenshots, generated artifacts, or logs.
   action is to route or request one least-privilege owner-path restoration with
   redacted evidence; do not request, print, rotate, or handle secrets unless a
   separately approved security/ops credential lane explicitly owns that action.
+- Treat provider capability mismatches as owner-path blockers, not retry loops.
+  If a token can read status or queue deploys but cannot perform the exact
+  required write (for example `PATCH /applications/{uuid}` app-metadata
+  updates), do not keep retrying with the same token set and do not substitute a
+  broader deploy/rebuild path that changes the target commit or scope. Record
+  the exact denied operation, preserve redacted evidence, and route one narrow
+  unblock issue for the least-privilege write-capable owner path.

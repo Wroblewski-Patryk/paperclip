@@ -20,3 +20,16 @@ repo files, issue comments, screenshots, generated artifacts, or logs.
   after testing.
 - Screenshots and logs from authenticated production checks must be redacted or
   described without exposing private data.
+- When a blocker is classified as security/credential-related because it names
+  auth boundaries, paused owners, or `403` authorization failures, first
+  classify whether the real unblock is an authorized owner path. The permitted
+  action is to route or request one least-privilege owner-path restoration with
+  redacted evidence; do not request, print, rotate, or handle secrets unless a
+  separately approved security/ops credential lane explicitly owns that action.
+- Treat provider capability mismatches as owner-path blockers, not retry loops.
+  If a token can read status or queue deploys but cannot perform the exact
+  required write (for example `PATCH /applications/{uuid}` app-metadata
+  updates), do not keep retrying with the same token set and do not substitute a
+  broader deploy/rebuild path that changes the target commit or scope. Record
+  the exact denied operation, preserve redacted evidence, and route one narrow
+  unblock issue for the least-privilege write-capable owner path.
