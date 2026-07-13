@@ -180,3 +180,22 @@ or the relevant owners explicitly classify them as not required with evidence.
 - LUC-25 remains blocked until current provider readback proves Soar/Roost
   owner usability and the credential-rotation/provenance gates are resolved;
   reports and issue volume do not satisfy that condition.
+
+## 2026-07-13 Closure Convergence Controls
+
+- Treat the LUC sequence as history, not WIP. The 2026-07-13 readback found
+  only 13 non-terminal issues among 450 visible issues.
+- Recurring Softwarehouse/Soar routines use `reuse_idle_issue`; their canonical
+  execution issue returns to `todo` after a successful cycle, including when
+  an agent marked that cycle `done`.
+- Gate freshness uses stable credential-material metadata only. Secret access,
+  resolve, or binding bookkeeping must not dirty canonical status artifacts or
+  wake protected lanes.
+- Identical v1 learning signatures have a 24-hour cooldown and are compared
+  against terminal learning history before a new issue may be created.
+- Prefer the two concrete app-completion proof lanes over another governance
+  report when no real production/security blocker prevents them: LUC-895 for
+  Roost and LUC-902 for Soar.
+- LUC-25 remains blocked until owner-usable VPS evidence exists; convergence
+  reduces control noise but does not waive credential rotation or production
+  provenance requirements.

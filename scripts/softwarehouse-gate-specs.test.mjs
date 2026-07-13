@@ -841,6 +841,22 @@ test("autonomy governor configurator uses the central active routine matrix", as
   assert.doesNotMatch(source, /const activeRoutineSchedules = new Map\(\[/);
 });
 
+test("recurring softwarehouse configurators reuse canonical issues instead of creating issue churn", async () => {
+  const files = [
+    "scripts/configure-autonomy-governor.mjs",
+    "scripts/configure-gate-freshness-watcher.mjs",
+    "scripts/configure-softwarehouse-processes.mjs",
+    "scripts/configure-active-project-routines.mjs",
+    "scripts/configure-soar-control-center.mjs",
+  ];
+
+  for (const file of files) {
+    const source = await readFile(file, "utf8");
+    assert.match(source, /concurrencyPolicy: "reuse_idle_issue"/, file);
+    assert.doesNotMatch(source, /concurrencyPolicy: "coalesce_if_active"/, file);
+  }
+});
+
 test("review waiters include checkbox confirmation interactions", async () => {
   const source = await readFile("scripts/lib/softwarehouse-routine-gates.mjs", "utf8");
 
@@ -1804,6 +1820,7 @@ test("local repair lane starter treats cross-boundary patch denial as routed ski
 
   assert.match(source, /function isIssueAuthorizationBoundaryError\(error\)/);
   assert.match(source, /Issue is outside this actor\(\?:'\|\\\\u0027\)s authorization boundary/);
+  assert.match(source, /Agent cannot mutate another agent\(\?:'\|\\\\u0027\)\?s issue/);
   assert.match(source, /action = "skipped_cross_boundary_issue_mutation"/);
   assert.match(source, /Read back the existing owner-path issue/);
   assert.match(source, /if \(updated && isBacklogWake && updated\.assigneeAgentId\)/);

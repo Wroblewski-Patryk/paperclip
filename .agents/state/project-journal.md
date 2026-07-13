@@ -2498,3 +2498,38 @@ staggered in time. Nested dispatchers treat their own run as orchestration, not
 external WIP, while every cross-project child must carry the selected project's
 workspace explicitly. Historical issue count is not a reason to fan out; one
 current blocker maps to one accountable recovery lane.
+
+## 2026-07-13 - Closure convergence and recurring issue reuse
+
+Context: the board had reached the LUC-9xx sequence while LUC-25 remained
+blocked. A fresh API read showed 450 visible issues but only 13 non-terminal
+issues. The apparent volume came primarily from historical throughput and
+recurring controllers creating new execution issues, not hundreds of current
+product tasks.
+
+Actions:
+
+- Replaced volatile secret `updatedAt`/resolve bookkeeping as a gate-freshness
+  signal with stable secret material metadata (`latestVersion`, `createdAt`,
+  and `lastRotatedAt`) across the unblock packet, audit, autonomous gate
+  approval, and longevity snapshot.
+- Proved packet idempotency by running the export twice: both runs produced the
+  same SHA-256 and left no tracked diff.
+- Changed recurring Softwarehouse and Soar configurators from
+  `coalesce_if_active` to `reuse_idle_issue`.
+- Extended successful-run handoff so a reusable routine issue that an agent
+  correctly marks `done` returns to `todo` for the next schedule, while a
+  non-reusable completed routine remains closed.
+- Added a 24-hour cooldown for an identical v1 organizational-learning
+  signature and included terminal learning issues in duplicate discovery.
+- Treated both supported 403 authorization-boundary messages as owner-path
+  skips in the local repair starter instead of control-loop failures.
+- Verified server typecheck, successful-run handoff tests (17/17), gate
+  contracts (138/138), learning-loop tests (66/66), the packet idempotency
+  check, and the workspace-boundary audit.
+
+Decision: recurring control work must reuse one canonical issue per routine.
+Runtime reads of secrets are not credential changes, and timestamp-only source
+activity must not create another learning issue during the cooldown. New issue
+numbers are reserved for materially new product work, distinct blockers, or a
+new learning signal after the cooldown.

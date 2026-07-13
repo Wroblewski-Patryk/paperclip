@@ -365,7 +365,8 @@ function ownerActionForApiFailure() {
 function isIssueAuthorizationBoundaryError(error) {
   return error?.name === "HttpRequestError"
     && error?.status === 403
-    && /Issue is outside this actor(?:'|\\u0027)s authorization boundary/i.test(error?.body ?? error?.message ?? "");
+    && /(?:Issue is outside this actor(?:'|\\u0027)s authorization boundary|Agent cannot mutate another agent(?:'|\\u0027)?s issue)/i
+      .test(error?.body ?? error?.message ?? "");
 }
 
 function apiFailureOutput(error) {
