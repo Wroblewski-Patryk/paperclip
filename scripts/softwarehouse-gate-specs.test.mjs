@@ -2977,6 +2977,16 @@ test("supervision actions remain allowed while a narrower lane type is active", 
   assert.equal(summary.allowedActionCount, 2);
 });
 
+test("control tick emits stale gate owner actions during operating system closure", async () => {
+  const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
+  const operatingSystemClosureBranch = source.match(
+    /if \(effectiveOperatingPosture === "operating_system_closure_required"\) \{[\s\S]*?\n  \}/,
+  )?.[0] ?? "";
+
+  assert.match(operatingSystemClosureBranch, /Verify and commit\/classify Paperclip OS changes before broad delivery\./);
+  assert.match(operatingSystemClosureBranch, /\.\.\.staleGateOwnerActions\(\)/);
+});
+
 test("continuation watchdog records a todo disposition for its recurring issue", async () => {
   const requests = [];
   const result = await finalizeRecurringIssue({

@@ -1114,6 +1114,12 @@ function nextControlActionsFor({
   safeArchitecturePlanning,
   activeRunCount,
 }) {
+  const staleGateOwnerActions = () => gateHandoffs
+    .filter((gate) => gate.status === "blocked" && !gate.fresh)
+    .map((gate) => gateBriefFor(gate))
+    .filter((brief) => brief.stale)
+    .map(staleGateOwnerActionLine);
+
   if (controlDecision === "control_tick_failed") {
     return ["Fix the failed control tick step before starting or resuming agent work."];
   }
@@ -1124,6 +1130,7 @@ function nextControlActionsFor({
     return [
       ...(activeRunCount > 0 ? ["Supervise active runs and do not start duplicate work."] : []),
       "Verify and commit/classify Paperclip OS changes before broad delivery.",
+      ...staleGateOwnerActions(),
     ];
   }
   if (effectiveOperatingPosture === "project_repo_mutation_blocked_monitoring_allowed") {
@@ -1140,11 +1147,6 @@ function nextControlActionsFor({
       const latest = issue.rootBlocker ? latestEvidenceByRoot.get(issue.rootBlocker) : null;
       return `Source-control gate: ${issue.identifier} is ${issue.status}${issue.rootBlocker ? ` via ${issue.rootBlocker}` : ""} (${issue.title})${latest?.summary ? `; latest=${latest.summary}` : ""}`;
     });
-    const staleGateOwnerActions = gateHandoffs
-      .filter((gate) => gate.status === "blocked" && !gate.fresh)
-      .map((gate) => gateBriefFor(gate))
-      .filter((brief) => brief.stale)
-      .map(staleGateOwnerActionLine);
     const infrastructureGateActions = (gateHandoffs ?? [])
       .filter((gate) => gate.status === "blocked" && !gate.fresh)
       .filter((gate) => {
@@ -1183,7 +1185,7 @@ function nextControlActionsFor({
       ...sourceControlClassificationActions,
       "Wait for a fresh operator/credential fact before project repo mutation, commit, push, deploy, or restart.",
       ...sourceControlGateLines,
-      ...staleGateOwnerActions,
+      ...staleGateOwnerActions(),
       ...gateHandoffs
         .filter((gate) => gate.status === "blocked" && !gate.fresh)
         .map((gate) =>
@@ -1207,11 +1209,6 @@ function nextControlActionsFor({
       .flatMap((repo) => (repo.sourceControlClosureLanes ?? []).map((lane) =>
         `Classify and close ${repo.name} source-control ${lane.group} lane: ${lane.action} Evidence required: ${lane.evidenceRequired}. Allowed: local diff review, local validation, commit/no-commit decision. Forbidden: push, deploy, restart, protected smoke, secret disclosure.`
       ));
-    const staleGateOwnerActions = gateHandoffs
-      .filter((gate) => gate.status === "blocked" && !gate.fresh)
-      .map((gate) => gateBriefFor(gate))
-      .filter((brief) => brief.stale)
-      .map(staleGateOwnerActionLine);
     const blockedGateLines = (gateHandoffs ?? [])
       .filter((gate) => gate.status === "blocked" && !gate.fresh)
       .map((gate) =>
@@ -1223,7 +1220,7 @@ function nextControlActionsFor({
         ? "Supervise live runs and do not duplicate source-control closure."
         : "Route one source-control closure lane to the owning PM/CTO with local validation and commit/no-commit evidence.",
       ...sourceControlActions,
-      ...staleGateOwnerActions,
+      ...staleGateOwnerActions(),
       ...blockedGateLines,
       ...requiredBeforeFullDelivery.map((item) => `Full delivery blocker: ${item}`),
     ];
