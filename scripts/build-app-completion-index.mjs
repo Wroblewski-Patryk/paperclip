@@ -114,10 +114,11 @@ function evidenceState(entity, relationsByFrom, relationsByTo, entitiesById) {
   };
 }
 
+const appCompletionBoundaryTypes = new Set(["api_endpoint", "component", "feature", "route"]);
+
 function isAppCompletionCandidate(entity, kind) {
-  if (["agent", "document", "task", "test"].includes(entity.type)) return false;
-  return Boolean(kind)
-    || ["api_endpoint", "component", "feature", "function", "module", "route"].includes(entity.type);
+  if (kind) return true;
+  return appCompletionBoundaryTypes.has(entity.type);
 }
 
 function completionRisk(item) {
@@ -248,6 +249,7 @@ const markdown = [
   "",
   "This index turns architecture-awareness entities into user-facing completion lanes.",
   "Agents use it to decide what to plan next: backend/API proof, frontend/browser proof, auth/subscription/configuration gates, exchange integration proof, or cleanup.",
+  "Internal functions and modules are implementation details: they receive proof through their owning product boundary and are not dispatched as one issue per symbol.",
   "",
   "## Counts",
   "",

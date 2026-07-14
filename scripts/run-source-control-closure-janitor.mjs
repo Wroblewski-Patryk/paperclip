@@ -1,5 +1,9 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import {
+  dirtyStateCouldInvalidateClosure,
+  latestDirtyMutationMs,
+} from "./lib/source-control-dirty-state.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -63,7 +67,7 @@ function uniqueIssues(rows) {
 
 function gitClean(projectName) {
   const cwd = path.join(appsRoot, projectName);
-  const status = spawnSync("git", ["status", "--short"], { cwd, encoding: "utf8" });
+  const status = spawnSync("git", ["status", "--porcelain=v1", "-z"], { cwd, encoding: "utf8" });
   if (status.status !== 0) {
     const errorText = `${status.stderr ?? ""}${status.stdout ?? ""}`.trim();
     return { exists: false, clean: false, error: errorText || `git status failed with exit code ${status.status}` };
@@ -72,7 +76,8 @@ function gitClean(projectName) {
   return {
     exists: true,
     clean: status.stdout.trim().length === 0,
-    dirtyCount: status.stdout.trim() ? status.stdout.trim().split(/\r?\n/).filter(Boolean).length : 0,
+    dirtyCount: status.stdout ? status.stdout.split("\0").filter(Boolean).length : 0,
+    latestDirtyMutationMs: latestDirtyMutationMs(cwd, status.stdout),
     head: head.status === 0 ? head.stdout.trim() : null,
   };
 }
@@ -176,6 +181,7 @@ for (const issue of issues) {
     && repo.exists
     && !repo.clean
     && hasTerminalCleanClaim(comments)
+    && dirtyStateCouldInvalidateClosure(repo, issue.updatedAt ?? issue.completedAt ?? issue.createdAt)
     && !hasInvalidReopenMarker(comments, issue.identifier, repo.head)
   ) {
     const projectRow = projectById.get(issue.projectId) ?? projectByName.get(project) ?? null;
@@ -187,6 +193,9 @@ for (const issue of issues) {
       status: issue.status,
       project,
       dirtyCount: repo.dirtyCount,
+      latestDirtyMutationAt: Number.isFinite(repo.latestDirtyMutationMs)
+        ? new Date(repo.latestDirtyMutationMs).toISOString()
+        : null,
       head: repo.head,
       projectWorkspaceId: defaultProjectWorkspaceId(projectRow),
     });

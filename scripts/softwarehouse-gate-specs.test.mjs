@@ -229,6 +229,9 @@ test("shared supervision teaches the canonical completion evidence reference con
   assert.match(supervision, /`comment`\/`document`\/`attachment`\//);
   assert.match(supervision, /Do not invent file-path refs/i);
   assert.match(supervision, /instead of retrying the same shape/i);
+  assert.match(supervision, /Do not recursively search/i);
+  assert.match(supervision, /session JSONL files/i);
+  assert.match(supervision, /runtime evidence, not API documentation/i);
 });
 
 test("shared supervision keeps Paperclip LUC identifiers out of the GitHub issue tracker", async () => {
@@ -2030,6 +2033,8 @@ test("source-control closure janitor reopens invalid clean claims against dirty 
   assert.match(source, /invalidReopenMarker\(issueIdentifier, gitHead\)/);
   assert.match(source, /invalidReopenMarker\(action\.identifier, action\.head\)/);
   assert.match(source, /dirtyCount/);
+  assert.match(source, /latestDirtyMutationMs/);
+  assert.match(source, /dirtyStateCouldInvalidateClosure/);
   assert.match(source, /executionWorkspacePreference: "shared_workspace"/);
   assert.match(source, /executionWorkspaceSettings: \{ mode: "shared_workspace" \}/);
   assert.match(source, /projectWorkspaceId/);
@@ -2125,6 +2130,8 @@ test("acceptance evidence lanes outrank architecture backlog wakeups", async () 
 test("app completion index exposes full risk backlog counts when priority review rows are capped", async () => {
   const source = await readFile("scripts/build-app-completion-index.mjs", "utf8");
 
+  assert.match(source, /appCompletionBoundaryTypes = new Set\(\["api_endpoint", "component", "feature", "route"\]\)/);
+  assert.doesNotMatch(source, /\["api_endpoint", "component", "feature", "function", "module", "route"\]/);
   assert.match(source, /const priorityReviewLimit = 200/);
   assert.match(source, /const riskItems = items\.filter\(\(item\) => item\.risk !== "ok"\)/);
   assert.match(source, /implementedNeedsProof/);

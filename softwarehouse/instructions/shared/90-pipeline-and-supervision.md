@@ -69,6 +69,14 @@ such as `path` and `note`; register an important workspace file as a work
 product first. If the API rejects an evidence payload, read the validation
 error and repair the payload once instead of retrying the same shape.
 
+Treat the tracked Paperclip skill, `docs/api/issues.md`, and the live API error
+as the authoritative issue-update contract. Do not recursively search
+`.paperclip/runtime`, managed `codex-home`, session JSONL files, archived run
+logs, or unrelated project worktrees to discover an API payload. Those paths
+are runtime evidence, not API documentation, and searching them can multiply
+context cost without improving the closeout. If the documented helper is
+unavailable, use the live validation error and the smallest direct API request.
+
 ## Kanban Board Standard
 
 Paperclip issues are the shared Kanban board for Stage 1 delivery. Goals define

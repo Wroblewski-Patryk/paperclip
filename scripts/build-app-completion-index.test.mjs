@@ -136,3 +136,56 @@ test("does not route agent state documents as app completion work", async () => 
   assert.equal(summary.counts.items, 0);
   assert.deepEqual(summary.priorityReviewItems, []);
 });
+
+test("does not dispatch internal functions and modules as independent product completion lanes", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "app-completion-index-"));
+  const docsDir = path.join(root, "docs");
+  await mkdir(path.join(docsDir, "graphs"), { recursive: true });
+
+  const graph = {
+    entities: [
+      {
+        id: "api_endpoint:get-positions",
+        type: "api_endpoint",
+        name: "GET /positions",
+        path: "apps/api/src/positions.routes.ts#/positions",
+        owner: "Engineering Delivery Lead",
+        status: "implemented",
+      },
+      {
+        id: "function:sum-position-pnl",
+        type: "function",
+        name: "sumPositionPnl",
+        path: "apps/api/src/positions.repository.ts#sumPositionPnl",
+        owner: "Engineering Delivery Lead",
+        status: "implemented",
+      },
+      {
+        id: "module:positions-repository",
+        type: "module",
+        name: "positions repository",
+        path: "apps/api/src/positions.repository.ts",
+        owner: "Engineering Delivery Lead",
+        status: "implemented",
+      },
+    ],
+    relations: [
+      { from: "api_endpoint:get-positions", to: "function:sum-position-pnl", type: "implemented_by" },
+      { from: "function:sum-position-pnl", to: "module:positions-repository", type: "member_of" },
+    ],
+  };
+
+  await writeFile(path.join(docsDir, "graphs", "architecture-awareness.json"), `${JSON.stringify(graph)}\n`);
+
+  const result = spawnSync(
+    process.execPath,
+    [scriptPath, "--project", "Soar", "--root", root, "--out", docsDir],
+    { encoding: "utf8" },
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const summary = JSON.parse(await readFile(path.join(docsDir, "status", "app-completion-index.json"), "utf8"));
+  assert.equal(summary.counts.items, 1);
+  assert.deepEqual(summary.priorityReviewItems.map((item) => item.id), ["api_endpoint:get-positions"]);
+});

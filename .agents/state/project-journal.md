@@ -2825,3 +2825,69 @@ Remaining protected boundary: LUC-972 is still the only root for the five
 blocked delivery-chain issues. It represents approved but secret-bearing
 credential rotation and must remain an explicit protected operator action; it
 is not evidence of idle orchestration or permission to synthesize completion.
+
+## 2026-07-14 - Product-boundary convergence audit
+
+The post-1,000-task audit found a healthy runtime but one material source of
+activity without fast convergence. The app-completion index treated internal
+functions and modules as separate user-facing contracts, requiring a direct
+test and documentation link for every symbol. This produced 3,494 Soar gaps
+and 1,139 Roost gaps even though public probes, event chains, and runtime error
+indexes were healthy. Recent issues such as a proof task for a single PnL sum
+helper demonstrated that the resulting queue was too granular.
+
+The index is now product-boundary based. Routes, API endpoints, features, and
+screen-like components remain eligible for autonomous completion work;
+internal functions and modules receive proof through their owning boundary.
+The still-queued internal-function issue LUC-1115 was cancelled before it
+could mutate Soar. The active Roost API-boundary proof LUC-1114 remained valid
+and was allowed to finish normally.
+
+Evidence at the audit sample:
+
+- all three repositories started clean at Paperclip `2e96e8bf`, Soar
+  `de156c34`, and Roost `a74f6721`;
+- the full Softwarehouse audit, agent settings audit, 39-agent instruction
+  audit, workspace boundary audit, and longevity doctor passed;
+- 739 runs were observed in the preceding 24 hours: 696 succeeded, 8 failed,
+  32 were cancelled, and the remaining rows were live/retry state;
+- failures were historical adapter/symlink events or process-loss tails around
+  controlled maintenance, with no continuing failure cluster;
+- light work continued on `gpt-5.4-mini` in `codex_standard_light` while the
+  standard weekly lane remained under quota pressure;
+- the focused app-completion suite passed 4/4 and all Softwarehouse gate specs
+  passed 148/148.
+
+Operational rule: completion backlogs must represent inspectable product
+boundaries, not raw architecture symbol counts. A rising completed-task count
+is not sufficient evidence of convergence when the remaining gap denominator
+is generated from implementation details.
+
+## 2026-07-14 - Temporal source-control closure and closeout-cost repair
+
+The valid Roost boundary proof LUC-1114 completed and persisted a typed
+`completionEvidence` bundle, but its closeout exposed two control-plane gaps.
+First, the worker recursively searched managed runtime sessions and unrelated
+worktrees for the issue API contract after a validation error. The work result
+was correct, but the run consumed more than seven million input tokens. Shared
+supervision now limits contract discovery to the tracked Paperclip skill,
+`docs/api/issues.md`, and the live validation error. Runtime homes, JSONL
+sessions, archived logs, and unrelated worktrees are explicitly excluded.
+The rule was synced to all 39 agent bundles.
+
+Second, the source-control closure janitor interpreted the new 85-path Roost
+packet as proof that three older clean closeouts were false. It proposed
+reopening LUC-1106, LUC-904, and LUC-926 together. The janitor now timestamps
+the dirty paths represented by NUL-delimited git porcelain and reopens an old
+closeout only when that dirty state existed at or before the closeout. A later
+write is a new packet and must receive one current closure lane. Focused
+regressions pass 4/4, the full Softwarehouse gate suite passes 148/148, and the
+post-repair janitor dry-run reports zero false reopen actions.
+
+The controlled restart then proved the committed shared-environment repair:
+fresh LUC-770 and product-run invocation payloads both contained the managed
+`PAPERCLIP_AGENT_INSTRUCTIONS_ROOT`. The first watchdog cycle still consumed
+the pre-regeneration Soar index and created LUC-1116 for the same internal PnL
+helper; the run and issue were cancelled before any Soar mutation. This is the
+expected last stale-snapshot race and confirms that index regeneration must
+precede the next product-truth dispatch.
