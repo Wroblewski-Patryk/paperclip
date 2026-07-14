@@ -2000,7 +2000,8 @@ test("known blocker link repair resolves both current and legacy company names",
   assert.match(source, /repaired_stale_cancelled_blocker/);
   assert.match(source, /deferredDiscoveredRepairCount/);
   assert.match(source, /\/api\/companies\/\$\{company\.id\}\/live-runs/);
-  assert.match(source, /Math\.max\(health\.devServer\?\.activeRunCount \?\? 0, liveActiveRunCount\)/);
+  assert.match(source, /healthReportedActiveRunCount = health\.devServer\?\.activeRunCount \?\? null/);
+  assert.match(source, /activeRunCount = liveActiveRunCount/);
 });
 
 test("stale blocker repair requires fresh completed triage and preserves active blockers", () => {
@@ -2045,7 +2046,8 @@ test("recovery janitor only restores reusable routines after their own fresh suc
   const source = await readFile("scripts/run-recovery-action-janitor.mjs", "utf8");
   assert.match(source, /softwarehousePilotActiveRoutineTitles/);
   assert.match(source, /issues\?status=backlog,todo,in_progress,in_review,blocked&limit=2000&includeBlockedBy=true/);
-  assert.match(source, /Math\.max\(health\?\.devServer\?\.activeRunCount \?\? 0, liveActiveRunCount\)/);
+  assert.match(source, /healthReportedActiveRunCount = health\?\.devServer\?\.activeRunCount \?\? null/);
+  assert.match(source, /activeRunCount = liveActiveRunCount/);
   assert.match(source, /restored_recurring_controller/);
   assert.match(source, /deferred_serial_repair/);
   assert.match(source, /\["\[Softwarehouse\] Continuation watchdog", 0\]/);

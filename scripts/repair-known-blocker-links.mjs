@@ -56,7 +56,8 @@ const [health, activeIssues, terminalTriageIssues, liveRuns] = await Promise.all
 ]);
 
 const liveActiveRunCount = liveRuns.filter((run) => ["queued", "running"].includes(run.status)).length;
-const activeRunCount = Math.max(health.devServer?.activeRunCount ?? 0, liveActiveRunCount);
+const healthReportedActiveRunCount = health.devServer?.activeRunCount ?? null;
+const activeRunCount = liveActiveRunCount;
 if (apply && activeRunCount > 0) {
   throw new Error(`Refusing to repair blocker links while ${activeRunCount} run(s) are active.`);
 }
@@ -157,6 +158,7 @@ console.log(JSON.stringify({
   company: { id: company.id, name: company.name },
   activeRunCount,
   liveActiveRunCount,
+  healthReportedActiveRunCount,
   mode: apply ? "apply" : "dry-run",
   actionCount: actions.filter((action) => [
     "would_repair",

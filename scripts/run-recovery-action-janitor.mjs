@@ -98,7 +98,8 @@ try {
 }
 
 const liveActiveRunCount = liveRuns.filter((run) => ["queued", "running"].includes(run.status)).length;
-const activeRunCount = Math.max(health?.devServer?.activeRunCount ?? 0, liveActiveRunCount);
+const healthReportedActiveRunCount = health?.devServer?.activeRunCount ?? null;
+const activeRunCount = liveActiveRunCount;
 if (apply && activeRunCount > 0) {
   throw new Error(`Refusing to resolve recovery actions while ${activeRunCount} run(s) are active.`);
 }
@@ -205,6 +206,7 @@ console.log(JSON.stringify({
   mode: apply ? "apply" : "dry-run",
   activeRunCount,
   liveActiveRunCount,
+  healthReportedActiveRunCount,
   actionCount: actions.filter((action) => [
     "would_resolve_blocked",
     "resolved_blocked",

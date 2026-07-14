@@ -3091,9 +3091,10 @@ terminal result confirm Spark was truly applied.
 
 - The board snapshot contained 15 active issues: ten blocked, four todo, and
   one in progress. There were no pending approvals, no error-state agents, and
-  only the intended nine paused roles. A direct live-run read is now combined
-  with the health count because the health summary briefly under-reported an
-  active DSM run.
+  only the intended nine paused roles. A fresh direct live-run read is now
+  authoritative for mutation guards because the cached health summary both
+  under-reported an active DSM run and briefly retained a completed watcher.
+  The health count remains visible as diagnostic evidence only.
 - LUC-1151 and LUC-1152 completed focused Roost and Soar documentation truth
   work with typed completion evidence and passing project-specific validation.
   Their coherent generated and documentation packets remain uncommitted in the
