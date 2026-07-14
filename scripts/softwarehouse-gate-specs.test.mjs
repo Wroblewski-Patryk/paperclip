@@ -2107,6 +2107,8 @@ test("mixed source-control packets route to technical review instead of PM-only 
   const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
 
   assert.match(source, /specialistSourceControlGroups = new Set\(\["product-code", "scripts", "dependencies", "other"\]\)/);
+  assert.match(source, /canonicalProjectName = controlledProjectNameFor\(projectName\) \?\? projectName/);
+  assert.match(source, /candidate\.name === canonicalProjectName/);
   assert.match(source, /return "09 CRS \(Code Review Specialist\)"/);
   assert.match(source, /sourceControlClosureAssigneeName\(issue\.projectName, sourceControlPacket\)/);
   assert.match(source, /CRS owner must inspect that diff, run the smallest relevant validation/);

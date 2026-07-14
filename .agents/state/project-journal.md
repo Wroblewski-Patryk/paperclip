@@ -3078,3 +3078,7 @@ terminal result confirm Spark was truly applied.
   not accept the accompanying admin-users E2E test. Mixed code/tooling packets
   now route to CRS with mandatory focused validation; pure docs/state packets
   continue to route to the product PM.
+- The first post-fix dry-run still skipped LUC-1140 because its project name was
+  the active alias `11 Innovation: Soar` while the sidecar prefix was `[Soar]`.
+  The starter now canonicalizes aliases for both sidecar matching and assignee
+  selection, preventing a premature jump to Roost.

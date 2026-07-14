@@ -280,15 +280,18 @@ function wipStateIgnoringCurrentRun(state) {
 }
 
 function sourceControlClosureTitlePrefix(projectName) {
-  return `[${projectName}][Source Control Closure] Classify and close local dirty state`;
+  const canonicalProjectName = controlledProjectNameFor(projectName) ?? projectName;
+  return `[${canonicalProjectName}][Source Control Closure] Classify and close local dirty state`;
 }
 
 function sourceControlClosureAssigneeName(projectName, sourceControlPacket) {
-  const repo = (sourceControlPacket.repos ?? []).find((candidate) => candidate.name === projectName);
+  const canonicalProjectName = controlledProjectNameFor(projectName) ?? projectName;
+  const repo = (sourceControlPacket.repos ?? [])
+    .find((candidate) => candidate.name === canonicalProjectName);
   const needsTechnicalReview = (repo?.dirtyGroups ?? [])
     .some((group) => specialistSourceControlGroups.has(group.group));
   if (needsTechnicalReview) return "09 CRS (Code Review Specialist)";
-  return sourceControlClosureAssigneeByProject.get(projectName) ?? null;
+  return sourceControlClosureAssigneeByProject.get(canonicalProjectName) ?? null;
 }
 
 function isSourceControlClosureTitle(title) {

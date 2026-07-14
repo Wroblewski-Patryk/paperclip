@@ -265,3 +265,7 @@ or the relevant owners explicitly classify them as not required with evidence.
   unclassified paths route to `09 CRS`; PM remains the default owner for pure
   docs/state/evidence closure. This unblocks the mixed Soar packet without
   weakening validation.
+- Source-control candidate matching canonicalizes project aliases such as
+  `11 Innovation: Soar` to `Soar` before matching the sidecar title and model
+  owner. Existing blocked sidecars must be resumed before a later project gets
+  a new closure lane.
