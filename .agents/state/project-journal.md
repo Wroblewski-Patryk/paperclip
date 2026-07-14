@@ -3251,3 +3251,34 @@ terminal result confirm Spark was truly applied.
 - Full Stage 1 production completion remains false until protected credential
   rotation `LUC-972` has real operator/security evidence. This gate does not
   block independent local proof, docs, tests, or source-control closure.
+
+## 2026-07-14 - Root-first triage and live constructive audit
+
+- Two independent controller invocations created identical blocked-triage
+  issues `LUC-1172` and `LUC-1173` within one second. The duplicate queued
+  runs were cancelled before process start and `LUC-1173` was cancelled with
+  an explicit canonical pointer, so no project or production mutation was
+  duplicated.
+- The triage starter now serializes creation through a stale-safe exclusive
+  runtime lock and repeats an exact-title API read while holding the lock. It
+  also ranks the actual root blocker before dependent blocked issues and
+  treats all `routine_execution` runs as non-blocking controller cadence.
+- The focused combined gate suite passes `169/169`. A live dry-run now selects
+  `LUC-1161` as the one ambiguous root instead of dependent `LUC-1165`.
+- The control loop then made useful forward progress: `LUC-1161`, `LUC-1165`,
+  `LUC-1172`, `LUC-1176`, `LUC-1177`, `LUC-1178`, and `LUC-1179` reached
+  evidence-backed terminal disposition. EDL committed the independent
+  dispatcher authorization-boundary fix as `0c8dee90`.
+- Roost documentation work remains active through `LUC-1174` and its dedicated
+  source-control closure `LUC-1180`; Soar `LUC-1175` is queued behind the same
+  DSM owner rather than running concurrently. This is aligned, serialized
+  product work rather than controller churn.
+- Instruction, operating-standard, runtime-file, and workspace-boundary audits
+  pass. There is one Paperclip listener on port 3200. One orphaned Soar
+  `tsx watch` process with a dead parent and no listening port was stopped.
+- The persisted cost summary reports 16% weekly subscription use and no budget
+  incident or error agent. The direct quota probe was temporarily unavailable
+  (`spawn EPERM` plus provider 503), so fresh quota telemetry must be retried
+  after current agent load drops; cached cost-window data remains visible.
+- Full protected delivery still waits for `LUC-972`. Local proof, review,
+  documentation, tests, and source-control closure remain allowed.

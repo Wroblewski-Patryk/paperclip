@@ -815,6 +815,8 @@ test("blocked triage starter scopes issue scans and has a dedicated timeout", as
   assert.match(source, /governorDecision = await readGovernorDecision\(\)/);
   assert.match(source, /function isRecoverableOpenTriage/);
   assert.match(source, /function triageAssigneeFor/);
+  assert.match(source, /function rootBlockerRank/);
+  assert.match(source, /rootBlockerRank\(left\) - rootBlockerRank\(right\)/);
   assert.match(source, /assigneeStrategy: usesTargetOwner \? "target_owner" : "triage_fallback"/);
   assert.match(source, /!issue\.activeRecoveryAction/);
   assert.match(source, /attentionBlockerCount/);
@@ -825,6 +827,26 @@ test("blocked triage starter scopes issue scans and has a dedicated timeout", as
   assert.match(controlTick, /name: "blockedTriageLaneStarter",\s+command: \["scripts\/run-blocked-triage-lane-starter\.mjs", "--apply"\],\s+timeoutMs: blockedTriageLaneStarterStepTimeoutMs/);
   assert.match(controlTick, /activeIssueCount: data\.activeIssueCount \?\? null/);
   assert.match(controlTick, /terminalTriageIssueCount: data\.terminalTriageIssueCount \?\? null/);
+});
+
+test("blocked triage starter serializes exact-title creation across concurrent controllers", async () => {
+  const source = await readFile("scripts/run-blocked-triage-lane-starter.mjs", "utf8");
+
+  assert.match(source, /blocked-triage-create\.lock/);
+  assert.match(source, /async function withTriageCreationLock/);
+  assert.match(source, /await open\(triageCreationLockPath, "wx"\)/);
+  assert.match(source, /async function findOpenTriageByExactTitle/);
+  assert.match(source, /issue\.title === title && !terminalStatuses\.has\(issue\.status\)/);
+  assert.match(source, /await withTriageCreationLock\(async \(\) =>/);
+  assert.match(source, /kept_existing_blocked_triage_lane/);
+  assert.match(source, /concurrentDuplicatePrevented = true/);
+});
+
+test("blocked triage starter treats every recurring routine run as non-blocking", async () => {
+  const source = await readFile("scripts/run-blocked-triage-lane-starter.mjs", "utf8");
+
+  assert.match(source, /return issue\?\.originKind === "routine_execution"/);
+  assert.doesNotMatch(source, /nonBlockingRoutineTitles/);
 });
 
 test("learning loop degrades candidate scan timeouts into reportable actions", async () => {

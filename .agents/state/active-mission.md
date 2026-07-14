@@ -384,3 +384,20 @@ or the relevant owners explicitly classify them as not required with evidence.
 - `LUC-972` remains the only protected owner/security leaf for hard production
   completion. Do not push, deploy, restart, run protected smoke, or disclose
   credentials until its evidence-backed terminal disposition exists.
+
+## 2026-07-14 - Root Blocker Progression Rule
+
+- Blocked-triage creation is a single-writer operation. Concurrent watchdog or
+  selector cycles must reuse an exact-title open lane instead of creating a
+  sibling, and all recurring routine issues remain controller cadence rather
+  than product backlog.
+- Select the blocked issue that is its own `rootBlocker` before any dependent
+  issue. The live proof moved `LUC-1161` through architecture and test-evidence
+  reconciliation before closing dependent worker-fan-out work.
+- Current product flow is constructive: Roost `LUC-1174` has a dedicated
+  source-control closure `LUC-1180`, while Soar `LUC-1175` waits behind the
+  same Documentation Steward owner. Preserve one-agent-one-active-lane and let
+  the queued Soar packet start only after the Roost writer closes cleanly.
+- Keep fresh quota telemetry separate from cached subscription cost truth. A
+  transient provider probe failure is not proof of quota exhaustion and must
+  not erase the last known reset/use window; retry after load drops.

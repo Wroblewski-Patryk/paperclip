@@ -1,3 +1,5 @@
+import { mkdir, open, rm, stat } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { rootBlockerIdentifierFor } from "./lib/issue-blockers.mjs";
 import { softwarehouseGateSpecs } from "./lib/softwarehouse-gates.mjs";
 import { agentWipBlockerFor, fetchAgentWipState, summarizeAgentWip } from "./lib/agent-wip-guard.mjs";
@@ -15,11 +17,21 @@ const terminalIssueStatuses = ["done", "cancelled"];
 const knownGateRoots = new Set(softwarehouseGateSpecs.map((spec) => spec.rootBlocker));
 const triageTitlePrefix = "[Softwarehouse][Blocked Triage]";
 const triageTargetPattern = /^\[Softwarehouse\]\[Blocked Triage\] Classify ([^\s]+) and produce next legal action$/;
-const nonBlockingRoutineTitles = new Set([
-  "[Softwarehouse] Agent health and model governance",
-  "[Softwarehouse] Autonomy governor",
-  "[Softwarehouse] Gate freshness watcher",
-]);
+const triageCreationLockPath = resolve(
+  process.cwd(),
+  ".paperclip",
+  "runtime",
+  "locks",
+  "blocked-triage-create.lock",
+);
+const triageCreationLockTimeoutMs = Number.parseInt(
+  process.env.SOFTWAREHOUSE_BLOCKED_TRIAGE_LOCK_TIMEOUT_MS ?? "15000",
+  10,
+);
+const triageCreationLockStaleMs = Number.parseInt(
+  process.env.SOFTWAREHOUSE_BLOCKED_TRIAGE_LOCK_STALE_MS ?? "60000",
+  10,
+);
 const terminalTriageCooldownMs = Number.parseInt(
   process.env.SOFTWAREHOUSE_BLOCKED_TRIAGE_COOLDOWN_MS ?? `${24 * 60 * 60 * 1000}`,
   10,
@@ -117,6 +129,60 @@ function projectIsInPriority(projectName) {
 
 function priorityRank(priority) {
   return { urgent: 0, high: 1, medium: 2, low: 3 }[priority] ?? 4;
+}
+
+function rootBlockerRank(issue) {
+  const identifier = issue.identifier ?? issue.id;
+  return issue.rootBlocker && issue.rootBlocker !== identifier ? 1 : 0;
+}
+
+function wait(ms) {
+  return new Promise((resolveWait) => setTimeout(resolveWait, ms));
+}
+
+async function withTriageCreationLock(callback) {
+  await mkdir(dirname(triageCreationLockPath), { recursive: true });
+  const deadline = Date.now() + triageCreationLockTimeoutMs;
+  let lockHandle = null;
+
+  while (!lockHandle) {
+    try {
+      lockHandle = await open(triageCreationLockPath, "wx");
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      try {
+        const lockStat = await stat(triageCreationLockPath);
+        if (Date.now() - lockStat.mtimeMs > triageCreationLockStaleMs) {
+          await rm(triageCreationLockPath, { force: true });
+          continue;
+        }
+      } catch (statError) {
+        if (statError?.code !== "ENOENT") throw statError;
+        continue;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(`Timed out waiting for blocked-triage creation lock: ${triageCreationLockPath}`);
+      }
+      await wait(100);
+    }
+  }
+
+  try {
+    return await callback();
+  } finally {
+    await lockHandle.close();
+    await rm(triageCreationLockPath, { force: true });
+  }
+}
+
+async function findOpenTriageByExactTitle(title) {
+  const matches = await request(
+    "GET",
+    `/api/companies/${company.id}/issues?q=${encodeURIComponent(title)}&limit=100`,
+  );
+  return matches.find((issue) =>
+    issue.title === title && !terminalStatuses.has(issue.status)
+  ) ?? null;
 }
 
 function isUnknownBlockedCandidate(issue, projectById, liveIssueIds) {
@@ -254,7 +320,7 @@ const terminalTriageByTarget = terminalTriageByTargetFor(issues);
 const issueById = new Map(issues.map((issue) => [issue.id, issue]));
 const nonBlockingRoutineLiveRunCount = liveRuns.filter((run) => {
   const issue = issueById.get(run.issueId);
-  return issue?.originKind === "routine_execution" && nonBlockingRoutineTitles.has(issue.title);
+  return issue?.originKind === "routine_execution";
 }).length;
 const blockingActiveRunCount = Math.max(0, activeRunCount - nonBlockingRoutineLiveRunCount);
 
@@ -272,7 +338,8 @@ const candidates = issues
     rootBlocker: rootBlockerIdentifierFor(issue),
   }))
   .sort((left, right) =>
-    projectRank(left.projectName) - projectRank(right.projectName)
+    rootBlockerRank(left) - rootBlockerRank(right)
+    || projectRank(left.projectName) - projectRank(right.projectName)
     || priorityRank(left.priority) - priorityRank(right.priority)
     || String(left.updatedAt).localeCompare(String(right.updatedAt))
   );
@@ -416,25 +483,35 @@ if (actions.length === 0 && governorDecision.decision !== "blocked_needs_triage"
   });
 
   if (apply) {
-    const created = await request("POST", `/api/companies/${company.id}/issues`, {
-      title,
-      description,
-      status: "todo",
-      priority: "high",
-      assigneeAgentId: assignee?.id ?? null,
-      projectId: osProject?.id ?? null,
-      goalId: goal?.id ?? null,
-      requestDepth: 2,
-      acceptanceCriteria: [
-        "No protected delivery action occurs.",
-        "No project repository mutation occurs.",
-        "Target issue receives owner/action/evidence disposition.",
-        "At most one next legal lane is created or woken.",
-      ],
+    const creation = await withTriageCreationLock(async () => {
+      const concurrentExisting = await findOpenTriageByExactTitle(title);
+      if (concurrentExisting) return { issue: concurrentExisting, reused: true };
+      const created = await request("POST", `/api/companies/${company.id}/issues`, {
+        title,
+        description,
+        status: "todo",
+        priority: "high",
+        assigneeAgentId: assignee?.id ?? null,
+        projectId: osProject?.id ?? null,
+        goalId: goal?.id ?? null,
+        requestDepth: 2,
+        acceptanceCriteria: [
+          "No protected delivery action occurs.",
+          "No project repository mutation occurs.",
+          "Target issue receives owner/action/evidence disposition.",
+          "At most one next legal lane is created or woken.",
+        ],
+      });
+      return { issue: created, reused: false };
     });
+    const created = creation.issue;
+    if (creation.reused) {
+      actions.at(-1).action = "kept_existing_blocked_triage_lane";
+      actions.at(-1).concurrentDuplicatePrevented = true;
+    }
     actions.at(-1).identifier = created.identifier;
     actions.at(-1).status = created.status;
-    if (created.assigneeAgentId) {
+    if (!creation.reused && created.assigneeAgentId) {
       const freshWip = await fetchAgentWipState({ request, companyId: company.id });
       const blocker = agentWipBlockerFor(created.assigneeAgentId, freshWip);
       if (blocker) {
