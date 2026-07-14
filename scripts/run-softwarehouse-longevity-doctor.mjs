@@ -169,6 +169,14 @@ function issueList(result) {
   return Array.isArray(result) ? result : Array.isArray(result?.value) ? result.value : [];
 }
 
+function isExpectedBlockedRecoveryRun(issue, run) {
+  if (!issue || !run || issue.status !== "blocked" || run.status !== "running") return false;
+  const recovery = issue.activeRecoveryAction;
+  if (!recovery || recovery.status !== "active") return false;
+  if (recovery.ownerType !== "agent") return false;
+  return Boolean(recovery.ownerAgentId && run.agentId && recovery.ownerAgentId === run.agentId);
+}
+
 function findingsDigest(rows) {
   return rows.slice(0, 12).map((finding) => {
     const data = Object.keys(finding.data ?? {}).length > 0
@@ -425,11 +433,17 @@ if (apiReachable) {
         ageMinutes: age,
       });
     }
-    if (run.status === "running" && issue && ["done", "cancelled", "blocked"].includes(issue.status)) {
+    if (
+      run.status === "running"
+      && issue
+      && ["done", "cancelled", "blocked"].includes(issue.status)
+      && !isExpectedBlockedRecoveryRun(issue, run)
+    ) {
       pushFinding(findings, "warn", "live-run", "Live run is attached to a non-running issue status.", {
         issue: issue.identifier,
         issueStatus: issue.status,
         agent: agent?.name ?? run.agentId,
+        recoveryKind: issue.activeRecoveryAction?.kind ?? null,
       });
     }
     return {

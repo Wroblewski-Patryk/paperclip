@@ -2706,3 +2706,13 @@ instead of another generated microtask. Unused Anthropic quota polling was
 disabled after it produced a Windows `spawn sh ENOENT`; active OpenAI quota
 readback remains healthy and fallback routing to `codex_standard_light` was
 observed while the standard lane was above its hold threshold.
+
+The live audit then exercised the correction path: LUC-1104 serialized and
+committed the full Soar account-access proof packet (`11b8b5ab`, 9 focused test
+files / 32 tests, strict architecture drift `871/871`, no push). The longevity
+watchdog noticed LUC-1101's blocked source issue still had a live QVE recovery
+run and initially raised LUC-1105. LUC-1105 correctly repaired the doctor so an
+active blocked recovery owned by the same agent is not treated as an invalid
+live-run/status combination. Review tightened that exemption to require an
+explicit agent owner match. The full gate suite passed 146/146 and a live doctor
+dry-run returned `overall: pass` with no findings.
