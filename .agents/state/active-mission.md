@@ -298,3 +298,7 @@ or the relevant owners explicitly classify them as not required with evidence.
   provenance belongs in its description, not a second assignee-waking comment.
 - Source-control review must remain bounded: stat/numstat first, focused
   authored diffs, and generator plus summary proof for large generated groups.
+- Product-truth dispatch must also stop while `Paperclip_Softwarehouse` is
+  dirty. Close the operating-repo packet first; the guard clears automatically
+  after commit. Exact product searches must avoid repository-root scans of
+  generated state, history, status, and graph trees.

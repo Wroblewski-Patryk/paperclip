@@ -3132,3 +3132,12 @@ terminal result confirm Spark was truly applied.
   classification, focused authored-path diffs, and generator/summary evidence
   for generated groups. The rule is synchronized to all 39 bundles; instruction
   and runtime-file audits both pass with zero warnings or failures.
+- LUC-1155 exposed a second output-cost pattern: a repository-root search for a
+  generic issue phrase traversed generated state, history, status, and graph
+  trees and produced roughly 3 MB of transcript. Managed instructions now
+  require exact, bounded searches in the expected source/test/docs area and
+  structural lookup for JSON/CSV identifiers before any wider search.
+- The project-truth dispatcher checked dirty Soar and Roost repositories but
+  could still start product work while the Paperclip operating repository was
+  dirty. It now exits without mutation until the operating packet is committed,
+  then self-clears and resumes normal product dispatch on the next cycle.

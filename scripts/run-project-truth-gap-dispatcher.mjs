@@ -521,6 +521,32 @@ const firstGap = gapsToDispatch.flatMap((project) => project.gaps).find((gap) =>
   ?? audit.firstGap
   ?? null;
 const currentDispatchTitles = new Set();
+const operatingRepo = (sourceControl.repos ?? [])
+  .find((repo) => repo.name === "Paperclip_Softwarehouse");
+if (operatingRepo?.parked !== true && operatingRepo?.clean === false) {
+  console.log(JSON.stringify({
+    apiBase,
+    mode: apply ? "apply" : "dry-run",
+    ok: true,
+    contractRefresh,
+    projectTruth: audit.summary ?? {},
+    sourceControl: {
+      operatingRepo: {
+        name: operatingRepo.name,
+        head: operatingRepo.head ?? null,
+        dirtyCount: operatingRepo.dirtyCount ?? null,
+      },
+    },
+    actions: [{
+      action: "noop_operating_repo_dirty_source_control_closure_required",
+      repository: operatingRepo.name,
+      dirtyCount: operatingRepo.dirtyCount ?? null,
+      head: operatingRepo.head ?? null,
+      ownerAction: "Close the Paperclip_Softwarehouse source-control packet before dispatching product truth work.",
+    }],
+  }, null, 2));
+  process.exit(0);
+}
 if (gapsToDispatch.length === 0) {
   console.log(JSON.stringify({
     apiBase,
