@@ -2597,3 +2597,47 @@ Actions:
 Decision: queued backlog depth is not a closure goal by itself. Never create
 fan-out or learning work merely because a controlled track's only remaining
 issue has already moved from planned to active leaf-worker execution.
+
+## 2026-07-14 - Eleven-run alignment audit and bounded parallelism repair
+
+Context: the owner observed eleven live tasks and asked whether the burst was
+actually converging on Paperclip, Soar, and Roost or merely creating activity.
+
+Findings:
+
+- All 18 non-terminal issues and all recent LUC-950 through LUC-1008 work were
+  scoped to the Paperclip control plane, Soar, or Roost. No parked product,
+  sales, marketing, customer-service, or unrelated-app lane was active.
+- The productive lanes were real and role-aligned: Roost backend, integration,
+  runtime, QA, documentation, and source-control proof; Soar documentation
+  proof; plus bounded Paperclip controller/self-repair work.
+- The burst was too permissive at the shared-worktree boundary. Several Roost
+  workers could write the same generated `docs/status`, `docs/graphs`,
+  `.agents/state`, and `.codex/context` surfaces concurrently even though their
+  primary implementation targets differed.
+- LUC-965, LUC-995, and LUC-1003 repeated the same Roost worker-fan-out lesson
+  because changing queue counters changed the v2 signature.
+- LUC-1005 was created for a normal fresh closed-run tail. The board janitor
+  safely cancelled the blocked LUC-989 queued tail and closed/cancelled the
+  stale LUC-912 governor self-supervision run.
+
+Actions:
+
+- Added a 90-second fresh-tail tolerance before detached-process or
+  closed-issue tails become audit findings.
+- Added a 24-hour fan-out family cooldown keyed by weak project track names,
+  while retaining exact posture matching and allowing a later real recheck.
+- Restricted worker decomposition language to Paperclip, Soar, and Roost and
+  removed stale Aviary/Nest preparation wording.
+- Required managers to queue shared-workspace writers serially; generated
+  truth/state paths are explicit conflict sets and concurrent mutation now
+  requires isolated worktrees plus disjoint paths.
+- Verified the combined learning/gate suites: 211 tests passed. A live
+  Softwarehouse audit then returned `overall: pass`, with no duplicate routine
+  group, no stale process tail, no missing instruction bundle, and no
+  out-of-scope project.
+
+Decision: eleven live tasks are not inherently healthy. Healthy parallelism is
+role-scoped, project-scoped, and file-conflict-aware. Keep the useful worker
+queue, serialize writers inside one shared app worktree, and converge each batch
+through one source-control closure before starting another mutating batch.

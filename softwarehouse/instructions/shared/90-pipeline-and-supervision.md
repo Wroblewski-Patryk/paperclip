@@ -91,6 +91,16 @@ comment or parent decision is enough.
   lane has a durable disposition.
 - Parallel work is allowed only across different agents on independent lanes,
   with no shared file, release, secret, or acceptance conflict.
+- Planned queue depth is not execution permission. In a shared project
+  workspace, start at most one repo-mutating lane at a time unless the lanes
+  use isolated worktrees and their file sets are proven disjoint.
+- Treat `docs/status`, `docs/graphs`, `.agents/state`, `.codex/context`, generated
+  indexes, lockfiles, and source-control closure packets as shared conflict
+  sets. Any lanes that write these surfaces must execute serially even when
+  their primary implementation files differ.
+- Keep parked products parked. Stage 1 fan-out may create work only for Soar,
+  Roost, or the Paperclip control plane unless the owner explicitly activates
+  another product.
 - Before promoting Roost or any second project from preparation into full
   delivery, run `node scripts/check-two-project-readiness.mjs`. Shared
   supervision readiness is not full two-project delivery readiness.

@@ -150,6 +150,17 @@ function fanoutLearningSignature(input) {
   ].map((value) => String(value ?? "").trim().toLowerCase()).join("\n");
 }
 
+function fanoutWeakTrackNames(weakTrackSummaries = []) {
+  return weakTrackSummaries
+    .map((summary) => String(summary ?? "").split(":", 1)[0].trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+}
+
+function sameStringArray(left = [], right = []) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 function reviewDecisionPathLearningSignature(input) {
   return [
     input.title,
@@ -181,6 +192,7 @@ export function parseV2WorkerFanoutLearningSignature(issue) {
     plannedSupervisorIssueCount,
     plannedIssueCount,
     weakTrackSummaries,
+    weakTrackNames: fanoutWeakTrackNames(weakTrackSummaries),
     signature: fanoutLearningSignature({
       title,
       plannedWorkerIssueCount,
@@ -1041,6 +1053,8 @@ export function findSuppressibleV2WorkerFanoutDuplicate({
   plannedIssueCount,
   weakTrackSummaries = [],
   sourceIssues,
+  now = new Date(),
+  minimumRepeatIntervalMs = 24 * 60 * 60 * 1000,
 }) {
   const title = "[Softwarehouse][Learning] Worker queue fan-out capability gap";
   const signature = fanoutLearningSignature({
@@ -1050,9 +1064,26 @@ export function findSuppressibleV2WorkerFanoutDuplicate({
     plannedIssueCount,
     weakTrackSummaries,
   });
-  const matches = issues.filter((issue) => {
-    const parsed = parseV2WorkerFanoutLearningSignature(issue);
-    if (!parsed) return false;
+  const currentWeakTrackNames = fanoutWeakTrackNames(weakTrackSummaries);
+  const parsedIssues = issues
+    .map((issue) => ({ issue, parsed: parseV2WorkerFanoutLearningSignature(issue) }))
+    .filter((entry) => entry.parsed);
+  const recentFamilyMatch = latestIssue(parsedIssues
+    .filter(({ parsed }) => currentWeakTrackNames.length > 0
+      && sameStringArray(parsed.weakTrackNames, currentWeakTrackNames))
+    .map(({ issue }) => issue));
+  if (recentFamilyMatch && !terminalStatuses.has(recentFamilyMatch.status)) return recentFamilyMatch;
+  if (recentFamilyMatch?.status === "done") {
+    const latestUpdatedAt = issueTimestamp(recentFamilyMatch);
+    const nowTime = now instanceof Date ? now.getTime() : Date.parse(String(now));
+    if (
+      Number.isFinite(latestUpdatedAt)
+      && Number.isFinite(nowTime)
+      && nowTime - latestUpdatedAt < minimumRepeatIntervalMs
+    ) return recentFamilyMatch;
+  }
+
+  const matches = parsedIssues.filter(({ parsed }) => {
     if (parsed.signature === signature) return true;
     if (weakTrackSummaries.length > 0) {
       const parsedWeakTracks = parsed.weakTrackSummaries ?? [];
@@ -1066,7 +1097,7 @@ export function findSuppressibleV2WorkerFanoutDuplicate({
     return parsed.plannedWorkerIssueCount >= plannedWorkerIssueCount
       && parsed.plannedSupervisorIssueCount >= plannedSupervisorIssueCount
       && parsed.plannedIssueCount >= plannedIssueCount;
-  });
+  }).map(({ issue }) => issue);
   if (matches.length === 0) return null;
 
   const openOwner = matches.find((issue) =>

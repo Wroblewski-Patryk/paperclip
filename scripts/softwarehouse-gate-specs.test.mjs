@@ -177,6 +177,29 @@ test("longevity doctor treats active project-truth proof lanes as known-state ev
   assert.match(source, /\\b\(Prove\|Proof\|Reconcile\|Evidence\)\\b/);
 });
 
+test("softwarehouse audit ignores fresh completion and detached-process tails", async () => {
+  const source = await readFile("scripts/audit-luckysparrow-softwarehouse.mjs", "utf8");
+
+  assert.match(source, /freshTail: isFreshLiveRunTail\(liveRun \?\? run\)/);
+  assert.match(source, /const staleDetachedProcessRuns = detachedProcessRuns\.filter\(\(run\) => !run\.freshTail\)/);
+  assert.match(source, /freshTail: isFreshLiveRunTail\(run\)/);
+  assert.match(source, /const staleClosedIssueLiveRuns = closedIssueLiveRuns\.filter\(\(run\) => !run\.freshTail\)/);
+  assert.match(source, /if \(staleClosedIssueLiveRuns\.length > 0\)/);
+});
+
+test("worker backlog decomposition stays in active products and serializes shared-workspace writers", async () => {
+  const seeder = await readFile("scripts/run-worker-backlog-decomposition-seeder.mjs", "utf8");
+  const instructions = await readFile("softwarehouse/instructions/shared/90-pipeline-and-supervision.md", "utf8");
+
+  assert.match(seeder, /Aviary, Nest, Featherly, and every other parked product remain out of scope/);
+  assert.match(seeder, /for a shared project workspace, resume at most one repo-mutating worker lane at a time/);
+  assert.match(seeder, /docs\/status, docs\/graphs, \.agents\/state, and \.codex\/context as shared conflict sets/);
+  assert.doesNotMatch(seeder, /unblock\/prepare Roost\/Aviary\/Nest/);
+  assert.match(instructions, /Planned queue depth is not execution permission/);
+  assert.match(instructions, /start at most one repo-mutating lane at a time/);
+  assert.match(instructions, /Keep parked products parked/);
+});
+
 test("project-truth dispatcher requires a complete closure packet for proof lanes", async () => {
   const source = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
 

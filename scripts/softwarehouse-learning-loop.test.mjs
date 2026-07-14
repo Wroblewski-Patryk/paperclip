@@ -108,6 +108,7 @@ test("parseV2WorkerFanoutLearningSignature extracts the title and queue counts",
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 9,
     weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
+    weakTrackNames: ["roost"],
     signature: [
       "[softwarehouse][learning] worker queue fan-out capability gap",
       "worker-fanout",
@@ -2805,6 +2806,40 @@ test("findSuppressibleV2WorkerFanoutDuplicate ignores source timestamp churn for
   });
 
   assert.equal(duplicate.identifier, "LUC-1471");
+});
+
+test("findSuppressibleV2WorkerFanoutDuplicate cools down changed counters for the same weak track family", () => {
+  const duplicate = findSuppressibleV2WorkerFanoutDuplicate({
+    issues: [workerFanoutLearningIssue({
+      updatedAt: "2026-06-02T08:30:00.000Z",
+    })],
+    terminalStatuses,
+    plannedWorkerIssueCount: 1,
+    plannedSupervisorIssueCount: 0,
+    plannedIssueCount: 1,
+    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=5, blocked=0"],
+    sourceIssues: workerFanoutSourceIssues,
+    now: new Date("2026-06-02T09:00:00.000Z"),
+  });
+
+  assert.equal(duplicate.identifier, "LUC-1471");
+});
+
+test("findSuppressibleV2WorkerFanoutDuplicate allows the same weak track family after cooldown", () => {
+  const duplicate = findSuppressibleV2WorkerFanoutDuplicate({
+    issues: [workerFanoutLearningIssue({
+      updatedAt: "2026-06-01T08:30:00.000Z",
+    })],
+    terminalStatuses,
+    plannedWorkerIssueCount: 1,
+    plannedSupervisorIssueCount: 0,
+    plannedIssueCount: 1,
+    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=5, blocked=0"],
+    sourceIssues: workerFanoutSourceIssues,
+    now: new Date("2026-06-02T09:00:00.000Z"),
+  });
+
+  assert.equal(duplicate, null);
 });
 
 test("findSuppressibleV2WorkerFanoutDuplicate does not suppress per-track fanout evidence with only legacy aggregate history", () => {

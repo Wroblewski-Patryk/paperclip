@@ -387,10 +387,12 @@ const detachedProcessRuns = liveRunDetails
       processAlive: processAppearsAlive(run.processPid) ?? null,
       lastOutputAt: run.lastOutputAt ?? null,
       silenceLevel: liveRun?.outputSilence?.level ?? null,
+      freshTail: isFreshLiveRunTail(liveRun ?? run),
       errorCode: run.errorCode ?? null,
       error: run.error ?? null,
     };
   });
+const staleDetachedProcessRuns = detachedProcessRuns.filter((run) => !run.freshTail);
 const closedIssueLiveRuns = runningLiveRuns
   .map((run) => {
     const issue = issues.find((candidate) => candidate.id === run.issueId);
@@ -401,11 +403,13 @@ const closedIssueLiveRuns = runningLiveRuns
       issueStatus: issue.status,
       agentId: run.agentId ?? null,
       agentName: activeAgentById.get(run.agentId)?.name ?? null,
-      lastOutputAt: run.lastOutputAt ?? null,
+      lastOutputAt: liveRunLastActivityAt(run),
       silenceLevel: run.outputSilence?.level ?? null,
+      freshTail: isFreshLiveRunTail(run),
     };
   })
   .filter(Boolean);
+const staleClosedIssueLiveRuns = closedIssueLiveRuns.filter((run) => !run.freshTail);
 const liveRunsOnNonProgressIssues = runningLiveRuns
   .map((run) => {
     const issue = issues.find((candidate) => candidate.id === run.issueId);
@@ -1017,17 +1021,17 @@ if (routinesWithUnavailableAssignees.length > 0) findings.push({
   message: "Active routines are assigned to missing or non-invokable agents.",
   items: routinesWithUnavailableAssignees,
 });
-if (detachedProcessRuns.length > 0) findings.push({
-  severity: detachedProcessRuns.some((run) => run.silenceLevel === "critical" || run.silenceLevel === "suspicious") ? "critical" : "warn",
+if (staleDetachedProcessRuns.length > 0) findings.push({
+  severity: staleDetachedProcessRuns.some((run) => run.silenceLevel === "critical" || run.silenceLevel === "suspicious") ? "critical" : "warn",
   area: "runs",
   message: "Live runs have detached process handles; supervise or recover before treating them as healthy autonomous work.",
-  items: detachedProcessRuns,
+  items: staleDetachedProcessRuns,
 });
-if (closedIssueLiveRuns.length > 0) findings.push({
-  severity: closedIssueLiveRuns.some((run) => run.silenceLevel === "critical" || run.silenceLevel === "suspicious") ? "critical" : "warn",
+if (staleClosedIssueLiveRuns.length > 0) findings.push({
+  severity: staleClosedIssueLiveRuns.some((run) => run.silenceLevel === "critical" || run.silenceLevel === "suspicious") ? "critical" : "warn",
   area: "runs",
   message: "Live runs are still attached to closed issues; allow short completion tails, but recover if they persist.",
-  items: closedIssueLiveRuns,
+  items: staleClosedIssueLiveRuns,
 });
 if (staleLiveRunsOnNonProgressIssues.length > 0) findings.push({
   severity: "warn",
