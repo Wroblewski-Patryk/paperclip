@@ -82,8 +82,11 @@ Paused/out of scope unless separately approved:
 
 Active routines:
 
-- all app-factory governance routines except the old controlled dry-run
-  routine.
+- nine bounded Softwarehouse controllers: continuation, autonomy, gate
+  freshness, longevity, stale-board cleanup, daily model/agent governance,
+  daily backup, organizational learning, and AI-agent development review;
+- older broad department review routines and the controlled dry-run routine
+  are intentionally paused because the bounded controllers supersede them.
 
 Active goals:
 

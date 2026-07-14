@@ -109,8 +109,11 @@ Goals:
 
 Routines:
 
-- 13 app-factory/longevity routines are active.
-- The old controlled-dry-run routine and superseded liveness review are paused/historical.
+- 9 bounded Softwarehouse controller/governance routines are active.
+- 10 broad legacy department review or controlled-dry-run routines are
+  intentionally paused because their useful duties moved into the bounded
+  continuation, autonomy, gate-freshness, longevity, janitor, learning,
+  backup, and governance controllers.
 
 ## Durable References
 

@@ -2663,3 +2663,32 @@ closure. The canonical evidence-ref contract is now present in the shared
 supervision instructions, synchronized to all 39 agents, and guarded by a
 static regression test. The focused gate suite passes 144/144 and the agent
 instruction audit reports `overall: pass`.
+
+## 2026-07-14 - Constructiveness audit after the 1,000-task milestone
+
+Context: the owner asked whether high task volume was still converging on the
+Paperclip/Soar/Roost mission or merely producing motion.
+
+Findings and actions:
+
+- The active board remained fully scoped to Softwarehouse, Soar, and Roost;
+  no parked product or commercial-support lane was open.
+- Current uncommitted project-truth work produced measurable progress: Soar
+  reduced missing test links by 8, while Roost reduced missing test links and
+  aggregate app-completion risk items by 40 versus each repo's current HEAD.
+- The same work accumulated large source-control packets: Soar was 21 commits
+  ahead with 73 dirty paths, and Roost was 13 commits ahead with 174 dirty
+  paths. New proof generation must yield to serialized source-control closure.
+- Hardened historical completion-evidence backfill. Comment-only recovery now
+  requires explicit verification, review, and documentation signals; known
+  production/security/credential titles remain on the manual high-risk path.
+- Focused tests (3/3), server typecheck, and a 400-row live DB dry-run passed.
+- A stale-run janitor dry-run found zero live tails and zero actions. Closed
+  obsolete board task LUC-1056 and returned recurring LUC-1055 to `todo`.
+- Reconciled durable routine memory with the live configuration: 9 bounded
+  routines are active and 10 superseded broad/legacy routines are intentionally
+  paused.
+
+Decision: task count is not the success metric. Continue only through bounded,
+repo-owned work that reduces a measured app gap, then serialize one coherent
+source-control closure before another shared-worktree batch starts.

@@ -54,9 +54,13 @@ Optional flags:
 - `--dry-run` reports repaired/skipped candidates without mutating the DB
 
 The repair is intentionally conservative: it only fills `completion_evidence` when the issue
-already contains a substantive closeout comment plus a non-system same-issue document,
-attachment, or work product. Rows without enough inspectable proof remain unchanged and must be
-handled through a normal owner path instead of fabricated metadata.
+already contains substantive same-issue closeout evidence. Existing documents, attachments, and
+work products are preferred. When no richer artifact exists, same-issue closeout comments must
+explicitly record verification, review disposition, and the documentation outcome before they can
+satisfy the typed evidence bundle. High-risk production, deployment, credential, secret, security,
+privacy, rollback, restart, Coolify, VPS, and destructive-operation issues always remain on the
+manual evidence path. Rows without enough inspectable proof remain unchanged instead of receiving
+fabricated metadata.
 
 This mode is ideal for local development and one-command installs.
 
