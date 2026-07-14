@@ -713,7 +713,9 @@ if (activeRunCount > 0 && candidates.length === 0
     );
     const wakeBlocker = agentWipBlockerFor(created.assigneeAgentId, freshWip);
     try {
-      await request("POST", `/api/issues/${created.id}/comments`, { body: comment, resume: !wakeBlocker });
+      // Issue creation already schedules the assignee wake. A second resume comment
+      // becomes a deferred wake and can reopen the issue after the first run closes it.
+      await request("POST", `/api/issues/${created.id}/comments`, { body: comment, resume: false });
     } catch (error) {
       if (isRequestTimeoutError(error)) {
         actions.at(-1).action = "apply_outcome_unknown";

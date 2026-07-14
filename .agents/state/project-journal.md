@@ -2935,3 +2935,12 @@ reading the packet. Sidecar creation fails closed unless that refresh succeeds,
 and its result plus report timestamp are exposed in the dry-run output. The
 gate suite passes 149/149. A live dry-run after Soar closure reports Soar clean
 and selects Roost as the only remaining project closure target.
+
+The Roost closure then exposed a second lifecycle edge: LUC-1122 reached done
+with typed evidence and a clean repository, but a redundant resume comment
+created immediately after issue assignment was promoted after the run. The
+deferred wake reopened the completed issue to todo. New local-repair,
+known-state, and worker-decomposition issues now rely on their assignment wake;
+their informational creation comments use `resume: false`. Re-wakes of an
+already-existing issue remain unchanged. This keeps genuine later human input
+actionable without reopening work because of its own bootstrap comment.

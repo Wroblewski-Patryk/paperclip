@@ -336,7 +336,7 @@ if (agentWip.unknownActiveRunCount > 0) {
         ...weakTrackLines.map((line) => `- ${line}`),
         "This lane must split work downward into worker-ready issues or record concrete legal blockers.",
       ].join("\n"),
-      resume: !wakeBlocker,
+      resume: false,
     });
     actions.at(-1).identifier = created.identifier;
     actions.at(-1).status = created.status;

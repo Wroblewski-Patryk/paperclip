@@ -658,7 +658,7 @@ for (const projectName of targetProjects) {
             `Created because ${existing.identifier} is ${existing.status}; continue with safe local evidence gathering instead of waiting silently.`,
             "Use this lane to produce concrete next legal repair issues with owner/scope/evidence.",
           ].join("\n"),
-          resume: !wakeBlocker,
+          resume: false,
         });
         actions.at(-1).identifier = created.identifier;
         actions.at(-1).status = created.status;
@@ -786,7 +786,7 @@ for (const projectName of targetProjects) {
         "Start with local evidence collection and convert findings into concrete next repair lanes.",
         "Do not push, deploy, restart, run protected smoke, mutate production, or disclose secrets.",
       ].join("\n"),
-      resume: !wakeBlocker,
+      resume: false,
     });
     actions.at(-1).identifier = created.identifier;
     actions.at(-1).status = created.status;
@@ -854,7 +854,7 @@ if (createdOrWoken === 0 && idleRefreshCandidates.length > 0) {
         `Source lane: ${candidate.sourceIssue.identifier} ${candidate.sourceIssue.title}`,
         "Produce concrete next legal repair issues or an evidence-backed reason why no local work is legal.",
       ].join("\n"),
-      resume: !wakeBlocker,
+      resume: false,
     });
     actions.at(-1).identifier = created.identifier;
     actions.at(-1).status = created.status;

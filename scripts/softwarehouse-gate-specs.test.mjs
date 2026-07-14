@@ -1272,6 +1272,24 @@ test("local source-control starter refreshes Git truth before creating closure s
   assert.match(source, /SOFTWAREHOUSE_LOCAL_REPAIR_SOURCE_CONTROL_TIMEOUT_MS \?\? 30_000/);
 });
 
+test("new control issues do not add a second deferred comment wake", async () => {
+  const creationScripts = [
+    "scripts/run-local-repair-lane-starter.mjs",
+    "scripts/run-project-known-state-harvester.mjs",
+    "scripts/run-worker-backlog-decomposition-seeder.mjs",
+  ];
+
+  for (const scriptPath of creationScripts) {
+    const source = await readFile(scriptPath, "utf8");
+    assert.match(source, /resume: false/, `${scriptPath} must keep creation comments inert`);
+    assert.doesNotMatch(
+      source,
+      /\/api\/issues\/\$\{created\.id\}\/comments[\s\S]{0,600}resume: !wakeBlocker/,
+      `${scriptPath} must rely on the assignment wake created with the issue`,
+    );
+  }
+});
+
 test("local source-control sidecars preserve parallelism across independent projects and agents", async () => {
   const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
 
