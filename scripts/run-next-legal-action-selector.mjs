@@ -471,14 +471,17 @@ export function runApplyCommand(action) {
 }
 
 async function main() {
-  const [control, readiness, acceptanceLedger, appHealth, governorProbe, sourceControlProbe] = await Promise.all([
+  const [control, readiness, acceptanceLedger, appHealth, sourceControlProbe] = await Promise.all([
     readJson("report/softwarehouse-control-tick.latest.json"),
     readJson("report/softwarehouse-readiness-snapshot.latest.json"),
     readJson("report/soar-delivery-acceptance.latest.json"),
     probeAppHealth(),
-    Promise.resolve(probeAutonomyGovernor()),
     Promise.resolve(probeSourceControl()),
   ]);
+  // The governor reads the source-control report written by the probe above.
+  // Keep these probes serialized so one clean commit does not require a second
+  // watchdog cycle to clear a stale dirty-repository decision.
+  const governorProbe = probeAutonomyGovernor();
   const resolvedCompanyId = resolveCompanyId(control, readiness);
   const liveRunProbeResult = await probeLiveRuns(resolvedCompanyId);
 

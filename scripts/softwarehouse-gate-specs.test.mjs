@@ -1731,6 +1731,14 @@ test("next legal action selector routes fresh blocked triage before stale runnab
   assert.match(packageJson, /"softwarehouse:blocked-triage-lane-starter:apply": "node scripts\/run-blocked-triage-lane-starter\.mjs --apply"/);
 });
 
+test("next legal action refreshes source control before asking the governor", async () => {
+  const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
+  const main = source.slice(source.indexOf("async function main()"));
+
+  assert.ok(main.indexOf("probeSourceControl()") < main.indexOf("const governorProbe = probeAutonomyGovernor()"));
+  assert.match(source, /one clean commit does not require a second/);
+});
+
 test("continuation watchdog applies the next legal action when Paperclip goes idle", async () => {
   const source = await readFile("scripts/run-softwarehouse-continuation-watchdog.mjs", "utf8");
   const classifierSource = await readFile("scripts/lib/softwarehouse-live-run-classifier.mjs", "utf8");

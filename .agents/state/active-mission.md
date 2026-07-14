@@ -376,6 +376,7 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Recurring `routine_execution` issues are controller cadence, not product
   backlog. Their schedules remain active, but local repair and the autonomy
   governor must not select them in place of a worker or blocked-triage lane.
+  Refresh source-control truth before asking the governor to choose that lane.
 - The next legal non-production action is one blocked-triage lane for
   `LUC-1161`. It must classify the residual `/assets` evidence linkage and
   produce at most one owner-scoped next action. `LUC-1165` follows only after

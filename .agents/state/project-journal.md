@@ -3246,7 +3246,8 @@ terminal result confirm Spark was truly applied.
   reporting their count separately.
 - The live dry-run now selects `blocked_needs_triage` for `LUC-1161`, with
   `LUC-1165` correctly dependent on that root. The focused gate suite passes
-  165/165.
+  166/166. Source-control refresh now completes before the governor probe, so
+  a clean operating commit clears the dirty gate in the same selector cycle.
 - Full Stage 1 production completion remains false until protected credential
   rotation `LUC-972` has real operator/security evidence. This gate does not
   block independent local proof, docs, tests, or source-control closure.
