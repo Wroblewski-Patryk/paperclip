@@ -243,6 +243,60 @@ describe("codex managed home", () => {
     }
   });
 
+  it.skipIf(process.platform === "win32")(
+    "retries a transient EEXIST auth symlink collision before falling back",
+    async () => {
+      const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-codex-home-"));
+      const sharedCodexHome = path.join(root, "shared-codex-home");
+      const paperclipHome = path.join(root, "paperclip-home");
+      const managedCodexHome = path.join(
+        paperclipHome,
+        "instances",
+        "default",
+        "companies",
+        "company-1",
+        "codex-home",
+      );
+      const sharedAuth = path.join(sharedCodexHome, "auth.json");
+      const managedAuth = path.join(managedCodexHome, "auth.json");
+
+      await fs.mkdir(sharedCodexHome, { recursive: true });
+      await fs.writeFile(sharedAuth, '{"token":"shared"}\n', "utf8");
+
+      const originalSymlink = fs.symlink.bind(fs);
+      let callCount = 0;
+      vi.spyOn(fs, "symlink").mockImplementation(async (source, target, type) => {
+        callCount += 1;
+        if (callCount === 1) {
+          const error = new Error("file already exists") as NodeJS.ErrnoException;
+          error.code = "EEXIST";
+          throw error;
+        }
+        return originalSymlink(source, target, type);
+      });
+
+      try {
+        await expect(
+          prepareManagedCodexHome(
+            {
+              CODEX_HOME: sharedCodexHome,
+              PAPERCLIP_HOME: paperclipHome,
+              PAPERCLIP_INSTANCE_ID: "default",
+            },
+            async () => {},
+            "company-1",
+          ),
+        ).resolves.toBe(managedCodexHome);
+
+        expect((await fs.lstat(managedAuth)).isSymbolicLink()).toBe(true);
+        expect(await fs.realpath(managedAuth)).toBe(await fs.realpath(sharedAuth));
+        expect(callCount).toBeGreaterThanOrEqual(2);
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+
   it("removes placeholder OPENAI_API_KEY when copying shared auth.json", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-codex-home-"));
     const sharedCodexHome = path.join(root, "shared-codex-home");

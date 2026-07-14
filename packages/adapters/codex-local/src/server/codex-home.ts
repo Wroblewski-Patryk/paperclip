@@ -86,6 +86,10 @@ async function ensureParentDir(target: string): Promise<void> {
   await fs.mkdir(path.dirname(target), { recursive: true });
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function isExpectedSymlink(target: string, source: string): Promise<boolean> {
   const existing = await fs.lstat(target).catch(() => null);
   if (!existing?.isSymbolicLink()) return false;
@@ -104,11 +108,24 @@ async function createExpectedSymlink(target: string, source: string): Promise<vo
     if (code === "EEXIST") {
       if (await isExpectedSymlink(target, source)) return;
 
-      const existing = await fs.lstat(target).catch(() => null);
-      if (existing) {
-        await fs.rm(target, { force: true, recursive: true });
-        await fs.symlink(source, target);
-        return;
+      const retryDelaysMs = [0, 25, 100];
+      for (const delayMs of retryDelaysMs) {
+        const existing = await fs.lstat(target).catch(() => null);
+        if (existing) {
+          await fs.rm(target, { force: true, recursive: true }).catch(() => {});
+        } else if (delayMs > 0) {
+          await sleep(delayMs);
+        }
+
+        try {
+          await fs.symlink(source, target);
+          return;
+        } catch (retryError) {
+          if ((retryError as NodeJS.ErrnoException).code !== "EEXIST") {
+            throw retryError;
+          }
+          if (await isExpectedSymlink(target, source)) return;
+        }
       }
     }
     throw error;
