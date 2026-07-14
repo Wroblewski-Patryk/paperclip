@@ -4,6 +4,29 @@ import os from "node:os";
 import path from "node:path";
 import { testEnvironment } from "@paperclipai/adapter-codex-local/server";
 
+function writeQuotaCodexCommand(binDir: string): Promise<void> {
+  const isWin = process.platform === "win32";
+  const commandName = isWin ? "codex.cmd" : "codex";
+  const commandPath = path.join(binDir, commandName);
+  const commandBody = isWin
+    ? [
+        "@echo off",
+        "echo You've hit your usage limit for GPT-5.5-Pro. Switch to another model now, or try again at 11:31 PM.",
+        "exit /b 1",
+      ].join("\r\n")
+    : [
+        "#!/usr/bin/env node",
+        "console.error(\"You've hit your usage limit for GPT-5.5-Pro. Switch to another model now, or try again at 11:31 PM.\");",
+        "process.exit(1);",
+      ].join("\n");
+
+  return fs.writeFile(commandPath, commandBody, "utf8").then(async () => {
+    if (!isWin) {
+      await fs.chmod(commandPath, 0o755);
+    }
+  });
+}
+
 const itWindows = process.platform === "win32" ? it : it.skip;
 
 describe("codex_local environment diagnostics", () => {
@@ -135,6 +158,39 @@ describe("codex_local environment diagnostics", () => {
 
       expect(result.status).toBe("pass");
       expect(result.checks.some((check) => check.code === "codex_hello_probe_passed")).toBe(true);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("classifies codex quota-exhaustion probe failures as a recoverable warning", async () => {
+    const root = path.join(
+      os.tmpdir(),
+      `paperclip-codex-local-quota-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    const binDir = path.join(root, "bin");
+    const cwd = path.join(root, "workspace");
+
+    try {
+      await fs.mkdir(binDir, { recursive: true });
+      await writeQuotaCodexCommand(binDir);
+
+      const result = await testEnvironment({
+        companyId: "company-1",
+        adapterType: "codex_local",
+        config: {
+          command: "codex",
+          cwd,
+          env: {
+            OPENAI_API_KEY: "test-key",
+            PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ""}`,
+          },
+        },
+      });
+
+      expect(result.status).toBe("warn");
+      expect(result.checks.some((check) => check.code === "codex_hello_probe_quota_exhausted")).toBe(true);
+      expect(result.checks.some((check) => check.code === "codex_hello_probe_failed")).toBe(false);
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

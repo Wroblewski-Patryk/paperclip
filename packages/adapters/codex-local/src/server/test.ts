@@ -20,7 +20,7 @@ import {
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { parseCodexJsonl } from "./parse.js";
+import { extractCodexRetryNotBefore, parseCodexJsonl } from "./parse.js";
 import { SANDBOX_INSTALL_COMMAND } from "../index.js";
 import { codexHomeDir, readCodexAuthInfo } from "./quota.js";
 import { buildCodexExecArgs } from "./codex-args.js";
@@ -79,11 +79,15 @@ async function prepareCodexHelloProbe(input: {
 }> {
   let preparedRuntime: Awaited<ReturnType<typeof prepareAdapterExecutionTargetRuntime>> | null = null;
   let preparedRuntimeWorkspaceLocalDir: string | null = null;
+  let localProbeHome: string | null = null;
 
   const cleanup = async () => {
     await preparedRuntime?.restoreWorkspace().catch(() => {});
     if (preparedRuntimeWorkspaceLocalDir) {
       await fs.rm(preparedRuntimeWorkspaceLocalDir, { recursive: true, force: true }).catch(() => {});
+    }
+    if (localProbeHome) {
+      await fs.rm(localProbeHome, { recursive: true, force: true }).catch(() => {});
     }
   };
 
@@ -129,6 +133,21 @@ async function prepareCodexHelloProbe(input: {
     const probeHome = input.targetIsRemote
       ? path.posix.join(input.cwd, ".paperclip-runtime", "codex", `probe-home-${input.runId}`)
       : path.join(os.tmpdir(), `paperclip-codex-probe-${input.runId}`);
+    if (!input.targetIsRemote) {
+      localProbeHome = probeHome;
+      await fs.mkdir(probeHome, { recursive: true });
+      await fs.writeFile(
+        path.join(probeHome, "auth.json"),
+        JSON.stringify({ OPENAI_API_KEY: input.probeApiKey }),
+        { encoding: "utf8", mode: 0o600 },
+      );
+      return {
+        command: input.command,
+        args: input.args,
+        env: { ...input.env, CODEX_HOME: probeHome },
+        cleanup,
+      };
+    }
     return {
       command: "sh",
       args: [
@@ -333,6 +352,10 @@ export async function testEnvironment(
         const parsed = parseCodexJsonl(probe.stdout);
         const detail = summarizeProbeDetail(probe.stdout, probe.stderr, parsed.errorMessage);
         const authEvidence = `${parsed.errorMessage ?? ""}\n${probe.stdout}\n${probe.stderr}`.trim();
+        const fallbackErrorMessage =
+          (parsed.errorMessage ?? "").trim() ||
+          firstNonEmptyLine(probe.stderr) ||
+          `Codex exited with code ${probe.exitCode ?? -1}`;
 
         if (probe.timedOut) {
           checks.push({
@@ -368,13 +391,28 @@ export async function testEnvironment(
               : "Codex CLI does not read OPENAI_API_KEY from the environment; set OPENAI_API_KEY in this adapter's config (so Paperclip writes it to `$CODEX_HOME/auth.json`) or run `codex login` on the host first.",
           });
         } else {
-          checks.push({
-            code: "codex_hello_probe_failed",
-            level: "error",
-            message: "Codex hello probe failed.",
-            ...(detail ? { detail } : {}),
-            hint: "Run `codex exec --json -` manually in this working directory and prompt `Respond with hello` to debug.",
+          const retryNotBefore = extractCodexRetryNotBefore({
+            stdout: probe.stdout,
+            stderr: probe.stderr,
+            errorMessage: fallbackErrorMessage,
           });
+          if (retryNotBefore) {
+            checks.push({
+              code: "codex_hello_probe_quota_exhausted",
+              level: "warn",
+              message: `Codex account is quota-limited; probe can be retried after ${retryNotBefore.toISOString()}.`,
+              ...(detail ? { detail } : {}),
+              hint: "Retry after the provider quota reset window before continuing or switch adapter model configuration.",
+            });
+          } else {
+            checks.push({
+              code: "codex_hello_probe_failed",
+              level: "error",
+              message: "Codex hello probe failed.",
+              ...(detail ? { detail } : {}),
+              hint: "Run `codex exec --json -` manually in this working directory and prompt `Respond with hello` to debug.",
+            });
+          }
         }
       } finally {
         await preparedProbe.cleanup();
