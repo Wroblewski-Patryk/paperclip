@@ -210,6 +210,29 @@ describeEmbeddedPostgres("productivity review service", () => {
     expect(await listRefreshComments(reviews[0]!.id)).toHaveLength(0);
   });
 
+  it("does not create productivity reviews for recurring routine executions", async () => {
+    const now = new Date("2026-04-28T12:00:00.000Z");
+    const seeded = await seedAssignedIssue({ originKind: "routine_execution" });
+    await insertRuns({
+      companyId: seeded.companyId,
+      agentId: seeded.coderId,
+      issueId: seeded.issueId,
+      count: DEFAULT_PRODUCTIVITY_REVIEW_NO_COMMENT_STREAK_RUNS,
+      now,
+      withRunComments: true,
+    });
+
+    const result = await productivityReviewService(db).reconcileProductivityReviews({
+      now,
+      companyId: seeded.companyId,
+      thresholds: { highChurnHourly: 1, highChurnSixHours: 1 },
+    });
+
+    expect(result.scanned).toBe(0);
+    expect(result.created).toBe(0);
+    expect(await listProductivityReviews(seeded.companyId)).toHaveLength(0);
+  });
+
   it("refreshes open productivity reviews only once per interval and caps refresh comments", async () => {
     const now = new Date("2026-04-28T12:00:00.000Z");
     const seeded = await seedAssignedIssue();
@@ -307,7 +330,7 @@ describeEmbeddedPostgres("productivity review service", () => {
       now,
     });
     await db.insert(issues).values(
-      [8, 9, 10].map((hoursAgo, index) => {
+      [1, 2, 3].map((hoursAgo, index) => {
         const createdAt = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
         return {
           id: randomUUID(),

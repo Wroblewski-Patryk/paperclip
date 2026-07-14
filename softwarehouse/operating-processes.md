@@ -373,10 +373,15 @@ flooded. Agents must use `counts.riskItems`,
 real known backlog state; `priorityReviewItems` is only the next routable
 queue. Likewise, `project-truth-index.json` reports `totalGaps` for known
 backlog and `indexedGaps`/`indexedAppCompletionGaps` for materialized rows.
-App-completion routing is boundary-based: screens/routes, API endpoints, and
-product features may become completion lanes. Internal functions and modules
-are implementation details and receive test/documentation proof through their
-owning boundary; they must not create one autonomous issue per symbol.
+App-completion routing is boundary-based: API endpoints, visible UI
+pages/views/screens, and explicit non-file product capabilities may become
+completion lanes. Scanner-labelled backend routes, code-file features,
+components below a visible screen, internal functions, and modules are
+implementation details and receive test/documentation proof through their
+owning boundary; they must not create one autonomous issue per symbol or file.
+The JSON `candidatePolicy` is a versioned routing contract. The dispatcher
+refreshes a stale contract before routing work, but defers that refresh while
+another live run could be writing either product workspace.
 `scripts/run-project-truth-gap-dispatcher.mjs` is the mandatory bridge from the
 index to execution: it creates or preserves one owner-scoped Paperclip issue for
 the first indexed gap. A critical runtime gap such as a public 503 routes to

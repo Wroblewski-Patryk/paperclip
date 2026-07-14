@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 import { agentWipBlockerFor, fetchAgentWipState } from "./lib/agent-wip-guard.mjs";
 import {
@@ -23,6 +25,9 @@ const maxDispatchGaps = Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_
 const terminalStatuses = new Set(["done", "cancelled"]);
 const marker = "softwarehouse-project-truth-gap-dispatcher:v1";
 const supersededMarker = `${marker}:superseded`;
+const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
+const appCompletionCandidatePolicy = "product_boundaries_v2";
+const projectTruthProjects = ["Soar", "Roost"];
 
 async function request(method, route, body) {
   return requestJson({
@@ -60,6 +65,84 @@ function runProjectTruthAudit() {
     throw new Error(`project truth audit failed: ${(result.stderr || result.stdout).trim()}`);
   }
   return JSON.parse(result.stdout);
+}
+
+function runIndexBuilder(args, label) {
+  const result = spawnSync(process.execPath, args, {
+    cwd: process.cwd(),
+    env: { ...process.env },
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_CONTRACT_REFRESH_TIMEOUT_MS ?? 180_000),
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`${label} failed: ${(result.stderr || result.stdout).trim()}`);
+  }
+}
+
+function appCompletionPolicyFor(projectName) {
+  const indexPath = path.join(appsRoot, projectName, "docs", "status", "app-completion-index.json");
+  try {
+    return JSON.parse(readFileSync(indexPath, "utf8")).candidatePolicy ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function refreshStaleAppCompletionContracts() {
+  const staleProjects = projectTruthProjects.filter(
+    (projectName) => appCompletionPolicyFor(projectName) !== appCompletionCandidatePolicy,
+  );
+  if (staleProjects.length === 0) {
+    return { status: "current", candidatePolicy: appCompletionCandidatePolicy, projects: [] };
+  }
+  if (!apply) {
+    return {
+      status: "stale_requires_apply",
+      candidatePolicy: appCompletionCandidatePolicy,
+      projects: staleProjects,
+    };
+  }
+
+  const company = await resolveCompany();
+  const liveRuns = await request("GET", `/api/companies/${company.id}/live-runs`);
+  const blockingRuns = liveRuns.filter((liveRun) =>
+    liveRun.id !== runId && ["queued", "running"].includes(liveRun.status)
+  );
+  if (blockingRuns.length > 0) {
+    return {
+      status: "deferred_live_runs",
+      candidatePolicy: appCompletionCandidatePolicy,
+      projects: staleProjects,
+      blockingRunCount: blockingRuns.length,
+    };
+  }
+
+  for (const projectName of staleProjects) {
+    const projectRoot = path.join(appsRoot, projectName);
+    runIndexBuilder([
+      "scripts/build-app-completion-index.mjs",
+      "--project",
+      projectName,
+      "--root",
+      projectRoot,
+    ], `${projectName} app-completion contract refresh`);
+    runIndexBuilder([
+      "scripts/build-project-truth-indexes.mjs",
+      "--project",
+      projectName,
+      "--root",
+      projectRoot,
+      "--apply",
+    ], `${projectName} project-truth contract refresh`);
+  }
+
+  return {
+    status: "refreshed",
+    candidatePolicy: appCompletionCandidatePolicy,
+    projects: staleProjects,
+  };
 }
 
 function runSourceControlAudit() {
@@ -390,7 +473,32 @@ function supersededCommentForIssue(issue, currentTitles) {
 const actions = [];
 let audit;
 let sourceControl;
+let contractRefresh;
 try {
+  contractRefresh = await refreshStaleAppCompletionContracts();
+  if (contractRefresh.status === "stale_requires_apply") {
+    console.log(JSON.stringify({
+      apiBase,
+      mode: "dry-run",
+      ok: true,
+      contractRefresh,
+      actions: [{ action: "noop_app_completion_contract_refresh_requires_apply" }],
+    }, null, 2));
+    process.exit(0);
+  }
+  if (contractRefresh.status === "deferred_live_runs") {
+    console.log(JSON.stringify({
+      apiBase,
+      mode: apply ? "apply" : "dry-run",
+      ok: true,
+      contractRefresh,
+      actions: [{
+        action: "noop_app_completion_contract_refresh_deferred",
+        reason: "live_runs_present",
+      }],
+    }, null, 2));
+    process.exit(0);
+  }
   audit = runProjectTruthAudit();
   sourceControl = runSourceControlAudit();
 } catch (error) {
@@ -398,6 +506,7 @@ try {
     apiBase,
     mode: apply ? "apply" : "dry-run",
     ok: false,
+    contractRefresh: contractRefresh ?? null,
     actions: [{
       action: "noop_project_truth_or_source_control_audit_failed",
       error: error instanceof Error ? error.message : String(error),
@@ -417,6 +526,7 @@ if (gapsToDispatch.length === 0) {
     apiBase,
     mode: apply ? "apply" : "dry-run",
     ok: true,
+    contractRefresh,
     projectTruth: audit.summary ?? {},
     actions: [{ action: "noop_no_project_truth_gap" }],
   }, null, 2));
@@ -449,6 +559,7 @@ try {
     apiBase,
     mode: apply ? "apply" : "dry-run",
     ok: false,
+    contractRefresh,
     projectTruth: audit.summary ?? {},
     actions: [{
       action: isRequestTimeoutError(error) ? "noop_api_timeout" : "noop_api_error",
@@ -737,6 +848,7 @@ console.log(JSON.stringify({
   company: { id: company.id, name: company.name },
   mode: apply ? "apply" : "dry-run",
   ok: true,
+  contractRefresh,
   ...activeRunSummary({ health, liveRuns }),
   projectTruth: audit.summary ?? {},
   sourceControl: {

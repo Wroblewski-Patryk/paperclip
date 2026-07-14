@@ -36,6 +36,7 @@ const ACTIVE_RUN_STATUSES = ["queued", "running", "scheduled_retry"] as const;
 const MAX_CANDIDATE_ISSUES = 250;
 const MAX_RUNS_FOR_STREAK = 100;
 const MAX_PARENT_WALK_DEPTH = 25;
+const PRODUCTIVITY_REVIEW_EXCLUDED_ORIGIN_KINDS: string[] = ["routine_execution"];
 export const PRODUCTIVITY_REVIEW_REFRESH_COMMENT_PREFIX = "Productivity review evidence refreshed.";
 
 type IssueRow = typeof issues.$inferSelect;
@@ -810,6 +811,7 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
           inArray(issues.status, ["todo", "in_progress"]),
           sql`${issues.assigneeAgentId} is not null`,
           sql`${issues.originKind} <> ${PRODUCTIVITY_REVIEW_ORIGIN_KIND}`,
+          notInArray(issues.originKind, PRODUCTIVITY_REVIEW_EXCLUDED_ORIGIN_KINDS),
         ),
       )
       .orderBy(asc(issues.updatedAt), asc(issues.id))

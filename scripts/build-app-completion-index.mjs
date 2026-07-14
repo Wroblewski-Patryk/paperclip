@@ -61,9 +61,11 @@ function statusBucket(entity) {
 }
 
 function routeKind(entity) {
-  const text = entityText(entity);
-  if (entity.type === "route") return "screen_or_route";
-  if (entity.type === "component" && includesAny(text, ["/pages/", "/app/", "screen", "page", "view"])) {
+  const normalizedPath = String(entity.path ?? "").replaceAll("\\", "/").toLowerCase();
+  const visibleUiBoundary = /\/(?:page|pages)\//.test(normalizedPath)
+    || (/\/app\//.test(normalizedPath) && /\/page\.(?:[jt]sx?)$/.test(normalizedPath))
+    || /(?:page|view|screen)\.(?:[jt]sx?)$/i.test(String(entity.name ?? ""));
+  if (["route", "component"].includes(entity.type) && visibleUiBoundary) {
     return "screen_or_route";
   }
   if (entity.type === "api_endpoint") return "api_endpoint";
@@ -114,11 +116,11 @@ function evidenceState(entity, relationsByFrom, relationsByTo, entitiesById) {
   };
 }
 
-const appCompletionBoundaryTypes = new Set(["api_endpoint", "component", "feature", "route"]);
+const candidatePolicy = "product_boundaries_v2";
 
 function isAppCompletionCandidate(entity, kind) {
   if (kind) return true;
-  return appCompletionBoundaryTypes.has(entity.type);
+  return entity.type === "feature" && !/\.[a-z0-9]+$/i.test(String(entity.name ?? ""));
 }
 
 function completionRisk(item) {
@@ -197,6 +199,7 @@ const summary = {
   project: projectName,
   root: rel(repoRoot),
   sourceGraph: rel(path.relative(repoRoot, graphPath)),
+  candidatePolicy,
   counts: {
     items: items.length,
     flows: byFlow.size,

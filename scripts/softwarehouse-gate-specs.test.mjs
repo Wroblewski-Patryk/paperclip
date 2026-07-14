@@ -2067,6 +2067,12 @@ test("project truth indexes route app-completion proof gaps instead of treating 
   assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_PER_TRACK_DEPTH \?\? 1/);
   assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_MAX_GAPS \?\? \(perTrackDispatchDepth \* 2\)/);
   assert.match(dispatcher, /function dispatchableGaps/);
+  assert.match(dispatcher, /appCompletionCandidatePolicy = "product_boundaries_v2"/);
+  assert.match(dispatcher, /refreshStaleAppCompletionContracts/);
+  assert.match(dispatcher, /stale_requires_apply/);
+  assert.match(dispatcher, /liveRun\.id !== runId/);
+  assert.match(dispatcher, /noop_app_completion_contract_refresh_deferred/);
+  assert.match(dispatcher, /contractRefresh,/);
   assert.match(dispatcher, /project\.projectTruth\?\.gaps/);
   assert.match(dispatcher, /audit\.firstGap/);
   assert.match(dispatcher, /gapsToDispatch/);
@@ -2130,8 +2136,10 @@ test("acceptance evidence lanes outrank architecture backlog wakeups", async () 
 test("app completion index exposes full risk backlog counts when priority review rows are capped", async () => {
   const source = await readFile("scripts/build-app-completion-index.mjs", "utf8");
 
-  assert.match(source, /appCompletionBoundaryTypes = new Set\(\["api_endpoint", "component", "feature", "route"\]\)/);
-  assert.doesNotMatch(source, /\["api_endpoint", "component", "feature", "function", "module", "route"\]/);
+  assert.match(source, /visibleUiBoundary/);
+  assert.match(source, /\["route", "component"\]\.includes\(entity\.type\)/);
+  assert.match(source, /entity\.type === "feature" && !\/\\\./);
+  assert.doesNotMatch(source, /appCompletionBoundaryTypes/);
   assert.match(source, /const priorityReviewLimit = 200/);
   assert.match(source, /const riskItems = items\.filter\(\(item\) => item\.risk !== "ok"\)/);
   assert.match(source, /implementedNeedsProof/);

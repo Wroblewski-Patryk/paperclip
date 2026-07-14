@@ -187,5 +187,71 @@ test("does not dispatch internal functions and modules as independent product co
 
   const summary = JSON.parse(await readFile(path.join(docsDir, "status", "app-completion-index.json"), "utf8"));
   assert.equal(summary.counts.items, 1);
+  assert.equal(summary.candidatePolicy, "product_boundaries_v2");
   assert.deepEqual(summary.priorityReviewItems.map((item) => item.id), ["api_endpoint:get-positions"]);
+});
+
+test("routes only visible UI boundaries and explicit capabilities", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "app-completion-index-"));
+  const docsDir = path.join(root, "docs");
+  await mkdir(path.join(docsDir, "graphs"), { recursive: true });
+
+  const graph = {
+    entities: [
+      {
+        id: "route:exchange-service",
+        type: "route",
+        name: "exchangeAdapter.service.ts",
+        path: "apps/api/src/modules/exchange/exchangeAdapter.service.ts",
+        status: "implemented",
+      },
+      {
+        id: "feature:auth-translations",
+        type: "feature",
+        name: "auth.en.ts",
+        path: "apps/web/src/i18n/auth.en.ts",
+        status: "implemented",
+      },
+      {
+        id: "route:dashboard-page",
+        type: "route",
+        name: "page.tsx",
+        path: "apps/web/src/app/dashboard/page.tsx",
+        status: "implemented",
+      },
+      {
+        id: "component:audit-view",
+        type: "component",
+        name: "AuditTrailView.tsx",
+        path: "apps/web/src/features/logs/components/AuditTrailView.tsx",
+        status: "implemented",
+      },
+      {
+        id: "feature:portfolio-monitoring",
+        type: "feature",
+        name: "Portfolio monitoring",
+        path: "docs/architecture/features/portfolio-monitoring.md",
+        status: "implemented",
+      },
+    ],
+    relations: [],
+  };
+
+  await writeFile(path.join(docsDir, "graphs", "architecture-awareness.json"), `${JSON.stringify(graph)}\n`);
+
+  const result = spawnSync(
+    process.execPath,
+    [scriptPath, "--project", "Soar", "--root", root, "--out", docsDir],
+    { encoding: "utf8" },
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const summary = JSON.parse(await readFile(path.join(docsDir, "status", "app-completion-index.json"), "utf8"));
+  assert.equal(summary.candidatePolicy, "product_boundaries_v2");
+  assert.equal(summary.counts.items, 3);
+  assert.deepEqual(
+    summary.priorityReviewItems.map((item) => item.id).sort(),
+    ["component:audit-view", "feature:portfolio-monitoring", "route:dashboard-page"],
+  );
 });

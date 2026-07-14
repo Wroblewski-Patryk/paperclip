@@ -2891,3 +2891,33 @@ the pre-regeneration Soar index and created LUC-1116 for the same internal PnL
 helper; the run and issue were cancelled before any Soar mutation. This is the
 expected last stale-snapshot race and confirms that index regeneration must
 precede the next product-truth dispatch.
+
+## 2026-07-14 - Versioned boundary contract and routine-review noise removal
+
+The first boundary-only regeneration still exposed a scanner taxonomy leak:
+Soar backend files such as `*.service.ts`, helpers, and route dependencies had
+historically been labelled as `route`, so they were incorrectly requesting
+browser proof. The product boundary contract is now `product_boundaries_v2`.
+It routes API endpoints, visible UI pages/views/screens, and explicit non-file
+capabilities only. Internal files inherit proof from the visible or API
+boundary that owns them.
+
+The dispatcher now reads the versioned `candidatePolicy` from both active app
+indexes. In apply mode it refreshes stale indexes before routing, but only when
+there are no other live runs that could write Soar or Roost. A live test with
+three runs returned `deferred_live_runs` without mutation. The idle migration
+then produced these current denominators:
+
+- Soar: 86 product boundaries, 81 risks, including 48 real page/view browser
+  reviews;
+- Roost: 46 API boundaries, 36 risks;
+- combined project-truth gaps: 117, with zero runtime findings or incomplete
+  event chains.
+
+The audit also observed LUC-1119, a generic high-churn productivity review for
+the recurring continuation watchdog. It closed correctly as expected work,
+but the extra review run had no decision value. `routine_execution` issues are
+now excluded from generic productivity review; their health remains covered
+by scheduler, janitor, watchdog, and autonomy controls. The embedded-Postgres
+service suite passes 13/13, the app-boundary suite passes 5/5, and all 148
+Softwarehouse gate specifications pass.
