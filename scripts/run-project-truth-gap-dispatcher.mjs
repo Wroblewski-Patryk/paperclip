@@ -62,6 +62,21 @@ function runProjectTruthAudit() {
   return JSON.parse(result.stdout);
 }
 
+function runSourceControlAudit() {
+  const result = spawnSync(process.execPath, ["scripts/check-softwarehouse-source-control.mjs"], {
+    cwd: process.cwd(),
+    env: { ...process.env },
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: Number(process.env.SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_SOURCE_CONTROL_TIMEOUT_MS ?? 180_000),
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`source-control audit failed: ${(result.stderr || result.stdout).trim()}`);
+  }
+  return JSON.parse(result.stdout);
+}
+
 function slugFor(value) {
   return String(value ?? "gap")
     .toLowerCase()
@@ -374,15 +389,17 @@ function supersededCommentForIssue(issue, currentTitles) {
 
 const actions = [];
 let audit;
+let sourceControl;
 try {
   audit = runProjectTruthAudit();
+  sourceControl = runSourceControlAudit();
 } catch (error) {
   console.log(JSON.stringify({
     apiBase,
     mode: apply ? "apply" : "dry-run",
     ok: false,
     actions: [{
-      action: "noop_project_truth_audit_failed",
+      action: "noop_project_truth_or_source_control_audit_failed",
       error: error instanceof Error ? error.message : String(error),
     }],
   }, null, 2));
@@ -445,6 +462,12 @@ try {
 const labelsByName = new Map(labels.map((label) => [label.name, label]));
 const wip = apply ? await fetchAgentWipState({ request, companyId: company.id }) : null;
 const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean));
+const dirtyDispatchProjects = new Map(
+  (sourceControl.repos ?? [])
+    .filter((repo) => repo.parked !== true && repo.clean === false)
+    .filter((repo) => ["Soar", "Roost"].includes(repo.name))
+    .map((repo) => [repo.name, repo]),
+);
 const retainedDispatchTitles = new Set();
 const retainedDispatchIds = new Set();
 const trackPlans = [];
@@ -457,6 +480,31 @@ for (const projectGapSet of gapsToDispatch) {
     actions.push({
       action: "noop_project_not_found",
       project: projectName,
+    });
+    continue;
+  }
+  const dirtyProjectRepo = dirtyDispatchProjects.get(projectName);
+  if (dirtyProjectRepo) {
+    const action = {
+      action: "noop_project_repo_dirty_source_control_closure_required",
+      project: projectName,
+      dirtyCount: dirtyProjectRepo.dirtyCount ?? null,
+      head: dirtyProjectRepo.head ?? null,
+      ownerAction: `Route ${projectName} through one local source-control closure before dispatching another project-truth gap.`,
+    };
+    actions.push(action);
+    trackPlans.push({
+      project: projectName,
+      targetDepth: perTrackDispatchDepth,
+      startingActiveDepth: 0,
+      resultingPlannedDepth: 0,
+      indexedGapCount: projectGapSet.gaps.length,
+      activeIssueIdentifiers: [],
+      actions: [action],
+      missingDepthReasons: [{
+        reason: "source_control_closure_required",
+        dirtyCount: dirtyProjectRepo.dirtyCount ?? null,
+      }],
     });
     continue;
   }
@@ -635,6 +683,9 @@ const supersededProjectTruthCandidates = issues
   .concat(projectTruthIssues)
   .filter((issue) => !terminalStatuses.has(issue.status))
   .filter(isProjectTruthIssue)
+  .filter((issue) => ![...dirtyDispatchProjects.keys()].some((projectName) =>
+    String(issue.title ?? "").includes(`[${projectName}]`)
+  ))
   .filter((issue) => !String(issue.description ?? "").includes(supersededMarker))
   .filter((issue) => !retainedDispatchIds.has(issue.id))
   .filter((issue) => !retainedDispatchTitles.has(issue.title))
@@ -688,6 +739,13 @@ console.log(JSON.stringify({
   ok: true,
   ...activeRunSummary({ health, liveRuns }),
   projectTruth: audit.summary ?? {},
+  sourceControl: {
+    dirtyDispatchProjects: [...dirtyDispatchProjects.values()].map((repo) => ({
+      name: repo.name,
+      head: repo.head ?? null,
+      dirtyCount: repo.dirtyCount ?? null,
+    })),
+  },
   perTrackDispatchDepth,
   trackPlans,
   maxDispatchGaps,

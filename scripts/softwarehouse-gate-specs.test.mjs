@@ -2016,6 +2016,11 @@ test("project truth indexes route app-completion proof gaps instead of treating 
   assert.match(dispatcher, /comment\.body/);
   assert.match(dispatcher, /const isRuntimeIssue = String\(issue\.title/);
   assert.match(dispatcher, /kind: runtime_error/);
+  assert.match(dispatcher, /function runSourceControlAudit/);
+  assert.match(dispatcher, /check-softwarehouse-source-control\.mjs/);
+  assert.match(dispatcher, /noop_project_repo_dirty_source_control_closure_required/);
+  assert.match(dispatcher, /source_control_closure_required/);
+  assert.match(dispatcher, /dirtyDispatchProjects/);
 });
 
 test("project truth dispatcher ignores exact terminal visible issues for current gaps", async () => {
