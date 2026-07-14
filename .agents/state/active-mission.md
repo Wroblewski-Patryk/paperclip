@@ -232,3 +232,7 @@ or the relevant owners explicitly classify them as not required with evidence.
   and a live Spark probe passes. Six controller agents were safely recovered
   on 2026-07-14; their persistent profiles and protected bindings were not
   changed.
+- The router's structured quota fallback must control the effective adapter
+  profile even when a routine supplied a stale technical wake profile. Explicit
+  issue overrides remain stronger. Treat `router=spark` with `applied=cheap`
+  as a runtime regression, not acceptable observability drift.

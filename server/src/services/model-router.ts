@@ -47,6 +47,11 @@ export interface ModelRouterDecision {
   profile: ModelProfileKey | null;
   source: "disabled" | "context_rule" | "title_rule" | "name_prefix" | "role_default" | "default";
   reason: string;
+  quotaFallback?: {
+    pressure: Exclude<ModelRouterQuotaPressure, "normal">;
+    fromProfile: ModelProfileKey;
+    toProfile: ModelProfileKey;
+  };
 }
 
 const MODEL_PROFILE_KEY_SET = new Set<string>(MODEL_PROFILE_KEYS);
@@ -318,6 +323,11 @@ function withQuotaPressureFallback(
     ...decision,
     profile: fallback,
     reason: `${decision.reason}; quota pressure ${pressure} lowered ${decision.profile} to ${fallback}`,
+    quotaFallback: {
+      pressure,
+      fromProfile: decision.profile,
+      toProfile: fallback,
+    },
   };
 }
 

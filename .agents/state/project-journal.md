@@ -3037,3 +3037,14 @@ all six to `idle`; final readback showed 30 idle, 9 intentionally paused, and
 zero error agents. Provider responses are normalized from their actual
 array-of-provider-reports shape, and probe output contains only status and
 error codes.
+
+The clean-repository control tick then exposed a deeper execution bug. Failed
+COO and CINO runs recorded `paperclipModelRouter.profile=spark` but
+`paperclipModelProfile.applied=cheap`, and actually executed `gpt-5.4-mini` on
+the exhausted standard-light lane. A routine's technical wake-context profile
+was outranking the router's quota fallback. The router now emits structured
+quota-fallback metadata, and heartbeat profile resolution gives that fallback
+precedence over wake context while retaining explicit issue overrides as the
+highest-priority operator contract. Server typecheck and all 19 router/profile
+tests pass. Live proof still requires a post-reload run whose metadata and
+terminal result confirm Spark was truly applied.

@@ -102,6 +102,37 @@ describe("heartbeat model profile application", () => {
     });
   });
 
+  it("lets a real quota fallback override a stale wake-context profile", () => {
+    const modelProfile = resolveModelProfileApplication({
+      adapterModelProfiles: [
+        cheapProfile,
+        {
+          key: "spark",
+          label: "Spark",
+          adapterConfig: { model: "gpt-5.3-codex-spark" },
+          source: "adapter_default",
+        },
+      ],
+      agentRuntimeConfig: {
+        modelProfiles: {
+          cheap: { adapterConfig: { model: "gpt-5.4-mini" } },
+        },
+      },
+      issueModelProfile: null,
+      routerModelProfile: "spark",
+      preferRouterModelProfile: true,
+      contextSnapshot: { modelProfile: "cheap" },
+    });
+
+    expect(modelProfile).toMatchObject({
+      requested: "spark",
+      requestedBy: "model_router",
+      applied: "spark",
+      configSource: "adapter_default",
+      adapterConfig: { model: "gpt-5.3-codex-spark" },
+    });
+  });
+
   it("applies cheap profile patches before explicit issue adapter config overrides", () => {
     const modelProfile = resolveModelProfileApplication({
       adapterModelProfiles: [cheapProfile],
@@ -287,6 +318,11 @@ describe("model router profile selection", () => {
     ).toMatchObject({
       profile: "spark",
       source: "name_prefix",
+      quotaFallback: {
+        pressure: "critical",
+        fromProfile: "standard",
+        toProfile: "spark",
+      },
     });
   });
 

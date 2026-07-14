@@ -1397,16 +1397,21 @@ export function resolveModelProfileApplication(input: {
   agentRuntimeConfig: unknown;
   issueModelProfile: ModelProfileKey | null | undefined;
   routerModelProfile?: ModelProfileKey | null | undefined;
+  preferRouterModelProfile?: boolean;
   contextSnapshot: Record<string, unknown> | null | undefined;
   profileResolutionFallbackReason?: string | null;
 }): ModelProfileApplication {
   const issueModelProfile = input.issueModelProfile ?? null;
   const contextModelProfile = readContextModelProfile(input.contextSnapshot);
   const routerModelProfile = input.routerModelProfile ?? null;
-  const requested = issueModelProfile ?? contextModelProfile ?? routerModelProfile;
+  const preferRouterModelProfile = Boolean(input.preferRouterModelProfile && routerModelProfile);
+  const requested = issueModelProfile
+    ?? (preferRouterModelProfile ? routerModelProfile : contextModelProfile ?? routerModelProfile);
   const requestedBy: ModelProfileRequestSource | null = issueModelProfile
     ? "issue_override"
-    : contextModelProfile
+    : preferRouterModelProfile
+      ? "model_router"
+      : contextModelProfile
       ? "wake_context"
       : routerModelProfile
         ? "model_router"
@@ -8082,6 +8087,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       agentRuntimeConfig: agent.runtimeConfig,
       issueModelProfile: issueAssigneeOverrides?.modelProfile ?? null,
       routerModelProfile: modelRouterDecision.profile,
+      preferRouterModelProfile: Boolean(modelRouterDecision.quotaFallback),
       contextSnapshot: context,
       profileResolutionFallbackReason,
     });
