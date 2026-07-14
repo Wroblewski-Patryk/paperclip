@@ -51,6 +51,15 @@ comment says `blocked`, set or request `blocked`. If work is complete, set or
 request `done`. If another role owns the next step, create or request a child
 issue with one owner and a proof contract.
 
+For a `done` transition, use the typed `completionEvidence` contract from the
+Paperclip skill exactly. Each standard category (`testEvidence`,
+`reviewEvidence`, and `documentationEvidence`) needs a summary and refs. A ref
+may be only `request_comment`, or `comment`/`document`/`attachment`/
+`work_product` with a same-issue UUID. Do not invent file-path refs or fields
+such as `path` and `note`; register an important workspace file as a work
+product first. If the API rejects an evidence payload, read the validation
+error and repair the payload once instead of retrying the same shape.
+
 ## Kanban Board Standard
 
 Paperclip issues are the shared Kanban board for Stage 1 delivery. Goals define

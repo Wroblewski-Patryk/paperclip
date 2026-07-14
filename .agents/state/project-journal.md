@@ -2641,3 +2641,13 @@ Decision: eleven live tasks are not inherently healthy. Healthy parallelism is
 role-scoped, project-scoped, and file-conflict-aware. Keep the useful worker
 queue, serialize writers inside one shared app worktree, and converge each batch
 through one source-control closure before starting another mutating batch.
+
+Follow-up: the audit caught LUC-989 retrying a `done` transition with invented
+`completionEvidence` ref fields (`path` and `note`) while three Roost workers
+were still writing the shared repository. The run was cancelled, the historical
+LUC-982 packet was closed with a typed `request_comment` no-commit disposition,
+and current Roost changes were left for one later coherent source-control
+closure. The canonical evidence-ref contract is now present in the shared
+supervision instructions, synchronized to all 39 agents, and guarded by a
+static regression test. The focused gate suite passes 144/144 and the agent
+instruction audit reports `overall: pass`.

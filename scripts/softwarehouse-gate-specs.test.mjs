@@ -200,6 +200,19 @@ test("worker backlog decomposition stays in active products and serializes share
   assert.match(instructions, /Keep parked products parked/);
 });
 
+test("shared supervision teaches the canonical completion evidence reference contract", async () => {
+  const supervision = await readFile(
+    "softwarehouse/instructions/shared/90-pipeline-and-supervision.md",
+    "utf8",
+  );
+
+  assert.match(supervision, /typed `completionEvidence` contract/i);
+  assert.match(supervision, /`request_comment`/);
+  assert.match(supervision, /`comment`\/`document`\/`attachment`\//);
+  assert.match(supervision, /Do not invent file-path refs/i);
+  assert.match(supervision, /instead of retrying the same shape/i);
+});
+
 test("project-truth dispatcher requires a complete closure packet for proof lanes", async () => {
   const source = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
 
