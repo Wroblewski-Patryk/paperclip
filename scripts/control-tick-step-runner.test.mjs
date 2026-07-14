@@ -6,6 +6,7 @@ import {
   isNonFatalJanitorBoardCancelDenied,
   isNonFatalJanitorBulkRefusal,
   isNonFatalSoftwarehouseAuditTimeout,
+  isNonFatalProjectMutationGuardBoardCancelDenied,
 } from "./lib/control-tick-step-runner.mjs";
 
 test("non-fatal janitor bulk refusal is detected only for liveRunJanitor", () => {
@@ -40,6 +41,16 @@ test("non-fatal janitor board-only cancellation denial is detected only for live
   };
   assert.equal(isNonFatalJanitorBoardCancelDenied("liveRunJanitor", failure), true);
   assert.equal(isNonFatalJanitorBoardCancelDenied("routineDuplicateJanitor", failure), false);
+});
+
+test("non-fatal project mutation guard board-only cancellation denial is detected only for projectMutationGuard", () => {
+  const failure = {
+    stderr:
+      "Error: POST /api/heartbeat-runs/3488a0d0-ac4b-4adc-a546-241a5c21d1b8/cancel failed with 403: {\"error\":\"Board access required\"}",
+    stdout: "",
+  };
+  assert.equal(isNonFatalProjectMutationGuardBoardCancelDenied("projectMutationGuard", failure), true);
+  assert.equal(isNonFatalProjectMutationGuardBoardCancelDenied("liveRunJanitor", failure), false);
 });
 
 test("blocked-root guardrail timeout is non-fatal only for the guardrail step", () => {

@@ -9,6 +9,7 @@ import {
   isNonFatalJanitorBoardCancelDenied,
   isNonFatalJanitorBulkRefusal,
   isNonFatalLearningLoopTimeout,
+  isNonFatalProjectMutationGuardBoardCancelDenied,
   isNonFatalSoftwarehouseAuditTimeout,
 } from "./lib/control-tick-step-runner.mjs";
 
@@ -124,6 +125,12 @@ const steps = [
       activeSoarRunCount: data.activeSoarRunCount ?? null,
       actionCount: data.actionCount ?? null,
       newProtectedGroups: data.newProtectedGroups ?? [],
+      skippedCount: data.actionSkips?.length ?? 0,
+      skipped: data.actionSkips?.map((action) => ({
+        kind: action.kind,
+        identifier: action.identifier,
+        skippedReason: action.skippedReason,
+      })) ?? [],
       actions: data.actions?.map((action) => ({
         kind: action.kind,
         identifier: action.identifier,
@@ -963,8 +970,9 @@ function runStepWithNonFatalFallback(step, options = {}) {
     };
   }
   const janitorApplyDenied = isNonFatalJanitorBoardCancelDenied(step.name, primary);
+  const projectMutationGuardApplyDenied = isNonFatalProjectMutationGuardBoardCancelDenied(step.name, primary);
   const janitorBulkRefused = isNonFatalJanitorBulkRefusal(step.name, primary);
-  if (primary.ok || (!janitorBulkRefused && !janitorApplyDenied)) return primary;
+  if (primary.ok || (!janitorBulkRefused && !janitorApplyDenied && !projectMutationGuardApplyDenied)) return primary;
 
   const dryRunStep = {
     ...step,
@@ -976,7 +984,11 @@ function runStepWithNonFatalFallback(step, options = {}) {
     ...fallback,
     startedAt: primary.startedAt,
     applyDeferred: true,
-    deferredReason: janitorApplyDenied ? "janitor_cancel_requires_board_access" : "janitor_bulk_action_limit",
+    deferredReason: janitorApplyDenied
+      ? "janitor_cancel_requires_board_access"
+      : projectMutationGuardApplyDenied
+        ? "project_mutation_guard_cancel_requires_board_access"
+        : "janitor_bulk_action_limit",
     deferredExitCode: primary.exitCode ?? null,
     deferredStderr: primary.stderr ?? "",
   };

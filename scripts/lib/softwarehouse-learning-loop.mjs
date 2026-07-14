@@ -483,13 +483,29 @@ function isProtectedBacklogOrGate(issue) {
 
 function isProjectMutationSourceControlGuard(issue) {
   const text = `${issue?.title ?? ""}\n${issue?.description ?? ""}`.toLowerCase();
-  return issue?.status === "blocked"
+  const isSourceControlSignature = /source-control|source control|dirty path|dirty file|protected project changes|sample dirty path/.test(text);
+  return (
+    issue?.status === "blocked"
     && (
       /project mutation guard/.test(text)
       || /project_source_control_gate_blocked/.test(text)
       || (/protected project changes/.test(text) && /gated\/non-delivery|non-delivery lane|source-control classification/.test(text))
     )
-    && /source-control|source control|dirty path|dirty file|protected project changes|sample dirty path/.test(text);
+    && isSourceControlSignature
+  ) || isProjectMutationBoardAccessCancelledIssue(issue);
+}
+
+function isProjectMutationBoardAccessCancelledIssue(issue) {
+  const text = `${issue?.title ?? ""}\n${issue?.description ?? ""}`.toLowerCase();
+  return issue?.status === "cancelled"
+    && /project mutation guard/.test(text)
+    && /board[-\s]?access/.test(text);
+}
+
+function isProjectMutationSourceControlGuardCandidate(issue) {
+  if (!issue) return false;
+  if (issue.status === "blocked") return true;
+  return isProjectMutationBoardAccessCancelledIssue(issue);
 }
 
 function isQaToolingProofRoot(issue, terminalStatuses) {
@@ -825,7 +841,7 @@ export function findProjectMutationSourceControlGuardChain({
   terminalStatuses,
 }) {
   const lookup = issueLookup(relatedIssues);
-  const blockedSources = sourceIssues.filter((issue) => issue.status === "blocked");
+  const blockedSources = sourceIssues.filter(isProjectMutationSourceControlGuardCandidate);
   if (blockedSources.length !== sourceIssues.length) return null;
 
   const guardRoots = relatedIssues.filter(isProjectMutationSourceControlGuard);
@@ -846,6 +862,7 @@ export function findProjectMutationSourceControlGuardChain({
   const guardKey = guardRoot.identifier ?? guardRoot.id;
   const everySourceCovered = blockedSources.every((issue) => {
     if (issue.identifier === guardRoot.identifier || issue.id === guardRoot.id) return true;
+    if (issue.status === "cancelled" && isProjectMutationBoardAccessCancelledIssue(issue)) return true;
     if (isProjectMutationSourceControlGuard(issue)) return true;
     if (blockerPath(issue, guardKey, lookup)) return true;
     return blockerAttentionReferencesRoot(issue, guardKey);

@@ -265,8 +265,10 @@ test("Windows startup removes only orphaned embedded Postgres io workers", async
 
   assert.match(cleanup, /Name = 'postgres\.exe'/);
   assert.match(cleanup, /--forkchild="io_worker"/);
+  assert.match(cleanup, /Replace\('\\', '\/'\)/);
   assert.match(cleanup, /Contains\(\$RootNeedle\)/);
-  assert.match(cleanup, /if \(\$parent\) \{ continue \}/);
+  assert.match(cleanup, /\$parent\.Name -eq 'postgres\.exe'/);
+  assert.match(cleanup, /if \(\$hasManagedPostgresParent\) \{ continue \}/);
   assert.match(cleanup, /Stop-Process -Id \$candidate\.processId/);
   assert.doesNotMatch(cleanup, /Stop-Process -Name postgres/);
   assert.match(startup, /cleanup-orphaned-embedded-postgres\.ps1/);
@@ -2024,10 +2026,14 @@ test("source-control closure janitor reopens invalid clean claims against dirty 
   assert.match(source, /sourceControlProjects/);
   assert.match(source, /\[Source Control Closure\]/);
   assert.match(source, /hasTerminalCleanClaim/);
+  assert.match(source, /closed the .*dirty\[- \]state packet/);
+  assert.match(source, /invalidReopenMarker\(issueIdentifier, gitHead\)/);
+  assert.match(source, /invalidReopenMarker\(action\.identifier, action\.head\)/);
   assert.match(source, /dirtyCount/);
   assert.match(source, /executionWorkspacePreference: "shared_workspace"/);
   assert.match(source, /executionWorkspaceSettings: \{ mode: "shared_workspace" \}/);
   assert.match(source, /projectWorkspaceId/);
+  assert.match(source, /projectById\.get\(issue\.projectId\) \?\? projectByName\.get\(project\)/);
   assert.match(source, /git -C <project path> status --short --branch/);
   assert.match(source, /resume: false/);
 });

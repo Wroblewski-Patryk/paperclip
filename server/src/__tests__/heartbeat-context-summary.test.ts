@@ -94,6 +94,24 @@ describe("buildPaperclipTaskMarkdown", () => {
     expect(commentWake).toContain("Update the plan only. Do not write code or perform implementation work.");
     expect(commentWake).not.toContain("Create child issues from the approved plan only");
   });
+
+  it("puts status-only recovery boundaries and the mutation path in task context", () => {
+    const recovery = buildPaperclipTaskMarkdown({
+      issue: {
+        id: "issue-3",
+        identifier: "PAP-416",
+        title: "Resolve missing disposition",
+        workMode: "standard",
+        description: "The source run already completed the scoped work.",
+      },
+      statusOnlyRecovery: true,
+    });
+
+    expect(recovery).toContain("Status-only recovery directive:");
+    expect(recovery).toContain("Do not inspect, test, create, or modify project workspace files");
+    expect(recovery).toContain("PATCH /api/issues/:issueId");
+    expect(recovery).toContain("A comment or local task packet is not a disposition");
+  });
 });
 
 describe("mergeCoalescedContextSnapshot", () => {

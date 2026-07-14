@@ -2554,6 +2554,7 @@ export function buildPaperclipTaskMarkdown(input: {
     status?: string | null;
   } | null;
   acceptedPlanContinuation?: boolean;
+  statusOnlyRecovery?: boolean;
 }) {
   const quoteTaskScalar = (value: string) => JSON.stringify(value);
   const fenceTaskText = (value: string) => {
@@ -2584,6 +2585,15 @@ export function buildPaperclipTaskMarkdown(input: {
       `- Issue: ${quoteTaskScalar(issue.identifier || issue.id)}`,
       `- Title: ${quoteTaskScalar(issue.title)}`,
     );
+    if (input.statusOnlyRecovery) {
+      lines.push(
+        "",
+        "Status-only recovery directive:",
+        "Do not inspect, test, create, or modify project workspace files. Do not continue the source implementation or proof backlog in this run.",
+        "Choose exactly one valid issue disposition and record it in Paperclip. The injected PAPERCLIP_API_URL, PAPERCLIP_API_KEY, PAPERCLIP_RUN_ID, and PAPERCLIP_TASK_ID authorize the current run to PATCH /api/issues/:issueId.",
+        "A comment or local task packet is not a disposition. Update the Paperclip issue status/path first; any remaining deliverable work must be delegated or resumed on the normal model lane.",
+      );
+    }
     if (issue.workMode === "planning") {
       let directive = "Make the plan only. Do not write code or perform implementation work.";
       if (wakeComment) {
@@ -7938,6 +7948,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       acceptedPlanContinuation:
         readNonEmptyString(context.workspaceRefreshReason) === "accepted_plan_confirmation"
         && !parseObject(context.acceptedPlanWakeRouting),
+      statusOnlyRecovery:
+        context.recoveryIntent === "status_only"
+        && context.allowDeliverableWork === false
+        && context.allowDocumentUpdates === false,
     });
     if (issueRef) {
       context.paperclipIssue = {

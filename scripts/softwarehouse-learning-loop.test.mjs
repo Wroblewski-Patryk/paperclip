@@ -1991,6 +1991,53 @@ test("findProjectMutationSourceControlGuardChain suppresses project mutation gua
   assert.equal(suppressed.identifier, "LUC-4045");
 });
 
+test("findProjectMutationSourceControlGuardChain suppresses project mutation guard source-control blockers when one branch cancels via board-access", () => {
+  const issues = [
+    {
+      identifier: "LUC-4045",
+      title: "[Soar][DCA][Runtime] Repair DCA replay resume contract",
+      description: [
+        "Project mutation guard stopped this run because protected project changes appeared during a gated/non-delivery lane.",
+        "Sample dirty path: apps/api/src/modules/subscriptions/payments/stripeWebhook.e2e.test.ts.",
+        "Source-control classification owner/action: Soar PM source-control lane decides commit/no-commit; no push, deploy, restart, production mutation, protected smoke, or secret access.",
+      ].join("\n"),
+      status: "blocked",
+      assigneeAgentId: "runtime-adapter-engineer",
+    },
+    {
+      identifier: "LUC-4046",
+      title: "[Soar][Runtime] Project mutation guard board-access cancellation path",
+      description: [
+        "Project mutation guard source-control path was deferred because board access was required to close the secret metadata gap.",
+        "Keep blocked delivery paused until the board-authorized refresh is available.",
+      ].join("\n"),
+      status: "cancelled",
+      assigneeAgentId: "security",
+      blockedBy: [{ identifier: "LUC-4045", status: "blocked" }],
+      blockerAttention: {
+        state: "covered",
+        reason: "active_child",
+        sampleBlockerIdentifier: "LUC-4045",
+      },
+    },
+    {
+      identifier: "LUC-4052",
+      title: "[Softwarehouse][Learning] Ops/release blocker pattern LUC-4045",
+      description: "softwarehouse-learning-loop:v1",
+      status: "blocked",
+    },
+  ];
+
+  const suppressed = findProjectMutationSourceControlGuardChain({
+    rootBlocker: "LUC-4045",
+    terminalStatuses,
+    sourceIssues: issues.slice(0, 2),
+    relatedIssues: issues,
+  });
+
+  assert.equal(suppressed.identifier, "LUC-4045");
+});
+
 test("findProjectMutationSourceControlGuardChain does not suppress protected smoke failures", () => {
   const issues = [
     {

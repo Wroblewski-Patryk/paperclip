@@ -73,6 +73,12 @@ function isRequestTimeoutError(error) {
   return error instanceof Error && /timed out after \d+ms/i.test(error.message);
 }
 
+function isBoardAccessRequiredError(error) {
+  return error instanceof Error
+    && /failed with 403:/i.test(error.message)
+    && /Board access required/i.test(error.message);
+}
+
 async function readBaseline() {
   try {
     const raw = await readFile("report/softwarehouse-source-control.latest.json", "utf8");
@@ -192,46 +198,91 @@ for (const { run, issue } of activeSoarRuns) {
 }
 
 const applied = [];
+const actionSkips = [];
 if (apply) {
   for (const action of actions) {
     if (action.kind === "cancel_scope_violating_project_run") {
-      const cancelled = await request("POST", `/api/heartbeat-runs/${action.runId}/cancel`, {});
-      const updated = await request("PATCH", `/api/issues/${action.issueId}`, {
-        status: "blocked",
-        comment: [
-          "Project mutation guard stopped this run because protected project changes appeared during a gated/non-delivery lane.",
-          `New protected dirty group(s): ${action.newProtectedGroups.join(", ")}.`,
-          `Sample path(s): ${action.sample.join(", ") || "none"}.`,
-          "",
-          "Disposition: blocked pending source-control classification.",
-          "No automatic revert was performed.",
-        ].join("\n"),
-      });
-      applied.push({
-        ...action,
-        runStatus: cancelled?.status ?? null,
-        issueStatus: updated.status,
-      });
+      try {
+        const cancelled = await request("POST", `/api/heartbeat-runs/${action.runId}/cancel`, {});
+        const updated = await request("PATCH", `/api/issues/${action.issueId}`, {
+          status: "blocked",
+          comment: [
+            "Project mutation guard stopped this run because protected project changes appeared during a gated/non-delivery lane.",
+            `New protected dirty group(s): ${action.newProtectedGroups.join(", ")}.`,
+            `Sample path(s): ${action.sample.join(", ") || "none"}.`,
+            "",
+            "Disposition: blocked pending source-control classification.",
+            "No automatic revert was performed.",
+          ].join("\n"),
+        });
+        applied.push({
+          ...action,
+          runStatus: cancelled?.status ?? null,
+          issueStatus: updated.status,
+        });
+      } catch (error) {
+        if (isBoardAccessRequiredError(error)) {
+          actionSkips.push({
+            ...action,
+            skippedReason: "board_access_required",
+            ownerAction: "Use a board-credentialed path to cancel the run; do not assume the cancellation happened.",
+            error: error instanceof Error ? error.message : String(error),
+          });
+          continue;
+        }
+        if (isRequestTimeoutError(error)) {
+          actionSkips.push({
+            ...action,
+            skippedReason: "cancel_timeout",
+            ownerAction: "Retry the project mutation guard after the local Paperclip API is responsive.",
+            error: error instanceof Error ? error.message : String(error),
+          });
+          continue;
+        }
+        throw error;
+      }
       continue;
     }
 
     if (action.kind === "cancel_no_project_write_lane_with_new_paths") {
-      const cancelled = await request("POST", `/api/heartbeat-runs/${action.runId}/cancel`, {});
-      const updated = await request("PATCH", `/api/issues/${action.issueId}`, {
-        status: "blocked",
-        comment: [
-          "Project mutation guard stopped this run because a no-project-write lane created or touched project paths.",
-          `New path(s) since the source-control baseline: ${action.newPaths.join(", ") || "none"}.`,
-          "",
-          "Disposition: blocked pending source-control classification and boundary review.",
-          "No automatic revert was performed.",
-        ].join("\n"),
-      });
-      applied.push({
-        ...action,
-        runStatus: cancelled?.status ?? null,
-        issueStatus: updated.status,
-      });
+      try {
+        const cancelled = await request("POST", `/api/heartbeat-runs/${action.runId}/cancel`, {});
+        const updated = await request("PATCH", `/api/issues/${action.issueId}`, {
+          status: "blocked",
+          comment: [
+            "Project mutation guard stopped this run because a no-project-write lane created or touched project paths.",
+            `New path(s) since the source-control baseline: ${action.newPaths.join(", ") || "none"}.`,
+            "",
+            "Disposition: blocked pending source-control classification and boundary review.",
+            "No automatic revert was performed.",
+          ].join("\n"),
+        });
+        applied.push({
+          ...action,
+          runStatus: cancelled?.status ?? null,
+          issueStatus: updated.status,
+        });
+      } catch (error) {
+        if (isBoardAccessRequiredError(error)) {
+          actionSkips.push({
+            ...action,
+            skippedReason: "board_access_required",
+            ownerAction: "Use a board-credentialed path to cancel the run; do not assume the cancellation happened.",
+            error: error instanceof Error ? error.message : String(error),
+          });
+          continue;
+        }
+        if (isRequestTimeoutError(error)) {
+          actionSkips.push({
+            ...action,
+            skippedReason: "cancel_timeout",
+            ownerAction: "Retry the project mutation guard after the local Paperclip API is responsive.",
+            error: error instanceof Error ? error.message : String(error),
+          });
+          continue;
+        }
+        throw error;
+      }
     }
   }
 }
@@ -252,5 +303,6 @@ console.log(JSON.stringify({
   actionCount: actions.length,
   actions,
   applied,
+  actionSkips,
   skipped: issueFetchSkipped,
 }, null, 2));

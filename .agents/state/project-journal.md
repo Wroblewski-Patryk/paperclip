@@ -2779,3 +2779,49 @@ Findings and actions:
 Operational rule: before restart or maintenance, do not trust the aggregated
 live-runs view alone. Confirm direct heartbeat-run records and process ownership;
 the aggregate can briefly return no rows while source runs are still active.
+
+Follow-up audit and closure hardening:
+
+- The project-mutation guard could abort the complete control tick when an
+  agent-scoped run lacked board permission to cancel another run. That branch
+  now records a fail-closed skip with an explicit board action; the control
+  runner treats only that exact 403 as non-fatal, and the learning loop does
+  not create repeated repair churn for the already-routed condition.
+- The source-control closure janitor selected projects by display name. Two
+  already-archived July 10 aliases (`Soar` and `Roost`) could therefore supply
+  a workspace that did not belong to the canonical issue project and cause a
+  422. Closure routing now resolves the issue's `projectId` first and falls
+  back to name only for legacy rows.
+- Closure reuse had two blind spots: it did not recognize the valid phrase
+  `Closed the local dirty-state packet`, and its one-time issue marker prevented
+  later evidence packets from reopening the same closure issue. The classifier
+  now accepts that bounded terminal phrase and keys reopen markers by the
+  repository HEAD. Live proof: Roost's 85-path packet reopened LUC-1106 and was
+  committed cleanly as `a74f6721`; the next 24-path Soar packet reopened
+  LUC-1104 under the canonical Soar workspace.
+- Status-only recovery prompts now explicitly forbid workspace inspection and
+  mutation and require a real Paperclip issue disposition. This prevents a
+  recovery run from continuing implementation merely because a successful
+  source run omitted the final status patch.
+- Managed instruction roots are now injected as
+  `PAPERCLIP_AGENT_INSTRUCTIONS_ROOT` by every adapter using the shared runtime
+  environment. All 39 bundles teach PowerShell agents to use the environment
+  value rather than retyping a long UUID path; the bundle audit passes 39/39
+  with no missing roots or duplicates.
+- Windows orphan cleanup now normalizes slash direction and validates that an
+  `io_worker` parent is a Postgres process from this repository, avoiding both
+  stale PID reuse and broad process-name cleanup. The live process audit found
+  one managed Postgres master and zero orphan workers.
+- The last-24-hour sample contained 731 runs: 690 succeeded, 8 failed, and 29
+  were cancelled. The failures were bounded historical adapter/symlink events
+  or process-loss tails around maintenance; no open issue-title duplicates,
+  stale error agents, detached runs, or multi-run agent conflicts remained.
+- Verification passed: 224/224 focused control and learning tests, 148/148 gate
+  specifications, heartbeat task context 10/10, Paperclip environment 5/5,
+  adapter-utils typecheck, server typecheck, workspace-boundary audit, and the
+  39-agent instruction audit.
+
+Remaining protected boundary: LUC-972 is still the only root for the five
+blocked delivery-chain issues. It represents approved but secret-bearing
+credential rotation and must remain an explicit protected operator action; it
+is not evidence of idle orchestration or permission to synthesize completion.

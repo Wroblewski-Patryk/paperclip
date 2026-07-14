@@ -29,6 +29,20 @@ afterEach(() => {
 });
 
 describe("buildPaperclipEnv", () => {
+  it("exposes the managed instruction root without requiring agents to retype it", () => {
+    const env = buildPaperclipEnv({
+      id: "agent-1",
+      companyId: "company-1",
+      adapterConfig: {
+        instructionsRootPath: "C:\\runtime\\agents\\agent-1\\instructions",
+      },
+    });
+
+    expect(env.PAPERCLIP_AGENT_INSTRUCTIONS_ROOT).toBe(
+      "C:\\runtime\\agents\\agent-1\\instructions",
+    );
+  });
+
   it("prefers an explicit PAPERCLIP_RUNTIME_API_URL", () => {
     process.env.PAPERCLIP_RUNTIME_API_URL = "http://203.0.113.42:3102";
     process.env.PAPERCLIP_API_URL = "http://localhost:4100";

@@ -89,11 +89,16 @@ function hasTerminalCleanClaim(comments) {
   const text = comments.map((comment) => comment.body ?? "").join("\n\n");
   return /source-control closure (is )?complete/i.test(text)
     || /Current repo state:\s*clean working tree/i.test(text)
-    || /current dirty state is closed/i.test(text);
+    || /current dirty state is closed/i.test(text)
+    || /closed the (?:full )?(?:local )?dirty[- ]state packet/i.test(text);
 }
 
-function hasInvalidReopenMarker(comments, issueIdentifier) {
-  const marker = `${invalidMarkerPrefix}${issueIdentifier}:v1`;
+function invalidReopenMarker(issueIdentifier, gitHead) {
+  return `${invalidMarkerPrefix}${issueIdentifier}:${gitHead ?? "unknown"}:v2`;
+}
+
+function hasInvalidReopenMarker(comments, issueIdentifier, gitHead) {
+  const marker = invalidReopenMarker(issueIdentifier, gitHead);
   return comments.some((comment) => String(comment.body ?? "").includes(marker));
 }
 
@@ -148,6 +153,7 @@ try {
 }
 const projects = toArray(await request("GET", `/api/companies/${company.id}/projects`).catch(() => []));
 const projectByName = new Map(projects.map((project) => [project.name, project]));
+const projectById = new Map(projects.map((project) => [project.id, project]));
 const closureSearches = await Promise.all(sourceControlProjects.map((project) =>
   request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent(`[${project}][Source Control Closure]`)}&limit=100`)
     .then((result) => toArray(result))
@@ -170,9 +176,9 @@ for (const issue of issues) {
     && repo.exists
     && !repo.clean
     && hasTerminalCleanClaim(comments)
-    && !hasInvalidReopenMarker(comments, issue.identifier)
+    && !hasInvalidReopenMarker(comments, issue.identifier, repo.head)
   ) {
-    const projectRow = projectByName.get(project) ?? null;
+    const projectRow = projectById.get(issue.projectId) ?? projectByName.get(project) ?? null;
     actions.push({
       action: "reopen_invalid_source_control_closure",
       identifier: issue.identifier,
@@ -206,7 +212,7 @@ if (apply) {
     if (action.action === "reopen_invalid_source_control_closure") {
       await request("POST", `/api/issues/${action.issueId}/comments`, {
         body: [
-          `${invalidMarkerPrefix}${action.identifier}:v1`,
+          invalidReopenMarker(action.identifier, action.head),
           "",
           `Reopening source-control closure because ${action.project} primary local repository is still dirty (${action.dirtyCount} paths) at ${action.head}.`,
           "Previous clean evidence is invalid for local source-control closure if it came from an isolated worktree or any workspace other than the project primary path.",

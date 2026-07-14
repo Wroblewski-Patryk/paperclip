@@ -138,6 +138,7 @@ async function buildInstructions(definition, instructionsRoot) {
       "## Instruction Root",
       "",
       `- Absolute bundle root: \`${instructionsRoot}\``,
+      "- Prefer the injected `PAPERCLIP_AGENT_INSTRUCTIONS_ROOT` environment variable instead of retyping this path. On PowerShell, read it as `$env:PAPERCLIP_AGENT_INSTRUCTIONS_ROOT`.",
       "- Resolve every `shared/...`, `roles/...`, and `metadata.md` path below against this bundle root, never against the application repository working directory.",
       "- On PowerShell, use `Join-Path` with the absolute bundle root before `Get-Content`.",
       "",

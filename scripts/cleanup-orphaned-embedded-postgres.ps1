@@ -6,16 +6,22 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$RootNeedle = $Root.ToLowerInvariant()
+$RootNeedle = $Root.Replace('\', '/').ToLowerInvariant()
 $Candidates = @()
 
 foreach ($process in @(Get-CimInstance Win32_Process -Filter "Name = 'postgres.exe'" -ErrorAction SilentlyContinue)) {
   $commandLine = [string]$process.CommandLine
-  if (-not $commandLine.ToLowerInvariant().Contains($RootNeedle)) { continue }
+  $normalizedCommandLine = $commandLine.Replace('\', '/').ToLowerInvariant()
+  if (-not $normalizedCommandLine.Contains($RootNeedle)) { continue }
   if ($commandLine -notmatch '--forkchild="io_worker"') { continue }
 
   $parent = Get-CimInstance Win32_Process -Filter "ProcessId = $($process.ParentProcessId)" -ErrorAction SilentlyContinue
-  if ($parent) { continue }
+  $parentCommandLine = if ($parent) { ([string]$parent.CommandLine).Replace('\', '/').ToLowerInvariant() } else { '' }
+  $hasManagedPostgresParent =
+    $parent -and
+    $parent.Name -eq 'postgres.exe' -and
+    $parentCommandLine.Contains($RootNeedle)
+  if ($hasManagedPostgresParent) { continue }
 
   $Candidates += [pscustomobject]@{
     processId = [int]$process.ProcessId
