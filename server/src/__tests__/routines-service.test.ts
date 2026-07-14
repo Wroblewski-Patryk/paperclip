@@ -306,6 +306,10 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
     expect(run.coalescedIntoRunId).toBeNull();
     expect(wakeups).toHaveLength(1);
     expect(wakeups[0]?.opts.reason).toBe("routine_issue_reused");
+    expect(wakeups[0]?.opts.contextSnapshot).toMatchObject({
+      forceFreshSession: true,
+      skipContinuationSummary: true,
+    });
 
     const reusedIssue = await db
       .select({ id: issues.id, originRunId: issues.originRunId })

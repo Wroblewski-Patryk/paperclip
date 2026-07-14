@@ -688,7 +688,7 @@ describe("fetchCodexQuota", () => {
     });
     const windows = await fetchCodexQuota("token", null);
     expect(windows).toHaveLength(1);
-    expect(windows[0]).toMatchObject({ label: "5h limit", usedPercent: 30, resetsAt: "2026-01-02T00:00:00.000Z" });
+    expect(windows[0]).toMatchObject({ label: "24h limit", usedPercent: 30, resetsAt: "2026-01-02T00:00:00.000Z" });
   });
 
   it("parses secondary_window alongside primary_window", async () => {
@@ -702,6 +702,16 @@ describe("fetchCodexQuota", () => {
     expect(windows).toHaveLength(2);
     expect(windows[0]!.label).toBe("5h limit");
     expect(windows[1]!.label).toBe("Weekly limit");
+  });
+
+  it("labels a weekly primary window from the provider duration", async () => {
+    mockFetch({
+      rate_limit: {
+        primary_window: { used_percent: 87, limit_window_seconds: 604800 },
+      },
+    });
+    const windows = await fetchCodexQuota("token", null);
+    expect(windows[0]).toMatchObject({ label: "Weekly limit", usedPercent: 87 });
   });
 
   it("includes Credits window when credits present and not unlimited", async () => {
@@ -762,6 +772,9 @@ describe("mapCodexRpcQuota", () => {
     expect(snapshot.windows).toEqual([
       {
         label: "5h limit",
+        scope: "lane",
+        quotaLane: "codex_standard",
+        model: null,
         usedPercent: 1,
         resetsAt: "2025-11-18T21:06:40.000Z",
         valueLabel: null,
@@ -769,6 +782,9 @@ describe("mapCodexRpcQuota", () => {
       },
       {
         label: "Weekly limit",
+        scope: "lane",
+        quotaLane: "codex_standard",
+        model: null,
         usedPercent: 27,
         resetsAt: null,
         valueLabel: null,
@@ -776,6 +792,9 @@ describe("mapCodexRpcQuota", () => {
       },
       {
         label: "GPT-5.3-Codex-Spark · 5h limit",
+        scope: "lane",
+        quotaLane: "codex_spark_preview",
+        model: "gpt-5.3-codex-spark",
         usedPercent: 8,
         resetsAt: null,
         valueLabel: null,
@@ -783,6 +802,9 @@ describe("mapCodexRpcQuota", () => {
       },
       {
         label: "GPT-5.3-Codex-Spark · Weekly limit",
+        scope: "lane",
+        quotaLane: "codex_spark_preview",
+        model: "gpt-5.3-codex-spark",
         usedPercent: 20,
         resetsAt: null,
         valueLabel: null,

@@ -8,9 +8,14 @@ $ErrPath = Join-Path $LogDir 'softwarehouse.err.log'
 $ConfigPath = Join-Path $Root '.paperclip\config.json'
 $EnvPath = Join-Path $Root '.paperclip\.env'
 $ServiceDir = Join-Path $Root '.paperclip\runtime\home\instances\default\runtime-services'
+$OrphanCleanupScript = Join-Path $PSScriptRoot 'cleanup-orphaned-embedded-postgres.ps1'
 
 New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $Root '.paperclip') -Force | Out-Null
+
+if (Test-Path -LiteralPath $OrphanCleanupScript) {
+  & $OrphanCleanupScript -Apply | Write-Output
+}
 
 if (-not (Test-Path -LiteralPath $ConfigPath)) {
   Copy-Item -LiteralPath (Join-Path $Root 'softwarehouse\local-config.example.json') -Destination $ConfigPath

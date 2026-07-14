@@ -203,6 +203,14 @@ export function secondsToWindowLabel(
   return `${Math.round(hours / 24)}d`;
 }
 
+function formatWhamWindowLabel(
+  seconds: number | null | undefined,
+  fallback: string,
+): string {
+  const duration = secondsToWindowLabel(seconds, fallback);
+  return duration === "7d" ? "Weekly limit" : `${duration} limit`;
+}
+
 /** fetch with an abort-based timeout so a hanging provider api doesn't block the response indefinitely */
 export async function fetchWithTimeout(
   url: string,
@@ -241,7 +249,7 @@ export async function fetchCodexQuota(
   if (rateLimit?.primary_window != null) {
     const w = rateLimit.primary_window;
     windows.push({
-      label: "5h limit",
+      label: formatWhamWindowLabel(w.limit_window_seconds, "5h"),
       scope: "lane",
       quotaLane: "codex_standard",
       model: null,
@@ -257,7 +265,7 @@ export async function fetchCodexQuota(
   if (rateLimit?.secondary_window != null) {
     const w = rateLimit.secondary_window;
     windows.push({
-      label: "Weekly limit",
+      label: formatWhamWindowLabel(w.limit_window_seconds, "Weekly"),
       scope: "lane",
       quotaLane: "codex_standard",
       model: null,

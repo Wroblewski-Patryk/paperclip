@@ -1459,6 +1459,8 @@ export function routineService(
           mutation: "reuse",
           contextSource: "routine.dispatch.reuse",
           requestedByActorType: input.source === "schedule" ? "system" : undefined,
+          forceFreshSession: true,
+          skipContinuationSummary: true,
           rethrowOnError: true,
         });
       } catch (error) {

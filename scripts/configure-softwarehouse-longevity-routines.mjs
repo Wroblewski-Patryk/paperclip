@@ -133,6 +133,7 @@ const specs = [
     description: [
       "Keep the softwarehouse from going idle while current Soar/Roost delivery gaps still have legal non-production work.",
       "Run `pnpm run softwarehouse:continuation-watchdog` and follow its output.",
+      "Execute that command before inspecting the recurring issue state. The issue being locked by the current run is expected and is not a blocker; the command finalizes the cycle with the current Paperclip run identity.",
       "The watchdog must not start duplicate owner work when live runs exist. When no live runs exist, it may apply the next legal action selected by `softwarehouse:next-legal-action:apply`.",
       "After each cycle, the watchdog must return its own recurring issue to `todo` with a clear final disposition. It must never stay `in_progress` between scheduled runs or create a missing-disposition recovery loop.",
       "Allowed actions are limited to Paperclip issue/routine routing, project-truth proof/repair lane creation, control packet refresh, and local non-production evidence work.",

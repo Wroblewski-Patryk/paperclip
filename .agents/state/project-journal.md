@@ -2742,3 +2742,40 @@ every entry file, plus role-specific frontmatter. All 39 bundles were
 resynchronized; the instruction audit now passes with zero missing roots, zero
 duplicates, zero warnings, zero failures, and 39/39 coverage for persona, scope,
 evidence, safety, model, and hierarchy signals.
+
+## 2026-07-14 - Runtime constructiveness and recurring-cycle hardening
+
+Context: after more than 1,000 completed board issues, the owner requested a
+fresh audit of whether the Softwarehouse was still converging on Paperclip,
+Soar, and Roost rather than producing activity without closure.
+
+Findings and actions:
+
+- LUC-770's five-minute continuation routine reused one long Codex task session.
+  It could interpret the lock held by its own current run as a blocker, append a
+  status comment, and exit without executing the continuation watchdog. The
+  accumulated run context reached tens of millions of cached input tokens.
+- Reused routine issues now request a fresh adapter session and skip the prior
+  continuation summary. The routine contract also requires executing the
+  watchdog command before interpreting the recurring issue's current-run lock.
+- Twelve detached embedded-Postgres `io_worker` children from timed-out Windows
+  tests were removed. Startup now runs a narrow PID-scoped cleanup that matches
+  only missing-parent workers launched under this repository; it never kills
+  Postgres by process name.
+- Codex quota labels now derive from the provider's actual window duration. A
+  seven-day primary window is reported as `Weekly limit` instead of the stale
+  hardcoded `5h limit` label.
+- Focused routine, quota, adapter typecheck, server typecheck, and the complete
+  Softwarehouse gate suite passed. The gate suite currently reports 148/148.
+- Soar source-control closure remains clean at `11b8b5ab`. Roost's LUC-1107
+  verification reduced the indexed missing-test-link debt and passed public
+  web/build/API health probes, but generated a new dirty evidence packet that
+  must be serialized through source-control closure before another Roost proof
+  lane is dispatched.
+- LUC-25 still has one legitimate protected owner path: approved credential
+  rotation task LUC-972 beneath LUC-496/LUC-494. Its secret-bearing action must
+  not be silently executed or replaced by synthetic completion evidence.
+
+Operational rule: before restart or maintenance, do not trust the aggregated
+live-runs view alone. Confirm direct heartbeat-run records and process ownership;
+the aggregate can briefly return no rows while source runs are still active.

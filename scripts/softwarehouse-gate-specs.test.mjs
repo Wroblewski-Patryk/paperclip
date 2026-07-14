@@ -259,6 +259,27 @@ test("shared supervision keeps Paperclip LUC identifiers out of the GitHub issue
   assert.match(syncScript, /`role: \$\{definition\.role\}`/);
 });
 
+test("Windows startup removes only orphaned embedded Postgres io workers", async () => {
+  const cleanup = await readFile("scripts/cleanup-orphaned-embedded-postgres.ps1", "utf8");
+  const startup = await readFile("scripts/start-luckysparrow-softwarehouse.ps1", "utf8");
+
+  assert.match(cleanup, /Name = 'postgres\.exe'/);
+  assert.match(cleanup, /--forkchild="io_worker"/);
+  assert.match(cleanup, /Contains\(\$RootNeedle\)/);
+  assert.match(cleanup, /if \(\$parent\) \{ continue \}/);
+  assert.match(cleanup, /Stop-Process -Id \$candidate\.processId/);
+  assert.doesNotMatch(cleanup, /Stop-Process -Name postgres/);
+  assert.match(startup, /cleanup-orphaned-embedded-postgres\.ps1/);
+  assert.match(startup, /& \$OrphanCleanupScript -Apply/);
+});
+
+test("reused continuation cycles execute before interpreting their own issue lock", async () => {
+  const source = await readFile("scripts/configure-softwarehouse-longevity-routines.mjs", "utf8");
+
+  assert.match(source, /Execute that command before inspecting the recurring issue state/);
+  assert.match(source, /issue being locked by the current run is expected and is not a blocker/);
+});
+
 test("project-truth dispatcher requires a complete closure packet for proof lanes", async () => {
   const source = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
 

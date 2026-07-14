@@ -7885,7 +7885,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           executionWorkspacePreference: issueContext.executionWorkspacePreference,
         }
       : null;
-    const continuationSummary = issueRef
+    const skipContinuationSummary = context.skipContinuationSummary === true;
+    const continuationSummary = issueRef && !skipContinuationSummary
       ? await getIssueContinuationSummaryDocument(db, issueRef.id)
       : null;
     if (continuationSummary) {
