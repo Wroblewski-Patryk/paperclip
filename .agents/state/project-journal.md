@@ -3178,3 +3178,24 @@ terminal result confirm Spark was truly applied.
   references exist, and the Coolify access dry-run remains at zero actions.
 - Current model/cost readback reports roughly 9% weekly subscription use,
   thirty idle agents, nine intentionally paused roles, and zero error agents.
+
+## 2026-07-14 - Hard-parent delivery graph audit
+
+- A live audit found a fail-open reporting defect: Soar and Roost could each
+  satisfy their local readiness checks while LUC-25 still had active protected
+  blocker chains. This made `twoProjectFullDeliveryReady` incorrectly read
+  `true` even though protected production actions remained forbidden.
+- A bounded blocker-graph helper now follows LUC-25 `blockedBy` relations,
+  fetches current issue detail, ignores terminal nodes, deduplicates converging
+  branches, and retains unreadable nodes as conservative leaves.
+- The current graph visits five nodes. LUC-448 and LUC-494 converge on LUC-972,
+  the approved credential-rotation gate. The corrected readiness result is
+  `supervision_ready_limited_delivery`, with full delivery false and LUC-972
+  named in `requiredBeforeFullDelivery`.
+- Control-tick summary compression now preserves both the protected blocker
+  packet and graph metadata. The operator brief can therefore allow local
+  non-production repair while continuing to deny push, deploy, restart, and
+  protected smoke.
+- Executable coverage includes graph convergence/deduplication and preservation
+  through readiness/control summaries. The focused suite passes 163/163 and
+  all changed scripts pass syntax and diff checks.

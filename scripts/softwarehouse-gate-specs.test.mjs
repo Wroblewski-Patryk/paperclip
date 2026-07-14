@@ -16,6 +16,7 @@ import {
   canonicalArchitectureStatus,
   taskArtifactStatus,
 } from "./lib/architecture-awareness-task-status.mjs";
+import { collectNonTerminalBlockerLeaves } from "./lib/delivery-blocker-graph.mjs";
 
 const requiredFields = [
   "project",
@@ -344,6 +345,44 @@ test("architecture awareness prefers structured task status over free text", () 
   assert.equal(taskArtifactStatus("- Reality status: blocked\n"), "blocked");
   assert.equal(taskArtifactStatus("Completion evidence: done"), "verified");
   assert.equal(taskArtifactStatus("Waiting for an owner"), "in_progress");
+});
+
+test("hard-delivery readiness deduplicates active blocker leaves", async () => {
+  const byIdentifier = new Map([
+    ["LUC-448", { identifier: "LUC-448", status: "blocked", blockedBy: [{ identifier: "LUC-507", status: "blocked" }] }],
+    ["LUC-494", { identifier: "LUC-494", status: "blocked", blockedBy: [{ identifier: "LUC-496", status: "blocked" }] }],
+    ["LUC-507", { identifier: "LUC-507", status: "blocked", blockedBy: [{ identifier: "LUC-972", status: "todo" }] }],
+    ["LUC-496", { identifier: "LUC-496", status: "blocked", blockedBy: [{ identifier: "LUC-972", status: "todo" }] }],
+    ["LUC-972", { identifier: "LUC-972", title: "Rotate credentials", status: "todo", blockedBy: [] }],
+  ]);
+  const result = await collectNonTerminalBlockerLeaves({
+    rootIssue: {
+      identifier: "LUC-25",
+      status: "blocked",
+      blockedBy: [
+        { identifier: "LUC-448", status: "blocked" },
+        { identifier: "LUC-494", status: "blocked" },
+      ],
+    },
+    loadIssue: async (identifier) => byIdentifier.get(identifier),
+  });
+
+  assert.equal(result.truncated, false);
+  assert.equal(result.visitedCount, 5);
+  assert.deepEqual(result.leaves.map((issue) => issue.identifier), ["LUC-972"]);
+});
+
+test("readiness and control brief preserve hard-delivery protected gates", async () => {
+  const readiness = await readFile("scripts/check-two-project-readiness.mjs", "utf8");
+  const controlTick = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
+
+  assert.match(readiness, /SOFTWAREHOUSE_DELIVERY_PARENT_IDENTIFIER \?\? "LUC-25"/);
+  assert.match(readiness, /protectedDeliveryBlockers\.length === 0/);
+  assert.match(readiness, /Protected delivery gate \$\{blocker\.identifier\}/);
+  assert.match(controlTick, /protectedDeliveryBlockers: data\.protectedDeliveryBlockers \?\? \[\]/);
+  assert.match(controlTick, /protectedDeliveryBlockers: readiness\.protectedDeliveryBlockers/);
+  assert.match(controlTick, /\["runnable_work_available", "blocked_needs_triage"\]/);
+  assert.match(controlTick, /Terminal disposition and inspectable evidence for:/);
 });
 
 test("Windows startup removes only orphaned embedded Postgres io workers", async () => {

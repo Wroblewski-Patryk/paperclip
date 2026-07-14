@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { rootBlockerIdentifierFor } from "./lib/issue-blockers.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
+import { collectNonTerminalBlockerLeaves } from "./lib/delivery-blocker-graph.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow Software House";
@@ -12,6 +13,7 @@ const preferredCompanyNames = [
   "LuckySparrow Software House",
 ].filter(Boolean);
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
+const deliveryParentIdentifier = process.env.SOFTWAREHOUSE_DELIVERY_PARENT_IDENTIFIER ?? "LUC-25";
 const requiredProjects = (process.env.SOFTWAREHOUSE_READINESS_PROJECTS ?? "Soar,Roost")
   .split(",")
   .map((name) => name.trim())
@@ -95,13 +97,14 @@ async function resolveCompany() {
 
 const company = await resolveCompany();
 
-const [health, agents, projects, issues, liveRuns, routines] = await Promise.all([
+const [health, agents, projects, issues, liveRuns, routines, deliveryParentIssue] = await Promise.all([
   request("GET", "/api/health"),
   request("GET", `/api/companies/${company.id}/agents`),
   request("GET", `/api/companies/${company.id}/projects`),
   request("GET", `/api/companies/${company.id}/issues?limit=1000`),
   request("GET", `/api/companies/${company.id}/live-runs`),
   request("GET", `/api/companies/${company.id}/routines`),
+  request("GET", `/api/issues/${encodeURIComponent(deliveryParentIdentifier)}`).catch(() => null),
 ]);
 const sourceControl = await readLatestSourceControlPacket();
 
@@ -226,6 +229,30 @@ const activeRoutineTitles = routines
   .map((routine) => routine.title)
   .sort();
 
+const deliveryBlockerGraph = deliveryParentIssue && !terminalStatuses.has(deliveryParentIssue.status)
+  ? await collectNonTerminalBlockerLeaves({
+    rootIssue: deliveryParentIssue,
+    terminalStatuses,
+    loadIssue: (identifier) => request("GET", `/api/issues/${encodeURIComponent(identifier)}`),
+  })
+  : { leaves: [], visitedCount: 0, truncated: false };
+const protectedDeliveryBlockers = deliveryBlockerGraph.leaves.map((issue) => ({
+  identifier: issue.identifier ?? issue.id ?? "unknown",
+  title: issue.title ?? "Unresolved hard-delivery blocker",
+  status: issue.status ?? "unknown",
+  assigneeAgentId: issue.assigneeAgentId ?? null,
+  owner: agentName(agentById, issue.assigneeAgentId) ?? "Owner / Security gate",
+}));
+if (deliveryBlockerGraph.truncated) {
+  protectedDeliveryBlockers.push({
+    identifier: deliveryParentIdentifier,
+    title: "Hard-delivery blocker graph exceeded the bounded traversal limit",
+    status: deliveryParentIssue?.status ?? "unknown",
+    assigneeAgentId: deliveryParentIssue?.assigneeAgentId ?? null,
+    owner: agentName(agentById, deliveryParentIssue?.assigneeAgentId) ?? "Softwarehouse control owner",
+  });
+}
+
 const sharedReadinessBlockers = [];
 if (health.devServer?.restartRequired) sharedReadinessBlockers.push("Paperclip restart required");
 if ((health.devServer?.activeRunCount ?? liveRuns.length) !== liveRuns.length) {
@@ -240,6 +267,7 @@ const supervisionReady = sharedReadinessBlockers.length === 0
     && report.staleInProgressCount === 0
   );
 const twoProjectFullDeliveryReady = supervisionReady
+  && protectedDeliveryBlockers.length === 0
   && projectReports.filter((report) => ["Soar", "Roost"].includes(report.project)).every((report) =>
     report.mode === "delivery_ready"
     && report.blockers.length === 0
@@ -255,6 +283,8 @@ const operatingPosture = sourceControl.dirtyOperatingRepos.length > 0
     ? "project_source_control_closure_allowed"
     : gateBlockedProjects.length > 0
       ? "project_repo_mutation_blocked_monitoring_allowed"
+    : protectedDeliveryBlockers.length > 0
+      ? "supervision_ready_limited_delivery"
     : twoProjectFullDeliveryReady
       ? "two_project_delivery_ready"
       : supervisionReady
@@ -276,7 +306,21 @@ const operatingConstraints = operatingPosture === "operating_system_closure_requ
         "refresh control/source-control/unblock packets",
         "do not mutate, commit, push, deploy, or restart blocked project repos until their gate is fresh",
       ]
+    : operatingPosture === "supervision_ready_limited_delivery" && protectedDeliveryBlockers.length > 0
+      ? [
+        "local non-production repair, validation, documentation, and commit evidence may continue",
+        "do not push, deploy, restart, or run protected smoke until the hard-delivery blocker leaves are terminal",
+        "route credential, security, and owner-decision work through the named protected gate",
+      ]
     : [];
+const requiredBeforeFullDelivery = [
+  ...protectedDeliveryBlockers.map((blocker) =>
+    `Protected delivery gate ${blocker.identifier}: ${blocker.title}`
+  ),
+  ...projectReports.flatMap((report) =>
+    report.blockers.map((blocker) => `${report.project}: ${blocker}`)
+  ),
+];
 
 console.log(JSON.stringify({
   apiBase,
@@ -295,10 +339,15 @@ console.log(JSON.stringify({
       ? "Active projects can run known-state/takeover supervision; full delivery waits for project-specific gates."
       : "Shared supervision is not ready.",
     multiProjectTakeoverReady,
-    requiredBeforeFullDelivery: projectReports
-      .flatMap((report) => report.blockers.map((blocker) => `${report.project}: ${blocker}`)),
+    requiredBeforeFullDelivery,
   },
   sharedReadinessBlockers,
+  protectedDeliveryBlockers,
+  deliveryBlockerGraph: {
+    parentIdentifier: deliveryParentIdentifier,
+    visitedCount: deliveryBlockerGraph.visitedCount,
+    truncated: deliveryBlockerGraph.truncated,
+  },
   sourceControl,
   agentsWithMultipleLiveRuns,
   agentsWithQueuedBehindRunning,

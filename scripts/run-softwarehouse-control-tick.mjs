@@ -494,6 +494,8 @@ const steps = [
       operatingPosture: data.readiness?.operatingPosture ?? null,
       operatingConstraints: data.readiness?.operatingConstraints ?? [],
       requiredBeforeFullDelivery: data.readiness?.requiredBeforeFullDelivery ?? [],
+      protectedDeliveryBlockers: data.protectedDeliveryBlockers ?? [],
+      deliveryBlockerGraph: data.deliveryBlockerGraph ?? null,
       activeRunCount: data.health?.activeRunCount ?? null,
       liveRunCount: data.health?.liveRunCount ?? null,
     }),
@@ -1260,8 +1262,27 @@ function nextControlActionStatusFor(actions) {
   };
 }
 
-function operatorActionPacketFor({ gateHandoffs, sourceControlGateIssues, sourceControlRepos, requiredBeforeFullDelivery }) {
-  const blockedGates = (gateHandoffs ?? []).filter((gate) => gate.status === "blocked" && !gate.fresh);
+function operatorActionPacketFor({ gateHandoffs, protectedDeliveryBlockers, sourceControlGateIssues, sourceControlRepos, requiredBeforeFullDelivery }) {
+  const blockedGateByRoot = new Map(
+    (gateHandoffs ?? [])
+      .filter((gate) => gate.status === "blocked" && !gate.fresh)
+      .map((gate) => [gate.rootBlocker, gate]),
+  );
+  for (const blocker of protectedDeliveryBlockers ?? []) {
+    if (blockedGateByRoot.has(blocker.identifier)) continue;
+    blockedGateByRoot.set(blocker.identifier, {
+      project: "Soar/Roost",
+      rootBlocker: blocker.identifier,
+      status: blocker.status,
+      fresh: false,
+      owner: blocker.owner ?? "Owner / Security gate",
+      evidenceRequired: `Terminal disposition and inspectable evidence for: ${blocker.title}`,
+      acceptedFreshFacts: [],
+      operatorPrompt: `Resolve or explicitly reclassify ${blocker.identifier} before protected delivery.`,
+      latestEvidence: null,
+    });
+  }
+  const blockedGates = [...blockedGateByRoot.values()];
   const gateEvidenceByRoot = new Map((gateHandoffs ?? []).map((gate) => [gate.rootBlocker, gate.latestEvidence ?? null]));
   const dirtyProjects = (sourceControlRepos ?? [])
     .filter((repo) => repo.name !== "Paperclip_Softwarehouse" && repo.clean === false && repo.parked !== true)
@@ -1336,7 +1357,7 @@ function controlBriefFor({
         ? "assignment_required"
       : dirtyProjects.length > 0 && controlDecision === "project_source_control_closure_needed"
         ? "source_control_closure"
-        : controlDecision === "runnable_work_available" && blockedGates.length > 0
+        : ["runnable_work_available", "blocked_needs_triage"].includes(controlDecision) && blockedGates.length > 0
           ? "local_repair_lane"
         : blockedGates.length > 0
           ? "wait_for_gate_fact"
@@ -2023,6 +2044,7 @@ if (singleFlight.mode === "follower") {
     const nextControlActionStatus = nextControlActionStatusFor(nextControlActions);
     const operatorActionPacket = operatorActionPacketFor({
       gateHandoffs: unblockPacket.gateHandoffs ?? [],
+      protectedDeliveryBlockers: readiness.protectedDeliveryBlockers ?? [],
       sourceControlGateIssues: governor.sourceControlGateIssues ?? [],
       sourceControlRepos: sourceControl.repos ?? [],
       requiredBeforeFullDelivery: readiness.requiredBeforeFullDelivery ?? [],

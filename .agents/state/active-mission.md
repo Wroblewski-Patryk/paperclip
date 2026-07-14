@@ -331,3 +331,21 @@ or the relevant owners explicitly classify them as not required with evidence.
 - OpenAI weekly usage currently reads about 9%, with no quota incident and no
   error-state agent. This permits normal productive dispatch; it does not waive
   protected production, credential-rotation, or owner-usability evidence.
+
+## 2026-07-14 - Hard Delivery Readiness Correction
+
+- Product-local readiness and hard-parent delivery readiness are separate
+  truths. The softwarehouse may supervise and execute local Soar/Roost repair,
+  tests, documentation, and commit closure while protected production delivery
+  remains unavailable.
+- Resolve the complete `blockedBy` graph rooted at LUC-25 before reporting full
+  delivery. The current live graph converges through LUC-448 and LUC-494 on the
+  protected LUC-972 credential-rotation leaf.
+- LUC-972 must remain visible in readiness and the operator action packet until
+  it has a terminal, evidence-backed disposition. Do not infer completion from
+  clean repositories, passing local tests, or successful unprotected smoke.
+- Graph traversal is bounded and fail-closed. A failed detail read or truncated
+  graph blocks protected delivery but does not prevent independent local repair
+  lanes from making useful progress.
+- Readiness must remain `twoProjectFullDeliveryReady: false` and deny push,
+  deploy, restart, and protected smoke while this leaf is active.
