@@ -156,6 +156,7 @@ export interface PluginToolDispatcher {
   registerPluginTools(
     pluginId: string,
     manifest: PaperclipPluginManifestV1,
+    pluginDbId: string,
   ): void;
 
   /**
@@ -429,8 +430,19 @@ export function createPluginToolDispatcher(
     registerPluginTools(
       pluginId: string,
       manifest: PaperclipPluginManifestV1,
+      pluginDbId: string,
     ): void {
-      registry.registerPlugin(pluginId, manifest);
+      if (!pluginId || typeof pluginId !== "string" || pluginId.trim().length === 0) {
+        throw new Error("pluginId is required");
+      }
+      if (!manifest || typeof manifest !== "object") {
+        throw new Error("manifest is required");
+      }
+      if (!pluginDbId || typeof pluginDbId !== "string" || pluginDbId.trim().length === 0) {
+        throw new Error("pluginDbId is required");
+      }
+
+      registry.registerPlugin(pluginId, manifest, pluginDbId);
     },
 
     unregisterPluginTools(pluginId: string): void {

@@ -110,9 +110,13 @@ export interface PluginToolRegistry {
    * @param pluginId - The plugin's unique identifier (e.g. `"acme.linear"`)
    * @param manifest - The plugin manifest containing the `tools` array
    * @param pluginDbId - The plugin's database UUID, used for worker routing
-   *   and availability checks. If omitted, `pluginId` is used (backwards-compat).
+   *   and availability checks.
    */
-  registerPlugin(pluginId: string, manifest: PaperclipPluginManifestV1, pluginDbId?: string): void;
+  registerPlugin(
+    pluginId: string,
+    manifest: PaperclipPluginManifestV1,
+    pluginDbId: string,
+  ): void;
 
   /**
    * Remove all tool registrations for a plugin.
@@ -210,7 +214,7 @@ export interface PluginToolRegistry {
  * const toolRegistry = createPluginToolRegistry(workerManager);
  *
  * // Register tools from a plugin manifest
- * toolRegistry.registerPlugin("acme.linear", linearManifest);
+ * toolRegistry.registerPlugin("acme.linear", linearManifest, "11111111-1111-4000-8000-000000000001");
  *
  * // List all available tools for agents
  * const tools = toolRegistry.listTools();
@@ -295,8 +299,14 @@ export function createPluginToolRegistry(
   // -----------------------------------------------------------------------
 
   return {
-    registerPlugin(pluginId: string, manifest: PaperclipPluginManifestV1, pluginDbId?: string): void {
-      const dbId = pluginDbId ?? pluginId;
+    registerPlugin(
+      pluginId: string,
+      manifest: PaperclipPluginManifestV1,
+      pluginDbId: string,
+    ): void {
+      if (!pluginDbId || typeof pluginDbId !== "string" || pluginDbId.trim().length === 0) {
+        throw new Error("pluginDbId is required for tool registration");
+      }
 
       // Remove any previously registered tools for this plugin (idempotent)
       const previousCount = removePluginTools(pluginId);
@@ -314,7 +324,7 @@ export function createPluginToolRegistry(
       }
 
       for (const decl of tools) {
-        addTool(pluginId, decl, dbId);
+        addTool(pluginId, decl, pluginDbId);
       }
 
       log.info(
