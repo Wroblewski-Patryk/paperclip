@@ -30,6 +30,9 @@ export function probeIsQuotaFailure(result) {
 }
 
 export function quotaAgentRecoveryDecision({ quotaWindows, primaryProbe, fallbackProbe }) {
+  if (probePassed(primaryProbe)) {
+    return { recover: true, reason: "stale_error_primary_probe_passed" };
+  }
   if (!isStandardQuotaCritical(quotaWindows)) {
     return { recover: false, reason: "standard_quota_not_critical" };
   }

@@ -39,6 +39,17 @@ test("fallback probe must pass without error checks", () => {
   assert.equal(probePassed({ status: "warn", checks: [] }), false);
 });
 
+test("recovery clears stale error status when the primary probe now passes", () => {
+  assert.deepEqual(quotaAgentRecoveryDecision({
+    quotaWindows: [{ quotaLane: "codex_standard", usedPercent: 10 }],
+    primaryProbe: { status: "pass", checks: [{ level: "info", code: "ok" }] },
+    fallbackProbe: { status: "pass", checks: [{ level: "info", code: "ok" }] },
+  }), {
+    recover: true,
+    reason: "stale_error_primary_probe_passed",
+  });
+});
+
 test("recovery requires critical standard quota, a quota failure, and a working Spark probe", () => {
   const base = {
     quotaWindows: [{ quotaLane: "codex_standard", usedPercent: 100 }],
