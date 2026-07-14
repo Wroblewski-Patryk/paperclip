@@ -12,6 +12,10 @@ import { softwarehouseGateSpecs, softwarehouseGateSpecsByRootBlocker } from "./l
 import { finalizeRecurringIssue } from "./run-softwarehouse-continuation-watchdog.mjs";
 import { shouldShellExecuteApplyCommand } from "./run-next-legal-action-selector.mjs";
 import { classifyLiveRuns } from "./lib/softwarehouse-live-run-classifier.mjs";
+import {
+  canonicalArchitectureStatus,
+  taskArtifactStatus,
+} from "./lib/architecture-awareness-task-status.mjs";
 
 const requiredFields = [
   "project",
@@ -311,6 +315,11 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(environment, /deterministic regeneration command/);
   assert.match(environment, /Do not run repository-root `rg`/);
   assert.match(environment, /parse the exact\s+identifier or row with a structured reader/);
+  assert.match(environment, /A line-count cap is not a byte cap/);
+  assert.match(environment, /truncate any\s+returned string field to 4 KB/);
+  assert.match(environment, /complete command output below\s+50 KB/);
+  assert.match(environment, /assigned execution workspace \(`cwd`\) is the run's write boundary/);
+  assert.match(environment, /modifying another repo\s+requires a separately assigned linked issue/);
 
   const syncScript = await readFile("scripts/sync-luckysparrow-agent-instructions.mjs", "utf8");
   assert.match(syncScript, /files above 250 KB read at most the first 200 lines/);
@@ -319,6 +328,22 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(syncScript, /Do not dump a repository-wide generated diff/);
   assert.match(syncScript, /Never run a repository-root `rg`/);
   assert.match(syncScript, /parse only the exact identifier or row with a structured reader/);
+  assert.match(syncScript, /line-count cap is not a byte cap/);
+  assert.match(syncScript, /truncate returned strings to 4 KB/);
+  assert.match(syncScript, /total command output below 50 KB/);
+  assert.match(syncScript, /assigned execution workspace \(`cwd`\) is this run's write boundary/);
+  assert.match(syncScript, /modifying another repo requires a separately assigned linked issue/);
+});
+
+test("architecture awareness prefers structured task status over free text", () => {
+  assert.equal(canonicalArchitectureStatus("DONE"), "verified");
+  assert.equal(canonicalArchitectureStatus("verified_local"), "verified");
+  assert.equal(taskArtifactStatus("- Status: DONE\n- Mission Status: BLOCKED"), "verified");
+  assert.equal(taskArtifactStatus("- Status: in_progress\nThe old task was done."), "in_progress");
+  assert.equal(taskArtifactStatus("- Mission Status: VERIFIED\n"), "verified");
+  assert.equal(taskArtifactStatus("- Reality status: blocked\n"), "blocked");
+  assert.equal(taskArtifactStatus("Completion evidence: done"), "verified");
+  assert.equal(taskArtifactStatus("Waiting for an owner"), "in_progress");
 });
 
 test("Windows startup removes only orphaned embedded Postgres io workers", async () => {

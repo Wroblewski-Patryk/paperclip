@@ -1,6 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
+import {
+  architectureStatusValues,
+  canonicalArchitectureStatus,
+  taskArtifactStatus,
+} from "./lib/architecture-awareness-task-status.mjs";
 
 const relationTypes = new Set([
   "uses",
@@ -13,25 +18,7 @@ const relationTypes = new Set([
   "connected_to",
 ]);
 
-const statusValues = new Set([
-  "planned",
-  "in_progress",
-  "implemented",
-  "tested",
-  "verified",
-  "deprecated",
-  "blocked",
-]);
-
-const statusAliases = new Map([
-  ["complete", "verified"],
-  ["done", "verified"],
-  ["implemented_not_verified", "implemented"],
-  ["missing", "planned"],
-  ["partial", "in_progress"],
-  ["partially_verified", "tested"],
-  ["verified_local", "verified"],
-]);
+const statusValues = new Set(architectureStatusValues);
 
 const entityTypes = new Set([
   "project",
@@ -293,12 +280,7 @@ async function statusOnlyReport() {
   };
 }
 
-function canonicalStatus(value, fallback = "implemented") {
-  const normalized = String(value ?? "").trim().toLowerCase();
-  if (!normalized) return fallback;
-  if (statusValues.has(normalized)) return normalized;
-  return statusAliases.get(normalized) ?? fallback;
-}
+const canonicalStatus = canonicalArchitectureStatus;
 
 function parseSimpleCsv(text) {
   const lines = text
@@ -1254,7 +1236,7 @@ for (const file of taskFiles) {
     name: firstMarkdownHeading(text) ?? path.basename(file, path.extname(file)),
     path: relativePath,
     description: "Task or project-state artifact.",
-    status: /done|verified|complete/i.test(text.slice(0, 3000)) ? "verified" : /blocked/i.test(text.slice(0, 3000)) ? "blocked" : "in_progress",
+    status: taskArtifactStatus(text),
     evidence: [relativePath],
   });
   addRelation(relations, project, task, "connected_to", relativePath);

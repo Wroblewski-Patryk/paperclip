@@ -306,3 +306,28 @@ or the relevant owners explicitly classify them as not required with evidence.
   checks must use a repo scanner or high-confidence signatures with capped
   file-name/count output; never scan generic secret words or full generated
   diffs.
+
+## 2026-07-14 - Roost Truth Closure and Workspace Boundary Hardening
+
+- Roost source-control closure completed as `b265ee07`; the follow-up LUC-1160
+  corrected the residual LUC-1151 task-status mismatch and is committed as
+  `a7bb56d4`. The affected task and completion-evidence rows now index as
+  `verified`, and Roost is clean.
+- LUC-1160 exposed a real execution-boundary defect: a run assigned to Roost
+  edited a Paperclip tool and closed before either touched repo had a commit.
+  The retained parser fix is valid, but future runs must treat their assigned
+  `cwd` as the write boundary and route cross-repo changes through a linked
+  target-project issue.
+- Generated JSON/CSV reads now have byte-aware limits. A line-count cap alone
+  is insufficient for wide records; agents must parse one exact record, select
+  only needed fields, truncate strings to 4 KB, and keep command output below
+  50 KB unless a larger artifact is explicitly required.
+- The structured task-status parser is executable and tested. It prefers
+  `Status`, then `Mission Status`, then `Reality status`, and only then uses
+  free-text fallback. The focused gate suite passes 161/161.
+- All 39 live instruction bundles contain the new read and write-boundary
+  contracts. Instruction and runtime-file audits pass with zero warnings or
+  missing paths; Coolify bindings remain unchanged after synchronization.
+- OpenAI weekly usage currently reads about 9%, with no quota incident and no
+  error-state agent. This permits normal productive dispatch; it does not waive
+  protected production, credential-rotation, or owner-usability evidence.

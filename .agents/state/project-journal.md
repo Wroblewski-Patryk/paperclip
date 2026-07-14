@@ -3149,3 +3149,32 @@ terminal result confirm Spark was truly applied.
   Source instructions and sidecar acceptance now require repo-native or
   high-confidence scans with file-name/count-only output capped at 100 paths;
   full generated diffs are forbidden as redaction input.
+
+## 2026-07-14 - LUC-1160 closure audit and retained guardrails
+
+- LUC-1159 completed Roost source-control closure in one CRS run and committed
+  the LUC-1151 packet as `b265ee07`. Its transcript was about 289 KB, roughly
+  88% smaller than the preceding Soar sidecar after bounded redaction guidance.
+- That closure revealed a genuine task-truth mismatch: the LUC-1151 task file
+  declared terminal work while architecture-awareness still indexed it as
+  `in_progress`. LUC-1160 normalized the packet and generated truth; focused
+  regeneration completed in about eight seconds with 3,031 entities and 7,641
+  relations, and Roost commit `a7bb56d4` records the closure.
+- The LUC-1160 run also exposed two process regressions. It changed a Paperclip
+  script from a Roost-assigned workspace and marked the issue done while both
+  repositories were dirty. The functional change was reviewed and retained,
+  but managed instructions now make assigned `cwd` the write boundary and
+  require a linked target-workspace handoff for cross-repo defects.
+- Focused reads still reached about 0.9 MB because line-count caps do not bound
+  minified or wide JSON/CSV records. Agents now must use structured exact-row
+  parsing, project only required fields, truncate strings to 4 KB, and keep
+  command output below 50 KB by default.
+- The status classifier was extracted into a testable helper. Tests cover
+  structured-field precedence, aliases, blocked state, free-text fallback, and
+  conservative in-progress behavior. The complete focused gate suite passes
+  161/161.
+- The new contracts were synchronized to 39/39 live bundles. Instruction and
+  runtime-file audits pass with zero warnings/failures, all 195 tracked path
+  references exist, and the Coolify access dry-run remains at zero actions.
+- Current model/cost readback reports roughly 9% weekly subscription use,
+  thirty idle agents, nine intentionally paused roles, and zero error agents.

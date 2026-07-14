@@ -42,6 +42,12 @@ Use this shared environment guidance for LuckySparrow Softwarehouse work.
   expected source/test/docs directory and exclude those trees unless the issue
   names one of them explicitly. For a generated JSON/CSV index, parse the exact
   identifier or row with a structured reader and return only the matching item.
+- A line-count cap is not a byte cap when generated JSON/CSV records are
+  minified or contain very wide fields. Do not use `Get-Content -TotalCount` or
+  `Select-Object -First` as the only bound for generated JSON/CSV. Parse the
+  exact record structurally, project only the needed fields, truncate any
+  returned string field to 4 KB, and keep the complete command output below
+  50 KB unless the issue explicitly requires a larger inspectable artifact.
 - A bounded read timeout is a signal to narrow the query. It is not evidence
   that the repository, issue, or instruction bundle is missing.
 
@@ -91,6 +97,16 @@ Use this shared environment guidance for LuckySparrow Softwarehouse work.
 ## Stage 1 Boundaries
 
 - Active roots remain `Paperclip_Softwarehouse`, `Soar`, and `Roost`.
+- These roots are allowed company scope, not interchangeable write targets. The
+  assigned execution workspace (`cwd`) is the run's write boundary. Reading a
+  shared tool from another allowed root is permitted; modifying another repo
+  requires a separately assigned linked issue whose project and primary
+  workspace are that repo. An agent must not expand its own scope by adding the
+  external path to a task packet.
+- When a run discovers a cross-repo defect, record the exact handoff and leave
+  the foreign repo untouched. Do not mark the current issue done while its
+  assigned repo, or any repo touched by the run, is dirty unless a linked open
+  source-control closure issue or exact no-commit blocker preserves ownership.
 - Do not create helper folders directly under
   `C:\Personal\Projekty\Aplikacje`.
 - Do not mutate sibling app folders such as `Aviary` or the paused VPS
