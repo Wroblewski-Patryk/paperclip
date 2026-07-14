@@ -4,6 +4,14 @@ import { listServerAdapters } from "../adapters/registry.js";
 import { instanceSettingsService } from "./instance-settings.js";
 
 const QUOTA_PROVIDER_TIMEOUT_MS = 20_000;
+const QUOTA_LAST_KNOWN_GOOD_MAX_AGE_MS = 60 * 60 * 1000;
+
+interface CachedProviderQuota {
+  observedAt: number;
+  result: ProviderQuotaResult;
+}
+
+const lastKnownGoodQuotaByProvider = new Map<string, CachedProviderQuota>();
 
 function providerSlugForAdapterType(type: string): string {
   switch (type) {
@@ -34,15 +42,50 @@ export async function fetchAllQuotaWindows(db?: Db): Promise<ProviderQuotaResult
   );
 
   return settled.map((result, i) => {
-    if (result.status === "fulfilled") return result.value;
     const adapterType = adaptersToQuery[i]!.type;
-    return {
-      provider: providerSlugForAdapterType(adapterType),
-      ok: false,
-      error: String(result.reason),
-      windows: [],
-    };
+    const provider = providerSlugForAdapterType(adapterType);
+    const providerResult = result.status === "fulfilled"
+      ? result.value
+      : {
+          provider,
+          ok: false,
+          error: String(result.reason),
+          windows: [],
+        };
+    return rememberOrRecoverQuotaResult(providerResult);
   });
+}
+
+function rememberOrRecoverQuotaResult(result: ProviderQuotaResult): ProviderQuotaResult {
+  const now = Date.now();
+  if (result.ok && result.windows.length > 0) {
+    lastKnownGoodQuotaByProvider.set(result.provider, {
+      observedAt: now,
+      result: {
+        ...result,
+        windows: result.windows.map((window) => ({ ...window })),
+      },
+    });
+    return result;
+  }
+
+  const cached = lastKnownGoodQuotaByProvider.get(result.provider);
+  if (!cached || now - cached.observedAt > QUOTA_LAST_KNOWN_GOOD_MAX_AGE_MS) {
+    return result;
+  }
+
+  return {
+    ...cached.result,
+    ok: true,
+    stale: true,
+    observedAt: new Date(cached.observedAt).toISOString(),
+    error: result.error ?? "provider quota refresh returned no usable windows",
+    windows: cached.result.windows.map((window) => ({ ...window })),
+  };
+}
+
+export function resetQuotaWindowLastKnownGoodForTests() {
+  lastKnownGoodQuotaByProvider.clear();
 }
 
 async function shouldPollAnthropicAdapter(db?: Db) {

@@ -24,9 +24,13 @@ export interface ProviderQuotaResult {
   provider: string;
   /** source label when the provider reports where the quota data came from */
   source?: string | null;
-  /** true when the fetch succeeded and windows is populated */
+  /** true when usable windows are available, including an explicitly stale fallback */
   ok: boolean;
-  /** error message when ok is false */
+  /** true when windows came from the last known successful provider observation */
+  stale?: boolean;
+  /** ISO timestamp of the successful observation used for stale fallback data */
+  observedAt?: string | null;
+  /** provider refresh error; may accompany stale fallback data */
   error?: string;
   windows: QuotaWindow[];
 }

@@ -5,6 +5,8 @@ interface CodexSubscriptionPanelProps {
   windows: QuotaWindow[];
   source?: string | null;
   error?: string | null;
+  stale?: boolean;
+  observedAt?: string | null;
 }
 
 const WINDOW_PRIORITY = [
@@ -69,6 +71,8 @@ export function CodexSubscriptionPanel({
   windows,
   source = null,
   error = null,
+  stale = false,
+  observedAt = null,
 }: CodexSubscriptionPanelProps) {
   const ordered = orderedWindows(windows);
   const accountWindows = ordered.filter((window) => !isLaneOrModelWindow(window));
@@ -82,7 +86,7 @@ export function CodexSubscriptionPanel({
             Codex subscription
           </div>
           <div className="mt-1 text-sm text-muted-foreground">
-            Live Codex quota windows.
+            {stale ? "Last known Codex quota windows." : "Live Codex quota windows."}
           </div>
         </div>
         {source ? (
@@ -93,8 +97,19 @@ export function CodexSubscriptionPanel({
       </div>
 
       {error ? (
-        <div className="mt-4 border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
+        <div className={cn(
+          "mt-4 border px-3 py-2 text-sm",
+          stale
+            ? "border-amber-400/50 bg-amber-400/10 text-amber-700 dark:text-amber-300"
+            : "border-destructive/40 bg-destructive/10 text-destructive",
+        )}>
+          {stale ? (
+            <div className="mb-1 font-medium">
+              Live refresh failed; showing the last successful observation
+              {observedAt ? ` from ${new Date(observedAt).toLocaleString()}` : ""}.
+            </div>
+          ) : null}
+          <div className={stale ? "text-xs" : undefined}>{error}</div>
         </div>
       ) : null}
 

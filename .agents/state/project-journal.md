@@ -3282,3 +3282,25 @@ terminal result confirm Spark was truly applied.
   after current agent load drops; cached cost-window data remains visible.
 - Full protected delivery still waits for `LUC-972`. Local proof, review,
   documentation, tests, and source-control closure remain allowed.
+
+## 2026-07-15 - Constructive state audit and quota observability hardening
+
+- The live board completed Roost `LUC-1180` and `LUC-1181`; Roost is clean at
+  `a20a575f`. Soar `LUC-1175` completed its focused evidence packet and left a
+  generated documentation/index group for the normal source-control closure
+  lane rather than silently discarding it.
+- Exactly one Paperclip listener serves port 3200. The current open board has
+  reusable controller issues plus the six-item blocker chain that deduplicates
+  to protected leaf `LUC-972`; no duplicate open title, pending approval, or
+  error agent was found in this audit.
+- A transient Codex quota probe returned `spawn EPERM` plus provider `503`,
+  while a retry recovered the authoritative `codex-wham` weekly window at 17%
+  with a 2026-07-21 reset. Costs now retains successful provider windows for at
+  most one hour and explicitly labels a fallback as stale with its observation
+  time and refresh error.
+- This fallback is observability only. Heartbeat start gates keep their own
+  live adapter probe/cache and protected delivery remains denied by `LUC-972`.
+- Focused server/UI quota tests pass 5/5; shared, server, and UI typechecks pass;
+  the Windows-safe Vite production build succeeds. The optional Hermes parser
+  capability is now read reflectively, avoiding a false missing-export warning
+  against adapter version 0.2.0.

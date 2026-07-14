@@ -1565,7 +1565,9 @@ export function Costs() {
                       <CodexSubscriptionPanel
                         windows={codexQuotaResult.windows}
                         source={codexQuotaResult.source}
-                        error={codexQuotaResult.ok ? null : codexQuotaResult.error}
+                        error={codexQuotaResult.stale || !codexQuotaResult.ok ? codexQuotaResult.error : null}
+                        stale={codexQuotaResult.stale}
+                        observedAt={codexQuotaResult.observedAt}
                       />
                     ) : quotaWindowRows.length === 0 ? (
                       <p className="text-sm text-muted-foreground">No live provider quota windows are available yet.</p>

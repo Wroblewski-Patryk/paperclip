@@ -2,9 +2,10 @@ import type { StdoutParserFactory, UIAdapterModule } from "../types";
 import * as hermesAdapterUi from "hermes-paperclip-adapter/ui";
 import { SchemaConfigFields } from "../schema-config-fields";
 
-const createHermesStdoutParser = (hermesAdapterUi as {
-  createHermesStdoutParser?: StdoutParserFactory;
-}).createHermesStdoutParser;
+const createHermesStdoutParser = Reflect.get(
+  hermesAdapterUi,
+  "createHermesStdoutParser",
+) as StdoutParserFactory | undefined;
 
 export const hermesLocalUIAdapter: UIAdapterModule = {
   type: "hermes_local",

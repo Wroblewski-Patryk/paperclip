@@ -401,3 +401,17 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Keep fresh quota telemetry separate from cached subscription cost truth. A
   transient provider probe failure is not proof of quota exhaustion and must
   not erase the last known reset/use window; retry after load drops.
+
+## 2026-07-15 - Current Audit Handoff
+
+- Roost source-control closure is complete and the primary repo is clean at
+  `a20a575f`. Soar `LUC-1175` produced a focused packet whose generated truth
+  changes must pass the existing Soar source-control closure lane before any
+  new Soar writer is dispatched.
+- Costs may display a last-known-good quota window for at most one hour when a
+  live provider refresh fails. It must show `stale`, the observation time, and
+  the refresh warning. This display fallback is never a scheduler, secret,
+  security, push, deploy, restart, or protected-smoke authorization.
+- Live Codex quota recovered at 17% weekly utilization. Continue model-aware
+  local work, but keep the hard production parent blocked until protected leaf
+  `LUC-972` has real terminal evidence.
