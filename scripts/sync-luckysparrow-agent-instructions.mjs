@@ -175,6 +175,7 @@ async function buildInstructions(definition, instructionsRoot) {
       "- The tracked Paperclip workflow is at `Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/SKILL.md'`; the safe update helper is at `Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-issue-update.mjs'`.",
       "- Do not recursively scan `.paperclip`, `.codex`, `.git`, `node_modules`, managed runtime homes, or archived logs to discover the issue API or completion payload.",
       "- On Windows, prefer the tracked helper or one direct `Invoke-RestMethod` call with a hashtable and `ConvertTo-Json`. Avoid nested here-strings, mixed shell wrappers, and broad recursive searches.",
+      "- Repository state files may be append-heavy and larger than one megabyte. Inspect size first; for files above 250 KB read at most the first 200 lines, then use `rg -n` for the current issue/path/capability and a small surrounding range. Never concatenate several large state files into one `Get-Content` command.",
       "",
       "The role file is the only agent-specific responsibility file. If a task needs more responsibility than this role owns, create or request a handoff instead of expanding the role silently.",
     ].join("\n"),

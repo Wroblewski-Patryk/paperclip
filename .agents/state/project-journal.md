@@ -3082,3 +3082,7 @@ terminal result confirm Spark was truly applied.
   the active alias `11 Innovation: Soar` while the sidecar prefix was `[Soar]`.
   The starter now canonicalizes aliases for both sidecar matching and assignee
   selection, preventing a premature jump to Roost.
+- LUC-1140 and LUC-1150 showed that product state files had grown beyond one
+  megabyte and full startup `Get-Content` commands produced multi-megabyte logs,
+  command timeouts, and avoidable context cost. Canonical agent instructions now
+  require bounded reads and exact searches; generated bundles inherit the rule.

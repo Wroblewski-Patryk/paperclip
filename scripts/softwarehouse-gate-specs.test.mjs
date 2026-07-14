@@ -301,6 +301,13 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(environment, /Do not recursively scan/);
   assert.match(environment, /Avoid nested PowerShell here-strings/);
   assert.match(environment, /paperclip-issue-update\.mjs/);
+  assert.match(environment, /files larger than 250 KB/);
+  assert.match(environment, /first 200 lines/);
+  assert.match(environment, /below 1,000 lines or 250 KB/);
+
+  const syncScript = await readFile("scripts/sync-luckysparrow-agent-instructions.mjs", "utf8");
+  assert.match(syncScript, /files above 250 KB read at most the first 200 lines/);
+  assert.match(syncScript, /Never concatenate several large state files/);
 });
 
 test("Windows startup removes only orphaned embedded Postgres io workers", async () => {

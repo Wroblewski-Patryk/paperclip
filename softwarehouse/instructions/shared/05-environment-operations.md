@@ -24,6 +24,22 @@ Use this shared environment guidance for LuckySparrow Softwarehouse work.
   Prefer a direct `Invoke-RestMethod` call with a hashtable and
   `ConvertTo-Json`, or the tracked Node helper.
 
+## Bounded Project-State Reads
+
+- Product state and context files are append-heavy and may exceed one megabyte.
+  A requirement to read them means extracting the current relevant state, not
+  dumping the entire historical file into the model context.
+- Inspect file size first. For files larger than 250 KB, start with at most the
+  first 200 lines, then use `rg -n` for the current issue identifier, affected
+  path, capability, or status. Read a small surrounding range only when needed.
+- Do not concatenate multiple large state files into one `Get-Content` command.
+  Keep initial project-state output below 1,000 lines or 250 KB in total.
+- Prefer the current mission/index/issue evidence over old journal sections.
+  Read historical entries only when they are directly relevant to provenance,
+  ownership, or regression analysis.
+- A bounded read timeout is a signal to narrow the query. It is not evidence
+  that the repository, issue, or instruction bundle is missing.
+
 ## pnpm And Symlink Notes
 
 - First-party plugin development may need local `@paperclipai/plugin-sdk`

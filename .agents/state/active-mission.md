@@ -269,3 +269,7 @@ or the relevant owners explicitly classify them as not required with evidence.
   `11 Innovation: Soar` to `Soar` before matching the sidecar title and model
   owner. Existing blocked sidecars must be resumed before a later project gets
   a new closure lane.
+- Agent startup reads must remain bounded. Append-heavy product state files can
+  exceed one megabyte; agents inspect size, read at most the first 200 lines for
+  files above 250 KB, then search exact issue/path/capability context instead of
+  dumping several history files into one prompt.
