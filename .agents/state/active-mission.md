@@ -226,3 +226,9 @@ or the relevant owners explicitly classify them as not required with evidence.
 - LUC-25 remains blocked by design until owner-usable VPS evidence closes the
   remaining product truth and security gates. LUC-972 credential rotation is
   still an explicit owner/security operation, not an autonomous workaround.
+- Quota recovery is now an early control-tick invariant: an error-state
+  `codex_local` agent may return to `idle` only when it has no live run, the
+  primary probe fails specifically on quota, the standard lane is critical,
+  and a live Spark probe passes. Six controller agents were safely recovered
+  on 2026-07-14; their persistent profiles and protected bindings were not
+  changed.

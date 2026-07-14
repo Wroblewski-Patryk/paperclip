@@ -90,6 +90,23 @@ const steps = [
     }),
   },
   {
+    name: "quotaAgentRecovery",
+    command: ["scripts/recover-softwarehouse-quota-agents.mjs", "--apply"],
+    summary: (data) => ({
+      candidateCount: data.candidateCount ?? null,
+      decision: data.decision ?? null,
+      recoveredAgentCount: data.recoveredAgents?.length ?? 0,
+      recoveredAgents: data.recoveredAgents?.map((agent) => agent.name) ?? [],
+      decisions: data.decisions?.map((entry) => ({
+        agent: entry.agent,
+        recover: entry.recover,
+        reason: entry.reason,
+        primaryProbe: entry.primaryProbe,
+        fallbackProbe: entry.fallbackProbe,
+      })) ?? [],
+    }),
+  },
+  {
     name: "takeoverIntakeDedupe",
     command: ["scripts/run-takeover-intake-dedupe.mjs", "--apply"],
     timeoutMs: takeoverIntakeDedupeStepTimeoutMs,

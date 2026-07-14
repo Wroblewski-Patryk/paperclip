@@ -2755,4 +2755,22 @@ test("softwarehouse audit flags active routines with unavailable assignees", asy
   const auditSource = await readFile("scripts/audit-luckysparrow-softwarehouse.mjs", "utf8");
   assert.match(auditSource, /routinesWithUnavailableAssignees/);
   assert.match(auditSource, /Active routines are assigned to missing or non-invokable agents/);
+  assert.match(auditSource, /\["paused", "terminated", "pending_approval"\]\.includes\(assignee\.status\)/);
+  assert.doesNotMatch(auditSource, /!\["idle", "running"\]\.includes\(assignee\.status\)/);
+});
+
+test("control tick recovers quota-stalled agents before dispatch", async () => {
+  const tickSource = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
+  const janitorPosition = tickSource.indexOf('name: "liveRunJanitor"');
+  const recoveryPosition = tickSource.indexOf('name: "quotaAgentRecovery"');
+  const dispatcherPosition = tickSource.indexOf('name: "autonomyGovernor"');
+  assert.ok(janitorPosition >= 0);
+  assert.ok(recoveryPosition > janitorPosition);
+  assert.ok(dispatcherPosition > recoveryPosition);
+  assert.match(tickSource, /recover-softwarehouse-quota-agents\.mjs", "--apply"/);
+  const recoverySource = await readFile("scripts/recover-softwarehouse-quota-agents.mjs", "utf8");
+  assert.match(recoverySource, /gpt-5\.3-codex-spark/);
+  assert.match(recoverySource, /agent\.status === "error"/);
+  assert.match(recoverySource, /!liveAgentIds\.has\(agent\.id\)/);
+  assert.match(recoverySource, /\{ status: "idle" \}/);
 });

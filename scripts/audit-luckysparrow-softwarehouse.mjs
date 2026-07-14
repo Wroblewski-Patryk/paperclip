@@ -365,7 +365,10 @@ for (const routine of routines) {
   if (triggers.length === 0) routinesWithoutTriggers.push(entry);
   else routinesWithTriggers.push(entry);
   const assignee = routine.assigneeAgentId ? activeAgentById.get(routine.assigneeAgentId) : null;
-  if (routine.status === "active" && (!assignee || !["idle", "running"].includes(assignee.status))) {
+  if (
+    routine.status === "active"
+    && (!assignee || ["paused", "terminated", "pending_approval"].includes(assignee.status))
+  ) {
     routinesWithUnavailableAssignees.push({
       title: routine.title,
       assigneeAgentId: routine.assigneeAgentId ?? null,

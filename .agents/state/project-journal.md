@@ -3013,3 +3013,27 @@ pass. LUC-25 remains blocked correctly because 77 Soar and 34 Roost proof gaps
 remain and LUC-972 is still an owner/security credential-rotation operation.
 No deployment, restart, rollback, or raw-secret output was performed in this
 audit.
+
+## 2026-07-14 - Quota-Stalled Controller Recovery
+
+The final live audit found six controller agents in `error` while no run was
+active. Their primary Codex environment probe failed because the standard
+weekly lane was at 100%, but the same runtime configuration passed with
+`gpt-5.3-codex-spark`. This left active routines looking unavailable and made
+the board appear silent even though safe quota remained.
+
+Paperclip now runs a fail-closed quota recovery step immediately after the
+live-run janitor and before dispatch. It only resets an error-state
+`codex_local` agent to `idle` when the provider reports critical standard
+quota, the primary probe is specifically a quota failure, the Spark probe
+passes, and the agent has no live run. It does not change adapter profiles,
+runtime bindings, secrets, or issue state. The top-level audit also treats
+`error` as invokable, matching the heartbeat service; only missing, paused,
+terminated, and pending-approval assignees make an active routine unavailable.
+
+Verification: five pure recovery tests and all 155 Softwarehouse gate specs
+pass. The live dry-run selected exactly six eligible agents, and apply restored
+all six to `idle`; final readback showed 30 idle, 9 intentionally paused, and
+zero error agents. Provider responses are normalized from their actual
+array-of-provider-reports shape, and probe output contains only status and
+error codes.
