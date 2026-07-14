@@ -3141,3 +3141,11 @@ terminal result confirm Spark was truly applied.
   could still start product work while the Paperclip operating repository was
   dirty. It now exits without mutation until the operating packet is committed,
   then self-clears and resumes normal product dispatch on the next cycle.
+- After the operating packet was committed as `f0461430`, one LUC-1158 run
+  classified and committed the Soar LUC-1155 packet as `d17dda34b`; Soar read
+  back clean and there was no push or deploy. The one-wake rule held.
+- LUC-1158 still emitted 2.38 MB because generic secret-word screening and a
+  malformed added-line expression printed legal generated graph/state records.
+  Source instructions and sidecar acceptance now require repo-native or
+  high-confidence scans with file-name/count-only output capped at 100 paths;
+  full generated diffs are forbidden as redaction input.

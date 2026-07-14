@@ -1363,6 +1363,20 @@ test("new control issues rely on the assignment wake without adding a comment wa
   }
 });
 
+test("source-control sidecars require bounded redaction scans", async () => {
+  const starter = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+  const shared = await readFile("softwarehouse/instructions/shared/05-environment-operations.md", "utf8");
+  const sync = await readFile("scripts/sync-luckysparrow-agent-instructions.mjs", "utf8");
+
+  for (const source of [starter, shared, sync]) {
+    assert.match(source, /high-confidence credential signatures|high-confidence signatures/);
+    assert.match(source, /full generated diff/);
+  }
+  assert.match(starter, /capped at 100 paths/);
+  assert.match(starter, /generic secret-word scans are forbidden/);
+  assert.match(shared, /return matching file names or counts, capped at 100 paths/);
+});
+
 test("local source-control sidecars preserve parallelism across independent projects and agents", async () => {
   const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
 

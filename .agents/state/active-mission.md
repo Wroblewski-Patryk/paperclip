@@ -302,3 +302,7 @@ or the relevant owners explicitly classify them as not required with evidence.
   dirty. Close the operating-repo packet first; the guard clears automatically
   after commit. Exact product searches must avoid repository-root scans of
   generated state, history, status, and graph trees.
+- Soar is clean at `d17dda34b` after LUC-1158. Close Roost next. Redaction
+  checks must use a repo scanner or high-confidence signatures with capped
+  file-name/count output; never scan generic secret words or full generated
+  diffs.

@@ -57,6 +57,15 @@ Use this shared environment guidance for LuckySparrow Softwarehouse work.
 - Keep combined initial diff output below 1,000 lines or 250 KB. If the packet
   is larger, classify it from stat/numstat first and review coherent path groups
   in separate bounded calls.
+- Keep redaction checks bounded too. Prefer the repository's existing secret
+  scanner. Otherwise search only high-confidence credential signatures and
+  return matching file names or counts, capped at 100 paths. Do not search
+  generic words such as `token`, `password`, or `secret` across generated
+  graphs, status indexes, or append-heavy state files.
+- Never pipe a full generated diff into a secret-search expression. Added-line
+  screening is for the small authored/untracked portion of a packet and must
+  have an explicit output cap. Validate generated groups through their producer
+  and deterministic summary instead of printing their content into the log.
 - A local commit still requires validation and redaction evidence. Bounded
   review reduces transcript cost; it does not weaken source-control gates.
 
