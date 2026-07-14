@@ -45,25 +45,43 @@ const supervisorRosterKeys = new Set([
 ]);
 const targetTitle = "[Softwarehouse][Worker Backlog] Split supervisor work into worker-ready lanes";
 
-async function operatingRepoDirty() {
+async function controlledRepoClosureState() {
   const { spawnSync } = await import("node:child_process");
-  const result = spawnSync("git", ["status", "--porcelain"], {
+  const { readFile } = await import("node:fs/promises");
+  const result = spawnSync(process.execPath, ["scripts/check-softwarehouse-source-control.mjs"], {
     cwd: process.cwd(),
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    timeout: 30_000,
   });
   if (result.status !== 0) return {
     known: false,
     dirty: true,
     error: (result.stderr || result.stdout || "").trim().slice(0, 500),
   };
-  const lines = (result.stdout ?? "").split(/\r?\n/).filter(Boolean);
-  return {
-    known: true,
-    dirty: lines.length > 0,
-    dirtyCount: lines.length,
-    sample: lines.slice(0, 10),
-  };
+  try {
+    const packet = JSON.parse(await readFile("report/softwarehouse-source-control.latest.json", "utf8"));
+    const dirtyRepos = (packet.repos ?? [])
+      .filter((repo) => !repo.parked && repo.git && repo.clean === false)
+      .map((repo) => ({
+        name: repo.name,
+        dirtyCount: repo.dirtyCount ?? null,
+        dirtyGroups: (repo.dirtyGroups ?? []).map((group) => group.group),
+      }));
+    return {
+      known: true,
+      dirty: dirtyRepos.length > 0,
+      dirtyRepoCount: dirtyRepos.length,
+      dirtyRepos,
+      generatedAt: packet.generatedAt ?? null,
+    };
+  } catch (error) {
+    return {
+      known: false,
+      dirty: true,
+      error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
+    };
+  }
 }
 
 async function request(method, route, body) {
@@ -161,7 +179,7 @@ const trackBacklog = summarizeWorkerBacklogTracks({
   plannedStatuses,
 });
 const existing = issues.find((issue) => issue.title === targetTitle && !terminalStatuses.has(issue.status));
-const operatingRepoState = await operatingRepoDirty();
+const sourceControlClosureState = await controlledRepoClosureState();
 const engineeringLead = byName(agents, "04 DPM (Delivery Project Manager)")
   ?? byName(agents, "09 CTO (Chief Technology Officer)")
   ?? byName(agents, "00 AIA (AI Assistant)");
@@ -207,12 +225,13 @@ if (agentWip.unknownActiveRunCount > 0) {
     liveRunCount: liveRuns.length,
     activeOwnerRunCount: activeOwnerRuns.length,
   });
-} else if (operatingRepoState.dirty) {
+} else if (sourceControlClosureState.dirty) {
   actions.push({
-    action: "noop_operating_repo_dirty",
-    dirtyCount: operatingRepoState.dirtyCount ?? null,
-    sample: operatingRepoState.sample ?? [],
-    error: operatingRepoState.error ?? null,
+    action: "noop_controlled_repo_source_control_closure_required",
+    dirtyRepoCount: sourceControlClosureState.dirtyRepoCount ?? null,
+    dirtyRepos: sourceControlClosureState.dirtyRepos ?? [],
+    generatedAt: sourceControlClosureState.generatedAt ?? null,
+    error: sourceControlClosureState.error ?? null,
   });
 } else if (!shouldSeed) {
   actions.push({
@@ -289,8 +308,11 @@ if (agentWip.unknownActiveRunCount > 0) {
     "Required output:",
     "- create or update at least three worker-ready todo/backlog issues across idle leaf workers when legal; planned queue depth is not permission to start all lanes at once;",
     "- prioritize Soar V1 first, then Roost; Aviary, Nest, Featherly, and every other parked product remain out of scope until explicit owner activation;",
+    "- before creating a product child, bind it to that product's active project and primary workspace; a Soar/Roost child must not inherit the Softwarehouse project/workspace;",
+    "- do not create or resume repo-mutating children while any controlled repo has an unresolved source-control closure packet; route the existing packet first;",
     "- for a shared project workspace, resume at most one repo-mutating worker lane at a time; leave the remaining lanes queued unless they use isolated worktrees and have proven-disjoint file sets;",
     "- treat generated truth/state surfaces such as docs/status, docs/graphs, .agents/state, and .codex/context as shared conflict sets; lanes that refresh them must execute serially;",
+    "- accounting, review, queue, and governance children may inspect board/API evidence but must not mutate product or Paperclip code unless the issue names the exact module, behavior, and verification contract;",
     "- if fewer than three worker lanes are legal, comment the exact reason for each missing lane: protected gate, missing architecture map, duplicate active owner, source-control closure, or explicit deferral;",
     "- do not code in this lane; this is queue decomposition and dispatch only.",
     "",
@@ -313,6 +335,8 @@ if (agentWip.unknownActiveRunCount > 0) {
       "At least three legal worker-ready todo/backlog issues are created or updated, or every missing lane has an explicit legal blocker.",
       "Every created worker issue has exactly one accountable owner and one narrow scope.",
       "Soar V1 receives first priority unless a protected gate blocks the exact action.",
+      "Every product child uses the matching active product project and primary workspace; it never inherits the Softwarehouse workspace by convenience.",
+      "No repo-mutating child is created or resumed while any controlled repository has an unresolved source-control closure packet.",
       "Shared-workspace repo writers are queued serially per project; concurrent starts require isolated worktrees and disjoint file sets.",
       "No push, deploy, restart, protected smoke, live account mutation, secret disclosure, or broad repo mutation occurs.",
       "Final disposition records worker lane identifiers and remaining blockers.",
@@ -373,6 +397,6 @@ console.log(JSON.stringify({
     status: existing.status,
     assignee: agentById.get(existing.assigneeAgentId)?.name ?? null,
   } : null,
-  operatingRepoState,
+  sourceControlClosureState,
   actions,
 }, null, 2));

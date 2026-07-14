@@ -3048,3 +3048,29 @@ precedence over wake context while retaining explicit issue overrides as the
 highest-priority operator contract. Server typecheck and all 19 router/profile
 tests pass. Live proof still requires a post-reload run whose metadata and
 terminal result confirm Spark was truly applied.
+
+## 2026-07-14 - Constructive post-1000-task audit: fan-out containment
+
+- Verified one healthy Paperclip listener on `127.0.0.1:3200`; no duplicate
+  local instance was present. Provider readback showed the weekly standard lane
+  reset to 0% used.
+- Found that cancelled shared-workspace fan-out could be revived by recovery.
+  LUC-1118 and LUC-1141 through LUC-1145 were cancelled again with explicit
+  operator disposition; active recovery actions were resolved and target live
+  runs fell to zero.
+- Preserved all generated files. Review showed two coherent operating fixes:
+  quota-aware Codex environment diagnostics with native Windows temp auth, and
+  plugin tool routing by installed plugin database UUID. Focused tests pass
+  11/11, parser tests pass 9/9, and server typecheck passes.
+- Added a fail-closed decomposition guard backed by a fresh canonical
+  source-control report. A live dry-run found dirty Paperclip, Soar, and Roost
+  packets and correctly refused new fan-out. Shared instructions now require
+  product-project/workspace binding, serial shared writers, and exact code
+  contracts for accounting/review/governance lanes.
+- Remaining work is evidence/source-control closure, not more decomposition:
+  commit classified Paperclip changes, then close Soar's mixed docs/product
+  packet and Roost's generated truth/state packet serially.
+- During verification, LUC-1148 proposed clearing every non-running error agent
+  after a single shared smoke test. The lane was cancelled; the retained fix
+  now probes each error agent independently and only clears an unambiguous
+  `pass`, preserving live, warning, quota, auth, and unknown failures.

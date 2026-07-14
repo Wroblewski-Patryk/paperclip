@@ -121,12 +121,33 @@ if (smoke.status === "fail" || failingCheck) {
 
 const liveRunAgentIds = new Set(liveRuns.map((run) => run.agentId).filter(Boolean));
 const repairedAgents = [];
-if (liveRuns.length === 0) {
-  for (const agent of refreshedAgents.filter((entry) => entry.status === "error" && entry.status !== "terminated")) {
-    if (liveRunAgentIds.has(agent.id)) continue;
-    await request("PATCH", `/api/agents/${agent.id}?companyId=${company.id}`, { status: "idle" });
-    repairedAgents.push(agent.name);
+const skippedAgentsWithLiveRuns = [];
+const skippedAgentsWithUnhealthyEnvironment = [];
+for (const agent of refreshedAgents.filter((entry) => entry.status === "error" && entry.status !== "terminated")) {
+  if (liveRunAgentIds.has(agent.id)) {
+    skippedAgentsWithLiveRuns.push(agent.name);
+    continue;
   }
+  const agentSmoke = await request(
+    "POST",
+    `/api/companies/${company.id}/adapters/${agent.adapterType}/test-environment`,
+    { adapterConfig: agent.adapterConfig ?? {} },
+  ).catch((error) => ({
+    status: "fail",
+    checks: [{ code: "environment_probe_request_failed", level: "error" }],
+    error: error instanceof Error ? error.message : String(error),
+  }));
+  const agentFailingCheck = findErrorCheck(agentSmoke);
+  if (agentSmoke.status !== "pass" || agentFailingCheck) {
+    skippedAgentsWithUnhealthyEnvironment.push({
+      name: agent.name,
+      status: agentSmoke.status ?? "unknown",
+      code: agentFailingCheck?.code ?? "environment_not_passed",
+    });
+    continue;
+  }
+  await request("PATCH", `/api/agents/${agent.id}?companyId=${company.id}`, { status: "idle" });
+  repairedAgents.push(agent.name);
 }
 
 const blocker = issues.find((issue) => issue.title === blockerTitle);
@@ -139,9 +160,15 @@ if (blocker) {
       "",
       "Repair proof:",
       `- ${new Date().toISOString()}: Codex adapter smoke test passed for ${codexAgent.name}.`,
-      liveRuns.length === 0
-        ? "- Stale agent error statuses were cleared with no live runs active."
-        : `- Stale agent error status repair was skipped because ${liveRuns.length} live run(s) are active.`,
+      repairedAgents.length > 0
+        ? `- Stale agent error statuses were cleared for agents with no live run: ${repairedAgents.join(", ")}.`
+        : "- No stale agent error statuses needed clearing.",
+      skippedAgentsWithLiveRuns.length > 0
+        ? `- Stale agent error status repair was skipped for agents with live runs: ${skippedAgentsWithLiveRuns.join(", ")}.`
+        : "- No stale error agents were skipped for live-run safety.",
+      skippedAgentsWithUnhealthyEnvironment.length > 0
+        ? `- Stale agent error status repair remained fail-closed for unhealthy environments: ${skippedAgentsWithUnhealthyEnvironment.map((entry) => `${entry.name} (${entry.code})`).join(", ")}.`
+        : "- Every non-running error agent considered for repair passed its own environment probe.",
     ].join("\n"),
   });
 }
@@ -160,7 +187,9 @@ console.log(JSON.stringify({
   },
   normalizedAgents,
   repairedAgents,
-  statusRepairSkipped: liveRuns.length > 0,
+  skippedAgentsWithLiveRuns,
+  skippedAgentsWithUnhealthyEnvironment,
+  statusRepairSkipped: skippedAgentsWithLiveRuns.length > 0 || skippedAgentsWithUnhealthyEnvironment.length > 0,
   blocker: blockerResult ? {
     identifier: blockerResult.identifier,
     title: blockerResult.title,

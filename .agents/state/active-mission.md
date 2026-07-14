@@ -236,3 +236,28 @@ or the relevant owners explicitly classify them as not required with evidence.
   profile even when a routine supplied a stale technical wake profile. Explicit
   issue overrides remain stronger. Treat `router=spark` with `applied=cheap`
   as a runtime regression, not acceptable observability drift.
+
+## 2026-07-14 - Post-Reset Fan-out Containment
+
+- OpenAI standard weekly quota reset to 0% used and strategic/light model
+  profiles resumed with matching effective runtime metadata.
+- The post-reset burst exposed unsafe shared-workspace decomposition: LUC-1118
+  and LUC-1141 created LUC-1142 through LUC-1145 while Paperclip, Soar, and
+  Roost already had unresolved dirty packets. Some product work also inherited
+  the Softwarehouse project/workspace.
+- Those lanes are cancelled with recovery actions resolved and no surviving
+  target runs. Their filesystem output is preserved for source-control review.
+- Worker fan-out now refreshes canonical Git truth and fails closed when any
+  controlled repository is dirty. Product children must use their product
+  project/workspace; accounting, review, queue, and governance children cannot
+  mutate code without an exact module/behavior/test contract.
+- Close dirty packets serially: Paperclip first, then Soar, then Roost. Do not
+  resume app-completion writers until each preceding primary repo reads clean.
+- Local Codex environment probes no longer require `sh` on Windows, and quota
+  reset messages are a recoverable warning rather than a generic runtime
+  failure. Plugin tool registration also carries the installed plugin database
+  UUID end to end.
+- Agent error-state repair is per-agent and fail-closed: no live run, that
+  agent's own environment probe must pass, and warnings/errors remain untouched
+  for the stricter quota/auth recovery path. LUC-1148's broader reset was
+  cancelled before commit.

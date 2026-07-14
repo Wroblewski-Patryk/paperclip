@@ -44,6 +44,10 @@ export function formatWorkerFanoutContract() {
     "- fan out per controlled track, not company-wide totals; evaluate Soar and Roost independently;",
     "- each worker-ready lane must end in ready, blocked, or needs-another-child;",
     "- each lane must name project, scope, affected files/entities, acceptance criteria, local proof, blocker policy, and handoff owner;",
+    "- bind every product lane to the matching active project and primary workspace; never run Soar or Roost work from the Softwarehouse workspace;",
+    "- source-control closure outranks fan-out: do not create or resume repo-mutating lanes while any controlled repo is dirty;",
+    "- one shared workspace permits at most one active repo writer; additional writers stay queued unless isolated worktrees and disjoint file sets are proven;",
+    "- accounting, review, and governance lanes do not mutate code unless their issue names the exact module, behavior, and verification contract;",
     "- do not create agents silently; if new capacity is required, surface it as a separate governed issue.",
   ].join("\n");
 }

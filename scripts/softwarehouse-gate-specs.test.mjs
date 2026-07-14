@@ -221,9 +221,16 @@ test("worker backlog decomposition stays in active products and serializes share
   assert.match(seeder, /Aviary, Nest, Featherly, and every other parked product remain out of scope/);
   assert.match(seeder, /for a shared project workspace, resume at most one repo-mutating worker lane at a time/);
   assert.match(seeder, /docs\/status, docs\/graphs, \.agents\/state, and \.codex\/context as shared conflict sets/);
+  assert.match(seeder, /noop_controlled_repo_source_control_closure_required/);
+  assert.match(seeder, /check-softwarehouse-source-control\.mjs/);
+  assert.match(seeder, /a Soar\/Roost child must not inherit the Softwarehouse project\/workspace/);
+  assert.match(seeder, /accounting, review, queue, and governance children[\s\S]*must not mutate product or Paperclip code/);
   assert.doesNotMatch(seeder, /unblock\/prepare Roost\/Aviary\/Nest/);
   assert.match(instructions, /Planned queue depth is not execution permission/);
   assert.match(instructions, /start at most one repo-mutating lane at a time/);
+  assert.match(instructions, /Source-control closure outranks fan-out/);
+  assert.match(instructions, /A Soar or Roost issue must not inherit the Softwarehouse project/);
+  assert.match(instructions, /Accounting, queue, review, and governance lanes[\s\S]*must not mutate product or Paperclip code/);
   assert.match(instructions, /Keep parked products parked/);
 });
 
@@ -2773,4 +2780,14 @@ test("control tick recovers quota-stalled agents before dispatch", async () => {
   assert.match(recoverySource, /agent\.status === "error"/);
   assert.match(recoverySource, /!liveAgentIds\.has\(agent\.id\)/);
   assert.match(recoverySource, /\{ status: "idle" \}/);
+});
+
+test("Codex auth repair verifies each error agent before clearing its status", async () => {
+  const source = await readFile("scripts/repair-softwarehouse-codex-auth.mjs", "utf8");
+
+  assert.match(source, /for \(const agent of refreshedAgents\.filter/);
+  assert.match(source, /adapters\/\$\{agent\.adapterType\}\/test-environment/);
+  assert.match(source, /agentSmoke\.status !== "pass" \|\| agentFailingCheck/);
+  assert.match(source, /skippedAgentsWithUnhealthyEnvironment/);
+  assert.match(source, /liveRunAgentIds\.has\(agent\.id\)/);
 });

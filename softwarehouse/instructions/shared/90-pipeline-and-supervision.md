@@ -120,6 +120,15 @@ comment or parent decision is enough.
 - Planned queue depth is not execution permission. In a shared project
   workspace, start at most one repo-mutating lane at a time unless the lanes
   use isolated worktrees and their file sets are proven disjoint.
+- Source-control closure outranks fan-out. Do not create or resume a
+  repo-mutating lane while Paperclip, Soar, or Roost has an unresolved dirty
+  packet. Classify and close the existing packet first.
+- Bind every product issue to that product's active project and primary
+  workspace. A Soar or Roost issue must not inherit the Softwarehouse project
+  or workspace merely because a controller created it.
+- Accounting, queue, review, and governance lanes may inspect board/API
+  evidence, but they must not mutate product or Paperclip code unless the issue
+  names the exact module, behavior change, and verification contract.
 - Treat `docs/status`, `docs/graphs`, `.agents/state`, `.codex/context`, generated
   indexes, lockfiles, and source-control closure packets as shared conflict
   sets. Any lanes that write these surfaces must execute serially even when
