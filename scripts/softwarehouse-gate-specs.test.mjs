@@ -2440,6 +2440,17 @@ test("project truth dispatcher ignores exact terminal visible issues for current
   assert.doesNotMatch(dispatcher, /updatedDelta/);
 });
 
+test("project truth dispatcher skips cross-boundary supersede mutations", async () => {
+  const dispatcher = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
+
+  assert.match(dispatcher, /function isIssueAuthorizationBoundaryError/);
+  assert.match(dispatcher, /function supersededIssueMutationBoundary/);
+  assert.match(dispatcher, /cross_assignee_issue_mutation_forbidden/);
+  assert.match(dispatcher, /actions\.at\(-1\)\.action = "skipped_cross_boundary_issue_mutation"/);
+  assert.match(dispatcher, /Read back the existing owner-path issue and let its assigned owner perform the mutation; do not retry from this actor\./);
+  assert.match(dispatcher, /Confirm an open owner-path issue already exists for the target, or create one assigned to the owning role before rerunning apply\./);
+});
+
 test("acceptance evidence lanes outrank architecture backlog wakeups", async () => {
   const accessSeeder = await readFile("scripts/run-access-unblock-task-seeder.mjs", "utf8");
   const architectureSeeder = await readFile("scripts/run-safe-architecture-planning-seeder.mjs", "utf8");

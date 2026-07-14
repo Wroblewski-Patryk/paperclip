@@ -431,6 +431,21 @@ function directWakeBoundaryForAgent(agentId) {
   return "cross_agent_direct_invoke_forbidden";
 }
 
+function isIssueAuthorizationBoundaryError(error) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  const isIssueMutation = /(?:PATCH|POST) \/api\/issues\/[^/\s]+(?:\/comments)? failed with 403:/i.test(message);
+  const isBoundaryDenial = /(?:Issue is outside this actor(?:'|\\u0027)s authorization boundary|Agent cannot mutate another agent(?:'|\\u0027)?s issue)/i
+    .test(message);
+  return isIssueMutation && isBoundaryDenial;
+}
+
+function supersededIssueMutationBoundary(issue) {
+  if (!authToken) return null;
+  if (!actorAgentId || !issue?.assigneeAgentId) return null;
+  if (issue.assigneeAgentId === actorAgentId) return null;
+  return "cross_assignee_issue_mutation_forbidden";
+}
+
 function severityRank(gap) {
   if (gap?.severity === "critical") return 0;
   if (gap?.severity === "high") return 1;
@@ -842,6 +857,7 @@ for (const issue of supersededProjectTruthCandidates) {
 
 for (const issue of supersededProjectTruthIssues) {
   const hasLiveRun = liveIssueIds.has(issue.id);
+  const mutationBoundary = supersededIssueMutationBoundary(issue);
   actions.push({
     action: apply ? "mark_superseded_project_truth_gap_issue" : "would_mark_superseded_project_truth_gap_issue",
     identifier: issue.identifier,
@@ -849,22 +865,40 @@ for (const issue of supersededProjectTruthIssues) {
     title: issue.title,
     hasLiveRun,
     targetStatus: hasLiveRun ? issue.status : "blocked",
+    mutationBoundary,
   });
 
   if (apply) {
+    if (mutationBoundary) {
+      actions.at(-1).action = "skipped_cross_boundary_issue_mutation";
+      actions.at(-1).ownerAction = "Read back the existing owner-path issue and let its assigned owner perform the mutation; do not retry from this actor.";
+      actions.at(-1).requiredReadback = "Confirm an open owner-path issue already exists for the target, or create one assigned to the owning role before rerunning apply.";
+      continue;
+    }
     const existingDescription = String(issue.description ?? "");
-    await request("POST", `/api/issues/${issue.id}/comments`, {
-      body: supersededCommentForIssue(issue, currentDispatchTitles),
-    });
-    await request("PATCH", `/api/issues/${issue.id}`, {
-      description: existingDescription.includes(supersededMarker)
-        ? existingDescription
-        : `${existingDescription.trimEnd()}\n\n${supersededCommentForIssue(issue, currentDispatchTitles)}`,
-    });
-    if (!hasLiveRun && issue.status !== "blocked") {
-      await request("PATCH", `/api/issues/${issue.id}`, {
-        status: "blocked",
+    try {
+      await request("POST", `/api/issues/${issue.id}/comments`, {
+        body: supersededCommentForIssue(issue, currentDispatchTitles),
       });
+      await request("PATCH", `/api/issues/${issue.id}`, {
+        description: existingDescription.includes(supersededMarker)
+          ? existingDescription
+          : `${existingDescription.trimEnd()}\n\n${supersededCommentForIssue(issue, currentDispatchTitles)}`,
+      });
+      if (!hasLiveRun && issue.status !== "blocked") {
+        await request("PATCH", `/api/issues/${issue.id}`, {
+          status: "blocked",
+        });
+      }
+    } catch (error) {
+      if (isIssueAuthorizationBoundaryError(error)) {
+        actions.at(-1).action = "skipped_cross_boundary_issue_mutation";
+        actions.at(-1).ownerAction = "Read back the existing owner-path issue and let its assigned owner perform the mutation; do not retry from this actor.";
+        actions.at(-1).requiredReadback = "Confirm an open owner-path issue already exists for the target, or create one assigned to the owning role before rerunning apply.";
+        actions.at(-1).error = error.message;
+        continue;
+      }
+      throw error;
     }
   }
 }
