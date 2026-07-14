@@ -118,16 +118,28 @@ async function syncAgentPermissions(agent, definition) {
   });
 }
 
-async function buildInstructions(definition) {
+async function buildInstructions(definition, instructionsRoot) {
   const sharedFiles = (await readdir(sharedDir))
     .filter((file) => file.endsWith(".md"))
     .sort();
   const rolePath = `roles/${definition.key}.md`;
   return {
     "AGENTS.md": [
+      "---",
+      `name: ${definition.name}`,
+      `title: ${definition.title}`,
+      `role: ${definition.role}`,
+      "---",
+      "",
       "# LuckySparrow Software House Agent Instructions",
       "",
       "This is the bundle entry file. Before taking non-trivial action, read the shared contracts and your role file listed below.",
+      "",
+      "## Instruction Root",
+      "",
+      `- Absolute bundle root: \`${instructionsRoot}\``,
+      "- Resolve every `shared/...`, `roles/...`, and `metadata.md` path below against this bundle root, never against the application repository working directory.",
+      "- On PowerShell, use `Join-Path` with the absolute bundle root before `Get-Content`.",
       "",
       "## Shared Contracts",
       "",
@@ -219,7 +231,7 @@ for (const definition of roster.agents) {
       `/api/agents/${agent.id}/instructions-bundle/file?companyId=${company.id}&path=${encodeURIComponent(filePath)}`,
     );
   }
-  const bundleFiles = await buildInstructions(definition);
+  const bundleFiles = await buildInstructions(definition, bundle.rootPath);
   for (const [filePath, content] of Object.entries(bundleFiles)) {
     await request("PUT", `/api/agents/${agent.id}/instructions-bundle/file?companyId=${company.id}`, {
       path: filePath,

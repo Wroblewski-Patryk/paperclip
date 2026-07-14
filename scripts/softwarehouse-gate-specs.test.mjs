@@ -250,6 +250,13 @@ test("shared supervision keeps Paperclip LUC identifiers out of the GitHub issue
   assert.match(syncScript, /## Tracker Boundary/);
   assert.match(syncScript, /`LUC-\*` identifiers belong to the local Paperclip issue tracker/);
   assert.match(syncScript, /a GitHub 404 is never a LUC blocker/);
+  assert.match(syncScript, /## Instruction Root/);
+  assert.match(syncScript, /Resolve every `shared\/\.\.\.`, `roles\/\.\.\.`, and `metadata\.md` path/);
+  assert.match(syncScript, /never against the application repository working directory/);
+  assert.match(syncScript, /buildInstructions\(definition, bundle\.rootPath\)/);
+  assert.match(syncScript, /`name: \$\{definition\.name\}`/);
+  assert.match(syncScript, /`title: \$\{definition\.title\}`/);
+  assert.match(syncScript, /`role: \$\{definition\.role\}`/);
 });
 
 test("project-truth dispatcher requires a complete closure packet for proof lanes", async () => {

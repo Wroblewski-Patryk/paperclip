@@ -2723,3 +2723,22 @@ that file and repeated the GitHub lookup. The managed bundle generator now puts
 the `LUC-*` Paperclip-only tracker boundary directly in every bundle entry
 `AGENTS.md`, while retaining the detailed shared contract. All 39 bundles were
 resynchronized and the static entry-contract regression test passes.
+
+The closing audit then resolved the false LUC-1101 board blocker with typed
+evidence and delegated its mixed working-tree residue to LUC-1106. LUC-1106
+classified all 175 Roost paths, found no raw-secret or out-of-scope edits, and
+committed one coherent local packet as `c8aa4d1f`; Roost, Soar, and the operating
+repo were clean after closure. No push, deployment, restart, or protected smoke
+was performed. The final live-run janitor and longevity doctor both reported no
+findings, the Softwarehouse and workspace-boundary audits passed, Coolify
+readback remained ready for all 8 expected resources, and no duplicate runtime
+or routine group was found.
+
+The same run exposed a smaller instruction-loading defect: agents with an app
+working directory could resolve `shared/...` and `roles/...` against Soar or
+Roost instead of their managed bundle root. The bundle generator now writes the
+absolute runtime instruction root and explicit PowerShell resolution rule into
+every entry file, plus role-specific frontmatter. All 39 bundles were
+resynchronized; the instruction audit now passes with zero missing roots, zero
+duplicates, zero warnings, zero failures, and 39/39 coverage for persona, scope,
+evidence, safety, model, and hierarchy signals.
