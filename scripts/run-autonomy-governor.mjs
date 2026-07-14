@@ -375,10 +375,14 @@ const busyAgentIds = new Set(liveRuns.map((run) => run.agentId).filter(Boolean))
 const isProtectedGateRootIssue = (issue) =>
   gateRootIdentifiers.has(issue.identifier)
   || gateRootIdentifiers.has(rootBlockerIdentifierFor(issue));
+const recurringRoutineIssues = openActiveIssues.filter((issue) =>
+  issue.originKind === "routine_execution"
+);
 const runnableIssues = openActiveIssues.filter((issue) =>
   runnableStatuses.has(issue.status)
   && !liveIssueIds.has(issue.id)
   && !isProtectedGateRootIssue(issue)
+  && issue.originKind !== "routine_execution"
 );
 const protectedGateRunnableIssues = openActiveIssues.filter((issue) =>
   runnableStatuses.has(issue.status)
@@ -700,6 +704,7 @@ console.log(JSON.stringify({
   counts: {
     activeProjects: activeProjectIds.size,
     openActiveIssues: openActiveIssues.length,
+    recurringRoutineIssues: recurringRoutineIssues.length,
     runnableIssues: runnableIssues.length,
     protectedGateRunnableIssues: protectedGateRunnableIssues.length,
     eligibleRunnableIssues: eligibleRunnableIssues.length,

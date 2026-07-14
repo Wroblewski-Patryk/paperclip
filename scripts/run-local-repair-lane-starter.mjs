@@ -376,6 +376,7 @@ function isLocalRepairCandidate(issue, projectById, liveIssueIds, governorDecisi
   if (isSourceControlClosureCandidate(issue, project, governorDecision, liveIssueIds, sourceControlPacket)) return true;
   if (!project || project.archivedAt) return false;
   if (!projectInPriority(project)) return false;
+  if (issue.originKind === "routine_execution") return false;
   if (!runnableStatuses.has(issue.status)) return false;
   if (terminalStatuses.has(issue.status)) return false;
   if (liveIssueIds.has(issue.id)) return false;

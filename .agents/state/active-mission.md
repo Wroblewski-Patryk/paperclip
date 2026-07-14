@@ -368,3 +368,18 @@ or the relevant owners explicitly classify them as not required with evidence.
 - The live audit has no quota, instruction, runtime-file, boundary, or duplicate
   instance failure. LUC-972 remains the genuine protected leaf preventing full
   production delivery and must not be bypassed by local proof work.
+
+## 2026-07-14 - Current Constructive Dispatch State
+
+- Soar is clean at `46be1df4e`; Roost is clean at `acb8bfca`; the operating
+  repo must remain clean before product dispatch.
+- Recurring `routine_execution` issues are controller cadence, not product
+  backlog. Their schedules remain active, but local repair and the autonomy
+  governor must not select them in place of a worker or blocked-triage lane.
+- The next legal non-production action is one blocked-triage lane for
+  `LUC-1161`. It must classify the residual `/assets` evidence linkage and
+  produce at most one owner-scoped next action. `LUC-1165` follows only after
+  that root has an honest disposition.
+- `LUC-972` remains the only protected owner/security leaf for hard production
+  completion. Do not push, deploy, restart, run protected smoke, or disclose
+  credentials until its evidence-backed terminal disposition exists.

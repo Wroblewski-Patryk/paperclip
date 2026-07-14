@@ -3227,3 +3227,26 @@ terminal result confirm Spark was truly applied.
   `nextControlActions` were built, so the global audit could not find the
   required `Stale gate owner action:` line. Both consumers now use the same
   deduplicated gate-handoff set, and the focused suite passes 164/164.
+
+## 2026-07-14 - Constructive autonomy audit checkpoint
+
+- The global Softwarehouse audit passes after serial source-control closure:
+  Paperclip, Soar, and Roost are clean, there are no duplicate routines, stale
+  error agents, detached runs, instruction drift, or workspace-boundary drift.
+- Soar proof closure is committed as `46be1df4e`; Roost proof closure is
+  committed as `acb8bfca`. Both packets were locally validated and neither was
+  pushed or deployed through the still-blocked protected gate.
+- Paperclip was restarted after the Codex adapter hardening. Health returns
+  `ok` and exactly one listener serves `127.0.0.1:3200`, so status-only recovery
+  now uses the loaded read-only sandbox implementation.
+- A final liveness defect was found: five reusable `routine_execution` issues
+  were counted as delivery backlog, causing local repair to choose the
+  continuation watchdog instead of the ambiguous Roost blocker. Governor and
+  local repair now exclude routine executions from product backlog while
+  reporting their count separately.
+- The live dry-run now selects `blocked_needs_triage` for `LUC-1161`, with
+  `LUC-1165` correctly dependent on that root. The focused gate suite passes
+  165/165.
+- Full Stage 1 production completion remains false until protected credential
+  rotation `LUC-972` has real operator/security evidence. This gate does not
+  block independent local proof, docs, tests, or source-control closure.

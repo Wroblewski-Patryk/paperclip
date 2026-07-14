@@ -1440,6 +1440,16 @@ test("local source-control starter cannot route project closure into a generic c
   assert.match(source, /controlledProjectNameFor\(project\?\.name\) \?\? project\?\.name/);
 });
 
+test("delivery selectors do not treat recurring routine issues as product backlog", async () => {
+  const governor = await readFile("scripts/run-autonomy-governor.mjs", "utf8");
+  const starter = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+
+  assert.match(governor, /const recurringRoutineIssues = openActiveIssues\.filter/);
+  assert.match(governor, /issue\.originKind !== "routine_execution"/);
+  assert.match(governor, /recurringRoutineIssues: recurringRoutineIssues\.length/);
+  assert.match(starter, /if \(issue\.originKind === "routine_execution"\) return false/);
+});
+
 test("local source-control starter refreshes Git truth before creating closure sidecars", async () => {
   const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
 
