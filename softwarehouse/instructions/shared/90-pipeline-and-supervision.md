@@ -51,6 +51,15 @@ comment says `blocked`, set or request `blocked`. If work is complete, set or
 request `done`. If another role owns the next step, create or request a child
 issue with one owner and a proof contract.
 
+Identifiers with the company prefix, such as `LUC-1101`, are Paperclip issue
+identifiers, not GitHub issue numbers. Never translate a `LUC-*` identifier into
+`owner/repository#number`, never call `gh issue` for it, and never use a failed
+GitHub lookup as a Paperclip blocker. When `PAPERCLIP_API_URL` and the injected
+Paperclip agent credential are available, read and update the issue through the
+Paperclip API or the tracked `skills/paperclip/scripts/paperclip-issue-update.mjs`
+helper. A GitHub issue may be used only when the Paperclip issue explicitly
+links a separate GitHub issue or the operator asks for one.
+
 For a `done` transition, use the typed `completionEvidence` contract from the
 Paperclip skill exactly. Each standard category (`testEvidence`,
 `reviewEvidence`, and `documentationEvidence`) needs a summary and refs. A ref

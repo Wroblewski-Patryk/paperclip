@@ -2692,3 +2692,17 @@ Findings and actions:
 Decision: task count is not the success metric. Continue only through bounded,
 repo-owned work that reduces a measured app gap, then serialize one coherent
 source-control closure before another shared-worktree batch starts.
+
+Follow-up: the audit found a tracker-boundary defect after LUC-1101 and
+LUC-1102 completed useful Roost/Soar proof work but tried to resolve matching
+GitHub issue numbers. The shared supervision contract now states that `LUC-*`
+identifiers belong exclusively to Paperclip unless a separate GitHub link is
+explicitly present. It requires the injected Paperclip API/helper path and
+forbids using a failed GitHub lookup as a Paperclip blocker. The rule was
+synchronized to all 39 managed bundles; the focused regression test and the
+agent-instruction audit pass. The project-truth dispatcher is also gated on a
+clean project repo, so dirty Soar/Roost packets now yield source-control closure
+instead of another generated microtask. Unused Anthropic quota polling was
+disabled after it produced a Windows `spawn sh ENOENT`; active OpenAI quota
+readback remains healthy and fallback routing to `codex_standard_light` was
+observed while the standard lane was above its hold threshold.

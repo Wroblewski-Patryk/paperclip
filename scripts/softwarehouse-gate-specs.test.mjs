@@ -226,6 +226,20 @@ test("shared supervision teaches the canonical completion evidence reference con
   assert.match(supervision, /instead of retrying the same shape/i);
 });
 
+test("shared supervision keeps Paperclip LUC identifiers out of the GitHub issue tracker", async () => {
+  const supervision = await readFile(
+    "softwarehouse/instructions/shared/90-pipeline-and-supervision.md",
+    "utf8",
+  );
+
+  assert.match(supervision, /`LUC-1101`.*Paperclip issue\s+identifiers/is);
+  assert.match(supervision, /not GitHub issue numbers/i);
+  assert.match(supervision, /Never translate a `LUC-\*` identifier/i);
+  assert.match(supervision, /never call `gh issue`/i);
+  assert.match(supervision, /PAPERCLIP_API_URL/);
+  assert.match(supervision, /paperclip-issue-update\.mjs/);
+});
+
 test("project-truth dispatcher requires a complete closure packet for proof lanes", async () => {
   const source = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
 
