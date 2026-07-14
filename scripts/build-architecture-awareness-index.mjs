@@ -593,6 +593,12 @@ function pathLooksLikeTest(relativePath) {
     /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs|py)$/i.test(relativePath);
 }
 
+function pathLooksLikeStructuredTestArtifact(relativePath) {
+  return /(^|[\\/])history[\\/]artifacts[\\/][^\\/]*(browser-proof|smoke-e2e|api-smoke-e2e|test-proof)[^\\/]*\.json$/i.test(
+    relativePath,
+  );
+}
+
 function pathLooksLikeTestFixture(relativePath) {
   return pathLooksLikeTest(relativePath) ||
     /(^|[\\/])(__fixtures__|fixtures?|test-fixtures?|test-support|testing)([\\/]|$)/i.test(relativePath) ||
@@ -892,10 +898,11 @@ for (const file of files) {
   const stat = await fs.stat(file);
   const isDoc = docExtensions.has(ext);
   const isCode = codeExtensions.has(ext);
-  const isTest = pathLooksLikeTest(relativePath);
+  const isStructuredTestArtifact = pathLooksLikeStructuredTestArtifact(relativePath);
+  const isTest = pathLooksLikeTest(relativePath) || isStructuredTestArtifact;
   const isMigration = pathLooksLikeMigration(relativePath);
   const isAgent = /(^|[\\/])(\.agents|agents?|\.codex[\\/]agents)([\\/]|$)/i.test(relativePath) && isDoc;
-  if (!isDoc && !isCode && !isMigration) continue;
+  if (!isDoc && !isCode && !isMigration && !isStructuredTestArtifact) continue;
 
   const text = await fs.readFile(file, "utf8").catch(() => "");
   const moduleName = moduleNameFor(relativePath);

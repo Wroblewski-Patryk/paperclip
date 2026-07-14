@@ -11,7 +11,10 @@ import {
   resolveModelProfileApplication,
 } from "../services/heartbeat.ts";
 import { loadModelEconomicsConfig, resetModelEconomicsConfigCacheForTests } from "../services/model-economics.js";
-import { resolveModelRouterProfile } from "../services/model-router.js";
+import {
+  resetModelRouterConfigCacheForTests,
+  resolveModelRouterProfile,
+} from "../services/model-router.js";
 
 const cheapProfile: AdapterModelProfileDefinition = {
   key: "cheap",
@@ -39,8 +42,8 @@ describe("heartbeat model profile application", () => {
       configSource: "adapter_default",
       fallbackReason: null,
       adapterConfig: {
-        model: "gpt-5.3-codex-spark",
-        modelReasoningEffort: "medium",
+        model: "gpt-5.4-mini",
+        modelReasoningEffort: "low",
       },
     });
   });
@@ -286,6 +289,44 @@ describe("model router profile selection", () => {
       source: "name_prefix",
     });
   });
+
+  it("keeps CRS reviews moving on the Spark lane during critical standard-lane pressure", () => {
+    resetModelRouterConfigCacheForTests();
+
+    expect(
+      resolveModelRouterProfile({
+        agent: { name: "09 CRS Code Review Specialist", role: "engineer" },
+        issue: {
+          title: "Review product-boundary proof bundle",
+          priority: "medium",
+        },
+        contextSnapshot: {},
+        quotaPressure: "critical",
+      }),
+    ).toMatchObject({
+      profile: "spark",
+      source: "name_prefix",
+    });
+  });
+
+  it("moves cheap recovery work to Spark when the standard-light lane is critically constrained", () => {
+    resetModelRouterConfigCacheForTests();
+
+    expect(
+      resolveModelRouterProfile({
+        agent: { name: "04 COO Chief Operating Officer", role: "general" },
+        issue: {
+          title: "Resume completed child work and close the parent",
+          priority: "high",
+        },
+        contextSnapshot: { source: "recovery" },
+        quotaPressure: "critical",
+      }),
+    ).toMatchObject({
+      profile: "spark",
+      source: "context_rule",
+    });
+  });
 });
 
 describe("model economics catalog", () => {
@@ -300,7 +341,7 @@ describe("model economics catalog", () => {
     });
     expect(config.profiles.reasoning).toMatchObject({
       profile: "reasoning",
-      defaultModel: "gpt-5.5",
+      defaultModel: "gpt-5.4",
     });
     expect(config.sources.some((source) => source.url.includes("developers.openai.com/codex/models"))).toBe(true);
   });

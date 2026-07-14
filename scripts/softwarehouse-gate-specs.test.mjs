@@ -205,6 +205,15 @@ test("softwarehouse audit ignores fresh completion and detached-process tails", 
   assert.match(source, /if \(staleClosedIssueLiveRuns\.length > 0\)/);
 });
 
+test("softwarehouse audit refreshes source-control truth before reporting repository drift", async () => {
+  const source = await readFile("scripts/audit-luckysparrow-softwarehouse.mjs", "utf8");
+
+  assert.match(source, /function refreshSourceControlReport\(\)/);
+  assert.match(source, /check-softwarehouse-source-control\.mjs/);
+  assert.match(source, /source: sourceControlRefresh\.report \? "fresh_check" : "control_tick_fallback"/);
+  assert.match(source, /latestSourceControlClean/);
+});
+
 test("worker backlog decomposition stays in active products and serializes shared-workspace writers", async () => {
   const seeder = await readFile("scripts/run-worker-backlog-decomposition-seeder.mjs", "utf8");
   const instructions = await readFile("softwarehouse/instructions/shared/90-pipeline-and-supervision.md", "utf8");
@@ -254,9 +263,11 @@ test("shared supervision keeps Paperclip LUC identifiers out of the GitHub issue
   assert.match(syncScript, /`LUC-\*` identifiers belong to the local Paperclip issue tracker/);
   assert.match(syncScript, /a GitHub 404 is never a LUC blocker/);
   assert.match(syncScript, /## Runtime Fast Path/);
-  assert.match(syncScript, /PAPERCLIP_SOFTWAREHOUSE_ROOT: root/);
+  assert.match(syncScript, /LUCKYSPARROW_SOFTWAREHOUSE_ROOT: root/);
+  assert.equal(syncScript.match(/PAPERCLIP_SOFTWAREHOUSE_ROOT/g)?.length, 1);
+  assert.match(syncScript, /const \{ PAPERCLIP_SOFTWAREHOUSE_ROOT: _legacySoftwarehouseRoot/);
   assert.match(syncScript, /\.\.\.existingConfig/);
-  assert.match(syncScript, /\.\.\.existingEnv/);
+  assert.match(syncScript, /\.\.\.preservedEnv/);
   assert.match(syncScript, /agent\.adapterConfig/);
   assert.match(syncScript, /existingCheapAdapterConfig/);
   assert.match(syncScript, /Do not recursively scan `.paperclip`/);
@@ -279,7 +290,7 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
 
   assert.match(environment, /PAPERCLIP_TASK_ID/);
   assert.match(environment, /PAPERCLIP_API_KEY/);
-  assert.match(environment, /PAPERCLIP_SOFTWAREHOUSE_ROOT/);
+  assert.match(environment, /LUCKYSPARROW_SOFTWAREHOUSE_ROOT/);
   assert.match(environment, /Do not recursively scan/);
   assert.match(environment, /Avoid nested PowerShell here-strings/);
   assert.match(environment, /paperclip-issue-update\.mjs/);
@@ -2208,6 +2219,15 @@ test("app completion index exposes full risk backlog counts when priority review
   assert.match(source, /implementedNeedsProof/);
   assert.match(source, /appCompletionRiskItems/);
   assert.match(source, /priorityReviewTruncated: riskItems\.length > priorityItems\.length/);
+});
+
+test("architecture awareness treats structured browser proof JSON as test evidence", async () => {
+  const source = await readFile("scripts/build-architecture-awareness-index.mjs", "utf8");
+
+  assert.match(source, /function pathLooksLikeStructuredTestArtifact/);
+  assert.match(source, /browser-proof\|smoke-e2e\|api-smoke-e2e\|test-proof/);
+  assert.match(source, /pathLooksLikeTest\(relativePath\) \|\| isStructuredTestArtifact/);
+  assert.match(source, /!isMigration && !isStructuredTestArtifact/);
 });
 
 test("local repair lane starter bounds API requests and degrades read failures", async () => {

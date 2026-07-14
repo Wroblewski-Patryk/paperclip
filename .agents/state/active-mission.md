@@ -210,3 +210,19 @@ or the relevant owners explicitly classify them as not required with evidence.
 - LUC-25 remains blocked until owner-usable VPS evidence exists; convergence
   reduces control noise but does not waive credential rotation or production
   provenance requirements.
+
+## 2026-07-14 Constructive Audit Checkpoint
+
+- LUC-1129 and parent LUC-1125 are done after live Spark-lane quota recovery;
+  low-risk recovery may continue when the standard lane is critical, while
+  protected high-risk work remains gated.
+- The managed fast-path variable is `LUCKYSPARROW_SOFTWAREHOUSE_ROOT`; all 39
+  agent primary and cheap profiles have it, the legacy reserved key is absent,
+  and protected bindings are preserved by merge semantics.
+- Roost current project truth has 46 product boundaries and 34 gaps.
+- Soar current project truth has 86 product boundaries and 77 gaps; Account
+  access is 9/9 ok after LUC-1132 browser proof was linked as test and document
+  evidence. Public web/build-info/API health/readiness probes pass.
+- LUC-25 remains blocked by design until owner-usable VPS evidence closes the
+  remaining product truth and security gates. LUC-972 credential rotation is
+  still an explicit owner/security operation, not an autonomous workaround.

@@ -2959,7 +2959,7 @@ The same audit found a more important lifecycle bug: the instruction
 synchronizer rebuilt adapter configuration and could erase existing secret/env
 bindings. Synchronization now merges the current primary and cheap-profile
 adapter configuration before applying the canonical model lane and
-`PAPERCLIP_SOFTWAREHOUSE_ROOT`. After a second live 39-agent sync, the delivery
+`LUCKYSPARROW_SOFTWAREHOUSE_ROOT`. After a second live 39-agent sync, the delivery
 access dry-run reported zero changes and the approved Roost CompanyCore
 bootstrap reported `bindingsCurrent=true`, an active existing secret, and
 `rawSecretOutput=false`. Role-scoped Coolify, Soar, and Roost smoke references
@@ -2972,3 +2972,44 @@ each leaf lane must name scope, evidence, blocker policy, owner, and one of
 passes 158/158. The remaining immediate closure work is source-control
 classification for the valid LUC-1123 Roost docs/index refresh, the valid
 LUC-1124 Soar browser-proof packet, and the final CRS review LUC-1129.
+
+## 2026-07-14 - Constructive audit, quota recovery, and proof-link closure
+
+The post-1000-task audit found no duplicate agents, routines, or active
+Paperclip listeners. All 39 managed agents have unique complete instruction
+bundles, current repository roots, preserved protected bindings, and both
+primary and cheap-profile runtime configuration. Work remained scoped to
+Paperclip Softwarehouse, Soar, and Roost.
+
+The main live defect was a quota dead end. The standard Codex lane was at 96%
+weekly usage, while safe review and recovery work could still use the
+independent Spark lane. CRS now defaults to standard work and falls back to
+Spark under critical standard pressure. Low-risk cheap, light, and standard
+recovery also falls to Spark; strategic, security-sensitive, and protected
+delivery work remains conservative. A held CRS run was automatically
+reevaluated onto Spark and closed LUC-1129. A bounded parent disposition then
+closed LUC-1125. The router suite passes 18/18.
+
+The top-level audit now refreshes Git truth directly instead of trusting an
+older control-tick snapshot. The managed repository fast path was renamed to
+`LUCKYSPARROW_SOFTWAREHOUSE_ROOT` because Paperclip correctly strips unknown
+reserved `PAPERCLIP_*` variables. Live readback confirms the new key across
+all 39 agents and no surviving legacy key. The synchronizer continues to
+merge, rather than replace, existing environment and protected bindings.
+
+Product proof also advanced. Roost LUC-1131 is committed and its current truth
+index contains 34 gaps. Soar LUC-1132 captured local Chromium login/register
+proof, but the audit found that JSON browser artifacts were ignored by the
+architecture scanner and therefore did not reduce the truth denominator.
+Structured browser/smoke/E2E JSON artifacts are now first-class test entities.
+After explicit test/document relations and regeneration, all 62 Soar relation
+overrides apply, Account access is 9/9 ok, public production probes pass, and
+Soar gaps fell from 81 to 77. This establishes a durable rule: issue `done`
+is insufficient until proof is linked into project truth.
+
+Verification: 154/154 Softwarehouse gate specifications, 18/18 model-router
+tests, script syntax checks, Soar public probes, and generated truth checks
+pass. LUC-25 remains blocked correctly because 77 Soar and 34 Roost proof gaps
+remain and LUC-972 is still an owner/security credential-rotation operation.
+No deployment, restart, rollback, or raw-secret output was performed in this
+audit.

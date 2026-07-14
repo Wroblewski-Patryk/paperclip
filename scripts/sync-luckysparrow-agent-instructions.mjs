@@ -62,13 +62,14 @@ function adapterConfigFor(definition, laneKey = definition.modelLane, existingCo
   const existingEnv = existingConfig?.env && typeof existingConfig.env === "object"
     ? existingConfig.env
     : {};
+  const { PAPERCLIP_SOFTWAREHOUSE_ROOT: _legacySoftwarehouseRoot, ...preservedEnv } = existingEnv;
   return {
     ...existingConfig,
     command: localCodexCommand,
     cwd: workspaceCwd(definition),
     env: {
-      ...existingEnv,
-      PAPERCLIP_SOFTWAREHOUSE_ROOT: root,
+      ...preservedEnv,
+      LUCKYSPARROW_SOFTWAREHOUSE_ROOT: root,
     },
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,
@@ -171,7 +172,7 @@ async function buildInstructions(definition, instructionsRoot) {
       "## Runtime Fast Path",
       "",
       "- Before searching the workspace, use `$env:PAPERCLIP_TASK_ID`, `$env:PAPERCLIP_API_URL`, `$env:PAPERCLIP_API_KEY`, and `$env:PAPERCLIP_RUN_ID` to read the current Paperclip issue.",
-      "- The tracked Paperclip workflow is at `Join-Path $env:PAPERCLIP_SOFTWAREHOUSE_ROOT 'skills/paperclip/SKILL.md'`; the safe update helper is at `Join-Path $env:PAPERCLIP_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-issue-update.mjs'`.",
+      "- The tracked Paperclip workflow is at `Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/SKILL.md'`; the safe update helper is at `Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-issue-update.mjs'`.",
       "- Do not recursively scan `.paperclip`, `.codex`, `.git`, `node_modules`, managed runtime homes, or archived logs to discover the issue API or completion payload.",
       "- On Windows, prefer the tracked helper or one direct `Invoke-RestMethod` call with a hashtable and `ConvertTo-Json`. Avoid nested here-strings, mixed shell wrappers, and broad recursive searches.",
       "",

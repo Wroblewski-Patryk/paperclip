@@ -43,7 +43,7 @@
     "09 RTE": "standard",
     "09 TAE": "standard",
     "09 QVE": "standard",
-    "09 CRS": "strategic",
+    "09 CRS": "standard",
     "09 DRE": "reasoning",
     "10 CLO": "reasoning",
     "10 SPA": "strategic",
@@ -120,11 +120,12 @@
       "light": "spark"
     },
     "critical": {
+      "cheap": "spark",
       "strategic": "standard",
       "reasoning": "light",
       "standard": "spark",
-      "light": "cheap",
-      "spark": "cheap"
+      "light": "spark",
+      "spark": "spark"
     }
   }
 }

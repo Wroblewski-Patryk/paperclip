@@ -1,4 +1,5 @@
 import { access, readFile, stat } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { secretFreshnessTimestamp, stableSecretMetadata } from "./lib/gate-freshness.mjs";
 import { rootBlockerIdentifierFor, terminalBlockersFor } from "./lib/issue-blockers.mjs";
@@ -125,6 +126,33 @@ function processAppearsAlive(pid) {
     if (error?.code === "ESRCH") return false;
     if (error?.code === "EPERM") return true;
     return null;
+  }
+}
+
+function refreshSourceControlReport() {
+  const scriptPath = path.resolve("scripts", "check-softwarehouse-source-control.mjs");
+  const result = spawnSync(process.execPath, [scriptPath], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: 10 * 1024 * 1024,
+  });
+  if (result.status !== 0) {
+    return {
+      report: null,
+      error: (result.stderr || result.stdout || `exit ${result.status}`).trim(),
+    };
+  }
+  try {
+    return {
+      report: JSON.parse(result.stdout),
+      error: null,
+    };
+  } catch (error) {
+    return {
+      report: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
@@ -807,7 +835,13 @@ if (controlTickJsonInfo.exists) {
     .then((text) => JSON.parse(text))
     .catch(() => null);
 }
-const latestSourceControl = latestControlTick?.sourceControlRepos ?? [];
+const sourceControlRefresh = refreshSourceControlReport();
+const latestSourceControl = sourceControlRefresh.report?.repos
+  ?? latestControlTick?.sourceControlRepos
+  ?? [];
+const latestSourceControlClean = sourceControlRefresh.report?.clean
+  ?? latestControlTick?.sourceControlClean
+  ?? null;
 const dirtySourceControlRepos = latestSourceControl.filter((repo) => repo.clean === false);
 const controlPostureStatus = latestControlTick ? {
   controlDecision: latestControlTick.controlDecision ?? null,
@@ -1113,10 +1147,16 @@ if (!runningInsideControlTick && controlTickStatus.jsonExists && controlTickStat
   message: "Latest softwarehouse control tick report is stale; refresh it before starting or resuming work.",
   items: controlTickStatus,
 });
+if (!runningInsideControlTick && sourceControlRefresh.error) findings.push({
+  severity: "warn",
+  area: "source-control",
+  message: "Fresh source-control scan failed; repository status fell back to the latest control-tick snapshot.",
+  items: { error: sourceControlRefresh.error },
+});
 if (!runningInsideControlTick && dirtySourceControlRepos.some((repo) => repo.name === "Paperclip_Softwarehouse")) findings.push({
   severity: "warn",
   area: "source-control",
-  message: "Paperclip Softwarehouse has uncommitted changes in the latest control tick; commit or classify them before treating the operating system as stable.",
+  message: "Paperclip Softwarehouse has current uncommitted changes; commit or classify them before treating the operating system as stable.",
   items: dirtySourceControlRepos.filter((repo) => repo.name === "Paperclip_Softwarehouse"),
 });
 if (!runningInsideControlTick && controlPostureStatus && controlPostureStatus.postureConsistent === false) findings.push({
@@ -1329,7 +1369,9 @@ console.log(JSON.stringify({
   controlTickStatus,
   controlPostureStatus,
   sourceControlStatus: {
-    clean: latestControlTick?.sourceControlClean ?? null,
+    source: sourceControlRefresh.report ? "fresh_check" : "control_tick_fallback",
+    refreshError: sourceControlRefresh.error,
+    clean: latestSourceControlClean,
     repos: latestSourceControl,
   },
   runtimeBindingGaps,
