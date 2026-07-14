@@ -1263,6 +1263,15 @@ test("local source-control starter cannot route project closure into a generic c
   assert.match(source, /controlledProjectNameFor\(project\?\.name\) \?\? project\?\.name/);
 });
 
+test("local source-control starter refreshes Git truth before creating closure sidecars", async () => {
+  const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+
+  assert.match(source, /check-softwarehouse-source-control\.mjs/);
+  assert.match(source, /sourceControlPacketVerified: refresh\.ok/);
+  assert.match(source, /sourceControlPacket\.sourceControlPacketVerified !== true/);
+  assert.match(source, /SOFTWAREHOUSE_LOCAL_REPAIR_SOURCE_CONTROL_TIMEOUT_MS \?\? 30_000/);
+});
+
 test("local source-control sidecars preserve parallelism across independent projects and agents", async () => {
   const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
 

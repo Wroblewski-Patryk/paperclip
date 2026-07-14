@@ -2921,3 +2921,17 @@ now excluded from generic productivity review; their health remains covered
 by scheduler, janitor, watchdog, and autonomy controls. The embedded-Postgres
 service suite passes 13/13, the app-boundary suite passes 5/5, and all 148
 Softwarehouse gate specifications pass.
+
+## 2026-07-14 - Fresh source-control read before closure sidecars
+
+The post-restart audit caught a narrow duplicate race. LUC-1120 committed and
+cleaned the ten-file Soar generated-status packet, but the local repair starter
+still held the source-control report generated before that commit. It created
+LUC-1121 with the same title and target. LUC-1121 made no additional repo
+change and was closed as a superseded duplicate.
+
+The local repair starter now runs the canonical source-control checker before
+reading the packet. Sidecar creation fails closed unless that refresh succeeds,
+and its result plus report timestamp are exposed in the dry-run output. The
+gate suite passes 149/149. A live dry-run after Soar closure reports Soar clean
+and selects Roost as the only remaining project closure target.

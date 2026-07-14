@@ -16,6 +16,9 @@ const currentIssueId = process.env.PAPERCLIP_ISSUE_ID ?? process.env.PAPERCLIP_T
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_LOCAL_REPAIR_REQUEST_TIMEOUT_MS ?? 30_000);
 const governorTimeoutMs = Number(process.env.SOFTWAREHOUSE_LOCAL_REPAIR_GOVERNOR_TIMEOUT_MS ?? 30_000);
+const sourceControlRefreshTimeoutMs = Number(
+  process.env.SOFTWAREHOUSE_LOCAL_REPAIR_SOURCE_CONTROL_TIMEOUT_MS ?? 30_000,
+);
 
 const terminalStatuses = new Set(["done", "cancelled"]);
 const runnableStatuses = new Set(["todo", "backlog"]);
@@ -63,6 +66,33 @@ const projectPriority = (process.env.SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS ?? "Soa
   .filter(Boolean);
 
 async function readSourceControlPacket() {
+  let refresh = {
+    attempted: true,
+    ok: false,
+    error: null,
+  };
+  try {
+    const { spawnSync } = await import("node:child_process");
+    const result = spawnSync(process.execPath, ["scripts/check-softwarehouse-source-control.mjs"], {
+      cwd: process.cwd(),
+      env: { ...process.env },
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: sourceControlRefreshTimeoutMs,
+    });
+    refresh = {
+      attempted: true,
+      ok: result.status === 0 && !result.error,
+      error: result.error?.code === "ETIMEDOUT"
+        ? `source-control refresh timed out after ${sourceControlRefreshTimeoutMs}ms`
+        : result.status === 0
+          ? null
+          : (result.stderr || result.stdout || "source-control refresh failed").trim().slice(0, 1000),
+    };
+  } catch (error) {
+    refresh.error = error instanceof Error ? error.message : String(error);
+  }
+
   try {
     const { readFile } = await import("node:fs/promises");
     const packet = JSON.parse(await readFile("report/softwarehouse-source-control.latest.json", "utf8"));
@@ -74,6 +104,9 @@ async function readSourceControlPacket() {
       .filter(Boolean);
     return {
       sourceControlPacketRead: true,
+      sourceControlRefresh: refresh,
+      sourceControlPacketVerified: refresh.ok,
+      generatedAt: packet.generatedAt ?? null,
       repos,
       operatingRepo,
       operatingRepoClean: operatingRepo?.clean ?? null,
@@ -87,6 +120,9 @@ async function readSourceControlPacket() {
   } catch {
     return {
       sourceControlPacketRead: false,
+      sourceControlRefresh: refresh,
+      sourceControlPacketVerified: false,
+      generatedAt: null,
       repos: [],
       operatingRepo: null,
       operatingRepoClean: null,
@@ -253,6 +289,7 @@ function isSourceControlClosureTitle(title) {
 }
 
 function sourceControlClosureAllowed(governorDecision, sourceControlPacket) {
+  if (sourceControlPacket.sourceControlPacketVerified !== true) return false;
   if (!localRepairCompatibleGovernorDecisions.has(governorDecision.decision)) return false;
   return (sourceControlPacket.dirtyProjectNames?.length ?? 0) > 0
     || sourceControlPacket.operatingSourceControlSafe === true;
