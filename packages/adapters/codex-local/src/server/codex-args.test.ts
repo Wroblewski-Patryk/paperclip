@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCodexExecArgs } from "./codex-args.js";
+import { buildCodexExecArgs, isStatusOnlyRecoveryContext } from "./codex-args.js";
 
 describe("buildCodexExecArgs", () => {
   it("enables Codex fast mode overrides for GPT-5.4", () => {
@@ -82,6 +82,47 @@ describe("buildCodexExecArgs", () => {
       "--skip-git-repo-check",
       "--model",
       "gpt-5.3-codex",
+      "-",
+    ]);
+  });
+
+  it("forces status-only recovery into a fresh read-only sandbox", () => {
+    expect(isStatusOnlyRecoveryContext({
+      recoveryIntent: "status_only",
+      allowDeliverableWork: false,
+      allowDocumentUpdates: false,
+    })).toBe(true);
+    expect(isStatusOnlyRecoveryContext({ recoveryIntent: "status_only" })).toBe(false);
+
+    const result = buildCodexExecArgs({
+      model: "gpt-5.4-mini",
+      dangerouslyBypassApprovalsAndSandbox: true,
+      extraArgs: [
+        "--sandbox",
+        "danger-full-access",
+        "--add-dir",
+        "C:/tmp/writeable",
+        "--dangerously-bypass-approvals-and-sandbox",
+        "-s=danger-full-access",
+        "--color",
+        "never",
+      ],
+    }, {
+      resumeSessionId: "session-that-must-not-resume",
+      readOnly: true,
+    });
+
+    expect(result.args).toEqual([
+      "exec",
+      "--json",
+      "--model",
+      "gpt-5.4-mini",
+      "--color",
+      "never",
+      "--sandbox",
+      "read-only",
+      "--ephemeral",
+      "--ignore-user-config",
       "-",
     ]);
   });

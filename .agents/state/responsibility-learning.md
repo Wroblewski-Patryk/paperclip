@@ -1,5 +1,21 @@
 # Responsibility Learning
 
+## 2026-07-14 - Prompt-only status restrictions are not enforcement
+
+Observed failure mode: LUC-1161 received an explicit status-only recovery
+packet with deliverable and document work disabled, but still modified 78
+Roost files. The task prompt was clear; the execution boundary was missing.
+
+Standing rule:
+
+- A status-only context must force the adapter into a fresh read-only sandbox.
+- Remove configured bypass, sandbox, and additional writable-directory flags;
+  never resume a prior writable session for status-only work.
+- Keep issue/status reporting available, but route any required workspace edit
+  to a separately assigned deliverable issue.
+- Treat a status-only run that changes a repository as a runtime policy defect,
+  not merely an agent coaching problem.
+
 ## 2026-07-12 - Self-run filtering for supervisor dispatch
 
 Observed failure mode: supervisor-style routing can accidentally count its own current Paperclip run as external work. That can make the next-action selector or watchdog choose `supervise_active_runs` when the only live work is the supervisor itself.

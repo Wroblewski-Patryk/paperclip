@@ -46,7 +46,12 @@ import {
 } from "./parse.js";
 import { pathExists, prepareManagedCodexHome, resolveManagedCodexHomeDir, resolveSharedCodexHomeDir } from "./codex-home.js";
 import { resolveCodexDesiredSkillNames } from "./skills.js";
-import { buildCodexExecArgs } from "./codex-args.js";
+import { buildCodexExecArgs, isStatusOnlyRecoveryContext } from "./codex-args.js";
+import {
+  createCodexTranscriptLimiter,
+  limitCodexTranscriptText,
+  normalizeCodexTranscriptCommandOutputMaxChars,
+} from "./transcript-limit.js";
 import { SANDBOX_INSTALL_COMMAND } from "../index.js";
 import { readCodexAuthInfo } from "./quota.js";
 
@@ -719,13 +724,27 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     sessionHandoffChars: sessionHandoffNote.length,
     heartbeatPromptChars: renderedPrompt.length,
   };
+  const statusOnlyRecovery = isStatusOnlyRecoveryContext(context);
+  const transcriptCommandOutputMaxChars = normalizeCodexTranscriptCommandOutputMaxChars(
+    config.transcriptCommandOutputMaxChars,
+  );
+  if (statusOnlyRecovery) {
+    commandNotes.push(
+      "Status-only recovery is forced into a fresh ephemeral read-only Codex sandbox; configured bypass and writable-directory flags are ignored.",
+    );
+  }
+  commandNotes.push(
+    `Command output stored in Codex transcripts is clipped above ${transcriptCommandOutputMaxChars} characters per command event.`,
+  );
 
   const runAttempt = async (resumeSessionId: string | null) => {
+    const transcriptLimiter = createCodexTranscriptLimiter(transcriptCommandOutputMaxChars);
     const execArgs = buildCodexExecArgs(
       forceSaferInvocation ? { ...config, fastMode: false } : config,
       {
-        resumeSessionId,
+        resumeSessionId: statusOnlyRecovery ? null : resumeSessionId,
         skipGitRepoCheck: executionTargetIsSandbox,
+        readOnly: statusOnlyRecovery,
       },
     );
     const args = execArgs.args;
@@ -758,6 +777,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       graceSec,
       onSpawn,
       onLog: async (stream, chunk) => {
+        if (stream === "stdout") {
+          const limited = transcriptLimiter.push(chunk);
+          if (limited) await onLog(stream, limited);
+          return;
+        }
         if (stream !== "stderr") {
           await onLog(stream, chunk);
           return;
@@ -767,6 +791,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         await onLog(stream, cleaned);
       },
     });
+    const transcriptTail = transcriptLimiter.flush();
+    if (transcriptTail) await onLog("stdout", transcriptTail);
     const cleanedStderr = stripCodexRolloutNoise(proc.stderr);
     return {
       proc: {
@@ -857,7 +883,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       billingType,
       costUsd: null,
       resultJson: {
-        stdout: attempt.proc.stdout,
+        stdout: limitCodexTranscriptText(attempt.proc.stdout, transcriptCommandOutputMaxChars),
         stderr: attempt.proc.stderr,
         ...(transientUpstream ? { errorFamily: "transient_upstream" } : {}),
         ...(transientRetryNotBefore ? { retryNotBefore: transientRetryNotBefore.toISOString() } : {}),

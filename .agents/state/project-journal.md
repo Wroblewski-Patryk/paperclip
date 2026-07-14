@@ -6,6 +6,29 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-14 / constructive runtime and delivery audit:
+  - The live company audit found no duplicate Paperclip instance, no missing
+    instruction roots, no model-quota incident, and no workspace-boundary
+    failure. One server owns `127.0.0.1:3200`; all 39 instruction bundles pass
+    persona/scope/evidence/safety/model/hierarchy coverage; weekly Codex usage
+    read about 13%.
+  - LUC-1161 exposed a hard policy defect: its recovery context explicitly set
+    `recoveryIntent=status_only`, `allowDeliverableWork=false`, and
+    `allowDocumentUpdates=false`, but the Codex run still changed 78 Roost
+    files. Prompt-only write restrictions are therefore not a safety boundary.
+  - The Codex adapter now forces such runs into a fresh ephemeral read-only
+    sandbox, removes configured bypass/sandbox/add-dir conflicts, and refuses
+    session resume. Focused adapter tests and typecheck pass.
+  - Multi-megabyte command output is now clipped only in stored transcripts
+    and `resultJson`; parser input and final agent messages remain intact.
+    The cap defaults to 50,000 characters per command event and is bounded to
+    4,000..250,000 through adapter configuration.
+  - Product proof work remains aligned but not yet source-control closed:
+    LUC-1166 moved Soar `USE /admin` from missing test evidence to a docs-owned
+    missing-doc link, and LUC-1169 did the same for Roost `USE /clients`.
+    Their generated truth packets are preserved for serial classification and
+    commit; protected production remains blocked by LUC-972.
+
 - 2026-07-14 / LUC-1017 organizational learning loop apply run:
   - Ran `node scripts/run-softwarehouse-learning-loop.mjs --apply` against the live local Paperclip API at `http://127.0.0.1:3200`.
   - Verification: the loop returned `mode: apply`, `blockedGroupCount: 2`, `eligibleBlockedGroupCount: 1`, `processedBlockedGroupCount: 1`, and `actionCount: 2`.

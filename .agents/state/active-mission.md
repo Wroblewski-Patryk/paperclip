@@ -349,3 +349,22 @@ or the relevant owners explicitly classify them as not required with evidence.
   lanes from making useful progress.
 - Readiness must remain `twoProjectFullDeliveryReady: false` and deny push,
   deploy, restart, and protected smoke while this leaf is active.
+
+## 2026-07-14 - Status-Only Enforcement And Current Product Packets
+
+- Status-only recovery is now a technical adapter boundary, not merely prompt
+  guidance. A complete status-only context runs Codex in a fresh ephemeral
+  read-only sandbox with bypass and writable-directory overrides removed.
+- Stored Codex transcripts clip oversized command output at a configurable
+  per-event cap while preserving JSONL structure, final messages, and the full
+  in-process output used by the adapter parser.
+- LUC-1166 produced a focused Soar proof-link packet for `USE /admin`; the test
+  gap is closed and the route now advances to docs ownership. LUC-1169 produced
+  the equivalent Roost packet for `USE /clients`.
+- Both product packets require serial source-control classification and local
+  commit disposition before another writer may use the corresponding repo.
+  Generated truth churn is acceptable only with focused authored diffs,
+  passing generators/tests, and bounded transcript evidence.
+- The live audit has no quota, instruction, runtime-file, boundary, or duplicate
+  instance failure. LUC-972 remains the genuine protected leaf preventing full
+  production delivery and must not be bypassed by local proof work.

@@ -12,6 +12,28 @@ export type BuildCodexExecArgsResult = {
   fastModeIgnoredReason: string | null;
 };
 
+export function isStatusOnlyRecoveryContext(context: unknown): boolean {
+  const record = asRecord(context);
+  return record.recoveryIntent === "status_only"
+    && record.allowDeliverableWork === false
+    && record.allowDocumentUpdates === false;
+}
+
+function stripReadOnlyConflicts(args: string[]): string[] {
+  const output: string[] = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--dangerously-bypass-approvals-and-sandbox") continue;
+    if (arg === "--sandbox" || arg === "-s" || arg === "--add-dir") {
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--sandbox=") || arg.startsWith("-s=") || arg.startsWith("--add-dir=")) continue;
+    output.push(arg);
+  }
+  return output;
+}
+
 function readExtraArgs(config: unknown): string[] {
   const fromExtraArgs = asStringArray(asRecord(config).extraArgs);
   if (fromExtraArgs.length > 0) return fromExtraArgs;
@@ -33,6 +55,7 @@ export function buildCodexExecArgs(
   options: {
     resumeSessionId?: string | null;
     skipGitRepoCheck?: boolean;
+    readOnly?: boolean;
   } = {},
 ): BuildCodexExecArgsResult {
   const record = asRecord(config);
@@ -44,11 +67,13 @@ export function buildCodexExecArgs(
   const search = asBoolean(record.search, false);
   const fastModeRequested = asBoolean(record.fastMode, false);
   const fastModeApplied = fastModeRequested && isCodexLocalFastModeSupported(model);
-  const bypass = asBoolean(
+  const bypass = !options.readOnly && asBoolean(
     record.dangerouslyBypassApprovalsAndSandbox,
     asBoolean(record.dangerouslyBypassSandbox, false),
   );
-  const extraArgs = readExtraArgs(record);
+  const extraArgs = options.readOnly
+    ? stripReadOnlyConflicts(readExtraArgs(record))
+    : readExtraArgs(record);
 
   const args = ["exec", "--json"];
   if (options.skipGitRepoCheck) args.push("--skip-git-repo-check");
@@ -62,7 +87,10 @@ export function buildCodexExecArgs(
     args.push("-c", 'service_tier="fast"', "-c", "features.fast_mode=true");
   }
   if (extraArgs.length > 0) args.push(...extraArgs);
-  if (options.resumeSessionId) args.push("resume", options.resumeSessionId, "-");
+  if (options.readOnly) {
+    args.push("--sandbox", "read-only", "--ephemeral", "--ignore-user-config");
+  }
+  if (options.resumeSessionId && !options.readOnly) args.push("resume", options.resumeSessionId, "-");
   else args.push("-");
 
   return {
