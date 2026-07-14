@@ -90,6 +90,12 @@ function byTitle(items, title) {
   return items.find((item) => item.title === title) ?? null;
 }
 
+function triageAssigneeFor(target, agentById, fallbackAssignee) {
+  const targetOwner = target?.assigneeAgentId ? agentById.get(target.assigneeAgentId) : null;
+  if (!targetOwner || targetOwner.pausedAt || targetOwner.status === "paused") return fallbackAssignee;
+  return targetOwner;
+}
+
 function projectRank(projectName) {
   const controlledName = controlledProjectNameFor(projectName) ?? projectName;
   const index = projectPriority.indexOf(controlledName);
@@ -362,7 +368,8 @@ if (actions.length === 0 && governorDecision.decision !== "blocked_needs_triage"
   const target = candidates[0];
   const targetProject = projectById.get(target.projectId);
   const osProject = byName(projects, "Softwarehouse Operating System") ?? targetProject;
-  const assignee = triageAssignee;
+  const assignee = triageAssigneeFor(target, agentById, triageAssignee);
+  const usesTargetOwner = Boolean(target.assigneeAgentId && assignee?.id === target.assigneeAgentId);
   const goal = byTitle(goals, "Softwarehouse operating cadence")
     ?? byTitle(goals, "Softwarehouse long-term autonomy and self-maintenance")
     ?? null;
@@ -383,6 +390,9 @@ if (actions.length === 0 && governorDecision.decision !== "blocked_needs_triage"
     "- decide whether it should stay blocked, become todo, be split, be cancelled/done as superseded, or wait for an explicit gate fact;",
     "- write owner/action/evidence back to the target issue and this triage lane;",
     "- if safe non-production work exists, create exactly one narrow follow-up issue with one owner and evidence contract.",
+    usesTargetOwner
+      ? "- this lane is assigned to the target owner so Paperclip's issue-mutation boundary permits the final source-issue disposition."
+      : "- the target owner is unavailable; classify without attempting a forbidden cross-owner mutation and leave one explicit owner-path action.",
     "",
     "Forbidden:",
     "- no push, deploy, production restart, protected smoke, live account mutation, or secret disclosure;",
@@ -401,6 +411,7 @@ if (actions.length === 0 && governorDecision.decision !== "blocked_needs_triage"
     targetTitle: target.title,
     targetProject: target.projectName,
     assignee: assignee?.name ?? null,
+    assigneeStrategy: usesTargetOwner ? "target_owner" : "triage_fallback",
     project: osProject?.name ?? null,
   });
 

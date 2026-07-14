@@ -1,4 +1,6 @@
 import { rootBlockerIdentifierFor } from "./lib/issue-blockers.mjs";
+import { planReusableRoutineRecoveryRestore } from "./lib/reusable-routine-recovery.mjs";
+import { softwarehousePilotActiveRoutineTitles } from "./lib/softwarehouse-active-routines.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -7,6 +9,10 @@ const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.RECOVERY_ACTION_JANITOR_REQUEST_TIMEOUT_MS ?? 15_000);
 const terminalStatuses = new Set(["done", "cancelled"]);
+const repairPriority = new Map([
+  ["[Softwarehouse] Continuation watchdog", 0],
+  ["[Softwarehouse] Autonomy governor", 1],
+]);
 
 async function request(method, route, body) {
   const controller = new AbortController();
@@ -66,7 +72,7 @@ let liveRuns = [];
 try {
   [health, issues, liveRuns] = await Promise.all([
     request("GET", "/api/health"),
-    request("GET", `/api/companies/${company.id}/issues?limit=1000&includeBlockedBy=true`),
+    request("GET", `/api/companies/${company.id}/issues?status=backlog,todo,in_progress,in_review,blocked&limit=2000&includeBlockedBy=true`),
     request("GET", `/api/companies/${company.id}/live-runs`),
   ]);
 } catch (error) {
@@ -91,12 +97,14 @@ try {
   process.exit(0);
 }
 
-const activeRunCount = health?.devServer?.activeRunCount ?? liveRuns.length;
+const liveActiveRunCount = liveRuns.filter((run) => ["queued", "running"].includes(run.status)).length;
+const activeRunCount = Math.max(health?.devServer?.activeRunCount ?? 0, liveActiveRunCount);
 if (apply && activeRunCount > 0) {
   throw new Error(`Refusing to resolve recovery actions while ${activeRunCount} run(s) are active.`);
 }
 
 const actions = [];
+const applicationPlans = new Map();
 for (const issue of issues.filter((candidate) => candidate.activeRecoveryAction?.id)) {
   const detail = Array.isArray(issue.blockedBy)
     ? issue
@@ -104,7 +112,17 @@ for (const issue of issues.filter((candidate) => candidate.activeRecoveryAction?
   const blockers = activeBlockerIdentifiers(detail);
   const sourceAlreadyBlocked = detail.status === "blocked";
   const clearBlockedResolution = sourceAlreadyBlocked && blockers.length > 0;
+  const issueRuns = clearBlockedResolution
+    ? []
+    : await request("GET", `/api/issues/${detail.id}/runs`);
+  const recurringRestore = planReusableRoutineRecoveryRestore({
+    issue: detail,
+    activeBlockers: blockers,
+    runs: issueRuns,
+    activeRoutineTitles: softwarehousePilotActiveRoutineTitles,
+  });
   const action = {
+    issueId: detail.id,
     issueIdentifier: detail.identifier,
     issueTitle: detail.title,
     issueStatus: detail.status,
@@ -113,26 +131,71 @@ for (const issue of issues.filter((candidate) => candidate.activeRecoveryAction?
     recoveryStatus: detail.activeRecoveryAction.status,
     rootBlocker: rootBlockerIdentifierFor(detail),
     activeBlockers: blockers,
-    action: clearBlockedResolution ? (apply ? "resolved_blocked" : "would_resolve_blocked") : "noop",
+    qualifyingRecoveryRunId: recurringRestore?.runId ?? null,
+    action: clearBlockedResolution
+      ? "would_resolve_blocked"
+      : recurringRestore
+        ? "would_restore_recurring_controller"
+        : "noop",
     reason: clearBlockedResolution
       ? "Source issue is already blocked by first-class active blocker(s); close stale recovery action as blocked."
-      : "Recovery action is not a clear blocked-source cleanup candidate.",
+      : recurringRestore
+        ? "Reusable routine has no active blocker and completed a fresh recovery run; restore its normal todo cycle."
+        : "Recovery action is not a clear blocked-source cleanup candidate.",
   };
   actions.push(action);
 
-  if (apply && clearBlockedResolution) {
-    await request("POST", `/api/issues/${detail.id}/recovery-actions/resolve`, {
-      actionId: detail.activeRecoveryAction.id,
-      outcome: "blocked",
-      sourceIssueStatus: "blocked",
-      resolutionNote: [
-        "Softwarehouse recovery janitor:",
-        "source issue is already blocked by active first-class blocker(s), so this recovery action is a stale execution artifact.",
-        `Root blocker: ${action.rootBlocker}.`,
-        `Active blockers: ${blockers.join(", ")}.`,
-        "No project repo, production, deploy, secret, or live-account mutation was performed.",
-      ].join(" "),
+  if (clearBlockedResolution) {
+    applicationPlans.set(detail.id, {
+      appliedAction: "resolved_blocked",
+      route: `/api/issues/${detail.id}/recovery-actions/resolve`,
+      body: {
+        actionId: detail.activeRecoveryAction.id,
+        outcome: "blocked",
+        sourceIssueStatus: "blocked",
+        resolutionNote: [
+          "Softwarehouse recovery janitor:",
+          "source issue is already blocked by active first-class blocker(s), so this recovery action is a stale execution artifact.",
+          `Root blocker: ${action.rootBlocker}.`,
+          `Active blockers: ${blockers.join(", ")}.`,
+          "No project repo, production, deploy, secret, or live-account mutation was performed.",
+        ].join(" "),
+      },
     });
+  }
+  if (recurringRestore) {
+    applicationPlans.set(detail.id, {
+      appliedAction: "restored_recurring_controller",
+      route: `/api/issues/${detail.id}/recovery-actions/resolve`,
+      body: {
+        actionId: recurringRestore.actionId,
+        outcome: recurringRestore.outcome,
+        sourceIssueStatus: recurringRestore.sourceIssueStatus,
+        resolutionNote: [
+          "Softwarehouse recovery janitor restored a reusable routine controller.",
+          `Fresh recovery run ${recurringRestore.runId} succeeded after the active recovery attempt.`,
+          "The source issue has no unresolved first-class blocker and returns to its normal todo cycle.",
+          "No project repo, production, deploy, secret, or live-account mutation was performed.",
+        ].join(" "),
+      },
+    });
+  }
+}
+
+actions.sort((left, right) =>
+  (repairPriority.get(left.issueTitle) ?? 999) - (repairPriority.get(right.issueTitle) ?? 999)
+  || String(left.issueIdentifier).localeCompare(String(right.issueIdentifier))
+);
+const actionable = actions.filter((action) => applicationPlans.has(action.issueId));
+if (apply && actionable.length > 0) {
+  const selected = actionable[0];
+  const plan = applicationPlans.get(selected.issueId);
+  if (!plan) throw new Error(`Missing recovery application plan for ${selected.issueIdentifier}`);
+  await request("POST", plan.route, plan.body);
+  selected.action = plan.appliedAction;
+  for (const deferred of actionable.slice(1)) {
+    deferred.action = "deferred_serial_repair";
+    deferred.reason = "Deferred because one recovery repair may wake work; re-evaluate after the selected repair reaches a terminal run state.";
   }
 }
 
@@ -141,6 +204,12 @@ console.log(JSON.stringify({
   company: { id: company.id, name: company.name },
   mode: apply ? "apply" : "dry-run",
   activeRunCount,
-  actionCount: actions.filter((action) => action.action === "would_resolve_blocked" || action.action === "resolved_blocked").length,
+  liveActiveRunCount,
+  actionCount: actions.filter((action) => [
+    "would_resolve_blocked",
+    "resolved_blocked",
+    "would_restore_recurring_controller",
+    "restored_recurring_controller",
+  ].includes(action.action)).length,
   actions,
 }, null, 2));

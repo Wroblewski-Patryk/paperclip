@@ -1,3 +1,5 @@
+import { planStaleCancelledBlockerRepair } from "./lib/stale-blocker-repair.mjs";
+
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
 const companyNameAliases = [companyName, "LuckySparrow"];
@@ -25,10 +27,6 @@ async function request(method, route, body) {
   return data;
 }
 
-function byIdentifier(issues, identifier) {
-  return issues.find((issue) => issue.identifier === identifier);
-}
-
 async function issueDetail(issue) {
   return request("GET", `/api/issues/${issue.identifier ?? issue.id}`);
 }
@@ -50,33 +48,26 @@ async function resolveCompany() {
 
 const company = await resolveCompany();
 
-const [health, issues] = await Promise.all([
+const [health, activeIssues, terminalTriageIssues, liveRuns] = await Promise.all([
   request("GET", "/api/health"),
-  request("GET", `/api/companies/${company.id}/issues?limit=1000`),
+  request("GET", `/api/companies/${company.id}/issues?status=backlog,todo,in_progress,in_review,blocked&limit=2000`),
+  request("GET", `/api/companies/${company.id}/issues?status=done&q=${encodeURIComponent("[Softwarehouse][Blocked Triage]")}&limit=500`),
+  request("GET", `/api/companies/${company.id}/live-runs`),
 ]);
 
-const activeRunCount = health.devServer?.activeRunCount ?? 0;
+const liveActiveRunCount = liveRuns.filter((run) => ["queued", "running"].includes(run.status)).length;
+const activeRunCount = Math.max(health.devServer?.activeRunCount ?? 0, liveActiveRunCount);
 if (apply && activeRunCount > 0) {
   throw new Error(`Refusing to repair blocker links while ${activeRunCount} run(s) are active.`);
 }
 
 const actions = [];
 for (const repair of repairs) {
-  const issue = byIdentifier(issues, repair.issueIdentifier);
-  const staleBlocker = byIdentifier(issues, repair.staleBlockerIdentifier);
-  const replacement = byIdentifier(issues, repair.replacementBlockerIdentifier);
-  if (!issue || !staleBlocker || !replacement) {
-    actions.push({
-      ...repair,
-      action: "skip_missing_issue",
-      found: {
-        issue: Boolean(issue),
-        staleBlocker: Boolean(staleBlocker),
-        replacement: Boolean(replacement),
-      },
-    });
-    continue;
-  }
+  const [issue, staleBlocker, replacement] = await Promise.all([
+    request("GET", `/api/issues/${repair.issueIdentifier}`),
+    request("GET", `/api/issues/${repair.staleBlockerIdentifier}`),
+    request("GET", `/api/issues/${repair.replacementBlockerIdentifier}`),
+  ]);
 
   const detailedIssue = await issueDetail(issue);
   const hasStaleRelation = (detailedIssue.blockedBy ?? []).some((blocker) => blocker.id === staleBlocker.id);
@@ -123,11 +114,57 @@ for (const repair of repairs) {
   }
 }
 
+const knownRepairIdentifiers = new Set(repairs.map((repair) => repair.issueIdentifier));
+const discoveredRepairs = [];
+for (const target of activeIssues
+  .filter((issue) => issue.status === "blocked")
+  .filter((issue) => !knownRepairIdentifiers.has(issue.identifier))) {
+  const detailedTarget = await issueDetail(target);
+  const repair = planStaleCancelledBlockerRepair({
+    target,
+    detailedTarget,
+    triageIssues: terminalTriageIssues,
+  });
+  if (repair) discoveredRepairs.push(repair);
+}
+
+discoveredRepairs.sort((left, right) => left.issueIdentifier.localeCompare(right.issueIdentifier));
+const selectedDiscoveredRepair = discoveredRepairs[0] ?? null;
+if (selectedDiscoveredRepair) {
+  actions.push({
+    ...selectedDiscoveredRepair,
+    action: apply ? "repaired_stale_cancelled_blocker" : "would_repair_stale_cancelled_blocker",
+  });
+
+  if (apply) {
+    await request("PATCH", `/api/issues/${selectedDiscoveredRepair.issueId}`, {
+      blockedByIssueIds: selectedDiscoveredRepair.blockedByIssueIds,
+      status: selectedDiscoveredRepair.nextStatus,
+      comment: [
+        "Stale cancelled blocker cleanup after completed blocked-triage disposition:",
+        `- triage evidence: ${selectedDiscoveredRepair.triageIdentifier};`,
+        `- removed cancelled blocker relation(s): ${selectedDiscoveredRepair.staleBlockerIdentifiers.join(", ")};`,
+        `- next status: ${selectedDiscoveredRepair.nextStatus};`,
+        "- all non-cancelled blocker relations were preserved.",
+        "No repository, production, deploy, secret, or worktree mutation was performed.",
+      ].join("\n"),
+    });
+  }
+}
+
 console.log(JSON.stringify({
   apiBase,
   company: { id: company.id, name: company.name },
   activeRunCount,
+  liveActiveRunCount,
   mode: apply ? "apply" : "dry-run",
-  actionCount: actions.filter((action) => action.action === "would_repair" || action.action === "repaired").length,
+  actionCount: actions.filter((action) => [
+    "would_repair",
+    "repaired",
+    "would_repair_stale_cancelled_blocker",
+    "repaired_stale_cancelled_blocker",
+  ].includes(action.action)).length,
+  discoveredRepairCount: discoveredRepairs.length,
+  deferredDiscoveredRepairCount: Math.max(0, discoveredRepairs.length - (selectedDiscoveredRepair ? 1 : 0)),
   actions,
 }, null, 2));

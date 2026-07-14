@@ -3086,3 +3086,32 @@ terminal result confirm Spark was truly applied.
   megabyte and full startup `Get-Content` commands produced multi-megabyte logs,
   command timeouts, and avoidable context cost. Canonical agent instructions now
   require bounded reads and exact searches; generated bundles inherit the rule.
+
+## 2026-07-14 - Constructive closure audit after 1000 completed issues
+
+- The board snapshot contained 15 active issues: ten blocked, four todo, and
+  one in progress. There were no pending approvals, no error-state agents, and
+  only the intended nine paused roles. A direct live-run read is now combined
+  with the health count because the health summary briefly under-reported an
+  active DSM run.
+- LUC-1151 and LUC-1152 completed focused Roost and Soar documentation truth
+  work with typed completion evidence and passing project-specific validation.
+  Their coherent generated and documentation packets remain uncommitted in the
+  product repositories for serial CRS source-control closure; no production or
+  deployment mutation was inferred from their completion.
+- A blocked-triage ownership defect could assign remediation to a fallback
+  agent that was not permitted to mutate the source owner's issue. Triage now
+  prefers the available source owner and records its assignment strategy.
+- Cancelled blocker cleanup is now evidence-bound: a fresh completed triage
+  after the target update is required, only cancelled relations are removed,
+  all live blockers remain, and no more than one target is repaired per run.
+  The current dry-run selects only LUC-1113 versus cancelled LUC-1148.
+- Continuation and autonomy controllers could finish a recovery run
+  successfully while their reusable issues remained blocked, producing more
+  status-only recovery attempts. The janitor now recognizes the exact recovery
+  action and fresh successful terminal run, restores only canonical active
+  routines to todo, and wakes one controller at a time. LUC-770 precedes
+  LUC-912; later repairs are deferred until the first run is terminal.
+- The credential-rotation chain rooted at LUC-972 remains a real protected gate.
+  It is not eligible for stale-link or recovery cleanup and cannot be closed by
+  reports, invented credentials, or deployment inference.

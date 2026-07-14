@@ -273,3 +273,20 @@ or the relevant owners explicitly classify them as not required with evidence.
   exceed one megabyte; agents inspect size, read at most the first 200 lines for
   files above 250 KB, then search exact issue/path/capability context instead of
   dumping several history files into one prompt.
+
+## 2026-07-14 - Closure Audit and Serialized Control Recovery
+
+- LUC-1151 and LUC-1152 are done with typed focused evidence. Their Roost and
+  Soar documentation/truth outputs are preserved as dirty product packets and
+  must pass sequential CRS classification, validation, and commit disposition.
+- Repair only evidence-proven stale state. LUC-1113 may drop cancelled
+  LUC-1148 after its fresh completed triage; unresolved blockers must remain.
+- Restore reusable controller issues serially after successful recovery:
+  LUC-770 first, then LUC-912 after the first wake is terminal. Do not wake both
+  controllers or start product mutation in parallel.
+- The credential rotation chain rooted at LUC-972 is genuine protected work,
+  not stale board state. LUC-25 and its dependent production readiness issues
+  remain blocked until rotation and inspectable production proof are complete.
+- A board that is temporarily quiet while a dirty source-control packet or
+  protected gate is being reconciled is acceptable; repeated status-only
+  recovery without a new executable action is not.

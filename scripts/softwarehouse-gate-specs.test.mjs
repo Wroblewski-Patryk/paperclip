@@ -5,6 +5,8 @@ import { rootBlockerIdentifierFor } from "./lib/issue-blockers.mjs";
 import { resolveIssuesByIdentifier } from "./lib/issue-discovery.mjs";
 import { gateFreshnessObservation, stableSecretMetadata } from "./lib/gate-freshness.mjs";
 import { secretForKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
+import { planReusableRoutineRecoveryRestore } from "./lib/reusable-routine-recovery.mjs";
+import { planStaleCancelledBlockerRepair } from "./lib/stale-blocker-repair.mjs";
 import { autonomyDispositionForMode, controlActionSummaryFor, controlActionTypeFor, deliveryPermissionForMode, gateBriefFor, staleGateOwnerActionLine } from "./lib/softwarehouse-control-brief.mjs";
 import { softwarehouseGateSpecs, softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
 import { finalizeRecurringIssue } from "./run-softwarehouse-continuation-watchdog.mjs";
@@ -700,6 +702,8 @@ test("blocked triage starter scopes issue scans and has a dedicated timeout", as
   assert.match(source, /decision: "not_checked_active_run_guard"/);
   assert.match(source, /governorDecision = await readGovernorDecision\(\)/);
   assert.match(source, /function isRecoverableOpenTriage/);
+  assert.match(source, /function triageAssigneeFor/);
+  assert.match(source, /assigneeStrategy: usesTargetOwner \? "target_owner" : "triage_fallback"/);
   assert.match(source, /!issue\.activeRecoveryAction/);
   assert.match(source, /attentionBlockerCount/);
   assert.doesNotMatch(source, /liveRuns, governorDecision\] = await Promise\.all/);
@@ -1992,6 +1996,87 @@ test("known blocker link repair resolves both current and legacy company names",
   assert.match(source, /"LuckySparrow"/);
   assert.match(source, /"LuckySparrow Software House"/);
   assert.match(source, /companyNameAliases\.includes\(candidate\.name\)/);
+  assert.match(source, /planStaleCancelledBlockerRepair/);
+  assert.match(source, /repaired_stale_cancelled_blocker/);
+  assert.match(source, /deferredDiscoveredRepairCount/);
+  assert.match(source, /\/api\/companies\/\$\{company\.id\}\/live-runs/);
+  assert.match(source, /Math\.max\(health\.devServer\?\.activeRunCount \?\? 0, liveActiveRunCount\)/);
+});
+
+test("stale blocker repair requires fresh completed triage and preserves active blockers", () => {
+  const target = {
+    id: "target-id",
+    identifier: "LUC-1113",
+    status: "blocked",
+    updatedAt: "2026-07-14T20:46:41.328Z",
+  };
+  const detailedTarget = {
+    blockedBy: [
+      { id: "cancelled-id", identifier: "LUC-1148", status: "cancelled" },
+      { id: "active-id", identifier: "LUC-1200", status: "todo" },
+    ],
+  };
+
+  assert.equal(planStaleCancelledBlockerRepair({ target, detailedTarget, triageIssues: [] }), null);
+
+  const repair = planStaleCancelledBlockerRepair({
+    target,
+    detailedTarget,
+    triageIssues: [{
+      id: "triage-id",
+      identifier: "LUC-1153",
+      title: "[Softwarehouse][Blocked Triage] Classify LUC-1113 and produce next legal action",
+      status: "done",
+      updatedAt: "2026-07-14T21:07:39.539Z",
+    }],
+  });
+
+  assert.deepEqual(repair, {
+    issueId: "target-id",
+    issueIdentifier: "LUC-1113",
+    triageIdentifier: "LUC-1153",
+    staleBlockerIdentifiers: ["LUC-1148"],
+    blockedByIssueIds: ["active-id"],
+    nextStatus: "blocked",
+  });
+});
+
+test("recovery janitor only restores reusable routines after their own fresh successful recovery run", async () => {
+  const source = await readFile("scripts/run-recovery-action-janitor.mjs", "utf8");
+  assert.match(source, /softwarehousePilotActiveRoutineTitles/);
+  assert.match(source, /issues\?status=backlog,todo,in_progress,in_review,blocked&limit=2000&includeBlockedBy=true/);
+  assert.match(source, /Math\.max\(health\?\.devServer\?\.activeRunCount \?\? 0, liveActiveRunCount\)/);
+  assert.match(source, /restored_recurring_controller/);
+  assert.match(source, /deferred_serial_repair/);
+  assert.match(source, /\["\[Softwarehouse\] Continuation watchdog", 0\]/);
+
+  const issue = {
+    id: "issue-id",
+    title: "[Softwarehouse] Continuation watchdog",
+    status: "blocked",
+    activeRecoveryAction: {
+      id: "action-id",
+      kind: "stranded_assigned_issue",
+      status: "active",
+      lastAttemptAt: "2026-07-14T21:09:05.100Z",
+    },
+  };
+  const activeRoutineTitles = new Set([issue.title]);
+  const runs = [{
+    runId: "run-id",
+    status: "succeeded",
+    finishedAt: "2026-07-14T21:09:18.073Z",
+    contextSnapshot: { source: "issue_recovery_action", recoveryActionId: "action-id" },
+  }];
+
+  assert.deepEqual(planReusableRoutineRecoveryRestore({ issue, activeBlockers: [], runs, activeRoutineTitles }), {
+    actionId: "action-id",
+    runId: "run-id",
+    sourceIssueStatus: "todo",
+    outcome: "restored",
+  });
+  assert.equal(planReusableRoutineRecoveryRestore({ issue, activeBlockers: ["LUC-1"], runs, activeRoutineTitles }), null);
+  assert.equal(planReusableRoutineRecoveryRestore({ issue, activeBlockers: [], runs: [{ ...runs[0], status: "failed" }], activeRoutineTitles }), null);
 });
 
 test("known-state harvester reuses canonical Soar and Roost projects", async () => {
