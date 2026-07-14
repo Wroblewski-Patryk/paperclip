@@ -167,6 +167,19 @@ test("longevity doctor maps current live runs through issue lock columns", async
   assert.match(source, /run\.issueId \?\? issueByExecutionRunId\.get\(run\.id\)\?\.id/);
 });
 
+test("longevity doctor only reports non-running issue status for actually running runs", async () => {
+  const source = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
+
+  assert.match(
+    source,
+    /if \(run\.status === "running" && issue && \["done", "cancelled", "blocked"\]\.includes\(issue\.status\)\) \{/,
+  );
+  assert.doesNotMatch(
+    source,
+    /if \(issue && \["done", "cancelled", "blocked"\]\.includes\(issue\.status\)\) \{/,
+  );
+});
+
 test("longevity doctor treats active project-truth proof lanes as known-state evidence", async () => {
   const source = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
 

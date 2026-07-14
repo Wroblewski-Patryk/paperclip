@@ -425,7 +425,7 @@ if (apiReachable) {
         ageMinutes: age,
       });
     }
-    if (issue && ["done", "cancelled", "blocked"].includes(issue.status)) {
+    if (run.status === "running" && issue && ["done", "cancelled", "blocked"].includes(issue.status)) {
       pushFinding(findings, "warn", "live-run", "Live run is attached to a non-running issue status.", {
         issue: issue.identifier,
         issueStatus: issue.status,
