@@ -38,6 +38,16 @@ export function formatWeakTrackSummary(trackSummary) {
   return `${trackSummary.track}: planned worker=${trackSummary.plannedWorkerIssueCount}, planned supervisor=${trackSummary.plannedSupervisorIssueCount}, open=${trackSummary.openIssueCount}, blocked=${trackSummary.blockedIssueCount}`;
 }
 
+export function formatWorkerFanoutContract() {
+  return [
+    "Contract:",
+    "- fan out per controlled track, not company-wide totals; evaluate Soar and Roost independently;",
+    "- each worker-ready lane must end in ready, blocked, or needs-another-child;",
+    "- each lane must name project, scope, affected files/entities, acceptance criteria, local proof, blocker policy, and handoff owner;",
+    "- do not create agents silently; if new capacity is required, surface it as a separate governed issue.",
+  ].join("\n");
+}
+
 export function summarizeWorkerBacklogTracks({
   issues,
   projects,

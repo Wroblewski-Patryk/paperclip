@@ -253,6 +253,15 @@ test("shared supervision keeps Paperclip LUC identifiers out of the GitHub issue
   assert.match(syncScript, /## Tracker Boundary/);
   assert.match(syncScript, /`LUC-\*` identifiers belong to the local Paperclip issue tracker/);
   assert.match(syncScript, /a GitHub 404 is never a LUC blocker/);
+  assert.match(syncScript, /## Runtime Fast Path/);
+  assert.match(syncScript, /PAPERCLIP_SOFTWAREHOUSE_ROOT: root/);
+  assert.match(syncScript, /\.\.\.existingConfig/);
+  assert.match(syncScript, /\.\.\.existingEnv/);
+  assert.match(syncScript, /agent\.adapterConfig/);
+  assert.match(syncScript, /existingCheapAdapterConfig/);
+  assert.match(syncScript, /Do not recursively scan `.paperclip`/);
+  assert.match(syncScript, /paperclip-issue-update\.mjs/);
+  assert.match(syncScript, /Avoid nested here-strings/);
   assert.match(syncScript, /## Instruction Root/);
   assert.match(syncScript, /Resolve every `shared\/\.\.\.`, `roles\/\.\.\.`, and `metadata\.md` path/);
   assert.match(syncScript, /never against the application repository working directory/);
@@ -260,6 +269,20 @@ test("shared supervision keeps Paperclip LUC identifiers out of the GitHub issue
   assert.match(syncScript, /`name: \$\{definition\.name\}`/);
   assert.match(syncScript, /`title: \$\{definition\.title\}`/);
   assert.match(syncScript, /`role: \$\{definition\.role\}`/);
+});
+
+test("shared Windows guidance keeps agent tracker work on the injected fast path", async () => {
+  const environment = await readFile(
+    "softwarehouse/instructions/shared/05-environment-operations.md",
+    "utf8",
+  );
+
+  assert.match(environment, /PAPERCLIP_TASK_ID/);
+  assert.match(environment, /PAPERCLIP_API_KEY/);
+  assert.match(environment, /PAPERCLIP_SOFTWAREHOUSE_ROOT/);
+  assert.match(environment, /Do not recursively scan/);
+  assert.match(environment, /Avoid nested PowerShell here-strings/);
+  assert.match(environment, /paperclip-issue-update\.mjs/);
 });
 
 test("Windows startup removes only orphaned embedded Postgres io workers", async () => {
@@ -373,6 +396,19 @@ test("longevity watchdog covers autonomous softwarehouse contract checks", async
   assert.match(configurator, /supervisor review/);
   assert.match(configurator, /deployment monitoring/);
   assert.match(configurator, /process-improvement loops/);
+});
+
+test("delivery runtime access restores role-scoped Soar and Roost smoke bindings", async () => {
+  const source = await readFile("scripts/configure-coolify-runtime-access.mjs", "utf8");
+
+  assert.match(source, /const soarSmokeEnv/);
+  assert.match(source, /SOAR_PROD_TEST_EMAIL: "soar_prod_test_email"/);
+  assert.match(source, /const roostSmokeEnv/);
+  assert.match(source, /ROOST_API_BASE_URL: "roost_api_base_url"/);
+  assert.match(source, /ROOST_PROD_TEST_EMAIL: "roost_prod_test_email"/);
+  assert.match(source, /09 DRE \(Deployment & Reliability Engineer\)/);
+  assert.match(source, /\.\.\.coolifyEnv, \.\.\.coolifyLoginEnv, \.\.\.soarSmokeEnv, \.\.\.roostSmokeEnv/);
+  assert.doesNotMatch(source, /COMPANYCORE_API_KEY/);
 });
 
 test("heartbeat scheduler gates codex_local starts on provider quota pressure", async () => {
@@ -2279,7 +2315,10 @@ test("Roost protected key bootstrap is approval-gated and never uses placeholder
   assert.match(source, /approval\.status !== "approved"/);
   assert.match(source, /profileId: "mcp_company_os_reader"/);
   assert.match(source, /provider: "local_encrypted"/);
-  assert.match(source, /COMPANYCORE_API_KEY: secretRef\(protectedSecret\.id\)/);
+  assert.match(source, /COMPANYCORE_API_KEY: secretRef\(apiKeySecretId\)/);
+  assert.match(source, /bindProtectedRefs\(sourceAgent, baseUrlSecret\.id, protectedSecret\.id\)/);
+  assert.match(source, /configPath: "env\.COMPANYCORE_API_KEY"/);
+  assert.match(source, /consumerType: "agent"/);
   assert.match(source, /rawSecretOutput: false/);
   assert.match(source, /confirmationStatus: pendingConfirmation\?\.id \? "accepted" : "already_resolved"/);
   assert.doesNotMatch(source, /REPLACE_ME_COMPANYCORE_API_KEY/);

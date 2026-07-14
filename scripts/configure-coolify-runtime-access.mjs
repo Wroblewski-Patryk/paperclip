@@ -35,25 +35,55 @@ const coolifyLoginEnv = {
   COOLIFY_LOGIN_PASSWORD: "coolify_login_password",
 };
 
+const soarSmokeEnv = {
+  SOAR_PROD_TEST_BASE_URL: "soar_prod_base_url",
+  SOAR_PROD_TEST_API_BASE_URL: "soar_api_base_url",
+  SOAR_PROD_TEST_EMAIL: "soar_prod_test_email",
+  SOAR_PROD_TEST_PASSWORD: "soar_prod_test_password",
+  SOAR_PROD_ADMIN_SMOKE_EMAIL: "soar_prod_admin_smoke_email",
+  SOAR_PROD_ADMIN_SMOKE_PASSWORD: "soar_prod_admin_smoke_password",
+};
+
+const roostSmokeEnv = {
+  ROOST_API_BASE_URL: "roost_api_base_url",
+  ROOST_PROD_TEST_BASE_URL: "roost_prod_base_url",
+  ROOST_PROD_TEST_API_BASE_URL: "roost_api_base_url",
+  ROOST_PROD_TEST_EMAIL: "roost_prod_test_email",
+  ROOST_PROD_TEST_PASSWORD: "roost_prod_test_password",
+  ROOST_PROD_TEST_WORKSPACE_NAME: "roost_prod_test_workspace_name",
+};
+
 const agentPlans = [
   {
-    names: [
-      "09 DRE (Deployment & Reliability Engineer)",
-      "10 SPA (Security & Privacy Auditor)",
-    ],
+    names: ["09 DRE (Deployment & Reliability Engineer)"],
+    env: { ...coolifyEnv, ...coolifyLoginEnv, ...soarSmokeEnv, ...roostSmokeEnv },
+  },
+  {
+    names: ["10 SPA (Security & Privacy Auditor)"],
     env: { ...coolifyEnv, ...coolifyLoginEnv },
   },
   {
     names: [
       "09 CTO (Chief Technology Officer)",
       "09 TSA (Technical Solution Architect)",
-      "09 QVE (QA & Verification Engineer)",
-      "09 TAE (Test Automation Engineer)",
       "11 IPM (Innovation Portfolio Manager)",
-      "11 SPM (Soar Product Manager)",
-      "11 RPM (Roost Project Manager)",
     ],
     env: coolifyEnv,
+  },
+  {
+    names: [
+      "09 QVE (QA & Verification Engineer)",
+      "09 TAE (Test Automation Engineer)",
+    ],
+    env: { ...coolifyEnv, ...soarSmokeEnv, ...roostSmokeEnv },
+  },
+  {
+    names: ["11 SPM (Soar Product Manager)"],
+    env: { ...coolifyEnv, ...soarSmokeEnv },
+  },
+  {
+    names: ["11 RPM (Roost Project Manager)"],
+    env: { ...coolifyEnv, ...roostSmokeEnv },
   },
 ];
 

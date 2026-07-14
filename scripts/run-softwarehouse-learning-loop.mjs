@@ -18,7 +18,11 @@ import {
   findSuppressibleV2WorkerFanoutDuplicate,
   resolveLearningOwner,
 } from "./lib/softwarehouse-learning-loop.mjs";
-import { formatWeakTrackSummary, summarizeWorkerBacklogTracks } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
+import {
+  formatWeakTrackSummary,
+  formatWorkerFanoutContract,
+  summarizeWorkerBacklogTracks,
+} from "./lib/softwarehouse-worker-backlog-tracks.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -705,9 +709,10 @@ if (workerFanoutWeak) {
         "- aggregate worker counts can hide a starved Soar or Roost track;",
         "- this can make the softwarehouse look busy while implementation workers remain idle.",
         "",
+        formatWorkerFanoutContract(),
+        "",
         "Required proposal:",
         "- decide whether this needs a role instruction update, dispatch routine, or measured new role proposal;",
-        "- define the smallest repeatable fan-out rule: how many worker-ready issues must exist per active version track, with what evidence fields;",
         "- name the approving owner: CTO Architect for technical delivery/process roles, Portfolio Director for company/project roles;",
         "- create at most one follow-up process/instruction issue if needed;",
         "- do not create active agents silently.",

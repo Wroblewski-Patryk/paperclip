@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import {
   controlledProjectNameFor,
   formatWeakTrackSummary,
+  formatWorkerFanoutContract,
   summarizeWorkerBacklogTracks,
   workerBacklogTrackForIssue,
 } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
@@ -106,6 +107,16 @@ test("an active leaf worker is a healthy closure path when it owns the entire tr
 
   assert.equal(summary.trackSummaries[0].inProgressWorkerIssueCount, 1);
   assert.deepEqual(summary.weakTracks, []);
+});
+
+test("formatWorkerFanoutContract keeps the fan-out rule track-scoped and evidence-named", () => {
+  const contract = formatWorkerFanoutContract();
+
+  assert.match(contract, /Soar/);
+  assert.match(contract, /Roost/);
+  assert.match(contract, /ready, blocked, or needs-another-child/);
+  assert.match(contract, /project, scope, affected files\/entities, acceptance criteria, local proof, blocker policy, and handoff owner/);
+  assert.match(contract, /do not create agents silently/);
 });
 
 test("worker backlog and learning planners exclude recurring controller issues", async () => {

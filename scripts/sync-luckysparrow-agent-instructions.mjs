@@ -57,11 +57,19 @@ function workspaceCwd(definition) {
   return configured ? path.resolve(configured) : appsRoot;
 }
 
-function adapterConfigFor(definition, laneKey = definition.modelLane) {
+function adapterConfigFor(definition, laneKey = definition.modelLane, existingConfig = {}) {
   const lane = roster.modelPolicy[laneKey] ?? roster.modelPolicy.codingStrong;
+  const existingEnv = existingConfig?.env && typeof existingConfig.env === "object"
+    ? existingConfig.env
+    : {};
   return {
+    ...existingConfig,
     command: localCodexCommand,
     cwd: workspaceCwd(definition),
+    env: {
+      ...existingEnv,
+      PAPERCLIP_SOFTWAREHOUSE_ROOT: root,
+    },
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,
     fastMode: Boolean(lane.fastMode),
@@ -73,7 +81,8 @@ function adapterConfigFor(definition, laneKey = definition.modelLane) {
 }
 
 async function syncAgentRuntime(agent, definition) {
-  const adapterConfig = adapterConfigFor(definition);
+  const adapterConfig = adapterConfigFor(definition, definition.modelLane, agent.adapterConfig);
+  const existingCheapAdapterConfig = agent.runtimeConfig?.modelProfiles?.cheap?.adapterConfig ?? {};
   const runtimeConfig = {
     ...(agent.runtimeConfig ?? {}),
     heartbeat: {
@@ -86,7 +95,7 @@ async function syncAgentRuntime(agent, definition) {
         ...(agent.runtimeConfig?.modelProfiles?.cheap ?? {}),
         enabled: true,
         label: "Fast triage",
-        adapterConfig: adapterConfigFor(definition, "fastTriage"),
+        adapterConfig: adapterConfigFor(definition, "fastTriage", existingCheapAdapterConfig),
       },
     },
   };
@@ -158,6 +167,13 @@ async function buildInstructions(definition, instructionsRoot) {
       "",
       "- `LUC-*` identifiers belong to the local Paperclip issue tracker, never to GitHub Issues.",
       "- Use the injected Paperclip API/helper for LUC state, comments, and completion evidence; a GitHub 404 is never a LUC blocker.",
+      "",
+      "## Runtime Fast Path",
+      "",
+      "- Before searching the workspace, use `$env:PAPERCLIP_TASK_ID`, `$env:PAPERCLIP_API_URL`, `$env:PAPERCLIP_API_KEY`, and `$env:PAPERCLIP_RUN_ID` to read the current Paperclip issue.",
+      "- The tracked Paperclip workflow is at `Join-Path $env:PAPERCLIP_SOFTWAREHOUSE_ROOT 'skills/paperclip/SKILL.md'`; the safe update helper is at `Join-Path $env:PAPERCLIP_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-issue-update.mjs'`.",
+      "- Do not recursively scan `.paperclip`, `.codex`, `.git`, `node_modules`, managed runtime homes, or archived logs to discover the issue API or completion payload.",
+      "- On Windows, prefer the tracked helper or one direct `Invoke-RestMethod` call with a hashtable and `ConvertTo-Json`. Avoid nested here-strings, mixed shell wrappers, and broad recursive searches.",
       "",
       "The role file is the only agent-specific responsibility file. If a task needs more responsibility than this role owns, create or request a handoff instead of expanding the role silently.",
     ].join("\n"),

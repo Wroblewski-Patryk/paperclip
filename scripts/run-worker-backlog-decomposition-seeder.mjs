@@ -1,6 +1,10 @@
 import { agentWipBlockerFor, fetchAgentWipState, summarizeAgentWip } from "./lib/agent-wip-guard.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
-import { formatWeakTrackSummary, summarizeWorkerBacklogTracks } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
+import {
+  formatWeakTrackSummary,
+  formatWorkerFanoutContract,
+  summarizeWorkerBacklogTracks,
+} from "./lib/softwarehouse-worker-backlog-tracks.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyNames = new Set(["LuckySparrow Software House", "LuckySparrow"]);
@@ -277,16 +281,16 @@ if (agentWip.unknownActiveRunCount > 0) {
     `- planned issue count: ${plannedIssues.length}`,
     ...(weakTrackLines.length > 0 ? ["- weak active tracks:", ...weakTrackLines.map((line) => `  - ${line}`)] : []),
     "",
+    formatWorkerFanoutContract(),
+    "",
     "Supervisor lanes to inspect first:",
     ...topSupervisorIssues.map((line) => `- ${line}`),
     "",
     "Required output:",
     "- create or update at least three worker-ready todo/backlog issues across idle leaf workers when legal; planned queue depth is not permission to start all lanes at once;",
-    "- evaluate Soar and Roost independently; one track being healthy does not satisfy another weak track;",
     "- prioritize Soar V1 first, then Roost; Aviary, Nest, Featherly, and every other parked product remain out of scope until explicit owner activation;",
     "- for a shared project workspace, resume at most one repo-mutating worker lane at a time; leave the remaining lanes queued unless they use isolated worktrees and have proven-disjoint file sets;",
     "- treat generated truth/state surfaces such as docs/status, docs/graphs, .agents/state, and .codex/context as shared conflict sets; lanes that refresh them must execute serially;",
-    "- each worker-ready issue must name project, scope, affected files/entities, acceptance criteria, local proof, blocker policy, and handoff owner;",
     "- if fewer than three worker lanes are legal, comment the exact reason for each missing lane: protected gate, missing architecture map, duplicate active owner, source-control closure, or explicit deferral;",
     "- do not code in this lane; this is queue decomposition and dispatch only.",
     "",

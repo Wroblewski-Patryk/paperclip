@@ -2944,3 +2944,31 @@ known-state, and worker-decomposition issues now rely on their assignment wake;
 their informational creation comments use `resume: false`. Re-wakes of an
 already-existing issue remain unchanged. This keeps genuine later human input
 actionable without reopening work because of its own bootstrap comment.
+
+## 2026-07-14 - Runtime fast path, binding-preserving sync, and track-scoped fan-out
+
+A fresh constructive-work audit found one completed QVE run and one DPM run
+spending avoidable time on broad runtime searches and fragile nested
+PowerShell payloads. Every generated agent `AGENTS.md` now exposes the injected
+Paperclip task/API/run variables, the tracked Paperclip skill and update helper,
+and a bounded Windows command path. Managed runtime homes, archived logs,
+`.git`, `.codex`, `.paperclip`, and `node_modules` are not API-discovery
+surfaces. The rule was re-synced to all 39 unique instruction bundles.
+
+The same audit found a more important lifecycle bug: the instruction
+synchronizer rebuilt adapter configuration and could erase existing secret/env
+bindings. Synchronization now merges the current primary and cheap-profile
+adapter configuration before applying the canonical model lane and
+`PAPERCLIP_SOFTWAREHOUSE_ROOT`. After a second live 39-agent sync, the delivery
+access dry-run reported zero changes and the approved Roost CompanyCore
+bootstrap reported `bindingsCurrent=true`, an active existing secret, and
+`rawSecretOutput=false`. Role-scoped Coolify, Soar, and Roost smoke references
+remain present without storing raw values in Git.
+
+LUC-1128 also centralized one worker fan-out contract shared by the learning
+loop and decomposition seeder. Soar and Roost are evaluated independently;
+each leaf lane must name scope, evidence, blocker policy, owner, and one of
+`ready`, `blocked`, or `needs-another-child`. Focused Softwarehouse validation
+passes 158/158. The remaining immediate closure work is source-control
+classification for the valid LUC-1123 Roost docs/index refresh, the valid
+LUC-1124 Soar browser-proof packet, and the final CRS review LUC-1129.

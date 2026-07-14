@@ -12,6 +12,17 @@ Use this shared environment guidance for LuckySparrow Softwarehouse work.
   PowerShell/cmd deletion or movement chains.
 - Before recursive delete/move, resolve the absolute target and confirm it is
   inside the intended repo or explicitly approved target directory.
+- For Paperclip issue work, prefer the injected runtime environment over
+  rediscovery: `PAPERCLIP_TASK_ID`, `PAPERCLIP_API_URL`,
+  `PAPERCLIP_API_KEY`, `PAPERCLIP_RUN_ID`, and
+  `PAPERCLIP_SOFTWAREHOUSE_ROOT`.
+- Read the tracked Paperclip skill or use its `paperclip-issue-update.mjs`
+  helper from `PAPERCLIP_SOFTWAREHOUSE_ROOT`. Do not recursively scan
+  `.paperclip`, `.codex`, `.git`, `node_modules`, managed runtime homes, or
+  archived logs to infer the issue API contract.
+- Avoid nested PowerShell here-strings passed through another shell command.
+  Prefer a direct `Invoke-RestMethod` call with a hashtable and
+  `ConvertTo-Json`, or the tracked Node helper.
 
 ## pnpm And Symlink Notes
 

@@ -66,6 +66,19 @@ function secretRef(secretId: string) {
   return { type: "secret_ref", secretId, version: "latest" } as const;
 }
 
+async function bindProtectedRefs(agent: JsonRecord, baseUrlSecretId: string, apiKeySecretId: string) {
+  if (typeof agent.id !== "string") throw new Error("Protected binding target is missing an agent id");
+  const env = {
+    ...envRecord(agent),
+    COMPANYCORE_BASE_URL: secretRef(baseUrlSecretId),
+    COMPANYCORE_API_KEY: secretRef(apiKeySecretId),
+  };
+  await request("PATCH", `/api/agents/${agent.id}?companyId=${companyId}`, {
+    adapterConfig: { env },
+  });
+  agent.adapterConfig = { ...asRecord(agent.adapterConfig), env };
+}
+
 async function main() {
   const [issue, approval, agents, secretMetadata] = await Promise.all([
     request("GET", `/api/issues/${issueIdentifier}`),
@@ -158,7 +171,11 @@ async function main() {
     let protectedSecret = existingApiKeySecret;
     let existingValueIsUsable = false;
     if (protectedSecret && typeof protectedSecret.id === "string") {
+      await bindProtectedRefs(sourceAgent, baseUrlSecret.id, protectedSecret.id);
       const existingValue = await svc.resolveSecretValue(companyId, protectedSecret.id, "latest", {
+        consumerType: "agent",
+        consumerId: sourceAgent.id,
+        configPath: "env.COMPANYCORE_API_KEY",
         actorType: "user",
         actorId: "local-board",
         issueId: issue.id,
@@ -205,14 +222,7 @@ async function main() {
     }
 
     for (const agent of targets) {
-      const env = {
-        ...envRecord(agent),
-        COMPANYCORE_BASE_URL: secretRef(baseUrlSecret.id),
-        COMPANYCORE_API_KEY: secretRef(protectedSecret.id),
-      };
-      await request("PATCH", `/api/agents/${agent.id}?companyId=${companyId}`, {
-        adapterConfig: { env },
-      });
+      await bindProtectedRefs(agent, baseUrlSecret.id, protectedSecret.id);
     }
 
     if (pendingConfirmation?.id) {
