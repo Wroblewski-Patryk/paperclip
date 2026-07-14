@@ -236,6 +236,10 @@ test("shared supervision keeps Paperclip LUC identifiers out of the GitHub issue
     "softwarehouse/instructions/shared/90-pipeline-and-supervision.md",
     "utf8",
   );
+  const syncScript = await readFile(
+    "scripts/sync-luckysparrow-agent-instructions.mjs",
+    "utf8",
+  );
 
   assert.match(supervision, /`LUC-1101`.*Paperclip issue\s+identifiers/is);
   assert.match(supervision, /not GitHub issue numbers/i);
@@ -243,6 +247,9 @@ test("shared supervision keeps Paperclip LUC identifiers out of the GitHub issue
   assert.match(supervision, /never call `gh issue`/i);
   assert.match(supervision, /PAPERCLIP_API_URL/);
   assert.match(supervision, /paperclip-issue-update\.mjs/);
+  assert.match(syncScript, /## Tracker Boundary/);
+  assert.match(syncScript, /`LUC-\*` identifiers belong to the local Paperclip issue tracker/);
+  assert.match(syncScript, /a GitHub 404 is never a LUC blocker/);
 });
 
 test("project-truth dispatcher requires a complete closure packet for proof lanes", async () => {

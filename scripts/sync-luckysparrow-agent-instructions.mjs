@@ -141,6 +141,11 @@ async function buildInstructions(definition) {
       "",
       "- `metadata.md`",
       "",
+      "## Tracker Boundary",
+      "",
+      "- `LUC-*` identifiers belong to the local Paperclip issue tracker, never to GitHub Issues.",
+      "- Use the injected Paperclip API/helper for LUC state, comments, and completion evidence; a GitHub 404 is never a LUC blocker.",
+      "",
       "The role file is the only agent-specific responsibility file. If a task needs more responsibility than this role owns, create or request a handoff instead of expanding the role silently.",
     ].join("\n"),
     ...Object.fromEntries(await Promise.all(sharedFiles.map(async (file) => [

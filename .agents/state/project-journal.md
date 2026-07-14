@@ -2716,3 +2716,10 @@ active blocked recovery owned by the same agent is not treated as an invalid
 live-run/status combination. Review tightened that exemption to require an
 explicit agent owner match. The full gate suite passed 146/146 and a live doctor
 dry-run returned `overall: pass` with no findings.
+
+A third LUC-1101 recovery attempt proved that placing the tracker rule only in
+a referenced shared contract was insufficient: the recovery run did not read
+that file and repeated the GitHub lookup. The managed bundle generator now puts
+the `LUC-*` Paperclip-only tracker boundary directly in every bundle entry
+`AGENTS.md`, while retaining the detailed shared contract. All 39 bundles were
+resynchronized and the static entry-contract regression test passes.
