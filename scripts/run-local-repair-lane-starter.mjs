@@ -54,6 +54,7 @@ const sourceControlClosureAssigneeByProject = new Map([
   ["Aviary", "Aviary Project Manager"],
   ["Nest", "Nest Project Manager"],
 ]);
+const specialistSourceControlGroups = new Set(["product-code", "scripts", "dependencies", "other"]);
 const projectAliases = new Map([
   ["Soar", ["Soar", "11 Innovation: Soar"]],
   ["Roost", ["Roost", "11 Innovation: Roost"]],
@@ -280,6 +281,14 @@ function wipStateIgnoringCurrentRun(state) {
 
 function sourceControlClosureTitlePrefix(projectName) {
   return `[${projectName}][Source Control Closure] Classify and close local dirty state`;
+}
+
+function sourceControlClosureAssigneeName(projectName, sourceControlPacket) {
+  const repo = (sourceControlPacket.repos ?? []).find((candidate) => candidate.name === projectName);
+  const needsTechnicalReview = (repo?.dirtyGroups ?? [])
+    .some((group) => specialistSourceControlGroups.has(group.group));
+  if (needsTechnicalReview) return "09 CRS (Code Review Specialist)";
+  return sourceControlClosureAssigneeByProject.get(projectName) ?? null;
 }
 
 function isSourceControlClosureTitle(title) {
@@ -520,7 +529,7 @@ if (sourceControlClosureAllowed(governorDecision, sourceControlPacket)) {
     );
     if (existing) continue;
     if (!project) continue;
-    const assigneeName = sourceControlClosureAssigneeByProject.get(projectName);
+    const assigneeName = sourceControlClosureAssigneeName(projectName, sourceControlPacket);
     const assignee = assigneeName ? byName(agents, assigneeName) : null;
     sidecarCreations.push({ project, targetIssue: resolvedTargetIssue, title, assignee, refs, linkedIssues });
     break;
@@ -591,6 +600,7 @@ if (activeRunCount > 0 && candidates.length === 0
     "",
     "Commit rule:",
     "- if the dirty set is only docs/history/evidence/context/agent-state and the redaction check finds no secrets, make one local source-control closure commit;",
+    "- if the packet contains product-code/scripts/dependencies/other, the CRS owner must inspect that diff, run the smallest relevant validation, and commit the coherent packet only when validation passes;",
     "- do not leave a docs/state/evidence-only dirty set uncommitted just because it spans multiple issues; use an operational evidence commit message and link every affected issue in the final comment;",
     "- choose no-commit only for stale/out-of-scope/secret-risk files, unresolved user-owned edits, or when local validation fails.",
     "- do not mark this issue done while the target repo is still dirty unless the final comment names the remaining dirty paths, the no-commit blocker, and a linked open non-terminal issue/sidecar that keeps closure active.",
@@ -672,6 +682,7 @@ if (activeRunCount > 0 && candidates.length === 0
         "Dirty-path issue refs are identified from file paths when present and linked in the final disposition.",
         "Local validation evidence is recorded.",
         "Docs/history/evidence/context/agent-state-only dirty sets are committed locally unless a concrete blocker is recorded.",
+        "Behavior/tooling dirty groups are reviewed by CRS with the smallest relevant validation before commit/no-commit disposition.",
         "The issue is not marked done while the target repo remains dirty unless the remaining paths, blocker, and linked open non-terminal owner issue/sidecar are recorded.",
         "A final comment that says `not committed` because ownership remains elsewhere is treated as blocked/delegated, not done.",
         "Final comment links the decision back to the target issue.",
@@ -801,7 +812,7 @@ if (activeRunCount > 0 && candidates.length === 0
   });
 
   if (apply) {
-    const targetAssigneeName = sourceControlClosureAssigneeByProject.get(issue.projectName);
+    const targetAssigneeName = sourceControlClosureAssigneeName(issue.projectName, sourceControlPacket);
     const targetAssignee = targetAssigneeName ? byName(agents, targetAssigneeName) : null;
     const isBacklogWake = issue.status === "backlog";
     const input = {

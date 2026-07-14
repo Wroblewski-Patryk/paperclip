@@ -3074,3 +3074,7 @@ terminal result confirm Spark was truly applied.
   after a single shared smoke test. The lane was cancelled; the retained fix
   now probes each error agent independently and only clears an unambiguous
   `pass`, preserving live, warning, quota, auth, and unknown failures.
+- LUC-1140 exposed an ownership dead end: SPM classified 19 Soar docs but could
+  not accept the accompanying admin-users E2E test. Mixed code/tooling packets
+  now route to CRS with mandatory focused validation; pure docs/state packets
+  continue to route to the product PM.

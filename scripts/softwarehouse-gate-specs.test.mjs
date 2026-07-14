@@ -2103,6 +2103,15 @@ test("source-control sidecars target the primary project workspace", async () =>
   assert.match(source, /create_source_control_closure_sidecar/);
 });
 
+test("mixed source-control packets route to technical review instead of PM-only closure", async () => {
+  const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+
+  assert.match(source, /specialistSourceControlGroups = new Set\(\["product-code", "scripts", "dependencies", "other"\]\)/);
+  assert.match(source, /return "09 CRS \(Code Review Specialist\)"/);
+  assert.match(source, /sourceControlClosureAssigneeName\(issue\.projectName, sourceControlPacket\)/);
+  assert.match(source, /CRS owner must inspect that diff, run the smallest relevant validation/);
+});
+
 test("source-control closure janitor reopens invalid clean claims against dirty primary repo", async () => {
   const source = await readFile("scripts/run-source-control-closure-janitor.mjs", "utf8");
 

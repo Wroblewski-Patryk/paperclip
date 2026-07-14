@@ -261,3 +261,7 @@ or the relevant owners explicitly classify them as not required with evidence.
   agent's own environment probe must pass, and warnings/errors remain untouched
   for the stricter quota/auth recovery path. LUC-1148's broader reset was
   cancelled before commit.
+- Source-control packets containing code, scripts, dependency files, or
+  unclassified paths route to `09 CRS`; PM remains the default owner for pure
+  docs/state/evidence closure. This unblocks the mixed Soar packet without
+  weakening validation.
