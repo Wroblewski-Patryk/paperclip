@@ -16,7 +16,10 @@ import {
   canonicalArchitectureStatus,
   taskArtifactStatus,
 } from "./lib/architecture-awareness-task-status.mjs";
-import { collectNonTerminalBlockerLeaves } from "./lib/delivery-blocker-graph.mjs";
+import {
+  collectNonTerminalBlockerLeaves,
+  mergeProtectedDeliveryGates,
+} from "./lib/delivery-blocker-graph.mjs";
 
 const requiredFields = [
   "project",
@@ -372,17 +375,53 @@ test("hard-delivery readiness deduplicates active blocker leaves", async () => {
   assert.deepEqual(result.leaves.map((issue) => issue.identifier), ["LUC-972"]);
 });
 
+test("protected delivery leaves join control gate handoffs without replacing richer evidence", () => {
+  const existing = {
+    project: "Soar",
+    rootBlocker: "LUC-972",
+    status: "blocked",
+    fresh: false,
+    owner: "10 SPA",
+    latestEvidence: { summary: "fresh classified evidence" },
+  };
+  const gates = mergeProtectedDeliveryGates({
+    gateHandoffs: [existing],
+    protectedDeliveryBlockers: [
+      { identifier: "LUC-972", title: "Rotate credentials" },
+      { identifier: "LUC-973", title: "Owner smoke approval", owner: "Owner" },
+    ],
+  });
+
+  assert.equal(gates.length, 2);
+  assert.equal(gates[0], existing);
+  assert.deepEqual(gates[1], {
+    project: "Soar/Roost",
+    rootBlocker: "LUC-973",
+    status: "blocked",
+    fresh: false,
+    owner: "Owner",
+    evidenceRequired: "Terminal disposition and inspectable evidence for: Owner smoke approval",
+    acceptedFreshFacts: [],
+    operatorPrompt: "Resolve or explicitly reclassify LUC-973 before protected delivery.",
+    latestEvidence: null,
+  });
+});
+
 test("readiness and control brief preserve hard-delivery protected gates", async () => {
   const readiness = await readFile("scripts/check-two-project-readiness.mjs", "utf8");
   const controlTick = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
+  const blockerGraph = await readFile("scripts/lib/delivery-blocker-graph.mjs", "utf8");
 
   assert.match(readiness, /SOFTWAREHOUSE_DELIVERY_PARENT_IDENTIFIER \?\? "LUC-25"/);
   assert.match(readiness, /protectedDeliveryBlockers\.length === 0/);
   assert.match(readiness, /Protected delivery gate \$\{blocker\.identifier\}/);
   assert.match(controlTick, /protectedDeliveryBlockers: data\.protectedDeliveryBlockers \?\? \[\]/);
   assert.match(controlTick, /protectedDeliveryBlockers: readiness\.protectedDeliveryBlockers/);
+  assert.match(controlTick, /gateHandoffs: controlGateHandoffs/);
+  assert.match(controlTick, /const controlGateHandoffs = mergeProtectedDeliveryGates\(\{\s*gateHandoffs: unblockPacket\.gateHandoffs/);
+  assert.doesNotMatch(controlTick, /const controlGateHandoffs = mergeProtectedDeliveryGates\(\{\s*gateHandoffs: controlGateHandoffs/);
   assert.match(controlTick, /\["runnable_work_available", "blocked_needs_triage"\]/);
-  assert.match(controlTick, /Terminal disposition and inspectable evidence for:/);
+  assert.match(blockerGraph, /Terminal disposition and inspectable evidence for:/);
 });
 
 test("Windows startup removes only orphaned embedded Postgres io workers", async () => {

@@ -3199,3 +3199,8 @@ terminal result confirm Spark was truly applied.
 - Executable coverage includes graph convergence/deduplication and preservation
   through readiness/control summaries. The focused suite passes 163/163 and
   all changed scripts pass syntax and diff checks.
+- The first clean control tick exposed a second composition gap: the synthetic
+  protected leaf reached `operatorActionPacket` but was absent when
+  `nextControlActions` were built, so the global audit could not find the
+  required `Stale gate owner action:` line. Both consumers now use the same
+  deduplicated gate-handoff set, and the focused suite passes 164/164.

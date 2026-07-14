@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { autonomyDispositionForMode, controlActionSummaryFor, deliveryPermissionForMode, gateBriefFor, staleGateOwnerActionLine } from "./lib/softwarehouse-control-brief.mjs";
+import { mergeProtectedDeliveryGates } from "./lib/delivery-blocker-graph.mjs";
 import { acquireSingleFlightExecution } from "./lib/single-flight-lock.mjs";
 import { resolveRuntimeBindingRepairSummary } from "./lib/softwarehouse-runtime-binding-repair-summary.mjs";
 import {
@@ -1264,24 +1265,10 @@ function nextControlActionStatusFor(actions) {
 
 function operatorActionPacketFor({ gateHandoffs, protectedDeliveryBlockers, sourceControlGateIssues, sourceControlRepos, requiredBeforeFullDelivery }) {
   const blockedGateByRoot = new Map(
-    (gateHandoffs ?? [])
+    mergeProtectedDeliveryGates({ gateHandoffs, protectedDeliveryBlockers })
       .filter((gate) => gate.status === "blocked" && !gate.fresh)
       .map((gate) => [gate.rootBlocker, gate]),
   );
-  for (const blocker of protectedDeliveryBlockers ?? []) {
-    if (blockedGateByRoot.has(blocker.identifier)) continue;
-    blockedGateByRoot.set(blocker.identifier, {
-      project: "Soar/Roost",
-      rootBlocker: blocker.identifier,
-      status: blocker.status,
-      fresh: false,
-      owner: blocker.owner ?? "Owner / Security gate",
-      evidenceRequired: `Terminal disposition and inspectable evidence for: ${blocker.title}`,
-      acceptedFreshFacts: [],
-      operatorPrompt: `Resolve or explicitly reclassify ${blocker.identifier} before protected delivery.`,
-      latestEvidence: null,
-    });
-  }
   const blockedGates = [...blockedGateByRoot.values()];
   const gateEvidenceByRoot = new Map((gateHandoffs ?? []).map((gate) => [gate.rootBlocker, gate.latestEvidence ?? null]));
   const dirtyProjects = (sourceControlRepos ?? [])
@@ -1994,13 +1981,17 @@ if (singleFlight.mode === "follower") {
       activeWorkOverlay,
       gateRecheckOverlay,
     });
+    const controlGateHandoffs = mergeProtectedDeliveryGates({
+      gateHandoffs: unblockPacket.gateHandoffs ?? [],
+      protectedDeliveryBlockers: readiness.protectedDeliveryBlockers ?? [],
+    });
     const nextControlActions = nextControlActionsFor({
       controlDecision,
       effectiveOperatingPosture,
       allowedWhileBlocked,
       forbiddenWhileBlocked,
       requiredBeforeFullDelivery: readiness.requiredBeforeFullDelivery ?? [],
-      gateHandoffs: unblockPacket.gateHandoffs ?? [],
+      gateHandoffs: controlGateHandoffs,
       sourceControlGateIssues: governor.sourceControlGateIssues ?? [],
       sourceControlRepos: sourceControl.repos ?? [],
       safeArchitecturePlanning,
@@ -2209,7 +2200,7 @@ if (singleFlight.mode === "follower") {
       observedMaxLiveRunCount: observedLiveRunCount,
       gateActionCount: gateWatcher.actionCount ?? null,
       freshGateCount: unblockPacket.freshGateCount ?? null,
-      gateHandoffs: unblockPacket.gateHandoffs ?? [],
+      gateHandoffs: controlGateHandoffs,
       sourceControlGateIssues: operatorActionPacket.sourceControlGates ?? governor.sourceControlGateIssues ?? [],
       sourceControlClean: sourceControl.clean ?? null,
       sourceControlRepos: sourceControl.repos ?? [],

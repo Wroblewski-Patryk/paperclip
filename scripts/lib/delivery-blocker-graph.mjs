@@ -41,3 +41,31 @@ export async function collectNonTerminalBlockerLeaves({
     truncated: queue.length > 0,
   };
 }
+
+export function mergeProtectedDeliveryGates({
+  gateHandoffs = [],
+  protectedDeliveryBlockers = [],
+}) {
+  const gatesByRoot = new Map(
+    gateHandoffs
+      .filter((gate) => gate?.rootBlocker)
+      .map((gate) => [gate.rootBlocker, gate]),
+  );
+
+  for (const blocker of protectedDeliveryBlockers) {
+    if (!blocker?.identifier || gatesByRoot.has(blocker.identifier)) continue;
+    gatesByRoot.set(blocker.identifier, {
+      project: "Soar/Roost",
+      rootBlocker: blocker.identifier,
+      status: "blocked",
+      fresh: false,
+      owner: blocker.owner ?? "Owner / Security gate",
+      evidenceRequired: `Terminal disposition and inspectable evidence for: ${blocker.title}`,
+      acceptedFreshFacts: [],
+      operatorPrompt: `Resolve or explicitly reclassify ${blocker.identifier} before protected delivery.`,
+      latestEvidence: null,
+    });
+  }
+
+  return [...gatesByRoot.values()];
+}
