@@ -1,10 +1,22 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-13
+Last updated: 2026-07-14
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
 ## Entries
+
+- 2026-07-14 / LUC-1017 organizational learning loop apply run:
+  - Ran `node scripts/run-softwarehouse-learning-loop.mjs --apply` against the live local Paperclip API at `http://127.0.0.1:3200`.
+  - Verification: the loop returned `mode: apply`, `blockedGroupCount: 2`, `eligibleBlockedGroupCount: 1`, `processedBlockedGroupCount: 1`, and `actionCount: 2`.
+  - Durable result: the loop suppressed duplicate learning issues for `LUC-972` (`[Softwarehouse][Learning] Security/credential blocker pattern LUC-972`, duplicate of `LUC-976`) and the worker-fanout capability gap (`duplicate of LUC-931`).
+  - Decision: the learning loop is still functioning as an evidence-producing routine. The correct follow-up is to preserve the duplicate-suppression lesson and close the routine checkpoint, not to create a new process lane.
+
+- 2026-07-14 / LUC-1014 longevity snapshot backup:
+  - Refreshed the redacted Softwarehouse longevity snapshot with `node scripts/export-softwarehouse-longevity-snapshot.mjs`.
+  - Verification: `report/longevity/softwarehouse-longevity-snapshot.latest.md` and `.json` were regenerated at `2026-07-14T01:11:21.983Z`; the exporter reported `2` live runs, `46` secret metadata rows, and no truncated issue detail export.
+  - Durable evidence: uploaded `report/longevity/softwarehouse-longevity-snapshot.latest.md` to [LUC-1014](/LUC/issues/LUC-1014) as attachment `70a524fc-2bdc-499a-a60e-e360be8ed62a` and work product `6693f83b-cd7d-4f8d-aecd-33d833b77e6b`.
+  - Decision: this is a completed evidence snapshot, not a product change; no additional repo or process change was required.
 
 - 2026-07-14 / LUC-987 silent-run false-positive review:
   - Reviewed `GET /api/issues/LUC-987`, `/heartbeat-context`, `/comments`, and `/work-products`; the issue had no comments, attachments, or work products, and no blocker attention.

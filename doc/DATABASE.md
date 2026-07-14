@@ -39,6 +39,25 @@ pnpm issue-references:backfill -- --company <company-id>
 
 Future issue, comment, and document writes sync references automatically without running the backfill command.
 
+Typed issue completion evidence follows the normal migration path too: the schema can add the
+`issues.completion_evidence` column before older `done` rows are repaired. To backfill recent
+historical rows that already have same-issue proof comments or artifacts, run:
+
+```sh
+pnpm issue-completion-evidence:backfill -- --company <company-id>
+```
+
+Optional flags:
+
+- `--hours <n>` limits the repair window (default `72`)
+- `--limit <n>` caps scanned terminal rows
+- `--dry-run` reports repaired/skipped candidates without mutating the DB
+
+The repair is intentionally conservative: it only fills `completion_evidence` when the issue
+already contains a substantive closeout comment plus a non-system same-issue document,
+attachment, or work product. Rows without enough inspectable proof remain unchanged and must be
+handled through a normal owner path instead of fabricated metadata.
+
 This mode is ideal for local development and one-command installs.
 
 Docker note: the Docker quickstart image also uses embedded PostgreSQL by default. Persist `/paperclip` to keep DB state across container restarts (see `doc/DOCKER.md`).
