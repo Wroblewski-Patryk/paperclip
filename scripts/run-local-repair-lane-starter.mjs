@@ -621,12 +621,6 @@ if (activeRunCount > 0 && candidates.length === 0
     "- protected smoke/live account mutation;",
     "- secret disclosure.",
   ].join("\n");
-  const comment = [
-    "softwarehouse-local-repair-lane-starter:v1",
-    "",
-    "Created an unblocked sidecar lane because the target issue remains dependency-blocked by protected delivery gates.",
-    "Use this issue only for local source-control closure and report evidence back to the target issue.",
-  ].join("\n");
   actions.push({
     action: apply ? "create_source_control_closure_sidecar" : "would_create_source_control_closure_sidecar",
     title: sidecar.title,
@@ -726,41 +720,6 @@ if (activeRunCount > 0 && candidates.length === 0
       await fetchAgentWipState({ request, companyId: company.id }),
     );
     const wakeBlocker = agentWipBlockerFor(created.assigneeAgentId, freshWip);
-    try {
-      // Issue creation already schedules the assignee wake. A second resume comment
-      // becomes a deferred wake and can reopen the issue after the first run closes it.
-      await request("POST", `/api/issues/${created.id}/comments`, { body: comment, resume: false });
-    } catch (error) {
-      if (isRequestTimeoutError(error)) {
-        actions.at(-1).action = "apply_outcome_unknown";
-        actions.at(-1).route = error.route ?? null;
-        actions.at(-1).timeoutMs = error.timeoutMs ?? requestTimeoutMs;
-        actions.at(-1).requiredReadback = "Read the created sidecar comments before retrying the starter comment.";
-        console.log(JSON.stringify({
-          apiBase,
-          company: { id: company.id, name: company.name },
-          mode: apply ? "apply" : "dry-run",
-          candidateScanStatus: "ok",
-          activeRunCount,
-          liveRunCount: liveRuns.length,
-          governorDecision,
-          sourceControlPacket,
-          projectPriority,
-          candidateCount: candidates.length,
-          candidates: candidates.slice(0, 5).map((issue) => ({
-            identifier: issue.identifier,
-            title: issue.title,
-            project: issue.projectName,
-            status: issue.status,
-            priority: issue.priority,
-            assigneeAgentId: issue.assigneeAgentId,
-          })),
-          actions,
-        }, null, 2));
-        process.exit(1);
-      }
-      throw error;
-    }
     actions.at(-1).identifier = created.identifier;
     actions.at(-1).status = created.status;
     if (wakeBlocker) {

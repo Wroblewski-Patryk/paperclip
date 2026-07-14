@@ -290,3 +290,11 @@ or the relevant owners explicitly classify them as not required with evidence.
 - A board that is temporarily quiet while a dirty source-control packet or
   protected gate is being reconciled is acceptable; repeated status-only
   recovery without a new executable action is not.
+- LUC-770 and LUC-912 are back on normal reusable `todo` cycles with no active
+  recovery action. LUC-1113 is done after a successful real repair run.
+- Soar's LUC-1152 packet is committed as `66be3fb02` and the repo is clean.
+  Roost's LUC-1151 packet still requires its own serial source-control closure.
+- A newly created issue must receive one assignment wake only; creation-time
+  provenance belongs in its description, not a second assignee-waking comment.
+- Source-control review must remain bounded: stat/numstat first, focused
+  authored diffs, and generator plus summary proof for large generated groups.

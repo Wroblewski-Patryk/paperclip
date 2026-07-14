@@ -306,10 +306,19 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(environment, /files larger than 250 KB/);
   assert.match(environment, /first 200 lines/);
   assert.match(environment, /below 1,000 lines or 250 KB/);
+  assert.match(environment, /git diff --numstat/);
+  assert.match(environment, /Do not dump a repository-wide diff/);
+  assert.match(environment, /deterministic regeneration command/);
+  assert.match(environment, /Do not run repository-root `rg`/);
+  assert.match(environment, /parse the exact\s+identifier or row with a structured reader/);
 
   const syncScript = await readFile("scripts/sync-luckysparrow-agent-instructions.mjs", "utf8");
   assert.match(syncScript, /files above 250 KB read at most the first 200 lines/);
   assert.match(syncScript, /Never concatenate several large state files/);
+  assert.match(syncScript, /Keep source-control inspection bounded too/);
+  assert.match(syncScript, /Do not dump a repository-wide generated diff/);
+  assert.match(syncScript, /Never run a repository-root `rg`/);
+  assert.match(syncScript, /parse only the exact identifier or row with a structured reader/);
 });
 
 test("Windows startup removes only orphaned embedded Postgres io workers", async () => {
@@ -1337,7 +1346,7 @@ test("local source-control starter refreshes Git truth before creating closure s
   assert.match(source, /SOFTWAREHOUSE_LOCAL_REPAIR_SOURCE_CONTROL_TIMEOUT_MS \?\? 30_000/);
 });
 
-test("new control issues do not add a second deferred comment wake", async () => {
+test("new control issues rely on the assignment wake without adding a comment wake", async () => {
   const creationScripts = [
     "scripts/run-local-repair-lane-starter.mjs",
     "scripts/run-project-known-state-harvester.mjs",
@@ -1346,11 +1355,10 @@ test("new control issues do not add a second deferred comment wake", async () =>
 
   for (const scriptPath of creationScripts) {
     const source = await readFile(scriptPath, "utf8");
-    assert.match(source, /resume: false/, `${scriptPath} must keep creation comments inert`);
     assert.doesNotMatch(
       source,
-      /\/api\/issues\/\$\{created\.id\}\/comments[\s\S]{0,600}resume: !wakeBlocker/,
-      `${scriptPath} must rely on the assignment wake created with the issue`,
+      /\/api\/issues\/\$\{created\.id\}\/comments/,
+      `${scriptPath} must not add a second comment wake after issue creation`,
     );
   }
 });

@@ -37,8 +37,28 @@ Use this shared environment guidance for LuckySparrow Softwarehouse work.
 - Prefer the current mission/index/issue evidence over old journal sections.
   Read historical entries only when they are directly relevant to provenance,
   ownership, or regression analysis.
+- Do not run repository-root `rg` for generic task terms across append-heavy
+  `.agents/state`, `history`, `docs/status`, or `docs/graphs`. Start in the
+  expected source/test/docs directory and exclude those trees unless the issue
+  names one of them explicitly. For a generated JSON/CSV index, parse the exact
+  identifier or row with a structured reader and return only the matching item.
 - A bounded read timeout is a signal to narrow the query. It is not evidence
   that the repository, issue, or instruction bundle is missing.
+
+## Bounded Source-Control Reads
+
+- Start source-control review with `git status --short`, `git diff --stat`, and
+  `git diff --numstat`. Do not dump a repository-wide diff when generated
+  graphs, status indexes, lockfiles, or snapshots dominate the packet.
+- Inspect authored behavior and documentation files with focused
+  `git diff -- <path>` calls. For generated files, verify their producer,
+  deterministic regeneration command, summary counts, and a small relevant
+  excerpt instead of reading every changed line.
+- Keep combined initial diff output below 1,000 lines or 250 KB. If the packet
+  is larger, classify it from stat/numstat first and review coherent path groups
+  in separate bounded calls.
+- A local commit still requires validation and redaction evidence. Bounded
+  review reduces transcript cost; it does not weaken source-control gates.
 
 ## pnpm And Symlink Notes
 

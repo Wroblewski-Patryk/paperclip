@@ -651,15 +651,6 @@ for (const projectName of targetProjects) {
         const created = await request("POST", `/api/companies/${company.id}/issues`, input);
         const freshWip = await fetchAgentWipState({ request, companyId: company.id });
         const wakeBlocker = agentWipBlockerFor(created.assigneeAgentId, freshWip);
-        await request("POST", `/api/issues/${created.id}/comments`, {
-          body: [
-            "softwarehouse-known-state-refresh-wakeup:v1",
-            "",
-            `Created because ${existing.identifier} is ${existing.status}; continue with safe local evidence gathering instead of waiting silently.`,
-            "Use this lane to produce concrete next legal repair issues with owner/scope/evidence.",
-          ].join("\n"),
-          resume: false,
-        });
         actions.at(-1).identifier = created.identifier;
         actions.at(-1).status = created.status;
         if (wakeBlocker) {
@@ -779,15 +770,6 @@ for (const projectName of targetProjects) {
     const created = await request("POST", `/api/companies/${company.id}/issues`, input);
     const freshWip = await fetchAgentWipState({ request, companyId: company.id });
     const wakeBlocker = agentWipBlockerFor(created.assigneeAgentId, freshWip);
-    await request("POST", `/api/issues/${created.id}/comments`, {
-      body: [
-        "softwarehouse-known-state-wakeup:v1",
-        "",
-        "Start with local evidence collection and convert findings into concrete next repair lanes.",
-        "Do not push, deploy, restart, run protected smoke, mutate production, or disclose secrets.",
-      ].join("\n"),
-      resume: false,
-    });
     actions.at(-1).identifier = created.identifier;
     actions.at(-1).status = created.status;
     if (wakeBlocker) {
@@ -846,16 +828,6 @@ if (createdOrWoken === 0 && idleRefreshCandidates.length > 0) {
     const created = await request("POST", `/api/companies/${company.id}/issues`, input);
     const freshWip = await fetchAgentWipState({ request, companyId: company.id });
     const wakeBlocker = agentWipBlockerFor(created.assigneeAgentId, freshWip);
-    await request("POST", `/api/issues/${created.id}/comments`, {
-      body: [
-        "softwarehouse-idle-known-state-refresh-wakeup:v1",
-        "",
-        "Created because the portfolio control loop was idle while this project has a recent/blocked baseline that can still be refreshed safely.",
-        `Source lane: ${candidate.sourceIssue.identifier} ${candidate.sourceIssue.title}`,
-        "Produce concrete next legal repair issues or an evidence-backed reason why no local work is legal.",
-      ].join("\n"),
-      resume: false,
-    });
     actions.at(-1).identifier = created.identifier;
     actions.at(-1).status = created.status;
     if (wakeBlocker) {

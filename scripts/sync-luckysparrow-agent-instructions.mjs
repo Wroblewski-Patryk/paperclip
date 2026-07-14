@@ -176,6 +176,8 @@ async function buildInstructions(definition, instructionsRoot) {
       "- Do not recursively scan `.paperclip`, `.codex`, `.git`, `node_modules`, managed runtime homes, or archived logs to discover the issue API or completion payload.",
       "- On Windows, prefer the tracked helper or one direct `Invoke-RestMethod` call with a hashtable and `ConvertTo-Json`. Avoid nested here-strings, mixed shell wrappers, and broad recursive searches.",
       "- Repository state files may be append-heavy and larger than one megabyte. Inspect size first; for files above 250 KB read at most the first 200 lines, then use `rg -n` for the current issue/path/capability and a small surrounding range. Never concatenate several large state files into one `Get-Content` command.",
+      "- Never run a repository-root `rg` for generic task terms across `.agents/state`, `history`, `docs/status`, or `docs/graphs`. Start in the expected source/test/docs directory; when a generated JSON/CSV index is the target, parse only the exact identifier or row with a structured reader.",
+      "- Keep source-control inspection bounded too: begin with `git status --short`, `git diff --stat`, and `git diff --numstat`; inspect authored paths individually and validate generated groups by producer command plus focused excerpts. Do not dump a repository-wide generated diff into the transcript.",
       "",
       "The role file is the only agent-specific responsibility file. If a task needs more responsibility than this role owns, create or request a handoff instead of expanding the role silently.",
     ].join("\n"),

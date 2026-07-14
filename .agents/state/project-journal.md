@@ -3116,3 +3116,19 @@ terminal result confirm Spark was truly applied.
 - The credential-rotation chain rooted at LUC-972 remains a real protected gate.
   It is not eligible for stale-link or recovery cleanup and cannot be closed by
   reports, invented credentials, or deployment inference.
+- LUC-770 was restored first and completed an actual continuation cycle with
+  decision `start_source_control_closure`; it returned to reusable `todo`.
+  LUC-912 was then restored, cleared its recovery action, and returned to its
+  normal recurring cycle. LUC-1113 completed its repaired watchdog lane as
+  `done` with a successful terminal run.
+- The continuation decision created LUC-1154 in the Soar primary workspace.
+  SPM validated and committed the coherent LUC-1152 documentation packet as
+  `66be3fb02`; Soar read back clean. A provenance comment posted immediately
+  after issue creation caused a redundant second run despite `resume:false`.
+  New control issues now rely only on the assignment wake; their full packet is
+  already stored in the issue description.
+- LUC-1154 also produced roughly 1.8 MB of transcript while reviewing generated
+  project-truth changes. Shared instructions now require status/stat/numstat
+  classification, focused authored-path diffs, and generator/summary evidence
+  for generated groups. The rule is synchronized to all 39 bundles; instruction
+  and runtime-file audits both pass with zero warnings or failures.

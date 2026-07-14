@@ -356,16 +356,6 @@ if (agentWip.unknownActiveRunCount > 0) {
     const created = await request("POST", `/api/companies/${company.id}/issues`, input);
     const freshWip = await fetchAgentWipState({ request, companyId: company.id });
     const wakeBlocker = agentWipBlockerFor(created.assigneeAgentId, freshWip);
-    await request("POST", `/api/issues/${created.id}/comments`, {
-      body: [
-        "softwarehouse-worker-backlog-decomposition-seeder:v1",
-        "",
-        "Created because manager/lead queues are non-empty while leaf-worker backlog depth is weak.",
-        ...weakTrackLines.map((line) => `- ${line}`),
-        "This lane must split work downward into worker-ready issues or record concrete legal blockers.",
-      ].join("\n"),
-      resume: false,
-    });
     actions.at(-1).identifier = created.identifier;
     actions.at(-1).status = created.status;
     if (wakeBlocker) {
