@@ -547,6 +547,8 @@ export type {
   CompanySituation,
   CompanySituationGoal,
   CompanySituationProjectTarget,
+  CompanySituationOrganizationalRecord,
+  CompanySituationForecast,
   CompanySituationSeverity,
   CompanySituationSignal,
   CompanySituationSignalKind,
@@ -700,6 +702,28 @@ export type {
   ProviderQuotaResult,
 } from "./types/index.js";
 export { COMPANY_SEARCH_SCOPES } from "./types/index.js";
+export {
+  ORGANIZATIONAL_RECORD_KINDS,
+  ASSUMPTION_STATUSES,
+  COMMITMENT_STATUSES,
+  DECISION_STATUSES,
+  type OrganizationalRecord,
+  type OrganizationalRecordKind,
+  type OrganizationalRecordStatus,
+  type OrganizationalEvidenceRef,
+  type AssumptionStatus,
+  type CommitmentStatus,
+  type DecisionStatus,
+} from "./types/organizational-record.js";
+export {
+  organizationalEvidenceRefSchema,
+  createOrganizationalRecordSchema,
+  updateOrganizationalRecordSchema,
+  listOrganizationalRecordsQuerySchema,
+  type CreateOrganizationalRecord,
+  type UpdateOrganizationalRecord,
+  type ListOrganizationalRecordsQuery,
+} from "./validators/organizational-record.js";
 export {
   ISSUE_REFERENCE_IDENTIFIER_RE,
   buildIssueReferenceHref,

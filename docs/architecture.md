@@ -18,6 +18,7 @@ scoped and inspectable.
 | SupervisorReview | issue approvals, thread interactions, supervisor issues, activity entries | `doc/SPEC-implementation.md` |
 | ControlPolicy | agent/project/company runtime config, approvals, budgets, docs in this section | `docs/agent-policy-gates.md` |
 | CompanySituation | Deterministic company-scoped projection over goals, projects, issues, agents, approvals, and budget incidents | `server/src/services/company-situation.ts` |
+| OrganizationalRecord | Typed assumption, commitment, or decision with lifecycle, owner, evidence, review timing, and supersession | `packages/db/src/schema/organizational_records.ts` |
 
 ## Operating Flow
 
@@ -50,7 +51,9 @@ Mission Control must answer these questions without guessing:
 - Which repeated failures created process-improvement tasks?
 - Which agent failures have safe traces, feedback, evals, and passing regression evidence?
 
-`CompanySituation` is the first orientation-layer read model. It reports sourced control-plane facts,
-not model-generated causes, forecasts, confidence, or business impact. The complementary roadmap for
-time, commitments, assumptions, decisions, capacity, outcome learning, and external grounding lives in
+`CompanySituation` is the orientation-layer read model. It combines sourced control-plane facts with
+clearly labelled organizational records and a bounded historical-throughput forecast. Forecasts retain
+sample size, confidence, and limitations; they do not become deadlines. Decisions do not grant authority
+or bypass approvals, budgets, or evidence gates. The complementary roadmap for remaining capacity,
+outcome learning, and external grounding lives in
 `doc/plans/2026-07-15-organizational-orientation-system.md`.

@@ -111,9 +111,11 @@ Agents should model a real softwarehouse:
 - owner-facing escalation through `00 AIA` in Polish.
 
 The organizational-orientation program composes these controls into a shared
-operating picture. Its first foundation is the deterministic, company-scoped
-`CompanySituation` read model used by the board dashboard and issue heartbeat
-context. Continue from
+operating picture. `CompanySituation` is used by the board dashboard and issue
+heartbeat context. Its deliberation layer now has typed, auditable assumptions,
+commitments, and decisions with review timing and supersession. Its first
+forecast layer reports a confidence-labelled historical-throughput range without
+creating a deadline. Continue from
 `doc/plans/2026-07-15-organizational-orientation-system.md`; do not replace it
 with disconnected time, priority, memory, or trust features.
 

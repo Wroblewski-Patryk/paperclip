@@ -239,3 +239,15 @@ pnpm secrets:migrate-inline-env --apply
 ```
 
 Hosted AWS provider notes live in [SECRETS-AWS-PROVIDER.md](./SECRETS-AWS-PROVIDER.md).
+
+## Organizational deliberation records
+
+`organizational_records` is a company-scoped typed lifecycle table for
+assumptions, commitments, and decisions. Cross-company references are rejected
+by the service even where a foreign key alone cannot express that invariant.
+
+Migration `0101_reconcile_schema_snapshot_ancestry` linearizes the historical
+0095/0098 Drizzle snapshot branch and reconciles migrations 0098-0100
+idempotently. Migration 0102 adds the organizational record table, and 0103
+preserves the project icon column while bringing it back into the canonical
+schema snapshot.

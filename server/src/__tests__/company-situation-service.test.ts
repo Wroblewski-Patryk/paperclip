@@ -7,6 +7,7 @@ import {
   createDb,
   goals,
   issues,
+  organizationalRecords,
   projects,
 } from "@paperclipai/db";
 import {
@@ -15,6 +16,7 @@ import {
 } from "./helpers/embedded-postgres.js";
 import {
   calendarDaysRemaining,
+  buildHistoricalThroughputForecast,
   companySituationService,
 } from "../services/company-situation.ts";
 
@@ -30,6 +32,33 @@ describe("calendarDaysRemaining", () => {
   });
 });
 
+describe("buildHistoricalThroughputForecast", () => {
+  it("returns an uncertainty range without turning it into a deadline", () => {
+    const now = new Date("2026-07-15T12:00:00.000Z");
+    const forecast = buildHistoricalThroughputForecast({
+      now,
+      windowDays: 30,
+      openScope: 6,
+      completed: Array.from({ length: 12 }, (_, index) => ({
+        createdAt: new Date(now.getTime() - (index + 3) * 86_400_000),
+        startedAt: new Date(now.getTime() - (index + 2) * 86_400_000),
+        completedAt: new Date(now.getTime() - index * 86_400_000),
+      })),
+    });
+
+    expect(forecast).toMatchObject({
+      method: "historical_throughput_v1",
+      completedSampleSize: 12,
+      dailyThroughput: 0.4,
+      cycleTimeP50Hours: 48,
+      cycleTimeP80Hours: 48,
+      projectedCompletion: { confidence: "medium" },
+    });
+    expect(forecast.projectedCompletion?.earliestAt).not.toBe(forecast.projectedCompletion?.latestAt);
+    expect(forecast.limitations.join(" ")).toContain("not a deadline");
+  });
+});
+
 describeEmbeddedPostgres("company situation service", () => {
   let db!: ReturnType<typeof createDb>;
   let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
@@ -40,6 +69,7 @@ describeEmbeddedPostgres("company situation service", () => {
   }, 20_000);
 
   afterEach(async () => {
+    await db.delete(organizationalRecords);
     await db.delete(approvals);
     await db.delete(issues);
     await db.delete(projects);
@@ -192,6 +222,36 @@ describeEmbeddedPostgres("company situation service", () => {
         payload: {},
       },
     ]);
+    await db.insert(organizationalRecords).values([
+      {
+        id: randomUUID(),
+        companyId,
+        kind: "assumption",
+        status: "contradicted",
+        title: "Provider remains stable",
+        statement: "The production provider will remain healthy.",
+        ownerAgentId: idleAgentId,
+        reviewAt: new Date("2026-07-14T12:00:00.000Z"),
+      },
+      {
+        id: randomUUID(),
+        companyId,
+        kind: "commitment",
+        status: "active",
+        title: "Review product proof",
+        statement: "Review the product proof before handoff.",
+        ownerAgentId: idleAgentId,
+        dueAt: new Date("2026-07-14T12:00:00.000Z"),
+      },
+      {
+        id: randomUUID(),
+        companyId: otherCompanyId,
+        kind: "commitment",
+        status: "breached",
+        title: "Other company commitment",
+        statement: "Must not leak into this situation.",
+      },
+    ]);
 
     const situation = await companySituationService(db).get(companyId, { now });
 
@@ -224,6 +284,10 @@ describeEmbeddedPostgres("company situation service", () => {
         pendingApprovals: 1,
         activeBudgetIncidents: 0,
       },
+      deliberation: {
+        dueReviews: 1,
+        overdueCommitments: 1,
+      },
     });
     expect(situation.temporal.overdueProjects).toEqual([
       expect.objectContaining({ id: overdueProjectId, daysRemaining: -2 }),
@@ -233,9 +297,12 @@ describeEmbeddedPostgres("company situation service", () => {
     ]);
     expect(situation.attention.map((signal) => signal.kind)).toEqual([
       "agent_error",
+      "assumption_contradicted",
       "blocked_work",
+      "commitment_overdue",
       "pending_approval",
       "project_overdue",
+      "organizational_review_due",
       "project_due_soon",
       "unassigned_runnable_work",
     ]);

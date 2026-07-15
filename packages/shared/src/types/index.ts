@@ -1,4 +1,19 @@
 export type { Company } from "./company.js";
+export {
+  ORGANIZATIONAL_RECORD_KINDS,
+  ASSUMPTION_STATUSES,
+  COMMITMENT_STATUSES,
+  DECISION_STATUSES,
+} from "./organizational-record.js";
+export type {
+  OrganizationalRecord,
+  OrganizationalRecordKind,
+  OrganizationalRecordStatus,
+  OrganizationalEvidenceRef,
+  AssumptionStatus,
+  CommitmentStatus,
+  DecisionStatus,
+} from "./organizational-record.js";
 export type {
   Environment,
   EnvironmentLease,
@@ -372,6 +387,8 @@ export type {
   CompanySituation,
   CompanySituationGoal,
   CompanySituationProjectTarget,
+  CompanySituationOrganizationalRecord,
+  CompanySituationForecast,
   CompanySituationSeverity,
   CompanySituationSignal,
   CompanySituationSignalKind,

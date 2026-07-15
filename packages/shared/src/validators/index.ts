@@ -1,4 +1,14 @@
 export {
+  organizationalEvidenceRefSchema,
+  createOrganizationalRecordSchema,
+  updateOrganizationalRecordSchema,
+  listOrganizationalRecordsQuerySchema,
+  type CreateOrganizationalRecord,
+  type UpdateOrganizationalRecord,
+  type ListOrganizationalRecordsQuery,
+} from "./organizational-record.js";
+
+export {
   instanceGeneralSettingsSchema,
   patchInstanceGeneralSettingsSchema,
   type InstanceGeneralSettings,

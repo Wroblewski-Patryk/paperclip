@@ -5,6 +5,7 @@ import { cn } from "../lib/utils";
 import { timeAgo } from "../lib/timeAgo";
 
 function signalHref(signal: CompanySituationSignal): string {
+  if (["assumption_contradicted", "assumption_expired", "commitment_breached", "commitment_overdue", "organizational_review_due"].includes(signal.kind)) return "/organizational-memory";
   if (signal.kind === "agent_error" || signal.kind === "no_available_agents") return "/agents";
   if (signal.kind === "budget_incident") return "/costs";
   if (signal.kind === "pending_approval") return "/approvals";
@@ -25,6 +26,7 @@ function SignalIcon({ signal }: { signal: CompanySituationSignal }) {
 export function CompanySituationPanel({ situation }: { situation: CompanySituation }) {
   const primaryGoal = situation.mission.activeGoals[0] ?? null;
   const visibleSignals = situation.attention.slice(0, 6);
+  const projectedCompletion = situation.forecast.projectedCompletion;
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card">
@@ -59,6 +61,12 @@ export function CompanySituationPanel({ situation }: { situation: CompanySituati
       </div>
 
       <div className="px-4 py-4">
+        {projectedCompletion ? (
+          <div className="mb-4 rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+            Historical-throughput range: <span className="font-medium text-foreground">{new Date(projectedCompletion.earliestAt).toLocaleDateString()} – {new Date(projectedCompletion.latestAt).toLocaleDateString()}</span>
+            {" "}({projectedCompletion.confidence} confidence, {situation.forecast.completedSampleSize} completed samples). This is not a deadline.
+          </div>
+        ) : null}
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Attention

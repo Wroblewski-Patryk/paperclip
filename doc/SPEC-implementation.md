@@ -439,7 +439,8 @@ The current implementation includes additional V1-control-plane tables beyond th
 - Execution and workspace control: `execution_workspaces`, `project_workspaces`, `workspace_runtime_services`, `workspace_operations`, `environments`, `environment_leases`, `agent_task_sessions`, `agent_runtime_state`, `agent_wakeup_requests`, heartbeat events, and watchdog decision tables.
 - Plugins and routines: `plugins`, plugin config/state/entities/jobs/logs/webhooks, plugin database namespaces/migrations, plugin company settings, `routines`, `routine_revisions`, `routine_triggers`, and `routine_runs`.
 - Access and operations: company memberships, instance roles, principal permission grants, invites, join requests, board API keys, CLI auth challenges, budget policies/incidents, feedback exports/votes, company skills, sidebar preferences, and company logos.
-- Organizational orientation: a deterministic, company-scoped `CompanySituation` read model projects active goals, product-work posture, agent capacity, project target facts, governance counts, and sourced attention signals without creating a second source of truth or implying an automatic forecast.
+- Organizational orientation: a company-scoped `CompanySituation` read model projects active goals, product-work posture, agent capacity, project target facts, governance counts, typed organizational records, sourced attention signals, and a clearly labelled historical-throughput range without creating a second source of truth or an automatic deadline.
+- Deliberation memory: `organizational_records` stores company-scoped assumptions, commitments, and decisions with owners, evidence refs, goal/project/issue links, review/due/expiry times, lifecycle state, and supersession. Decision records never grant execution authority or bypass policy gates.
 
 ## 8. State Machines
 
@@ -696,6 +697,10 @@ Allowed states are `joined` and `left`. Endpoints require a concrete board user 
 - `GET /companies/:companyId/activity`
 - `GET /companies/:companyId/dashboard`
 - `GET /companies/:companyId/situation`
+- `GET /companies/:companyId/organizational-records`
+- `POST /companies/:companyId/organizational-records`
+- `GET /organizational-records/:id`
+- `PATCH /organizational-records/:id`
 
 Dashboard payload must include:
 

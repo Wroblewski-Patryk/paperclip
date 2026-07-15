@@ -69,7 +69,7 @@ facts are kept separate from model-generated assessments.
 
 ### 3. Deliberation layer
 
-Later slices add first-class assumptions, commitments, and decision records. These
+First-class assumptions, commitments, and decision records
 objects link back to goals and work and include owners, review conditions, and
 supersession history.
 
@@ -103,14 +103,14 @@ change; governed records and evidence decide whether it becomes current truth.
 - Preserve thin/fat context rules and avoid leaking secret or restricted data.
 - Record the situation observation time in the run context snapshot.
 
-### Slice 3: assumptions, commitments, and decisions
+### Slice 3: assumptions, commitments, and decisions â€” implemented foundation
 
 - Define company-scoped, auditable schemas and lifecycle rules.
 - Link records to goals, projects, issues, agents, users, and evidence.
 - Support expiry/review, contradiction, renegotiation, and supersession.
 - Add activity entries and board/agent permission checks for every mutation.
 
-### Slice 4: forecasting and capacity
+### Slice 4: forecasting and capacity â€” historical-throughput baseline implemented
 
 - Separate active execution time, wall-clock time, external waiting, review
   waiting, and human-gate waiting.
@@ -118,6 +118,12 @@ change; governed records and evidence decide whether it becomes current truth.
 - Produce forecasts with confidence and critical-path explanations, not forced
   deadlines.
 - Expose WIP, bottleneck, queue, and context-switch signals.
+
+The first Slice 4 increment adds a 30-day historical-throughput forecast to
+`CompanySituation`. It reports sample size, cycle-time percentiles, a confidence-
+labelled completion range, and explicit limitations. Project/task-class calibration,
+waiting-state decomposition, bottleneck explanations, and context-switch signals
+remain follow-up work.
 
 ### Slice 5: outcome and causal learning
 
@@ -165,5 +171,6 @@ change; governed records and evidence decide whether it becomes current truth.
 - No LLM-generated prioritization presented as fact.
 - No automatic reassignment or cancellation.
 - No schema expansion while the known Drizzle snapshot ancestry defect remains
-  unresolved.
+  unresolved. The defect was resolved before Slice 3 by linearizing the 0095/0098
+  snapshot ancestry and adding idempotent reconciliation migration 0101.
 - No replacement of current Softwarehouse control scripts or evidence gates.

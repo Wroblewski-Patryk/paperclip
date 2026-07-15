@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, ne, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   agents,
@@ -6,11 +6,14 @@ import {
   companies,
   goals,
   issues,
+  organizationalRecords,
   projects,
 } from "@paperclipai/db";
 import type {
   CompanySituation,
   CompanySituationProjectTarget,
+  CompanySituationOrganizationalRecord,
+  CompanySituationForecast,
   CompanySituationSeverity,
   CompanySituationSignal,
   CompanySituationSourceRef,
@@ -22,6 +25,8 @@ export const COMPANY_SITUATION_DUE_SOON_DAYS = 7;
 const MAX_GOALS = 10;
 const MAX_PROJECT_SIGNALS = 5;
 const MAX_SAMPLE_SOURCES = 3;
+const MAX_DELIBERATION_RECORDS = 30;
+export const COMPANY_FORECAST_WINDOW_DAYS = 30;
 
 const OPEN_WORK_CONDITION = and(
   isNull(issues.hiddenAt),
@@ -70,6 +75,57 @@ function sourceRef(
   return { entityType, entityId, observedAt: asIso(observedAt) };
 }
 
+function percentile(values: number[], quantile: number): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * quantile) - 1));
+  return sorted[index] ?? null;
+}
+
+function addDays(now: Date, days: number): string {
+  return new Date(now.getTime() + days * 86_400_000).toISOString();
+}
+
+export function buildHistoricalThroughputForecast(input: {
+  now: Date;
+  windowDays: number;
+  openScope: number;
+  completed: Array<{ startedAt: Date | null; createdAt: Date; completedAt: Date | null }>;
+}): CompanySituationForecast {
+  const completed = input.completed.filter((row): row is typeof row & { completedAt: Date } => Boolean(row.completedAt));
+  const durations = completed
+    .map((row) => row.completedAt.getTime() - (row.startedAt ?? row.createdAt).getTime())
+    .filter((duration) => duration >= 0)
+    .map((duration) => duration / 3_600_000);
+  const dailyThroughput = Number((completed.length / input.windowDays).toFixed(3));
+  const confidence = completed.length >= 30 ? "high" : completed.length >= 10 ? "medium" : "low";
+  const factors = confidence === "high" ? [0.8, 1.25] : confidence === "medium" ? [0.7, 1.5] : [0.5, 2];
+  const likelyDays = dailyThroughput > 0 && input.openScope > 0
+    ? Math.max(1, Math.ceil(input.openScope / dailyThroughput))
+    : null;
+
+  return {
+    method: "historical_throughput_v1",
+    windowDays: input.windowDays,
+    completedSampleSize: completed.length,
+    dailyThroughput,
+    cycleTimeP50Hours: percentile(durations, 0.5),
+    cycleTimeP80Hours: percentile(durations, 0.8),
+    openScope: input.openScope,
+    projectedCompletion: likelyDays === null ? null : {
+      earliestAt: addDays(input.now, Math.max(1, Math.floor(likelyDays * factors[0]))),
+      likelyAt: addDays(input.now, likelyDays),
+      latestAt: addDays(input.now, Math.max(likelyDays, Math.ceil(likelyDays * factors[1]))),
+      confidence,
+    },
+    limitations: [
+      "The range assumes the current open scope and recent throughput remain broadly comparable.",
+      "Blocked time, external waiting, priority changes, and newly discovered work can move the outcome outside this range.",
+      "This forecast is orientation evidence, not a deadline or authorization to skip quality gates.",
+    ],
+  };
+}
+
 export function companySituationService(db: Db) {
   const budgets = budgetService(db);
 
@@ -96,6 +152,8 @@ export function companySituationService(db: Db) {
         unassignedIssueSamples,
         pendingApprovalSamples,
         budgetOverview,
+        deliberationRows,
+        completedIssueRows,
       ] = await Promise.all([
         db
           .select({
@@ -188,6 +246,37 @@ export function companySituationService(db: Db) {
           .orderBy(desc(approvals.updatedAt))
           .limit(MAX_SAMPLE_SOURCES),
         budgets.overview(companyId),
+        db
+          .select({
+            id: organizationalRecords.id,
+            kind: organizationalRecords.kind,
+            status: organizationalRecords.status,
+            title: organizationalRecords.title,
+            statement: organizationalRecords.statement,
+            ownerAgentId: organizationalRecords.ownerAgentId,
+            confidence: organizationalRecords.confidence,
+            dueAt: organizationalRecords.dueAt,
+            reviewAt: organizationalRecords.reviewAt,
+            expiresAt: organizationalRecords.expiresAt,
+            updatedAt: organizationalRecords.updatedAt,
+          })
+          .from(organizationalRecords)
+          .where(and(
+            eq(organizationalRecords.companyId, companyId),
+            sql`${organizationalRecords.status} not in ('superseded', 'rejected', 'cancelled', 'fulfilled')`,
+          ))
+          .orderBy(desc(organizationalRecords.updatedAt))
+          .limit(MAX_DELIBERATION_RECORDS),
+        db
+          .select({ createdAt: issues.createdAt, startedAt: issues.startedAt, completedAt: issues.completedAt })
+          .from(issues)
+          .where(and(
+            eq(issues.companyId, companyId),
+            isNull(issues.hiddenAt),
+            ne(issues.originKind, "routine_execution"),
+            eq(issues.status, "done"),
+            gte(issues.completedAt, new Date(now.getTime() - COMPANY_FORECAST_WINDOW_DAYS * 86_400_000)),
+          )),
       ]);
 
       const issueCounts = countByStatus(issueStatusRows);
@@ -202,6 +291,31 @@ export function companySituationService(db: Db) {
       const pausedAgents = agentCounts.paused ?? 0;
       const errorAgents = agentCounts.error ?? 0;
       const totalAgents = Object.values(agentCounts).reduce((sum, count) => sum + count, 0);
+      const deliberation = deliberationRows.map<CompanySituationOrganizationalRecord>((record) => ({
+        ...record,
+        dueAt: record.dueAt ? asIso(record.dueAt) : null,
+        reviewAt: record.reviewAt ? asIso(record.reviewAt) : null,
+        expiresAt: record.expiresAt ? asIso(record.expiresAt) : null,
+        updatedAt: asIso(record.updatedAt),
+      }));
+      const assumptions = deliberation.filter((record) => record.kind === "assumption");
+      const commitments = deliberation.filter((record) => record.kind === "commitment");
+      const decisions = deliberation.filter((record) => record.kind === "decision");
+      const dueReviews = deliberation.filter((record) => record.reviewAt && new Date(record.reviewAt) <= now);
+      const overdueCommitments = commitments.filter(
+        (record) => record.dueAt && new Date(record.dueAt) < now && ["proposed", "active"].includes(record.status),
+      );
+      const expiredAssumptions = assumptions.filter(
+        (record) => record.expiresAt && new Date(record.expiresAt) < now && ["proposed", "active"].includes(record.status),
+      );
+      const contradictedAssumptions = assumptions.filter((record) => record.status === "contradicted");
+      const breachedCommitments = commitments.filter((record) => record.status === "breached");
+      const forecast = buildHistoricalThroughputForecast({
+        now,
+        windowDays: COMPANY_FORECAST_WINDOW_DAYS,
+        openScope: open,
+        completed: completedIssueRows,
+      });
 
       const projectTargets = activeProjects
         .filter((project): project is typeof project & { targetDate: string } => Boolean(project.targetDate))
@@ -250,6 +364,61 @@ export function companySituationService(db: Db) {
           sources: budgetOverview.activeIncidents
             .slice(0, MAX_SAMPLE_SOURCES)
             .map((incident) => sourceRef("budget_incident", incident.id, incident.updatedAt)),
+        });
+      }
+      if (contradictedAssumptions.length > 0) {
+        attention.push({
+          id: "assumptions-contradicted",
+          kind: "assumption_contradicted",
+          severity: "warning",
+          title: `${contradictedAssumptions.length} contradicted assumption${contradictedAssumptions.length === 1 ? "" : "s"}`,
+          summary: "Current evidence conflicts with a premise used by the organization.",
+          suggestedAction: "Review affected plans and either revise, supersede, or explicitly retain the assumption with new evidence.",
+          sources: contradictedAssumptions.slice(0, MAX_SAMPLE_SOURCES).map((record) => sourceRef("organizational_record", record.id, record.updatedAt)),
+        });
+      }
+      if (breachedCommitments.length > 0) {
+        attention.push({
+          id: "commitments-breached",
+          kind: "commitment_breached",
+          severity: "warning",
+          title: `${breachedCommitments.length} breached commitment${breachedCommitments.length === 1 ? "" : "s"}`,
+          summary: "A promised condition was not met and needs an explicit owner response.",
+          suggestedAction: "Record consequences and fulfil, renegotiate, or supersede the commitment instead of silently moving the date.",
+          sources: breachedCommitments.slice(0, MAX_SAMPLE_SOURCES).map((record) => sourceRef("organizational_record", record.id, record.updatedAt)),
+        });
+      }
+      if (overdueCommitments.length > 0) {
+        attention.push({
+          id: "commitments-overdue",
+          kind: "commitment_overdue",
+          severity: "warning",
+          title: `${overdueCommitments.length} overdue commitment${overdueCommitments.length === 1 ? "" : "s"}`,
+          summary: "The recorded due condition has passed while the commitment remains open.",
+          suggestedAction: "Verify fulfilment evidence or explicitly breach, renegotiate, cancel, or supersede the commitment.",
+          sources: overdueCommitments.slice(0, MAX_SAMPLE_SOURCES).map((record) => sourceRef("organizational_record", record.id, record.updatedAt)),
+        });
+      }
+      if (expiredAssumptions.length > 0) {
+        attention.push({
+          id: "assumptions-expired",
+          kind: "assumption_expired",
+          severity: "warning",
+          title: `${expiredAssumptions.length} assumption${expiredAssumptions.length === 1 ? " has" : "s have"} passed expiry`,
+          summary: "A time-bounded premise is still active after its validity window.",
+          suggestedAction: "Revalidate it with fresh evidence or mark it expired and revise dependent work.",
+          sources: expiredAssumptions.slice(0, MAX_SAMPLE_SOURCES).map((record) => sourceRef("organizational_record", record.id, record.updatedAt)),
+        });
+      }
+      if (dueReviews.length > 0) {
+        attention.push({
+          id: "organizational-reviews-due",
+          kind: "organizational_review_due",
+          severity: "info",
+          title: `${dueReviews.length} organizational record${dueReviews.length === 1 ? " is" : "s are"} due for review`,
+          summary: "A deliberate review point has arrived for an assumption, commitment, or decision.",
+          suggestedAction: "Review the record against current evidence and capture the resulting status or replacement.",
+          sources: dueReviews.slice(0, MAX_SAMPLE_SOURCES).map((record) => sourceRef("organizational_record", record.id, record.updatedAt)),
         });
       }
       for (const project of overdueProjects) {
@@ -384,11 +553,19 @@ export function companySituationService(db: Db) {
           pendingApprovals: pendingApprovalCount,
           activeBudgetIncidents: budgetOverview.activeIncidents.length,
         },
+        deliberation: {
+          assumptions,
+          commitments,
+          decisions,
+          dueReviews: dueReviews.length,
+          overdueCommitments: overdueCommitments.length,
+        },
+        forecast,
         attention: sortAttention(attention),
         limitations: [
           "This projection reports deterministic control-plane facts; it does not infer causes or business impact.",
-          "Completion forecasts and confidence calibration are not part of this slice.",
-          "Issue-level due dates, commitments, assumptions, and decision records are not yet modeled as first-class inputs.",
+          "The throughput forecast is a first calibration baseline and does not yet model project-specific dependencies or external waiting distributions.",
+          "Decision records preserve rationale but do not grant authority or bypass approvals, budgets, or evidence gates.",
         ],
       };
     },

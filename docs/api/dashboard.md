@@ -35,11 +35,15 @@ Returns a bounded, deterministic orientation projection including:
 - active project targets, including overdue and due-soon calendar facts;
 - pending approval and active budget incident counts;
 - ranked attention signals with source references and observation timestamps;
+- active assumptions, commitments, and decisions, including due reviews,
+  contradictions, breaches, and overdue commitments;
+- a 30-day historical-throughput forecast with sample size, cycle-time
+  percentiles, confidence-labelled range, and explicit limitations;
 - explicit limitations describing what the projection does not infer.
 
 Routine-execution issues are excluded from product work posture so controller
 cadence does not masquerade as delivery backlog. Project target signals report
-timing only; they do not force completion or claim a reliable forecast.
+timing only. The historical range is orientation evidence, not a forced deadline.
 
 ## Use Cases
 

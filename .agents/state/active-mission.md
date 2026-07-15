@@ -462,6 +462,25 @@ or the relevant owners explicitly classify them as not required with evidence.
   be handled separately before relying on `db:generate` for the next schema
   change.
 
+## 2026-07-16 - Organizational Deliberation And Forecast Baseline
+
+- `SOL-085` is resolved in the repository: the historical 0095/0098 Drizzle
+  snapshot branch is linearized, migrations 0101 and 0103 reconcile
+  migration-only changes idempotently without dropping project icon data, and
+  a repeated `pnpm db:generate` reports no drift.
+- Slice 3 of the organizational-orientation plan now has first-class,
+  company-scoped assumptions, commitments, and decisions with lifecycle,
+  ownership, evidence refs, review/due/expiry timing, and supersession.
+- These records are visible to board operators and flow into the same
+  `CompanySituation` used in heartbeat context. They do not grant authority or
+  bypass approvals, budgets, permissions, or evidence gates.
+- Slice 4 has a conservative 30-day historical-throughput baseline with sample
+  size, cycle-time percentiles, uncertainty range, confidence label, and explicit
+  limitations. It is orientation evidence, not a deadline.
+- The running local instance was intentionally not restarted during the change
+  because one active run was visible. Apply migrations 0101-0102 through the
+  normal startup path at the next safe no-live-run restart.
+
 ## 2026-07-15 - Dynamic Delivery Gate Classification
 
 - The hard delivery graph under `LUC-25` currently resolves through five

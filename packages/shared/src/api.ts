@@ -17,6 +17,7 @@ export const API = {
   activity: `${API_PREFIX}/activity`,
   dashboard: `${API_PREFIX}/dashboard`,
   companySituation: `${API_PREFIX}/companies/:companyId/situation`,
+  organizationalRecords: `${API_PREFIX}/organizational-records`,
   sidebarBadges: `${API_PREFIX}/sidebar-badges`,
   sidebarPreferences: `${API_PREFIX}/sidebar-preferences`,
   resourceMemberships: `${API_PREFIX}/resource-memberships`,

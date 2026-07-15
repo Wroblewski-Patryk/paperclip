@@ -47,6 +47,8 @@ import {
   // Goal
   createGoalSchema,
   updateGoalSchema,
+  createOrganizationalRecordSchema,
+  updateOrganizationalRecordSchema,
   // Secret
   createSecretSchema,
   updateSecretSchema,
@@ -2817,6 +2819,42 @@ registry.registerPath({
   summary: "Get deterministic company situation data",
   request: { params: z.object({ companyId: z.string() }) },
   responses: { 200: r.ok(), 401: r.unauthorized, 404: r.notFound },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/companies/{companyId}/organizational-records",
+  tags: ["dashboard"],
+  summary: "List assumptions, commitments, and decisions",
+  request: { params: z.object({ companyId: z.string() }) },
+  responses: { 200: r.ok(), 401: r.unauthorized },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/companies/{companyId}/organizational-records",
+  tags: ["dashboard"],
+  summary: "Create an organizational record",
+  request: { params: z.object({ companyId: z.string() }), body: jsonBody(createOrganizationalRecordSchema) },
+  responses: { 201: r.ok(), 400: r.badRequest, 401: r.unauthorized },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/organizational-records/{id}",
+  tags: ["dashboard"],
+  summary: "Get an organizational record",
+  request: { params: z.object({ id: z.string() }) },
+  responses: { 200: r.ok(), 401: r.unauthorized, 404: r.notFound },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/organizational-records/{id}",
+  tags: ["dashboard"],
+  summary: "Update an organizational record lifecycle",
+  request: { params: z.object({ id: z.string() }), body: jsonBody(updateOrganizationalRecordSchema) },
+  responses: { 200: r.ok(), 400: r.badRequest, 401: r.unauthorized, 404: r.notFound },
 });
 
 registry.registerPath({

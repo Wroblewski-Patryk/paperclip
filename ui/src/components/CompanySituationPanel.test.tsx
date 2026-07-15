@@ -49,6 +49,18 @@ const situation: CompanySituation = {
     dueSoonProjects: [],
   },
   governance: { pendingApprovals: 0, activeBudgetIncidents: 0 },
+  deliberation: { assumptions: [], commitments: [], decisions: [], dueReviews: 0, overdueCommitments: 0 },
+  forecast: {
+    method: "historical_throughput_v1",
+    windowDays: 30,
+    completedSampleSize: 0,
+    dailyThroughput: 0,
+    cycleTimeP50Hours: null,
+    cycleTimeP80Hours: null,
+    openScope: 8,
+    projectedCompletion: null,
+    limitations: [],
+  },
   attention: [{
     id: "blocked-work",
     kind: "blocked_work",

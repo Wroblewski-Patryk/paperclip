@@ -1,6 +1,6 @@
 {
-  "id": "e5df5d9f-65b6-47f8-b012-743a1192908e",
-  "prevId": "2f165122-98b4-4284-809a-e12a1a13d7d6",
+  "id": "174ce812-23ab-42c2-800c-ffc4c96b2710",
+  "prevId": "e5df5d9f-65b6-47f8-b012-743a1192908e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -9378,6 +9378,27 @@
           "method": "btree",
           "with": {}
         },
+        "heartbeat_runs_company_created_idx": {
+          "name": "heartbeat_runs_company_created_idx",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "heartbeat_runs_company_liveness_idx": {
           "name": "heartbeat_runs_company_liveness_idx",
           "columns": [
@@ -13838,6 +13859,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "completion_evidence": {
+          "name": "completion_evidence",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "execution_policy": {
           "name": "execution_policy",
           "type": "jsonb",
@@ -17320,12 +17347,6 @@
         },
         "color": {
           "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "icon": {
-          "name": "icon",
           "type": "text",
           "primaryKey": false,
           "notNull": false

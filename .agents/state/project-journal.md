@@ -3484,3 +3484,51 @@ Next architecture slice: introduce governed assumptions, commitments, and
 decision memory after resolving or safely working around the known Drizzle
 snapshot ancestry defect. Forecasting/capacity calibration follows those
 records; it must not be presented as current fact before evidence exists.
+
+## 2026-07-16 - Organizational memory and forecast foundation implemented
+
+Implemented the next complementary layers of the organizational-orientation
+system.
+
+Migration safety was repaired first. Snapshot 0098 now descends from 0096;
+idempotent migration 0101 reconciles the migration-only completion-evidence and
+heartbeat-index changes. Migration 0102 adds `organizational_records`, while
+idempotent migration 0103 preserves the project icon introduced by 0098 and
+brings it back into the canonical schema snapshot without dropping its data. A
+subsequent `pnpm db:generate` reported no schema changes, closing the `SOL-085`
+generator defect.
+
+Slice 3 now provides typed assumptions, commitments, and decisions. Records are
+company-scoped, auditable, linkable to goals/projects/issues/owners/evidence,
+and support review, due, expiry, contradiction, breach, renegotiation,
+reversal, and same-kind supersession. Agents can mutate only records they own or
+created. Accepted decisions remain descriptive and cannot bypass existing
+authority, approval, budget, security, or evidence gates. The board has a new
+Organizational memory page and related attention signals appear in
+`CompanySituation` and heartbeat context.
+
+The first Slice 4 increment adds a 30-day historical-throughput forecast with
+sample size, daily throughput, p50/p80 cycle time, confidence-labelled range,
+and explicit limitations. With insufficient history it returns no projected
+date rather than guessing. This remains a baseline; waiting-state decomposition,
+task-class/project calibration, bottleneck/critical-path explanations, and
+context-switch signals remain open.
+
+Evidence:
+
+- shared, db, server, and UI typechecks passed sequentially;
+- focused organizational-record lifecycle, company-situation, heartbeat-context,
+  and UI component tests passed on one worker;
+- fresh embedded-Postgres tests applied migrations 0101-0103 successfully;
+- `pnpm db:generate` rerun reported no schema changes;
+- full production `pnpm build` passed with only existing CSS-highlight and
+  chunk-size warnings;
+- `pnpm test:run` exceeded the five-minute external timeout and was cleaned up;
+- the OpenAPI route-coverage test recognizes all new organizational endpoints,
+  but its exact-coverage assertion still fails on pre-existing unrelated route
+  drift (`softwarehouse.ts`, board keys/adapters/artifacts/low-trust spec extras,
+  and costs/secrets spec omissions).
+
+The live instance on port 3200 was not restarted because one active run was
+present. Migrations 0101-0103 and new runtime surfaces should be activated through the
+normal startup path at the next safe no-live-run restart.
