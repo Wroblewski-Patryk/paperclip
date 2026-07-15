@@ -18,6 +18,7 @@ import {
 } from "./lib/architecture-awareness-task-status.mjs";
 import {
   collectNonTerminalBlockerLeaves,
+  knownGateRootIdentifiers,
   mergeProtectedDeliveryGates,
 } from "./lib/delivery-blocker-graph.mjs";
 
@@ -373,6 +374,14 @@ test("hard-delivery readiness deduplicates active blocker leaves", async () => {
   assert.equal(result.truncated, false);
   assert.equal(result.visitedCount, 5);
   assert.deepEqual(result.leaves.map((issue) => issue.identifier), ["LUC-972"]);
+
+  const knownRoots = knownGateRootIdentifiers({
+    configuredRootIdentifiers: ["LUC-30", "LUC-31", "LUC-32"],
+    protectedDeliveryBlockers: result.leaves,
+    deliveryParentIdentifier: "LUC-25",
+    truncated: result.truncated,
+  });
+  assert.deepEqual([...knownRoots].sort(), ["LUC-30", "LUC-31", "LUC-32", "LUC-972"]);
 });
 
 test("protected delivery leaves join control gate handoffs without replacing richer evidence", () => {
@@ -422,6 +431,7 @@ test("readiness and control brief preserve hard-delivery protected gates", async
   assert.doesNotMatch(controlTick, /const controlGateHandoffs = mergeProtectedDeliveryGates\(\{\s*gateHandoffs: controlGateHandoffs/);
   assert.match(controlTick, /\["runnable_work_available", "blocked_needs_triage"\]/);
   assert.match(blockerGraph, /Terminal disposition and inspectable evidence for:/);
+  assert.match(blockerGraph, /knownGateRootIdentifiers/);
 });
 
 test("Windows startup removes only orphaned embedded Postgres io workers", async () => {
@@ -1890,6 +1900,8 @@ test("autonomy governor uses gate freshness evidence instead of a diagnostic fal
   assert.match(source, /resolveIssuesByIdentifier/);
   assert.match(source, /const gateIssueByIdentifier = await resolveIssuesByIdentifier/);
   assert.match(source, /const issue = gateIssueByIdentifier\.get\(identifier\)/);
+  assert.match(source, /Issue list rows omit blocker relationships/);
+  assert.match(source, /\/api\/issues\/\$\{encodeURIComponent\(deliveryParentIdentifier\)\}/);
   assert.match(source, /SOFTWAREHOUSE_AUTONOMY_GOVERNOR_REQUEST_TIMEOUT_MS/);
   assert.match(source, /const controller = new AbortController\(\)/);
   assert.match(source, /signal: controller\.signal/);

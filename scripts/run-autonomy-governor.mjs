@@ -5,6 +5,10 @@ import { normalizeKey } from "./lib/secret-aliases.mjs";
 import { gateFreshnessObservation } from "./lib/gate-freshness.mjs";
 import { softwarehouseGateSpecs } from "./lib/softwarehouse-gates.mjs";
 import {
+  collectNonTerminalBlockerLeaves,
+  knownGateRootIdentifiers,
+} from "./lib/delivery-blocker-graph.mjs";
+import {
   approvalRows,
   hasPendingIssueApproval,
   hasPendingReviewInteraction,
@@ -24,10 +28,11 @@ const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_AUTONOMY_GOVERNOR_REQU
 const issuePageSize = Number(process.env.SOFTWAREHOUSE_AUTONOMY_GOVERNOR_ISSUE_PAGE_SIZE ?? 50);
 const requestRetryCount = Number(process.env.SOFTWAREHOUSE_AUTONOMY_GOVERNOR_REQUEST_RETRIES ?? 1);
 const requestRetryBaseDelayMs = Number(process.env.SOFTWAREHOUSE_AUTONOMY_GOVERNOR_RETRY_BASE_DELAY_MS ?? 500);
+const deliveryParentIdentifier = process.env.SOFTWAREHOUSE_DELIVERY_PARENT_IDENTIFIER ?? "LUC-25";
 
 const terminalStatuses = new Set(["done", "cancelled"]);
 const runnableStatuses = new Set(["todo", "backlog"]);
-const gateRootIdentifiers = new Set(softwarehouseGateSpecs.map((spec) => spec.rootBlocker));
+const configuredGateRootIdentifiers = new Set(softwarehouseGateSpecs.map((spec) => spec.rootBlocker));
 const safeNonProductionLaneTitle = "[Soar][Safe Lane] Non-production architecture/status refresh while gate is blocked";
 const triageTargetPattern = /^\[Softwarehouse\]\[Blocked Triage\] Classify ([^\s]+) and produce next legal action$/;
 const safeNonProductionCooldownMs = 6 * 60 * 60 * 1000;
@@ -56,6 +61,10 @@ const staleBlockerRepairs = new Map([
   ["LUC-12", { staleBlocker: "LUC-45", replacementBlocker: "LUC-241" }],
 ]);
 const gateSecretKeys = new Map(softwarehouseGateSpecs.map((spec) => [spec.rootBlocker, spec.secretKeys]));
+function issueKey(issue) {
+  return issue?.identifier ?? issue?.id ?? null;
+}
+
 function isKnownIntentionalBlockedIssue(issue) {
   const title = String(issue.title ?? "");
   const description = String(issue.description ?? "");
@@ -353,9 +362,33 @@ const activeProjectIds = new Set(projects.filter((project) => !project.archivedA
 const issueByIdentifier = new Map(issues.map((issue) => [issue.identifier, issue]));
 const gateIssueByIdentifier = await resolveIssuesByIdentifier({
   companyId: company.id,
-  identifiers: Array.from(gateRootIdentifiers),
+  identifiers: Array.from(configuredGateRootIdentifiers),
   issues,
   request,
+});
+const deliveryParentIssueByIdentifier = await resolveIssuesByIdentifier({
+  companyId: company.id,
+  identifiers: [deliveryParentIdentifier],
+  issues,
+  request,
+});
+const deliveryParentIssueSummary = deliveryParentIssueByIdentifier.get(deliveryParentIdentifier) ?? null;
+// Issue list rows omit blocker relationships, so traverse from the full issue detail.
+const deliveryParentIssue = deliveryParentIssueSummary
+  ? await request("GET", `/api/issues/${encodeURIComponent(deliveryParentIdentifier)}`)
+  : null;
+const deliveryBlockerGraph = deliveryParentIssue && !terminalStatuses.has(deliveryParentIssue.status)
+  ? await collectNonTerminalBlockerLeaves({
+    rootIssue: deliveryParentIssue,
+    terminalStatuses,
+    loadIssue: (identifier) => request("GET", `/api/issues/${encodeURIComponent(identifier)}`),
+  })
+  : { leaves: [], visitedCount: 0, truncated: false };
+const gateRootIdentifiers = knownGateRootIdentifiers({
+  configuredRootIdentifiers: configuredGateRootIdentifiers,
+  protectedDeliveryBlockers: deliveryBlockerGraph.leaves,
+  deliveryParentIdentifier,
+  truncated: deliveryBlockerGraph.truncated,
 });
 const terminalTriageByTarget = terminalTriageByTargetFor(issues);
 const secretByKey = new Map(secrets.map((secret) => [normalizeKey(secret.key), secret]));
@@ -766,6 +799,13 @@ console.log(JSON.stringify({
       blockerAttention: issue.blockerAttention ?? null,
       updatedAt: issue.updatedAt ?? null,
     })),
+  },
+  hardDeliveryBlockerGraph: {
+    deliveryParentIdentifier,
+    visitedCount: deliveryBlockerGraph.visitedCount,
+    truncated: deliveryBlockerGraph.truncated,
+    activeLeafIdentifiers: deliveryBlockerGraph.leaves.map((issue) => issueKey(issue)).filter(Boolean),
+    knownGateRootIdentifiers: Array.from(gateRootIdentifiers).sort(),
   },
   liveRuns: liveRuns.map((run) => ({
     id: run.id,

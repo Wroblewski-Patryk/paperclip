@@ -443,3 +443,17 @@ or the relevant owners explicitly classify them as not required with evidence.
   idempotent and passes migration validation, but snapshot-history repair must
   be handled separately before relying on `db:generate` for the next schema
   change.
+
+## 2026-07-15 - Dynamic Delivery Gate Classification
+
+- The hard delivery graph under `LUC-25` currently resolves through five
+  non-terminal nodes to one protected leaf, `LUC-972`. The leaf is now added to
+  the governor's known gate roots dynamically instead of being misclassified
+  as an unknown blocked issue.
+- The governor must load full issue detail before traversing `blockedBy`;
+  company issue-list rows intentionally omit that relationship. Live dry-run
+  evidence reports five visited nodes, `LUC-972` as the active leaf, and zero
+  unknown blocked issues.
+- Known protected leaves remain fail-closed. Their presence must not create
+  repetitive blocked-triage work or suppress independent local Soar/Roost
+  truth gaps that can be completed without production or credential mutation.

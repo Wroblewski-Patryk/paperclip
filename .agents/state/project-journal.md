@@ -3335,3 +3335,16 @@ terminal result confirm Spark was truly applied.
   around 0095/0098. The narrow idempotent migration and migration journal pass
   validation; repairing historical snapshot ancestry remains separate tooling
   debt and must not be improvised inside this runtime-performance change.
+
+## 2026-07-15 - Dynamic blocker graph repair
+
+- A post-audit governor dry-run still selected blocked triage even though all
+  seven blocked issues converge on the already classified protected leaf
+  `LUC-972`. Static gate roots covered only `LUC-30`, `LUC-31`, and `LUC-32`.
+- The governor now traverses the current `LUC-25` blocker graph and merges its
+  non-terminal leaves into the known gate-root set. The traversal starts from
+  full issue detail because list rows do not carry `blockedBy` relationships.
+- Focused gate tests pass 170/170. The live graph visits five nodes, resolves
+  `LUC-972` as its only active leaf, and reports zero unknown blockers. This
+  prevents another redundant triage cycle while preserving the protected
+  credential gate as fail-closed.

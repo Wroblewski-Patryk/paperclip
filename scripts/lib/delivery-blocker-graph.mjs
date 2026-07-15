@@ -42,6 +42,23 @@ export async function collectNonTerminalBlockerLeaves({
   };
 }
 
+export function knownGateRootIdentifiers({
+  configuredRootIdentifiers = [],
+  protectedDeliveryBlockers = [],
+  deliveryParentIdentifier = null,
+  truncated = false,
+}) {
+  const identifiers = new Set(configuredRootIdentifiers);
+  for (const blocker of protectedDeliveryBlockers) {
+    const identifier = issueKey(blocker);
+    if (identifier) identifiers.add(identifier);
+  }
+  if (truncated && deliveryParentIdentifier) {
+    identifiers.add(deliveryParentIdentifier);
+  }
+  return identifiers;
+}
+
 export function mergeProtectedDeliveryGates({
   gateHandoffs = [],
   protectedDeliveryBlockers = [],
