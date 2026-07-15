@@ -3365,3 +3365,17 @@ terminal result confirm Spark was truly applied.
   serves port 3200, all three repositories were clean at the closure boundary,
   weekly Codex utilization was 24%, and all 39 agents retained the cheap
   `gpt-5.4-mini` fallback with no current quota or budget incident.
+
+## 2026-07-15 - Owner clarified V0 and V1 boundary
+
+- V0 is the current acceptance target and means a reliable autonomous
+  Softwarehouse operating locally on Windows for Paperclip, Soar, and Roost.
+- V1 follows V0 and covers migration/hosted operation on VPS. The historical
+  `LUC-25` VPS-production parent remains valid future delivery evidence but is
+  not the sole completion definition for local V0.
+- `SOL-*` identifiers belong to the repo-local solution index; `LUC-*`
+  identifiers belong to the live Paperclip issue board. `SOL-085` records a
+  Drizzle migration-snapshot ancestry defect, not a missing Paperclip task.
+- Because unreliable `db:generate` would weaken autonomous future schema work,
+  `SOL-085` is V0 hardening even though the current database and applied
+  migrations work normally.

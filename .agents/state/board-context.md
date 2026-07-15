@@ -1,6 +1,6 @@
 # Board Context
 
-Last updated: 2026-07-04
+Last updated: 2026-07-15
 
 ## User Intent
 
@@ -9,30 +9,35 @@ autonomous softwarehouse that can create, maintain, verify, deploy, and later
 sell or operate digital products with AI agents acting as an organized company.
 
 The project is both product work and company-building work. The current proof
-is whether agents can deliver Soar and Roost to usable VPS production while
+is V0: a reliable autonomous softwarehouse operating locally on Windows while
 preserving evidence, safety gates, learning, and a calm owner-facing board
-view.
+view. VPS migration and hosted operation belong to V1 built on this local
+foundation.
 
 ## Current Stage
 
-Stage 1 is active.
+V0 local Windows autonomy is active.
 
-Hard parent:
+V0 continues until:
 
-- `LUC-25`: `00 General: Deliver Soar and Roost to Usable VPS Production`.
+- Paperclip can autonomously plan, implement, test, review, document, and
+  close source-control work for Soar and Roost in the three approved local
+  repositories.
+- Local control loops remain live without duplicate work, unexplained stalls,
+  missing agent instructions, unsafe workspace mutation, or manual Codex
+  supervision as a normal requirement.
+- Model routing, quota/budget gates, evidence, recovery, backup/restore, and
+  Windows runtime supervision have inspectable local proof.
+- Known V0-required tooling gaps are closed or explicitly accepted by the
+  owner with bounded impact.
 
-Stage 1 continues until:
+`LUC-25`, `00 General: Deliver Soar and Roost to Usable VPS Production`, is
+retained as the future hosted-delivery/V1 objective. It is not the definition
+of local V0 completion.
 
-- Soar is usable by the owner on VPS.
-- Roost is usable by the owner on VPS.
-- Evidence exists for architecture alignment, implementation, local tests,
-  review, security/secrets, deployment, production smoke/user-flow proof, and
-  residual risks.
-- Paperclip has learned from the work through governed PDCA packets/procedure
-  updates.
-
-Stage 2 begins only after Paperclip itself is ready to move to VPS and operate
-with Roost as part of the autonomous company layer.
+V1 begins only after V0 is accepted. V1 covers migration/hosted operation on
+VPS, production deployment and monitoring, and the additional infrastructure
+proof required by that move.
 
 ## Desired Collaboration
 
