@@ -10658,7 +10658,21 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
   return {
     list: async (companyId: string, agentId?: string, limit?: number) => {
       const safeForLegacyEncoding = await hasUnsafeTextProjectionDatabase();
-      const query = db
+      const whereClause = agentId
+        ? and(eq(heartbeatRuns.companyId, companyId), eq(heartbeatRuns.agentId, agentId))
+        : eq(heartbeatRuns.companyId, companyId);
+      const idQuery = db
+        .select({ id: heartbeatRuns.id })
+        .from(heartbeatRuns)
+        .where(whereClause)
+        .orderBy(desc(heartbeatRuns.createdAt));
+      const orderedIds = limit ? await idQuery.limit(limit) : await idQuery;
+      if (orderedIds.length === 0) return [];
+
+      // Select and limit narrow rows first. Historical runs can contain very large
+      // JSON payloads, so projecting JSON before LIMIT forces PostgreSQL to detoast
+      // every company run even when the caller only asks for a small recent page.
+      const rows = await db
         .select(
           safeForLegacyEncoding
             ? {
@@ -10673,15 +10687,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
               },
         )
         .from(heartbeatRuns)
-        .where(
-          agentId
-            ? and(eq(heartbeatRuns.companyId, companyId), eq(heartbeatRuns.agentId, agentId))
-            : eq(heartbeatRuns.companyId, companyId),
-        )
-        .orderBy(desc(heartbeatRuns.createdAt));
+        .where(inArray(heartbeatRuns.id, orderedIds.map((row) => row.id)));
+      const rowsById = new Map(rows.map((row) => [row.id, row] as const));
+      const orderedRows = orderedIds.flatMap(({ id }) => {
+        const row = rowsById.get(id);
+        return row ? [row] : [];
+      });
 
-      const rows = limit ? await query.limit(limit) : await query;
-      return rows.map((row) => {
+      return orderedRows.map((row) => {
         const {
           contextIssueId,
           contextTaskId,

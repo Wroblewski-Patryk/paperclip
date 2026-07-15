@@ -5,6 +5,26 @@ import { createLocalServiceKey } from "../server/src/services/local-service-supe
 
 export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+export function resolveDevRunnerPort(input: {
+  envPort?: string;
+  processEnvPort?: string;
+  configuredPort?: number;
+  defaultPort?: number;
+}) {
+  for (const candidate of [input.envPort, input.processEnvPort]) {
+    const parsed = Number.parseInt(candidate ?? "", 10);
+    if (Number.isInteger(parsed) && parsed > 0 && parsed <= 65_535) {
+      return parsed;
+    }
+  }
+
+  if (Number.isInteger(input.configuredPort) && input.configuredPort! > 0 && input.configuredPort! <= 65_535) {
+    return input.configuredPort!;
+  }
+
+  return input.defaultPort ?? 3100;
+}
+
 export function createDevServiceIdentity(input: {
   mode: "watch" | "dev";
   forwardedArgs: string[];

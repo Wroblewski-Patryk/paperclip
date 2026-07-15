@@ -19,3 +19,8 @@ test("resolveDevRunnerPort uses the configured instance port when PORT is unset"
 test("resolveDevRunnerPort falls back to the default port when no override exists", () => {
   assert.equal(resolveDevRunnerPort({}), 3100);
 });
+
+test("resolveDevRunnerPort rejects invalid and out-of-range candidates", () => {
+  assert.equal(resolveDevRunnerPort({ envPort: "invalid", configuredPort: 3200 }), 3200);
+  assert.equal(resolveDevRunnerPort({ envPort: "70000", configuredPort: 0 }), 3100);
+});

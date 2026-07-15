@@ -3304,3 +3304,34 @@ terminal result confirm Spark was truly applied.
   the Windows-safe Vite production build succeeds. The optional Hermes parser
   capability is now read reflectively, avoiding a false missing-export warning
   against adapter version 0.2.0.
+
+## 2026-07-15 - Full constructive audit and runtime query repair
+
+- The live board has 701 issues: 669 done, 20 cancelled, six reusable control
+  issues in `todo`, and six blocked issues. No duplicate open title exists.
+  Every blocked path still deduplicates to protected leaf `LUC-972`; this is a
+  real owner/security gate, not idle-controller churn.
+- Soar is clean at `6f3685ef0` and Roost is clean at `20e0759c`. The latest
+  product packets proved the intended autonomous sequence: focused evidence,
+  source-control sidecar, local commit, and clean primary worktree.
+- Softwarehouse, model/cost, runtime-file, agent-instruction, agent-settings,
+  and workspace-boundary audits pass. The active scope remains exactly
+  Paperclip_Softwarehouse, Soar, and Roost. There is one local Paperclip
+  listener and no current error-state agent.
+- A real V1 performance defect was reproduced in heartbeat history: reading 20
+  rows could exceed 20 seconds because PostgreSQL detoasted all historical
+  `result_json` values before the limit. The service now selects bounded IDs
+  first and fetches payloads only for those IDs; migration 0100 adds the
+  `(company_id, created_at)` index. Live measurements are 127-170 ms for 20
+  rows, 283-323 ms for 50, and 1.43-1.98 s for 250 large-payload rows.
+- The dev runner used an environment-only default of 3100 while the server read
+  configured port 3200. It now shares the server configuration precedence;
+  `dev:list` reports 3200 and `dev:stop` releases the only listener cleanly.
+- In the latest 200 historical runs, 35 failures belong to the earlier quota
+  incident. Two newest process-loss failures were caused by the controlled
+  restart during this repair and immediately entered Paperclip's retry path.
+  They are retained as evidence rather than hidden or rewritten.
+- `pnpm db:generate` exposed pre-existing divergent Drizzle snapshot ancestry
+  around 0095/0098. The narrow idempotent migration and migration journal pass
+  validation; repairing historical snapshot ancestry remains separate tooling
+  debt and must not be improvised inside this runtime-performance change.

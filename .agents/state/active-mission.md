@@ -415,3 +415,31 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Live Codex quota recovered at 17% weekly utilization. Continue model-aware
   local work, but keep the hard production parent blocked until protected leaf
   `LUC-972` has real terminal evidence.
+
+## 2026-07-15 - Constructive Audit And Runtime Health
+
+- The board contains 701 issues: 669 done, 20 cancelled, six reusable control
+  issues in `todo`, and six blocked issues. The blocked graph still converges
+  on the single protected credential-rotation leaf `LUC-972`; there are no
+  duplicate open titles or current error-state agents.
+- Soar is clean at `6f3685ef0`; Roost is clean at `20e0759c`. Recent product
+  work followed the intended proof -> source-control closure -> local commit
+  chain without unrelated repository mutation.
+- All 39 managed agent instruction bundles, runtime file references, role/model
+  settings, and workspace boundaries pass their audits. Weekly subscription
+  use is about 20%; all 39 Codex agents retain a `gpt-5.4-mini` cheap fallback.
+- Heartbeat history now selects bounded run IDs before reading large result
+  JSON and has a `(company_id, created_at)` index. The live default 20-row
+  request measures 127-170 ms instead of timing out above 20 seconds.
+- The dev runner now resolves the same configured port as the server. Exactly
+  one listener serves port 3200, `dev:list` reports port 3200, and the official
+  `dev:stop` releases that listener cleanly.
+- Historical failed runs remain visible rather than being erased. In the latest
+  200, 35 were an earlier quota incident; two process-loss failures were caused
+  by this controlled restart and entered the normal retry path. Current live
+  audits report no persistent error agent or duplicate runtime.
+- Residual repository tooling debt: the Drizzle snapshot graph has a historical
+  branch collision between the 0095 and 0098 snapshots. Migration 0100 is
+  idempotent and passes migration validation, but snapshot-history repair must
+  be handled separately before relying on `db:generate` for the next schema
+  change.
