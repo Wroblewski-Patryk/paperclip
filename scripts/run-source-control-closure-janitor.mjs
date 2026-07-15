@@ -9,6 +9,7 @@ const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
 const companyNameAliases = [companyName, "LuckySparrow"];
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
+const actorAgentId = process.env.PAPERCLIP_AGENT_ID ?? null;
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.SOURCE_CONTROL_CLOSURE_JANITOR_REQUEST_TIMEOUT_MS ?? 15_000);
@@ -107,6 +108,14 @@ function hasInvalidReopenMarker(comments, issueIdentifier, gitHead) {
   return comments.some((comment) => String(comment.body ?? "").includes(marker));
 }
 
+function isCrossAssigneeMutation(issue) {
+  return Boolean(
+    actorAgentId
+    && issue?.issueAssigneeAgentId
+    && issue.issueAssigneeAgentId !== actorAgentId,
+  );
+}
+
 function isRecentInvalidCompletionCandidate(issue) {
   const timestamp = Date.parse(issue.updatedAt ?? issue.completedAt ?? issue.createdAt ?? "");
   if (!Number.isFinite(timestamp)) return false;
@@ -191,6 +200,7 @@ for (const issue of issues) {
       issueId: issue.id,
       title: issue.title,
       status: issue.status,
+      issueAssigneeAgentId: issue.assigneeAgentId ?? null,
       project,
       dirtyCount: repo.dirtyCount,
       latestDirtyMutationAt: Number.isFinite(repo.latestDirtyMutationMs)
@@ -210,14 +220,24 @@ for (const issue of issues) {
     issueId: issue.id,
     title: issue.title,
     status: issue.status,
+    issueAssigneeAgentId: issue.assigneeAgentId ?? null,
     project,
     head: repo.head,
   });
 }
 
 const applied = [];
+const skipped = [];
 if (apply) {
   for (const action of actions) {
+    if (isCrossAssigneeMutation(action)) {
+      skipped.push({
+        ...action,
+        reason: "cross_assignee_mutation_forbidden",
+        ownerAction: "Let the assignee or another legal same-owner actor perform the source-control closure mutation; this janitor must not mutate another agent's issue.",
+      });
+      continue;
+    }
     if (action.action === "reopen_invalid_source_control_closure") {
       await request("POST", `/api/issues/${action.issueId}/comments`, {
         body: [
@@ -259,4 +279,5 @@ console.log(JSON.stringify({
   actionCount: actions.length,
   actions,
   applied,
+  skipped,
 }, null, 2));

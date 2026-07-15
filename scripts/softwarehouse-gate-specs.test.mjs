@@ -2420,6 +2420,16 @@ test("source-control closure janitor reopens invalid clean claims against dirty 
   assert.match(source, /resume: false/);
 });
 
+test("source-control closure janitor skips cross-assignee mutations instead of hard-failing", async () => {
+  const source = await readFile("scripts/run-source-control-closure-janitor.mjs", "utf8");
+
+  assert.match(source, /const actorAgentId = process\.env\.PAPERCLIP_AGENT_ID \?\? null;/);
+  assert.match(source, /function isCrossAssigneeMutation\(issue\)/);
+  assert.match(source, /cross_assignee_mutation_forbidden/);
+  assert.match(source, /Let the assignee or another legal same-owner actor perform the source-control closure mutation/);
+  assert.match(source, /const skipped = \[];/);
+});
+
 test("project truth indexes route app-completion proof gaps instead of treating index files as readiness", async () => {
   const builder = await readFile("scripts/build-project-truth-indexes.mjs", "utf8");
   const dispatcher = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
