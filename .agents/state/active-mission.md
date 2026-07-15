@@ -477,9 +477,10 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Slice 4 has a conservative 30-day historical-throughput baseline with sample
   size, cycle-time percentiles, uncertainty range, confidence label, and explicit
   limitations. It is orientation evidence, not a deadline.
-- The running local instance was intentionally not restarted during the change
-  because one active run was visible. Apply migrations 0101-0102 through the
-  normal startup path at the next safe no-live-run restart.
+- Restart was deferred while one active run was visible, then completed after
+  the run ended. Migrations 0101-0103 are active on the local instance; live
+  readback confirms organizational memory, deliberation projection, forecast,
+  and heartbeat orientation with zero live runs afterward.
 
 ## 2026-07-15 - Dynamic Delivery Gate Classification
 

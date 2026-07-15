@@ -3529,6 +3529,10 @@ Evidence:
   drift (`softwarehouse.ts`, board keys/adapters/artifacts/low-trust spec extras,
   and costs/secrets spec omissions).
 
-The live instance on port 3200 was not restarted because one active run was
-present. Migrations 0101-0103 and new runtime surfaces should be activated through the
-normal startup path at the next safe no-live-run restart.
+The initial restart was deferred while one active run was present. After it
+finished, the controlled restart exposed and cleaned orphan embedded-Postgres
+workers left by the timed-out full suite, then started exactly one registered
+dev service. Live readback on port 3200 confirms health `ok`, zero live runs,
+the organizational-record list endpoint, deliberation inside
+`CompanySituation`, `historical_throughput_v1` with a high-confidence current
+sample, and the same situation basis inside issue heartbeat context.
