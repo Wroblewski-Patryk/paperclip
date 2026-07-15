@@ -255,7 +255,7 @@ describe("model router profile selection", () => {
     });
   });
 
-  it("routes lightweight medium-priority documentation tasks to Spark", () => {
+  it("routes lightweight medium-priority documentation tasks to the light lane", () => {
     expect(
       resolveModelRouterProfile({
         agent: { name: "09 CTO Chief Technology Officer", role: "cto" },
@@ -266,7 +266,7 @@ describe("model router profile selection", () => {
         contextSnapshot: {},
       }),
     ).toMatchObject({
-      profile: "spark",
+      profile: "light",
       source: "title_rule",
     });
   });
@@ -316,17 +316,17 @@ describe("model router profile selection", () => {
         quotaPressure: "critical",
       }),
     ).toMatchObject({
-      profile: "spark",
+      profile: "light",
       source: "name_prefix",
       quotaFallback: {
         pressure: "critical",
         fromProfile: "standard",
-        toProfile: "spark",
+        toProfile: "light",
       },
     });
   });
 
-  it("keeps CRS reviews moving on the Spark lane during critical standard-lane pressure", () => {
+  it("keeps CRS reviews moving on the light lane during critical standard-lane pressure", () => {
     resetModelRouterConfigCacheForTests();
 
     expect(
@@ -340,12 +340,12 @@ describe("model router profile selection", () => {
         quotaPressure: "critical",
       }),
     ).toMatchObject({
-      profile: "spark",
+      profile: "light",
       source: "name_prefix",
     });
   });
 
-  it("moves cheap recovery work to Spark when the standard-light lane is critically constrained", () => {
+  it("keeps cheap recovery work on the cheap lane when standard-light lanes are critically constrained", () => {
     resetModelRouterConfigCacheForTests();
 
     expect(
@@ -359,7 +359,7 @@ describe("model router profile selection", () => {
         quotaPressure: "critical",
       }),
     ).toMatchObject({
-      profile: "spark",
+      profile: "cheap",
       source: "context_rule",
     });
   });

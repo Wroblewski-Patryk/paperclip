@@ -75,7 +75,7 @@
       "reason": "task touches architecture, security, deployment, data model, or production readiness"
     },
     {
-      "profile": "spark",
+      "profile": "light",
       "keywords": [
         "typo",
         "format",
@@ -90,7 +90,7 @@
         "log"
       ],
       "priority": ["medium", "low"],
-      "reason": "task appears lightweight and safe for the Spark lane"
+      "reason": "task appears lightweight and safe for the light lane"
     }
   ],
   "contextKeywordRules": [
@@ -101,7 +101,7 @@
     }
   ],
   "escalationPolicy": {
-    "order": ["cheap", "spark", "light", "standard", "reasoning", "strategic"],
+    "order": ["cheap", "light", "standard", "reasoning", "strategic"],
     "conditions": [
       "task scope expands beyond the assigned bounded operation",
       "requirements or evidence remain materially ambiguous",
@@ -117,15 +117,16 @@
       "strategic": "reasoning",
       "reasoning": "standard",
       "standard": "light",
-      "light": "spark"
+      "light": "cheap",
+      "spark": "cheap"
     },
     "critical": {
-      "cheap": "spark",
+      "cheap": "cheap",
       "strategic": "standard",
       "reasoning": "light",
-      "standard": "spark",
-      "light": "spark",
-      "spark": "spark"
+      "standard": "light",
+      "light": "cheap",
+      "spark": "cheap"
     }
   }
 }

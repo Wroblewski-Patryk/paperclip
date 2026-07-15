@@ -9,9 +9,10 @@ explicit profile was requested.
 
 - `cheap`: GPT-5.4 mini low-effort/status-only lane. Used for recovery, liveness, and
   small system follow-ups.
-- `spark`: optional Codex Spark preview lane for tiny coding and documentation.
-- `light`: GPT-5.4 mini lane for coordination and routine summaries.
-  low-risk planning.
+- `spark`: supported by Paperclip generally, but disabled by the local
+  Softwarehouse router config because Spark runs have been unreliable here.
+- `light`: GPT-5.4 mini lane for coordination, routine summaries, and low-risk
+  planning.
 - `standard`: GPT-5.4 lane for normal implementation, debugging, review, and verification.
 - `reasoning`: GPT-5.4 high-effort lane for architecture, deployment, schema, and
   cross-module work.
