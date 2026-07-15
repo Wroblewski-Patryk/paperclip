@@ -2,15 +2,18 @@
 
 ## 2026-07-15 Owner Stage Clarification - Current
 
-- V0 is the current target: Paperclip Softwarehouse must work autonomously and
-  reliably on local Windows while building, testing, reviewing, documenting,
-  and closing local work for Soar and Roost.
-- V1 comes after V0 and covers the move to VPS/hosted operation. Historical
-  Stage 1 and `LUC-25` VPS-delivery sections below remain useful delivery
-  context, but they do not define completion of local V0.
-- Do not hold local V0 acceptance behind a production credential, deploy, or
-  hosted-smoke gate. Do keep those actions fail-closed until V1 or an explicit
-  owner-authorized production lane.
+- V0 is the current target: Paperclip Softwarehouse runs locally on Windows
+  while building, testing, reviewing, documenting, deploying, and verifying
+  Soar and Roost on VPS.
+- V1 comes after V0 and covers moving Paperclip itself to VPS. The hosted
+  control plane will connect with Soar and the wider ecosystem after Roost is
+  sufficiently complete for that company layer to be coherent.
+- Historical Stage 1 and `LUC-25` VPS-delivery sections below are part of V0:
+  their VPS scope applies to Soar and Roost, not to hosting Paperclip.
+- Keep product pushes, deploys, restarts, protected smoke, and credential work
+  behind their existing evidence and safety gates. These gates can block full
+  V0 product delivery without implying that Paperclip itself must already run
+  on VPS.
 - A tooling defect that prevents safe future local development, such as
   unreliable schema migration generation, is V0 hardening even when current
   runtime behavior still works.

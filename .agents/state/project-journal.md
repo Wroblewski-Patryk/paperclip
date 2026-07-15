@@ -3379,3 +3379,14 @@ terminal result confirm Spark was truly applied.
 - Because unreliable `db:generate` would weaken autonomous future schema work,
   `SOL-085` is V0 hardening even though the current database and applied
   migrations work normally.
+
+## 2026-07-15 - Owner refined the V0/V1 hosting boundary
+
+- Correction to the preceding stage note: V0 keeps Paperclip itself local on
+  Windows, but Soar and Roost are already VPS-hosted products that local
+  Paperclip must deploy, verify, monitor, and continue developing.
+- `LUC-25` therefore remains the V0 hard product-delivery parent. Its VPS
+  wording refers to Soar and Roost, not to moving Paperclip.
+- V1 begins after V0 and sufficient Roost completion. V1 moves Paperclip itself
+  to VPS and connects the hosted control plane with Soar and the broader
+  Roost-backed ecosystem.
