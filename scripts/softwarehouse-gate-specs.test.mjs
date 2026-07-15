@@ -876,9 +876,9 @@ test("in-review decision path degrades candidate scan timeouts into reportable a
   const controlTick = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
 
   assert.match(source, /SOFTWAREHOUSE_IN_REVIEW_DECISION_PATH_REQUEST_TIMEOUT_MS \?\? 30_000/);
-  assert.match(source, /AbortSignal\.timeout\(requestTimeoutMs\)/);
-  assert.match(source, /function isRequestTimeoutError\(error\)/);
-  assert.match(source, /hasPendingIssueApproval\(approvals\)/);
+  assert.match(source, /requestJson\(/);
+  assert.match(source, /isRequestTimeoutError/);
+  assert.match(source, /create_request_confirmation_interaction/);
   assert.match(source, /suppressed_pending_issue_approval/);
   assert.match(source, /candidateScanStatus: "timed_out"/);
   assert.match(source, /skip_in_review_decision_path_candidate_scan_timeout/);
@@ -1180,7 +1180,11 @@ test("review waiters include checkbox confirmation interactions", async () => {
   const source = await readFile("scripts/lib/softwarehouse-routine-gates.mjs", "utf8");
 
   assert.match(source, /request_checkbox_confirmation/);
-  assert.match(source, /request_confirmation", "request_checkbox_confirmation", "ask_user_questions", "suggest_tasks"/);
+  assert.match(source, /export const reviewInteractionKinds = \[/);
+  assert.match(source, /"request_confirmation"/);
+  assert.match(source, /"request_checkbox_confirmation"/);
+  assert.match(source, /"ask_user_questions"/);
+  assert.match(source, /"suggest_tasks"/);
 });
 
 test("control tick gives gate freshness watcher a dedicated timeout budget", async () => {

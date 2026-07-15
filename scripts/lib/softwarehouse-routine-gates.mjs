@@ -3,6 +3,13 @@ export const routineCommentMarkers = {
   runDispositionEnforcer: "softwarehouse-run-disposition-enforcer:v1",
 };
 
+export const reviewInteractionKinds = [
+  "request_confirmation",
+  "request_checkbox_confirmation",
+  "ask_user_questions",
+  "suggest_tasks",
+];
+
 function rows(result) {
   return result?.value ?? result ?? [];
 }
@@ -32,7 +39,7 @@ export function hasPendingRequestConfirmation(interactions) {
 
 export function hasPendingReviewInteraction(interactions) {
   return interactionRows(interactions).some((interaction) =>
-    ["request_confirmation", "request_checkbox_confirmation", "ask_user_questions", "suggest_tasks"].includes(interaction.kind)
+    reviewInteractionKinds.includes(interaction.kind)
     && interaction.status === "pending"
   );
 }

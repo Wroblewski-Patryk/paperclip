@@ -2,11 +2,14 @@ import {
   approvalRows,
   commentRows,
   hasPendingIssueApproval,
-  hasPendingReviewInteraction,
   hasRepeatedRoutineCommentWithoutNewEvidence,
   interactionRows,
   routineCommentMarkers,
 } from "./lib/softwarehouse-routine-gates.mjs";
+import {
+  findPendingStructuredDecisionInteraction,
+  hasStructuredInReviewDecisionPath,
+} from "./lib/in-review-decision-path.mjs";
 import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
@@ -47,7 +50,9 @@ async function mapWithConcurrency(items, concurrency, mapper) {
 
 function hasDurableDisposition(issue, comments, interactions = []) {
   if (["done", "cancelled", "blocked", "todo", "backlog"].includes(issue.status)) return true;
-  if (hasPendingReviewInteraction(interactions)) return true;
+  if (issue.status === "in_review") {
+    return hasStructuredInReviewDecisionPath(issue, { interactions });
+  }
   const text = comments.map((comment) => comment.body ?? "").join("\n\n").toLowerCase();
   return [
     /final disposition/,
@@ -125,11 +130,8 @@ const evaluations = await mapWithConcurrency(candidateIssues, candidateConcurren
     };
   }
   if (hasDurableDisposition(issue, comments, interactions)) {
-    if (hasPendingReviewInteraction(interactions)) {
-      const pendingInteraction = interactions.find((interaction) =>
-        ["request_confirmation", "request_checkbox_confirmation", "ask_user_questions", "suggest_tasks"].includes(interaction.kind)
-        && interaction.status === "pending"
-      );
+    const pendingInteraction = findPendingStructuredDecisionInteraction(interactions);
+    if (pendingInteraction) {
       return {
         type: "suppressed",
         item: {
@@ -138,6 +140,7 @@ const evaluations = await mapWithConcurrency(candidateIssues, candidateConcurren
         issueId: issue.id,
         status: issue.status,
         title: issue.title,
+        interactionId: pendingInteraction?.id ?? null,
         interactionKind: pendingInteraction?.kind ?? null,
         },
       };

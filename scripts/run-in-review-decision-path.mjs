@@ -1,12 +1,16 @@
 import {
   approvalRows,
   commentRows,
-  hasPendingIssueApproval,
-  hasPendingReviewInteraction,
   hasRepeatedRoutineCommentWithoutNewEvidence,
   interactionRows,
   routineCommentMarkers,
 } from "./lib/softwarehouse-routine-gates.mjs";
+import {
+  buildInReviewDecisionInteraction,
+  findPendingStructuredDecisionInteraction,
+  hasStructuredInReviewDecisionPath,
+} from "./lib/in-review-decision-path.mjs";
+import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow";
@@ -17,41 +21,15 @@ const terminalStatuses = new Set(["done", "cancelled"]);
 const companyNameAliases = [companyName, "LuckySparrow Software House", "LuckySparrow"];
 
 async function request(method, route, body) {
-  const signal = AbortSignal.timeout(requestTimeoutMs);
-  const response = await fetch(`${apiBase}${route}`, {
+  return requestJson({
+    apiBase,
     method,
-    headers: { "content-type": "application/json" },
-    signal,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    route,
+    body,
+    timeoutMs: requestTimeoutMs,
+    authToken: process.env.PAPERCLIP_API_KEY,
+    runId: process.env.PAPERCLIP_RUN_ID,
   });
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!response.ok) throw new Error(`${method} ${route} failed with ${response.status}: ${text}`);
-  return data;
-}
-
-function isRequestTimeoutError(error) {
-  return error instanceof Error && error.name === "TimeoutError";
-}
-
-function hasStructuredDecisionPath(issue, comments, liveIssueIds, interactions = [], approvals = []) {
-  if (liveIssueIds.has(issue.id)) return true;
-  if (hasPendingIssueApproval(approvals)) return true;
-  if (hasPendingReviewInteraction(interactions)) return true;
-  const policy = issue.executionPolicy ?? issue.executionState ?? {};
-  if (policy.currentParticipant || policy.currentReviewer || policy.pendingInteractionId) return true;
-  if (issue.assigneeUserId || issue.reviewerUserId || issue.currentParticipantId) return true;
-  const text = comments.map((comment) => comment.body ?? "").join("\n\n").toLowerCase();
-  return [
-    /reviewer\s*:/,
-    /decision owner\s*:/,
-    /review owner\s*:/,
-    /pending (approval|confirmation|decision)/,
-    /accept\s*\/\s*reject\s*\/\s*block/,
-    /final disposition/,
-    /blocked with/,
-    /delegated to/,
-  ].some((pattern) => pattern.test(text));
 }
 
 async function resolveCompany() {
@@ -111,8 +89,9 @@ for (const issue of issues) {
       .then(approvalRows)
       .catch(() => []),
   ]);
-  if (hasStructuredDecisionPath(issue, comments, liveIssueIds, interactions, approvals)) {
-    if (hasPendingIssueApproval(approvals)) {
+  if (hasStructuredInReviewDecisionPath(issue, { liveIssueIds, interactions, approvals })) {
+    const pendingInteraction = findPendingStructuredDecisionInteraction(interactions);
+    if (approvals.some((approval) => approval.status === "pending")) {
       const pendingApproval = approvals.find((approval) => approval.status === "pending");
       suppressed.push({
         action: "suppressed_pending_issue_approval",
@@ -123,16 +102,13 @@ for (const issue of issues) {
         approvalType: pendingApproval?.type ?? null,
       });
     }
-    if (hasPendingReviewInteraction(interactions)) {
-      const pendingInteraction = interactions.find((interaction) =>
-        ["request_confirmation", "request_checkbox_confirmation", "ask_user_questions", "suggest_tasks"].includes(interaction.kind)
-        && interaction.status === "pending"
-      );
+    if (pendingInteraction) {
       suppressed.push({
         action: "suppressed_pending_review_interaction",
         identifier: issue.identifier,
         issueId: issue.id,
         title: issue.title,
+        interactionId: pendingInteraction.id ?? null,
         interactionKind: pendingInteraction?.kind ?? null,
       });
     }
@@ -148,35 +124,43 @@ for (const issue of issues) {
     });
     continue;
   }
+  const interaction = buildInReviewDecisionInteraction(issue);
   candidates.push({
-    action: apply ? "comment_in_review_decision_path_required" : "would_comment_in_review_decision_path_required",
+    action: apply ? "create_request_confirmation_interaction" : "would_create_request_confirmation_interaction",
     identifier: issue.identifier,
     issueId: issue.id,
     title: issue.title,
     assigneeAgentId: issue.assigneeAgentId ?? null,
+    assigneeUserId: issue.assigneeUserId ?? null,
+    interactionKind: interaction.kind,
+    interactionIdempotencyKey: interaction.idempotencyKey,
+    allowedDecisionOptions: ["approve", "continue_review", "reject", "block_or_delegate"],
+    interactionRequest: interaction,
   });
 }
 
 const applied = [];
 if (apply) {
   for (const candidate of candidates) {
-    await request("POST", `/api/issues/${candidate.issueId}/comments`, {
-      body: [
-        routineCommentMarkers.inReviewDecisionPath,
-        "",
-        "This issue is `in_review` without a structured decision path.",
-        "Choose exactly one next outcome and update the issue graph accordingly:",
-        "",
-        "- accept: move to `done` with evidence links;",
-        "- reject: return to `todo`/`backlog` with required changes;",
-        "- block: move to `blocked` with missing input, owner, and unblock action;",
-        "- delegate: create or link one child issue with owner, acceptance criteria, and proof contract;",
-        "- continue review: name reviewer/decision owner, expected evidence, and deadline.",
-        "",
-        "Narrative review comments alone do not satisfy autonomous closure.",
-      ].join("\n"),
-    });
-    applied.push(candidate);
+    try {
+      const created = await request("POST", `/api/issues/${candidate.issueId}/interactions`, candidate.interactionRequest);
+      applied.push({
+        ...candidate,
+        interactionId: created?.id ?? null,
+        interactionStatus: created?.status ?? null,
+      });
+    } catch (error) {
+      suppressed.push({
+        action: "suppressed_interaction_write_failed",
+        identifier: candidate.identifier,
+        issueId: candidate.issueId,
+        title: candidate.title,
+        reason: isRequestTimeoutError(error) ? "interaction_timeout" : "interaction_write_failed",
+        error: error instanceof Error ? error.message : String(error),
+        statusCode: error?.status ?? null,
+        route: error?.route ?? `/api/issues/${candidate.issueId}/interactions`,
+      });
+    }
   }
 }
 
