@@ -51,6 +51,21 @@ const signalChecks = [
   },
 ];
 
+const runtimeInvocationChecks = [
+  {
+    key: "explicit_node_runtime",
+    pattern: /never invoke a `\.js`, `\.mjs`, `\.cjs`, or `\.ts`/i,
+  },
+  {
+    key: "issue_helper_via_node",
+    pattern: /node \$(?:issueHelper|helper)[^\n]*(?:--issue-id|paperclip-issue-update)/i,
+  },
+  {
+    key: "artifact_helper_via_node",
+    pattern: /node \$(?:artifactHelper|upload)[^\n]*(?:artifact|paperclip-upload-artifact)/i,
+  },
+];
+
 async function exists(targetPath) {
   try {
     await access(targetPath);
@@ -202,6 +217,9 @@ for (const agent of activeAgents) {
   const missingSignals = signalChecks
     .filter((check) => !check.pattern.test(bundleText) && !relativeFiles.some((file) => check.pattern.test(file)))
     .map((check) => check.key);
+  const missingRuntimeInvocationChecks = runtimeInvocationChecks
+    .filter((check) => !check.pattern.test(bundleText))
+    .map((check) => check.key);
   const nameFragment = roleNameFragment(agent);
   const frontMatterHasName = nameFragment ? frontMatter.toLowerCase().includes(nameFragment) : false;
 
@@ -231,6 +249,14 @@ for (const agent of activeAgents) {
       agentName: agent.name,
     });
   }
+  for (const runtimeCheck of missingRuntimeInvocationChecks) {
+    failures.push({
+      code: "agent_instruction_runtime_invocation_missing",
+      runtimeCheck,
+      agentId: agent.id,
+      agentName: agent.name,
+    });
+  }
   if (!frontMatterHasName) {
     warnings.push({
       code: "agent_instruction_frontmatter_name_not_role_specific",
@@ -251,6 +277,7 @@ for (const agent of activeAgents) {
     markdownFileCount: markdownFiles.length,
     bytes: Buffer.byteLength(bundleText, "utf8"),
     missingSignals,
+    missingRuntimeInvocationChecks,
     frontMatterHasName,
     files: relativeFiles,
   });
@@ -292,6 +319,12 @@ const result = {
     signalChecks.map((check) => [
       check.key,
       rows.filter((row) => row.exists && !row.missingSignals.includes(check.key)).length,
+    ]),
+  ),
+  runtimeInvocationCoverage: Object.fromEntries(
+    runtimeInvocationChecks.map((check) => [
+      check.key,
+      rows.filter((row) => row.exists && !row.missingRuntimeInvocationChecks.includes(check.key)).length,
     ]),
   ),
   warnings,

@@ -128,6 +128,21 @@ Nest, Featherly, Aviary, or other experiments. If ownership is unclear, report t
 a boundary issue and leave it untouched. Run `pnpm run softwarehouse:workspace-boundary-audit`
 after configuration changes that affect projects, routines, workspaces, or autonomous lanes.
 
+10. Invoke scripts through their runtime on Windows.
+Never execute a `.js`, `.mjs`, `.cjs`, or `.ts` file by entering only its path, with
+`Invoke-Item`, or with `Start-Process` pointed at the script. Windows may follow the file
+association and open the source in an editor instead of running it. Use `node <script-path>`
+for JavaScript modules and `pnpm exec tsx <script-path>` for TypeScript. In child-process
+code, use `process.execPath` plus the script path. For Paperclip helpers, use:
+
+```powershell
+$issueHelper = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-issue-update.mjs'
+node $issueHelper --issue-id $env:PAPERCLIP_TASK_ID --status in_review --comment-file .\closeout.md
+
+$artifactHelper = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-upload-artifact.mjs'
+node $artifactHelper .\path\to\artifact.md --title 'Artifact title'
+```
+
 ## 6. Database Change Workflow
 
 When changing data model:

@@ -1,5 +1,27 @@
 # Responsibility Learning
 
+## 2026-07-15 - Windows script paths are not executable commands
+
+Observed failure mode: an agent invoked a tracked `.mjs` helper by path and
+Windows opened the source in VS Code or Notepad through the file association.
+The editor process looked like activity, but the intended Paperclip mutation or
+artifact upload never ran.
+
+Standing rule:
+
+- Execute `.js`, `.mjs`, and `.cjs` through `node`; execute `.ts` through the
+  owning repository's `pnpm exec tsx` or documented package script.
+- Never use a bare script path, `Invoke-Item`, or `Start-Process` pointed at a
+  source file as an execution mechanism. Do not change global file
+  associations as a workaround.
+- In Node child-process code, use `process.execPath` and pass the script path as
+  an argument.
+- If an editor opens unexpectedly, close it, record the failed invocation once,
+  and retry with the explicit runtime. Do not count the editor process as proof
+  that the helper ran.
+- Keep this rule in shared generated instructions and enforce it with the
+  agent-instruction audit so new agents inherit it automatically.
+
 ## 2026-07-14 - Prompt-only status restrictions are not enforcement
 
 Observed failure mode: LUC-1161 received an explicit status-only recovery

@@ -140,7 +140,17 @@ Headers: X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID
 
 `done` transitions now require a typed `completionEvidence` bundle. Standard completions must include `testEvidence`, `reviewEvidence`, and `documentationEvidence`. High-risk completions must also include `securityEvidence`, `deploymentEvidence`, and `monitoringEvidence`. Evidence refs must point at the same issue via `request_comment`, `comment`, `document`, `attachment`, or `work_product`.
 
-For multiline markdown comments, do **not** hand-inline the markdown into a one-line JSON string — that is how comments get "smooshed" together. Use the helper below (or an equivalent `jq --arg` pattern reading from a heredoc/file) so literal newlines survive JSON encoding:
+For multiline markdown comments, do **not** hand-inline the markdown into a one-line JSON string — that is how comments get "smooshed" together. Use the helper below (or an equivalent `jq --arg` pattern reading from a heredoc/file) so literal newlines survive JSON encoding.
+
+On Windows, always invoke the Node helper through `node`; never execute the
+`.mjs` path directly because the file association may open an editor:
+
+```powershell
+$issueHelper = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-issue-update.mjs'
+node $issueHelper --issue-id $env:PAPERCLIP_TASK_ID --status done --comment-file .\closeout.md
+```
+
+On POSIX systems, the shell wrapper remains available:
 
 ```bash
 scripts/paperclip-issue-update.sh --issue-id "$PAPERCLIP_TASK_ID" --status done <<'MD'

@@ -24,6 +24,35 @@ Use this shared environment guidance for LuckySparrow Softwarehouse work.
   Prefer a direct `Invoke-RestMethod` call with a hashtable and
   `ConvertTo-Json`, or the tracked Node helper.
 
+## Script Runtime Discipline
+
+- Never invoke a `.js`, `.mjs`, `.cjs`, or `.ts` file by entering only its
+  path, with `Invoke-Item`/`ii`, or with `Start-Process` pointed at the script.
+  Windows can follow the file association and open VS Code or Notepad instead
+  of executing the script. Do not change global Windows file associations to
+  work around this.
+- Execute JavaScript modules with `node <absolute-script-path>`. Execute
+  TypeScript with the owning repository's `pnpm exec tsx <script-path>` (or its
+  documented package script). In Node child-process code, use `process.execPath`
+  as the executable and pass the script path as the first argument.
+- Run the tracked Paperclip issue helper explicitly through Node:
+
+  ```powershell
+  $issueHelper = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-issue-update.mjs'
+  node $issueHelper --issue-id $env:PAPERCLIP_TASK_ID --status in_review --comment-file .\closeout.md
+  ```
+
+- Upload inspectable artifacts through the tracked Node helper in the same way:
+
+  ```powershell
+  $artifactHelper = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-upload-artifact.mjs'
+  node $artifactHelper .\path\to\artifact.md --title 'Artifact title'
+  ```
+
+- If a command unexpectedly opens an editor, close the editor window, record
+  the failed invocation once, and retry with the explicit runtime. Do not keep
+  launching the path or treat the editor process as successful execution.
+
 ## Bounded Project-State Reads
 
 - Product state and context files are append-heavy and may exceed one megabyte.

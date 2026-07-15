@@ -1,10 +1,29 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
 ## Entries
+
+- 2026-07-15 / explicit Windows script runtime hardening:
+  - The owner observed Paperclip agents opening
+    `paperclip-upload-artifact.mjs` and `paperclip-issue-update.mjs` in an
+    editor instead of executing them. Root cause: Windows followed the file
+    association after a script path was invoked without an explicit runtime.
+  - Added a general rule for `.js`, `.mjs`, `.cjs`, and `.ts` files: use
+    `node <script-path>` or `pnpm exec tsx <script-path>`; child-process code
+    uses `process.execPath`; never repair this by changing global file
+    associations.
+  - Updated the root contributor contract, shared Softwarehouse environment
+    instructions, generated bundle fast path, Paperclip skill, and artifact
+    docs. Synchronized all 39 managed agent bundles.
+  - Added audit enforcement for explicit Node execution of both Paperclip
+    helpers. Verification: helper dry-runs executed as Node processes; focused
+    gate tests passed 170/170; instruction audit passed with 39/39 coverage for
+    all three runtime-invocation checks; runtime file-state and workspace
+    boundary audits passed; Paperclip remained healthy with one listener on
+    port 3200.
 
 - 2026-07-14 / constructive runtime and delivery audit:
   - The live company audit found no duplicate Paperclip instance, no missing

@@ -5,7 +5,15 @@ the Paperclip issue before the agent chooses a final disposition. A local
 workspace path is not enough, because cloud users and reviewers often cannot
 access the agent's disk.
 
-Use the helper bundled with the Paperclip skill from the repo root:
+On Windows, resolve the helper and invoke it explicitly through Node. Do not run
+the `.mjs` path by itself because Windows may open the source in an editor:
+
+```powershell
+$artifactHelper = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-upload-artifact.mjs'
+node $artifactHelper .\path\to\output.webm --title 'Walkthrough render' --summary 'Rendered walkthrough for review'
+```
+
+On POSIX systems, the shell wrapper remains available from the repo root:
 
 ```sh
 skills/paperclip/scripts/paperclip-upload-artifact.sh path/to/output.webm \
@@ -32,7 +40,8 @@ The command prints issue-safe markdown links for the final task comment.
 When a task produces a user-inspectable file:
 
 1. Generate and verify the file locally.
-2. Upload it with `skills/paperclip/scripts/paperclip-upload-artifact.sh`.
+2. Upload it with the explicit `node $artifactHelper ...` command on Windows,
+   or `skills/paperclip/scripts/paperclip-upload-artifact.sh` on POSIX.
 3. Keep the artifact work product unless the file is incidental; pass
    `--no-work-product` only for supporting files that should not be promoted.
 4. Link the printed attachment URL in the final issue comment.

@@ -2,7 +2,16 @@
 
 When work produces a user-inspectable file, upload it to the current issue before final disposition. Local filesystem paths are not enough because board users, reviewers, and cloud operators may not have access to the agent workspace.
 
-Use the helper bundled with this skill. From an installed `paperclip` skill directory, the helper lives at `scripts/paperclip-upload-artifact.sh`:
+On Windows, invoke the helper explicitly through Node. Never execute the `.mjs`
+path directly because Windows may open it in an editor:
+
+```powershell
+$artifactHelper = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-upload-artifact.mjs'
+node $artifactHelper .\path\to\output.webm --title 'Walkthrough render' --summary 'Rendered walkthrough for review'
+```
+
+On POSIX systems, the shell wrapper is available from an installed `paperclip`
+skill directory at `scripts/paperclip-upload-artifact.sh`:
 
 ```bash
 scripts/paperclip-upload-artifact.sh path/to/output.webm \

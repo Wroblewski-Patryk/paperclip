@@ -312,6 +312,10 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(environment, /Do not recursively scan/);
   assert.match(environment, /Avoid nested PowerShell here-strings/);
   assert.match(environment, /paperclip-issue-update\.mjs/);
+  assert.match(environment, /Never invoke a `\.js`, `\.mjs`, `\.cjs`, or `\.ts` file/i);
+  assert.match(environment, /node \$issueHelper --issue-id/);
+  assert.match(environment, /node \$artifactHelper/);
+  assert.match(environment, /process\.execPath/);
   assert.match(environment, /files larger than 250 KB/);
   assert.match(environment, /first 200 lines/);
   assert.match(environment, /below 1,000 lines or 250 KB/);
@@ -338,6 +342,9 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(syncScript, /total command output below 50 KB/);
   assert.match(syncScript, /assigned execution workspace \(`cwd`\) is this run's write boundary/);
   assert.match(syncScript, /modifying another repo requires a separately assigned linked issue/);
+  assert.match(syncScript, /never invoke a `\.js`, `\.mjs`, `\.cjs`, or `\.ts` path directly/i);
+  assert.match(syncScript, /node \$helper --issue-id/);
+  assert.match(syncScript, /node \$upload/);
 });
 
 test("architecture awareness prefers structured task status over free text", () => {
@@ -694,6 +701,9 @@ test("softwarehouse agent instruction audit guards persona richness and duplicat
   assert.match(source, /agent_instruction_bundle_duplicate/);
   assert.match(source, /frontMatterHasName/);
   assert.match(source, /mirrorCompanyAgentsRoot/);
+  assert.match(source, /runtimeInvocationChecks/);
+  assert.match(source, /agent_instruction_runtime_invocation_missing/);
+  assert.match(source, /runtimeInvocationCoverage/);
   assert.match(docs, /per agent/i);
   assert.match(docs, /personas\/` index/);
 });
