@@ -92,12 +92,23 @@ const mockWorkProductService = vi.hoisted(() => ({
 
 const mockEnvironmentService = vi.hoisted(() => ({}));
 
+const mockCompanySituationService = vi.hoisted(() => ({
+  get: vi.fn(async () => ({
+    companyId: "company-1",
+    generatedAt: "2026-07-15T12:00:00.000Z",
+    timezone: "UTC",
+    basis: "deterministic_projection",
+    attention: [],
+  })),
+}));
+
 const mockDb = vi.hoisted(() => ({
   select: vi.fn(),
   execute: vi.fn(),
 }));
 
 vi.mock("../services/index.js", () => ({
+  companySituationService: () => mockCompanySituationService,
   companyService: () => ({
     getById: vi.fn(async () => ({ id: "company-1", attachmentMaxBytes: 10 * 1024 * 1024 })),
   }),
@@ -286,6 +297,11 @@ describe.sequential("issue goal context routes", () => {
     );
     expect(mockGoalService.getDefaultCompanyGoal).not.toHaveBeenCalled();
     expect(res.body.attachments).toEqual([]);
+    expect(mockCompanySituationService.get).toHaveBeenCalledWith("company-1");
+    expect(res.body.companySituation).toMatchObject({
+      companyId: "company-1",
+      basis: "deterministic_projection",
+    });
   });
 
   it("preserves direct continuation summary lookup in GET /issues/:id/heartbeat-context", async () => {

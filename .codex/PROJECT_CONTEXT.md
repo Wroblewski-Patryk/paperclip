@@ -110,6 +110,13 @@ Agents should model a real softwarehouse:
 - PDCA learning at individual, department, and company levels;
 - owner-facing escalation through `00 AIA` in Polish.
 
+The organizational-orientation program composes these controls into a shared
+operating picture. Its first foundation is the deterministic, company-scoped
+`CompanySituation` read model used by the board dashboard and issue heartbeat
+context. Continue from
+`doc/plans/2026-07-15-organizational-orientation-system.md`; do not replace it
+with disconnected time, priority, memory, or trust features.
+
 Internal work may be English-first. Direct owner-facing decisions and summaries
 should come through `00 AIA` in clear Polish.
 

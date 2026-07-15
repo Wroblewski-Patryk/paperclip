@@ -3431,3 +3431,56 @@ Decision: the organizational learning loop remains an evidence-producing
 routine. This run showed duplicate suppression working and confirmed that the
 repeated security/credential pattern was already represented elsewhere, so no
 new capability-gap issue was needed for `LUC-1222`.
+
+## 2026-07-15 - Conversation summary: organizational orientation system
+
+The owner confirmed that Paperclip should evolve from coordinating autonomous
+task execution into a coherent autonomous organization. The objective is not to
+force Soar into an arbitrary one-week deadline. It is to preserve alignment to
+the company goal by making normally implicit human concepts explicit in the
+control plane.
+
+Durable concepts include shared/current truth, attention, temporal orientation,
+causality, intent, commitments, decision memory, uncertainty, opportunity cost,
+capacity and context switching, reversibility, evidence-calibrated trust,
+collaboration norms, constructive dissent, outcome-aware closure, governed
+memory, positive and negative learning, and external grounding.
+
+Decision: these concepts must be complementary layers of one observe-orient-
+decide-commit-execute-verify-learn loop, not disconnected features. Begin with
+a deterministic company-scoped `CompanySituation` read model composed from
+existing Paperclip primitives, then feed role-scoped projections into heartbeat
+context before adding mutable assumption/commitment/decision records. Avoid a
+new migration in the first slice because the repository has a known Drizzle
+snapshot ancestry defect. Full plan:
+`doc/plans/2026-07-15-organizational-orientation-system.md`.
+
+## 2026-07-15 - Organizational orientation foundation implemented
+
+Implemented the first two slices of the organizational-orientation plan without
+a database migration. A shared `CompanySituation` contract and company-scoped
+service now project active goals, product-work posture, agent capacity, project
+target facts, governance counts, sourced attention signals, and explicit
+limitations from existing canonical records. Routine-execution issues are
+excluded from delivery posture.
+
+The projection is available at
+`GET /api/companies/:companyId/situation`, appears on the board dashboard, and
+is included in `GET /api/issues/:id/heartbeat-context` so board and agents use
+the same observed facts. It reports timing without enforcing deadlines and does
+not claim causal inference, forecast accuracy, or business impact.
+
+Evidence:
+
+- shared, server, and UI typechecks passed;
+- focused service, heartbeat-route, and UI component tests passed serially;
+- the Windows-safe Vite production build completed successfully with only
+  pre-existing CSS highlight and chunk-size warnings;
+- live readback from `http://127.0.0.1:3200` returned `health: ok`,
+  `basis: deterministic_projection` for LuckySparrow, and the same situation
+  basis inside the heartbeat context for `LUC-1055`.
+
+Next architecture slice: introduce governed assumptions, commitments, and
+decision memory after resolving or safely working around the known Drizzle
+snapshot ancestry defect. Forecasting/capacity calibration follows those
+records; it must not be presented as current fact before evidence exists.

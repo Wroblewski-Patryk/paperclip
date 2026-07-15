@@ -368,6 +368,15 @@ export type {
 } from "./heartbeat.js";
 export type { LiveEvent } from "./live.js";
 export type { DashboardRunActivityDay, DashboardSummary } from "./dashboard.js";
+export type {
+  CompanySituation,
+  CompanySituationGoal,
+  CompanySituationProjectTarget,
+  CompanySituationSeverity,
+  CompanySituationSignal,
+  CompanySituationSignalKind,
+  CompanySituationSourceRef,
+} from "./situation.js";
 export type { ActivityEvent } from "./activity.js";
 export type {
   UserProfileActivitySummary,

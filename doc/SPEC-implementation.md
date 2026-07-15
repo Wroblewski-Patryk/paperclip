@@ -439,6 +439,7 @@ The current implementation includes additional V1-control-plane tables beyond th
 - Execution and workspace control: `execution_workspaces`, `project_workspaces`, `workspace_runtime_services`, `workspace_operations`, `environments`, `environment_leases`, `agent_task_sessions`, `agent_runtime_state`, `agent_wakeup_requests`, heartbeat events, and watchdog decision tables.
 - Plugins and routines: `plugins`, plugin config/state/entities/jobs/logs/webhooks, plugin database namespaces/migrations, plugin company settings, `routines`, `routine_revisions`, `routine_triggers`, and `routine_runs`.
 - Access and operations: company memberships, instance roles, principal permission grants, invites, join requests, board API keys, CLI auth challenges, budget policies/incidents, feedback exports/votes, company skills, sidebar preferences, and company logos.
+- Organizational orientation: a deterministic, company-scoped `CompanySituation` read model projects active goals, product-work posture, agent capacity, project target facts, governance counts, and sourced attention signals without creating a second source of truth or implying an automatic forecast.
 
 ## 8. State Machines
 
@@ -694,6 +695,7 @@ Allowed states are `joined` and `left`. Endpoints require a concrete board user 
 
 - `GET /companies/:companyId/activity`
 - `GET /companies/:companyId/dashboard`
+- `GET /companies/:companyId/situation`
 
 Dashboard payload must include:
 

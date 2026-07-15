@@ -1,6 +1,6 @@
 # Capability Map
 
-Last updated: 2026-07-04
+Last updated: 2026-07-15
 
 ## Purpose
 
@@ -29,6 +29,7 @@ Capability -> Process -> Agent role -> Paperclip issue/routine -> Project files 
 | SH-CAP-009 | AI-agent talent management | The softwarehouse improves its own agents, role boundaries, skills, routines, and instructions from evidence. | CHRO, AID, talent policy, learning loop, and agent-development review roles exist. | implemented baseline | `softwarehouse/talent-and-capability-system.md`, `softwarehouse/agent-roster.json` | Keep AID/CHRO active for agent-quality issues; avoid broad new roles without measured trial evidence. |
 | SH-CAP-010 | Dream-to-architecture intake | User dreams in project `docs/architecture` become interpreted product intent, architecture maps, implementation lanes, and verification proof. | Product, UX, CTO, Delivery, specialist, QA, Security, Ops, and Docs/Memory roles cover the path. | implemented baseline | `softwarehouse/pipeline-model.md`, `docs/softwarehouse/03-delivery-workflow.md` | Require PMs to start app work from project architecture/docs before coding. |
 | SH-CAP-011 | Local-first runtime bridge | Local Paperclip can coordinate app work before VPS scaling, with Roost/CompanyCore integration treated as a future local/network bridge. | Local API, workspace policies, project docs, and Roost PM lane exist. | planned | `softwarehouse/paperclip-app-feature-backlog.md`, Roost project entry | Design a local Paperclip-to-Roost data bridge before making Roost the source of business truth. |
+| SH-CAP-012 | Organizational orientation | Board and agents can share a bounded, sourced operating picture instead of independently reconstructing company state. | Deterministic `CompanySituation` read model and dashboard panel over existing V1 primitives. | partial | `server/src/services/company-situation.ts`, `ui/src/components/CompanySituationPanel.tsx`, `doc/plans/2026-07-15-organizational-orientation-system.md` | Add a role-scoped heartbeat orientation packet, then governed assumptions, commitments, decisions, forecasts, and outcome signals. |
 
 ## Maintenance Rule
 

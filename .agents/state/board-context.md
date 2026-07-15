@@ -95,6 +95,21 @@ ecosystem.
 - Featherly, Aviary, Nest, and other app ideas remain parked unless explicitly
   activated.
 
+## Organizational Orientation Direction
+
+The owner wants the agents to act as complementary parts of one autonomous
+organization rather than as independent task executors. Paperclip should make
+implicit human operating concepts explicit and inspectable: shared reality,
+attention, time, causality, intent, commitments, decisions, uncertainty,
+opportunity cost, capacity, reversibility, trust, collaboration norms, closure,
+memory, learning, and external grounding.
+
+This direction is coherence-first rather than deadline-first. In particular,
+Paperclip should help agents make steady, goal-aligned progress on Soar and
+Roost without imposing an artificial one-week completion promise. The canonical
+architecture and delivery sequence is recorded in
+`doc/plans/2026-07-15-organizational-orientation-system.md`.
+
 ## Current Stage 1 Operating Model
 
 - Active app-factory core: strategy, product/design, operations/docs, agent

@@ -945,6 +945,13 @@ export function issueRoutes(
   };
   const feedbackExportService = opts?.feedbackExportService;
   const environmentsSvc = environmentService(db);
+  const companySituationFactory = Object.prototype.hasOwnProperty.call(
+    serviceIndex,
+    "companySituationService",
+  )
+    ? serviceIndex.companySituationService
+    : undefined;
+  const companySituationSvc = companySituationFactory?.(db) ?? null;
 
   async function cancelScheduledRetrySupersededByComment(input: {
     scheduledRetryRunId: string | null | undefined;
@@ -2342,6 +2349,7 @@ export function issueRoutes(
       continuationSummary,
       currentExecutionWorkspace,
       activeRecoveryAction,
+      companySituation,
     ] =
       await Promise.all([
         resolveIssueProjectAndGoal(issue),
@@ -2356,6 +2364,9 @@ export function issueRoutes(
         documentsSvc.getIssueDocumentByKey(issue.id, ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY),
         currentExecutionWorkspacePromise,
         recoveryActionsSvc.getActiveForIssue(issue.companyId, issue.id),
+        companySituationSvc
+          ? companySituationSvc.get(issue.companyId)
+          : Promise.resolve(null),
       ]);
     const recoveryActionsByRelationIssue = await relationRecoveryActionMap(
       recoveryActionsSvc,
@@ -2445,6 +2456,7 @@ export function issueRoutes(
           }
         : null,
       currentExecutionWorkspace,
+      companySituation,
     });
   });
 

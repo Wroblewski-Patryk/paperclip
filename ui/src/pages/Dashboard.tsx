@@ -23,6 +23,7 @@ import { timeAgo } from "../lib/timeAgo";
 import { cn, formatCents } from "../lib/utils";
 import { Bot, CircleDot, DollarSign, Gauge, ShieldCheck, LayoutDashboard, PauseCircle } from "lucide-react";
 import { ActiveAgentsPanel } from "../components/ActiveAgentsPanel";
+import { CompanySituationPanel } from "../components/CompanySituationPanel";
 import { ChartCard, RunActivityChart, PriorityChart, IssueStatusChart, SuccessRateChart } from "../components/ActivityCharts";
 import { PageSkeleton } from "../components/PageSkeleton";
 import type { Agent, Issue, ProviderQuotaResult, QuotaWindow } from "@paperclipai/shared";
@@ -121,6 +122,12 @@ export function Dashboard() {
   const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.dashboard(selectedCompanyId!),
     queryFn: () => dashboardApi.summary(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+  });
+
+  const { data: companySituation, error: companySituationError } = useQuery({
+    queryKey: queryKeys.companySituation(selectedCompanyId!),
+    queryFn: () => dashboardApi.situation(selectedCompanyId!),
     enabled: !!selectedCompanyId,
   });
 
@@ -269,6 +276,7 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       {error && <p className="text-sm text-destructive">{error.message}</p>}
+      {companySituationError && <p className="text-sm text-destructive">{companySituationError.message}</p>}
 
       {hasNoAgents && (
         <div className="flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-500/25 dark:bg-amber-950/60">
@@ -288,6 +296,8 @@ export function Dashboard() {
       )}
 
       <ActiveAgentsPanel companyId={selectedCompanyId!} />
+
+      {companySituation && <CompanySituationPanel situation={companySituation} />}
 
       {data && (
         <>
