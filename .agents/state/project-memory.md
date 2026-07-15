@@ -1,12 +1,19 @@
 # Paperclip Softwarehouse Project Memory
 
-Last updated: 2026-07-12
+Last updated: 2026-07-15
 
 ## 2026-07-12 Current Operating Note
 
 - Stage 1 remains active and Soar/Roost stay the current delivery proof for LuckySparrow Software House.
 - The latest PDCA review promoted two reusable lessons into the learning ledger: supervisor self-run filtering and terminal-gate freshness alignment.
 - The organizational learning loop is now producing dedicated learning issues for repeated blocker patterns and suppressing compliant or duplicate chains instead of cloning them.
+- No change to user intent, active mission, or parked-app policy was justified by the review.
+
+## 2026-07-15 Current Operating Note
+
+- Stage 1 remains active and Soar/Roost stay the current delivery proof for LuckySparrow Software House.
+- The latest learning-loop apply run on `LUC-1222` found one repeated security/credential pattern that was already represented by an existing learning issue (`LUC-972`) and one worker-fanout duplicate suppressed as `LUC-1165` done.
+- No new capability-gap issue was created on this run, which keeps the learning loop in evidence-producing mode instead of turning every repeat into new noise.
 - No change to user intent, active mission, or parked-app policy was justified by the review.
 
 ## 2026-07-03 Archived Thread: App-Completion And Company-Standards Context

@@ -3390,3 +3390,25 @@ terminal result confirm Spark was truly applied.
 - V1 begins after V0 and sufficient Roost completion. V1 moves Paperclip itself
   to VPS and connects the hosted control plane with Soar and the broader
   Roost-backed ecosystem.
+
+## 2026-07-15 - Organizational learning loop apply run
+
+Context: `LUC-1222` was the active organizational learning loop routine issue.
+The issue description pointed at `node scripts/run-softwarehouse-learning-loop.mjs --apply`.
+
+Actions:
+
+- Ran `node scripts/run-softwarehouse-learning-loop.mjs --apply` against the
+  local Paperclip API at `http://127.0.0.1:3200`.
+- The loop completed successfully, examined one blocked group, and processed
+  one eligible group.
+- The loop did not create a new learning issue on this run.
+- It recorded one noop for an already-existing security/credential learning
+  issue rooted at `LUC-972`.
+- It suppressed one duplicate worker-fanout learning issue, mapped to
+  `LUC-1165` with `done` status.
+
+Decision: the organizational learning loop remains an evidence-producing
+routine. This run showed duplicate suppression working and confirmed that the
+repeated security/credential pattern was already represented elsewhere, so no
+new capability-gap issue was needed for `LUC-1222`.
