@@ -457,3 +457,17 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Known protected leaves remain fail-closed. Their presence must not create
   repetitive blocked-triage work or suppress independent local Soar/Roost
   truth gaps that can be completed without production or credential mutation.
+
+## 2026-07-15 - Constructive Dispatch Live Proof
+
+- A clean control tick dispatched bounded project-truth lanes for both active
+  products. Roost `LUC-1187` closed through source-control sidecar `LUC-1190`
+  at clean commit `b6d5708e`; Soar `LUC-1188` closed through sidecar
+  `LUC-1191` at clean commit `316621541`.
+- The next tick continued with Roost `LUC-1192` active and Soar `LUC-1193`
+  queued behind the same TAE owner. Preserve this per-project depth of one and
+  one-agent-one-active-run serialization while the remaining indexed truth
+  gaps are worked down.
+- Current full delivery remains fail-closed only at protected leaf `LUC-972`.
+  Local evidence, tests, docs, review, and source-control commits may continue;
+  push, deploy, restart, protected smoke, and credential mutation may not.
