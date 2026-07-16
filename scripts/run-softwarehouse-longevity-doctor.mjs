@@ -209,6 +209,16 @@ async function searchIssues(companyId, query) {
   return request(`/api/companies/${companyId}/issues?${params.toString()}`);
 }
 
+async function getCurrentIssueContext() {
+  const currentIssueId = process.env.PAPERCLIP_TASK_ID;
+  if (!currentIssueId) return null;
+  try {
+    return await request(`/api/issues/${currentIssueId}`);
+  } catch {
+    return null;
+  }
+}
+
 function isKnownStateEvidenceLane(issue) {
   const title = String(issue?.title ?? "");
   if (issue?.status === "cancelled") return false;
@@ -306,6 +316,7 @@ const findings = [];
 const softwarehouseChecks = [];
 const repairActions = [];
 let restartRequestWritten = false;
+const currentIssueContext = await getCurrentIssueContext();
 
 function recordSoftwarehouseCheck(id, status, summary, data = {}) {
   softwarehouseChecks.push({ id, status, summary, data });
@@ -771,6 +782,8 @@ if (apiReachable) {
         await requestJson("PATCH", `/api/issues/${existingRepairIssue.id}`, {
           description: repairBody,
           projectId: softwarehouseProject?.id ?? existingRepairIssue.projectId ?? null,
+          parentId: currentIssueContext?.id ?? existingRepairIssue.parentId ?? null,
+          goalId: currentIssueContext?.goalId ?? existingRepairIssue.goalId ?? null,
           priority: findings.some((finding) => finding.severity === "critical") ? "critical" : "high",
         });
         await requestJson("POST", `/api/issues/${existingRepairIssue.id}/comments`, {
@@ -789,6 +802,8 @@ if (apiReachable) {
           status: "todo",
           priority: findings.some((finding) => finding.severity === "critical") ? "critical" : "high",
           projectId: softwarehouseProject?.id ?? null,
+          parentId: currentIssueContext?.id ?? null,
+          goalId: currentIssueContext?.goalId ?? null,
           assigneeAgentId: repairOwner?.id ?? null,
         });
         repairActions.push({
