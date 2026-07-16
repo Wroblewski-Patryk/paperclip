@@ -19,6 +19,7 @@ scoped and inspectable.
 | ControlPolicy | agent/project/company runtime config, approvals, budgets, docs in this section | `docs/agent-policy-gates.md` |
 | CompanySituation | Deterministic company-scoped projection over goals, projects, issues, agents, approvals, and budget incidents | `server/src/services/company-situation.ts` |
 | OrganizationalRecord | Typed assumption, commitment, or decision with lifecycle, owner, evidence, review timing, and supersession | `packages/db/src/schema/organizational_records.ts` |
+| OrganizationalObservation | Source-backed outcome, causal finding, external signal, or learning candidate with freshness and governed promotion | `packages/db/src/schema/organizational_observations.ts` |
 
 ## Operating Flow
 
@@ -52,8 +53,8 @@ Mission Control must answer these questions without guessing:
 - Which agent failures have safe traces, feedback, evals, and passing regression evidence?
 
 `CompanySituation` is the orientation-layer read model. It combines sourced control-plane facts with
-clearly labelled organizational records and a bounded historical-throughput forecast. Forecasts retain
+clearly labelled organizational records, flow-capacity queues, outcome/causal learning, external-signal
+freshness, and a bounded historical-throughput forecast. Forecasts retain
 sample size, confidence, and limitations; they do not become deadlines. Decisions do not grant authority
-or bypass approvals, budgets, or evidence gates. The complementary roadmap for remaining capacity,
-outcome learning, and external grounding lives in
+or bypass approvals, budgets, or evidence gates. The complementary roadmap and remaining calibration work live in
 `doc/plans/2026-07-15-organizational-orientation-system.md`.

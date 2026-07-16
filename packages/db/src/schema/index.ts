@@ -32,6 +32,7 @@ export { workspaceRuntimeServices } from "./workspace_runtime_services.js";
 export { projectGoals } from "./project_goals.js";
 export { goals } from "./goals.js";
 export { organizationalRecords } from "./organizational_records.js";
+export { organizationalObservations } from "./organizational_observations.js";
 export { issues } from "./issues.js";
 export { issuePlanDecompositions } from "./issue_plan_decompositions.js";
 export { issueRecoveryActions } from "./issue_recovery_actions.js";

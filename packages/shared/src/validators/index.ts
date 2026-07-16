@@ -1,4 +1,13 @@
 export {
+  createOrganizationalObservationSchema,
+  updateOrganizationalObservationSchema,
+  listOrganizationalObservationsQuerySchema,
+  type CreateOrganizationalObservation,
+  type UpdateOrganizationalObservation,
+  type ListOrganizationalObservationsQuery,
+} from "./organizational-observation.js";
+
+export {
   organizationalEvidenceRefSchema,
   createOrganizationalRecordSchema,
   updateOrganizationalRecordSchema,

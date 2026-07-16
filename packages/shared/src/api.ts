@@ -18,6 +18,7 @@ export const API = {
   dashboard: `${API_PREFIX}/dashboard`,
   companySituation: `${API_PREFIX}/companies/:companyId/situation`,
   organizationalRecords: `${API_PREFIX}/organizational-records`,
+  organizationalObservations: `${API_PREFIX}/organizational-observations`,
   sidebarBadges: `${API_PREFIX}/sidebar-badges`,
   sidebarPreferences: `${API_PREFIX}/sidebar-preferences`,
   resourceMemberships: `${API_PREFIX}/resource-memberships`,

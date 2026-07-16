@@ -5,7 +5,9 @@ import {
   approvals,
   companies,
   goals,
+  issueApprovals,
   issues,
+  organizationalObservations,
   organizationalRecords,
   projects,
 } from "@paperclipai/db";
@@ -14,18 +16,22 @@ import type {
   CompanySituationProjectTarget,
   CompanySituationOrganizationalRecord,
   CompanySituationForecast,
+  CompanySituationFlowStage,
+  CompanySituationObservation,
   CompanySituationSeverity,
   CompanySituationSignal,
   CompanySituationSourceRef,
 } from "@paperclipai/shared";
 import { notFound } from "../errors.js";
 import { budgetService } from "./budgets.js";
+import { observationFreshUntil } from "./organizational-observations.js";
 
 export const COMPANY_SITUATION_DUE_SOON_DAYS = 7;
 const MAX_GOALS = 10;
 const MAX_PROJECT_SIGNALS = 5;
 const MAX_SAMPLE_SOURCES = 3;
 const MAX_DELIBERATION_RECORDS = 30;
+const MAX_OBSERVATIONS = 50;
 export const COMPANY_FORECAST_WINDOW_DAYS = 30;
 
 const OPEN_WORK_CONDITION = and(
@@ -84,6 +90,10 @@ function percentile(values: number[], quantile: number): number | null {
 
 function addDays(now: Date, days: number): string {
   return new Date(now.getTime() + days * 86_400_000).toISOString();
+}
+
+function hoursSince(value: Date, now: Date): number {
+  return Number(Math.max(0, (now.getTime() - value.getTime()) / 3_600_000).toFixed(1));
 }
 
 export function buildHistoricalThroughputForecast(input: {
@@ -154,6 +164,9 @@ export function companySituationService(db: Db) {
         budgetOverview,
         deliberationRows,
         completedIssueRows,
+        openFlowRows,
+        pendingApprovalIssueRows,
+        observationRows,
       ] = await Promise.all([
         db
           .select({
@@ -277,6 +290,31 @@ export function companySituationService(db: Db) {
             eq(issues.status, "done"),
             gte(issues.completedAt, new Date(now.getTime() - COMPANY_FORECAST_WINDOW_DAYS * 86_400_000)),
           )),
+        db
+          .select({
+            id: issues.id,
+            status: issues.status,
+            createdAt: issues.createdAt,
+            updatedAt: issues.updatedAt,
+            assigneeAgentId: issues.assigneeAgentId,
+            monitorNextCheckAt: issues.monitorNextCheckAt,
+          })
+          .from(issues)
+          .where(and(eq(issues.companyId, companyId), OPEN_WORK_CONDITION)),
+        db
+          .selectDistinct({ issueId: issueApprovals.issueId })
+          .from(issueApprovals)
+          .innerJoin(approvals, eq(issueApprovals.approvalId, approvals.id))
+          .where(and(eq(issueApprovals.companyId, companyId), eq(approvals.status, "pending"))),
+        db
+          .select()
+          .from(organizationalObservations)
+          .where(and(
+            eq(organizationalObservations.companyId, companyId),
+            sql`${organizationalObservations.status} not in ('superseded', 'archived', 'rejected')`,
+          ))
+          .orderBy(desc(organizationalObservations.observedAt))
+          .limit(MAX_OBSERVATIONS),
       ]);
 
       const issueCounts = countByStatus(issueStatusRows);
@@ -316,6 +354,59 @@ export function companySituationService(db: Db) {
         openScope: open,
         completed: completedIssueRows,
       });
+      const pendingApprovalIssueIds = new Set(pendingApprovalIssueRows.map((row) => row.issueId));
+      const stageRows: Record<CompanySituationFlowStage["stage"], typeof openFlowRows> = {
+        assigned_queue: openFlowRows.filter((row) => ["backlog", "todo"].includes(row.status) && Boolean(row.assigneeAgentId)),
+        execution: openFlowRows.filter((row) => row.status === "in_progress"),
+        review: openFlowRows.filter((row) => row.status === "in_review"),
+        human_gate: openFlowRows.filter((row) => pendingApprovalIssueIds.has(row.id)),
+        external_wait: openFlowRows.filter((row) => row.status === "blocked" && Boolean(row.monitorNextCheckAt) && !pendingApprovalIssueIds.has(row.id)),
+        blocked_unknown: openFlowRows.filter((row) => row.status === "blocked" && !row.monitorNextCheckAt && !pendingApprovalIssueIds.has(row.id)),
+      };
+      const flow = (Object.entries(stageRows) as Array<[CompanySituationFlowStage["stage"], typeof openFlowRows]>)
+        .map<CompanySituationFlowStage>(([stage, rows]) => ({
+          stage,
+          count: rows.length,
+          oldestHours: rows.length > 0
+            ? Math.max(...rows.map((row) => hoursSince(row.updatedAt ?? row.createdAt, now)))
+            : null,
+        }));
+      const bottleneck = flow.filter((stage) => stage.count > 0)
+        .sort((left, right) => right.count - left.count || (right.oldestHours ?? 0) - (left.oldestHours ?? 0))[0] ?? null;
+      const wipByAgent = new Map<string, number>();
+      for (const row of openFlowRows.filter((item) => item.status === "in_progress" && item.assigneeAgentId)) {
+        wipByAgent.set(row.assigneeAgentId!, (wipByAgent.get(row.assigneeAgentId!) ?? 0) + 1);
+      }
+      const agentsWithParallelWip = [...wipByAgent.values()].filter((count) => count > 1).length;
+      const maxParallelWip = Math.max(0, ...wipByAgent.values());
+
+      const observations = observationRows.map<CompanySituationObservation>((row) => {
+        const freshUntil = observationFreshUntil(row);
+        return {
+          id: row.id,
+          kind: row.kind as CompanySituationObservation["kind"],
+          status: row.status,
+          title: row.title,
+          summary: row.summary,
+          observedAt: asIso(row.observedAt),
+          freshUntil: freshUntil ? asIso(freshUntil) : null,
+          effectivelyStale: row.kind === "external_signal" && row.status === "current" && Boolean(freshUntil && freshUntil < now),
+          outcomeLayer: row.outcomeLayer,
+          outcomeResult: row.outcomeResult,
+          causalRole: row.causalRole,
+          externalCategory: row.externalCategory,
+          projectId: row.projectId,
+          issueId: row.issueId,
+        };
+      });
+      const outcomes = observations.filter((row) => row.kind === "outcome");
+      const causalFindings = observations.filter((row) => row.kind === "causal");
+      const learningCandidates = observations.filter((row) => row.kind === "learning" && ["proposed", "validated"].includes(row.status));
+      const promotedLearning = observations.filter((row) => row.kind === "learning" && row.status === "promoted");
+      const externalSignals = observations.filter((row) => row.kind === "external_signal");
+      const staleExternalSignals = externalSignals.filter((row) => row.status === "stale" || row.effectivelyStale);
+      const contradictedExternalSignals = externalSignals.filter((row) => row.status === "contradicted");
+      const currentExternalSignals = externalSignals.filter((row) => row.status === "current" && !row.effectivelyStale);
 
       const projectTargets = activeProjects
         .filter((project): project is typeof project & { targetDate: string } => Boolean(project.targetDate))
@@ -512,6 +603,74 @@ export function companySituationService(db: Db) {
             .map((project) => sourceRef("project", project.id, project.updatedAt)),
         });
       }
+      if (bottleneck && (bottleneck.count >= 2 || (bottleneck.oldestHours ?? 0) >= 24)) {
+        attention.push({
+          id: `capacity-bottleneck:${bottleneck.stage}`,
+          kind: "capacity_bottleneck",
+          severity: "info",
+          title: `${bottleneck.count} item${bottleneck.count === 1 ? "" : "s"} concentrated in ${bottleneck.stage.replaceAll("_", " ")}`,
+          summary: `This is the largest observed flow queue${bottleneck.oldestHours === null ? "" : `; its oldest item has not changed for ${bottleneck.oldestHours} hours`}.`,
+          suggestedAction: "Review the queue before starting more work and address the constraint that would improve end-to-end flow.",
+          sources: stageRows[bottleneck.stage].slice(0, MAX_SAMPLE_SOURCES).map((row) => sourceRef("issue", row.id, row.updatedAt)),
+        });
+      }
+      if (agentsWithParallelWip > 0) {
+        attention.push({
+          id: "parallel-wip",
+          kind: "parallel_wip",
+          severity: "info",
+          title: `${agentsWithParallelWip} agent${agentsWithParallelWip === 1 ? " has" : "s have"} parallel work in progress`,
+          summary: `The highest observed per-agent WIP is ${maxParallelWip}; this may reflect real concurrency or context switching.`,
+          suggestedAction: "Confirm that parallel ownership is intentional and finish or unblock existing work before expanding WIP.",
+          sources: [sourceRef("company", company.id, company.updatedAt)],
+        });
+      }
+      if (staleExternalSignals.length > 0) {
+        attention.push({
+          id: "external-signals-stale",
+          kind: "external_signal_stale",
+          severity: "warning",
+          title: `${staleExternalSignals.length} external signal${staleExternalSignals.length === 1 ? " is" : "s are"} stale`,
+          summary: "The organization is relying on evidence whose explicit freshness window has elapsed.",
+          suggestedAction: "Refresh the source, replace the signal, or stop using it for current decisions.",
+          sources: staleExternalSignals.slice(0, MAX_SAMPLE_SOURCES).map((row) => sourceRef("organizational_observation", row.id, row.observedAt)),
+        });
+      }
+      if (contradictedExternalSignals.length > 0) {
+        attention.push({
+          id: "external-signals-contradicted",
+          kind: "external_signal_contradicted",
+          severity: "warning",
+          title: `${contradictedExternalSignals.length} external signal${contradictedExternalSignals.length === 1 ? " is" : "s are"} contradicted`,
+          summary: "New evidence conflicts with an external fact used by the organization.",
+          suggestedAction: "Trace dependent assumptions and decisions, then supersede or explicitly retain them with evidence.",
+          sources: contradictedExternalSignals.slice(0, MAX_SAMPLE_SOURCES).map((row) => sourceRef("organizational_observation", row.id, row.observedAt)),
+        });
+      }
+      const failedOutcomes = outcomes.filter((row) => row.outcomeResult === "failure" && row.status !== "disputed");
+      if (failedOutcomes.length > 0) {
+        attention.push({
+          id: "verified-outcome-failures",
+          kind: "outcome_failure",
+          severity: "warning",
+          title: `${failedOutcomes.length} recorded outcome failure${failedOutcomes.length === 1 ? "" : "s"}`,
+          summary: "Delivered output did not produce the recorded acceptance, outcome, or impact.",
+          suggestedAction: "Link causal findings and a bounded learning candidate instead of repeating the same execution pattern.",
+          sources: failedOutcomes.slice(0, MAX_SAMPLE_SOURCES).map((row) => sourceRef("organizational_observation", row.id, row.observedAt)),
+        });
+      }
+      const validatedLearning = learningCandidates.filter((row) => row.status === "validated");
+      if (validatedLearning.length > 0) {
+        attention.push({
+          id: "learning-ready-for-promotion",
+          kind: "learning_ready_for_promotion",
+          severity: "info",
+          title: `${validatedLearning.length} validated learning candidate${validatedLearning.length === 1 ? " is" : "s are"} ready for promotion`,
+          summary: "Evidence has passed validation, but the learning has not yet been embedded in reusable operating infrastructure.",
+          suggestedAction: "Promote each candidate into a named skill, procedure, template, eval, routine, policy, or follow-up issue.",
+          sources: validatedLearning.slice(0, MAX_SAMPLE_SOURCES).map((row) => sourceRef("organizational_observation", row.id, row.observedAt)),
+        });
+      }
 
       return {
         companyId,
@@ -541,6 +700,10 @@ export function companySituationService(db: Db) {
           errorAgents,
           runnableIssuesPerAvailableAgent:
             availableAgents > 0 ? Number((runnable / availableAgents).toFixed(2)) : null,
+          flow,
+          bottleneck,
+          agentsWithParallelWip,
+          maxParallelWip,
         },
         temporal: {
           activeProjects: activeProjects.length,
@@ -560,11 +723,23 @@ export function companySituationService(db: Db) {
           dueReviews: dueReviews.length,
           overdueCommitments: overdueCommitments.length,
         },
+        learning: {
+          outcomes,
+          causalFindings,
+          candidates: learningCandidates,
+          promoted: promotedLearning.length,
+        },
+        externalGrounding: {
+          currentSignals: currentExternalSignals,
+          staleSignals: staleExternalSignals,
+          contradictedSignals: contradictedExternalSignals,
+          coveredCategories: [...new Set(currentExternalSignals.map((row) => row.externalCategory).filter((value): value is string => Boolean(value)))].sort(),
+        },
         forecast,
         attention: sortAttention(attention),
         limitations: [
-          "This projection reports deterministic control-plane facts; it does not infer causes or business impact.",
-          "The throughput forecast is a first calibration baseline and does not yet model project-specific dependencies or external waiting distributions.",
+          "This projection reports deterministic control-plane facts and explicitly recorded causal/outcome evidence; it does not invent causes or business impact.",
+          "The throughput forecast does not yet model project-specific dependency graphs or probability distributions for external waiting.",
           "Decision records preserve rationale but do not grant authority or bypass approvals, budgets, or evidence gates.",
         ],
       };

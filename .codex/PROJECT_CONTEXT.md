@@ -115,7 +115,10 @@ operating picture. `CompanySituation` is used by the board dashboard and issue
 heartbeat context. Its deliberation layer now has typed, auditable assumptions,
 commitments, and decisions with review timing and supersession. Its first
 forecast layer reports a confidence-labelled historical-throughput range without
-creating a deadline. Continue from
+creating a deadline. The next foundation adds explicit flow-capacity queues,
+source-backed outcome and causal observations, freshness-bounded external
+signals, and a validation-gated path that promotes learning into named skills,
+procedures, templates, evals, routines, policies, or issues. Continue from
 `doc/plans/2026-07-15-organizational-orientation-system.md`; do not replace it
 with disconnected time, priority, memory, or trust features.
 

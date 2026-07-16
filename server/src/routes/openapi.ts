@@ -49,6 +49,8 @@ import {
   updateGoalSchema,
   createOrganizationalRecordSchema,
   updateOrganizationalRecordSchema,
+  createOrganizationalObservationSchema,
+  updateOrganizationalObservationSchema,
   // Secret
   createSecretSchema,
   updateSecretSchema,
@@ -2855,6 +2857,42 @@ registry.registerPath({
   summary: "Update an organizational record lifecycle",
   request: { params: z.object({ id: z.string() }), body: jsonBody(updateOrganizationalRecordSchema) },
   responses: { 200: r.ok(), 400: r.badRequest, 401: r.unauthorized, 404: r.notFound },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/companies/{companyId}/organizational-observations",
+  tags: ["dashboard"],
+  summary: "List source-backed outcomes, causal findings, external signals, and learning",
+  request: { params: z.object({ companyId: z.string() }) },
+  responses: { 200: r.ok(), 401: r.unauthorized },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/companies/{companyId}/organizational-observations",
+  tags: ["dashboard"],
+  summary: "Create a source-backed organizational observation",
+  request: { params: z.object({ companyId: z.string() }), body: jsonBody(createOrganizationalObservationSchema) },
+  responses: { 201: r.ok(), 400: r.badRequest, 401: r.unauthorized },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/organizational-observations/{id}",
+  tags: ["dashboard"],
+  summary: "Get an organizational observation",
+  request: { params: z.object({ id: z.string() }) },
+  responses: { 200: r.ok(), 401: r.unauthorized, 404: r.notFound },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/organizational-observations/{id}",
+  tags: ["dashboard"],
+  summary: "Update an organizational observation lifecycle",
+  request: { params: z.object({ id: z.string() }), body: jsonBody(updateOrganizationalObservationSchema) },
+  responses: { 200: r.ok(), 400: r.badRequest, 401: r.unauthorized, 404: r.notFound, 409: r.conflict },
 });
 
 registry.registerPath({

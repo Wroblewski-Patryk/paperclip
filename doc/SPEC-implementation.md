@@ -441,6 +441,7 @@ The current implementation includes additional V1-control-plane tables beyond th
 - Access and operations: company memberships, instance roles, principal permission grants, invites, join requests, board API keys, CLI auth challenges, budget policies/incidents, feedback exports/votes, company skills, sidebar preferences, and company logos.
 - Organizational orientation: a company-scoped `CompanySituation` read model projects active goals, product-work posture, agent capacity, project target facts, governance counts, typed organizational records, sourced attention signals, and a clearly labelled historical-throughput range without creating a second source of truth or an automatic deadline.
 - Deliberation memory: `organizational_records` stores company-scoped assumptions, commitments, and decisions with owners, evidence refs, goal/project/issue links, review/due/expiry times, lifecycle state, and supersession. Decision records never grant execution authority or bypass policy gates.
+- Evidence and learning: `organizational_observations` stores sourced outcomes, causal findings, freshness-bounded external signals, and learning candidates. Learning must transition through validation before promotion and promotion names a durable operating target.
 
 ## 8. State Machines
 
@@ -701,6 +702,10 @@ Allowed states are `joined` and `left`. Endpoints require a concrete board user 
 - `POST /companies/:companyId/organizational-records`
 - `GET /organizational-records/:id`
 - `PATCH /organizational-records/:id`
+- `GET /companies/:companyId/organizational-observations`
+- `POST /companies/:companyId/organizational-observations`
+- `GET /organizational-observations/:id`
+- `PATCH /organizational-observations/:id`
 
 Dashboard payload must include:
 

@@ -110,7 +110,7 @@ change; governed records and evidence decide whether it becomes current truth.
 - Support expiry/review, contradiction, renegotiation, and supersession.
 - Add activity entries and board/agent permission checks for every mutation.
 
-### Slice 4: forecasting and capacity â€” historical-throughput baseline implemented
+### Slice 4: forecasting and capacity — operational baseline implemented
 
 - Separate active execution time, wall-clock time, external waiting, review
   waiting, and human-gate waiting.
@@ -119,25 +119,36 @@ change; governed records and evidence decide whether it becomes current truth.
   deadlines.
 - Expose WIP, bottleneck, queue, and context-switch signals.
 
-The first Slice 4 increment adds a 30-day historical-throughput forecast to
-`CompanySituation`. It reports sample size, cycle-time percentiles, a confidence-
-labelled completion range, and explicit limitations. Project/task-class calibration,
-waiting-state decomposition, bottleneck explanations, and context-switch signals
-remain follow-up work.
+`CompanySituation` now combines a 30-day historical-throughput range with an
+explicit flow decomposition: assigned queue, execution, review, human approval,
+external monitored waiting, and unknown blocked waiting. It reports the largest
+observed queue, age, per-agent parallel WIP, and context-switch attention. The
+forecast remains non-binding. Project/task-class calibration and probabilistic
+dependency forecasting remain later calibration work rather than invented precision.
 
-### Slice 5: outcome and causal learning
+### Slice 5: outcome and causal learning — implemented foundation
 
 - Separate output, acceptance, outcome, and impact.
 - Add causal incident/retrospective classification.
 - Promote both failure lessons and successful patterns through the existing
   improvement flywheel and eval gates.
 
-### Slice 6: external grounding
+Typed organizational observations now distinguish output, acceptance, outcome,
+and impact; symptoms, contributing causes, root causes, prevention, and success
+factors; and proposed, validated, promoted, rejected, or superseded learning.
+Promotion is impossible before validation and requires a durable target such as a
+skill, procedure, template, eval, routine, policy, or issue.
+
+### Slice 6: external grounding — implemented foundation
 
 - Normalize product monitoring, customer feedback, business metrics, and market
   observations as sourced signals.
 - Require freshness and provenance.
 - Keep connector-specific behavior outside the thin core where appropriate.
+
+External observations now require provenance plus an explicit validity boundary
+or freshness window. `CompanySituation` separates current, stale, and contradicted
+signals and reports category coverage without hard-coding connector behavior.
 
 ## Safety And Quality Invariants
 

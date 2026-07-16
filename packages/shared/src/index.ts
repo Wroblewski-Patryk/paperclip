@@ -549,6 +549,8 @@ export type {
   CompanySituationProjectTarget,
   CompanySituationOrganizationalRecord,
   CompanySituationForecast,
+  CompanySituationFlowStage,
+  CompanySituationObservation,
   CompanySituationSeverity,
   CompanySituationSignal,
   CompanySituationSignalKind,
@@ -702,6 +704,33 @@ export type {
   ProviderQuotaResult,
 } from "./types/index.js";
 export { COMPANY_SEARCH_SCOPES } from "./types/index.js";
+export {
+  ORGANIZATIONAL_OBSERVATION_KINDS,
+  ORGANIZATIONAL_OBSERVATION_STATUSES,
+  OUTCOME_LAYERS,
+  OUTCOME_RESULTS,
+  CAUSAL_ROLES,
+  EXTERNAL_SIGNAL_CATEGORIES,
+  LEARNING_TARGET_KINDS,
+  type OrganizationalObservation,
+  type OrganizationalObservationKind,
+  type OrganizationalObservationStatus,
+  type OrganizationalMeasurement,
+  type LearningPromotionTarget,
+  type OutcomeLayer,
+  type OutcomeResult,
+  type CausalRole,
+  type ExternalSignalCategory,
+  type LearningTargetKind,
+} from "./types/organizational-observation.js";
+export {
+  createOrganizationalObservationSchema,
+  updateOrganizationalObservationSchema,
+  listOrganizationalObservationsQuerySchema,
+  type CreateOrganizationalObservation,
+  type UpdateOrganizationalObservation,
+  type ListOrganizationalObservationsQuery,
+} from "./validators/organizational-observation.js";
 export {
   ORGANIZATIONAL_RECORD_KINDS,
   ASSUMPTION_STATUSES,

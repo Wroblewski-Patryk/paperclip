@@ -40,6 +40,10 @@ const situation: CompanySituation = {
     pausedAgents: 0,
     errorAgents: 1,
     runnableIssuesPerAvailableAgent: 2.5,
+    flow: [],
+    bottleneck: null,
+    agentsWithParallelWip: 0,
+    maxParallelWip: 1,
   },
   temporal: {
     activeProjects: 2,
@@ -50,6 +54,8 @@ const situation: CompanySituation = {
   },
   governance: { pendingApprovals: 0, activeBudgetIncidents: 0 },
   deliberation: { assumptions: [], commitments: [], decisions: [], dueReviews: 0, overdueCommitments: 0 },
+  learning: { outcomes: [], causalFindings: [], candidates: [], promoted: 0 },
+  externalGrounding: { currentSignals: [], staleSignals: [], contradictedSignals: [], coveredCategories: [] },
   forecast: {
     method: "historical_throughput_v1",
     windowDays: 30,

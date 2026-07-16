@@ -7,6 +7,7 @@ import {
   createDb,
   goals,
   issues,
+  organizationalObservations,
   organizationalRecords,
   projects,
 } from "@paperclipai/db";
@@ -69,6 +70,7 @@ describeEmbeddedPostgres("company situation service", () => {
   }, 20_000);
 
   afterEach(async () => {
+    await db.delete(organizationalObservations);
     await db.delete(organizationalRecords);
     await db.delete(approvals);
     await db.delete(issues);
@@ -252,6 +254,30 @@ describeEmbeddedPostgres("company situation service", () => {
         statement: "Must not leak into this situation.",
       },
     ]);
+    await db.insert(organizationalObservations).values([
+      {
+        companyId,
+        kind: "external_signal",
+        status: "current",
+        title: "Production health sample",
+        summary: "The last production observation needs refreshing.",
+        sourceClass: "production_monitor",
+        provenance: [{ kind: "external", ref: "monitor:production" }],
+        observedAt: new Date("2026-07-13T12:00:00.000Z"),
+        freshnessWindowHours: 24,
+        externalCategory: "production",
+      },
+      {
+        companyId,
+        kind: "learning",
+        status: "validated",
+        title: "Preserve a regression eval",
+        summary: "A validated pattern should become an eval.",
+        sourceClass: "retrospective",
+        provenance: [{ kind: "other", ref: "retro:1" }],
+        observedAt: now,
+      },
+    ]);
 
     const situation = await companySituationService(db).get(companyId, { now });
 
@@ -274,6 +300,8 @@ describeEmbeddedPostgres("company situation service", () => {
         availableAgents: 1,
         errorAgents: 1,
         runnableIssuesPerAvailableAgent: 1,
+        agentsWithParallelWip: 0,
+        maxParallelWip: 0,
       },
       temporal: {
         activeProjects: 2,
@@ -288,6 +316,8 @@ describeEmbeddedPostgres("company situation service", () => {
         dueReviews: 1,
         overdueCommitments: 1,
       },
+      learning: { candidates: [expect.objectContaining({ status: "validated" })], promoted: 0 },
+      externalGrounding: { currentSignals: [], staleSignals: [expect.objectContaining({ effectivelyStale: true })] },
     });
     expect(situation.temporal.overdueProjects).toEqual([
       expect.objectContaining({ id: overdueProjectId, daysRemaining: -2 }),
@@ -300,8 +330,10 @@ describeEmbeddedPostgres("company situation service", () => {
       "assumption_contradicted",
       "blocked_work",
       "commitment_overdue",
+      "external_signal_stale",
       "pending_approval",
       "project_overdue",
+      "learning_ready_for_promotion",
       "organizational_review_due",
       "project_due_soon",
       "unassigned_runnable_work",

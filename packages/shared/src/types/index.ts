@@ -1,5 +1,26 @@
 export type { Company } from "./company.js";
 export {
+  ORGANIZATIONAL_OBSERVATION_KINDS,
+  ORGANIZATIONAL_OBSERVATION_STATUSES,
+  OUTCOME_LAYERS,
+  OUTCOME_RESULTS,
+  CAUSAL_ROLES,
+  EXTERNAL_SIGNAL_CATEGORIES,
+  LEARNING_TARGET_KINDS,
+} from "./organizational-observation.js";
+export type {
+  OrganizationalObservation,
+  OrganizationalObservationKind,
+  OrganizationalObservationStatus,
+  OrganizationalMeasurement,
+  LearningPromotionTarget,
+  OutcomeLayer,
+  OutcomeResult,
+  CausalRole,
+  ExternalSignalCategory,
+  LearningTargetKind,
+} from "./organizational-observation.js";
+export {
   ORGANIZATIONAL_RECORD_KINDS,
   ASSUMPTION_STATUSES,
   COMMITMENT_STATUSES,
@@ -389,6 +410,8 @@ export type {
   CompanySituationProjectTarget,
   CompanySituationOrganizationalRecord,
   CompanySituationForecast,
+  CompanySituationFlowStage,
+  CompanySituationObservation,
   CompanySituationSeverity,
   CompanySituationSignal,
   CompanySituationSignalKind,

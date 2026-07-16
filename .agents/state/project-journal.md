@@ -3536,3 +3536,38 @@ dev service. Live readback on port 3200 confirms health `ok`, zero live runs,
 the organizational-record list endpoint, deliberation inside
 `CompanySituation`, `historical_throughput_v1` with a high-confidence current
 sample, and the same situation basis inside issue heartbeat context.
+
+## 2026-07-16 - Capacity, outcome learning, and external grounding implemented
+
+Implemented the remaining foundation slices as complementary parts of the same
+organizational-orientation loop. Migration 0104 adds company-scoped
+`organizational_observations` for outcomes, causal findings, external signals,
+and learning candidates. Every observation requires provenance and observation
+time; external signals additionally require a validity boundary or freshness
+window. Same-kind supersession is atomic and cross-company references are
+rejected.
+
+Learning promotion is governed rather than decorative: creation starts at
+`proposed`, transitions through `validated`, and only then may become
+`promoted`; promotion must name a durable skill, procedure, template, eval,
+routine, policy, or issue target. Outcome and causal types keep output,
+acceptance, outcome, impact, symptom, cause, root cause, prevention, and success
+factor distinct.
+
+`CompanySituation` now reports assigned queue, execution, review, human-gate,
+external-wait, and unknown-blocked flow stages, plus bottleneck age and parallel
+per-agent WIP. It includes current/stale/contradicted external evidence,
+outcomes, causal findings, and learning candidates, and creates sourced attention
+signals for stale or contradicted reality, failed outcomes, validated learning,
+bottlenecks, and context switching. The board receives an Evidence & learning
+page and heartbeat context receives the same projection.
+
+Evidence: repeated `pnpm db:generate` reported no drift; shared, server, and UI
+typechecks passed; six focused embedded-Postgres/service/UI tests passed; and
+the full production build passed with only pre-existing CSS-highlight and chunk
+size warnings. Live activation waited for CTO run
+`6594976a-311c-40bc-b33f-c0da09286dab` to finish. The official dev service then
+restarted cleanly, applied migration 0104, and registered one listener on port
+3200. Readback confirmed health `ok`, the empty new observation endpoint, all
+six flow stages in `CompanySituation`, the Evidence & learning UI route, and
+zero live runs.

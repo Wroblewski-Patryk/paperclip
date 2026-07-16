@@ -18,6 +18,22 @@
   unreliable schema migration generation, is V0 hardening even when current
   runtime behavior still works.
 
+## 2026-07-16 Organizational Orientation Completion Checkpoint
+
+- The company situation now decomposes flow into assigned queue, execution,
+  review, human approval, external monitored waiting, and unknown blocked
+  waiting; it also reports bottleneck age and per-agent parallel WIP.
+- Source-backed organizational observations distinguish outcomes, causal
+  findings, external signals, and learning candidates. External signals require
+  an explicit freshness boundary. Learning cannot be promoted before validation
+  and must name a durable operating target.
+- These facts are part of the same `CompanySituation` delivered to dashboard
+  and heartbeat context; they do not bypass existing authority or evidence gates.
+- Migration 0104 and the new UI/API are active on the local instance. The
+  restart waited for the CTO run to end; post-restart readback showed health
+  `ok`, six capacity stages, the new observation endpoint and UI route, and zero
+  live runs.
+
 ## 2026-07-04 Stage 1 Hard Delivery And Company Proof
 
 Paperclip is now being used as the operating control plane for a practical

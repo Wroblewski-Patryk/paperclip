@@ -251,3 +251,12 @@ Migration `0101_reconcile_schema_snapshot_ancestry` linearizes the historical
 idempotently. Migration 0102 adds the organizational record table, and 0103
 preserves the project icon column while bringing it back into the canonical
 schema snapshot.
+
+## Organizational observations and learning
+
+`organizational_observations` stores company-scoped, source-backed outcomes,
+causal findings, external signals, and learning candidates. It carries explicit
+provenance, observation time, freshness, typed links, supersession, measurement,
+and promotion targets. Migration 0104 adds the table. Service rules enforce
+same-company references, kind-specific lifecycle transitions, atomic supersession,
+and the `proposed -> validated -> promoted` learning gate.

@@ -15,10 +15,16 @@ export type CompanySituationSignalKind =
   | "assumption_expired"
   | "commitment_breached"
   | "commitment_overdue"
-  | "organizational_review_due";
+  | "organizational_review_due"
+  | "capacity_bottleneck"
+  | "parallel_wip"
+  | "external_signal_stale"
+  | "external_signal_contradicted"
+  | "outcome_failure"
+  | "learning_ready_for_promotion";
 
 export interface CompanySituationSourceRef {
-  entityType: "company" | "goal" | "project" | "issue" | "agent" | "approval" | "budget_incident" | "organizational_record";
+  entityType: "company" | "goal" | "project" | "issue" | "agent" | "approval" | "budget_incident" | "organizational_record" | "organizational_observation";
   entityId: string;
   observedAt: string;
 }
@@ -82,6 +88,29 @@ export interface CompanySituationForecast {
   limitations: string[];
 }
 
+export interface CompanySituationObservation {
+  id: string;
+  kind: "outcome" | "causal" | "external_signal" | "learning";
+  status: string;
+  title: string;
+  summary: string;
+  observedAt: string;
+  freshUntil: string | null;
+  effectivelyStale: boolean;
+  outcomeLayer: string | null;
+  outcomeResult: string | null;
+  causalRole: string | null;
+  externalCategory: string | null;
+  projectId: string | null;
+  issueId: string | null;
+}
+
+export interface CompanySituationFlowStage {
+  stage: "assigned_queue" | "execution" | "review" | "human_gate" | "external_wait" | "blocked_unknown";
+  count: number;
+  oldestHours: number | null;
+}
+
 export interface CompanySituation {
   companyId: string;
   generatedAt: string;
@@ -108,6 +137,10 @@ export interface CompanySituation {
     pausedAgents: number;
     errorAgents: number;
     runnableIssuesPerAvailableAgent: number | null;
+    flow: CompanySituationFlowStage[];
+    bottleneck: CompanySituationFlowStage | null;
+    agentsWithParallelWip: number;
+    maxParallelWip: number;
   };
   temporal: {
     activeProjects: number;
@@ -126,6 +159,18 @@ export interface CompanySituation {
     decisions: CompanySituationOrganizationalRecord[];
     dueReviews: number;
     overdueCommitments: number;
+  };
+  learning: {
+    outcomes: CompanySituationObservation[];
+    causalFindings: CompanySituationObservation[];
+    candidates: CompanySituationObservation[];
+    promoted: number;
+  };
+  externalGrounding: {
+    currentSignals: CompanySituationObservation[];
+    staleSignals: CompanySituationObservation[];
+    contradictedSignals: CompanySituationObservation[];
+    coveredCategories: string[];
   };
   forecast: CompanySituationForecast;
   attention: CompanySituationSignal[];
