@@ -3023,6 +3023,16 @@ test("control tick emits stale gate owner actions during operating system closur
   assert.match(operatingSystemClosureBranch, /\.\.\.staleGateOwnerActions\(\)/);
 });
 
+test("control tick keeps stale gate owner actions during limited supervision delivery posture", async () => {
+  const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
+  const gateHoldBranch = source.match(
+    /if \(\[\s*"project_repo_mutation_blocked_monitoring_allowed",\s*"supervision_ready_limited_delivery",\s*\]\.includes\(effectiveOperatingPosture\)\) \{[\s\S]*?\n  \}/,
+  )?.[0] ?? "";
+
+  assert.match(gateHoldBranch, /"supervision_ready_limited_delivery"/);
+  assert.match(gateHoldBranch, /\.\.\.staleGateOwnerActions\(\)/);
+});
+
 test("continuation watchdog records a todo disposition for its recurring issue", async () => {
   const requests = [];
   const result = await finalizeRecurringIssue({

@@ -1133,7 +1133,10 @@ function nextControlActionsFor({
       ...staleGateOwnerActions(),
     ];
   }
-  if (effectiveOperatingPosture === "project_repo_mutation_blocked_monitoring_allowed") {
+  if ([
+    "project_repo_mutation_blocked_monitoring_allowed",
+    "supervision_ready_limited_delivery",
+  ].includes(effectiveOperatingPosture)) {
     const dirtyProjects = sourceControlRepos
       .filter((repo) => repo.name !== "Paperclip_Softwarehouse" && repo.clean === false && repo.parked !== true)
       .map((repo) => `${repo.name} has ${repo.dirtyCount ?? "unknown"} uncommitted change(s)`);
