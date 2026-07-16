@@ -206,6 +206,27 @@ test("longevity doctor treats active project-truth proof lanes as known-state ev
   assert.match(source, /\\b\(Prove\|Proof\|Reconcile\|Evidence\)\\b/);
 });
 
+test("longevity doctor routes repair issues to finding-scoped agents before falling back to CTO", async () => {
+  const source = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
+
+  assert.match(source, /function\* findingAgentRefs\(value\)/);
+  assert.match(source, /typeof value\.agentId === "string"/);
+  assert.match(source, /typeof value\.agentName === "string"/);
+  assert.match(source, /function resolveRepairOwner\(findings, agents\)/);
+  assert.match(source, /for \(const ref of findingAgentRefs\(finding\.data\)\)/);
+  assert.match(source, /ref\.agentId && agent\.id === ref\.agentId/);
+  assert.match(source, /ref\.agentName && agent\.name === ref\.agentName/);
+  assert.match(source, /function canCommentOnIssue\(issue, nextAssigneeAgentId = null\)/);
+  assert.match(source, /function canMutateIssue\(issue\)/);
+  assert.match(source, /const actorAgentId = process\.env\.PAPERCLIP_AGENT_ID \?\? null/);
+  assert.match(source, /if \(canCommentOnIssue\(existingRepairIssue, nextAssigneeAgentId\)\)/);
+  assert.match(source, /if \(canMutateIssue\(existingRepairIssue\)\)/);
+  assert.match(source, /const repairOwner = resolveRepairOwner\(findings, agents\)/);
+  assert.match(source, /const nextAssigneeAgentId = repairOwner\?\.id \?\? existingRepairIssue\.assigneeAgentId \?\? null/);
+  assert.match(source, /assigneeAgentId:\s*nextAssigneeAgentId/);
+  assert.match(source, /reused_cross_boundary_repair_issue/);
+});
+
 test("softwarehouse audit ignores fresh completion and detached-process tails", async () => {
   const source = await readFile("scripts/audit-luckysparrow-softwarehouse.mjs", "utf8");
 

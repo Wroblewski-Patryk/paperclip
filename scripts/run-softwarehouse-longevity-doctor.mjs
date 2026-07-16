@@ -186,6 +186,55 @@ function findingsDigest(rows) {
   }).join("\n");
 }
 
+function* findingAgentRefs(value) {
+  if (!value || typeof value !== "object") return;
+  if (typeof value.agentId === "string" || typeof value.agentName === "string") {
+    yield {
+      agentId: typeof value.agentId === "string" ? value.agentId : null,
+      agentName: typeof value.agentName === "string" ? value.agentName : null,
+    };
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      yield* findingAgentRefs(item);
+    }
+    return;
+  }
+  for (const nested of Object.values(value)) {
+    yield* findingAgentRefs(nested);
+  }
+}
+
+function resolveRepairOwner(findings, agents) {
+  const candidates = [];
+  for (const finding of findings) {
+    for (const ref of findingAgentRefs(finding.data)) {
+      const match = agents.find((agent) =>
+        (ref.agentId && agent.id === ref.agentId)
+        || (ref.agentName && agent.name === ref.agentName)
+      );
+      if (match) candidates.push(match);
+    }
+  }
+  if (candidates.length > 0) return candidates[0];
+  return agents.find((agent) => agent.name === "09 CTO (Chief Technology Officer)")
+    ?? agents.find((agent) => agent.name === "11 IPM (Innovation Portfolio Manager)")
+    ?? null;
+}
+
+function canCommentOnIssue(issue, nextAssigneeAgentId = null) {
+  const actorAgentId = process.env.PAPERCLIP_AGENT_ID ?? null;
+  if (!actorAgentId) return true;
+  const effectiveAssigneeAgentId = nextAssigneeAgentId ?? issue?.assigneeAgentId ?? null;
+  return !effectiveAssigneeAgentId || effectiveAssigneeAgentId === actorAgentId;
+}
+
+function canMutateIssue(issue) {
+  const actorAgentId = process.env.PAPERCLIP_AGENT_ID ?? null;
+  if (!actorAgentId) return true;
+  return !issue?.assigneeAgentId || issue.assigneeAgentId === actorAgentId;
+}
+
 function normalizeName(value) {
   return String(value ?? "").trim().toLowerCase();
 }
@@ -753,9 +802,7 @@ if (apiReachable) {
       const softwarehouseProject = findActiveProjectByTarget(projects, "Softwarehouse")
         ?? findActiveProjectByTarget(projects, "Softwarehouse Operating System")
         ?? null;
-      const repairOwner = agents.find((agent) => agent.name === "09 CTO (Chief Technology Officer)")
-        ?? agents.find((agent) => agent.name === "11 IPM (Innovation Portfolio Manager)")
-        ?? null;
+      const repairOwner = resolveRepairOwner(findings, agents);
       const existingRepairIssues = issueList(await request(
         `/api/companies/${company.id}/issues?q=${encodeURIComponent(repairTitle)}&limit=50`,
       ));
@@ -779,19 +826,27 @@ if (apiReachable) {
         "- close or return with concrete next blocker",
       ].join("\n");
       if (existingRepairIssue) {
-        await requestJson("PATCH", `/api/issues/${existingRepairIssue.id}`, {
-          description: repairBody,
-          projectId: softwarehouseProject?.id ?? existingRepairIssue.projectId ?? null,
-          parentId: currentIssueContext?.id ?? existingRepairIssue.parentId ?? null,
-          goalId: currentIssueContext?.goalId ?? existingRepairIssue.goalId ?? null,
-          priority: findings.some((finding) => finding.severity === "critical") ? "critical" : "high",
-        });
-        await requestJson("POST", `/api/issues/${existingRepairIssue.id}/comments`, {
-          body: repairBody,
-          resume: false,
-        });
+        const nextAssigneeAgentId = repairOwner?.id ?? existingRepairIssue.assigneeAgentId ?? null;
+        if (canMutateIssue(existingRepairIssue)) {
+          await requestJson("PATCH", `/api/issues/${existingRepairIssue.id}`, {
+            description: repairBody,
+            projectId: softwarehouseProject?.id ?? existingRepairIssue.projectId ?? null,
+            parentId: currentIssueContext?.id ?? existingRepairIssue.parentId ?? null,
+            goalId: currentIssueContext?.goalId ?? existingRepairIssue.goalId ?? null,
+            assigneeAgentId: nextAssigneeAgentId,
+            priority: findings.some((finding) => finding.severity === "critical") ? "critical" : "high",
+          });
+          if (canCommentOnIssue(existingRepairIssue, nextAssigneeAgentId)) {
+            await requestJson("POST", `/api/issues/${existingRepairIssue.id}/comments`, {
+              body: repairBody,
+              resume: false,
+            });
+          }
+        }
         repairActions.push({
-          action: "updated_existing_repair_issue",
+          action: canMutateIssue(existingRepairIssue)
+            ? "updated_existing_repair_issue"
+            : "reused_cross_boundary_repair_issue",
           identifier: existingRepairIssue.identifier,
           status: existingRepairIssue.status,
         });
