@@ -1024,6 +1024,84 @@ export function findProtectedCoolifyVpsBindingWaitChain({
   return rootIssue;
 }
 
+function hasProtectedCapabilityCredentialMismatch(issue) {
+  const text = `${issue?.title ?? ""}\n${issue?.description ?? ""}`.toLowerCase();
+  const namesProtectedBoundary = /protected|coolify|vps|provider|credential|permission|capability|auth|token|secret/.test(text);
+  const namesDeniedMutation = (
+    /(missing required permissions?|missing .*permissions?|forbidden|denied|read-only|read only|403)/.test(text)
+    && /(post|patch|put|delete|restart|deploy|mutation|action|api\/v1|provider)/.test(text)
+  ) || /missing required permissions:\s*[a-z0-9_-]+/.test(text);
+  const keepsEvidenceRedacted = /(redacted|value-free|value free|names-only|names only|without exposing|no secret values|no raw secret|do not print|do not paste|do not .*secret disclosure)/.test(text);
+  const keepsLeastPrivilegeScope = /(least-privilege|least privilege|owner\/action|unblock owner\/action|required action|single .*owner action|narrow owner path)/.test(text);
+  const forbidsBroaderSubstitute = /(no deploy|do not deploy|no .*rebuild|do not .*rebuild|no .*restart|do not .*restart|no .*production mutation|do not .*production mutation|no broader substitute|do not widen)/.test(text);
+  return namesProtectedBoundary
+    && namesDeniedMutation
+    && keepsEvidenceRedacted
+    && keepsLeastPrivilegeScope
+    && forbidsBroaderSubstitute;
+}
+
+function rootPathIssuesForSource(rootIssue, source, lookup) {
+  if (!rootIssue || !source) return null;
+  const rootKey = rootIssue.identifier ?? rootIssue.id;
+  if (source.identifier === rootIssue.identifier || source.id === rootIssue.id) return [rootIssue];
+  const path = compliantPathToRoot(source, rootIssue, lookup);
+  if (path) return [...path, rootIssue];
+  if (blockerAttentionReferencesRoot(source, rootKey)) return [rootIssue];
+  return null;
+}
+
+export function findCoveredProtectedCapabilityCredentialChain({
+  rootBlocker,
+  sourceIssues,
+  relatedIssues,
+  terminalStatuses,
+}) {
+  const lookup = issueLookup(relatedIssues);
+  const rootIssue = lookup.get(rootBlocker);
+  if (!rootIssue) return null;
+  if (terminalStatuses.has(rootIssue.status)) return null;
+  if (rootIssue.status !== "blocked" && rootIssue.status !== "todo" && rootIssue.status !== "in_review") return null;
+  if (!hasProtectedCapabilityCredentialMismatch(rootIssue)) return null;
+
+  const blockedSources = sourceIssues.filter((issue) => issue.status === "blocked");
+  if (blockedSources.length !== sourceIssues.length) return null;
+
+  const sourcePaths = blockedSources.map((issue) => rootPathIssuesForSource(rootIssue, issue, lookup));
+  if (sourcePaths.some((path) => path === null)) return null;
+
+  const pathIssues = new Map();
+  for (const path of sourcePaths) {
+    for (const issue of path ?? []) {
+      pathIssues.set(issue.identifier ?? issue.id, issue);
+    }
+  }
+
+  const staleActiveReleaseGate = relatedIssues.some((issue) =>
+    isStaleActiveReleaseGate(issue)
+    && !pathIssues.has(issue.identifier ?? issue.id)
+  );
+  if (staleActiveReleaseGate) return null;
+
+  const trueReleaseFailure = relatedIssues.some((issue) =>
+    !terminalStatuses.has(issue.status)
+    && !pathIssues.has(issue.identifier ?? issue.id)
+    && hasHardReleaseFailureEvidence(issue)
+  );
+  if (trueReleaseFailure) return null;
+
+  const everyPathContractCompliant = [...pathIssues.values()].every((issue) => {
+    if (issueMatchesKey(issue, rootBlocker)) return hasProtectedCapabilityCredentialMismatch(issue);
+    if (terminalStatuses.has(issue.status)) return true;
+    if (issue.status === "in_review" && issue.assigneeUserId) return true;
+    return issue.status === "blocked"
+      || blockerAttentionReferencesRoot(issue, rootIssue.identifier ?? rootIssue.id);
+  });
+  if (!everyPathContractCompliant) return null;
+
+  return rootIssue;
+}
+
 export function findSuppressibleV1LearningDuplicate({
   issues,
   terminalStatuses,

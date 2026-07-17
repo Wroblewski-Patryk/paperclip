@@ -11,6 +11,7 @@ import {
   findCompliantFailedReleasePermitRecoveryChain,
   findCompliantOpsReleaseBlockerChain,
   findControlPlaneWriteBoundaryRecoveryChain,
+  findCoveredProtectedCapabilityCredentialChain,
   findPausedOwnerDelegatedRoutingRepairChain,
   findProjectMutationSourceControlGuardChain,
   findProtectedCoolifyVpsBindingWaitChain,
@@ -2656,6 +2657,44 @@ function protectedCoolifyWatchBindingRestorationFixture() {
   };
 }
 
+function protectedCapabilityCredentialFixture() {
+  const root = {
+    identifier: "LUC-1368",
+    title: "[Soar][Protected Gate] Provide deploy-capable Redis recovery path for LUC-1359",
+    description: [
+      "Protected provider-capability gate.",
+      "Exact denied mutation: POST /api/v1/databases/{redis}/restart -> 403 Missing required permissions: deploy.",
+      "Evidence remains redacted and value-free; do not print, paste, or attach secret values.",
+      "Least-privilege unblock owner/action: board/operator grants the single deploy capability or routes one approved owner action.",
+      "No deploy, rebuild, restart retry, or broader production mutation is allowed until that owner action completes.",
+    ].join("\n"),
+    status: "blocked",
+    assigneeUserId: "local-board",
+  };
+  const runtimeRecovery = {
+    identifier: "LUC-1359",
+    title: "[Soar][Project Truth][Critical Runtime] Restore production runtime",
+    description: "Blocked until the protected Redis recovery capability gate clears.",
+    status: "blocked",
+    assigneeAgentId: "dre",
+    blockedBy: [{ identifier: "LUC-1368", status: "blocked" }],
+  };
+  const deliveryRoot = {
+    identifier: "LUC-25",
+    title: "00 General: Deliver Soar and Roost to Usable VPS Production",
+    description: "Blocked until the protected runtime recovery chain clears.",
+    status: "blocked",
+    assigneeAgentId: "portfolio",
+    blockedBy: [{ identifier: "LUC-1359", status: "blocked" }],
+    blockerAttention: {
+      state: "covered",
+      reason: "active_dependency",
+      sampleBlockerIdentifier: "LUC-1368",
+    },
+  };
+  return { root, runtimeRecovery, deliveryRoot };
+}
+
 test("findProtectedCoolifyVpsBindingWaitChain suppresses LUC-4713 live read-only Coolify watch binding waits", () => {
   const fixture = protectedCoolifyWatchBindingRestorationFixture();
   const issues = Object.values(fixture);
@@ -2740,6 +2779,61 @@ test("findProtectedCoolifyVpsBindingWaitChain does not suppress true protected s
   const suppressed = findProtectedCoolifyVpsBindingWaitChain({
     rootBlocker: "LUC-4811",
     sourceIssues,
+    relatedIssues,
+    terminalStatuses,
+  });
+
+  assert.equal(suppressed, null);
+});
+
+test("findCoveredProtectedCapabilityCredentialChain suppresses covered protected capability mismatch chains", () => {
+  const fixture = protectedCapabilityCredentialFixture();
+  const issues = [
+    fixture.root,
+    fixture.runtimeRecovery,
+    fixture.deliveryRoot,
+  ];
+  const sourceIssues = [
+    fixture.root,
+    fixture.runtimeRecovery,
+    fixture.deliveryRoot,
+  ];
+  const relatedIssues = collectTransitiveBlockerRelatedIssues({
+    issues,
+    rootKey: "LUC-1368",
+    sourceIssues,
+  });
+
+  const suppressed = findCoveredProtectedCapabilityCredentialChain({
+    rootBlocker: "LUC-1368",
+    sourceIssues,
+    relatedIssues,
+    terminalStatuses,
+  });
+
+  assert.equal(suppressed.identifier, "LUC-1368");
+});
+
+test("findCoveredProtectedCapabilityCredentialChain does not suppress ambiguous credential blockers", () => {
+  const fixture = protectedCapabilityCredentialFixture();
+  fixture.root.description = [
+    "Protected provider-capability gate.",
+    "Permission problem suspected.",
+    "Waiting for more details.",
+  ].join("\n");
+  const issues = [
+    fixture.root,
+    fixture.runtimeRecovery,
+  ];
+  const relatedIssues = collectTransitiveBlockerRelatedIssues({
+    issues,
+    rootKey: "LUC-1368",
+    sourceIssues: issues,
+  });
+
+  const suppressed = findCoveredProtectedCapabilityCredentialChain({
+    rootBlocker: "LUC-1368",
+    sourceIssues: issues,
     relatedIssues,
     terminalStatuses,
   });

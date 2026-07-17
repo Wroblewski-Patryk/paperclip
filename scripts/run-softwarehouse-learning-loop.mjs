@@ -8,6 +8,7 @@ import {
   findCompliantFailedReleasePermitRecoveryChain,
   findCompliantOpsReleaseBlockerChain,
   findControlPlaneWriteBoundaryRecoveryChain,
+  findCoveredProtectedCapabilityCredentialChain,
   findPausedOwnerDelegatedRoutingRepairChain,
   findProjectMutationSourceControlGuardChain,
   findProtectedCoolifyVpsBindingWaitChain,
@@ -532,7 +533,7 @@ for (const [key, groupedIssues] of processedBlockedGroups) {
     issue?.blockerAttention?.sampleBlockerIdentifier === key
   );
   if (
-    gap.area === "ops-release"
+    (gap.area === "ops-release" || gap.area === "security-credentials")
     && (groupedIssues.length <= maxEnrichmentSourceIssues || blockerAttentionGroup)
   ) {
     enrichedIssues = await enrichIssuesForBlockerChain(issues, key, groupedIssues);
@@ -793,6 +794,29 @@ for (const [key, groupedIssues] of processedBlockedGroups) {
         ?? null,
       bindingRootStatus: protectedCoolifyVpsBindingWaitRoot.status,
       routedArea: "protected-runtime-binding",
+    });
+    continue;
+  }
+  const coveredProtectedCapabilityCredentialRoot = gap.area === "security-credentials"
+    ? findCoveredProtectedCapabilityCredentialChain({
+        rootBlocker: key,
+        sourceIssues: enrichedGroupedIssues,
+        relatedIssues,
+        terminalStatuses,
+      })
+    : null;
+  if (coveredProtectedCapabilityCredentialRoot) {
+    actions.push({
+      action: "suppressed_covered_protected_capability_credential_chain",
+      rootBlocker: key,
+      assignee: owner?.name ?? null,
+      observedIssueCount: groupedIssues.length,
+      title: input.title,
+      capabilityRoot: coveredProtectedCapabilityCredentialRoot.identifier
+        ?? coveredProtectedCapabilityCredentialRoot.id
+        ?? null,
+      capabilityRootStatus: coveredProtectedCapabilityCredentialRoot.status,
+      routedArea: "security-credentials",
     });
     continue;
   }
