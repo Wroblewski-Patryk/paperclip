@@ -1136,6 +1136,8 @@ function nextControlActionsFor({
   if ([
     "project_repo_mutation_blocked_monitoring_allowed",
     "supervision_ready_limited_delivery",
+    "blocked_triage_allowed",
+    "project_truth_repair_allowed",
   ].includes(effectiveOperatingPosture)) {
     const dirtyProjects = sourceControlRepos
       .filter((repo) => repo.name !== "Paperclip_Softwarehouse" && repo.clean === false && repo.parked !== true)
