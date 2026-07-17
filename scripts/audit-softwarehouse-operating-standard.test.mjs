@@ -16,12 +16,13 @@ test("softwarehouse operating standard audit emits parseable automation JSON", a
   const report = JSON.parse(stdout);
 
   assert.equal(report.ok, true);
-  assert.equal(report.requiredDocs, 24);
+  assert.equal(report.requiredDocs, 25);
   assert.equal(report.requiredProcessDocs, 3);
   assert.equal(report.requiredProcessTerms, 11);
   assert.equal(report.sourceRoleFilesExpected, report.rosterAgentCount);
   assert.equal(report.sourceRoleFilesPresent, report.sourceRoleFilesExpected);
   assert.equal(report.roleMapEntriesCovered, report.rosterAgentCount);
+  assert.equal(report.homeSource, "repo_managed_runtime");
   assert.ok(Array.isArray(report.findings));
   assert.equal(report.findings.filter((finding) => finding.severity === "error").length, 0);
 });

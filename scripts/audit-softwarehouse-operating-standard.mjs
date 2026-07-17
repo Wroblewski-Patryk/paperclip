@@ -8,7 +8,14 @@ const repoRoot = process.cwd();
 const defaultCompanyId = "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const companyId = process.env.PAPERCLIP_COMPANY_ID || defaultCompanyId;
 const companyIdSource = process.env.PAPERCLIP_COMPANY_ID ? "PAPERCLIP_COMPANY_ID" : "LuckySparrow Software House default";
-const home = process.env.PAPERCLIP_HOME || path.join(process.env.USERPROFILE || "", ".paperclip");
+const repoManagedHome = path.join(repoRoot, ".paperclip", "runtime", "home");
+const userHome = path.join(process.env.USERPROFILE || "", ".paperclip");
+const home = process.env.PAPERCLIP_HOME || (existsSync(repoManagedHome) ? repoManagedHome : userHome);
+const homeSource = process.env.PAPERCLIP_HOME
+  ? "PAPERCLIP_HOME"
+  : existsSync(repoManagedHome)
+    ? "repo_managed_runtime"
+    : "user_home_fallback";
 const instanceId = process.env.PAPERCLIP_INSTANCE_ID || "default";
 const agentRoot = path.join(home, "instances", instanceId, "companies", companyId, "agents");
 const rosterPath = path.join(repoRoot, "softwarehouse/agent-roster.json");
@@ -376,6 +383,7 @@ const result = {
   repoRoot,
   companyId,
   companyIdSource,
+  homeSource,
   agentRoot,
   requiredDocs: requiredDocs.length,
   requiredProcessDocs: requiredProcessDocs.length,
