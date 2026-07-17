@@ -214,6 +214,7 @@ function quickstartDefaultsFromEnv(opts?: { preferTrustedLocal?: boolean }): {
       ...(databaseUrl ? { connectionString: databaseUrl } : {}),
       embeddedPostgresDataDir: resolveDefaultEmbeddedPostgresDir(instanceId),
       embeddedPostgresPort: 54329,
+      embeddedPostgresStrictPort: false,
       backup: {
         enabled: databaseBackupEnabled,
         intervalMinutes: databaseBackupIntervalMinutes,
@@ -224,6 +225,12 @@ function quickstartDefaultsFromEnv(opts?: { preferTrustedLocal?: boolean }): {
     logging: {
       mode: "file",
       logDir: resolveDefaultLogsDir(instanceId),
+      runLogRetentionDays: 14,
+      runLogMaxTotalBytes: 5 * 1024 * 1024 * 1024,
+      runLogSweepIntervalMinutes: 60,
+      serverLogMaxFileBytes: 256 * 1024 * 1024,
+      serverLogMaxTotalBytes: 1024 * 1024 * 1024,
+      serverLogRetentionDays: 14,
     },
     server: {
       deploymentMode,
@@ -232,6 +239,7 @@ function quickstartDefaultsFromEnv(opts?: { preferTrustedLocal?: boolean }): {
       ...(resolvedBind.customBindHost ? { customBindHost: resolvedBind.customBindHost } : {}),
       host: resolvedBind.host,
       port: Number(process.env.PORT) || 3100,
+      strictPort: false,
       allowedHostnames: Array.from(new Set([...allowedHostnamesFromEnv, ...(hostnameFromPublicUrl ? [hostnameFromPublicUrl] : [])])),
       serveUi: parseBooleanFromEnv(process.env.SERVE_UI) ?? true,
     },

@@ -14,6 +14,7 @@ export async function promptDatabase(current?: DatabaseConfig): Promise<Database
     mode: "embedded-postgres",
     embeddedPostgresDataDir: defaultEmbeddedDir,
     embeddedPostgresPort: 54329,
+    embeddedPostgresStrictPort: false,
     backup: {
       enabled: true,
       intervalMinutes: 60,
@@ -147,6 +148,7 @@ export async function promptDatabase(current?: DatabaseConfig): Promise<Database
     connectionString,
     embeddedPostgresDataDir,
     embeddedPostgresPort,
+    embeddedPostgresStrictPort: base.embeddedPostgresStrictPort,
     backup: {
       enabled: backupEnabled,
       intervalMinutes: Number(backupIntervalInput || "60"),

@@ -40,6 +40,7 @@ function defaultConfig(): PaperclipConfig {
       mode: "embedded-postgres",
       embeddedPostgresDataDir: resolveDefaultEmbeddedPostgresDir(instanceId),
       embeddedPostgresPort: 54329,
+      embeddedPostgresStrictPort: false,
       backup: {
         enabled: true,
         intervalMinutes: 60,
@@ -50,6 +51,12 @@ function defaultConfig(): PaperclipConfig {
     logging: {
       mode: "file",
       logDir: resolveDefaultLogsDir(instanceId),
+      runLogRetentionDays: 14,
+      runLogMaxTotalBytes: 5 * 1024 * 1024 * 1024,
+      runLogSweepIntervalMinutes: 60,
+      serverLogMaxFileBytes: 256 * 1024 * 1024,
+      serverLogMaxTotalBytes: 1024 * 1024 * 1024,
+      serverLogRetentionDays: 14,
     },
     server: {
       deploymentMode: "local_trusted",
@@ -57,6 +64,7 @@ function defaultConfig(): PaperclipConfig {
       bind: "loopback",
       host: "127.0.0.1",
       port: 3100,
+      strictPort: false,
       allowedHostnames: [],
       serveUi: true,
     },
@@ -82,6 +90,7 @@ export async function configure(opts: {
 
   if (!configExists(opts.config)) {
     p.log.error("No config file found. Run `paperclipai onboard` first.");
+    process.exitCode = 1;
     p.outro("");
     return;
   }
@@ -102,6 +111,7 @@ export async function configure(opts: {
 
   if (section && !SECTION_LABELS[section]) {
     p.log.error(`Unknown section: ${section}. Choose from: ${Object.keys(SECTION_LABELS).join(", ")}`);
+    process.exitCode = 1;
     p.outro("");
     return;
   }

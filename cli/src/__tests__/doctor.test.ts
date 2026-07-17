@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -8,7 +9,26 @@ import type { PaperclipConfig } from "../config/schema.js";
 
 const ORIGINAL_ENV = { ...process.env };
 
-function createTempConfig(): string {
+function findAvailablePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        server.close();
+        reject(new Error("Expected an ephemeral TCP port"));
+        return;
+      }
+      server.close((error) => {
+        if (error) reject(error);
+        else resolve(address.port);
+      });
+    });
+  });
+}
+
+function createTempConfig(port: number): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-doctor-"));
   const configPath = path.join(root, ".paperclip", "config.json");
   const runtimeRoot = path.join(root, "runtime");
@@ -23,6 +43,7 @@ function createTempConfig(): string {
       mode: "embedded-postgres",
       embeddedPostgresDataDir: path.join(runtimeRoot, "db"),
       embeddedPostgresPort: 55432,
+      embeddedPostgresStrictPort: false,
       backup: {
         enabled: true,
         intervalMinutes: 60,
@@ -33,12 +54,19 @@ function createTempConfig(): string {
     logging: {
       mode: "file",
       logDir: path.join(runtimeRoot, "logs"),
+      runLogRetentionDays: 14,
+      runLogMaxTotalBytes: 5 * 1024 * 1024 * 1024,
+      runLogSweepIntervalMinutes: 60,
+      serverLogMaxFileBytes: 256 * 1024 * 1024,
+      serverLogMaxTotalBytes: 1024 * 1024 * 1024,
+      serverLogRetentionDays: 14,
     },
     server: {
       deploymentMode: "local_trusted",
       exposure: "private",
       host: "127.0.0.1",
-      port: 3199,
+      port,
+      strictPort: false,
       allowedHostnames: [],
       serveUi: true,
     },
@@ -87,7 +115,7 @@ describe("doctor", () => {
   });
 
   it("re-runs repairable checks so repaired failures do not remain blocking", async () => {
-    const configPath = createTempConfig();
+    const configPath = createTempConfig(await findAvailablePort());
 
     const summary = await doctor({
       config: configPath,

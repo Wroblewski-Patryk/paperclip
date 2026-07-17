@@ -21,6 +21,7 @@ function writeBaseConfig(configPath: string) {
       mode: "embedded-postgres",
       embeddedPostgresDataDir: "/tmp/paperclip-db",
       embeddedPostgresPort: 54329,
+      embeddedPostgresStrictPort: false,
       backup: {
         enabled: true,
         intervalMinutes: 60,
@@ -31,12 +32,19 @@ function writeBaseConfig(configPath: string) {
     logging: {
       mode: "file",
       logDir: "/tmp/paperclip-logs",
+      runLogRetentionDays: 14,
+      runLogMaxTotalBytes: 5 * 1024 * 1024 * 1024,
+      runLogSweepIntervalMinutes: 60,
+      serverLogMaxFileBytes: 256 * 1024 * 1024,
+      serverLogMaxTotalBytes: 1024 * 1024 * 1024,
+      serverLogRetentionDays: 14,
     },
     server: {
       deploymentMode: "authenticated",
       exposure: "private",
       host: "0.0.0.0",
       port: 3100,
+      strictPort: false,
       allowedHostnames: [],
       serveUi: true,
     },

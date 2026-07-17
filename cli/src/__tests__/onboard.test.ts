@@ -23,6 +23,7 @@ function createExistingConfigFixture() {
       mode: "embedded-postgres",
       embeddedPostgresDataDir: path.join(runtimeRoot, "db"),
       embeddedPostgresPort: 54329,
+      embeddedPostgresStrictPort: false,
       backup: {
         enabled: true,
         intervalMinutes: 60,
@@ -33,12 +34,19 @@ function createExistingConfigFixture() {
     logging: {
       mode: "file",
       logDir: path.join(runtimeRoot, "logs"),
+      runLogRetentionDays: 14,
+      runLogMaxTotalBytes: 5 * 1024 * 1024 * 1024,
+      runLogSweepIntervalMinutes: 60,
+      serverLogMaxFileBytes: 256 * 1024 * 1024,
+      serverLogMaxTotalBytes: 1024 * 1024 * 1024,
+      serverLogRetentionDays: 14,
     },
     server: {
       deploymentMode: "local_trusted",
       exposure: "private",
       host: "127.0.0.1",
       port: 3100,
+      strictPort: false,
       allowedHostnames: [],
       serveUi: true,
     },

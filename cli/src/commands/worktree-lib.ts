@@ -196,6 +196,7 @@ export function buildWorktreeConfig(input: {
       mode: "embedded-postgres",
       embeddedPostgresDataDir: paths.embeddedPostgresDataDir,
       embeddedPostgresPort: databasePort,
+      embeddedPostgresStrictPort: source?.database.embeddedPostgresStrictPort ?? false,
       backup: {
         enabled: source?.database.backup.enabled ?? true,
         intervalMinutes: source?.database.backup.intervalMinutes ?? 60,
@@ -206,6 +207,12 @@ export function buildWorktreeConfig(input: {
     logging: {
       mode: source?.logging.mode ?? "file",
       logDir: paths.logDir,
+      runLogRetentionDays: source?.logging.runLogRetentionDays ?? 14,
+      runLogMaxTotalBytes: source?.logging.runLogMaxTotalBytes ?? 5 * 1024 * 1024 * 1024,
+      runLogSweepIntervalMinutes: source?.logging.runLogSweepIntervalMinutes ?? 60,
+      serverLogMaxFileBytes: source?.logging.serverLogMaxFileBytes ?? 256 * 1024 * 1024,
+      serverLogMaxTotalBytes: source?.logging.serverLogMaxTotalBytes ?? 1024 * 1024 * 1024,
+      serverLogRetentionDays: source?.logging.serverLogRetentionDays ?? 14,
     },
     server: {
       deploymentMode: source?.server.deploymentMode ?? "local_trusted",
@@ -214,6 +221,7 @@ export function buildWorktreeConfig(input: {
       ...(source?.server.customBindHost ? { customBindHost: source.server.customBindHost } : {}),
       host: source?.server.host ?? "127.0.0.1",
       port: serverPort,
+      strictPort: source?.server.strictPort ?? false,
       allowedHostnames: source?.server.allowedHostnames ?? [],
       serveUi: source?.server.serveUi ?? true,
     },

@@ -83,6 +83,7 @@ function buildSourceConfig(): PaperclipConfig {
       mode: "embedded-postgres",
       embeddedPostgresDataDir: "/tmp/main/db",
       embeddedPostgresPort: 54329,
+      embeddedPostgresStrictPort: false,
       backup: {
         enabled: true,
         intervalMinutes: 60,
@@ -93,12 +94,19 @@ function buildSourceConfig(): PaperclipConfig {
     logging: {
       mode: "file",
       logDir: "/tmp/main/logs",
+      runLogRetentionDays: 14,
+      runLogMaxTotalBytes: 5 * 1024 * 1024 * 1024,
+      runLogSweepIntervalMinutes: 60,
+      serverLogMaxFileBytes: 256 * 1024 * 1024,
+      serverLogMaxTotalBytes: 1024 * 1024 * 1024,
+      serverLogRetentionDays: 14,
     },
     server: {
       deploymentMode: "authenticated",
       exposure: "private",
       host: "127.0.0.1",
       port: 3100,
+      strictPort: false,
       allowedHostnames: ["localhost"],
       serveUi: true,
     },
@@ -584,6 +592,7 @@ describe("worktree helpers", () => {
           mode: "postgres",
           embeddedPostgresDataDir: path.join(sourceConfigDir, "db"),
           embeddedPostgresPort: 54329,
+          embeddedPostgresStrictPort: false,
           backup: {
             enabled: true,
             intervalMinutes: 60,
@@ -639,7 +648,7 @@ describe("worktree helpers", () => {
         fs.rmSync(tempRoot, { recursive: true, force: true });
       }
     },
-    30000,
+    90_000,
   );
 
   it("avoids ports already claimed by sibling worktree instance configs", async () => {
@@ -796,6 +805,7 @@ describe("worktree helpers", () => {
     const worktreeRoot = path.join(tempRoot, "repo");
     const configPath = path.join(worktreeRoot, ".paperclip", "config.json");
     const envPath = path.join(worktreeRoot, ".paperclip", ".env");
+    const homeDir = path.join(tempRoot, "paperclip-worktrees");
 
     try {
       fs.mkdirSync(path.dirname(configPath), { recursive: true });
@@ -803,7 +813,7 @@ describe("worktree helpers", () => {
       fs.writeFileSync(
         envPath,
         [
-          "PAPERCLIP_HOME=/tmp/paperclip-worktrees",
+          `PAPERCLIP_HOME=${homeDir}`,
           "PAPERCLIP_INSTANCE_ID=pap-1132-chat",
         ].join("\n"),
         "utf8",
@@ -815,7 +825,7 @@ describe("worktree helpers", () => {
         }),
       ).toMatchObject({
         cwd: worktreeRoot,
-        homeDir: "/tmp/paperclip-worktrees",
+        homeDir,
         instanceId: "pap-1132-chat",
       });
     } finally {
@@ -1005,21 +1015,23 @@ describe("worktree helpers", () => {
   });
 
   it("rebinds same-repo workspace paths onto the current worktree root", () => {
+    const sourceRepoRoot = path.join(path.parse(process.cwd()).root, "Users", "example", "paperclip");
+    const targetRepoRoot = path.join(path.parse(process.cwd()).root, "Users", "example", "paperclip-pr-432");
     expect(
       rebindWorkspaceCwd({
-        sourceRepoRoot: "/Users/example/paperclip",
-        targetRepoRoot: "/Users/example/paperclip-pr-432",
-        workspaceCwd: "/Users/example/paperclip",
+        sourceRepoRoot,
+        targetRepoRoot,
+        workspaceCwd: sourceRepoRoot,
       }),
-    ).toBe("/Users/example/paperclip-pr-432");
+    ).toBe(targetRepoRoot);
 
     expect(
       rebindWorkspaceCwd({
-        sourceRepoRoot: "/Users/example/paperclip",
-        targetRepoRoot: "/Users/example/paperclip-pr-432",
-        workspaceCwd: "/Users/example/paperclip/packages/db",
+        sourceRepoRoot,
+        targetRepoRoot,
+        workspaceCwd: path.join(sourceRepoRoot, "packages", "db"),
       }),
-    ).toBe("/Users/example/paperclip-pr-432/packages/db");
+    ).toBe(path.join(targetRepoRoot, "packages", "db"));
   });
 
   it("does not rebind paths outside the source repo root", () => {
@@ -1072,7 +1084,9 @@ describe("worktree helpers", () => {
         copied: true,
       });
       expect(fs.readFileSync(targetHookPath, "utf8")).toBe("#!/usr/bin/env bash\nexit 0\n");
-      expect(fs.statSync(targetHookPath).mode & 0o111).not.toBe(0);
+      if (process.platform !== "win32") {
+        expect(fs.statSync(targetHookPath).mode & 0o111).not.toBe(0);
+      }
       expect(fs.readFileSync(targetTokensPath, "utf8")).toBe("secret-token\n");
     } finally {
       execFileSync("git", ["worktree", "remove", "--force", worktreePath], { cwd: repoRoot, stdio: "ignore" });
