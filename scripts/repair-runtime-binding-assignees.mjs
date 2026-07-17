@@ -169,6 +169,7 @@ if (apply && activeRunCount > 0) {
 
 const activeAgents = agents.filter((agent) => agent.status !== "terminated");
 const activeAgentById = new Map(activeAgents.map((agent) => [agent.id, agent]));
+const runtimeBindingExecutionStatuses = new Set(["todo", "in_progress"]);
 const activeProjectIds = new Set(projects.filter((project) => !project.archivedAt).map((project) => project.id));
 const openActiveIssues = issues.filter((issue) =>
   activeProjectIds.has(issue.projectId)
@@ -219,6 +220,19 @@ for (const issue of openActiveIssues) {
       reason: softwarehouseGateSpecsByRootBlocker.has(issue.identifier)
         ? "Blocked protected gate roots must wait for gate freshness instead of waking a bound runtime owner through reassignment."
         : "Blocked issues are not runnable runtime work; keep them on their explicit blocker path instead of letting assignee repair stall autonomy.",
+      requiredGroups: requiredGroups.map((group) => group.name),
+    });
+    continue;
+  }
+
+  if (!runtimeBindingExecutionStatuses.has(issue.status)) {
+    skipped.push({
+      type: "non_execution_status_no_reassignment",
+      issueId: issue.id,
+      identifier: issue.identifier,
+      title: issue.title,
+      status: issue.status,
+      reason: "Review and other non-execution states preserve their current decision owner; runtime bindings are required only when agent execution can start or is in progress.",
       requiredGroups: requiredGroups.map((group) => group.name),
     });
     continue;

@@ -570,6 +570,7 @@ const openRoutineDuplicateGroups = Array.from(groupBy(
   }));
 const blockedGateDetails = [];
 const activeRecoveryActions = [];
+const runtimeBindingExecutionStatuses = new Set(["todo", "in_progress"]);
 for (const { issue, comments, rootBlocker } of blockedIssueAnalyses) {
   if (issue.activeRecoveryAction?.id) {
     activeRecoveryActions.push({
@@ -596,8 +597,9 @@ for (const { issue, comments, rootBlocker } of blockedIssueAnalyses) {
 }
 const coolifyBindingDrift = [];
 for (const issue of openIssues) {
+  if (!runtimeBindingExecutionStatuses.has(issue.status)) continue;
+  if (!issue.assigneeAgentId || issue.assigneeUserId) continue;
   if (!issueRequiresCoolifyBindings(issue)) continue;
-  if (issue.status === "blocked") continue;
   const assignee = activeAgentById.get(issue.assigneeAgentId);
   const envKeys = agentEnvKeys(assignee);
   const missingEnvKeys = ["COOLIFY_BASE_URL", "COOLIFY_API_TOKEN"].filter((key) => !envKeys.has(key));
@@ -613,11 +615,12 @@ for (const issue of openIssues) {
 }
 const runtimeBindingGaps = [];
 for (const issue of openIssues) {
+  if (!runtimeBindingExecutionStatuses.has(issue.status)) continue;
+  if (!issue.assigneeAgentId || issue.assigneeUserId) continue;
   const blockedAnalysis = blockedIssueAnalyses.find((analysis) => analysis.issue.id === issue.id);
   if (isSourceControlClosureIssue(issue, blockedAnalysis?.comments ?? [])) continue;
   const requiredGroups = requiredRuntimeBindingGroupsForIssue(issue, blockedAnalysis?.comments ?? []);
   if (requiredGroups.length === 0) continue;
-  if (issue.status === "blocked" && softwarehouseGateSpecsByRootBlocker.has(issue.identifier)) continue;
   const assignee = activeAgentById.get(issue.assigneeAgentId);
   const envKeys = agentEnvKeys(assignee);
   const missingGroups = missingRuntimeBindingGroups(envKeys, requiredGroups);

@@ -3744,3 +3744,12 @@ logs were copied. Focused classifier/store tests, server typecheck, live
 historical transcript readback, instruction/runtime/boundary audits, and the
 live topology audit all pass. No other Compose one-off or duplicate project
 container was found; canonical Roost services remain untouched.
+
+The post-commit control tick exposed a separate classification defect rather
+than a credential loss. LUC-1387 was already in review with CLO and a pending
+operator interaction, while LUC-1368 was assigned to the local board. The audit
+described both as agent-owned runtime work without Coolify bindings, and the
+repair script considered the review for reassignment. Binding drift and repair
+now apply only to agent-owned `todo` or `in_progress` execution. User-owned
+gates, blocked work, and review states retain their decision owner; genuinely
+runnable agent work still fails closed when required bindings are absent.

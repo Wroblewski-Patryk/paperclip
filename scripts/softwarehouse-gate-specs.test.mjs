@@ -2794,6 +2794,17 @@ test("runtime binding audits do not misclassify subscription controller coordina
   }
 });
 
+test("runtime binding ownership only targets runnable agent execution", async () => {
+  const audit = await readFile("scripts/audit-luckysparrow-softwarehouse.mjs", "utf8");
+  const repair = await readFile("scripts/repair-runtime-binding-assignees.mjs", "utf8");
+
+  assert.match(audit, /runtimeBindingExecutionStatuses = new Set\(\["todo", "in_progress"\]\)/);
+  assert.match(audit, /!issue\.assigneeAgentId \|\| issue\.assigneeUserId/);
+  assert.match(repair, /runtimeBindingExecutionStatuses = new Set\(\["todo", "in_progress"\]\)/);
+  assert.match(repair, /non_execution_status_no_reassignment/);
+  assert.match(repair, /Review and other non-execution states preserve their current decision owner/);
+});
+
 test("secret aliases collapse duplicate tracked gate secrets", () => {
   const secretByKey = new Map([
     ["prod_ui_audit_admin_token", {
