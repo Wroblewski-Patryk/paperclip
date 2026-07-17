@@ -52,8 +52,14 @@ export function organizationalObservationRoutes(db: Db) {
     if (!existing) { res.status(404).json({ error: "Organizational observation not found" }); return; }
     assertCompanyAccess(req, existing.companyId);
     const actor = getActorInfo(req);
-    if (actor.actorType === "agent" && existing.createdByAgentId !== actor.agentId) {
-      throw forbidden("Agents may only update organizational observations they created");
+    if (actor.actorType === "agent") {
+      const ownsObservation = existing.createdByAgentId === actor.agentId || existing.agentId === actor.agentId;
+      if (!ownsObservation) {
+        throw forbidden("Agents may only update organizational observations they created or own");
+      }
+      if (req.body.agentId && req.body.agentId !== actor.agentId) {
+        throw forbidden("Agents may only attribute an organizational observation to themselves");
+      }
     }
     const observation = await svc.update(id, req.body);
     if (!observation) { res.status(404).json({ error: "Organizational observation not found" }); return; }

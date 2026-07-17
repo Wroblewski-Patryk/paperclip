@@ -3753,3 +3753,35 @@ repair script considered the review for reassignment. Binding drift and repair
 now apply only to agent-owned `todo` or `in_progress` execution. User-owned
 gates, blocked work, and review states retain their decision owner; genuinely
 runnable agent work still fails closed when required bindings are absent.
+
+## 2026-07-17 - Organizational memory and learning ingestion closure
+
+The Organizational Memory and Organizational Learning UI and API contracts
+already existed, but both stores were initially empty. The missing operational
+link was safe ingestion. Agents now share a strict instruction contract and a
+Windows-safe Node helper for material assumptions, commitments, decisions,
+forecasts, external signals, outcomes, and reusable learning. Stable provenance
+keys prevent repeated writes. Routine progress, raw transcripts, secrets, and
+unsupported guesses remain excluded, and organizational records are not blindly
+inferred from comments.
+
+The canonical learning loop now mirrors only a bounded learning-issue history
+into first-class `learning` observations. A live backfill created 12 proposed
+observations, attributed all 12 to the corresponding issue assignees, and a
+second apply created or reassigned none. The observation route permits the
+attributed agent or original creator to validate its entry while preventing
+other agents from changing it or transferring attribution. Validation remains
+mandatory before promotion. Focused helper, service, route, and learning-loop
+tests pass; all 39 managed instruction bundles contain the new contract. No
+secret values were recorded.
+
+During final repository verification, recursive typecheck exposed a separate
+CLI configuration drift: several constructors and fixtures predated strict
+database/server ports and the complete log-retention schema. Configure,
+onboard, prompts, generated server-bind config, and worktree propagation now
+emit complete explicit values. Invalid configure invocations also return a
+failing process status. Windows tests now use an ephemeral doctor port,
+platform-correct paths and permission expectations, and a bounded allowance
+for slower embedded PostgreSQL startup. The CLI typecheck, 35 worktree tests,
+25 focused configuration/doctor/secrets tests, full recursive typecheck, and
+production build pass. This repair changes no live secrets or instance data.

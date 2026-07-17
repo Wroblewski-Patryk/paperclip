@@ -23,6 +23,12 @@ import {
   formatWorkerFanoutContract,
   summarizeWorkerBacklogTracks,
 } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
+import {
+  findByOrganizationalDedupeKey,
+  isUuid,
+  normalizeApiCollection,
+  prepareOrganizationalPayload,
+} from "./lib/organizational-memory.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -32,6 +38,7 @@ const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_LEARNING_REQUEST_TIMEO
 const minRepeatedBlocked = Number(process.env.SOFTWAREHOUSE_LEARNING_MIN_REPEATED_BLOCKED ?? 3);
 const maxBlockedGroups = Number(process.env.SOFTWAREHOUSE_LEARNING_MAX_BLOCKED_GROUPS ?? 2);
 const maxEnrichmentSourceIssues = Number(process.env.SOFTWAREHOUSE_LEARNING_MAX_ENRICHMENT_SOURCE_ISSUES ?? 25);
+const maxLearningObservationBackfill = Number(process.env.SOFTWAREHOUSE_LEARNING_OBSERVATION_BACKFILL_LIMIT ?? 12);
 const terminalStatuses = new Set(["done", "cancelled"]);
 const activeIssueStatuses = ["backlog", "todo", "in_progress", "in_review", "blocked"];
 const plannedStatuses = new Set(["todo", "backlog"]);
@@ -237,7 +244,120 @@ const processedBlockedGroups = maxBlockedGroups > 0
 const skippedBlockedGroupCount = eligibleBlockedGroups.length - processedBlockedGroups.length;
 
 const existingLearningTitles = buildOpenIssueTitles(issues, terminalStatuses);
+const existingLearningIssueByTitle = new Map(
+  openIssues
+    .filter((issue) => typeof issue.title === "string" && issue.title.length > 0)
+    .map((issue) => [issue.title, issue]),
+);
 const actions = [];
+let learningObservations = [];
+let learningObservationReadAvailable = true;
+try {
+  learningObservations = normalizeApiCollection(await request(
+    "GET",
+    `/api/companies/${company.id}/organizational-observations?kind=learning&limit=500`,
+  ));
+} catch (error) {
+  learningObservationReadAvailable = false;
+  actions.push({
+    action: "skip_learning_observation_sync",
+    status: "degraded",
+    reason: "organizational_observation_read_failed",
+    error: error instanceof Error ? error.message : String(error),
+  });
+}
+
+async function ensureLearningObservation(issue, input, action = {}) {
+  if (!issue?.id || !learningObservationReadAvailable) return null;
+  const dedupeKey = `softwarehouse-learning-issue:${issue.id}`;
+  const existing = findByOrganizationalDedupeKey(
+    learningObservations,
+    dedupeKey,
+    "provenance",
+  );
+  if (existing) {
+    const ownerAgentId = isUuid(issue.assigneeAgentId) ? issue.assigneeAgentId : null;
+    if (ownerAgentId && !existing.agentId) {
+      if (!apply) {
+        actions.push({
+          ...action,
+          action: "would_assign_learning_observation_owner",
+          issue: issue.identifier ?? issue.id,
+          observationId: existing.id,
+          agentId: ownerAgentId,
+          title: input.title ?? issue.title,
+        });
+        return existing;
+      }
+      const assigned = await request(
+        "PATCH",
+        `/api/organizational-observations/${existing.id}`,
+        { agentId: ownerAgentId },
+      );
+      const observationIndex = learningObservations.findIndex((observation) => observation.id === existing.id);
+      if (observationIndex >= 0) learningObservations[observationIndex] = assigned;
+      actions.push({
+        ...action,
+        action: "assigned_learning_observation_owner",
+        issue: issue.identifier ?? issue.id,
+        observationId: assigned.id,
+        agentId: ownerAgentId,
+        title: input.title ?? issue.title,
+      });
+      return assigned;
+    }
+    actions.push({
+      ...action,
+      action: "noop_existing_learning_observation",
+      issue: issue.identifier ?? issue.id,
+      observationId: existing.id,
+      title: input.title ?? issue.title,
+    });
+    return existing;
+  }
+
+  const payload = prepareOrganizationalPayload({
+    mode: "observe",
+    dedupeKey,
+    payload: {
+      kind: "learning",
+      title: input.title ?? issue.title,
+      summary: input.description ?? issue.description ?? "Softwarehouse learning signal recorded from an issue.",
+      sourceClass: "softwarehouse_learning_loop",
+      confidence: 80,
+    },
+    context: {
+      issue,
+      agentId: isUuid(issue.assigneeAgentId) ? issue.assigneeAgentId : null,
+    },
+    now: issue.updatedAt ?? issue.createdAt ?? new Date().toISOString(),
+  });
+  if (!apply) {
+    actions.push({
+      ...action,
+      action: "would_create_learning_observation",
+      issue: issue.identifier ?? issue.id,
+      title: payload.title,
+    });
+    return null;
+  }
+
+  const created = await request(
+    "POST",
+    `/api/companies/${company.id}/organizational-observations`,
+    payload,
+  );
+  learningObservations.push(created);
+  actions.push({
+    ...action,
+    action: "created_learning_observation",
+    issue: issue.identifier ?? issue.id,
+    observationId: created.id,
+    title: created.title,
+  });
+  return created;
+}
+
 async function createLearningIssue(input, action) {
   if (existingLearningTitles.has(input.title)) {
     actions.push({
@@ -245,7 +365,9 @@ async function createLearningIssue(input, action) {
       action: "noop_existing_learning_issue",
       title: input.title,
     });
-    return null;
+    const existingIssue = existingLearningIssueByTitle.get(input.title) ?? null;
+    if (existingIssue) await ensureLearningObservation(existingIssue, input, { source: "existing_learning_issue" });
+    return existingIssue;
   }
   actions.push({
     ...action,
@@ -257,6 +379,8 @@ async function createLearningIssue(input, action) {
   actions.at(-1).identifier = created.identifier;
   actions.at(-1).status = created.status;
   existingLearningTitles.add(input.title);
+  existingLearningIssueByTitle.set(input.title, created);
+  await ensureLearningObservation(created, input, { source: "new_learning_issue" });
   return created;
 }
 
@@ -269,6 +393,22 @@ async function searchIssues(query) {
 async function getIssue(key) {
   return request("GET", `/api/issues/${encodeURIComponent(key)}`)
     .catch(() => null);
+}
+
+if (learningObservationReadAvailable && maxLearningObservationBackfill > 0) {
+  const candidatesById = new Map();
+  for (const issue of targetedLearningIssues.flat()) {
+    if (!issue?.id || !/softwarehouse-learning-loop:v[12]/i.test(issue.description ?? "")) continue;
+    candidatesById.set(issue.id, issue);
+  }
+  const candidates = [...candidatesById.values()]
+    .sort((left, right) => String(right.updatedAt ?? right.createdAt ?? "").localeCompare(
+      String(left.updatedAt ?? left.createdAt ?? ""),
+    ))
+    .slice(0, maxLearningObservationBackfill);
+  for (const issue of candidates) {
+    await ensureLearningObservation(issue, issue, { source: "bounded_recent_learning_backfill" });
+  }
 }
 
 function blockerRefs(issue) {
@@ -828,6 +968,9 @@ console.log(JSON.stringify({
   eligibleBlockedGroupCount: eligibleBlockedGroups.length,
   processedBlockedGroupCount: processedBlockedGroups.length,
   skippedBlockedGroupCount,
+  learningObservationCount: learningObservations.length,
+  learningObservationReadAvailable,
+  maxLearningObservationBackfill,
   actionCount: actions.length,
   actions,
 }, null, 2));

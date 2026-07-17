@@ -139,6 +139,16 @@ factors; and proposed, validated, promoted, rejected, or superseded learning.
 Promotion is impossible before validation and requires a durable target such as a
 skill, procedure, template, eval, routine, policy, or issue.
 
+The Softwarehouse learning loop now mirrors a bounded set of canonical learning
+issues into first-class observations with stable dedupe provenance. Existing
+history is backfilled in small batches, every generated observation is attributed
+to the source issue assignee, and repeat runs are no-ops. Agents also have one
+Windows-safe helper plus a shared instruction contract for recording material
+assumptions, commitments, decisions, forecasts, external signals, outcomes, and
+learning. Routine progress, raw transcripts, secrets, and unsupported guesses are
+explicitly excluded. Organizational records remain deliberate writes rather than
+being inferred blindly from comments.
+
 ### Slice 6: external grounding — implemented foundation
 
 - Normalize product monitoring, customer feedback, business metrics, and market

@@ -163,6 +163,26 @@ MD
 
 Status values: `backlog`, `todo`, `in_progress`, `in_review`, `done`, `blocked`, `cancelled`. Priority values: `critical`, `high`, `medium`, `low`. Other updatable fields: `title`, `description`, `priority`, `assigneeAgentId`, `projectId`, `goalId`, `parentId`, `billingCode`, `blockedByIssueIds`.
 
+### Organizational Memory And Learning
+
+Issues are the execution ledger. Use first-class organizational records only
+for durable assumptions, commitments, and decisions, and organizational
+observations only for evidenced outcomes, causal findings, fresh external
+signals, and reusable learning. Do not store routine progress or secrets there.
+
+On Windows, create these entries through the deduplicating helper:
+
+```powershell
+$memoryHelper = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-organizational-memory.mjs'
+node $memoryHelper observe --input-file .\learning-observation.json --dedupe-key "issue:$env:PAPERCLIP_TASK_ID:learning:v1"
+```
+
+The helper uses the standard `PAPERCLIP_*` environment, attaches current issue,
+project, goal, agent, and run context, and returns the existing object when the
+same stable dedupe key was already recorded. Learning starts as `proposed` and
+must be validated before it can be promoted to a skill, procedure, template,
+eval, routine, policy, or issue.
+
 ### Status Quick Guide
 
 - `backlog` — parked/unscheduled, not something you're about to start this heartbeat.
