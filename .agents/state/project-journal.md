@@ -3785,3 +3785,22 @@ platform-correct paths and permission expectations, and a bounded allowance
 for slower embedded PostgreSQL startup. The CLI typecheck, 35 worktree tests,
 25 focused configuration/doctor/secrets tests, full recursive typecheck, and
 production build pass. This repair changes no live secrets or instance data.
+
+Final live verification found and repaired one audit-only drift: the operating
+standard audit still defaulted to the legacy user-home agent root even though
+the active managed bundles live in the repo-managed runtime home. It now
+prefers the repo-managed runtime, retains the explicit `PAPERCLIP_HOME`
+override and user-home fallback, and has a regression test. The resulting
+audit reports 39/39 standard bundles, entry files, and role metadata with no
+findings. Browser and API verification show 12 visible proposed learning cards,
+12 attributed owners, 12 unique dedupe references, the expected source class,
+and no UI alerts. Organizational Memory intentionally remains empty until a
+material governed record is submitted.
+
+A final repository-wide test attempt was allowed more than 20 minutes but did
+not finish the general server group on this Windows workstation. It was not
+counted as passing. The exact six-process test tree was terminated and a
+follow-up process check found no Vitest or temporary Paperclip service
+PostgreSQL residue. This preserves the existing SOL-032 runner-hardening gap;
+it does not invalidate the completed focused, backend, CLI, recursive
+typecheck, production-build, live API, UI, or operating-audit evidence above.
