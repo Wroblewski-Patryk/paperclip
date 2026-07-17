@@ -95,6 +95,69 @@ test("keeps implemented API endpoints without proof links in missing evidence bu
   assert.equal(summary.priorityReviewItems[0].risk, "missing_test_link");
 });
 
+test("treats inbound document links as documentation proof for verified API endpoints", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "app-completion-index-"));
+  const docsDir = path.join(root, "docs");
+  await mkdir(path.join(docsDir, "graphs"), { recursive: true });
+
+  const graph = {
+    entities: [
+      {
+        id: "api_endpoint:use-profile-security",
+        type: "api_endpoint",
+        name: "USE /profile/security",
+        path: "apps/api/src/router/dashboard.routes.ts#/profile/security",
+        owner: "Test Automation Engineer",
+        status: "verified",
+        description: "Focused profile security API coverage proves the mounted dashboard security routes.",
+      },
+      {
+        id: "test:security-e2e",
+        type: "test",
+        name: "security.e2e.test.ts",
+        path: "apps/api/src/modules/profile/security/security.e2e.test.ts",
+        status: "tested",
+      },
+      {
+        id: "document:api-profile-module",
+        type: "document",
+        name: "API Profile Module",
+        path: "docs/modules/api-profile.md",
+        status: "verified",
+      },
+      {
+        id: "task:repair-lane",
+        type: "task",
+        name: "Task",
+        path: "history/tasks/luc-1396-account-access-use-profile-security-missing-doc-link-task.md",
+        status: "verified",
+      },
+    ],
+    relations: [
+      { from: "document:api-profile-module", to: "api_endpoint:use-profile-security", type: "documents" },
+      { from: "api_endpoint:use-profile-security", to: "test:security-e2e", type: "tests" },
+      { from: "task:repair-lane", to: "api_endpoint:use-profile-security", type: "documents" },
+    ],
+  };
+
+  await writeFile(path.join(docsDir, "graphs", "architecture-awareness.json"), `${JSON.stringify(graph)}\n`);
+
+  const result = spawnSync(
+    process.execPath,
+    [scriptPath, "--project", "Soar", "--root", root, "--out", docsDir],
+    { encoding: "utf8" },
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const summary = JSON.parse(await readFile(path.join(docsDir, "status", "app-completion-index.json"), "utf8"));
+  assert.equal(summary.counts.missingDocLink, 0);
+  assert.equal(summary.counts.missingTestLink, 0);
+
+  const item = summary.priorityReviewItems.find((candidate) => candidate.id === "api_endpoint:use-profile-security");
+  assert.equal(item, undefined);
+});
+
 test("does not route agent state documents as app completion work", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "app-completion-index-"));
   const docsDir = path.join(root, "docs");
