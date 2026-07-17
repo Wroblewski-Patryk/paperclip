@@ -35,4 +35,14 @@ describe("company routes", () => {
     expect(applyCompanyPrefix("/search?q=hello%20world", "PAP")).toBe("/PAP/search?q=hello%20world");
     expect(toCompanyRelativePath("/PAP/search?q=foo")).toBe("/search?q=foo");
   });
+
+  it.each(["organizational-memory", "organizational-learning"])(
+    "treats /%s as a company-scoped board route",
+    (route) => {
+      expect(isBoardPathWithoutPrefix(`/${route}`)).toBe(true);
+      expect(extractCompanyPrefixFromPath(`/${route}`)).toBeNull();
+      expect(applyCompanyPrefix(`/${route}`, "LUC")).toBe(`/LUC/${route}`);
+      expect(toCompanyRelativePath(`/LUC/${route}`)).toBe(`/${route}`);
+    },
+  );
 });

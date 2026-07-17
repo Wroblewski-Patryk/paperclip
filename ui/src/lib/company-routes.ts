@@ -11,6 +11,8 @@ const BOARD_ROUTE_ROOTS = new Set([
   "issues",
   "routines",
   "goals",
+  "organizational-memory",
+  "organizational-learning",
   "approvals",
   "costs",
   "usage",
