@@ -336,6 +336,9 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(environment, /never serialize the\s+full `Win32_Process` table/i);
   assert.match(environment, /strict-port mode/i);
   assert.match(environment, /softwarehouse:runtime-topology-audit/);
+  assert.match(environment, /docker compose run --rm/);
+  assert.match(environment, /do not retain a\s+per-issue container/i);
+  assert.match(environment, /Never substitute `docker system prune`/);
   assert.match(environment, /paperclip-issue-update\.mjs/);
   assert.match(environment, /Never invoke a `\.js`, `\.mjs`, `\.cjs`, or `\.ts` file/i);
   assert.match(environment, /node \$issueHelper --issue-id/);
@@ -372,6 +375,17 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(syncScript, /node \$upload/);
   assert.match(syncScript, /bounded Windows workstation/);
   assert.match(syncScript, /runtime-topology-audit/);
+});
+
+test("runtime topology audit detects retained Compose one-off containers", async () => {
+  const audit = await readFile("scripts/audit-local-runtime-topology.mjs", "utf8");
+
+  assert.match(audit, /label=com\.docker\.compose\.oneoff/);
+  assert.match(audit, /com\.docker\.compose\.oneoff/);
+  assert.match(audit, /com\.docker\.compose\.project\.working_dir/);
+  assert.match(audit, /stale_compose_oneoff_container/);
+  assert.match(audit, /active_compose_oneoff_container/);
+  assert.match(audit, /docker_inventory_unavailable/);
 });
 
 test("Windows Softwarehouse lifecycle uses one registered process tree", async () => {

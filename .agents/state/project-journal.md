@@ -3691,3 +3691,25 @@ closeout commits the verified Paperclip OS changes, resolves the stale recovery
 action, restores `LUC-770` to its routine owner and reusable `todo` state, then
 reruns the control selector. Soar's seven local evidence/context changes stay
 separate and untouched.
+
+## 2026-07-17 - Docker Compose one-off residue guard
+
+The owner noticed two Roost backend rows in Docker Desktop. Inspection proved
+that `roost-backend-1` was the canonical Compose service while
+`roost-backend-luc-659` was a stopped, mount-free `oneoff=True` proof container
+left by LUC-659 after a development-mode health check. The proof technique was
+bounded, but retaining the container was not: it duplicated the backend image
+and host-port mapping in operator UI and could conflict with the canonical
+service.
+
+The runtime topology audit now inventories Compose one-off containers whose
+working directory is one of the three canonical roots. A stopped one-off is a
+hard `stale_compose_oneoff_container` failure; a running proof is visible as an
+`active_compose_oneoff_container` warning; unavailable Docker inventory remains
+a warning so Paperclip itself can still be audited when Docker Desktop is off.
+Shared agent instructions now require `docker compose run --rm` for bounded
+proofs and prohibit broad `docker system prune` cleanup. The real stale
+container was detected by the new guard and then removed by exact name only;
+canonical Roost backend and PostgreSQL containers were left untouched. A repeat
+topology audit passed with an empty `composeOneoffs` list, and all 39 managed
+instruction bundles were synchronized.

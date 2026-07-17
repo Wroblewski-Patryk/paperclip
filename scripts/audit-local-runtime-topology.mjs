@@ -40,6 +40,51 @@ function gitWorktrees(cwd) {
     .map((line) => path.resolve(line.slice("worktree ".length)));
 }
 
+function dockerComposeOneoffs() {
+  const ids = execFileSync(
+    "docker",
+    ["ps", "--all", "--filter", "label=com.docker.compose.oneoff", "--format", "{{.ID}}"],
+    {
+      encoding: "utf8",
+      maxBuffer: 1024 * 1024,
+      timeout: 5_000,
+      windowsHide: true,
+    },
+  )
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (ids.length === 0) return [];
+
+  const inspected = JSON.parse(
+    execFileSync("docker", ["inspect", ...ids], {
+      encoding: "utf8",
+      maxBuffer: 4 * 1024 * 1024,
+      timeout: 5_000,
+      windowsHide: true,
+    }),
+  );
+
+  return inspected
+    .filter(
+      (container) =>
+        String(container?.Config?.Labels?.["com.docker.compose.oneoff"] ?? "").toLowerCase() ===
+        "true",
+    )
+    .map((container) => ({
+      id: String(container?.Id ?? "").slice(0, 12),
+      name: String(container?.Name ?? "").replace(/^\//, ""),
+      state: container?.State?.Status ?? "unknown",
+      running: container?.State?.Running === true,
+      project: container?.Config?.Labels?.["com.docker.compose.project"] ?? null,
+      service: container?.Config?.Labels?.["com.docker.compose.service"] ?? null,
+      workingDir: container?.Config?.Labels?.["com.docker.compose.project.working_dir"] ?? null,
+      autoRemove: container?.HostConfig?.AutoRemove === true,
+      mountCount: Array.isArray(container?.Mounts) ? container.Mounts.length : 0,
+    }));
+}
+
 async function requestJson(route, timeoutMs = 5_000) {
   const response = await fetch(`${apiBase}${route}`, { signal: AbortSignal.timeout(timeoutMs) });
   if (!response.ok) throw new Error(`${route} returned ${response.status}`);
@@ -146,6 +191,39 @@ if (liveDevServices.length !== 1) {
   failures.push({ code: "paperclip_dev_service_count", count: liveDevServices.length, pids: liveDevServices.map((record) => record.pid) });
 }
 
+let composeOneoffs = [];
+try {
+  composeOneoffs = dockerComposeOneoffs().filter((container) =>
+    roots.some(
+      (root) =>
+        typeof container.workingDir === "string" &&
+        normalized(container.workingDir) === normalized(root.cwd),
+    ),
+  );
+  for (const container of composeOneoffs) {
+    const detail = {
+      id: container.id,
+      name: container.name,
+      state: container.state,
+      project: container.project,
+      service: container.service,
+      workingDir: container.workingDir,
+      autoRemove: container.autoRemove,
+      mountCount: container.mountCount,
+    };
+    if (container.running) {
+      warnings.push({ code: "active_compose_oneoff_container", ...detail });
+    } else {
+      failures.push({ code: "stale_compose_oneoff_container", ...detail });
+    }
+  }
+} catch (error) {
+  warnings.push({
+    code: "docker_inventory_unavailable",
+    message: (error instanceof Error ? error.message : String(error)).slice(0, 1_000),
+  });
+}
+
 const result = {
   overall: failures.length === 0 ? "pass" : "fail",
   checkedAt: new Date().toISOString(),
@@ -159,6 +237,7 @@ const result = {
   worktrees,
   activeProjectCountByRoot: Object.fromEntries(roots.map((root) => [root.key, activeProjectMatches(root).length])),
   livePaperclipDevServices: liveDevServices.map((record) => ({ pid: record.pid, port: record.port, cwd: record.cwd })),
+  composeOneoffs,
   warnings,
   failures,
 };

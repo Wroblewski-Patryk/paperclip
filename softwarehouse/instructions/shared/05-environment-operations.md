@@ -56,6 +56,12 @@ bounded workstation, not as an elastic build cluster.
   attached to the issue.
 - Verify topology with `pnpm run softwarehouse:runtime-topology-audit`. A
   failure is a stop signal: report it instead of self-replicating the runtime.
+- Use canonical Compose services for long-lived application runtimes. For a
+  bounded one-off proof, use `docker compose run --rm ...`; do not retain a
+  per-issue container that publishes the same host port as the canonical
+  service. After an interrupted proof, inspect and remove only the verified
+  stopped one-off container after confirming that it has no required mounts or
+  volumes. Never substitute `docker system prune` for this targeted cleanup.
 
 ## Script Runtime Discipline
 
