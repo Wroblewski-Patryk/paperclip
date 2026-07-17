@@ -38,6 +38,10 @@ export function formatWeakTrackSummary(trackSummary) {
   return `${trackSummary.track}: planned worker=${trackSummary.plannedWorkerIssueCount}, planned supervisor=${trackSummary.plannedSupervisorIssueCount}, open=${trackSummary.openIssueCount}, blocked=${trackSummary.blockedIssueCount}`;
 }
 
+export function formatTrackDispositionSummary(trackSummary) {
+  return `${trackSummary.track}: ${trackSummary.disposition} (worker-ready=${trackSummary.workerReadyLaneCount}/${trackSummary.targetWorkerReadyLaneCount}, named blockers=${trackSummary.namedBlockedLaneCount}, missing=${trackSummary.missingWorkerReadyLaneCount})`;
+}
+
 export function formatWorkerFanoutContract() {
   return [
     "Contract:",
@@ -60,6 +64,8 @@ export function summarizeWorkerBacklogTracks({
   isSupervisor,
   terminalStatuses,
   plannedStatuses,
+  hasNamedBlocker = (issue) => Array.isArray(issue?.blockedBy) && issue.blockedBy.length > 0,
+  targetWorkerReadyLaneCount = 3,
 }) {
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const activeTracks = activeControlledProjectTracks(projects);
@@ -70,8 +76,13 @@ export function summarizeWorkerBacklogTracks({
     plannedWorkerIssueCount: 0,
     plannedSupervisorIssueCount: 0,
     blockedIssueCount: 0,
+    namedBlockedLaneCount: 0,
     inProgressIssueCount: 0,
     inProgressWorkerIssueCount: 0,
+    targetWorkerReadyLaneCount,
+    workerReadyLaneCount: 0,
+    missingWorkerReadyLaneCount: targetWorkerReadyLaneCount,
+    disposition: "needs-another-child",
   }));
   const summaryByTrack = new Map(trackSummaries.map((summary) => [summary.track, summary]));
 
@@ -81,7 +92,10 @@ export function summarizeWorkerBacklogTracks({
     if (!track || !summaryByTrack.has(track)) continue;
     const summary = summaryByTrack.get(track);
     summary.openIssueCount += 1;
-    if (issue.status === "blocked") summary.blockedIssueCount += 1;
+    if (issue.status === "blocked") {
+      summary.blockedIssueCount += 1;
+      if (hasNamedBlocker(issue)) summary.namedBlockedLaneCount += 1;
+    }
     if (issue.status === "in_progress") summary.inProgressIssueCount += 1;
     const assignee = agentById.get(issue.assigneeAgentId);
     if (issue.status === "in_progress" && isWorker(assignee)) {
@@ -91,6 +105,25 @@ export function summarizeWorkerBacklogTracks({
     summary.plannedIssueCount += 1;
     if (isWorker(assignee)) summary.plannedWorkerIssueCount += 1;
     if (isSupervisor(assignee)) summary.plannedSupervisorIssueCount += 1;
+  }
+
+  for (const summary of trackSummaries) {
+    summary.workerReadyLaneCount = summary.plannedWorkerIssueCount;
+    summary.missingWorkerReadyLaneCount = Math.max(0, targetWorkerReadyLaneCount - summary.workerReadyLaneCount);
+    if (summary.missingWorkerReadyLaneCount === 0) {
+      summary.disposition = "ready";
+    } else if (
+      summary.blockedIssueCount === 0
+      && summary.openIssueCount > 0
+      && summary.openIssueCount === summary.inProgressWorkerIssueCount
+    ) {
+      summary.disposition = "ready";
+      summary.dispositionReason = "active_worker_owns_entire_track_backlog";
+    } else if (summary.namedBlockedLaneCount >= summary.missingWorkerReadyLaneCount) {
+      summary.disposition = "blocked";
+    } else {
+      summary.disposition = "needs-another-child";
+    }
   }
 
   const weakTracks = trackSummaries.filter((summary) => {
@@ -108,6 +141,19 @@ export function summarizeWorkerBacklogTracks({
   return {
     activeTracks,
     trackSummaries,
+    trackDispositions: trackSummaries.map((summary) => ({
+      track: summary.track,
+      disposition: summary.disposition,
+      dispositionReason: summary.dispositionReason ?? null,
+      targetWorkerReadyLaneCount: summary.targetWorkerReadyLaneCount,
+      workerReadyLaneCount: summary.workerReadyLaneCount,
+      missingWorkerReadyLaneCount: summary.missingWorkerReadyLaneCount,
+      namedBlockedLaneCount: summary.namedBlockedLaneCount,
+      plannedWorkerIssueCount: summary.plannedWorkerIssueCount,
+      plannedSupervisorIssueCount: summary.plannedSupervisorIssueCount,
+      openIssueCount: summary.openIssueCount,
+      blockedIssueCount: summary.blockedIssueCount,
+    })),
     weakTracks,
   };
 }

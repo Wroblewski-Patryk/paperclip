@@ -1,6 +1,7 @@
 import { agentWipBlockerFor, fetchAgentWipState, summarizeAgentWip } from "./lib/agent-wip-guard.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 import {
+  formatTrackDispositionSummary,
   formatWeakTrackSummary,
   formatWorkerFanoutContract,
   summarizeWorkerBacklogTracks,
@@ -44,6 +45,7 @@ const supervisorRosterKeys = new Set([
   "chief-operating-officer",
 ]);
 const targetTitle = "[Softwarehouse][Worker Backlog] Split supervisor work into worker-ready lanes";
+const sourceControlClosureTitlePattern = /^\[(?<project>[^\]]+)\]\[Source Control Closure\] Classify and close local dirty state/;
 
 async function controlledRepoClosureState() {
   const { spawnSync } = await import("node:child_process");
@@ -116,6 +118,11 @@ function issueLabel(issue) {
   return issue.identifier ?? issue.title ?? issue.id;
 }
 
+function sourceControlClosureQueryForProject(projectName) {
+  if (projectName === "Paperclip_Softwarehouse") return "[Softwarehouse Operating System][Source Control Closure]";
+  return `[${projectName}][Source Control Closure]`;
+}
+
 function priorityRank(priority) {
   return {
     critical: 0,
@@ -169,6 +176,11 @@ const plannedIssues = openIssues.filter((issue) =>
 );
 const plannedWorkerIssues = plannedIssues.filter((issue) => isWorker(agentById.get(issue.assigneeAgentId)));
 const plannedSupervisorIssues = plannedIssues.filter((issue) => isSupervisor(agentById.get(issue.assigneeAgentId)));
+function namedBlockerForIssue(issue) {
+  if (Array.isArray(issue.blockedBy) && issue.blockedBy.length > 0) return true;
+  const text = `${issue.title ?? ""}\n${issue.description ?? ""}`;
+  return /(blocker|blocked by|unblock owner|owner action|source-control closure|required approval)/i.test(text);
+}
 const trackBacklog = summarizeWorkerBacklogTracks({
   issues,
   projects,
@@ -177,6 +189,7 @@ const trackBacklog = summarizeWorkerBacklogTracks({
   isSupervisor,
   terminalStatuses,
   plannedStatuses,
+  hasNamedBlocker: namedBlockerForIssue,
 });
 const existing = issues.find((issue) => issue.title === targetTitle && !terminalStatuses.has(issue.status));
 const sourceControlClosureState = await controlledRepoClosureState();
@@ -194,6 +207,7 @@ const goal = byName(goals, "LuckySparrow Software House autonomy")
 
 const shouldSeed = trackBacklog.weakTracks.length > 0;
 const weakTrackLines = trackBacklog.weakTracks.map(formatWeakTrackSummary);
+const trackDispositionLines = trackBacklog.trackSummaries.map(formatTrackDispositionSummary);
 const activeExistingRuns = existing
   ? liveRuns.filter((run) => run.issueId === existing.id)
   : [];
@@ -202,6 +216,45 @@ const activeOwnerRuns = engineeringLead
   : [];
 
 const actions = [];
+const sourceControlClosureIssuesByProject = new Map(
+  issues
+    .map((issue) => ({ issue, match: String(issue.title ?? "").match(sourceControlClosureTitlePattern) }))
+    .filter(({ match }) => match?.groups?.project)
+    .sort((left, right) => Date.parse(left.issue.updatedAt ?? "") - Date.parse(right.issue.updatedAt ?? ""))
+    .map(({ issue, match }) => [match.groups.project, {
+      id: issue.id,
+      identifier: issue.identifier ?? null,
+      title: issue.title,
+      status: issue.status,
+      assignee: agentById.get(issue.assigneeAgentId)?.name ?? null,
+      updatedAt: issue.updatedAt ?? null,
+    }]),
+);
+
+async function latestSourceControlClosureIssue(projectName) {
+  const mapKey = projectName === "Paperclip_Softwarehouse" ? "Softwarehouse Operating System" : projectName;
+  const localMatch = sourceControlClosureIssuesByProject.get(mapKey);
+  if (localMatch) return localMatch;
+  try {
+    const query = encodeURIComponent(sourceControlClosureQueryForProject(projectName));
+    const matches = await request("GET", `/api/companies/${company.id}/issues?q=${query}&limit=10`);
+    const match = matches
+      .slice()
+      .sort((left, right) => Date.parse(right.updatedAt ?? "") - Date.parse(left.updatedAt ?? ""))[0];
+    if (!match) return null;
+    return {
+      id: match.id,
+      identifier: match.identifier ?? null,
+      title: match.title,
+      status: match.status,
+      assignee: agentById.get(match.assigneeAgentId)?.name ?? null,
+      updatedAt: match.updatedAt ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 if (agentWip.unknownActiveRunCount > 0) {
   actions.push({
     action: "noop_unknown_active_runs",
@@ -226,10 +279,20 @@ if (agentWip.unknownActiveRunCount > 0) {
     activeOwnerRunCount: activeOwnerRuns.length,
   });
 } else if (sourceControlClosureState.dirty) {
+  const dirtyRepos = [];
+  for (const repo of sourceControlClosureState.dirtyRepos ?? []) {
+    dirtyRepos.push({
+      ...repo,
+      sourceControlClosureIssue: await latestSourceControlClosureIssue(repo.name),
+    });
+  }
   actions.push({
     action: "noop_controlled_repo_source_control_closure_required",
     dirtyRepoCount: sourceControlClosureState.dirtyRepoCount ?? null,
-    dirtyRepos: sourceControlClosureState.dirtyRepos ?? [],
+    dirtyRepos,
+    sourceControlClosureIssues: dirtyRepos
+      .map((repo) => repo.sourceControlClosureIssue)
+      .filter(Boolean),
     generatedAt: sourceControlClosureState.generatedAt ?? null,
     error: sourceControlClosureState.error ?? null,
   });
@@ -299,6 +362,8 @@ if (agentWip.unknownActiveRunCount > 0) {
     `- planned supervisor issue count: ${plannedSupervisorIssues.length}`,
     `- planned issue count: ${plannedIssues.length}`,
     ...(weakTrackLines.length > 0 ? ["- weak active tracks:", ...weakTrackLines.map((line) => `  - ${line}`)] : []),
+    "- per-track lane dispositions:",
+    ...trackDispositionLines.map((line) => `  - ${line}`),
     "",
     formatWorkerFanoutContract(),
     "",
@@ -381,6 +446,7 @@ console.log(JSON.stringify({
     plannedSupervisorIssues: plannedSupervisorIssues.length,
   },
   trackBacklog,
+  trackDispositions: trackBacklog.trackDispositions,
   shouldSeed,
   existing: existing ? {
     identifier: existing.identifier,

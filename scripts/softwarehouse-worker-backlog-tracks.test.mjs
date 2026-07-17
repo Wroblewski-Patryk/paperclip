@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 import {
   controlledProjectNameFor,
+  formatTrackDispositionSummary,
   formatWeakTrackSummary,
   formatWorkerFanoutContract,
   summarizeWorkerBacklogTracks,
@@ -77,6 +78,7 @@ test("summarizeWorkerBacklogTracks flags a weak Roost track even when company-wi
   });
 
   assert.deepEqual(summary.weakTracks.map((track) => track.track), ["Roost"]);
+  assert.equal(summary.trackDispositions.find((track) => track.track === "Roost")?.disposition, "needs-another-child");
   assert.equal(
     formatWeakTrackSummary(summary.weakTracks[0]),
     "Roost: planned worker=0, planned supervisor=1, open=3, blocked=1",
@@ -107,6 +109,43 @@ test("an active leaf worker is a healthy closure path when it owns the entire tr
 
   assert.equal(summary.trackSummaries[0].inProgressWorkerIssueCount, 1);
   assert.deepEqual(summary.weakTracks, []);
+  assert.equal(summary.trackDispositions[0].disposition, "ready");
+  assert.equal(summary.trackDispositions[0].dispositionReason, "active_worker_owns_entire_track_backlog");
+});
+
+test("track dispositions report ready, blocked, and needs-another-child per controlled project", () => {
+  const projects = [
+    { id: "roost", name: "11 Innovation: Roost", status: "in_progress" },
+    { id: "soar", name: "11 Innovation: Soar", status: "in_progress" },
+  ];
+  const agentById = new Map([
+    ["worker", { id: "worker", metadata: { rosterKey: "test-automation-engineer" } }],
+  ]);
+  const summary = summarizeWorkerBacklogTracks({
+    issues: [
+      { projectId: "soar", title: "[Soar] Worker 1", status: "todo", assigneeAgentId: "worker" },
+      { projectId: "soar", title: "[Soar] Worker 2", status: "todo", assigneeAgentId: "worker" },
+      { projectId: "soar", title: "[Soar] Worker 3", status: "todo", assigneeAgentId: "worker" },
+      { projectId: "roost", title: "[Roost] Worker 1", status: "todo", assigneeAgentId: "worker" },
+      { projectId: "roost", title: "[Roost] Gate A", status: "blocked", assigneeAgentId: "worker", blockedBy: [{ identifier: "LUC-1" }] },
+      { projectId: "roost", title: "[Roost] Gate B", status: "blocked", assigneeAgentId: "worker", blockedBy: [{ identifier: "LUC-2" }] },
+    ],
+    projects,
+    agentById,
+    isWorker: (agent) => agent?.metadata?.rosterKey === "test-automation-engineer",
+    isSupervisor: () => false,
+    terminalStatuses: new Set(["done", "cancelled"]),
+    plannedStatuses: new Set(["todo", "backlog"]),
+  });
+
+  assert.deepEqual(
+    summary.trackDispositions.map((track) => [track.track, track.disposition]),
+    [["Roost", "blocked"], ["Soar", "ready"]],
+  );
+  assert.equal(
+    formatTrackDispositionSummary(summary.trackSummaries[0]),
+    "Roost: blocked (worker-ready=1/3, named blockers=2, missing=2)",
+  );
 });
 
 test("formatWorkerFanoutContract keeps the fan-out rule track-scoped and evidence-named", () => {
