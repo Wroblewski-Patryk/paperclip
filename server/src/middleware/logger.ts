@@ -5,6 +5,7 @@ import { pinoHttp } from "pino-http";
 import { readConfigFile } from "../config-file.js";
 import { resolveDefaultLogsDir, resolveHomeAwarePath } from "../home-paths.js";
 import { shouldSilenceHttpSuccessLog } from "./http-log-policy.js";
+import { rotateAndPruneServerLogs } from "./server-log-retention.js";
 
 function resolveServerLogDir(): string {
   const envOverride = process.env.PAPERCLIP_LOG_DIR?.trim();
@@ -18,6 +19,14 @@ function resolveServerLogDir(): string {
 
 const logDir = resolveServerLogDir();
 fs.mkdirSync(logDir, { recursive: true });
+
+const loggingConfig = readConfigFile()?.logging;
+rotateAndPruneServerLogs({
+  logDir,
+  maxFileBytes: loggingConfig?.serverLogMaxFileBytes ?? 256 * 1024 * 1024,
+  maxTotalBytes: loggingConfig?.serverLogMaxTotalBytes ?? 1024 * 1024 * 1024,
+  retentionDays: loggingConfig?.serverLogRetentionDays ?? 14,
+});
 
 const logFile = path.join(logDir, "server.log");
 

@@ -34,6 +34,7 @@ export const databaseConfigSchema = z.object({
   connectionString: z.string().optional(),
   embeddedPostgresDataDir: z.string().default("~/.paperclip/instances/default/db"),
   embeddedPostgresPort: z.number().int().min(1).max(65535).default(54329),
+  embeddedPostgresStrictPort: z.boolean().default(false),
   backup: databaseBackupConfigSchema.default({
     enabled: true,
     intervalMinutes: 60,
@@ -47,6 +48,12 @@ export const databaseConfigSchema = z.object({
 export const loggingConfigSchema = z.object({
   mode: z.enum(["file", "cloud"]),
   logDir: z.string().default("~/.paperclip/instances/default/logs"),
+  runLogRetentionDays: z.number().int().min(1).max(3650).default(14),
+  runLogMaxTotalBytes: z.number().int().min(1).default(5 * 1024 * 1024 * 1024),
+  runLogSweepIntervalMinutes: z.number().int().min(5).max(7 * 24 * 60).default(60),
+  serverLogMaxFileBytes: z.number().int().min(1024 * 1024).default(256 * 1024 * 1024),
+  serverLogMaxTotalBytes: z.number().int().min(1024 * 1024).default(1024 * 1024 * 1024),
+  serverLogRetentionDays: z.number().int().min(1).max(3650).default(14),
 });
 
 export const serverConfigSchema = z.object({
@@ -56,6 +63,7 @@ export const serverConfigSchema = z.object({
   customBindHost: z.string().optional(),
   host: z.string().default("127.0.0.1"),
   port: z.number().int().min(1).max(65535).default(3100),
+  strictPort: z.boolean().default(false),
   allowedHostnames: z.array(z.string().min(1)).default([]),
   serveUi: z.boolean().default(true),
 });

@@ -15,6 +15,8 @@ type PartialConfig = {
     backup?: {
       dir?: string;
       retentionDays?: number;
+      maxTotalBytes?: number;
+      minFreeBytes?: number;
     };
   };
 };
@@ -70,6 +72,8 @@ async function main() {
   const connectionString = resolveConnectionString(config);
   const backupDir = resolveBackupDir(config);
   const retentionDays = resolveRetentionDays(config);
+  const maxTotalBytes = asPositiveInt(config?.database?.backup?.maxTotalBytes);
+  const minFreeBytes = asPositiveInt(config?.database?.backup?.minFreeBytes);
 
   console.log(`Config path: ${configPath}`);
   console.log(`Backing up database to: ${backupDir}`);
@@ -79,8 +83,9 @@ async function main() {
     const result = await runDatabaseBackup({
       connectionString,
       backupDir,
-      retention: { dailyDays: retentionDays, weeklyWeeks: 4, monthlyMonths: 1 },
+      retention: { dailyDays: retentionDays, weeklyWeeks: 4, monthlyMonths: 1, maxTotalBytes },
       filenamePrefix: "paperclip",
+      diskSpaceGuard: minFreeBytes ? { minFreeBytes } : false,
     });
 
     console.log(`Backup saved: ${formatDatabaseBackupResult(result)}`);

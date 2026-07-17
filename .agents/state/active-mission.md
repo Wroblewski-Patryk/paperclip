@@ -525,3 +525,58 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Current full delivery remains fail-closed only at protected leaf `LUC-972`.
   Local evidence, tests, docs, review, and source-control commits may continue;
   push, deploy, restart, protected smoke, and credential mutation may not.
+
+## 2026-07-17 - Capacity and Runtime Hygiene Guard
+
+- Keep local Paperclip capacity bounded: backups at 10 GiB with an 8 GiB free
+  reserve, run logs at 5 GiB/14 days, and rotated server logs at 1 GiB/14 days.
+- Shared project-primary heartbeats must reuse a compatible session record;
+  repeated open rows for the same issue/project workspace are lifecycle drift.
+- Preserve current `LUC-1368`; stale Soar worktree recovery evidence is under
+  `Soar/.paperclip/recovery/2026-07-17-stale-worktrees/` with 143 refs and a
+  manifest. Do not remove those recovery refs until the owner accepts a later
+  retention decision.
+- A clean restart requires exactly one listener, one registered dev service,
+  one server process tree, one embedded database cluster, and no active run
+  interruption. `dev:stop` alone is not proof that old child processes exited.
+
+## 2026-07-17 - Singleton Windows Runtime - Current
+
+- The only physical checkouts are the canonical roots for
+  Paperclip_Softwarehouse, Soar, and Roost. Soar's final dirty `LUC-1368`
+  worktree and three merged Roost worktrees were archived to recovery manifests
+  and removed; each repository now reports exactly one Git worktree.
+- Paperclip app port 3200 and embedded PostgreSQL port 54329 are strict. A
+  direct second server start fails before database initialization instead of
+  falling back to 3201 or a second database port.
+- The Windows launcher and stopper now use the same registered `dev:watch`
+  process tree. The stopper no longer enumerates and kills every repo-related
+  Node, PowerShell, Postgres, or esbuild process.
+- All 39 agent instruction bundles include the bounded Windows workstation and
+  singleton-topology contract. `pnpm run softwarehouse:runtime-topology-audit`
+  is the canonical read-only proof and currently passes with one dev service,
+  one active project per canonical root, and no fallback listener.
+- Current disk reserve is about 50 GiB. The abandoned sibling `Paperclip`
+  directory contained only broken `node_modules` and was removed; Aviary and
+  WroblewskiPatryk remain untouched.
+
+## 2026-07-17 - Conversation Closure And Remaining Delivery Gates
+
+- The organizational-orientation program, disk-capacity controls, singleton
+  checkout/runtime topology, and bounded Windows operating contract are
+  implemented and live. They are no longer open work from the owner chat.
+- Final live audits pass for runtime topology, workspace boundaries, and all 39
+  managed instruction bundles. Paperclip is healthy on strict port 3200 with
+  one registered service; embedded PostgreSQL is the only listener on 54329.
+- Nine bounded routines are active and firing. The continuation watchdog,
+  autonomy governor, gate freshness watcher, longevity controls, and daily
+  learning/governance routines reuse recurring issues instead of duplicating
+  instances.
+- Stage 1 delivery is not merely waiting for elapsed time. Safe work is
+  reevaluated by routine and issue-event paths, but protected production work
+  remains fail-closed on owner/security facts for `LUC-1368` and `LUC-972`.
+  Routines can detect, route, and escalate those gates; they cannot invent
+  deploy authority, credentials, or proof of credential rotation.
+- Soar's seven local evidence/context changes remain a separate classified
+  project-repository lane. Do not mix them into Paperclip source-control work
+  or mutate them while protected gates remain.

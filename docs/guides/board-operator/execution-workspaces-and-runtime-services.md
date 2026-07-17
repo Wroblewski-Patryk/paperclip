@@ -43,12 +43,17 @@ Issues are attached to execution workspace behavior, not to automatic runtime ma
 
 - An issue may create a new execution workspace when you choose an isolated workspace mode.
 - An issue may reuse an existing execution workspace when you choose reuse.
+- Compatible shared-workspace heartbeats automatically reuse the issue's current
+  shared session record; they do not create a new active database row for every run.
 - Multiple issues may intentionally share one execution workspace so they can work against the same branch and running runtime services.
 - Assigning or running an issue does not automatically start or stop workspace services for that workspace.
 
 ## Execution workspace lifecycle
 
-Execution workspaces are durable until a human closes them.
+Isolated execution workspaces are durable until a human closes them. Shared
+project-primary session records may be archived by lifecycle maintenance after a
+newer or issue-referenced canonical record supersedes them; this never deletes the
+underlying project checkout.
 
 - The UI can archive an execution workspace.
 - Closing an execution workspace stops its runtime services and cleans up its workspace artifacts when allowed.

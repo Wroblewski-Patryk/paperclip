@@ -332,6 +332,10 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(environment, /LUCKYSPARROW_SOFTWAREHOUSE_ROOT/);
   assert.match(environment, /Do not recursively scan/);
   assert.match(environment, /Avoid nested PowerShell here-strings/);
+  assert.match(environment, /Windows 11 Home/);
+  assert.match(environment, /never serialize the\s+full `Win32_Process` table/i);
+  assert.match(environment, /strict-port mode/i);
+  assert.match(environment, /softwarehouse:runtime-topology-audit/);
   assert.match(environment, /paperclip-issue-update\.mjs/);
   assert.match(environment, /Never invoke a `\.js`, `\.mjs`, `\.cjs`, or `\.ts` file/i);
   assert.match(environment, /node \$issueHelper --issue-id/);
@@ -366,6 +370,22 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(syncScript, /never invoke a `\.js`, `\.mjs`, `\.cjs`, or `\.ts` path directly/i);
   assert.match(syncScript, /node \$helper --issue-id/);
   assert.match(syncScript, /node \$upload/);
+  assert.match(syncScript, /bounded Windows workstation/);
+  assert.match(syncScript, /runtime-topology-audit/);
+});
+
+test("Windows Softwarehouse lifecycle uses one registered process tree", async () => {
+  const [starter, stopper] = await Promise.all([
+    readFile("scripts/start-luckysparrow-softwarehouse.ps1", "utf8"),
+    readFile("scripts/stop-luckysparrow-softwarehouse.ps1", "utf8"),
+  ]);
+
+  assert.match(starter, /pnpm dev:watch/);
+  assert.match(starter, /Test-PaperclipHealth/);
+  assert.match(starter, /-WindowStyle Hidden/);
+  assert.match(stopper, /dev-service\.ts stop/);
+  assert.doesNotMatch(stopper, /Get-CimInstance Win32_Process \| Where-Object/);
+  assert.doesNotMatch(stopper, /Stop-Process[^\n]+node|Stop-Process[^\n]+postgres/i);
 });
 
 test("architecture awareness prefers structured task status over free text", () => {

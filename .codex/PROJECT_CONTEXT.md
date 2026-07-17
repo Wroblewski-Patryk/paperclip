@@ -1,6 +1,6 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-04
+Last updated: 2026-07-17
 
 ## What This Workspace Is
 
@@ -169,6 +169,21 @@ Out of scope unless separately approved:
   secret values in memory, issue comments, logs, docs, or final responses.
 - Coolify/VPS deployment for Soar/Roost is part of the current outcome, but it
   must remain evidence-led and non-destructive.
+- Local disk capacity is a control-plane invariant. Current policy is 10 GiB
+  database backups with an 8 GiB free-space guard, 5 GiB/14-day terminal run
+  logs, and 1 GiB/14-day rotated server logs. Verify bytes on disk rather than
+  trusting configuration alone.
+- Restart verification must count actual listeners and server process trees;
+  the dev-service registry may be clean while an older child still owns port
+  3200. Never stop a server while a run is active unless the run has logically
+  completed and the canonical cancel path is used with an audit record.
+- The canonical local topology is exactly one checkout each for
+  Paperclip_Softwarehouse, Soar, and Roost. Paperclip uses strict port 3200 and
+  its canonical embedded PostgreSQL uses strict port 54329; collisions fail
+  closed. Verify with `pnpm run softwarehouse:runtime-topology-audit`.
+- This Windows 11 / PowerShell 5.1 host is one bounded workstation. Do not
+  overlap repo-wide validations, serialize the full process table, broad-kill
+  process names, or retry a timed-out test before its verified PID tree is gone.
 - Product app repos are separate from this control-plane repo. Product changes
   should be made in the relevant product repo.
 

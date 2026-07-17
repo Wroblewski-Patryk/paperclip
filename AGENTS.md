@@ -127,6 +127,10 @@ Do not create helper folders, generated indexes, scripts, or scratch files direc
 Nest, Featherly, Aviary, or other experiments. If ownership is unclear, report the path as
 a boundary issue and leave it untouched. Run `pnpm run softwarehouse:workspace-boundary-audit`
 after configuration changes that affect projects, routines, workspaces, or autonomous lanes.
+The three approved roots are singleton checkouts: do not create additional clones or worktrees.
+Paperclip must stay on strict port `3200` with its canonical embedded PostgreSQL on strict port
+`54329`; never start a fallback instance. Run `pnpm run softwarehouse:runtime-topology-audit`
+after runtime, workspace, or service configuration changes.
 
 10. Invoke scripts through their runtime on Windows.
 Never execute a `.js`, `.mjs`, `.cjs`, or `.ts` file by entering only its path, with
@@ -197,6 +201,9 @@ Windows resource safety:
 - Prefer targeted Vitest files with one worker while the live local Paperclip database is running.
 - After any external timeout or interrupted test, verify that no `vitest` process or temporary `paperclip-*-service-*` Postgres master remains before retrying.
 - A command timeout is not a passing test. Record the unverified suite and continue with narrower evidence instead of repeatedly spawning it.
+- This Windows 11 host is one bounded workstation. Do not overlap repo-wide builds, typechecks,
+  browser suites, or embedded-Postgres suites; avoid full `Win32_Process` serialization and broad
+  process-name kills. Inspect and terminate only a verified PID tree.
 
 If anything cannot be run, explicitly report what was not run and why.
 

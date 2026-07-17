@@ -3571,3 +3571,123 @@ restarted cleanly, applied migration 0104, and registered one listener on port
 3200. Readback confirmed health `ok`, the empty new observation endpoint, all
 six flow stages in `CompanySituation`, the Evidence & learning UI route, and
 zero live runs.
+
+## 2026-07-17 - Disk-capacity incident and workspace lifecycle recovery
+
+The owner reported a sudden loss of roughly 60 GB and authorized a safe cleanup
+plus prevention. The cause was cumulative lifecycle leakage, not a second
+embedded database: database backups had reached 31.6 GB because the live server
+ignored the file-configured 10 GiB cap; 144 historical Soar worktrees occupied
+about 39.2 GB; run logs occupied 7.9 GB without retention; and more than 4,200
+shared execution-workspace rows remained open because each heartbeat inserted a
+new session record. A 590 MiB unrotated `server.log` was a smaller unbounded
+consumer. A second Paperclip listener was later exposed as an orphan process
+left behind when the registered watcher stopped but its older child did not.
+
+Recovery was evidence-first. A fresh logical backup was created before pruning;
+backup retention reduced the directory to the 10 GiB policy. For Soar, every one
+of the 143 stale worktrees received a durable recovery ref, binary tracked diff
+when needed, copied non-ignored untracked files with hashes, and a manifest under
+`Soar/.paperclip/recovery/2026-07-17-stale-worktrees/`. All 143 were removed with
+zero recovery errors; 19 Windows `Directory not empty` remnants were removed only
+after Git confirmed they were unregistered. The current dirty `LUC-1368`
+worktree was preserved. Run-log maintenance removed 7,093 orphan/terminal files
+and retained 2.14 GB. Shared-workspace deduplication archived 2,948 superseded
+records while preserving one canonical record per logical session.
+
+Prevention is now one system: scheduled/manual/CLI backups share
+`maxTotalBytes=10 GiB` and an 8 GiB minimum-free guard; terminal/orphan run logs
+have 14-day/5 GiB retention with active-run and one-hour orphan-race protection;
+`server.log` rotates at 256 MiB with a 14-day/1 GiB rotated ceiling; compatible
+shared heartbeats reuse their issue-linked session record; and deduplication is
+audited. Live proof on the corrected single listener returned the 10 GiB cap and
+pruned three excess backup files. Focused tests (22), shared/db/server
+typechecks, `git diff --check`, and the workspace-boundary audit passed. The
+full repo build exceeded the external wait window; its detached TypeScript
+children completed, but the full parent result was not observable and is not
+claimed as passing.
+
+Operational rule: stopping a dev watcher is not sufficient proof that Paperclip
+stopped. Any restart or disk incident must verify listener count, process tree,
+registered service count, embedded database count, active runs, backup/log byte
+ceilings, and physical worktree inventory before declaring the runtime clean.
+
+## 2026-07-17 - Singleton topology and Windows crash guard completed
+
+Conversation follow-up and verified implementation. The owner asked for one
+running Paperclip and one canonical physical location each for Soar and Roost,
+plus protection against PowerShell/computer hangs caused by agent commands.
+
+The remaining dirty Soar `LUC-1368` execution worktree was preserved with a
+recovery ref and binary patch, then removed. Three clean merged Roost worktrees
+were likewise archived and removed. Manifests are at
+`Soar/.paperclip/recovery/2026-07-17-consolidate-single-checkout/manifest.json`
+and the corresponding Roost path. All three repositories now have exactly one
+Git worktree. An abandoned sibling `C:/Personal/Projekty/Aplikacje/Paperclip`
+contained only broken `node_modules`; after exact-path and top-level-content
+verification it was removed. Other sibling apps were left untouched.
+
+Paperclip now supports `server.strictPort` and
+`database.embeddedPostgresStrictPort`; the Softwarehouse instance enables both
+for ports 3200 and 54329. A direct second start returned the expected strict
+port error before database initialization while the canonical listener stayed
+healthy. The official Windows launcher now starts the root registered
+`dev:watch` service and waits for health. The stopper targets that registered
+tree and verified listeners, removing its old full-process-table scan and broad
+repo process kills.
+
+The live Windows environment contract records Windows 11 Home, PowerShell 5.1,
+Node 22, pnpm 9, 16 logical processors, and about 32 GiB RAM as one bounded
+workstation. It forbids full `Win32_Process` serialization, broad process-name
+kills, nested visible launchers, fallback instances, and overlapping heavy
+validation. The contract was synced to all 39 agent instruction bundles and
+their audit passed.
+
+Evidence: `softwarehouse:runtime-topology-audit` and workspace boundary audit
+pass; the topology reports one dev service, one active project and one Git
+worktree per canonical root, strict ports, healthy API, and no 3201 fallback.
+Shared/server typechecks passed; 19 focused Vitest tests and 174 Softwarehouse
+gate tests passed; full `pnpm build` passed. Full `pnpm test:run` exceeded the
+15-minute external timeout and is not claimed; its exact remaining Vitest PID
+tree was terminated. A bounded PostgreSQL ancestry check then found five orphan
+`io_worker` processes whose parents were not the healthy 54329 master; the
+dedicated orphan cleanup removed all five and a repeat check found zero
+orphans. Final disk reserve was about 49.9 GiB.
+
+## 2026-07-17 - Final conversation audit and archive checkpoint
+
+The owner asked to close and archive the chat only after verifying that its
+changes were live and that autonomous work would continue coherently. The final
+audit found the implementation active rather than merely present in the
+worktree: runtime topology, workspace boundaries, and all 39 instruction
+bundles pass; there is one Paperclip service/listener on strict port 3200, one
+embedded PostgreSQL listener on strict port 54329, one Git worktree for each of
+Paperclip_Softwarehouse, Soar, and Roost, no Vitest residue, and about 49.9 GiB
+free. On-disk policy use is 9.72 GiB of backups, 2.14 GiB of run logs, and only
+about 0.006 GiB of server logs.
+
+The canonical control tick completed all steps in about 49 seconds with
+`ok: true`. All nine bounded routines are active and scheduled; a real CINO
+recovery run occurred during the audit, proving the system is not dependent on
+manual chat activity. Recurring routine issues are coalesced/reused rather than
+duplicated.
+
+Important closure distinction: the chat implementation is complete, but Stage
+1 product delivery is intentionally not declared complete. The current control
+decision is `project_truth_gap_routing_needed` for Soar's 503 readiness state.
+Protected gates `LUC-1368` (deploy-capable Redis recovery path) and `LUC-972`
+(approved credential rotation) require a fresh owner/security fact. Routines
+will keep reevaluating, routing safe work, and escalating stale gates, but they
+cannot legally synthesize credentials, deployment authority, or human proof.
+This is an intentional gate hold, not evidence that waiting alone guarantees
+resolution.
+
+The audit also exposed two closure mechanics to finish before archiving: the
+conversation's Paperclip OS changes were still uncommitted and therefore the
+next-legal-action selector correctly blocked broader delivery; and reusable
+watchdog issue `LUC-770` retained a stranded recovery action after its
+status-only recovery agent could not perform the issue mutation. The final
+closeout commits the verified Paperclip OS changes, resolves the stale recovery
+action, restores `LUC-770` to its routine owner and reusable `todo` state, then
+reruns the control selector. Soar's seven local evidence/context changes stay
+separate and untouched.

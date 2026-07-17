@@ -1,6 +1,6 @@
 # Service Topology
 
-Last updated: 2026-07-09
+Last updated: 2026-07-17
 
 ## Purpose
 
@@ -11,7 +11,8 @@ coordinates.
 
 | Service | Runtime | Path / target | Depends on | Health/readiness | Owner |
 | --- | --- | --- | --- | --- | --- |
-| Paperclip app/API | local dev server | `http://127.0.0.1:3200` | local workspace, Paperclip runtime data | `/api/health`, softwarehouse audit script | Softwarehouse OS / CTO |
+| Paperclip app/API | one supervised local dev server, strict port | `http://127.0.0.1:3200` | canonical checkout, Paperclip runtime data | `/api/health`, `pnpm run softwarehouse:runtime-topology-audit` | Softwarehouse OS / CTO |
+| Embedded PostgreSQL | one local cluster, strict port | canonical runtime data dir, `127.0.0.1:54329` | Paperclip app/API | topology audit + expected data directory check | Softwarehouse OS / CTO |
 | Paperclip runtime home | local filesystem | `.paperclip/runtime/home/...` | Codex auth, model adapters, agent configs | agent status + live-runs audit | CTO / Agent Health |
 | Agent instruction bundles | repo files + Paperclip agent docs | `softwarehouse/instructions/` | sync script, role roster | instruction drift audit | Docs Memory / CTO |
 | Workspace boundary audit | local filesystem + Paperclip API | `pnpm run softwarehouse:workspace-boundary-audit` | allowed roots and active project records | no active project outside allowed roots; no generated root artifacts | Softwarehouse OS / CTO |
@@ -34,6 +35,11 @@ Agents must not create generated files, helper scripts, indexes, or scratch
 folders directly under `C:/Personal/Projekty/Aplikacje`. Sibling app folders are
 parked or external owner assets: do not mutate or delete them without explicit
 owner approval.
+
+Each allowed root is also a singleton checkout. Archived project records and
+recovery manifests are historical evidence, not permission to create another
+physical checkout or running service. Port fallback is disabled for the active
+Paperclip instance and its embedded database; a collision must fail closed.
 
 Deferred portfolio streams: Featherly, Nest, Aviary, LuckySparrow.ch,
 OpenJarvis, Obiekty, Paperclip product work, and other experiments stay

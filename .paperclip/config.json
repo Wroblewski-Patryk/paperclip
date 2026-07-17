@@ -1,24 +1,32 @@
 {
   "$meta": {
     "version": 1,
-    "updatedAt": "2026-07-04T16:06:30.000Z",
+    "updatedAt": "2026-07-17T18:35:00.000Z",
     "source": "configure"
   },
   "database": {
     "mode": "embedded-postgres",
     "embeddedPostgresDataDir": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/home/instances/default/db",
     "embeddedPostgresPort": 54329,
+    "embeddedPostgresStrictPort": true,
     "backup": {
       "enabled": true,
       "intervalMinutes": 60,
       "retentionDays": 14,
       "maxTotalBytes": 10737418240,
+      "minFreeBytes": 8589934592,
       "dir": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/home/instances/default/data/backups"
     }
   },
   "logging": {
     "mode": "file",
-    "logDir": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/logs"
+    "logDir": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/.paperclip/runtime/logs",
+    "runLogRetentionDays": 14,
+    "runLogMaxTotalBytes": 5368709120,
+    "runLogSweepIntervalMinutes": 60,
+    "serverLogMaxFileBytes": 268435456,
+    "serverLogMaxTotalBytes": 1073741824,
+    "serverLogRetentionDays": 14
   },
   "server": {
     "deploymentMode": "local_trusted",
@@ -26,6 +34,7 @@
     "bind": "loopback",
     "host": "127.0.0.1",
     "port": 3200,
+    "strictPort": true,
     "allowedHostnames": [
       "localhost",
       "127.0.0.1"

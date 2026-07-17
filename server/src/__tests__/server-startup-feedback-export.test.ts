@@ -58,6 +58,7 @@ function buildTestConfig(overrides: Record<string, unknown> = {}) {
     customBindHost: undefined,
     host: "127.0.0.1",
     port: 3210,
+    strictPort: false,
     allowedHostnames: [],
     authBaseUrlMode: "auto",
     authPublicBaseUrl: undefined,
@@ -66,10 +67,16 @@ function buildTestConfig(overrides: Record<string, unknown> = {}) {
     databaseUrl: "postgres://paperclip:paperclip@127.0.0.1:5432/paperclip",
     embeddedPostgresDataDir: "/tmp/paperclip-test-db",
     embeddedPostgresPort: 54329,
+    embeddedPostgresStrictPort: false,
     databaseBackupEnabled: false,
     databaseBackupIntervalMinutes: 60,
     databaseBackupRetentionDays: 30,
+    databaseBackupMaxTotalBytes: 10 * 1024 * 1024 * 1024,
+    databaseBackupMinFreeBytes: 4 * 1024 * 1024 * 1024,
     databaseBackupDir: "/tmp/paperclip-test-backups",
+    runLogRetentionDays: 14,
+    runLogMaxTotalBytes: 5 * 1024 * 1024 * 1024,
+    runLogSweepIntervalMinutes: 60,
     serveUi: false,
     uiDevMiddleware: false,
     secretsProvider: "local_encrypted",
@@ -295,6 +302,16 @@ describe("startServer authenticated auth origin setup", () => {
     expect(createAppMock.mock.calls[0]?.[1]).toMatchObject({
       serverPort: 3211,
     });
+  });
+
+  it("refuses to start a fallback listener when strict port mode is enabled", async () => {
+    loadConfigMock.mockReturnValue(buildTestConfig({ port: 3210, strictPort: true }));
+    detectPortMock.mockResolvedValueOnce(3211);
+
+    await expect(startServer()).rejects.toThrow(
+      "Paperclip strict port 3210 is already in use",
+    );
+    expect(createDbMock).not.toHaveBeenCalled();
   });
 });
 

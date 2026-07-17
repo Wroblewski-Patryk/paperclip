@@ -490,3 +490,34 @@ Standing rule:
   keyboard-accessible non-anchor container and preserve nested link behavior.
 - Keep a DOM regression check for `a a` nesting and confirm current timestamps
   before treating retained browser console history as a fresh error.
+
+## 2026-07-17 - Windows supervision must be bounded and singleton
+
+Observed pattern: fallback ports, mismatched launch paths, broad
+`Win32_Process` enumeration, and retrying timed-out validation can turn one
+local control plane into competing process trees and can overload or freeze the
+PowerShell host.
+
+Standing rule:
+
+- Paperclip, Soar, and Roost each have one canonical checkout and one active
+  project workspace. A new worktree or clone requires a scoped execution need
+  and lifecycle cleanup, not convenience.
+- Managed singleton ports fail closed. Never interpret automatic port fallback
+  as a healthy second instance.
+- Start and stop Paperclip only through the registered service tree. Inspect or
+  terminate one verified PID tree; never serialize the full process table or
+  broad-kill Node, PowerShell, Postgres, or Paperclip by name.
+- Run heavy validation sequentially. When an external timeout occurs, record it
+  as unverified, remove the exact remaining test tree, and use narrower passing
+  evidence rather than immediately spawning a retry.
+
+Current evidence:
+
+- `scripts/audit-local-runtime-topology.mjs` verifies strict ports, canonical
+  roots, one Git worktree per repo, one active project per root, one registered
+  dev service, health, and absence of a Paperclip fallback on 3201.
+- `scripts/start-luckysparrow-softwarehouse.ps1` and
+  `scripts/stop-luckysparrow-softwarehouse.ps1` share the registered
+  `dev:watch` lifecycle and have regression coverage in
+  `scripts/softwarehouse-gate-specs.test.mjs`.

@@ -56,6 +56,7 @@ export interface Config {
   customBindHost: string | undefined;
   host: string;
   port: number;
+  strictPort: boolean;
   allowedHostnames: string[];
   authBaseUrlMode: AuthBaseUrlMode;
   authPublicBaseUrl: string | undefined;
@@ -65,10 +66,16 @@ export interface Config {
   databaseMigrationUrl: string | undefined;
   embeddedPostgresDataDir: string;
   embeddedPostgresPort: number;
+  embeddedPostgresStrictPort: boolean;
   databaseBackupEnabled: boolean;
   databaseBackupIntervalMinutes: number;
   databaseBackupRetentionDays: number;
+  databaseBackupMaxTotalBytes: number | null;
+  databaseBackupMinFreeBytes: number | null;
   databaseBackupDir: string;
+  runLogRetentionDays: number;
+  runLogMaxTotalBytes: number;
+  runLogSweepIntervalMinutes: number;
   serveUi: boolean;
   uiDevMiddleware: boolean;
   secretsProvider: SecretProvider;
@@ -120,6 +127,7 @@ export function loadConfig(): Config {
   const fileDatabaseBackup = fileConfig?.database.backup;
   const fileSecrets = fileConfig?.secrets;
   const fileStorage = fileConfig?.storage;
+  const fileLogging = fileConfig?.logging;
 
   const providerFromEnvRaw = process.env.PAPERCLIP_SECRETS_PROVIDER;
   const providerFromEnv =
@@ -260,10 +268,40 @@ export function loadConfig(): Config {
       fileDatabaseBackup?.retentionDays ||
       7,
   );
+  const configuredDatabaseBackupMaxTotalBytes = Number(
+    process.env.PAPERCLIP_DB_BACKUP_MAX_TOTAL_BYTES ?? fileDatabaseBackup?.maxTotalBytes,
+  );
+  const databaseBackupMaxTotalBytes = Number.isFinite(configuredDatabaseBackupMaxTotalBytes)
+    && configuredDatabaseBackupMaxTotalBytes > 0
+      ? Math.trunc(configuredDatabaseBackupMaxTotalBytes)
+      : null;
+  const configuredDatabaseBackupMinFreeBytes = Number(
+    process.env.PAPERCLIP_DB_BACKUP_MIN_FREE_BYTES ?? fileDatabaseBackup?.minFreeBytes,
+  );
+  const databaseBackupMinFreeBytes = Number.isFinite(configuredDatabaseBackupMinFreeBytes)
+    && configuredDatabaseBackupMinFreeBytes > 0
+      ? Math.trunc(configuredDatabaseBackupMinFreeBytes)
+      : null;
   const databaseBackupDir = resolveHomeAwarePath(
     process.env.PAPERCLIP_DB_BACKUP_DIR ??
       fileDatabaseBackup?.dir ??
       resolveDefaultBackupDir(),
+  );
+  const runLogRetentionDays = Math.max(
+    1,
+    Number(process.env.PAPERCLIP_RUN_LOG_RETENTION_DAYS) || fileLogging?.runLogRetentionDays || 14,
+  );
+  const runLogMaxTotalBytes = Math.max(
+    1,
+    Number(process.env.PAPERCLIP_RUN_LOG_MAX_TOTAL_BYTES)
+      || fileLogging?.runLogMaxTotalBytes
+      || 5 * 1024 * 1024 * 1024,
+  );
+  const runLogSweepIntervalMinutes = Math.max(
+    5,
+    Number(process.env.PAPERCLIP_RUN_LOG_SWEEP_INTERVAL_MINUTES)
+      || fileLogging?.runLogSweepIntervalMinutes
+      || 60,
   );
   const bindValidationErrors = validateConfiguredBindMode({
     deploymentMode,
@@ -292,6 +330,10 @@ export function loadConfig(): Config {
     customBindHost: resolvedBind.customBindHost,
     host: resolvedBind.host,
     port: Number(process.env.PORT) || fileConfig?.server.port || 3100,
+    strictPort:
+      process.env.PAPERCLIP_STRICT_PORT !== undefined
+        ? process.env.PAPERCLIP_STRICT_PORT === "true"
+        : (fileConfig?.server.strictPort ?? false),
     allowedHostnames,
     authBaseUrlMode,
     authPublicBaseUrl,
@@ -303,10 +345,19 @@ export function loadConfig(): Config {
       fileConfig?.database.embeddedPostgresDataDir ?? resolveDefaultEmbeddedPostgresDir(),
     ),
     embeddedPostgresPort: fileConfig?.database.embeddedPostgresPort ?? 54329,
+    embeddedPostgresStrictPort:
+      process.env.PAPERCLIP_EMBEDDED_POSTGRES_STRICT_PORT !== undefined
+        ? process.env.PAPERCLIP_EMBEDDED_POSTGRES_STRICT_PORT === "true"
+        : (fileConfig?.database.embeddedPostgresStrictPort ?? false),
     databaseBackupEnabled,
     databaseBackupIntervalMinutes,
     databaseBackupRetentionDays,
+    databaseBackupMaxTotalBytes,
+    databaseBackupMinFreeBytes,
     databaseBackupDir,
+    runLogRetentionDays,
+    runLogMaxTotalBytes,
+    runLogSweepIntervalMinutes,
     serveUi:
       process.env.SERVE_UI !== undefined
         ? process.env.SERVE_UI === "true"

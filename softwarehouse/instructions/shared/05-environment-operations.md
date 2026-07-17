@@ -4,6 +4,10 @@ Use this shared environment guidance for LuckySparrow Softwarehouse work.
 
 ## Windows Shell Discipline
 
+This company currently runs on Windows 11 Home with Windows PowerShell 5.1,
+Node 22, pnpm 9, 16 logical processors, and about 32 GiB RAM. Treat it as one
+bounded workstation, not as an elastic build cluster.
+
 - Prefer one command per tool call when the result matters.
 - Avoid chaining critical commands with `&&`, `||`, or long shell pipelines in
   Paperclip/Codex task instructions. Split commands so failures are visible and
@@ -23,6 +27,35 @@ Use this shared environment guidance for LuckySparrow Softwarehouse work.
 - Avoid nested PowerShell here-strings passed through another shell command.
   Prefer a direct `Invoke-RestMethod` call with a hashtable and
   `ConvertTo-Json`, or the tracked Node helper.
+- Filter process queries before projecting `CommandLine`; never serialize the
+  full `Win32_Process` table or recurse through every process descendant just
+  to check one service. Prefer the bounded runtime topology audit.
+- Never use broad process-name kills (`taskkill`/`Stop-Process` against every
+  Node, PowerShell, Paperclip, or Postgres process). Stop the registered
+  Paperclip service, or terminate one verified PID tree.
+- Do not launch detached or visible helper windows with nested
+  `Start-Process`. A required background process must be registered with the
+  Paperclip service supervisor and use hidden-window behavior on Windows.
+- Run repo-wide builds, typechecks, browser tests, and embedded-Postgres suites
+  sequentially. Start with the smallest targeted check and never overlap two
+  memory-heavy validation lanes on this workstation.
+- If PowerShell, a test, or a build hangs, stop and inspect its bounded PID
+  tree. Do not retry in parallel or spawn a new Paperclip instance.
+
+## Canonical Local Topology
+
+- The only Paperclip checkout is
+  `C:\Personal\Projekty\Aplikacje\Paperclip_Softwarehouse`; its API is fixed to
+  `127.0.0.1:3200` and embedded PostgreSQL to `54329`. Strict-port mode means a
+  second startup must fail instead of selecting `3201` or another database
+  port.
+- The only Soar checkout is `C:\Personal\Projekty\Aplikacje\Soar`.
+- The only Roost checkout is `C:\Personal\Projekty\Aplikacje\Roost`.
+- Do not create another clone, worktree, copied app directory, alternate dev
+  server, or fallback-port instance. Use the project primary workspace already
+  attached to the issue.
+- Verify topology with `pnpm run softwarehouse:runtime-topology-audit`. A
+  failure is a stop signal: report it instead of self-replicating the runtime.
 
 ## Script Runtime Discipline
 

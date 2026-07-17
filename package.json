@@ -159,6 +159,7 @@
     "softwarehouse:roost-secrets": "pnpm run preflight:workspace-links && tsx scripts/bootstrap-roost-protected-api-key.ts",
     "softwarehouse:roost-secrets:apply": "pnpm run preflight:workspace-links && tsx scripts/bootstrap-roost-protected-api-key.ts --apply",
     "softwarehouse:workspace-boundary-audit": "node scripts/audit-softwarehouse-workspace-boundaries.mjs",
+    "softwarehouse:runtime-topology-audit": "node scripts/audit-local-runtime-topology.mjs",
     "softwarehouse:portfolio-index": "node scripts/update-softwarehouse-portfolio-index.mjs"
   },
   "devDependencies": {

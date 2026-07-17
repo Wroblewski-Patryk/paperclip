@@ -516,6 +516,19 @@ Expected:
 - `/api/health` returns `{"status":"ok"}`
 - `/api/companies` returns a JSON array
 
+### Strict singleton ports
+
+Normal development keeps automatic port fallback for compatibility. A managed
+singleton installation can set `server.strictPort: true` (or
+`PAPERCLIP_STRICT_PORT=true`) so a busy application port aborts startup instead
+of silently creating another instance on the next port.
+
+Likewise, `database.embeddedPostgresStrictPort: true` (or
+`PAPERCLIP_EMBEDDED_POSTGRES_STRICT_PORT=true`) prevents an unexpected database
+on the configured port from causing a second embedded cluster to start on a
+fallback port. An already-running PostgreSQL process backed by the configured
+data directory is still reused.
+
 ## Reset Local Dev Database
 
 To wipe local dev data and start fresh:
@@ -537,7 +550,8 @@ schemas. Defaults:
 
 - enabled
 - every 60 minutes
-- retain 30 days
+- tiered daily/weekly/monthly retention from Instance Settings
+- optional total-byte ceiling and minimum-free-space guard from the instance config
 - backup dir: `~/.paperclip/instances/default/data/backups`
 
 Configure these in:
@@ -559,7 +573,37 @@ Environment overrides:
 - `PAPERCLIP_DB_BACKUP_ENABLED=true|false`
 - `PAPERCLIP_DB_BACKUP_INTERVAL_MINUTES=<minutes>`
 - `PAPERCLIP_DB_BACKUP_RETENTION_DAYS=<days>`
+- `PAPERCLIP_DB_BACKUP_MAX_TOTAL_BYTES=<bytes>`
+- `PAPERCLIP_DB_BACKUP_MIN_FREE_BYTES=<bytes>`
 - `PAPERCLIP_DB_BACKUP_DIR=/absolute/or/~/path`
+
+`database.backup.maxTotalBytes` is applied to both scheduled server backups and
+`paperclipai db:backup`. `database.backup.minFreeBytes` stops a new dump before it
+can consume the operating reserve. A successful backup is created before old
+restore points are pruned, so the newest verified dump is retained.
+
+## Run Log Retention
+
+Local heartbeat transcripts under `data/run-logs` are swept on startup and on a
+timer. Files for queued, running, or scheduled-retry runs are never removed.
+Terminal-run and orphaned files are eligible after `logging.runLogRetentionDays`,
+and the oldest eligible files are removed when the directory exceeds
+`logging.runLogMaxTotalBytes`. Historical run rows retain their byte count and
+SHA-256 evidence after the local transcript reference is detached. Newly created
+unreferenced files receive a one-hour grace period so a concurrent run cannot be
+mistaken for an orphan while its database reference is being persisted.
+
+Environment overrides:
+
+- `PAPERCLIP_RUN_LOG_RETENTION_DAYS=<days>`
+- `PAPERCLIP_RUN_LOG_MAX_TOTAL_BYTES=<bytes>`
+- `PAPERCLIP_RUN_LOG_SWEEP_INTERVAL_MINUTES=<minutes>`
+
+The main `server.log` is also bounded. On startup, a segment larger than
+`logging.serverLogMaxFileBytes` is rotated; rotated segments older than
+`logging.serverLogRetentionDays` or beyond `logging.serverLogMaxTotalBytes` are
+removed before the new logger opens. This prevents the diagnostic log itself from
+becoming an unbounded disk consumer.
 
 DB backups are not full instance filesystem backups. For full local disaster
 recovery, also back up local storage files and the local encrypted secrets key if

@@ -51,6 +51,7 @@ import type {
   InstanceDatabaseBackupRunResult,
   InstanceDatabaseBackupTrigger,
 } from "./routes/instance-database-backups.js";
+import { startRunLogRetention } from "./services/run-log-retention.js";
 
 type BetterAuthSessionUser = {
   id: string;
@@ -91,6 +92,14 @@ export interface StartedServer {
 
 export async function startServer(): Promise<StartedServer> {
   let config = loadConfig();
+  const requestedListenPort = config.port;
+  const listenPort = await detectPort(requestedListenPort);
+  if (config.strictPort && listenPort !== requestedListenPort) {
+    throw new Error(
+      `Paperclip strict port ${requestedListenPort} is already in use. ` +
+        "Refusing to start a second instance on a fallback port.",
+    );
+  }
   initTelemetry({ enabled: config.telemetryEnabled });
   if (process.env.PAPERCLIP_SECRETS_PROVIDER === undefined) {
     process.env.PAPERCLIP_SECRETS_PROVIDER = config.secretsProvider;
@@ -405,6 +414,12 @@ export async function startServer(): Promise<StartedServer> {
       } catch {
         const detectedPort = await detectPort(configuredPort);
         if (detectedPort !== configuredPort) {
+          if (config.embeddedPostgresStrictPort) {
+            throw new Error(
+              `Embedded PostgreSQL strict port ${configuredPort} is already in use by a different data directory. ` +
+                "Refusing to start a duplicate database on a fallback port.",
+            );
+          }
           logger.warn(`Embedded PostgreSQL port is in use; using next free port (requestedPort=${configuredPort}, selectedPort=${detectedPort})`);
         }
         port = detectedPort;
@@ -499,8 +514,6 @@ export async function startServer(): Promise<StartedServer> {
     }
   }
 
-  const requestedListenPort = config.port;
-  const listenPort = await detectPort(requestedListenPort);
   if (config.authBaseUrlMode === "explicit" && config.authPublicBaseUrl) {
     config.authPublicBaseUrl = rewriteLocalUrlPort(config.authPublicBaseUrl, listenPort);
   }
@@ -588,13 +601,19 @@ export async function startServer(): Promise<StartedServer> {
       logger.info({ backupDir: config.databaseBackupDir, trigger }, `${label} database backup starting`);
       // Read retention from Instance Settings (DB) so changes take effect without restart.
       const generalSettings = await backupSettingsSvc.getGeneral();
-      const retention = generalSettings.backupRetention;
+      const retention = {
+        ...generalSettings.backupRetention,
+        maxTotalBytes: config.databaseBackupMaxTotalBytes,
+      };
 
       const result = await runDatabaseBackup({
         connectionString: activeDatabaseConnectionString,
         backupDir: config.databaseBackupDir,
         retention,
         filenamePrefix: "paperclip",
+        diskSpaceGuard: config.databaseBackupMinFreeBytes
+          ? { minFreeBytes: config.databaseBackupMinFreeBytes }
+          : false,
       });
       const finishedAt = new Date();
       const response: InstanceDatabaseBackupRunResult = {
@@ -715,6 +734,12 @@ export async function startServer(): Promise<StartedServer> {
     .catch((err) => {
       logger.error({ err }, "startup reconciliation of cloud upstream runs failed");
     });
+
+  startRunLogRetention(db as any, {
+    retentionDays: config.runLogRetentionDays,
+    maxTotalBytes: config.runLogMaxTotalBytes,
+    intervalMinutes: config.runLogSweepIntervalMinutes,
+  });
   
   if (config.heartbeatSchedulerEnabled) {
     const heartbeat = heartbeatService(db as any, { pluginWorkerManager });

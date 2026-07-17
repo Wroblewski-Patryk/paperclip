@@ -10,6 +10,15 @@ $EnvPath = Join-Path $Root '.paperclip\.env'
 $ServiceDir = Join-Path $Root '.paperclip\runtime\home\instances\default\runtime-services'
 $OrphanCleanupScript = Join-Path $PSScriptRoot 'cleanup-orphaned-embedded-postgres.ps1'
 
+function Test-PaperclipHealth {
+  try {
+    $health = Invoke-RestMethod -Uri 'http://127.0.0.1:3200/api/health' -TimeoutSec 3
+    return $health.status -eq 'ok'
+  } catch {
+    return $false
+  }
+}
+
 New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $Root '.paperclip') -Force | Out-Null
 
@@ -28,7 +37,7 @@ if (Test-Path -LiteralPath $PidPath) {
   $existingPid = Get-Content -LiteralPath $PidPath -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($existingPid) {
     $existing = Get-Process -Id ([int]$existingPid) -ErrorAction SilentlyContinue
-    if ($existing) {
+    if ($existing -and (Test-PaperclipHealth)) {
       Write-Output "LuckySparrow Software House is already running as PID $existingPid"
       Write-Output "URL: http://127.0.0.1:3200"
       exit 0
@@ -61,7 +70,7 @@ foreach ($listener in $listeners) {
 }
 
 $command = @"
-Set-Location '$Root\server'
+Set-Location '$Root'
 `$env:PAPERCLIP_CONFIG = '$Root\.paperclip\config.json'
 `$env:PAPERCLIP_HOME = '$Root\.paperclip\runtime\home'
 `$env:PORT = '3200'
@@ -69,7 +78,7 @@ Set-Location '$Root\server'
 `$env:HEARTBEAT_SCHEDULER_INTERVAL_MS = '30000'
 `$env:PAPERCLIP_MIGRATION_AUTO_APPLY = 'true'
 `$env:PAPERCLIP_MIGRATION_PROMPT = 'never'
-pnpm dev
+pnpm dev:watch
 "@
 
 $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
@@ -95,6 +104,13 @@ if (Test-Path -LiteralPath $ServiceDir) {
 }
 
 Set-Content -LiteralPath $PidPath -Value $servicePid
+for ($attempt = 0; $attempt -lt 24; $attempt++) {
+  if (Test-PaperclipHealth) { break }
+  Start-Sleep -Seconds 2
+}
+if (-not (Test-PaperclipHealth)) {
+  throw "LuckySparrow Software House did not become healthy on strict port 3200. Inspect $ErrPath."
+}
 Write-Output "Started LuckySparrow Software House as PID $servicePid"
 Write-Output "URL: http://127.0.0.1:3200"
 Write-Output "Logs: $LogDir"

@@ -2,6 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $PidPath = Join-Path $Root '.paperclip\runtime\paperclip-softwarehouse.pid'
+$OrphanCleanupScript = Join-Path $PSScriptRoot 'cleanup-orphaned-embedded-postgres.ps1'
 
 Set-Location $Root
 $env:PAPERCLIP_CONFIG = "$Root\.paperclip\config.json"
@@ -18,18 +19,11 @@ foreach ($listener in $listeners) {
   }
 }
 
-$repoProcesses = Get-CimInstance Win32_Process | Where-Object {
-  $_.Name -in @('node.exe', 'cmd.exe', 'powershell.exe', 'postgres.exe', 'esbuild.exe') -and
-  $_.CommandLine -like "*$Root*" -and
-  $_.ProcessId -ne $PID
-}
-foreach ($repoProcess in $repoProcesses) {
-  Stop-Process -Id $repoProcess.ProcessId -Force -ErrorAction SilentlyContinue
-  Write-Output "Stopped repo process PID $($repoProcess.ProcessId) ($($repoProcess.Name))"
-}
-
 if (-not (Test-Path -LiteralPath $PidPath)) {
-  Write-Output 'LuckySparrow Software House PID file is missing.'
+  if (Test-Path -LiteralPath $OrphanCleanupScript) {
+    & $OrphanCleanupScript -Apply | Write-Output
+  }
+  Write-Output 'LuckySparrow Software House PID file is missing; registered service and verified listeners are stopped.'
   exit 0
 }
 
@@ -49,3 +43,6 @@ if ($process) {
 }
 
 Remove-Item -LiteralPath $PidPath -Force -ErrorAction SilentlyContinue
+if (Test-Path -LiteralPath $OrphanCleanupScript) {
+  & $OrphanCleanupScript -Apply | Write-Output
+}

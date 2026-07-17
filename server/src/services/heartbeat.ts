@@ -127,6 +127,7 @@ import {
   refreshIssueContinuationSummary,
 } from "./issue-continuation-summary.js";
 import { executionWorkspaceService, mergeExecutionWorkspaceConfig } from "./execution-workspaces.js";
+import { canReuseSharedExecutionWorkspace } from "./execution-workspace-reuse.js";
 import { workspaceOperationService } from "./workspace-operations.js";
 import { isProcessGroupAlive, terminateLocalService } from "./local-service-supervisor.js";
 import {
@@ -7985,7 +7986,16 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       issueRef?.executionWorkspacePreference === "reuse_existing" &&
       existingExecutionWorkspace !== null &&
       existingExecutionWorkspace.status !== "archived";
-    const requestedReusableExecutionWorkspaceConfig = requestedShouldReuseExisting
+    const canAutoReuseSharedWorkspace = canReuseSharedExecutionWorkspace({
+      workspace: existingExecutionWorkspace,
+      requestedMode: requestedExecutionWorkspaceMode,
+      projectId: executionProjectId ?? null,
+      projectWorkspaceId: issueRef?.projectWorkspaceId ?? resolvedWorkspace.workspaceId ?? null,
+      cwd: resolvedWorkspace.cwd,
+      forceFresh: resetTaskSession || context.forceFreshSession === true,
+    });
+    const shouldRequestExistingWorkspace = requestedShouldReuseExisting || canAutoReuseSharedWorkspace;
+    const requestedReusableExecutionWorkspaceConfig = shouldRequestExistingWorkspace
       ? existingExecutionWorkspace?.config ?? null
       : null;
     const defaultEnvironment = await environmentsSvc.ensureLocalEnvironment(agent.companyId);
@@ -8018,7 +8028,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         "Refusing silent reuse of execution workspace whose environment does not match the assignee's intended environment; forcing fresh realization",
       );
     }
-    const shouldReuseExisting = requestedShouldReuseExisting && !environmentResolution.conflict;
+    const shouldReuseExisting = shouldRequestExistingWorkspace && !environmentResolution.conflict;
     const reusableExecutionWorkspaceConfig = shouldReuseExisting
       ? requestedReusableExecutionWorkspaceConfig
       : null;

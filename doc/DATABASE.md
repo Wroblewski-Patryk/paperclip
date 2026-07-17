@@ -187,7 +187,9 @@ Paperclip supports automatic and manual logical database backups. These dumps in
 non-system database schemas such as `public`, the Drizzle migration journal, and
 plugin-owned database schemas. See `doc/DEVELOPING.md` for the current
 `paperclipai db:backup` / `pnpm db:backup` commands and backup retention
-configuration.
+configuration. The server merges the daily/weekly/monthly policy from Instance
+Settings with the instance-file `maxTotalBytes` and `minFreeBytes` capacity guards;
+manual and scheduled backups therefore enforce the same disk safety policy.
 
 Database backups do not include non-database instance files such as local-disk
 uploads, workspace files, or the local encrypted secrets master key. Back those paths
