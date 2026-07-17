@@ -91,6 +91,30 @@ const steps = [
     }),
   },
   {
+    name: "composeOneoffJanitor",
+    command: ["scripts/run-compose-oneoff-janitor.mjs", "--apply"],
+    summary: (data) => ({
+      oneoffCount: data.oneoffCount ?? null,
+      actionCount: data.actionCount ?? null,
+      appliedCount: data.applied?.length ?? 0,
+      skippedCount: data.skipped?.length ?? 0,
+      warnings: data.warnings ?? [],
+      failures: data.failures ?? [],
+    }),
+  },
+  {
+    name: "runtimeTopology",
+    command: ["scripts/audit-local-runtime-topology.mjs"],
+    summary: (data) => ({
+      overall: data.overall ?? null,
+      composeOneoffCount: data.composeOneoffs?.length ?? 0,
+      warningCount: data.warnings?.length ?? 0,
+      failureCount: data.failures?.length ?? 0,
+      warnings: data.warnings ?? [],
+      failures: data.failures ?? [],
+    }),
+  },
+  {
     name: "quotaAgentRecovery",
     command: ["scripts/recover-softwarehouse-quota-agents.mjs", "--apply"],
     summary: (data) => ({

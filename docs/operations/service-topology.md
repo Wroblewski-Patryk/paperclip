@@ -14,6 +14,7 @@ coordinates.
 | Paperclip app/API | one supervised local dev server, strict port | `http://127.0.0.1:3200` | canonical checkout, Paperclip runtime data | `/api/health`, `pnpm run softwarehouse:runtime-topology-audit` | Softwarehouse OS / CTO |
 | Embedded PostgreSQL | one local cluster, strict port | canonical runtime data dir, `127.0.0.1:54329` | Paperclip app/API | topology audit + expected data directory check | Softwarehouse OS / CTO |
 | Paperclip runtime home | local filesystem | `.paperclip/runtime/home/...` | Codex auth, model adapters, agent configs | agent status + live-runs audit | CTO / Agent Health |
+| Run log store | active write root + bounded legacy read fallback | active instance `data/run-logs`; same-instance user root for historical reads only | heartbeat run metadata and company authorization | focused store tests + authorized historical run readback | Softwarehouse OS / CTO |
 | Agent instruction bundles | repo files + Paperclip agent docs | `softwarehouse/instructions/` | sync script, role roster | instruction drift audit | Docs Memory / CTO |
 | Workspace boundary audit | local filesystem + Paperclip API | `pnpm run softwarehouse:workspace-boundary-audit` | allowed roots and active project records | no active project outside allowed roots; no generated root artifacts | Softwarehouse OS / CTO |
 
@@ -40,6 +41,15 @@ Each allowed root is also a singleton checkout. Archived project records and
 recovery manifests are historical evidence, not permission to create another
 physical checkout or running service. Port fallback is disabled for the active
 Paperclip instance and its embedded database; a collision must fail closed.
+
+Docker Compose proof containers are temporary evidence, not additional managed
+services. Use `docker compose run --rm` and do not retain a named per-issue
+backend beside the canonical service. A development-mode one-off returning 200
+does not clear a canonical service blocked on protected configuration. Every
+control tick removes only old stopped mount-free issue-scoped residue after a
+grace period, then runs the topology audit before any quota recovery or agent
+dispatch. Active, mounted, or ambiguous one-offs remain visible and fail closed
+for targeted review; broad Docker pruning is prohibited.
 
 Deferred portfolio streams: Featherly, Nest, Aviary, LuckySparrow.ch,
 OpenJarvis, Obiekty, Paperclip product work, and other experiments stay
@@ -89,10 +99,11 @@ Agents may use this packet to decide whether to stay quiet, resume exactly one
 gate recheck lane, or ask the operator for a new fact. It is not approval for
 production mutation.
 
-For a full read-only supervision pass, run `pnpm softwarehouse:control-tick`.
-It executes the janitor dry-run, gate watcher dry-run, unblock packet refresh,
-source-control packet refresh, two-project readiness check, autonomy governor,
-and softwarehouse audit in the expected order.
+For a full supervision pass, run `pnpm softwarehouse:control-tick`. It first
+repairs stale run state, applies the bounded Compose one-off janitor, and proves
+canonical runtime topology. Only then may it recover quota lanes, refresh gate
+and source-control packets, evaluate two-project readiness, run the autonomy
+governor, and complete the Softwarehouse audit in the expected order.
 
 For a shorter PM/operator handoff after a control tick, run
 `pnpm softwarehouse:readiness-snapshot`. It reads the latest control tick and

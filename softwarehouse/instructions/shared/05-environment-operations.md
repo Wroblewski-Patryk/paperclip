@@ -62,6 +62,12 @@ bounded workstation, not as an elastic build cluster.
   service. After an interrupted proof, inspect and remove only the verified
   stopped one-off container after confirming that it has no required mounts or
   volumes. Never substitute `docker system prune` for this targeted cleanup.
+- A development-mode one-off health response does not prove that the canonical
+  application service is ready. If the canonical service fails because a
+  protected input is unavailable, preserve that as the blocker instead of
+  naming and retaining an alternate per-issue service. Runtime evidence work
+  must finish with `pnpm run softwarehouse:runtime-topology-audit` and an empty
+  stopped one-off inventory.
 
 ## Script Runtime Discipline
 

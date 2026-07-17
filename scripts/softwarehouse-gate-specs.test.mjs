@@ -339,6 +339,8 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
   assert.match(environment, /docker compose run --rm/);
   assert.match(environment, /do not retain a\s+per-issue container/i);
   assert.match(environment, /Never substitute `docker system prune`/);
+  assert.match(environment, /does not prove that the canonical\s+application service is ready/i);
+  assert.match(environment, /empty\s+stopped one-off inventory/i);
   assert.match(environment, /paperclip-issue-update\.mjs/);
   assert.match(environment, /Never invoke a `\.js`, `\.mjs`, `\.cjs`, or `\.ts` file/i);
   assert.match(environment, /node \$issueHelper --issue-id/);
@@ -378,14 +380,36 @@ test("shared Windows guidance keeps agent tracker work on the injected fast path
 });
 
 test("runtime topology audit detects retained Compose one-off containers", async () => {
-  const audit = await readFile("scripts/audit-local-runtime-topology.mjs", "utf8");
+  const [audit, inventory, janitor, controlTick, completion] = await Promise.all([
+    readFile("scripts/audit-local-runtime-topology.mjs", "utf8"),
+    readFile("scripts/lib/docker-compose-oneoffs.mjs", "utf8"),
+    readFile("scripts/run-compose-oneoff-janitor.mjs", "utf8"),
+    readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8"),
+    readFile("softwarehouse/instructions/shared/60-audit-to-completion.md", "utf8"),
+  ]);
 
-  assert.match(audit, /label=com\.docker\.compose\.oneoff/);
-  assert.match(audit, /com\.docker\.compose\.oneoff/);
-  assert.match(audit, /com\.docker\.compose\.project\.working_dir/);
+  assert.match(audit, /listCanonicalComposeOneoffs/);
+  assert.match(inventory, /label=com\.docker\.compose\.oneoff/);
+  assert.match(inventory, /com\.docker\.compose\.project\.working_dir/);
+  assert.match(inventory, /ISSUE_SCOPED_CONTAINER_RE/);
   assert.match(audit, /stale_compose_oneoff_container/);
   assert.match(audit, /active_compose_oneoff_container/);
   assert.match(audit, /docker_inventory_unavailable/);
+  assert.match(janitor, /classifyComposeOneoffForCleanup/);
+  assert.match(janitor, /removeComposeOneoff/);
+  assert.match(controlTick, /name: "composeOneoffJanitor"/);
+  assert.match(controlTick, /run-compose-oneoff-janitor\.mjs/);
+  assert.match(controlTick, /name: "runtimeTopology"/);
+  assert.ok(
+    controlTick.indexOf('name: "composeOneoffJanitor"') <
+      controlTick.indexOf('name: "runtimeTopology"'),
+  );
+  assert.ok(
+    controlTick.indexOf('name: "runtimeTopology"') <
+      controlTick.indexOf('name: "quotaAgentRecovery"'),
+  );
+  assert.match(completion, /canonical topology evidence/i);
+  assert.match(completion, /cannot substitute for a canonical\s+service/i);
 });
 
 test("Windows Softwarehouse lifecycle uses one registered process tree", async () => {

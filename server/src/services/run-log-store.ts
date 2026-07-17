@@ -1,8 +1,9 @@
 import { createReadStream, promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { notFound } from "../errors.js";
-import { resolvePaperclipInstanceRoot } from "../home-paths.js";
+import { resolvePaperclipInstanceId, resolvePaperclipInstanceRoot } from "../home-paths.js";
 
 export type RunLogStoreType = "local_file";
 
@@ -50,7 +51,12 @@ function resolveWithin(basePath: string, relativePath: string) {
   return resolved;
 }
 
-function createLocalFileRunLogStore(basePath: string): RunLogStore {
+export function createLocalFileRunLogStore(
+  basePath: string,
+  readFallbackPaths: string[] = [],
+): RunLogStore {
+  const readRoots = [...new Set([basePath, ...readFallbackPaths].map((value) => path.resolve(value)))];
+
   async function ensureDir(relativeDir: string) {
     const dir = resolveWithin(basePath, relativeDir);
     await fs.mkdir(dir, { recursive: true });
@@ -139,10 +145,14 @@ function createLocalFileRunLogStore(basePath: string): RunLogStore {
       if (handle.store !== "local_file") {
         throw notFound("Run log not found");
       }
-      const absPath = resolveWithin(basePath, handle.logRef);
       const offset = opts?.offset ?? 0;
       const limitBytes = opts?.limitBytes ?? 256_000;
-      return readFileRange(absPath, offset, limitBytes);
+      for (const readRoot of readRoots) {
+        const absPath = resolveWithin(readRoot, handle.logRef);
+        const stat = await fs.stat(absPath).catch(() => null);
+        if (stat?.isFile()) return readFileRange(absPath, offset, limitBytes);
+      }
+      throw notFound("Run log not found");
     },
   };
 }
@@ -153,9 +163,22 @@ export function resolveRunLogBasePath() {
   return process.env.RUN_LOG_BASE_PATH ?? path.resolve(resolvePaperclipInstanceRoot(), "data", "run-logs");
 }
 
+export function resolveRunLogFallbackPaths(primaryPath = resolveRunLogBasePath()) {
+  if (process.env.RUN_LOG_BASE_PATH?.trim()) return [];
+  const legacyUserRoot = path.resolve(
+    os.homedir(),
+    ".paperclip",
+    "instances",
+    resolvePaperclipInstanceId(),
+    "data",
+    "run-logs",
+  );
+  return path.resolve(primaryPath) === legacyUserRoot ? [] : [legacyUserRoot];
+}
+
 export function getRunLogStore() {
   if (cachedStore) return cachedStore;
   const basePath = resolveRunLogBasePath();
-  cachedStore = createLocalFileRunLogStore(basePath);
+  cachedStore = createLocalFileRunLogStore(basePath, resolveRunLogFallbackPaths(basePath));
   return cachedStore;
 }

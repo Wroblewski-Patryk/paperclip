@@ -5,6 +5,7 @@ import { access, readFile, readdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { listCanonicalComposeOneoffs } from "./lib/docker-compose-oneoffs.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const appsRoot = path.resolve(repoRoot, "..");
@@ -38,51 +39,6 @@ function gitWorktrees(cwd) {
     .split(/\r?\n/)
     .filter((line) => line.startsWith("worktree "))
     .map((line) => path.resolve(line.slice("worktree ".length)));
-}
-
-function dockerComposeOneoffs() {
-  const ids = execFileSync(
-    "docker",
-    ["ps", "--all", "--filter", "label=com.docker.compose.oneoff", "--format", "{{.ID}}"],
-    {
-      encoding: "utf8",
-      maxBuffer: 1024 * 1024,
-      timeout: 5_000,
-      windowsHide: true,
-    },
-  )
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (ids.length === 0) return [];
-
-  const inspected = JSON.parse(
-    execFileSync("docker", ["inspect", ...ids], {
-      encoding: "utf8",
-      maxBuffer: 4 * 1024 * 1024,
-      timeout: 5_000,
-      windowsHide: true,
-    }),
-  );
-
-  return inspected
-    .filter(
-      (container) =>
-        String(container?.Config?.Labels?.["com.docker.compose.oneoff"] ?? "").toLowerCase() ===
-        "true",
-    )
-    .map((container) => ({
-      id: String(container?.Id ?? "").slice(0, 12),
-      name: String(container?.Name ?? "").replace(/^\//, ""),
-      state: container?.State?.Status ?? "unknown",
-      running: container?.State?.Running === true,
-      project: container?.Config?.Labels?.["com.docker.compose.project"] ?? null,
-      service: container?.Config?.Labels?.["com.docker.compose.service"] ?? null,
-      workingDir: container?.Config?.Labels?.["com.docker.compose.project.working_dir"] ?? null,
-      autoRemove: container?.HostConfig?.AutoRemove === true,
-      mountCount: Array.isArray(container?.Mounts) ? container.Mounts.length : 0,
-    }));
 }
 
 async function requestJson(route, timeoutMs = 5_000) {
@@ -193,23 +149,19 @@ if (liveDevServices.length !== 1) {
 
 let composeOneoffs = [];
 try {
-  composeOneoffs = dockerComposeOneoffs().filter((container) =>
-    roots.some(
-      (root) =>
-        typeof container.workingDir === "string" &&
-        normalized(container.workingDir) === normalized(root.cwd),
-    ),
-  );
+  composeOneoffs = listCanonicalComposeOneoffs(roots);
   for (const container of composeOneoffs) {
     const detail = {
-      id: container.id,
+      id: container.shortId,
       name: container.name,
+      createdAt: container.createdAt,
       state: container.state,
       project: container.project,
       service: container.service,
       workingDir: container.workingDir,
       autoRemove: container.autoRemove,
       mountCount: container.mountCount,
+      bindCount: container.bindCount,
     };
     if (container.running) {
       warnings.push({ code: "active_compose_oneoff_container", ...detail });

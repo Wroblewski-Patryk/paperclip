@@ -580,3 +580,21 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Soar's seven local evidence/context changes remain a separate classified
   project-repository lane. Do not mix them into Paperclip source-control work
   or mutate them while protected gates remain.
+
+## 2026-07-17 - Compose Proof And Historical Evidence Continuity
+
+- LUC-659 created a manually named Roost development-mode Compose one-off when
+  the canonical production-mode backend was blocked on protected configuration.
+  The run later sat silent and was cancelled, but the external container had no
+  teardown owner and survived as `roost-backend-luc-659`.
+- Temporary health evidence cannot substitute for canonical readiness. Agents
+  must use `docker compose run --rm`, preserve the real protected-input blocker,
+  and close runtime work with an empty stopped one-off inventory.
+- Every control tick now runs a conservative Compose janitor and canonical
+  topology audit before quota recovery or dispatch. Only old, stopped,
+  mount-free, issue-scoped residue is removed automatically; active, mounted,
+  or ambiguous containers fail closed for inspection.
+- Historical run transcripts remain readable after the runtime-home move. New
+  logs are written only to the active repo-managed runtime root; authorized
+  reads may fall back to the same instance's legacy user run-log directory.
+  This is read continuity, not a second runtime or duplicated data store.

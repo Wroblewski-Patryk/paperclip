@@ -20,6 +20,12 @@ When a project is below the required confidence level:
 8. CTO and Product decide whether the version target is complete, reduced, or
    blocked. Unknowns must be explicit.
 
+For local runtime or Docker evidence, completion requires both the requested
+health/readiness result and canonical topology evidence. A temporary one-off
+may be used only with automatic removal and cannot substitute for a canonical
+service that is blocked on configuration. Before closing the issue, verify that
+no stopped Compose one-off remains under the Paperclip, Soar, or Roost roots.
+
 When architecture docs describe a desired product capability, treat missing
 implementation, proof, tests, UX, deployment, or documentation as actionable
 work. Convert the gap into narrow Paperclip issues instead of asking the board

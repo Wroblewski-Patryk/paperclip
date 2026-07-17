@@ -3713,3 +3713,34 @@ container was detected by the new guard and then removed by exact name only;
 canonical Roost backend and PostgreSQL containers were left untouched. A repeat
 topology audit passed with an empty `composeOneoffs` list, and all 39 managed
 instruction bundles were synchronized.
+
+## 2026-07-17 - LUC-659 root cause and autonomous cleanup ownership
+
+Follow-up investigation traced the duplicate-looking Roost backend to the
+first LUC-659 DRE run. The canonical production-mode backend could not start
+without a protected configuration input, so the run created a separately named
+development-mode Compose one-off and accepted its HTTP 200 as local evidence.
+That run remained silent for roughly four hours and was cancelled. Because the
+container was started as an external manually named resource without automatic
+removal, Paperclip run cancellation had no ownership path capable of tearing it
+down. A resumed run reused the container and closed the issue without proving
+that canonical topology had been restored.
+
+Prevention now has three layers. Agent instructions require `docker compose run
+--rm`, reject development one-off health as a substitute for canonical
+readiness, and require topology evidence before closeout. A structured janitor
+removes only old, stopped, mount-free, issue-scoped Compose one-offs under the
+three approved roots after a grace period. The normal control tick applies that
+janitor and immediately runs the canonical topology audit before quota recovery
+or dispatch; active, mounted, ambiguous, or Docker-unobservable state is not
+broadly deleted.
+
+The investigation also found that historical LUC-659 transcripts still existed
+under the pre-relocation user instance while the active server read only the
+repo-managed runtime root. The run-log store now writes solely to the active
+root but may read from the same-instance legacy root after checking the active
+root first. Route authorization and path containment remain unchanged, and no
+logs were copied. Focused classifier/store tests, server typecheck, live
+historical transcript readback, instruction/runtime/boundary audits, and the
+live topology audit all pass. No other Compose one-off or duplicate project
+container was found; canonical Roost services remain untouched.
