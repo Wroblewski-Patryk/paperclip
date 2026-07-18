@@ -1,5 +1,29 @@
 # Active Mission
 
+## 2026-07-18 Conversation Handoff Audit - Current
+
+- Canonical handoff: `docs/status/2026-07-18-paperclip-v0-conversation-handoff.md`.
+- Paperclip health, singleton topology, all three clean repositories, 39 agent
+  instruction/settings bundles, nine bounded routines, model routing, quota
+  posture, Coolify read access, and Roost public probes pass current audits.
+- V0 is not complete. Soar `/ready` returns 503 because production Redis is
+  `restarting:unhealthy`; the current Coolify binding can read inventory but
+  lacks the narrow deploy permission for the approved one-action recovery.
+- Credential rotation `LUC-494/LUC-496/LUC-972` and Soar provenance
+  `LUC-507/LUC-448` remain open. Never reproduce credential values; require
+  provider rotation/invalidation and managed-ref readback.
+- Project truth currently reports 56 Soar gaps and 10 Roost gaps. Classify them
+  evidence-first rather than treating every row as a code defect.
+- Fresh control-plane defects: gate suite 176/177 after learning-loop behavior
+  expanded to security credentials; stale protected gates are missing the
+  required owner action in the live control tick; executive health selects
+  archived exact-name Soar/Roost rows instead of canonical active projects.
+- Backup retention is active, but a disposable end-to-end instance restore
+  drill remains required before disaster recovery is complete.
+- Current model routing is operational across GPT-5.4 mini, GPT-5.4, and
+  GPT-5.5. Spark remains intentionally disabled locally. One observed provider
+  weekly window does not prove independent hard caps for every model.
+
 ## 2026-07-15 Owner Stage Clarification - Current
 
 - V0 is the current target: Paperclip Softwarehouse runs locally on Windows

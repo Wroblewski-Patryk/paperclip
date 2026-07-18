@@ -3871,3 +3871,27 @@ build pass, and all 185 served files match `ui/dist`. Browser checks cover all
 six canonical and legacy entry paths with clean console output. Live Learning
 contains 15 proposed observations; Memory remains intentionally empty until a
 material assumption, commitment, or decision is explicitly recorded.
+
+## 2026-07-18 - Full conversation handoff and V0 gap audit
+
+Captured the long-running owner conversation into
+`docs/status/2026-07-18-paperclip-v0-conversation-handoff.md`, including a
+ready-to-paste prompt for a new Codex conversation. This is a dated evidence
+snapshot, not a claim that V0 is complete.
+
+Fresh verification found a healthy singleton Paperclip runtime, three clean
+repositories, passing 39-agent instruction/settings/runtime audits, nine bounded
+active routines, working role/task-aware model routing, 8% observed weekly Codex
+quota use, current backups, Coolify read access, and passing Roost public probes.
+Soar remains red on `/ready` with Redis `restarting:unhealthy`; narrow mutation
+permission, credential rotation, and deployment provenance remain protected
+gates. Project truth reports 56 Soar and 10 Roost gaps.
+
+The same audit found three current control-plane defects for the next closure
+session: the gate suite is 176/177 because its learning-loop regex was not
+updated when bounded enrichment expanded to security credentials; the live
+control tick omits a required stale-gate owner action; and executive health
+selects archived exact-name Soar/Roost project aliases instead of canonical
+active `11 Innovation:*` rows. Backup retention exists, but no disposable full
+instance restore drill is proved. No production mutation or secret value access
+was performed for this report.

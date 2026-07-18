@@ -1,6 +1,6 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 ## What This Workspace Is
 
@@ -42,6 +42,13 @@ more capable, governable, inspectable, and commercially useful while keeping
 human board control over risk, production, budget, and direction.
 
 ## Current Stage 1 State
+
+The current conversation handoff and verified gap report is
+`docs/status/2026-07-18-paperclip-v0-conversation-handoff.md`. Read it before
+broad V0 closure work. It records the current Soar Redis/permission blocker,
+credential-rotation and provenance chain, 66 product-truth gaps, and three fresh
+control-plane defects found on 2026-07-18. Treat its live counts as a dated
+snapshot and re-verify them before mutation.
 
 Paperclip has moved beyond Stage 0 configuration. The active Stage 1 mission is
 to prove LuckySparrow as a practical autonomous softwarehouse by delivering two
