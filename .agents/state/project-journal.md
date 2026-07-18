@@ -3895,3 +3895,17 @@ selects archived exact-name Soar/Roost project aliases instead of canonical
 active `11 Innovation:*` rows. Backup retention exists, but no disposable full
 instance restore drill is proved. No production mutation or secret value access
 was performed for this report.
+
+## 2026-07-18 - Desired-state classification for availability findings
+
+Clarified the V0 handoff after the owner correctly challenged whether an
+unavailable app might simply be intentionally stopped. Future runtime audits
+must compare observed availability with an explicit desired state: a documented
+maintenance/on-demand `stopped` state can be healthy, while
+`restarting:unhealthy` is a failed desired state unless a product contract says
+otherwise. For the current Soar incident, the production service topology and
+smoke contract require Redis to be `running:healthy`, production `/ready`
+requires Redis by default, and the resource had accumulated 682 restarts. The
+Soar 503 is therefore a real dependency incident, not merely inactivity by
+Paperclip. Added this classification rule to the dated handoff report; no
+production mutation was performed.

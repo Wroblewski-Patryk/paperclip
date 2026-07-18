@@ -36,6 +36,14 @@ V0 remains open because:
 
 - Soar `/ready` returns 503 and Coolify reports Redis as
   `restarting:unhealthy`.
+- This is classified as a failed desired state, not merely an application that
+  Paperclip did not start. Soar's production topology defines Redis as a
+  long-running managed dependency with expected status `running:healthy`, and
+  production `/ready` requires a successful Redis check by default. An
+  intentionally stopped or scale-to-zero service would be acceptable only when
+  an explicit desired-state/maintenance record says so and the operator UI
+  distinguishes it from a crash loop. Coolify `restarting:unhealthy` does not
+  satisfy that contract.
 - The currently bound Coolify credential can read the full Soar inventory but
   does not have the narrow `deploy` permission required for the one approved
   Redis recovery mutation.
@@ -142,6 +150,15 @@ continue to wait for or explicitly cancel live runs.
 ## 5. Product delivery blockers
 
 ### P0. Soar production readiness
+
+Availability findings must be classified against desired state. `stopped` can
+be expected for a documented on-demand or maintenance mode; `restarting` with
+failed health checks means the platform is actively trying and failing to keep
+the resource alive. In the observed Soar state, Web and API `/health` were up,
+API `/ready` was down, Redis had accumulated 682 restarts, and the Soar
+production topology plus smoke contract require Redis to remain
+`running:healthy`. Therefore this P0 is a real dependency failure rather than
+normal Paperclip inactivity.
 
 1. `LUC-1359` - Soar `/ready` 503.
 2. `LUC-1368` - provide a deploy-capable Redis recovery path.
