@@ -1,6 +1,6 @@
 # Board Context
 
-Last updated: 2026-07-15
+Last updated: 2026-07-18
 
 ## User Intent
 
@@ -54,6 +54,17 @@ ecosystem.
 
 ## Operating Preferences
 
+- Treat Paperclip UX/UI as a coherent operational product, not a collection of
+  isolated gray admin panels. Preserve information density and every existing
+  function, but prefer shared surface, hierarchy, empty-state, and status
+  patterns that make the interface calmer and more pleasant to use.
+- Use the configured company brand color as a contrast-safe orientation accent
+  for selected navigation, focus, key links/actions, and graph emphasis. Do not
+  replace semantic success, warning, error, blocked, or live colors with the
+  company accent. Earlier ORG graph screenshots from June 2026 are a positive
+  reference for compact dark nodes, slim colored rails, explicit status chips,
+  and restrained luminous relationship cues; default graph framing must still
+  keep nodes readable.
 - Prefer repo-local memory for project context so older and newer chats can
   converge.
 - Prefer Paperclip issues/work products for issue-specific execution evidence.

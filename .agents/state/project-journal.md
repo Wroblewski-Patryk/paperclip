@@ -1,11 +1,31 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-15
+Last updated: 2026-07-18
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
 ## Entries
 
+- 2026-07-18 / Paperclip frontend UX/UI audit and durable design direction
+  (conversation summary):
+  - Audited 18 current browser states on the live local instance at
+    `http://127.0.0.1:3200`, covering the main navigation, dashboard, operational
+    cockpit, ORG graph, project, agent, issue, and company settings surfaces.
+  - The user wants future UI work to preserve all functions and operational
+    density while replacing ad-hoc flat/gray panels with a coherent shared
+    hierarchy of surfaces, metrics, states, empty states, and actions.
+  - The configured LuckySparrow brand color (`#167D7F`) should become a
+    contrast-safe orientation accent, without taking over semantic status
+    colors. The two user-provided June 2026 ORG screenshots are positive visual
+    references for compact nodes, colored rails, clear status chips, and subtle
+    relationship energy.
+  - Verified source-level finding: `brandColor` is currently used mainly by the
+    company pattern icon, invite/new-issue surfaces, and settings; it does not
+    drive the global UI tokens in `ui/src/index.css`.
+  - Full audit and fresh screenshots are stored under
+    `.codex/audits/2026-07-19-frontend-ux-ui/`. Product Design context and the
+    two reference images were also saved under the local Product Design state
+    directory for future sessions.
 - 2026-07-18 / V0 handoff continuation and control-plane repair:
   - Re-verified the attached conversation handoff against the live local
     instance. Paperclip remained healthy on port 3200 and executive health now
