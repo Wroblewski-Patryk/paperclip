@@ -5,8 +5,8 @@ import { cn } from "../lib/utils";
 import { timeAgo } from "../lib/timeAgo";
 
 function signalHref(signal: CompanySituationSignal): string {
-  if (["assumption_contradicted", "assumption_expired", "commitment_breached", "commitment_overdue", "organizational_review_due"].includes(signal.kind)) return "/organizational-memory";
-  if (["external_signal_stale", "external_signal_contradicted", "outcome_failure", "learning_ready_for_promotion"].includes(signal.kind)) return "/organizational-learning";
+  if (["assumption_contradicted", "assumption_expired", "commitment_breached", "commitment_overdue", "organizational_review_due"].includes(signal.kind)) return "/memory";
+  if (["external_signal_stale", "external_signal_contradicted", "outcome_failure", "learning_ready_for_promotion"].includes(signal.kind)) return "/learning";
   if (signal.kind === "agent_error" || signal.kind === "no_available_agents") return "/agents";
   if (signal.kind === "budget_incident") return "/costs";
   if (signal.kind === "pending_approval") return "/approvals";

@@ -3856,3 +3856,18 @@ fixed an Evidence card min-content overflow at 390 px. The latest route/artifact
 tests pass 17/17, UI typecheck and production build pass, and `ui/dist` matches
 `server/ui-dist` across 185 files. Clean desktop and mobile checks show the four
 routes with one main landmark, no horizontal overflow, and no console errors.
+
+## 2026-07-18 - Canonical Memory and Learning route names
+
+The owner-facing Organizational Memory and Evidence & Learning URLs now use the
+short canonical company routes `/LUC/memory` and `/LUC/learning`. Sidebar and
+company-situation destinations use the canonical paths. Both prefixed and
+companyless legacy `/organizational-memory` and `/organizational-learning`
+links remain recognized and redirect to the short routes, preserving saved
+links and historical issue comments. The route registry is the single source
+for company-prefix behavior and explicitly records the legacy aliases.
+Focused route/navigation/situation tests pass 19/19, UI typecheck and production
+build pass, and all 185 served files match `ui/dist`. Browser checks cover all
+six canonical and legacy entry paths with clean console output. Live Learning
+contains 15 proposed observations; Memory remains intentionally empty until a
+material assumption, commitment, or decision is explicitly recorded.

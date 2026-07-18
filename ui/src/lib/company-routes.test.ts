@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOARD_ROUTE_ROOTS,
+  LEGACY_BOARD_ROUTE_ALIASES,
   applyCompanyPrefix,
   extractCompanyPrefixFromPath,
   isBoardPathWithoutPrefix,
@@ -37,8 +39,8 @@ describe("company routes", () => {
   });
 
   it.each([
-    "organizational-memory",
-    "organizational-learning",
+    "memory",
+    "learning",
     "softwarehouse",
     "artifacts",
     "teams-catalog",
@@ -50,6 +52,17 @@ describe("company routes", () => {
       expect(extractCompanyPrefixFromPath(`/${route}`)).toBeNull();
       expect(applyCompanyPrefix(`/${route}`, "LUC")).toBe(`/LUC/${route}`);
       expect(toCompanyRelativePath(`/LUC/${route}`)).toBe(`/${route}`);
+    },
+  );
+
+  it.each(Object.entries(LEGACY_BOARD_ROUTE_ALIASES))(
+    "keeps legacy /%s links company-scoped while routing them to /%s",
+    (legacyRoute, canonicalRoute) => {
+      expect(isBoardPathWithoutPrefix(`/${legacyRoute}`)).toBe(true);
+      expect(extractCompanyPrefixFromPath(`/${legacyRoute}`)).toBeNull();
+      expect(applyCompanyPrefix(`/${legacyRoute}`, "LUC")).toBe(`/LUC/${legacyRoute}`);
+      expect(toCompanyRelativePath(`/LUC/${legacyRoute}`)).toBe(`/${legacyRoute}`);
+      expect(BOARD_ROUTE_ROOTS).toContain(canonicalRoute);
     },
   );
 });

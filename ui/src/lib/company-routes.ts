@@ -12,8 +12,8 @@ export const BOARD_ROUTE_ROOTS = [
   "issues",
   "routines",
   "goals",
-  "organizational-memory",
-  "organizational-learning",
+  "memory",
+  "learning",
   "softwarehouse",
   "artifacts",
   "teams-catalog",
@@ -27,7 +27,15 @@ export const BOARD_ROUTE_ROOTS = [
   "search",
 ] as const;
 
-const BOARD_ROUTE_ROOT_SET = new Set<string>(BOARD_ROUTE_ROOTS);
+export const LEGACY_BOARD_ROUTE_ALIASES = {
+  "organizational-memory": "memory",
+  "organizational-learning": "learning",
+} as const;
+
+const BOARD_ROUTE_ROOT_SET = new Set<string>([
+  ...BOARD_ROUTE_ROOTS,
+  ...Object.keys(LEGACY_BOARD_ROUTE_ALIASES),
+]);
 
 const GLOBAL_ROUTE_ROOTS = new Set(["auth", "invite", "board-claim", "cli-auth", "docs", "instance"]);
 

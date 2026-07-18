@@ -102,8 +102,8 @@ export function Sidebar() {
           <SidebarNavItem to="/issues" label="Issues" icon={CircleDot} />
           <SidebarNavItem to="/routines" label="Routines" icon={Repeat} />
           <SidebarNavItem to="/goals" label="Goals" icon={Target} />
-          <SidebarNavItem to="/organizational-memory" label="Memory" icon={BrainCircuit} />
-          <SidebarNavItem to="/organizational-learning" label="Evidence & learning" icon={LearningActivity} />
+          <SidebarNavItem to="/memory" label="Memory" icon={BrainCircuit} />
+          <SidebarNavItem to="/learning" label="Evidence & learning" icon={LearningActivity} />
           <SidebarNavItem to="/artifacts" label="Artifacts" icon={PackageOpen} />
           <SidebarNavItem to="/softwarehouse" label="Softwarehouse" icon={Factory} />
           {showWorkspacesLink ? (

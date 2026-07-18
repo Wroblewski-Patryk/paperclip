@@ -104,4 +104,36 @@ describe("CompanySituationPanel", () => {
 
     await act(async () => root.unmount());
   });
+
+  it("routes memory and learning signals to their canonical short paths", async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const routedSituation: CompanySituation = {
+      ...situation,
+      attention: [
+        {
+          ...situation.attention[0]!,
+          id: "memory-review",
+          kind: "organizational_review_due",
+          title: "Memory review due",
+        },
+        {
+          ...situation.attention[0]!,
+          id: "learning-promotion",
+          kind: "learning_ready_for_promotion",
+          title: "Learning ready for promotion",
+        },
+      ],
+    };
+
+    await act(async () => {
+      root.render(<CompanySituationPanel situation={routedSituation} />);
+    });
+
+    expect(container.querySelector('a[href="/memory"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/learning"]')).not.toBeNull();
+
+    await act(async () => root.unmount());
+  });
 });

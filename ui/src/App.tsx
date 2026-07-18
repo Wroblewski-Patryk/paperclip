@@ -67,7 +67,7 @@ import { useCompany } from "./context/CompanyContext";
 import { useDialogActions } from "./context/DialogContext";
 import { loadLastInboxTab } from "./lib/inbox";
 import { shouldRedirectCompanylessRouteToOnboarding } from "./lib/onboarding-route";
-import { BOARD_ROUTE_ROOTS } from "./lib/company-routes";
+import { BOARD_ROUTE_ROOTS, LEGACY_BOARD_ROUTE_ALIASES } from "./lib/company-routes";
 
 function boardRoutes() {
   return (
@@ -131,8 +131,10 @@ function boardRoutes() {
       <Route path="execution-workspaces/:workspaceId/issues" element={<ExecutionWorkspaceDetail />} />
       <Route path="execution-workspaces/:workspaceId/routines" element={<ExecutionWorkspaceDetail />} />
       <Route path="goals" element={<Goals />} />
-      <Route path="organizational-memory" element={<OrganizationalMemory />} />
-      <Route path="organizational-learning" element={<OrganizationalLearning />} />
+      <Route path="memory" element={<OrganizationalMemory />} />
+      <Route path="learning" element={<OrganizationalLearning />} />
+      <Route path="organizational-memory" element={<Navigate to="/memory" replace />} />
+      <Route path="organizational-learning" element={<Navigate to="/learning" replace />} />
       <Route path="softwarehouse" element={<Softwarehouse />} />
       <Route path="artifacts" element={<Artifacts />} />
       <Route path="teams-catalog/*" element={<TeamCatalog />} />
@@ -233,7 +235,7 @@ function CompanyRootRedirect() {
   return <Navigate to={`/${targetCompany.issuePrefix}/dashboard`} replace />;
 }
 
-function UnprefixedBoardRedirect() {
+function UnprefixedBoardRedirect({ canonicalRoot }: { canonicalRoot?: string }) {
   const location = useLocation();
   const { companies, selectedCompany, loading } = useCompany();
 
@@ -254,9 +256,13 @@ function UnprefixedBoardRedirect() {
     return <NoCompaniesStartPage />;
   }
 
+  const targetPathname = canonicalRoot
+    ? location.pathname.replace(/^\/[^/]+/, `/${canonicalRoot}`)
+    : location.pathname;
+
   return (
     <Navigate
-      to={`/${targetCompany.issuePrefix}${location.pathname}${location.search}${location.hash}`}
+      to={`/${targetCompany.issuePrefix}${targetPathname}${location.search}${location.hash}`}
       replace
     />
   );
@@ -314,6 +320,13 @@ export function App() {
           </Route>
           {BOARD_ROUTE_ROOTS.map((routeRoot) => (
             <Route key={routeRoot} path={`${routeRoot}/*`} element={<UnprefixedBoardRedirect />} />
+          ))}
+          {Object.entries(LEGACY_BOARD_ROUTE_ALIASES).map(([legacyRoot, canonicalRoot]) => (
+            <Route
+              key={legacyRoot}
+              path={`${legacyRoot}/*`}
+              element={<UnprefixedBoardRedirect canonicalRoot={canonicalRoot} />}
+            />
           ))}
           <Route path="settings" element={<LegacySettingsRedirect />} />
           <Route path="settings/*" element={<LegacySettingsRedirect />} />
