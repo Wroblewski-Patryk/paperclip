@@ -423,3 +423,24 @@ Failing checks:
 
 No production mutation, secret readout, approval resolution, deploy, restart,
 rollback, or product repository edit was performed while preparing this report.
+
+## 12. Continuation checkpoint - 2026-07-18 21:38 CEST
+
+The next conversation re-verified and repaired the three fresh local
+control-plane defects:
+
+- `softwarehouse:test-gates` now passes 178/178 after its bounded enrichment
+  assertion was updated to cover both `ops-release` and
+  `security-credentials`.
+- Executive health now excludes archived projects and selects the active
+  canonical `11 Innovation: Soar` and `11 Innovation: Roost` rows. Focused
+  selector tests pass 2/2 and the live executive verdict reports both canonical
+  project ids.
+- The `runnable_work_allowed` control-tick branch now preserves
+  `Stale gate owner action:` lines, with a regression assertion in the gate
+  suite.
+
+Fresh read-only Coolify reconciliation still reports eight expected Soar
+resources, PostgreSQL `running:healthy`, and Redis
+`restarting:unhealthy`. The protected Redis action remains pending the typed
+owner decision in `LUC-1387`; no production or secret mutation was performed.

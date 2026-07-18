@@ -6,6 +6,23 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-18 / V0 handoff continuation and control-plane repair:
+  - Re-verified the attached conversation handoff against the live local
+    instance. Paperclip remained healthy on port 3200 and executive health now
+    resolves the canonical active `11 Innovation: Soar` and
+    `11 Innovation: Roost` projects instead of archived short-name aliases.
+  - Reconciled the learning-loop gate assertion with the intentional bounded
+    enrichment coverage for both `ops-release` and `security-credentials`.
+    Added regression coverage for archived project selection.
+  - Repaired the remaining stale-gate action omission in the
+    `runnable_work_allowed` control-tick branch. Focused selector tests passed
+    2/2 and `softwarehouse:test-gates` passed 178/178.
+  - Fresh read-only Coolify reconciliation still found eight Soar resources,
+    PostgreSQL `running:healthy`, and Redis `restarting:unhealthy`. No deploy,
+    restart, rollback, secret mutation, or other production mutation was
+    performed. `LUC-1387` remains a genuine owner decision for exactly one
+    Redis restart lane.
+
 - 2026-07-15 / explicit Windows script runtime hardening:
   - The owner observed Paperclip agents opening
     `paperclip-upload-artifact.mjs` and `paperclip-issue-update.mjs` in an

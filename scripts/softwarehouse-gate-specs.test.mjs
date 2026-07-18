@@ -798,7 +798,7 @@ test("learning loop scopes active issues and bounds API requests for large local
   assert.match(source, /issues\?status=\$\{activeIssueStatuses\.join\(","\)\}&limit=2000/);
   assert.match(source, /const processedBlockedGroups = maxBlockedGroups > 0\s+\? eligibleBlockedGroups\.slice\(0, maxBlockedGroups\)/);
   assert.match(source, /skippedBlockedGroupCount/);
-  assert.match(source, /gap\.area === "ops-release"\s+&& \(groupedIssues\.length <= maxEnrichmentSourceIssues \|\| blockerAttentionGroup\)/);
+  assert.match(source, /\(gap\.area === "ops-release" \|\| gap\.area === "security-credentials"\)\s+&& \(groupedIssues\.length <= maxEnrichmentSourceIssues \|\| blockerAttentionGroup\)/);
   assert.match(source, /enrichedIssues = await enrichIssuesForBlockerChain\(issues, key, groupedIssues\)/);
   assert.match(source, /sourceIssues: enrichedGroupedIssues/);
   assert.doesNotMatch(source, /issues\?limit=2000/);
@@ -3123,6 +3123,16 @@ test("control tick keeps stale gate owner actions during limited supervision del
   assert.match(gateHoldBranch, /"blocked_triage_allowed"/);
   assert.match(gateHoldBranch, /"project_truth_repair_allowed"/);
   assert.match(gateHoldBranch, /\.\.\.staleGateOwnerActions\(\)/);
+});
+
+test("control tick keeps stale gate owner actions while local runnable work remains allowed", async () => {
+  const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
+  const runnableWorkBranch = source.match(
+    /if \(effectiveOperatingPosture === "runnable_work_allowed"\) \{[\s\S]*?\n  \}/,
+  )?.[0] ?? "";
+
+  assert.match(runnableWorkBranch, /\.\.\.staleGateOwnerActions\(\)/);
+  assert.match(runnableWorkBranch, /\.\.\.protectedGateLines/);
 });
 
 test("continuation watchdog records a todo disposition for its recurring issue", async () => {

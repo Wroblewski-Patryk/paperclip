@@ -1,3 +1,5 @@
+import { selectExecutiveProject } from "./lib/softwarehouse-executive-health.mjs";
+
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const activeProjects = (process.env.SOFTWAREHOUSE_ACTIVE_PROJECTS ?? "Soar,Roost")
@@ -81,8 +83,7 @@ function agentKey(agent) {
 }
 
 function projectReport(projects, agents, projectName) {
-  const project = projects.find((candidate) => candidate.name === projectName)
-    ?? (projectName === "Aviary" ? projects.find((candidate) => candidate.name === "Personality") : null);
+  const project = selectExecutiveProject(projects, projectName);
   const managerNeedle = `${projectName.toLowerCase()}-`;
   const manager = agents.find((agent) => {
     const key = agentKey(agent).toLowerCase();

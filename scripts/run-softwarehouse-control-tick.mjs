@@ -1266,6 +1266,7 @@ function nextControlActionsFor({
     return [
       "Start or assign the highest-priority runnable issue with one owner, one scope, and one evidence contract.",
       "Require local validation before any commit; do not push, deploy, restart, run protected smoke, or disclose secrets.",
+      ...staleGateOwnerActions(),
       ...protectedGateLines,
     ];
   }

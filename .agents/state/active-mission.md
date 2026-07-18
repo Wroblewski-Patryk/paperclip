@@ -14,10 +14,11 @@
   provider rotation/invalidation and managed-ref readback.
 - Project truth currently reports 56 Soar gaps and 10 Roost gaps. Classify them
   evidence-first rather than treating every row as a code defect.
-- Fresh control-plane defects: gate suite 176/177 after learning-loop behavior
-  expanded to security credentials; stale protected gates are missing the
-  required owner action in the live control tick; executive health selects
-  archived exact-name Soar/Roost rows instead of canonical active projects.
+- The July 18 control-plane repair is implemented locally: the gate suite now
+  passes 178/178, stale protected gates retain owner actions during runnable
+  local work, and executive health excludes archived project aliases in favor
+  of canonical active Soar/Roost projects. Commit and fresh longevity evidence
+  remain the immediate local closure steps.
 - Backup retention is active, but a disposable end-to-end instance restore
   drill remains required before disaster recovery is complete.
 - Current model routing is operational across GPT-5.4 mini, GPT-5.4, and
