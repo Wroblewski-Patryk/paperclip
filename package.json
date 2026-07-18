@@ -97,6 +97,8 @@
     "softwarehouse:next-legal-action:apply": "node scripts/run-next-legal-action-selector.mjs --apply",
     "softwarehouse:continuation-watchdog": "node scripts/run-softwarehouse-continuation-watchdog.mjs --once",
     "softwarehouse:continuation-watchdog:loop": "node scripts/run-softwarehouse-continuation-watchdog.mjs --loop",
+    "softwarehouse:worker-queue": "node scripts/run-worker-backlog-decomposition-seeder.mjs",
+    "softwarehouse:worker-queue:apply": "node scripts/run-worker-backlog-decomposition-seeder.mjs --apply",
     "softwarehouse:soar-acceptance-ledger": "node scripts/run-soar-acceptance-ledger.mjs",
     "softwarehouse:coolify-reconciler": "node scripts/run-coolify-production-reconciler.mjs",
     "softwarehouse:coolify-resource-recovery": "node scripts/run-coolify-resource-recovery-seeder.mjs",

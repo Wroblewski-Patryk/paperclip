@@ -178,15 +178,12 @@ async function main() {
       finalDisposition: null,
     };
 
-    if (liveBefore.ok && Number(liveBefore.liveRunCount ?? 0) > 0) {
-      step.action = {
-        decision: "supervise_active_runs",
-        reason: "A productive live run exists, so the watchdog must not start duplicate owner work.",
-      };
-    } else {
-      step.action = runNextLegalActionApply();
-      step.liveAfter = await probeLiveRuns();
-    }
+    // The next-action selector and local lane starter enforce per-agent and
+    // per-project WIP. Do not turn one productive run into a company-wide
+    // mutex: an independent Soar, Roost, or operating-system lane may still be
+    // legal. The selector returns supervision-only when no safe lane exists.
+    step.action = runNextLegalActionApply();
+    step.liveAfter = await probeLiveRuns();
 
     step.finalDisposition = await finalizeRecurringIssue({
       apiBase,

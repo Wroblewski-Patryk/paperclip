@@ -521,3 +521,29 @@ Current evidence:
   `scripts/stop-luckysparrow-softwarehouse.ps1` share the registered
   `dev:watch` lifecycle and have regression coverage in
   `scripts/softwarehouse-gate-specs.test.mjs`.
+
+## 2026-07-18 - Planned backlog is not runnable capacity
+
+Observed pattern: the worker-fanout audit counted `todo` and `backlog` together
+as ready capacity, while Paperclip deliberately does not wake an assigned
+`backlog` issue. Roost therefore appeared healthy with four planned cards and
+zero runnable cards. Separately, the continuation watchdog treated any live
+productive run as a company-wide lock even though the lane starter already
+guards the target agent and project.
+
+Standing rule:
+
+- `todo` is runnable; `backlog` is reserve inventory.
+- Each unfinished active track normally keeps at least one worker `todo` and
+  three planned worker lanes in total, or explicit blockers for the deficit.
+- One agent keeps WIP=1 and one shared project/repository keeps one active
+  writer. A live run in one project must not idle independent agents in another
+  project.
+- The dispatcher starts at most one new independent lane per control cycle and
+  reuses/promotes existing work before creating duplicates.
+
+Current evidence:
+
+- Focused rolling-queue and policy-gate tests pass 188/188.
+- Live dry-run reports Soar `ready` and Roost `needs-another-child`, matching
+  actual Paperclip wake semantics.

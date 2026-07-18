@@ -1413,6 +1413,29 @@ test("controller-only routine runs do not block an independent product lane", as
   assert.equal(classification.liveRuns[0].id, "run-product");
 });
 
+test("one productive run does not globally lock independent runnable work", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    { activeRunCount: 1 },
+    { activeRunCount: 1 },
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 1 },
+    null,
+    {
+      checked: true,
+      ok: true,
+      decision: "runnable_work_available",
+      counts: { eligibleRunnableIssues: 3 },
+    },
+  );
+
+  assert.equal(action.decision, "start_runnable_work");
+  assert.equal(action.target, "independent_project_or_agent_lane");
+  assert.match(action.allowed.join(" "), /project are idle/);
+  assert.match(action.forbidden.join(" "), /busy project/);
+});
+
 test("live-run classification fails closed when issue provenance cannot be read", async () => {
   const classification = await classifyLiveRuns({
     apiBase: "http://paperclip.test",
@@ -1919,7 +1942,8 @@ test("continuation watchdog applies the next legal action when Paperclip goes id
   assert.match(classifierSource, /run\.id === currentRunId/);
   assert.match(classifierSource, /run\.issueId === currentIssueId/);
   assert.match(source, /liveRunCount/);
-  assert.match(source, /A productive live run exists, so the watchdog must not start duplicate owner work/);
+  assert.match(source, /Do not turn one productive run into a company-wide/);
+  assert.doesNotMatch(source, /if \(liveBefore\.ok && Number\(liveBefore\.liveRunCount/);
   assert.match(source, /spawnSync\("pnpm", \["run", "softwarehouse:next-legal-action:apply"\]/);
   assert.match(source, /\.\.\.\(apiKey \? \{ authorization: `Bearer \$\{apiKey\}` \} : \{\}\)/);
   assert.match(source, /report\/softwarehouse-continuation-watchdog\.latest\.json/);

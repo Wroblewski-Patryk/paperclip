@@ -1,5 +1,27 @@
 # Active Mission
 
+## 2026-07-18 Rolling Worker Queue And Parallel Dispatch - Current
+
+- The owner confirmed Paperclip remains the control plane. Autonomy changes
+  should prefer configuration/native extension, then plugins, then a separate
+  Roost-backed application layer; LangGraph is not required for the current
+  continuity defect.
+- Current live proof showed Soar with two runnable worker `todo` lanes and
+  three planned lanes, but Roost with four planned `backlog` lanes and zero
+  runnable lanes. Historical queue health incorrectly classified both as
+  ready because it treated `backlog` as runnable.
+- Continuation also used a company-wide live-run mutex even though the local
+  lane starter already enforces per-agent and per-project conflicts. The new
+  contract permits at most one additional independent project/agent lane per
+  watchdog cycle while preserving WIP=1 and same-project serialization.
+- The rolling queue target is one runnable worker `todo` and three planned
+  worker `todo`/`backlog` lanes per unfinished active track, or explicit legal
+  blockers for the missing capacity. Promote existing backlog before creating
+  duplicate work.
+- The original roughly 7,000-task Paperclip instance was deleted and is not an
+  available evaluation dataset. Preserve current issue/run state, managed
+  instruction bundles, snapshots, and durable learning evidence accordingly.
+
 ## 2026-07-18 Conversation Handoff Audit - Current
 
 - Canonical handoff: `docs/status/2026-07-18-paperclip-v0-conversation-handoff.md`.

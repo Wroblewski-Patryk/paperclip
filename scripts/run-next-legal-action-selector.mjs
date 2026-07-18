@@ -269,10 +269,26 @@ export function pickAction(
       forbidden: ["restart", "push", "deploy", "start duplicate owner lane"],
     };
   }
+  const governorHasRunnableWork = Boolean(
+    governorProbe?.checked
+    && governorProbe.ok
+    && governorProbe.decision === "runnable_work_available"
+    && Number(governorProbe?.counts?.eligibleRunnableIssues ?? 0) > 0
+  );
+  if (activeRunCount > 0 && governorHasRunnableWork) {
+    return {
+      decision: "start_runnable_work",
+      reason: "Runnable work exists while other agents are active; probe for one independent project/agent lane instead of globally idling the company.",
+      command: "pnpm softwarehouse:local-repair-lane-starter:apply",
+      target: "independent_project_or_agent_lane",
+      allowed: ["wake one lane only when its assignee and project are idle", "preserve per-agent WIP=1", "serialize shared-project work"],
+      forbidden: ["start work for a busy agent", "start a second lane in a busy project", "push", "deploy", "restart", "secret disclosure"],
+    };
+  }
   if (activeRunCount > 0) {
     return {
       decision: "supervise_active_runs",
-      reason: "A live run exists; starting duplicate work would hide truth.",
+      reason: "Live work exists and no additional runnable lane is currently reported; supervise without creating duplicates.",
       command: "pnpm softwarehouse:control-tick",
       allowed: ["supervise live run", "close stale tails", "refresh reports"],
       forbidden: ["start duplicate owner lane", "push", "deploy", "restart"],

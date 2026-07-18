@@ -101,6 +101,14 @@ comment or parent decision is enough.
 ## Single-Lane Execution
 
 - One agent can actively execute only one lane at a time.
+- Keep a rolling queue for every active product track: at least one worker-owned
+  `todo` lane that Paperclip can actually wake, plus at least three planned
+  worker lanes across `todo` and `backlog` while the current target remains
+  unfinished. `backlog` is reserve inventory and must never be counted as
+  runnable work.
+- After completion or a durable blocker, the responsible PM/Lead promotes the
+  next existing backlog lane before creating a duplicate, replenishes the
+  planned reserve, and records the next integration point.
 - One active lane is not one planned lane. Leaf/specialist agents may and
   should have many queued `todo/backlog` tasks when a project is not yet
   verified; WIP=1 applies only to live `in_progress` execution.
@@ -117,6 +125,9 @@ comment or parent decision is enough.
   lane has a durable disposition.
 - Parallel work is allowed only across different agents on independent lanes,
   with no shared file, release, secret, or acceptance conflict.
+- One active run is not a company-wide lock. Independent Soar, Roost, and
+  Paperclip operating-system lanes may run concurrently when they use different
+  agents and repositories; same-project writers remain serialized.
 - Planned queue depth is not execution permission. In a shared project
   workspace, start at most one repo-mutating lane at a time unless the lanes
   use isolated worktrees and their file sets are proven disjoint.

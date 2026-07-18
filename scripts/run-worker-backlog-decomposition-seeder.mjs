@@ -175,6 +175,7 @@ const plannedIssues = openIssues.filter((issue) =>
   && issue.originKind !== "routine_execution"
 );
 const plannedWorkerIssues = plannedIssues.filter((issue) => isWorker(agentById.get(issue.assigneeAgentId)));
+const runnableWorkerIssues = plannedWorkerIssues.filter((issue) => issue.status === "todo");
 const plannedSupervisorIssues = plannedIssues.filter((issue) => isSupervisor(agentById.get(issue.assigneeAgentId)));
 function namedBlockerForIssue(issue) {
   if (Array.isArray(issue.blockedBy) && issue.blockedBy.length > 0) return true;
@@ -371,7 +372,8 @@ if (agentWip.unknownActiveRunCount > 0) {
     ...topSupervisorIssues.map((line) => `- ${line}`),
     "",
     "Required output:",
-    "- create or update at least three worker-ready todo/backlog issues across idle leaf workers when legal; planned queue depth is not permission to start all lanes at once;",
+    "- for every weak active track, promote or create at least one worker-owned `todo` lane and keep at least three worker-owned `todo`/`backlog` lanes planned in total; `backlog` alone is not runnable;",
+    "- promote an existing backlog lane before creating a duplicate, then replenish the planned reserve after completion; planned queue depth is not permission to start all lanes at once;",
     "- prioritize Soar V1 first, then Roost; Aviary, Nest, Featherly, and every other parked product remain out of scope until explicit owner activation;",
     "- before creating a product child, bind it to that product's active project and primary workspace; a Soar/Roost child must not inherit the Softwarehouse project/workspace;",
     "- do not create or resume repo-mutating children while any controlled repo has an unresolved source-control closure packet; route the existing packet first;",
@@ -397,7 +399,7 @@ if (agentWip.unknownActiveRunCount > 0) {
     goalId: goal?.id ?? null,
     requestDepth: 2,
     acceptanceCriteria: [
-      "At least three legal worker-ready todo/backlog issues are created or updated, or every missing lane has an explicit legal blocker.",
+      "Every weak active track has at least one legal worker-owned todo lane and at least three planned worker todo/backlog lanes in total, or every missing lane has an explicit legal blocker.",
       "Every created worker issue has exactly one accountable owner and one narrow scope.",
       "Soar V1 receives first priority unless a protected gate blocks the exact action.",
       "Every product child uses the matching active product project and primary workspace; it never inherits the Softwarehouse workspace by convenience.",
@@ -443,6 +445,7 @@ console.log(JSON.stringify({
     openIssues: openIssues.length,
     plannedIssues: plannedIssues.length,
     plannedWorkerIssues: plannedWorkerIssues.length,
+    runnableWorkerIssues: runnableWorkerIssues.length,
     plannedSupervisorIssues: plannedSupervisorIssues.length,
   },
   trackBacklog,

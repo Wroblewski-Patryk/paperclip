@@ -66,6 +66,10 @@ ecosystem.
   Paperclip_Softwarehouse repo.
 - Avoid broad rewrites and context churn. Capture what matters, then keep
   moving.
+- Extend autonomy in this order: first Paperclip company/agent/routine
+  configuration, second an update-safe Paperclip plugin/add-on, and only third
+  a separate application layer. Do not add LangGraph or another orchestration
+  runtime when native Paperclip contracts can enforce the required behavior.
 - For this Codex chat, "commit my finished changes" means changes in the
   Paperclip_Softwarehouse control-plane repo unless the owner explicitly says
   otherwise. Soar and Roost are product repos: their commits should normally be
@@ -109,6 +113,13 @@ Paperclip should help agents make steady, goal-aligned progress on Soar and
 Roost without imposing an artificial one-week completion promise. The canonical
 architecture and delivery sequence is recorded in
 `doc/plans/2026-07-15-organizational-orientation-system.md`.
+
+Managers should maintain rolling, evidence-backed worker queues rather than a
+fixed task count. `todo` means runnable work; `backlog` is reserve inventory.
+While an active product target remains unfinished, each track should normally
+have at least one runnable worker lane and a small planned reserve, subject to
+per-agent WIP, same-repository serialization, protected gates, and real
+dependencies.
 
 ## Current Stage 1 Operating Model
 

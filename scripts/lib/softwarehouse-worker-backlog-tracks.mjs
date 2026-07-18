@@ -35,17 +35,19 @@ export function workerBacklogTrackForIssue(issue, projectById) {
 }
 
 export function formatWeakTrackSummary(trackSummary) {
-  return `${trackSummary.track}: planned worker=${trackSummary.plannedWorkerIssueCount}, planned supervisor=${trackSummary.plannedSupervisorIssueCount}, open=${trackSummary.openIssueCount}, blocked=${trackSummary.blockedIssueCount}`;
+  return `${trackSummary.track}: runnable worker=${trackSummary.runnableWorkerIssueCount}, planned worker=${trackSummary.plannedWorkerIssueCount}, planned supervisor=${trackSummary.plannedSupervisorIssueCount}, open=${trackSummary.openIssueCount}, blocked=${trackSummary.blockedIssueCount}`;
 }
 
 export function formatTrackDispositionSummary(trackSummary) {
-  return `${trackSummary.track}: ${trackSummary.disposition} (worker-ready=${trackSummary.workerReadyLaneCount}/${trackSummary.targetWorkerReadyLaneCount}, named blockers=${trackSummary.namedBlockedLaneCount}, missing=${trackSummary.missingWorkerReadyLaneCount})`;
+  return `${trackSummary.track}: ${trackSummary.disposition} (runnable=${trackSummary.runnableWorkerIssueCount}/${trackSummary.targetRunnableWorkerLaneCount}, planned=${trackSummary.plannedWorkerIssueCount}/${trackSummary.targetPlannedWorkerLaneCount}, named blockers=${trackSummary.namedBlockedLaneCount})`;
 }
 
 export function formatWorkerFanoutContract() {
   return [
     "Contract:",
     "- fan out per controlled track, not company-wide totals; evaluate Soar and Roost independently;",
+    "- maintain a rolling queue per active track: at least one runnable worker `todo` plus three planned worker lanes total; `backlog` is reserve inventory and never counts as runnable;",
+    "- promote an existing backlog lane before creating a duplicate, and replenish the reserve after each completion or durable blocker;",
     "- each worker-ready lane must end in ready, blocked, or needs-another-child;",
     "- each lane must name project, scope, affected files/entities, acceptance criteria, local proof, blocker policy, and handoff owner;",
     "- bind every product lane to the matching active project and primary workspace; never run Soar or Roost work from the Softwarehouse workspace;",
@@ -64,8 +66,10 @@ export function summarizeWorkerBacklogTracks({
   isSupervisor,
   terminalStatuses,
   plannedStatuses,
+  runnableStatuses = new Set(["todo"]),
   hasNamedBlocker = (issue) => Array.isArray(issue?.blockedBy) && issue.blockedBy.length > 0,
-  targetWorkerReadyLaneCount = 3,
+  targetPlannedWorkerLaneCount = 3,
+  targetRunnableWorkerLaneCount = 1,
 }) {
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const activeTracks = activeControlledProjectTracks(projects);
@@ -75,13 +79,19 @@ export function summarizeWorkerBacklogTracks({
     plannedIssueCount: 0,
     plannedWorkerIssueCount: 0,
     plannedSupervisorIssueCount: 0,
+    runnableWorkerIssueCount: 0,
     blockedIssueCount: 0,
     namedBlockedLaneCount: 0,
     inProgressIssueCount: 0,
     inProgressWorkerIssueCount: 0,
-    targetWorkerReadyLaneCount,
+    targetPlannedWorkerLaneCount,
+    targetRunnableWorkerLaneCount,
+    // Compatibility aliases for existing report consumers. "Ready" now means
+    // Paperclip-runnable (`todo`), never merely planned (`backlog`).
+    targetWorkerReadyLaneCount: targetRunnableWorkerLaneCount,
     workerReadyLaneCount: 0,
-    missingWorkerReadyLaneCount: targetWorkerReadyLaneCount,
+    missingWorkerReadyLaneCount: targetRunnableWorkerLaneCount,
+    missingPlannedWorkerLaneCount: targetPlannedWorkerLaneCount,
     disposition: "needs-another-child",
   }));
   const summaryByTrack = new Map(trackSummaries.map((summary) => [summary.track, summary]));
@@ -103,14 +113,18 @@ export function summarizeWorkerBacklogTracks({
     }
     if (!plannedStatuses.has(issue.status) || !issue.assigneeAgentId) continue;
     summary.plannedIssueCount += 1;
-    if (isWorker(assignee)) summary.plannedWorkerIssueCount += 1;
+    if (isWorker(assignee)) {
+      summary.plannedWorkerIssueCount += 1;
+      if (runnableStatuses.has(issue.status)) summary.runnableWorkerIssueCount += 1;
+    }
     if (isSupervisor(assignee)) summary.plannedSupervisorIssueCount += 1;
   }
 
   for (const summary of trackSummaries) {
-    summary.workerReadyLaneCount = summary.plannedWorkerIssueCount;
-    summary.missingWorkerReadyLaneCount = Math.max(0, targetWorkerReadyLaneCount - summary.workerReadyLaneCount);
-    if (summary.missingWorkerReadyLaneCount === 0) {
+    summary.workerReadyLaneCount = summary.runnableWorkerIssueCount;
+    summary.missingWorkerReadyLaneCount = Math.max(0, targetRunnableWorkerLaneCount - summary.runnableWorkerIssueCount);
+    summary.missingPlannedWorkerLaneCount = Math.max(0, targetPlannedWorkerLaneCount - summary.plannedWorkerIssueCount);
+    if (summary.missingWorkerReadyLaneCount === 0 && summary.missingPlannedWorkerLaneCount === 0) {
       summary.disposition = "ready";
     } else if (
       summary.blockedIssueCount === 0
@@ -119,7 +133,13 @@ export function summarizeWorkerBacklogTracks({
     ) {
       summary.disposition = "ready";
       summary.dispositionReason = "active_worker_owns_entire_track_backlog";
-    } else if (summary.namedBlockedLaneCount >= summary.missingWorkerReadyLaneCount) {
+    } else if (
+      Math.max(summary.missingWorkerReadyLaneCount, summary.missingPlannedWorkerLaneCount) > 0
+      && summary.namedBlockedLaneCount >= Math.max(
+        summary.missingWorkerReadyLaneCount,
+        summary.missingPlannedWorkerLaneCount,
+      )
+    ) {
       summary.disposition = "blocked";
     } else {
       summary.disposition = "needs-another-child";
@@ -132,10 +152,7 @@ export function summarizeWorkerBacklogTracks({
       summary.blockedIssueCount === 0
       && summary.openIssueCount === summary.inProgressWorkerIssueCount
     ) return false;
-    if (summary.plannedWorkerIssueCount >= 3) return false;
-    return summary.plannedSupervisorIssueCount > summary.plannedWorkerIssueCount
-      || summary.blockedIssueCount > 0
-      || summary.openIssueCount > summary.plannedWorkerIssueCount;
+    return summary.disposition === "needs-another-child";
   });
 
   return {
@@ -145,10 +162,14 @@ export function summarizeWorkerBacklogTracks({
       track: summary.track,
       disposition: summary.disposition,
       dispositionReason: summary.dispositionReason ?? null,
+      targetPlannedWorkerLaneCount: summary.targetPlannedWorkerLaneCount,
+      targetRunnableWorkerLaneCount: summary.targetRunnableWorkerLaneCount,
       targetWorkerReadyLaneCount: summary.targetWorkerReadyLaneCount,
       workerReadyLaneCount: summary.workerReadyLaneCount,
       missingWorkerReadyLaneCount: summary.missingWorkerReadyLaneCount,
+      missingPlannedWorkerLaneCount: summary.missingPlannedWorkerLaneCount,
       namedBlockedLaneCount: summary.namedBlockedLaneCount,
+      runnableWorkerIssueCount: summary.runnableWorkerIssueCount,
       plannedWorkerIssueCount: summary.plannedWorkerIssueCount,
       plannedSupervisorIssueCount: summary.plannedSupervisorIssueCount,
       openIssueCount: summary.openIssueCount,

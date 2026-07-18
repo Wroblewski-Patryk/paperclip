@@ -3933,3 +3933,27 @@ requires Redis by default, and the resource had accumulated 682 restarts. The
 Soar 503 is therefore a real dependency incident, not merely inactivity by
 Paperclip. Added this classification rule to the dated handoff report; no
 production mutation was performed.
+
+## 2026-07-18 - Rolling queue and independent-lane continuity
+
+Conversation summary and verified implementation. The owner chose to continue
+developing Paperclip under a strict extension order: native configuration
+first, update-safe plugin second, and a separate Roost-backed application layer
+third. LangGraph remains optional and was not added because the current stall
+was repairable in Paperclip's existing local controller.
+
+Live inspection found 39 agents with most idle, 959 successful runs in the
+latest 1,000, and runnable work still present. Root causes were concrete:
+worker queue health counted assigned `backlog` as runnable even though
+assignment wakeups skip backlog, and the continuation watchdog imposed a
+company-wide mutex whenever one productive run existed.
+
+The implementation now distinguishes runnable `todo` from planned `backlog`,
+requires one runnable worker lane plus a three-lane planned reserve per active
+track, promotes existing backlog before duplication, and permits one additional
+independent agent/project lane per cycle. Per-agent WIP=1, same-project
+serialization, source-control closure, protected gates, and parked-product
+boundaries remain intact. Focused tests pass 188/188; live dry-run correctly
+classifies Soar as ready and Roost as missing a runnable lane. The deleted
+roughly 7,000-task historical instance is unavailable, so current snapshots,
+issues, runs, instruction bundles, and learning records are the durable source.

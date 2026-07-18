@@ -77,12 +77,38 @@ test("summarizeWorkerBacklogTracks flags a weak Roost track even when company-wi
     plannedStatuses: new Set(["todo", "backlog"]),
   });
 
-  assert.deepEqual(summary.weakTracks.map((track) => track.track), ["Roost"]);
+  assert.deepEqual(summary.weakTracks.map((track) => track.track), ["Roost", "Soar"]);
   assert.equal(summary.trackDispositions.find((track) => track.track === "Roost")?.disposition, "needs-another-child");
   assert.equal(
     formatWeakTrackSummary(summary.weakTracks[0]),
-    "Roost: planned worker=0, planned supervisor=1, open=3, blocked=1",
+    "Roost: runnable worker=0, planned worker=0, planned supervisor=1, open=3, blocked=1",
   );
+});
+
+test("planned backlog reserve does not masquerade as runnable worker work", () => {
+  const projects = [{ id: "roost", name: "11 Innovation: Roost", status: "in_progress" }];
+  const agentById = new Map([
+    ["worker", { id: "worker", metadata: { rosterKey: "test-automation-engineer" } }],
+  ]);
+  const summary = summarizeWorkerBacklogTracks({
+    issues: [1, 2, 3].map((number) => ({
+      projectId: "roost",
+      title: `[Roost] Planned worker ${number}`,
+      status: "backlog",
+      assigneeAgentId: "worker",
+    })),
+    projects,
+    agentById,
+    isWorker: (agent) => agent?.metadata?.rosterKey === "test-automation-engineer",
+    isSupervisor: () => false,
+    terminalStatuses: new Set(["done", "cancelled"]),
+    plannedStatuses: new Set(["todo", "backlog"]),
+  });
+
+  assert.equal(summary.trackSummaries[0].plannedWorkerIssueCount, 3);
+  assert.equal(summary.trackSummaries[0].runnableWorkerIssueCount, 0);
+  assert.equal(summary.trackDispositions[0].disposition, "needs-another-child");
+  assert.deepEqual(summary.weakTracks.map((track) => track.track), ["Roost"]);
 });
 
 test("an active leaf worker is a healthy closure path when it owns the entire track backlog", () => {
@@ -144,7 +170,7 @@ test("track dispositions report ready, blocked, and needs-another-child per cont
   );
   assert.equal(
     formatTrackDispositionSummary(summary.trackSummaries[0]),
-    "Roost: blocked (worker-ready=1/3, named blockers=2, missing=2)",
+    "Roost: blocked (runnable=1/1, planned=1/3, named blockers=2)",
   );
 });
 

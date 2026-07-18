@@ -568,7 +568,9 @@ const steps = [
       liveRunCount: data.liveRunCount ?? null,
       shouldSeed: data.shouldSeed ?? null,
       plannedWorkerIssues: data.counts?.plannedWorkerIssues ?? null,
+      runnableWorkerIssues: data.counts?.runnableWorkerIssues ?? null,
       plannedSupervisorIssues: data.counts?.plannedSupervisorIssues ?? null,
+      trackDispositions: data.trackDispositions ?? [],
       actions: data.actions?.map((action) => ({
         action: action.action,
         identifier: action.identifier ?? null,
