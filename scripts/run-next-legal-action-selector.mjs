@@ -181,6 +181,37 @@ function probeSourceControl() {
   };
 }
 
+function probeCoolifyResourceRecovery() {
+  const result = spawnSync(process.execPath, ["scripts/run-coolify-resource-recovery-seeder.mjs"], {
+    cwd: process.cwd(),
+    env: { ...process.env },
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_COOLIFY_RECOVERY_TIMEOUT_MS ?? 60_000),
+  });
+  const parsed = result.status === 0 && !result.error ? parseJsonOutput(result.stdout) : null;
+  return {
+    checked: true,
+    ok: result.status === 0 && !result.error && Boolean(parsed),
+    status: result.status,
+    signal: result.signal,
+    error: result.error ? String(result.error.message ?? result.error) : null,
+    stderr: String(result.stderr ?? "").slice(0, 2_000),
+    actions: Array.isArray(parsed?.actions) ? parsed.actions : [],
+  };
+}
+
+function coolifyRecoveryAlreadyRouted(probe) {
+  return Boolean(
+    probe?.checked
+    && probe.ok
+    && probe.actions.some((action) =>
+      action?.action === "noop_existing_recovery_issue"
+      && ["todo", "in_progress", "in_review", "blocked"].includes(action?.status),
+    ),
+  );
+}
+
 function acceptanceCheck(acceptanceLedger, id) {
   return (acceptanceLedger?.checks ?? []).find((check) => check.id === id) ?? null;
 }
@@ -222,6 +253,7 @@ export function pickAction(
   acceptanceLedger = null,
   governorProbe = { checked: false },
   sourceControlProbe = { checked: false },
+  coolifyRecoveryProbe = { checked: false },
 ) {
   const reportedActiveRunCount = Number(control?.activeRunCount ?? readiness?.activeRunCount ?? 0);
   const activeRunCount =
@@ -304,7 +336,10 @@ export function pickAction(
       forbidden: ["push", "deploy", "restart", "protected smoke", "secret disclosure"],
     };
   }
-  if (acceptanceCheckBlocks(acceptanceLedger, "coolify_resources_reconciled")) {
+  if (
+    acceptanceCheckBlocks(acceptanceLedger, "coolify_resources_reconciled")
+    && !coolifyRecoveryAlreadyRouted(coolifyRecoveryProbe)
+  ) {
     return {
       decision: "repair_coolify_acceptance_gate",
       reason: acceptanceCheck(acceptanceLedger, "coolify_resources_reconciled")?.reason
@@ -471,12 +506,13 @@ export function runApplyCommand(action) {
 }
 
 async function main() {
-  const [control, readiness, acceptanceLedger, appHealth, sourceControlProbe] = await Promise.all([
+  const [control, readiness, acceptanceLedger, appHealth, sourceControlProbe, coolifyRecoveryProbe] = await Promise.all([
     readJson("report/softwarehouse-control-tick.latest.json"),
     readJson("report/softwarehouse-readiness-snapshot.latest.json"),
     readJson("report/soar-delivery-acceptance.latest.json"),
     probeAppHealth(),
     Promise.resolve(probeSourceControl()),
+    Promise.resolve(probeCoolifyResourceRecovery()),
   ]);
   // The governor reads the source-control report written by the probe above.
   // Keep these probes serialized so one clean commit does not require a second
@@ -492,7 +528,17 @@ async function main() {
     liveRunProbe: liveRunProbeResult,
     governorProbe,
     sourceControlProbe,
-    action: pickAction(control, readiness, appHealth, liveRunProbeResult, acceptanceLedger, governorProbe, sourceControlProbe),
+    coolifyRecoveryProbe,
+    action: pickAction(
+      control,
+      readiness,
+      appHealth,
+      liveRunProbeResult,
+      acceptanceLedger,
+      governorProbe,
+      sourceControlProbe,
+      coolifyRecoveryProbe,
+    ),
   };
   if (apply) {
     output.applyResult = runApplyCommand(output.action);

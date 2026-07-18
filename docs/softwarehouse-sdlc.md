@@ -56,6 +56,11 @@ secret disclosure, or project-repository mutations. Existing exact-title and coo
 prevent duplicate triage churn, and the per-agent WIP guard decides whether the selected owner can
 be woken immediately.
 
+An unhealthy protected resource may remain visible as a blocker while its one-action recovery gate
+waits for an explicit owner decision. Once that recovery issue already exists, the continuation
+controller must preserve the gate and select a separate safe runnable lane; repeatedly invoking a
+seeder that can only return `noop_existing_recovery_issue` is not constructive progress.
+
 ## Agent Improvement Flywheel
 
 The SDLC uses the Agent Improvement Flywheel for self-correction:

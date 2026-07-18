@@ -1669,6 +1669,38 @@ test("next legal action selector routes Coolify acceptance blockers when source 
   assert.match(action.reason, /workers-market-data/);
 });
 
+test("next legal action selector does not loop on an already-routed Coolify recovery gate", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    { activeRunCount: 0 },
+    { projects: [{ runnableIssueCount: 2 }] },
+    { checked: true, ok: true, status: 200 },
+    { checked: true, ok: true, liveRunCount: 0 },
+    {
+      checks: [
+        { id: "soar_source_control_clean", status: "pass", reason: "Soar worktree is clean." },
+        { id: "coolify_resources_reconciled", status: "blocker", reason: "redis:restarting:unhealthy" },
+      ],
+    },
+    {
+      checked: true,
+      ok: true,
+      decision: "runnable_work_available",
+      counts: { runnableIssues: 2, eligibleRunnableIssues: 2 },
+    },
+    { checked: true, ok: true, repos: [] },
+    {
+      checked: true,
+      ok: true,
+      actions: [{ action: "noop_existing_recovery_issue", identifier: "LUC-1374", status: "blocked" }],
+    },
+  );
+
+  assert.equal(action.decision, "start_runnable_work");
+  assert.equal(action.command, "pnpm softwarehouse:local-repair-lane-starter:apply");
+});
+
 test("next legal action selector starts runnable backlog instead of only refreshing", async () => {
   const { pickAction } = await import("./run-next-legal-action-selector.mjs");
   const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
