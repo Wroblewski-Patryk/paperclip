@@ -645,3 +645,20 @@ or the relevant owners explicitly classify them as not required with evidence.
   logs are written only to the active repo-managed runtime root; authorized
   reads may fall back to the same instance's legacy user run-log directory.
   This is read continuity, not a second runtime or duplicated data store.
+
+## 2026-07-18 - Rolling Queue Continuity - Current
+
+- Worker queue health now distinguishes runnable `todo` from reserve
+  `backlog`: each active product track targets one runnable worker lane and
+  three planned worker lanes without manufacturing a fixed task count.
+- One productive run is no longer a company-wide mutex. One additional lane
+  may start only when its assignee and project are idle; per-agent WIP=1,
+  same-project serialization, source-control closure, and protected gates stay
+  fail-closed.
+- Live proof: DPM `LUC-1485` delegated the Roost queue gap to its legal owner
+  through `LUC-1490`; Roost worker `LUC-1486` entered `in_progress`; and Soar
+  `LUC-1451` started while the DPM control lane remained active.
+- All 39 instruction bundles, workspace boundaries, and singleton runtime
+  topology pass audit. Focused regressions pass 188/188 and the canonical gate
+  suite passes 180/180. Repo-wide `pnpm test` exceeded its bounded 240-second
+  window and is unverified, not passing.

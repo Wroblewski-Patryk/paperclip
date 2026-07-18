@@ -3957,3 +3957,13 @@ boundaries remain intact. Focused tests pass 188/188; live dry-run correctly
 classifies Soar as ready and Roost as missing a runnable lane. The deleted
 roughly 7,000-task historical instance is unavailable, so current snapshots,
 issues, runs, instruction bundles, and learning records are the durable source.
+
+Live materialization then proved the controller path on the canonical instance.
+All 39 instruction bundles passed audit. With DPM `LUC-1485` active, the
+next-legal-action selector started independent Soar lane `LUC-1451` instead of
+idling the company. The DPM received a real `403` when attempting to mutate
+another agent's Roost issue and correctly delegated the promotion to Roost PM
+as `LUC-1490`; Roost worker `LUC-1486` was also running. Boundary and singleton
+runtime audits passed. The canonical gate suite passed 180/180. Repo-wide
+`pnpm test` exceeded 240 seconds and is explicitly unverified rather than
+claimed green.
