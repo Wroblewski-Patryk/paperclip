@@ -9,6 +9,7 @@ $ConfigPath = Join-Path $Root '.paperclip\config.json'
 $EnvPath = Join-Path $Root '.paperclip\.env'
 $ServiceDir = Join-Path $Root '.paperclip\runtime\home\instances\default\runtime-services'
 $OrphanCleanupScript = Join-Path $PSScriptRoot 'cleanup-orphaned-embedded-postgres.ps1'
+$StartupTimeoutSeconds = 180
 
 function Test-PaperclipHealth {
   try {
@@ -17,6 +18,20 @@ function Test-PaperclipHealth {
   } catch {
     return $false
   }
+}
+
+function Wait-PaperclipHealth {
+  param(
+    [int]$TimeoutSeconds = $StartupTimeoutSeconds
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  do {
+    if (Test-PaperclipHealth) { return $true }
+    Start-Sleep -Seconds 2
+  } while ((Get-Date) -lt $deadline)
+
+  return Test-PaperclipHealth
 }
 
 New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
@@ -54,9 +69,20 @@ if (Test-Path -LiteralPath $ServiceDir) {
     $existingServiceProcess = Get-Process -Id ([int]$existingService.pid) -ErrorAction SilentlyContinue
     if ($existingServiceProcess) {
       Set-Content -LiteralPath $PidPath -Value ([int]$existingService.pid)
-      Write-Output "LuckySparrow Software House is already running as PID $($existingService.pid)"
-      Write-Output "URL: http://127.0.0.1:3200"
-      exit 0
+      if (Test-PaperclipHealth) {
+        Write-Output "LuckySparrow Software House is already running as PID $($existingService.pid)"
+        Write-Output "URL: http://127.0.0.1:3200"
+        exit 0
+      }
+
+      Write-Output "LuckySparrow Software House startup is already in progress as PID $($existingService.pid); waiting up to $StartupTimeoutSeconds seconds."
+      if (Wait-PaperclipHealth) {
+        Write-Output "LuckySparrow Software House became healthy as PID $($existingService.pid)"
+        Write-Output "URL: http://127.0.0.1:3200"
+        exit 0
+      }
+
+      throw "LuckySparrow Software House process $($existingService.pid) stayed alive but did not become healthy within $StartupTimeoutSeconds seconds. Inspect $OutPath and $ErrPath."
     }
   }
 }
@@ -93,6 +119,11 @@ $process = Start-Process `
 
 Start-Sleep -Seconds 3
 $servicePid = $process.Id
+Set-Content -LiteralPath $PidPath -Value $servicePid
+if (-not (Wait-PaperclipHealth)) {
+  throw "LuckySparrow Software House did not become healthy on strict port 3200 within $StartupTimeoutSeconds seconds. Inspect $OutPath and $ErrPath."
+}
+
 if (Test-Path -LiteralPath $ServiceDir) {
   $service = Get-ChildItem -LiteralPath $ServiceDir -Filter '*.json' -ErrorAction SilentlyContinue |
     ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json } |
@@ -100,16 +131,8 @@ if (Test-Path -LiteralPath $ServiceDir) {
     Select-Object -First 1
   if ($service -and $service.pid) {
     $servicePid = [int]$service.pid
+    Set-Content -LiteralPath $PidPath -Value $servicePid
   }
-}
-
-Set-Content -LiteralPath $PidPath -Value $servicePid
-for ($attempt = 0; $attempt -lt 24; $attempt++) {
-  if (Test-PaperclipHealth) { break }
-  Start-Sleep -Seconds 2
-}
-if (-not (Test-PaperclipHealth)) {
-  throw "LuckySparrow Software House did not become healthy on strict port 3200. Inspect $ErrPath."
 }
 Write-Output "Started LuckySparrow Software House as PID $servicePid"
 Write-Output "URL: http://127.0.0.1:3200"
