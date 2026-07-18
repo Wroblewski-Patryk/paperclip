@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { OrganizationalObservation, OrganizationalObservationKind } from "@paperclipai/shared";
 import {
@@ -61,11 +61,11 @@ function ObservationCard({
   const longSummary = item.summary.length > 280;
 
   return (
-    <article className="rounded-lg border border-border bg-card p-4">
+    <article className="min-w-0 rounded-lg border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="font-medium">{item.title}</h3>
-          <p className={cn("mt-1 whitespace-pre-wrap text-sm leading-6 text-muted-foreground", !expanded && longSummary && "line-clamp-4")}>{item.summary}</p>
+          <p className={cn("mt-1 break-words whitespace-pre-wrap text-sm leading-6 text-muted-foreground", !expanded && longSummary && "line-clamp-4")}>{item.summary}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <span className={cn(
@@ -97,11 +97,11 @@ function ObservationCard({
       </div>
 
       {(item.issueId || item.projectId || item.provenance.length > 0) ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-border pt-3 text-xs">
+        <div className="mt-3 flex min-w-0 flex-wrap items-center gap-3 border-t border-border pt-3 text-xs">
           {item.issueId ? <Link to={`/issues/${item.issueId}`} className="inline-flex items-center gap-1 text-primary hover:underline">Issue <ExternalLink className="h-3 w-3" /></Link> : null}
           {item.projectId ? <Link to={`/projects/${item.projectId}/overview`} className="inline-flex items-center gap-1 text-primary hover:underline">Project <ExternalLink className="h-3 w-3" /></Link> : null}
           {item.provenance.slice(0, 3).map((source, index) => (
-            <span key={`${source.kind}-${source.ref}-${index}`} className="max-w-full truncate font-mono text-[11px] text-muted-foreground" title={source.ref}>{source.kind}: {source.ref}</span>
+            <span key={`${source.kind}-${source.ref}-${index}`} className="min-w-0 max-w-full truncate font-mono text-[11px] text-muted-foreground" title={source.ref}>{source.kind}: {source.ref}</span>
           ))}
         </div>
       ) : null}
@@ -125,6 +125,7 @@ export function OrganizationalLearning() {
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
   const [kind, setKind] = useState<OrganizationalObservationKind>("outcome");
+  const autoSelectedCompanyRef = useRef<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
@@ -146,6 +147,14 @@ export function OrganizationalLearning() {
   const currentExternalSignals = records.filter((item) => item.kind === "external_signal" && item.status === "current").length;
   const validatedRecords = records.filter((item) => POSITIVE_STATUSES.has(item.status)).length;
   const promotedLearning = records.filter((item) => item.kind === "learning" && item.status === "promoted").length;
+
+  useEffect(() => {
+    if (!query.isSuccess || autoSelectedCompanyRef.current === selectedCompanyId) return;
+    autoSelectedCompanyRef.current = selectedCompanyId;
+    if (records.some((item) => item.kind === kind)) return;
+    const firstPopulatedKind = KINDS.find((candidate) => records.some((item) => item.kind === candidate));
+    if (firstPopulatedKind) setKind(firstPopulatedKind);
+  }, [kind, query.isSuccess, records, selectedCompanyId]);
 
   const create = useMutation({
     mutationFn: () => organizationalObservationsApi.create(selectedCompanyId!, {
@@ -252,7 +261,7 @@ export function OrganizationalLearning() {
       {update.error ? <p className="text-sm text-destructive">{update.error.message}</p> : null}
       {visibleRecords.length === 0
         ? <EmptyState icon={Activity} message={`No ${LABELS[kind].toLowerCase()} recorded.`} />
-        : <div className="grid gap-3 lg:grid-cols-2">{visibleRecords.map((item) => <ObservationCard key={item.id} item={item} pending={update.isPending} onTransition={(record, status) => update.mutate({ item: record, status })} />)}</div>}
+        : <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">{visibleRecords.map((item) => <ObservationCard key={item.id} item={item} pending={update.isPending} onTransition={(record, status) => update.mutate({ item: record, status })} />)}</div>}
     </div>
   );
 }

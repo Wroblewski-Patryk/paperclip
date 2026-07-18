@@ -36,7 +36,14 @@ describe("company routes", () => {
     expect(toCompanyRelativePath("/PAP/search?q=foo")).toBe("/search?q=foo");
   });
 
-  it.each(["organizational-memory", "organizational-learning"])(
+  it.each([
+    "organizational-memory",
+    "organizational-learning",
+    "softwarehouse",
+    "artifacts",
+    "teams-catalog",
+    "plugins",
+  ])(
     "treats /%s as a company-scoped board route",
     (route) => {
       expect(isBoardPathWithoutPrefix(`/${route}`)).toBe(true);

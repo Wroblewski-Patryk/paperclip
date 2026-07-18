@@ -3830,3 +3830,29 @@ also ignored `ui/src/components/artifacts`. The ignore paths are now scoped to
 repository-root generated directories, so both artifact card components and
 their six focused tests are tracked and recoverable from a fresh clone. The
 final focused total is 46 passing tests.
+
+## 2026-07-18 - Owner route and evidence-surface regression closure
+
+Direct `/softwarehouse` and `/artifacts` navigation was incorrectly interpreted
+as a company prefix because the two new modules were absent from the canonical
+board-route registry and from companyless redirects. The application now derives
+all companyless board redirects from that same registry. Softwarehouse,
+Artifacts, Organizational Memory, and Evidence & Learning consequently resolve
+to their selected-company `/LUC/...` routes whether opened from navigation or by
+their short URL. Plugins and Teams Catalog were added to the same registry to
+avoid the next identical regression.
+
+Live inspection confirmed that the Softwarehouse panel is not fabricated UI:
+its active/live run counts, protected gates, project-truth gap total, Soar 503
+readiness failure, and Roost passing probe match the sanitized status endpoint.
+Artifacts contains real issue work products. Organizational Memory is healthy
+but intentionally has zero assumptions, commitments, and decisions until a
+material governed record is submitted. Evidence & Learning contains 15 learning
+observations; it now initially selects the first populated category instead of
+showing the empty Outcomes category.
+
+The same browser audit removed nested `main` landmarks from Softwarehouse and
+fixed an Evidence card min-content overflow at 390 px. The latest route/artifact
+tests pass 17/17, UI typecheck and production build pass, and `ui/dist` matches
+`server/ui-dist` across 185 files. Clean desktop and mobile checks show the four
+routes with one main landmark, no horizontal overflow, and no console errors.

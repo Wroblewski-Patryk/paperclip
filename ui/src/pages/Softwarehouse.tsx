@@ -204,11 +204,11 @@ function KnowledgeView({
   if (loading && !portfolioIndex) return <LoadingLine label="Loading local knowledge." />;
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <main className="min-w-0 space-y-4">
+      <div className="min-w-0 space-y-4">
         {portfolioIndex ? <DocPanel title="Portfolio Truth" docs={[portfolioIndex]} /> : null}
         <DocPanel title="Control Plane Sources" docs={controlDocs} />
         <FilePanel title="Architecture Graph Exports" files={graphFiles} />
-      </main>
+      </div>
       <aside className="min-w-0">
         <DocPanel title="Status And Evidence" docs={statusDocs} compact />
       </aside>
@@ -223,9 +223,9 @@ function ToolsView({ loading, tools }: { loading: boolean; tools?: Awaited<Retur
   if (loading && !tools) return <LoadingLine label="Loading local command catalog." />;
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <main className="min-w-0 overflow-hidden border border-border bg-background">
+      <section className="min-w-0 overflow-hidden border border-border bg-background" aria-labelledby="softwarehouse-command-catalog-title">
         <div className="border-b border-border px-3 py-2">
-          <h2 className="text-sm font-semibold">Command Catalog</h2>
+          <h2 id="softwarehouse-command-catalog-title" className="text-sm font-semibold">Command Catalog</h2>
           <p className="mt-1 text-xs text-muted-foreground">{tools?.commandCatalog.path}</p>
         </div>
         <div className="overflow-auto">
@@ -252,7 +252,7 @@ function ToolsView({ loading, tools }: { loading: boolean; tools?: Awaited<Retur
             </tbody>
           </table>
         </div>
-      </main>
+      </section>
       <aside className="min-w-0 space-y-4">
         <CountPanel title="Safety Classes" rows={classes} />
         <CountPanel title="Top Owners" rows={owners} />
@@ -345,7 +345,7 @@ function BacklogView({ loading, backlog }: { loading: boolean; backlog?: Awaited
   if (loading && !backlog) return <LoadingLine label="Loading app feature backlog." />;
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <main className="min-w-0 space-y-4">
+      <div className="min-w-0 space-y-4">
         <DocPanel title="Backlog Sources" docs={[backlog?.featureBacklog, backlog?.unificationPlan].filter(Boolean) as SoftwarehouseDoc[]} />
         <section className="border border-border bg-background">
           <div className="border-b border-border px-3 py-2">
@@ -363,7 +363,7 @@ function BacklogView({ loading, backlog }: { loading: boolean; backlog?: Awaited
             ))}
           </div>
         </section>
-      </main>
+      </div>
       <aside className="min-w-0 border border-border bg-background p-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2 text-foreground">
           <BrainCircuit className="h-4 w-4" />

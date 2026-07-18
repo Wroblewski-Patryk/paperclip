@@ -67,6 +67,7 @@ import { useCompany } from "./context/CompanyContext";
 import { useDialogActions } from "./context/DialogContext";
 import { loadLastInboxTab } from "./lib/inbox";
 import { shouldRedirectCompanylessRouteToOnboarding } from "./lib/onboarding-route";
+import { BOARD_ROUTE_ROOTS } from "./lib/company-routes";
 
 function boardRoutes() {
   return (
@@ -311,37 +312,11 @@ export function App() {
             <Route path="plugins/:pluginId" element={<PluginSettings />} />
             <Route path="adapters" element={<AdapterManager />} />
           </Route>
-          <Route path="companies" element={<UnprefixedBoardRedirect />} />
-          <Route path="issues" element={<UnprefixedBoardRedirect />} />
-          <Route path="issues/:issueId" element={<UnprefixedBoardRedirect />} />
-          <Route path="routines" element={<UnprefixedBoardRedirect />} />
-          <Route path="routines/:routineId" element={<UnprefixedBoardRedirect />} />
-          <Route path="organizational-memory" element={<UnprefixedBoardRedirect />} />
-          <Route path="organizational-learning" element={<UnprefixedBoardRedirect />} />
-          <Route path="u/:userSlug" element={<UnprefixedBoardRedirect />} />
-          <Route path="skills/*" element={<UnprefixedBoardRedirect />} />
+          {BOARD_ROUTE_ROOTS.map((routeRoot) => (
+            <Route key={routeRoot} path={`${routeRoot}/*`} element={<UnprefixedBoardRedirect />} />
+          ))}
           <Route path="settings" element={<LegacySettingsRedirect />} />
           <Route path="settings/*" element={<LegacySettingsRedirect />} />
-          <Route path="agents" element={<UnprefixedBoardRedirect />} />
-          <Route path="agents/new" element={<UnprefixedBoardRedirect />} />
-          <Route path="agents/:agentId" element={<UnprefixedBoardRedirect />} />
-          <Route path="agents/:agentId/:tab" element={<UnprefixedBoardRedirect />} />
-          <Route path="agents/:agentId/runs/:runId" element={<UnprefixedBoardRedirect />} />
-          <Route path="projects" element={<UnprefixedBoardRedirect />} />
-          <Route path="projects/:projectId" element={<UnprefixedBoardRedirect />} />
-          <Route path="projects/:projectId/overview" element={<UnprefixedBoardRedirect />} />
-          <Route path="projects/:projectId/issues" element={<UnprefixedBoardRedirect />} />
-          <Route path="projects/:projectId/issues/:filter" element={<UnprefixedBoardRedirect />} />
-          <Route path="projects/:projectId/workspaces" element={<UnprefixedBoardRedirect />} />
-          <Route path="projects/:projectId/workspaces/:workspaceId" element={<UnprefixedBoardRedirect />} />
-          <Route path="projects/:projectId/configuration" element={<UnprefixedBoardRedirect />} />
-          <Route path="workspaces" element={<UnprefixedBoardRedirect />} />
-          <Route path="execution-workspaces/:workspaceId" element={<UnprefixedBoardRedirect />} />
-          <Route path="execution-workspaces/:workspaceId/services" element={<UnprefixedBoardRedirect />} />
-          <Route path="execution-workspaces/:workspaceId/configuration" element={<UnprefixedBoardRedirect />} />
-          <Route path="execution-workspaces/:workspaceId/runtime-logs" element={<UnprefixedBoardRedirect />} />
-          <Route path="execution-workspaces/:workspaceId/issues" element={<UnprefixedBoardRedirect />} />
-          <Route path="execution-workspaces/:workspaceId/routines" element={<UnprefixedBoardRedirect />} />
           <Route path=":companyPrefix" element={<Layout />}>
             {boardRoutes()}
           </Route>
