@@ -184,7 +184,7 @@ function decodeTeamFilePath(encoded: string | undefined): string | null {
 
 type ParsedRoute = { catalogRef: string | null; filePath: string | null };
 
-const TEAM_CATALOG_ROUTE_ROOT = "/teams-catalog";
+const TEAM_CATALOG_ROUTE_ROOT = "/teams";
 
 export function parseTeamRoute(routePath: string | undefined): ParsedRoute {
   if (!routePath) return { catalogRef: null, filePath: null };
@@ -2186,7 +2186,7 @@ export function TeamCatalog() {
 
   // Preserve the active filter query (search/kind/category/risk) across in-page
   // navigation. Without this, auto-select and team-row / file-tree clicks rebuild
-  // a fresh `/teams-catalog/<key>` path from `teamRoute()` and drop the query string, so a
+  // a fresh `/teams/<key>` path from `teamRoute()` and drop the query string, so a
   // landing `?search=…` unfiltered the list and emptied the search box (PAP-10257
   // follow-up). `applyCompanyPrefix` already preserves query strings.
   const filterQuery = searchParams.toString();

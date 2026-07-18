@@ -88,10 +88,12 @@ test("summarizeWorkerBacklogTracks flags a weak Roost track even when company-wi
 test("planned backlog reserve does not masquerade as runnable worker work", () => {
   const projects = [{ id: "roost", name: "11 Innovation: Roost", status: "in_progress" }];
   const agentById = new Map([
-    ["worker", { id: "worker", metadata: { rosterKey: "test-automation-engineer" } }],
+    ["worker", { id: "worker", name: "09 TAE", metadata: { rosterKey: "test-automation-engineer" } }],
   ]);
   const summary = summarizeWorkerBacklogTracks({
     issues: [1, 2, 3].map((number) => ({
+      id: `issue-${number}`,
+      identifier: `LUC-${number}`,
       projectId: "roost",
       title: `[Roost] Planned worker ${number}`,
       status: "backlog",
@@ -108,6 +110,14 @@ test("planned backlog reserve does not masquerade as runnable worker work", () =
   assert.equal(summary.trackSummaries[0].plannedWorkerIssueCount, 3);
   assert.equal(summary.trackSummaries[0].runnableWorkerIssueCount, 0);
   assert.equal(summary.trackDispositions[0].disposition, "needs-another-child");
+  assert.deepEqual(
+    summary.trackDispositions[0].promotableBacklogWorkerIssues.map((issue) => [issue.identifier, issue.assigneeName, issue.title]),
+    [
+      ["LUC-1", "09 TAE", "[Roost] Planned worker 1"],
+      ["LUC-2", "09 TAE", "[Roost] Planned worker 2"],
+      ["LUC-3", "09 TAE", "[Roost] Planned worker 3"],
+    ],
+  );
   assert.deepEqual(summary.weakTracks.map((track) => track.track), ["Roost"]);
 });
 
@@ -189,6 +199,8 @@ test("worker backlog and learning planners exclude recurring controller issues",
   const learningLoop = await readFile("scripts/run-softwarehouse-learning-loop.mjs", "utf8");
 
   assert.match(workerSeeder, /issue\.originKind !== "routine_execution"/);
+  assert.match(workerSeeder, /existing backlog worker lanes to promote before creating duplicates/);
+  assert.match(workerSeeder, /action: "noop_controlled_repo_source_control_closure_required"/);
   assert.match(workerSeeder, /"LuckySparrow Software House", "LuckySparrow"/);
   assert.match(workerSeeder, /process\.env\.PAPERCLIP_COMPANY_ID \?\? process\.env\.SOFTWAREHOUSE_COMPANY_ID/);
   assert.match(learningLoop, /issue\.originKind !== "routine_execution"/);

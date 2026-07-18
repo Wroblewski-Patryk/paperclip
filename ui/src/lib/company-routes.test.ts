@@ -43,7 +43,7 @@ describe("company routes", () => {
     "learning",
     "softwarehouse",
     "artifacts",
-    "teams-catalog",
+    "teams",
     "plugins",
   ])(
     "treats /%s as a company-scoped board route",

@@ -412,6 +412,26 @@ test("runtime topology audit detects retained Compose one-off containers", async
   assert.match(completion, /cannot substitute for a canonical\s+service/i);
 });
 
+test("agent instruction sync supports bounded incremental file updates", async () => {
+  const source = await readFile("scripts/sync-luckysparrow-agent-instructions.mjs", "utf8");
+
+  assert.match(source, /arg\.startsWith\("--file="\)/);
+  assert.match(source, /incrementalFileSync/);
+  assert.match(source, /Unknown generated instruction file/);
+  assert.match(source, /mode: incrementalFileSync \? "incremental_files" : "full"/);
+});
+
+test("restore drill stays isolated from the canonical runtime and cleans up", async () => {
+  const source = await readFile("scripts/run-softwarehouse-restore-drill.mjs", "utf8");
+
+  assert.match(source, /port !== 3_200 && port !== 54_329/);
+  assert.match(source, /runDatabaseRestore/);
+  assert.match(source, /FROM companies/);
+  assert.match(source, /FROM heartbeat_runs/);
+  assert.match(source, /await instance\?\.stop/);
+  assert.match(source, /await rm\(drillDir, \{ recursive: true, force: true \}\)/);
+});
+
 test("Windows Softwarehouse lifecycle uses one registered process tree", async () => {
   const [starter, stopper] = await Promise.all([
     readFile("scripts/start-luckysparrow-softwarehouse.ps1", "utf8"),

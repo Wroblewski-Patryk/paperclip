@@ -42,6 +42,19 @@ export function formatTrackDispositionSummary(trackSummary) {
   return `${trackSummary.track}: ${trackSummary.disposition} (runnable=${trackSummary.runnableWorkerIssueCount}/${trackSummary.targetRunnableWorkerLaneCount}, planned=${trackSummary.plannedWorkerIssueCount}/${trackSummary.targetPlannedWorkerLaneCount}, named blockers=${trackSummary.namedBlockedLaneCount})`;
 }
 
+function laneReferenceForIssue(issue, assignee) {
+  return {
+    id: issue.id ?? null,
+    identifier: issue.identifier ?? null,
+    title: issue.title ?? null,
+    status: issue.status ?? null,
+    assigneeAgentId: issue.assigneeAgentId ?? null,
+    assigneeName: assignee?.name ?? null,
+    priority: issue.priority ?? null,
+    updatedAt: issue.updatedAt ?? null,
+  };
+}
+
 export function formatWorkerFanoutContract() {
   return [
     "Contract:",
@@ -84,6 +97,9 @@ export function summarizeWorkerBacklogTracks({
     namedBlockedLaneCount: 0,
     inProgressIssueCount: 0,
     inProgressWorkerIssueCount: 0,
+    runnableWorkerIssues: [],
+    plannedWorkerIssues: [],
+    promotableBacklogWorkerIssues: [],
     targetPlannedWorkerLaneCount,
     targetRunnableWorkerLaneCount,
     // Compatibility aliases for existing report consumers. "Ready" now means
@@ -115,7 +131,11 @@ export function summarizeWorkerBacklogTracks({
     summary.plannedIssueCount += 1;
     if (isWorker(assignee)) {
       summary.plannedWorkerIssueCount += 1;
+      const lane = laneReferenceForIssue(issue, assignee);
+      summary.plannedWorkerIssues.push(lane);
       if (runnableStatuses.has(issue.status)) summary.runnableWorkerIssueCount += 1;
+      if (runnableStatuses.has(issue.status)) summary.runnableWorkerIssues.push(lane);
+      if (issue.status === "backlog") summary.promotableBacklogWorkerIssues.push(lane);
     }
     if (isSupervisor(assignee)) summary.plannedSupervisorIssueCount += 1;
   }
@@ -174,6 +194,9 @@ export function summarizeWorkerBacklogTracks({
       plannedSupervisorIssueCount: summary.plannedSupervisorIssueCount,
       openIssueCount: summary.openIssueCount,
       blockedIssueCount: summary.blockedIssueCount,
+      runnableWorkerIssues: summary.runnableWorkerIssues,
+      plannedWorkerIssues: summary.plannedWorkerIssues,
+      promotableBacklogWorkerIssues: summary.promotableBacklogWorkerIssues,
     })),
     weakTracks,
   };

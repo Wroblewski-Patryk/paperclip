@@ -22,6 +22,14 @@ const requestedAgentKeys = new Set(
     .map((value) => value.trim())
     .filter(Boolean),
 );
+const requestedInstructionFiles = new Set(
+  process.argv
+    .filter((arg) => arg.startsWith("--file="))
+    .flatMap((arg) => arg.slice("--file=".length).split(","))
+    .map((value) => value.trim().replaceAll("\\", "/"))
+    .filter(Boolean),
+);
+const incrementalFileSync = requestedInstructionFiles.size > 0;
 
 async function request(method, route, body) {
   const response = await fetch(`${apiBase}${route}`, {
@@ -239,31 +247,43 @@ for (const definition of roster.agents) {
     continue;
   }
 
-  await syncAgentRuntime(agent, definition);
-  await syncAgentPermissions(agent, definition);
-  await request("PATCH", `/api/agents/${agent.id}/instructions-bundle?companyId=${company.id}`, {
-    mode: "managed",
-    entryFile: "AGENTS.md",
-    clearLegacyPromptTemplate: true,
-  });
+  if (!incrementalFileSync) {
+    await syncAgentRuntime(agent, definition);
+    await syncAgentPermissions(agent, definition);
+    await request("PATCH", `/api/agents/${agent.id}/instructions-bundle?companyId=${company.id}`, {
+      mode: "managed",
+      entryFile: "AGENTS.md",
+      clearLegacyPromptTemplate: true,
+    });
+  }
   const bundle = await request("GET", `/api/agents/${agent.id}/instructions-bundle?companyId=${company.id}`);
-  const staleRoleFiles = (bundle.files ?? [])
-    .map((file) => file.path)
-    .filter((filePath) =>
-      typeof filePath === "string"
-      && filePath.startsWith("roles/")
-      && filePath.endsWith(".md")
-      && filePath !== `roles/${definition.key}.md`
-      && !rosterRoleFileNames.has(filePath.slice("roles/".length))
-    );
-  for (const filePath of staleRoleFiles) {
-    await optionalRequest(
-      "DELETE",
-      `/api/agents/${agent.id}/instructions-bundle/file?companyId=${company.id}&path=${encodeURIComponent(filePath)}`,
-    );
+  if (!incrementalFileSync) {
+    const staleRoleFiles = (bundle.files ?? [])
+      .map((file) => file.path)
+      .filter((filePath) =>
+        typeof filePath === "string"
+        && filePath.startsWith("roles/")
+        && filePath.endsWith(".md")
+        && filePath !== `roles/${definition.key}.md`
+        && !rosterRoleFileNames.has(filePath.slice("roles/".length))
+      );
+    for (const filePath of staleRoleFiles) {
+      await optionalRequest(
+        "DELETE",
+        `/api/agents/${agent.id}/instructions-bundle/file?companyId=${company.id}&path=${encodeURIComponent(filePath)}`,
+      );
+    }
   }
   const bundleFiles = await buildInstructions(definition, bundle.rootPath);
-  for (const [filePath, content] of Object.entries(bundleFiles)) {
+  const selectedBundleFiles = incrementalFileSync
+    ? Array.from(requestedInstructionFiles, (filePath) => {
+        if (!Object.hasOwn(bundleFiles, filePath)) {
+          throw new Error(`Unknown generated instruction file: ${filePath}`);
+        }
+        return [filePath, bundleFiles[filePath]];
+      })
+    : Object.entries(bundleFiles);
+  for (const [filePath, content] of selectedBundleFiles) {
     await request("PUT", `/api/agents/${agent.id}/instructions-bundle/file?companyId=${company.id}`, {
       path: filePath,
       content,
@@ -277,5 +297,7 @@ console.log(JSON.stringify({
   apiBase,
   company: { id: company.id, name: company.name },
   requestedAgentKeys: Array.from(requestedAgentKeys),
+  requestedInstructionFiles: Array.from(requestedInstructionFiles),
+  mode: incrementalFileSync ? "incremental_files" : "full",
   updated,
 }, null, 2));

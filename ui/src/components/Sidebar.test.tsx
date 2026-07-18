@@ -218,7 +218,7 @@ describe("Sidebar", () => {
     );
     expect(links.get("Softwarehouse")).toBe("/softwarehouse");
     expect(links.get("Artifacts")).toBe("/artifacts");
-    expect(links.get("Teams")).toBe("/teams-catalog");
+    expect(links.get("Teams")).toBe("/teams");
 
     await act(async () => {
       root.unmount();

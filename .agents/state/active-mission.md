@@ -41,8 +41,11 @@
   local work, and executive health excludes archived project aliases in favor
   of canonical active Soar/Roost projects. Commit `662d239d` contains the
   repair, and fresh longevity evidence now passes with no findings.
-- Backup retention is active, but a disposable end-to-end instance restore
-  drill remains required before disaster recovery is complete.
+- Backup retention and disposable restore are now proved. On 2026-07-19 the
+  latest 532,476,056-byte backup restored into an isolated embedded PostgreSQL
+  on a random port, reconstructing 97 tables, 39 agents, 1,473 issues, 5,143
+  heartbeat runs, and 770 issue work products. The drill removed its temporary
+  database and did not touch canonical ports `3200` or `54329`.
 - Current model routing is operational across GPT-5.4 mini, GPT-5.4, and
   GPT-5.5. Spark remains intentionally disabled locally. One observed provider
   weekly window does not prove independent hard caps for every model.

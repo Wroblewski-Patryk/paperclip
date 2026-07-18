@@ -209,6 +209,11 @@ const goal = byName(goals, "LuckySparrow Software House autonomy")
 const shouldSeed = trackBacklog.weakTracks.length > 0;
 const weakTrackLines = trackBacklog.weakTracks.map(formatWeakTrackSummary);
 const trackDispositionLines = trackBacklog.trackSummaries.map(formatTrackDispositionSummary);
+const promotableBacklogLaneLines = trackBacklog.trackSummaries.flatMap((track) =>
+  track.promotableBacklogWorkerIssues.map((issue) =>
+    `${track.track}: ${issue.identifier ?? issue.id ?? "unknown"} (${issue.assigneeName ?? "unassigned"}): ${issue.title ?? "untitled"}`
+  )
+);
 const activeExistingRuns = existing
   ? liveRuns.filter((run) => run.issueId === existing.id)
   : [];
@@ -263,22 +268,6 @@ if (agentWip.unknownActiveRunCount > 0) {
     liveRunCount: liveRuns.length,
     unknownActiveRunCount: agentWip.unknownActiveRunCount,
   });
-} else if (activeRunCount > 0 && (activeExistingRuns.length > 0 || activeOwnerRuns.length > 0 || !shouldSeed)) {
-  actions.push(activeExistingRuns.length > 0 ? {
-    action: "supervise_active_worker_backlog_decomposition_lane",
-    identifier: existing.identifier,
-    status: existing.status,
-    assignee: agentById.get(existing.assigneeAgentId)?.name ?? engineeringLead?.name ?? null,
-    activeRunCount,
-    liveRunCount: liveRuns.length,
-    activeExistingRunCount: activeExistingRuns.length,
-    activeOwnerRunCount: activeOwnerRuns.length,
-  } : {
-    action: "noop_active_runs",
-    activeRunCount,
-    liveRunCount: liveRuns.length,
-    activeOwnerRunCount: activeOwnerRuns.length,
-  });
 } else if (sourceControlClosureState.dirty) {
   const dirtyRepos = [];
   for (const repo of sourceControlClosureState.dirtyRepos ?? []) {
@@ -296,6 +285,22 @@ if (agentWip.unknownActiveRunCount > 0) {
       .filter(Boolean),
     generatedAt: sourceControlClosureState.generatedAt ?? null,
     error: sourceControlClosureState.error ?? null,
+  });
+} else if (activeRunCount > 0 && (activeExistingRuns.length > 0 || activeOwnerRuns.length > 0 || !shouldSeed)) {
+  actions.push(activeExistingRuns.length > 0 ? {
+    action: "supervise_active_worker_backlog_decomposition_lane",
+    identifier: existing.identifier,
+    status: existing.status,
+    assignee: agentById.get(existing.assigneeAgentId)?.name ?? engineeringLead?.name ?? null,
+    activeRunCount,
+    liveRunCount: liveRuns.length,
+    activeExistingRunCount: activeExistingRuns.length,
+    activeOwnerRunCount: activeOwnerRuns.length,
+  } : {
+    action: "noop_active_runs",
+    activeRunCount,
+    liveRunCount: liveRuns.length,
+    activeOwnerRunCount: activeOwnerRuns.length,
   });
 } else if (!shouldSeed) {
   actions.push({
@@ -365,6 +370,12 @@ if (agentWip.unknownActiveRunCount > 0) {
     ...(weakTrackLines.length > 0 ? ["- weak active tracks:", ...weakTrackLines.map((line) => `  - ${line}`)] : []),
     "- per-track lane dispositions:",
     ...trackDispositionLines.map((line) => `  - ${line}`),
+    ...(promotableBacklogLaneLines.length > 0
+      ? [
+        "- existing backlog worker lanes to promote before creating duplicates:",
+        ...promotableBacklogLaneLines.map((line) => `  - ${line}`),
+      ]
+      : ["- existing backlog worker lanes to promote before creating duplicates: none found"]),
     "",
     formatWorkerFanoutContract(),
     "",
@@ -400,6 +411,7 @@ if (agentWip.unknownActiveRunCount > 0) {
     requestDepth: 2,
     acceptanceCriteria: [
       "Every weak active track has at least one legal worker-owned todo lane and at least three planned worker todo/backlog lanes in total, or every missing lane has an explicit legal blocker.",
+      "Existing worker backlog lanes are promoted to todo before duplicate worker lanes are created.",
       "Every created worker issue has exactly one accountable owner and one narrow scope.",
       "Soar V1 receives first priority unless a protected gate blocks the exact action.",
       "Every product child uses the matching active product project and primary workspace; it never inherits the Softwarehouse workspace by convenience.",

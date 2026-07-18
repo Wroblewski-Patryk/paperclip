@@ -3967,3 +3967,32 @@ as `LUC-1490`; Roost worker `LUC-1486` was also running. Boundary and singleton
 runtime audits passed. The canonical gate suite passed 180/180. Repo-wide
 `pnpm test` exceeded 240 seconds and is explicitly unverified rather than
 claimed green.
+
+## 2026-07-19 - Teams route and disaster-recovery proof
+
+The owner-facing Teams catalog failure was a route-registration defect, not a
+missing manifest. `server/src/routes/teams-catalog.ts` existed but the main API
+application never mounted it, so `/api/teams/catalog` returned 404. The route is
+now mounted, `/LUC/teams` is canonical, and legacy `/LUC/teams-catalog` links
+redirect while preserving company scope and suffixes. Live browser verification
+shows all five catalog teams with no alert.
+
+Useful graph-workflow semantics remain implemented through Paperclip-native
+issues, blockers, routines, approvals, checkpoints, evidence, and rolling queue
+controllers. LangGraph was not added. The future Roost/MCP integration layer is
+explicitly non-operative for current agents: they continue building Roost from
+its existing product documents and do not create speculative platform work.
+
+Instruction synchronization now supports bounded `--file=` updates. The shared
+pilot correction was applied and read back byte-for-byte for all 39 agents,
+avoiding the prior 1,500-plus request full rewrite for a one-file change.
+
+Disaster recovery is now proved against the actual latest backup. The first
+drill exposed that Windows has no bundled `psql` client and the JavaScript
+fallback could not restore `COPY FROM stdin` blocks. The fallback now streams
+COPY data with bounded memory and starts its line reader only after the database
+connection is ready. A focused forced-no-psql test passes. The full
+`paperclip-20260719-000225.sql.gz` backup (532,476,056 bytes) restored in 210
+seconds to isolated port 62346: 97 tables, 1 company, 39 agents, 1,473 issues,
+19 routines, 5,143 heartbeat runs, and 770 issue work products. The temporary
+database was removed and canonical ports `3200`/`54329` were untouched.

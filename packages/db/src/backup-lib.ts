@@ -1,9 +1,11 @@
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, statfsSync, statSync, unlinkSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { createInterface } from "node:readline";
+import { once } from "node:events";
 import { spawn } from "node:child_process";
 import { open as openFile } from "node:fs/promises";
-import { pipeline } from "node:stream/promises";
+import type { Writable } from "node:stream";
+import { finished, pipeline } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import postgres from "postgres";
 
@@ -86,6 +88,10 @@ const BACKUP_CLI_STDERR_BYTES = 64 * 1024;
 const BACKUP_BREAKPOINT_DETECT_BYTES = 64 * 1024;
 
 const STATEMENT_BREAKPOINT = "-- paperclip statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900";
+
+function debugRestore(message: string): void {
+  if (process.env.PAPERCLIP_RESTORE_DEBUG === "1") console.error(`[paperclip restore] ${message}`);
+}
 
 function sanitizeRestoreErrorMessage(error: unknown): string {
   if (error && typeof error === "object") {
@@ -370,6 +376,21 @@ async function waitForChildExit(child: ReturnType<typeof spawn>, label: string):
   }
 }
 
+async function waitForChildSpawn(child: ReturnType<typeof spawn>): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const handleSpawn = () => {
+      child.off("error", handleError);
+      resolve();
+    };
+    const handleError = (error: Error) => {
+      child.off("spawn", handleSpawn);
+      reject(error);
+    };
+    child.once("spawn", handleSpawn);
+    child.once("error", handleError);
+  });
+}
+
 async function runPgDumpBackup(opts: {
   connectionString: string;
   backupFile: string;
@@ -428,6 +449,8 @@ async function restoreWithPsql(opts: RunDatabaseRestoreOptions, connectTimeout: 
     throw new Error("psql did not expose stdin");
   }
 
+  await waitForChildSpawn(child);
+
   const input = opts.backupFile.endsWith(".gz")
     ? createReadStream(opts.backupFile).pipe(createGunzip())
     : createReadStream(opts.backupFile);
@@ -456,42 +479,70 @@ async function hasStatementBreakpoints(backupFile: string): Promise<boolean> {
   }
 }
 
-async function* readRestoreStatements(backupFile: string): AsyncGenerator<string> {
-  const raw = createReadStream(backupFile);
-  const stream = backupFile.endsWith(".gz") ? raw.pipe(createGunzip()) : raw;
+async function restoreWithPostgresStreaming(
+  opts: RunDatabaseRestoreOptions,
+  connectTimeout: number,
+): Promise<void> {
+  const raw = createReadStream(opts.backupFile);
+  const stream = opts.backupFile.endsWith(".gz") ? raw.pipe(createGunzip()) : raw;
   stream.setEncoding("utf8");
-  const reader = createInterface({
-    input: stream,
-    crlfDelay: Infinity,
-  });
+  const sql = postgres(opts.connectionString, { max: 1, connect_timeout: connectTimeout });
+  let reader: ReturnType<typeof createInterface> | null = null;
   let statementLines: string[] = [];
+  let copyStream: Writable | null = null;
 
-  const flushStatement = () => {
+  const executeStatement = async () => {
     const statement = statementLines.join("\n").trim();
     statementLines = [];
-    return statement;
+    if (statement.length > 0) {
+      debugRestore(`statement: ${statement.split(/\r?\n/).find((line) => line.trim().length > 0)?.slice(0, 100)}`);
+      await sql.unsafe(statement).execute();
+    }
   };
 
   try {
+    debugRestore("streaming fallback connection probe");
+    await sql`SELECT 1`;
+    debugRestore("streaming fallback connected");
+    reader = createInterface({ input: stream, crlfDelay: Infinity });
     for await (const line of reader) {
-      if (line === STATEMENT_BREAKPOINT) {
-        const statement = flushStatement();
-        if (statement.length > 0) {
-          yield statement;
+      if (copyStream) {
+        if (line === "\\.") {
+          copyStream.end();
+          await finished(copyStream);
+          copyStream = null;
+          debugRestore("copy complete");
+          continue;
         }
+        if (!copyStream.write(`${line}\n`)) await once(copyStream, "drain");
         continue;
       }
+
+      if (line === STATEMENT_BREAKPOINT) {
+        await executeStatement();
+        continue;
+      }
+
+      if (/^COPY\s+.+\s+FROM\s+stdin;\s*$/i.test(line)) {
+        const copyCommand = [...statementLines, line].join("\n").trim();
+        statementLines = [];
+        debugRestore(`copy start: ${line.slice(0, 100)}`);
+        copyStream = await sql.unsafe(copyCommand).writable();
+        continue;
+      }
+
       statementLines.push(line);
     }
 
-    const trailingStatement = flushStatement();
-    if (trailingStatement.length > 0) {
-      yield trailingStatement;
-    }
+    if (copyStream) throw new Error("Backup ended inside a COPY data block");
+    await executeStatement();
+    debugRestore("streaming fallback complete");
   } finally {
-    reader.close();
+    copyStream?.destroy();
+    reader?.close();
     stream.destroy();
     raw.destroy();
+    await sql.end();
   }
 }
 
@@ -1048,9 +1099,12 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
 export async function runDatabaseRestore(opts: RunDatabaseRestoreOptions): Promise<void> {
   const connectTimeout = Math.max(1, Math.trunc(opts.connectTimeoutSeconds ?? 5));
   try {
+    debugRestore("trying psql");
     await restoreWithPsql(opts, connectTimeout);
+    debugRestore("psql complete");
     return;
   } catch (error) {
+    debugRestore(`psql unavailable or failed: ${sanitizeRestoreErrorMessage(error)}`);
     if (!(await hasStatementBreakpoints(opts.backupFile))) {
       throw new Error(
         `Failed to restore ${basename(opts.backupFile)} with psql: ${sanitizeRestoreErrorMessage(error)}`,
@@ -1058,13 +1112,9 @@ export async function runDatabaseRestore(opts: RunDatabaseRestoreOptions): Promi
     }
   }
 
-  const sql = postgres(opts.connectionString, { max: 1, connect_timeout: connectTimeout });
-
   try {
-    await sql`SELECT 1`;
-    for await (const statement of readRestoreStatements(opts.backupFile)) {
-      await sql.unsafe(statement).execute();
-    }
+    debugRestore("starting streaming fallback");
+    await restoreWithPostgresStreaming(opts, connectTimeout);
   } catch (error) {
     const statementPreview = typeof error === "object" && error !== null && typeof (error as Record<string, unknown>).query === "string"
       ? String((error as Record<string, unknown>).query)
@@ -1075,8 +1125,6 @@ export async function runDatabaseRestore(opts: RunDatabaseRestoreOptions): Promi
     throw new Error(
       `Failed to restore ${basename(opts.backupFile)}: ${sanitizeRestoreErrorMessage(error)}${statementPreview ? ` [statement: ${statementPreview.slice(0, 120)}]` : ""}`,
     );
-  } finally {
-    await sql.end();
   }
 }
 

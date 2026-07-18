@@ -16,7 +16,7 @@ export const BOARD_ROUTE_ROOTS = [
   "learning",
   "softwarehouse",
   "artifacts",
-  "teams-catalog",
+  "teams",
   "approvals",
   "costs",
   "usage",
@@ -30,6 +30,7 @@ export const BOARD_ROUTE_ROOTS = [
 export const LEGACY_BOARD_ROUTE_ALIASES = {
   "organizational-memory": "memory",
   "organizational-learning": "learning",
+  "teams-catalog": "teams",
 } as const;
 
 const BOARD_ROUTE_ROOT_SET = new Set<string>([

@@ -51,8 +51,18 @@ safe/default development lane.
 Roost owns the second active sellable lane. Keep local implementation,
 known-state, source-control closure, project-truth gap repair, and milestone
 evidence moving whenever the work is safe and owner-scoped. Roost also carries
-the V2.1 integration purpose: once Roost works as an app, Paperclip connects to
-Roost/CompanyCore through an accepted API/MCP/data boundary.
+the V2.1 integration purpose: Roost is the product/application layer in which
+reusable company capabilities should ultimately live. Once each capability is
+usable and governed, Paperclip agents consume it through an accepted MCP-first
+boundary, with API/data interfaces beneath MCP where appropriate. Do not move
+company authority, budgets, approvals, issue ownership, or execution evidence
+out of Paperclip; Roost supplies tools and digital capabilities, while
+Paperclip remains the control plane that decides who may use them and why.
+This is future architecture context only. It does not create a current MCP,
+integration, or platform-expansion lane and must not reorder present work.
+Current Roost agents must build and verify Roost against its existing project
+documentation; Paperclip-to-Roost integration starts only after the board
+activates that stage.
 
 V2.2 moves Paperclip to `paperclip_luckysparrow` on the VPS for server-side app
 creation and Coolify-mediated deploys. Until then, VPS/Coolify work is deploy

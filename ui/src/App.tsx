@@ -137,7 +137,11 @@ function boardRoutes() {
       <Route path="organizational-learning" element={<Navigate to="/learning" replace />} />
       <Route path="softwarehouse" element={<Softwarehouse />} />
       <Route path="artifacts" element={<Artifacts />} />
-      <Route path="teams-catalog/*" element={<TeamCatalog />} />
+      <Route path="teams/*" element={<TeamCatalog />} />
+      <Route
+        path="teams-catalog/*"
+        element={<LegacyBoardPathRedirect from="teams-catalog" to="teams" />}
+      />
       <Route path="goals/:goalId" element={<GoalDetail />} />
       <Route path="approvals" element={<Navigate to="/approvals/pending" replace />} />
       <Route path="approvals/pending" element={<Approvals />} />
@@ -169,6 +173,17 @@ function InboxRootRedirect() {
 function LegacySettingsRedirect() {
   const location = useLocation();
   return <Navigate to={`/instance/settings/general${location.search}${location.hash}`} replace />;
+}
+
+function LegacyBoardPathRedirect({ from, to }: { from: string; to: string }) {
+  const location = useLocation();
+  const legacySegment = `/${from}`;
+  const segmentIndex = location.pathname.indexOf(legacySegment);
+  const targetPathname = segmentIndex >= 0
+    ? `${location.pathname.slice(0, segmentIndex)}/${to}${location.pathname.slice(segmentIndex + legacySegment.length)}`
+    : `/${to}`;
+
+  return <Navigate to={`${targetPathname}${location.search}${location.hash}`} replace />;
 }
 
 function OnboardingRoutePage() {

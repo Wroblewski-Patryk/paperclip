@@ -107,6 +107,15 @@ Active goals:
 The Soar/Roost VPS delivery goal exists because the larger goal is an
 autonomous digital software company, not just two apps.
 
+Roost is the intended reusable application/tool layer for that company. As its
+capabilities become usable and governed, Paperclip agents should consume them
+through MCP-first interfaces. Paperclip remains the company control plane;
+Roost does not replace issue ownership, permissions, approvals, budgets, or
+evidence gates.
+This is future architecture context only. It does not authorize current MCP or
+Paperclip-to-Roost integration work; current agents continue building Roost
+from its existing project documentation until the owner activates that stage.
+
 Agents should model a real softwarehouse:
 
 - clear responsibilities and authority;

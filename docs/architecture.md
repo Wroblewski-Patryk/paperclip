@@ -30,6 +30,33 @@ Improvement -> Planning.
 Each stage must either attach evidence or record a blocker with the next owner. Empty loops are a
 control-plane failure, not a valid result.
 
+## Durable Workflow Semantics
+
+Paperclip and Codex provide the softwarehouse workflow runtime without adding a second orchestration
+engine. Useful graph-workflow semantics are expressed through existing, inspectable primitives:
+
+| Workflow capability | Softwarehouse implementation |
+|---|---|
+| Durable process state | Company-scoped issues, statuses, parent/child links, dependencies, documents, and work products |
+| Work step / node | A single owned issue executed by an agent run with an explicit evidence contract |
+| Conditional transition | Autonomy governor and next-legal-action selector applying permissions, WIP, project, source-control, budget, and protected-action gates |
+| Checkpoint and resume | Persisted issue/run state, run events, comments, monitor fields, routine origin data, and recurring issue reuse |
+| Retry and recovery | Bounded routine triggers, issue-event wakeups, watchdogs, stale-run cleanup, and explicit recovery issues |
+| Human interrupt | `blocked`/`in_review`, approvals, owner interactions, and protected gates that remain fail-closed |
+| Parallel fan-out | Parent/child issue decomposition and independent project/agent lanes, constrained by per-agent WIP=1 and same-project serialization |
+| Fan-in / completion | Parent closure only after required child work and test, review, documentation, and risk-specific evidence are inspectable |
+| Idempotency | Routine fingerprints, canonical recurring issues, semantic deduplication, and exact-owner/exact-project reuse |
+| Memory and learning | Organizational records, observations, issue history, work products, project docs, and governed learning promotion |
+| Observability | Heartbeat runs/events, activity log, Softwarehouse cockpit, project truth, costs, gates, and artifacts |
+| External tools | Roost-hosted capabilities exposed to Paperclip agents through governed MCP-first interfaces |
+
+These are behavioral contracts, not a requirement to copy another framework's API. Add a plugin only
+when the capability cannot be expressed update-safely through Paperclip configuration and native
+contracts. Roost owns reusable application/tool capabilities; Paperclip retains company governance.
+The Roost/MCP row is a future boundary, not an active implementation lane. Until the board activates
+that stage, agents build Roost according to its existing product architecture and do not create
+speculative integration work or change current delivery priorities.
+
 Agent self-correction follows the Agent Improvement Flywheel: every meaningful failed or weak run
 should produce a redacted trace, feedback, eval/regression gate, and improvement task when needed.
 No improvement task closes without EvalRun `PASS`.

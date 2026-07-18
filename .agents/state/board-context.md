@@ -95,7 +95,15 @@ ecosystem.
 - LuckySparrow Software House is the local autonomous company instance.
 - Soar is the first active sellable/personal-capital app lane.
 - Roost is the second active sellable app lane and part of the same hard
-  delivery-to-VPS mission.
+  delivery-to-VPS mission. It is also the intended application/tool layer for
+  reusable digital company capabilities. Paperclip agents should ultimately
+  consume those capabilities through governed MCP-first interfaces exposed by
+  Roost, while Paperclip keeps authority, budgets, approvals, ownership, and
+  execution evidence.
+- The Roost/MCP direction is future architecture context and does not change
+  current agent work or priorities. For now, agents build Roost according to
+  its existing documentation. Paperclip-to-Roost integration begins only when
+  the owner explicitly activates that later stage.
 - Featherly, Aviary, Nest, and other app ideas remain parked unless explicitly
   activated.
 

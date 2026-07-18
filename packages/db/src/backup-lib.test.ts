@@ -456,4 +456,53 @@ describeEmbeddedPostgres("runDatabaseBackup", () => {
     },
     embeddedPostgresRestoreTimeout,
   );
+
+  it(
+    "streams COPY data when psql is unavailable",
+    async () => {
+      const restoreConnectionString = await createTempDatabase();
+      const restoreSql = postgres(restoreConnectionString, { max: 1, onnotice: () => {} });
+      const backupDir = createTempDir("paperclip-db-restore-copy-");
+      const backupFile = path.join(backupDir, "copy.sql");
+      const previousPsqlPath = process.env.PAPERCLIP_PSQL_PATH;
+
+      try {
+        await fs.promises.writeFile(
+          backupFile,
+          [
+            "BEGIN;",
+            "-- paperclip statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
+            "CREATE TABLE public.restore_copy_test (id integer primary key, payload text);",
+            "-- paperclip statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
+            "COPY public.restore_copy_test (id, payload) FROM stdin;",
+            "1\thello",
+            "2\tline\\nfeed",
+            "3\t\\N",
+            "\\.",
+            "-- paperclip statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
+            "COMMIT;",
+            "-- paperclip statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900",
+          ].join("\n"),
+          "utf8",
+        );
+        process.env.PAPERCLIP_PSQL_PATH = path.join(backupDir, "missing-psql");
+
+        await runDatabaseRestore({ connectionString: restoreConnectionString, backupFile });
+
+        const rows = await restoreSql<{ id: number; payload: string | null }[]>`
+          SELECT id, payload FROM public.restore_copy_test ORDER BY id
+        `;
+        expect(rows).toEqual([
+          { id: 1, payload: "hello" },
+          { id: 2, payload: "line\nfeed" },
+          { id: 3, payload: null },
+        ]);
+      } finally {
+        if (previousPsqlPath === undefined) delete process.env.PAPERCLIP_PSQL_PATH;
+        else process.env.PAPERCLIP_PSQL_PATH = previousPsqlPath;
+        await restoreSql.end();
+      }
+    },
+    embeddedPostgresRestoreTimeout,
+  );
 });

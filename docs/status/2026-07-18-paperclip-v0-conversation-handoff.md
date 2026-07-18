@@ -232,12 +232,15 @@ a regression test before trusting this part of the green executive verdict.
 These are not approval-table rows, which is why `/approvals?status=pending`
 returns zero while the Inbox can still show owner work.
 
-### P2. Restore proof is missing
+### P2. Restore proof - closed 2026-07-19
 
-Backups and retention are active, but Git plus backup configuration is not a
-proved disaster-recovery path until a disposable restore drill reconstructs the
-database, storage references, secrets key binding, instruction roots, and health
-without touching the live instance.
+The latest 532,476,056-byte backup was restored into a disposable embedded
+PostgreSQL on isolated port 62346 without touching canonical ports 3200/54329.
+The drill reconstructed 97 tables, including 39 agents, 1,473 issues, 19
+routines, 5,143 heartbeat runs, and 770 issue work products, then removed the
+temporary database. The repeatable command is `pnpm run
+softwarehouse:restore-drill`; its latest structured result is written to
+`report/softwarehouse-restore-drill.latest.json`.
 
 ### P2. Model economics are not fully self-optimizing
 
@@ -317,7 +320,7 @@ permission to trust stale `last_verified` dates.
 | Fresh product acceptance evidence | Partial/stale |
 | Product-truth proof backlog | Fail: 66 gaps |
 | Longevity/control audit | Fail: stale owner action + gate test drift |
-| Full backup restore proof | Not proved |
+| Full backup restore proof | Pass: isolated restore drill on 2026-07-19 |
 
 ## 10. Ready-to-paste prompt for a new Codex conversation
 
@@ -450,3 +453,33 @@ reported a clean source-control packet and emitted stale owner actions for both
 current stale protected gates. `softwarehouse:longevity-doctor` then passed
 with no findings. Non-protected review waits `LUC-1236`, `LUC-1377`, and
 `LUC-1459` are done; `LUC-1387` is intentionally still in review for the owner.
+
+## 13. Continuation checkpoint - 2026-07-19 01:24 CEST
+
+Paperclip remains the current control plane; no LangGraph dependency or new
+Roost/MCP workstream was introduced. Roost remains an active product that
+agents build from its existing requirements. Paperclip now documents the useful
+durable graph semantics already provided by issues, dependencies, routines,
+approvals, retries, checkpoints, evidence, and rolling queues.
+
+The broken Teams surface is repaired. The existing server route is mounted in
+the main application, `/LUC/teams` is canonical, and legacy `teams-catalog`
+links redirect. Focused server/UI tests pass 55/55. A clean live browser session
+shows all five catalog teams with no alert and no console error.
+
+The full disaster-recovery drill now passes. The latest 532,476,056-byte backup
+restored into an isolated embedded PostgreSQL in 210 seconds, reconstructing 97
+tables, 39 agents, 1,473 issues, 19 routines, 5,143 heartbeat runs, and 770 work
+products. A Windows restore defect discovered by the drill was fixed: when
+`psql` is unavailable, `COPY FROM stdin` data is now restored as a bounded
+stream, without racing the reader startup or materializing a large table in one
+string. The complete DB backup suite passes.
+
+Current validation includes 182/182 Softwarehouse gate specs, 8/8 rolling queue
+tests, all 28 workspace package typechecks, the full repository build, 39/39
+agent settings and instruction audits, runtime-file and operating-standard
+audits, strict workspace and singleton topology checks, and byte-identical
+`ui/dist`/`server/ui-dist` trees across 185 files. Repo-wide `pnpm test` retains
+the previously recorded timeout limitation; the focused suites above are
+explicit passing evidence rather than a claim that the aggregate runner was
+rerun successfully.
