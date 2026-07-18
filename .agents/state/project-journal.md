@@ -22,6 +22,13 @@ This is a durable diary for project-level context that should survive across Cod
     restart, rollback, secret mutation, or other production mutation was
     performed. `LUC-1387` remains a genuine owner decision for exactly one
     Redis restart lane.
+  - Committed the local repair as `662d239d`. A fresh live control tick then
+    showed a clean source-control packet and both required stale-gate owner
+    actions; `softwarehouse:longevity-doctor` passed with no findings.
+  - Dispositioned the non-protected review waits: `LUC-1377`, `LUC-1459`, and
+    `LUC-1236` are done. The exact board cancel call for the historical
+    `LUC-1236` run returned its already-terminal `succeeded` state, which was
+    recorded as closure evidence.
 
 - 2026-07-15 / explicit Windows script runtime hardening:
   - The owner observed Paperclip agents opening

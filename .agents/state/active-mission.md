@@ -17,8 +17,8 @@
 - The July 18 control-plane repair is implemented locally: the gate suite now
   passes 178/178, stale protected gates retain owner actions during runnable
   local work, and executive health excludes archived project aliases in favor
-  of canonical active Soar/Roost projects. Commit and fresh longevity evidence
-  remain the immediate local closure steps.
+  of canonical active Soar/Roost projects. Commit `662d239d` contains the
+  repair, and fresh longevity evidence now passes with no findings.
 - Backup retention is active, but a disposable end-to-end instance restore
   drill remains required before disaster recovery is complete.
 - Current model routing is operational across GPT-5.4 mini, GPT-5.4, and

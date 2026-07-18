@@ -444,3 +444,9 @@ Fresh read-only Coolify reconciliation still reports eight expected Soar
 resources, PostgreSQL `running:healthy`, and Redis
 `restarting:unhealthy`. The protected Redis action remains pending the typed
 owner decision in `LUC-1387`; no production or secret mutation was performed.
+
+The repair was committed locally as `662d239d`. A subsequent live control tick
+reported a clean source-control packet and emitted stale owner actions for both
+current stale protected gates. `softwarehouse:longevity-doctor` then passed
+with no findings. Non-protected review waits `LUC-1236`, `LUC-1377`, and
+`LUC-1459` are done; `LUC-1387` is intentionally still in review for the owner.
