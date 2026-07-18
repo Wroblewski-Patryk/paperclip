@@ -915,6 +915,12 @@ test("blocked triage starter scopes issue scans and has a dedicated timeout", as
   assert.match(source, /function isRecoverableOpenTriage/);
   assert.match(source, /function triageAssigneeFor/);
   assert.match(source, /function rootBlockerRank/);
+  assert.match(source, /SOFTWAREHOUSE_BLOCKED_TRIAGE_MAX_WAIT_MS/);
+  assert.match(source, /function blockedTriageWaitExpired/);
+  assert.match(source, /const starvationOverride = governorDecision =>/);
+  assert.match(source, /starvationCompatibleGovernorDecisions\.has\(governorDecision\)/);
+  assert.match(source, /blocked_triage_max_wait_expired/);
+  assert.match(source, /agentWip\.unknownActiveRunCount === 0/);
   assert.match(source, /rootBlockerRank\(left\) - rootBlockerRank\(right\)/);
   assert.match(source, /assigneeStrategy: usesTargetOwner \? "target_owner" : "triage_fallback"/);
   assert.match(source, /!issue\.activeRecoveryAction/);

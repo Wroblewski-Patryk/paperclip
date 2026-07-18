@@ -43,6 +43,19 @@ operating vocabulary:
 The richer vocabulary is a stage overlay. It must not weaken the single-assignee issue model,
 checkout lock, execution lock, activity logging, approval gates, or company scoping.
 
+## Blocker Triage Without Starvation
+
+Blocked delivery work is not ordinary executable work, but it must not disappear behind an
+ever-present runnable backlog. The Softwarehouse blocked-triage controller may create one bounded
+triage lane after a candidate has received no disposition update for six hours. The threshold is
+configurable with `SOFTWAREHOUSE_BLOCKED_TRIAGE_MAX_WAIT_MS`.
+
+The lane may classify the blocker, repair issue topology, or create at most one safe next-action
+issue. It does not authorize deploys, production restarts, protected smoke, live account changes,
+secret disclosure, or project-repository mutations. Existing exact-title and cooldown guards still
+prevent duplicate triage churn, and the per-agent WIP guard decides whether the selected owner can
+be woken immediately.
+
 ## Agent Improvement Flywheel
 
 The SDLC uses the Agent Improvement Flywheel for self-correction:

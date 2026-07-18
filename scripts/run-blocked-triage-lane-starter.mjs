@@ -15,6 +15,12 @@ const terminalStatuses = new Set(["done", "cancelled"]);
 const activeIssueStatuses = ["backlog", "todo", "in_progress", "in_review", "blocked"];
 const terminalIssueStatuses = ["done", "cancelled"];
 const knownGateRoots = new Set(softwarehouseGateSpecs.map((spec) => spec.rootBlocker));
+const starvationCompatibleGovernorDecisions = new Set([
+  "runnable_work_available",
+  "runnable_work_assignment_needed",
+  "supervise_active_runs",
+  "closed_issue_live_run_tail",
+]);
 const triageTitlePrefix = "[Softwarehouse][Blocked Triage]";
 const triageTargetPattern = /^\[Softwarehouse\]\[Blocked Triage\] Classify ([^\s]+) and produce next legal action$/;
 const triageCreationLockPath = resolve(
@@ -34,6 +40,10 @@ const triageCreationLockStaleMs = Number.parseInt(
 );
 const terminalTriageCooldownMs = Number.parseInt(
   process.env.SOFTWAREHOUSE_BLOCKED_TRIAGE_COOLDOWN_MS ?? `${24 * 60 * 60 * 1000}`,
+  10,
+);
+const blockedTriageMaxWaitMs = Number.parseInt(
+  process.env.SOFTWAREHOUSE_BLOCKED_TRIAGE_MAX_WAIT_MS ?? `${6 * 60 * 60 * 1000}`,
   10,
 );
 const projectPriority = (process.env.SOFTWAREHOUSE_BLOCKED_TRIAGE_PROJECTS
@@ -233,6 +243,14 @@ function hasRecentTerminalTriageDisposition(issue, terminalTriageByTarget, now =
     || (Number.isFinite(terminalTriageCooldownMs) && now - triageUpdatedAt <= terminalTriageCooldownMs);
 }
 
+function blockedTriageWaitExpired(issue, now = Date.now()) {
+  const updatedAt = Date.parse(issue.updatedAt ?? "");
+  return Number.isFinite(blockedTriageMaxWaitMs)
+    && blockedTriageMaxWaitMs >= 0
+    && Number.isFinite(updatedAt)
+    && now - updatedAt >= blockedTriageMaxWaitMs;
+}
+
 function isRecoverableOpenTriage(issue) {
   return issue?.status === "blocked"
     && String(issue.title ?? "").startsWith(triageTitlePrefix)
@@ -343,6 +361,13 @@ const candidates = issues
     || priorityRank(left.priority) - priorityRank(right.priority)
     || String(left.updatedAt).localeCompare(String(right.updatedAt))
   );
+const starvedCandidate = candidates
+  .filter((issue) => blockedTriageWaitExpired(issue))
+  .sort((left, right) => String(left.updatedAt).localeCompare(String(right.updatedAt)))[0] ?? null;
+const starvationOverride = governorDecision =>
+  starvationCompatibleGovernorDecisions.has(governorDecision)
+  && Boolean(starvedCandidate)
+  && agentWip.unknownActiveRunCount === 0;
 
 const actions = [];
 let governorDecision = {
@@ -378,7 +403,11 @@ if (agentWip.unknownActiveRunCount > 0) {
   governorDecision = await readGovernorDecision();
 }
 
-if (actions.length === 0 && governorDecision.decision !== "blocked_needs_triage") {
+if (
+  actions.length === 0
+  && governorDecision.decision !== "blocked_needs_triage"
+  && !starvationOverride(governorDecision.decision)
+) {
   actions.push({
     action: "noop_governor_decision_not_blocked_triage",
     decision: governorDecision.decision,
@@ -432,7 +461,7 @@ if (actions.length === 0 && governorDecision.decision !== "blocked_needs_triage"
 } else if (actions.length === 0 && candidates.length === 0) {
   actions.push({ action: "noop_no_unknown_blocked_candidate" });
 } else if (actions.length === 0) {
-  const target = candidates[0];
+  const target = starvationOverride(governorDecision.decision) ? starvedCandidate : candidates[0];
   const targetProject = projectById.get(target.projectId);
   const osProject = byName(projects, "Softwarehouse Operating System") ?? targetProject;
   const assignee = triageAssigneeFor(target, agentById, triageAssignee);
@@ -474,6 +503,9 @@ if (actions.length === 0 && governorDecision.decision !== "blocked_needs_triage"
 
   actions.push({
     action: apply ? "created_blocked_triage_lane" : "would_create_blocked_triage_lane",
+    trigger: starvationOverride(governorDecision.decision)
+      ? "blocked_triage_max_wait_expired"
+      : "governor_blocked_needs_triage",
     targetIdentifier: target.identifier ?? null,
     targetTitle: target.title,
     targetProject: target.projectName,
@@ -551,6 +583,8 @@ console.log(JSON.stringify({
   unknownActiveRunCount: agentWip.unknownActiveRunCount,
   nonBlockingRoutineLiveRunCount,
   governorDecision,
+  blockedTriageMaxWaitMs,
+  starvedCandidateIdentifier: starvedCandidate?.identifier ?? null,
   candidateCount: candidates.length,
   skippedFreshTerminalTriageCount: skippedFreshTerminalTriage.length,
   skippedFreshTerminalTriage: skippedFreshTerminalTriage.slice(0, 10),
