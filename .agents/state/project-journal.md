@@ -3818,7 +3818,7 @@ The audit found that the Artifacts service and tests existed without its real
 company route being mounted. The company-scoped endpoint is now active and
 authorized. Final browser QA also found and removed nested artifact-card links;
 the issue destination and file actions are independent accessible links. Shared,
-server, and UI typechecks/builds pass; 46 focused tests pass. Desktop and mobile
+server, and UI typechecks/builds pass; 39 focused tests pass. Desktop and mobile
 smoke found no overflow, API errors, nested links, or clean-session console
 errors. The served `server/ui-dist` matches the final UI build. Workspace and
 runtime topology audits pass with one canonical checkout per app and one
