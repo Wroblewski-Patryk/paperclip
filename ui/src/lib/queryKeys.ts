@@ -96,6 +96,7 @@ export const queryKeys = {
       ["artifacts", companyId, kind ?? "all", q ?? "", groupBy ?? "none", groupIssueId ?? null] as const,
   },
   softwarehouse: {
+    status: (companyId: string) => ["softwarehouse", companyId, "status"] as const,
     knowledge: (companyId: string) => ["softwarehouse", companyId, "knowledge"] as const,
     tools: (companyId: string) => ["softwarehouse", companyId, "tools"] as const,
     backlog: (companyId: string) => ["softwarehouse", companyId, "backlog"] as const,

@@ -8,6 +8,7 @@ import { costsApi } from "../api/costs";
 import { issuesApi } from "../api/issues";
 import { agentsApi } from "../api/agents";
 import { projectsApi } from "../api/projects";
+import { softwarehouseApi } from "../api/softwarehouse";
 import { buildCompanyUserProfileMap } from "../lib/company-members";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
@@ -24,6 +25,7 @@ import { cn, formatCents } from "../lib/utils";
 import { Bot, CircleDot, DollarSign, Gauge, ShieldCheck, LayoutDashboard, PauseCircle } from "lucide-react";
 import { ActiveAgentsPanel } from "../components/ActiveAgentsPanel";
 import { CompanySituationPanel } from "../components/CompanySituationPanel";
+import { SoftwarehouseControlPanel } from "../components/SoftwarehouseControlPanel";
 import { ChartCard, RunActivityChart, PriorityChart, IssueStatusChart, SuccessRateChart } from "../components/ActivityCharts";
 import { PageSkeleton } from "../components/PageSkeleton";
 import type { Agent, Issue, ProviderQuotaResult, QuotaWindow } from "@paperclipai/shared";
@@ -129,6 +131,14 @@ export function Dashboard() {
     queryKey: queryKeys.companySituation(selectedCompanyId!),
     queryFn: () => dashboardApi.situation(selectedCompanyId!),
     enabled: !!selectedCompanyId,
+  });
+
+  const { data: softwarehouseStatus, isLoading: isSoftwarehouseStatusLoading } = useQuery({
+    queryKey: queryKeys.softwarehouse.status(selectedCompanyId!),
+    queryFn: () => softwarehouseApi.status(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   const { data: activity } = useQuery({
@@ -294,6 +304,12 @@ export function Dashboard() {
           </button>
         </div>
       )}
+
+      <SoftwarehouseControlPanel
+        status={softwarehouseStatus}
+        loading={isSoftwarehouseStatusLoading}
+        compact
+      />
 
       <ActiveAgentsPanel companyId={selectedCompanyId!} />
 

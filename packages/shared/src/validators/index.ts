@@ -337,9 +337,17 @@ export {
   softwarehouseIssueTemplateKindSchema,
   softwarehouseIssueTemplateSchema,
   softwarehouseIssueTemplateCatalogResponseSchema,
+  softwarehouseControlGateSchema,
+  softwarehouseProjectTruthGapSchema,
+  softwarehouseProjectTruthStatusSchema,
+  softwarehouseControlStatusResponseSchema,
   type SoftwarehouseIssueTemplateKind,
   type SoftwarehouseIssueTemplate,
   type SoftwarehouseIssueTemplateCatalogResponse,
+  type SoftwarehouseControlGate,
+  type SoftwarehouseProjectTruthGap,
+  type SoftwarehouseProjectTruthStatus,
+  type SoftwarehouseControlStatusResponse,
 } from "./softwarehouse.js";
 
 export {

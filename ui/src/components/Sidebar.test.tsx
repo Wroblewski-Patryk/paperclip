@@ -208,4 +208,20 @@ describe("Sidebar", () => {
       root.unmount();
     });
   });
+
+  it("exposes the owner cockpit, evidence library, and team catalog", async () => {
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: false });
+    const root = await renderSidebar();
+
+    const links = new Map(
+      [...container.querySelectorAll("a")].map((anchor) => [anchor.textContent?.trim(), anchor.getAttribute("href")]),
+    );
+    expect(links.get("Softwarehouse")).toBe("/softwarehouse");
+    expect(links.get("Artifacts")).toBe("/artifacts");
+    expect(links.get("Teams")).toBe("/teams-catalog");
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
 });

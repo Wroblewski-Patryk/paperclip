@@ -247,6 +247,12 @@ export function Artifacts() {
 
   return (
     <div className="w-full max-w-6xl space-y-5">
+      <div>
+        <h1 className="text-lg font-semibold">Artifacts</h1>
+        <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+          Inspectable outputs, release evidence, reports, and media attached to issue work.
+        </p>
+      </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

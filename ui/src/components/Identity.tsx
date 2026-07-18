@@ -28,12 +28,12 @@ export function Identity({ name, avatarUrl, initials, size = "default", classNam
   const displayInitials = initials ?? deriveInitials(name);
 
   return (
-    <span className={cn("inline-flex gap-1.5 items-center", size === "xs" && "gap-1", size === "lg" && "gap-2", className)}>
+    <span className={cn("inline-flex min-w-0 max-w-full items-center gap-1.5", size === "xs" && "gap-1", size === "lg" && "gap-2", className)}>
       <Avatar size={size}>
         {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
         <AvatarFallback>{displayInitials}</AvatarFallback>
       </Avatar>
-      <span className={cn("truncate", textSize[size])}>{name}</span>
+      <span className={cn("block min-w-0 truncate", textSize[size])}>{name}</span>
     </span>
   );
 }

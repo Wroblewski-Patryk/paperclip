@@ -19,6 +19,7 @@ import {
   accessService,
   agentService,
   budgetService,
+  companyArtifactsService,
   companyPortabilityService,
   companyService,
   feedbackService,
@@ -31,6 +32,7 @@ import { COMPANY_IMPORT_ROUTE_PATH } from "./company-import-paths.js";
 export function companyRoutes(db: Db, storage?: StorageService) {
   const router = Router();
   const svc = companyService(db);
+  const artifacts = companyArtifactsService(db, storage);
   const agents = agentService(db);
   const portability = companyPortabilityService(db, storage);
   const access = accessService(db);
@@ -136,6 +138,13 @@ export function companyRoutes(db: Db, storage?: StorageService) {
       return;
     }
     res.json(company);
+  });
+
+  router.get("/:companyId/artifacts", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    const result = await artifacts.list(companyId, req.query);
+    res.json(result);
   });
 
   router.get("/:companyId/feedback-traces", async (req, res) => {

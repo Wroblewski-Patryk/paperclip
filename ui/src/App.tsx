@@ -24,6 +24,9 @@ import { ExecutionWorkspaceDetail } from "./pages/ExecutionWorkspaceDetail";
 import { Goals } from "./pages/Goals";
 import { OrganizationalMemory } from "./pages/OrganizationalMemory";
 import { OrganizationalLearning } from "./pages/OrganizationalLearning";
+import { Softwarehouse } from "./pages/Softwarehouse";
+import { Artifacts } from "./pages/Artifacts";
+import { TeamCatalog } from "./pages/TeamCatalog";
 import { GoalDetail } from "./pages/GoalDetail";
 import { Approvals } from "./pages/Approvals";
 import { ApprovalDetail } from "./pages/ApprovalDetail";
@@ -78,7 +81,6 @@ function boardRoutes() {
       <Route path="company/settings/cloud-upstream" element={<CloudUpstream />} />
       <Route path="company/settings/members" element={<CompanyAccess />} />
       <Route path="company/settings/access" element={<CompanyAccessLegacyRoute />} />
-      <Route path="company/settings/cloud-upstream" element={<CloudUpstream />} />
       <Route path="company/settings/invites" element={<CompanyInvites />} />
       <Route path="company/export/*" element={<CompanyExport />} />
       <Route path="company/import" element={<CompanyImport />} />
@@ -130,6 +132,9 @@ function boardRoutes() {
       <Route path="goals" element={<Goals />} />
       <Route path="organizational-memory" element={<OrganizationalMemory />} />
       <Route path="organizational-learning" element={<OrganizationalLearning />} />
+      <Route path="softwarehouse" element={<Softwarehouse />} />
+      <Route path="artifacts" element={<Artifacts />} />
+      <Route path="teams-catalog/*" element={<TeamCatalog />} />
       <Route path="goals/:goalId" element={<GoalDetail />} />
       <Route path="approvals" element={<Navigate to="/approvals/pending" replace />} />
       <Route path="approvals/pending" element={<Approvals />} />

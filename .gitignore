@@ -67,10 +67,11 @@ cli/tmp/
 cookies.txt
 coolify.*
 
-# Generated work products
-artifacts/
-report/
-screenshots/
+# Generated work products at the repository root. Keep source directories with
+# the same names (for example ui/src/components/artifacts) trackable.
+/artifacts/
+/report/
+/screenshots/
 .agents/state/backups/
 
 # Local Obsidian plugin/theme installs for the docs vault

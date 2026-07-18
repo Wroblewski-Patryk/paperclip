@@ -213,6 +213,8 @@ const AgentRunCard = memo(function AgentRunCard({
 
           <Link
             to={`/agents/${run.agentId}/runs/${run.id}`}
+            aria-label={`Open ${run.agentName} run`}
+            title={`Open ${run.agentName} run`}
             className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/70 px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
           >
             <ExternalLink className="h-2.5 w-2.5" />

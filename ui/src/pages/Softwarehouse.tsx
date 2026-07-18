@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "../components/EmptyState";
+import { SoftwarehouseControlPanel } from "../components/SoftwarehouseControlPanel";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
 import { softwarehouseApi, type SoftwarehouseDoc, type SoftwarehouseFileStatus } from "../api/softwarehouse";
@@ -32,6 +33,12 @@ export function Softwarehouse() {
     enabled: Boolean(selectedCompanyId),
     refetchInterval: 60_000,
   });
+  const statusQuery = useQuery({
+    queryKey: queryKeys.softwarehouse.status(selectedCompanyId ?? ""),
+    queryFn: () => softwarehouseApi.status(selectedCompanyId!),
+    enabled: Boolean(selectedCompanyId),
+    refetchInterval: 30_000,
+  });
   const toolsQuery = useQuery({
     queryKey: queryKeys.softwarehouse.tools(selectedCompanyId ?? ""),
     queryFn: () => softwarehouseApi.tools(selectedCompanyId!),
@@ -50,6 +57,7 @@ export function Softwarehouse() {
   }, [setBreadcrumbs]);
 
   const refreshAll = () => {
+    void statusQuery.refetch();
     void knowledgeQuery.refetch();
     void toolsQuery.refetch();
     void backlogQuery.refetch();
@@ -93,7 +101,9 @@ export function Softwarehouse() {
         <Metric icon={ShieldCheck} label="Runtime unknowns" value={String(unknownRuntime)} tone={unknownRuntime > 0 ? "warn" : "good"} />
       </section>
 
-      <nav className="flex flex-wrap gap-1 border-b border-border">
+      <SoftwarehouseControlPanel status={statusQuery.data} loading={statusQuery.isLoading} />
+
+      <nav className="flex flex-wrap gap-1 border-b border-border" role="tablist" aria-label="Softwarehouse views">
         <TabButton active={tab === "knowledge"} onClick={() => setTab("knowledge")} icon={BookOpen} label="Knowledge" />
         <TabButton active={tab === "tools"} onClick={() => setTab("tools")} icon={Wrench} label="Tools" />
         <TabButton active={tab === "runtime"} onClick={() => setTab("runtime")} icon={Database} label="Runtime" />
@@ -113,7 +123,11 @@ export function Softwarehouse() {
         <ToolsView loading={toolsQuery.isLoading} tools={tools} />
       ) : null}
       {tab === "runtime" ? (
-        <RuntimeView loading={toolsQuery.isLoading} rows={tools?.runtimeLedger.rows ?? []} />
+        <RuntimeView
+          loading={toolsQuery.isLoading || statusQuery.isLoading}
+          rows={tools?.runtimeLedger.rows ?? []}
+          status={statusQuery.data}
+        />
       ) : null}
       {tab === "backlog" ? (
         <BacklogView loading={backlogQuery.isLoading} backlog={backlog} />
@@ -158,6 +172,8 @@ function TabButton({
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       className={cn(
         "inline-flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition",
         active
@@ -188,12 +204,12 @@ function KnowledgeView({
   if (loading && !portfolioIndex) return <LoadingLine label="Loading local knowledge." />;
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <main className="space-y-4">
+      <main className="min-w-0 space-y-4">
         {portfolioIndex ? <DocPanel title="Portfolio Truth" docs={[portfolioIndex]} /> : null}
         <DocPanel title="Control Plane Sources" docs={controlDocs} />
         <FilePanel title="Architecture Graph Exports" files={graphFiles} />
       </main>
-      <aside>
+      <aside className="min-w-0">
         <DocPanel title="Status And Evidence" docs={statusDocs} compact />
       </aside>
     </div>
@@ -207,7 +223,7 @@ function ToolsView({ loading, tools }: { loading: boolean; tools?: Awaited<Retur
   if (loading && !tools) return <LoadingLine label="Loading local command catalog." />;
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <main className="overflow-hidden border border-border bg-background">
+      <main className="min-w-0 overflow-hidden border border-border bg-background">
         <div className="border-b border-border px-3 py-2">
           <h2 className="text-sm font-semibold">Command Catalog</h2>
           <p className="mt-1 text-xs text-muted-foreground">{tools?.commandCatalog.path}</p>
@@ -237,7 +253,7 @@ function ToolsView({ loading, tools }: { loading: boolean; tools?: Awaited<Retur
           </table>
         </div>
       </main>
-      <aside className="space-y-4">
+      <aside className="min-w-0 space-y-4">
         <CountPanel title="Safety Classes" rows={classes} />
         <CountPanel title="Top Owners" rows={owners} />
         {tools?.toolingContract ? <DocPanel title="Tooling Contract" docs={[tools.toolingContract]} compact /> : null}
@@ -246,16 +262,52 @@ function ToolsView({ loading, tools }: { loading: boolean; tools?: Awaited<Retur
   );
 }
 
-function RuntimeView({ loading, rows }: { loading: boolean; rows: Array<Record<string, string>> }) {
+function RuntimeView({
+  loading,
+  rows,
+  status,
+}: {
+  loading: boolean;
+  rows: Array<Record<string, string>>;
+  status?: Awaited<ReturnType<typeof softwarehouseApi.status>>;
+}) {
   if (loading && rows.length === 0) return <LoadingLine label="Loading runtime ledger." />;
   return (
-    <div className="overflow-hidden border border-border bg-background">
-      <div className="border-b border-border px-3 py-2">
-        <h2 className="text-sm font-semibold">Runtime Config Ledger</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Local config, auth, secrets metadata, workspaces, and VPS/Coolify facts.</p>
-      </div>
-      <div className="overflow-auto">
-        <table className="w-full min-w-[64rem] text-left text-sm">
+    <div className="space-y-4">
+      {status?.blockedGates.length ? (
+        <section className="overflow-hidden border border-border bg-background">
+          <div className="border-b border-border px-3 py-2">
+            <h2 className="text-sm font-semibold">Protected delivery gates</h2>
+            <p className="mt-1 text-xs text-muted-foreground">These gates block protected production actions, not explicitly allowed local repair lanes.</p>
+          </div>
+          <div className="divide-y divide-border">
+            {status.blockedGates.map((gate, index) => (
+              <div key={`${gate.rootBlocker ?? "gate"}-${index}`} className="grid gap-2 px-3 py-3 text-sm md:grid-cols-[10rem_12rem_minmax(0,1fr)]">
+                <div>
+                  <p className="text-xs text-muted-foreground">Project</p>
+                  <p className="mt-1 font-medium">{gate.project ?? "Unscoped"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Root blocker</p>
+                  <p className="mt-1 font-medium">{gate.rootBlocker ?? "Unknown"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Required next evidence</p>
+                  <p className="mt-1 text-muted-foreground">{gate.evidenceRequired ?? gate.operatorPrompt ?? "Reconfirm the gate."}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <div className="overflow-hidden border border-border bg-background">
+        <div className="border-b border-border px-3 py-2">
+          <h2 className="text-sm font-semibold">Runtime Config Ledger</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Local config, auth, secrets metadata, workspaces, and VPS/Coolify facts.</p>
+        </div>
+        <div className="overflow-auto">
+          <table className="w-full min-w-[64rem] text-left text-sm">
           <thead className="border-b border-border bg-muted/35 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium">Service</th>
@@ -282,7 +334,8 @@ function RuntimeView({ loading, rows }: { loading: boolean; rows: Array<Record<s
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -292,7 +345,7 @@ function BacklogView({ loading, backlog }: { loading: boolean; backlog?: Awaited
   if (loading && !backlog) return <LoadingLine label="Loading app feature backlog." />;
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <main className="space-y-4">
+      <main className="min-w-0 space-y-4">
         <DocPanel title="Backlog Sources" docs={[backlog?.featureBacklog, backlog?.unificationPlan].filter(Boolean) as SoftwarehouseDoc[]} />
         <section className="border border-border bg-background">
           <div className="border-b border-border px-3 py-2">
@@ -311,7 +364,7 @@ function BacklogView({ loading, backlog }: { loading: boolean; backlog?: Awaited
           </div>
         </section>
       </main>
-      <aside className="border border-border bg-background p-4 text-sm text-muted-foreground">
+      <aside className="min-w-0 border border-border bg-background p-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2 text-foreground">
           <BrainCircuit className="h-4 w-4" />
           <span className="font-semibold">Current choice</span>
@@ -334,13 +387,13 @@ function DocPanel({
   compact?: boolean;
 }) {
   return (
-    <section className="border border-border bg-background">
+    <section className="min-w-0 max-w-full border border-border bg-background">
       <div className="border-b border-border px-3 py-2">
         <h2 className="text-sm font-semibold">{title}</h2>
       </div>
       <div className="divide-y divide-border">
         {docs.map((doc) => (
-          <div key={doc.key} className={cn("px-3", compact ? "py-2" : "py-3")}>
+          <div key={doc.key} className={cn("min-w-0 px-3", compact ? "py-2" : "py-3")}>
             <div className="flex min-w-0 items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -349,7 +402,7 @@ function DocPanel({
               <Badge tone={doc.exists ? "muted" : "warn"}>{doc.exists ? "present" : "missing"}</Badge>
             </div>
             <div className="mt-1 truncate font-mono text-xs text-muted-foreground">{doc.path}</div>
-            {!compact && doc.excerpt ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{doc.excerpt}</p> : null}
+            {!compact && doc.excerpt ? <p className="mt-2 break-words text-sm leading-6 text-muted-foreground">{doc.excerpt}</p> : null}
             {doc.updatedAt ? (
               <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock3 className="h-3 w-3" />
@@ -365,7 +418,7 @@ function DocPanel({
 
 function FilePanel({ title, files }: { title: string; files: SoftwarehouseFileStatus[] }) {
   return (
-    <section className="border border-border bg-background">
+    <section className="min-w-0 max-w-full border border-border bg-background">
       <div className="border-b border-border px-3 py-2">
         <h2 className="text-sm font-semibold">{title}</h2>
       </div>

@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Link, useParams, useNavigate, useLocation, Navigate } from "@/lib/router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PROJECT_COLORS, isUuidLike, type BudgetPolicySummary } from "@paperclipai/shared";
+import {
+  PROJECT_COLORS,
+  isUuidLike,
+  type BudgetPolicySummary,
+  type Issue,
+  type Project,
+  type SoftwarehouseControlStatusResponse,
+} from "@paperclipai/shared";
 import { budgetsApi } from "../api/budgets";
 import { executionWorkspacesApi } from "../api/execution-workspaces";
 import { instanceSettingsApi } from "../api/instanceSettings";
@@ -10,6 +17,7 @@ import { issuesApi } from "../api/issues";
 import { agentsApi } from "../api/agents";
 import { heartbeatsApi } from "../api/heartbeats";
 import { assetsApi } from "../api/assets";
+import { softwarehouseApi } from "../api/softwarehouse";
 import { usePanel } from "../context/PanelContext";
 import { useCompany } from "../context/CompanyContext";
 import { useToastActions } from "../context/ToastContext";
@@ -23,6 +31,7 @@ import { IssuesList } from "../components/IssuesList";
 import { PageSkeleton } from "../components/PageSkeleton";
 import { PageTabBar } from "../components/PageTabBar";
 import { ProjectWorkspacesContent } from "../components/ProjectWorkspacesContent";
+import { ProjectDeliveryOverview } from "../components/ProjectDeliveryOverview";
 import { MembershipAction } from "../components/MembershipAction";
 import { buildProjectWorkspaceSummaries } from "../lib/project-workspaces-tab";
 import { collectLiveIssueIds } from "../lib/liveIssueIds";
@@ -65,10 +74,16 @@ function resolveProjectTab(pathname: string, projectId: string): ProjectTab | nu
 
 function OverviewContent({
   project,
+  issues,
+  controlStatus,
+  deliveryLoading,
   onUpdate,
   imageUploadHandler,
 }: {
-  project: { description: string | null; status: string; targetDate: string | null };
+  project: Project;
+  issues: Issue[];
+  controlStatus?: SoftwarehouseControlStatusResponse | null;
+  deliveryLoading: boolean;
   onUpdate: (data: Record<string, unknown>) => void;
   imageUploadHandler?: (file: File) => Promise<string>;
 }) {
@@ -79,10 +94,17 @@ function OverviewContent({
         onSave={(description) => onUpdate({ description })}
         nullable
         as="p"
-        className="text-sm text-muted-foreground"
+        className="min-w-0 whitespace-pre-wrap break-words text-sm text-muted-foreground"
         placeholder="Add a description..."
         multiline
         imageUploadHandler={imageUploadHandler}
+      />
+
+      <ProjectDeliveryOverview
+        project={project}
+        issues={issues}
+        controlStatus={controlStatus}
+        loading={deliveryLoading}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -318,6 +340,17 @@ export function ProjectDetail() {
   const canonicalProjectRef = project ? projectRouteRef(project) : routeProjectRef;
   const projectLookupRef = project?.id ?? routeProjectRef;
   const resolvedCompanyId = project?.companyId ?? selectedCompanyId;
+  const overviewIssuesQuery = useQuery({
+    queryKey: queryKeys.issues.listByProject(resolvedCompanyId ?? "", project?.id ?? ""),
+    queryFn: () => issuesApi.list(resolvedCompanyId!, { projectId: project!.id }),
+    enabled: activeTab === "overview" && Boolean(resolvedCompanyId && project?.id),
+  });
+  const softwarehouseStatusQuery = useQuery({
+    queryKey: queryKeys.softwarehouse.status(resolvedCompanyId ?? ""),
+    queryFn: () => softwarehouseApi.status(resolvedCompanyId!),
+    enabled: activeTab === "overview" && Boolean(resolvedCompanyId),
+    staleTime: 30_000,
+  });
   const membershipsQuery = useResourceMemberships(resolvedCompanyId);
   const membershipMutation = useResourceMembershipMutation(resolvedCompanyId);
   const projectMembershipState = project?.id
@@ -779,6 +812,9 @@ export function ProjectDetail() {
       {activeTab === "overview" && (
         <OverviewContent
           project={project}
+          issues={overviewIssuesQuery.data ?? []}
+          controlStatus={softwarehouseStatusQuery.data}
+          deliveryLoading={overviewIssuesQuery.isLoading || softwarehouseStatusQuery.isLoading}
           onUpdate={(data) => updateProject.mutate(data)}
           imageUploadHandler={async (file) => {
             const asset = await uploadImage.mutateAsync(file);

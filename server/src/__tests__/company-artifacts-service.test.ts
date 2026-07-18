@@ -769,6 +769,36 @@ describeEmbeddedPostgres("companyArtifactsService", () => {
       nextCursor: null,
     });
   });
+
+  it("serves the company-scoped artifacts projection through the public API route", async () => {
+    const { companyId } = await seedArtifacts();
+    const app = express();
+    app.use((req, _res, next) => {
+      (req as any).actor = {
+        type: "board",
+        userId: "owner-1",
+        companyIds: [companyId],
+        source: "session",
+        isInstanceAdmin: false,
+      };
+      next();
+    });
+    app.use("/api/companies", companyRoutes(db, createStorageService()));
+    app.use(errorHandler);
+
+    const res = await request(app)
+      .get(`/api/companies/${companyId}/artifacts`)
+      .query({ groupBy: "task", limit: 1 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.artifacts).toEqual([]);
+    expect(res.body.groups).toHaveLength(1);
+    expect(res.body.groups[0]).toMatchObject({
+      groupBy: "task",
+      issue: { identifier: "PAP-2" },
+    });
+    expect(res.body.nextCursor).toEqual(expect.any(String));
+  });
 });
 
 describe("company artifacts route authorization", () => {

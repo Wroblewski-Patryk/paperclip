@@ -3804,3 +3804,29 @@ follow-up process check found no Vitest or temporary Paperclip service
 PostgreSQL residue. This preserves the existing SOL-032 runner-hardening gap;
 it does not invalidate the completed focused, backend, CLI, recursive
 typecheck, production-build, live API, UI, or operating-audit evidence above.
+
+## 2026-07-18 - Owner cockpit and hidden-surface closure
+
+The board UI now exposes a sanitized Softwarehouse control status on Dashboard
+and the dedicated Softwarehouse page, including snapshot freshness, active and
+live work, model-lane permission, protected gates, Soar/Roost project truth,
+and the next executable action. Project Overview shows delivery, evidence,
+workspace/source, and first-gap truth. Artifacts, Teams, Softwarehouse, and
+Evidence & Learning are reachable from primary navigation.
+
+The audit found that the Artifacts service and tests existed without its real
+company route being mounted. The company-scoped endpoint is now active and
+authorized. Final browser QA also found and removed nested artifact-card links;
+the issue destination and file actions are independent accessible links. Shared,
+server, and UI typechecks/builds pass; 46 focused tests pass. Desktop and mobile
+smoke found no overflow, API errors, nested links, or clean-session console
+errors. The served `server/ui-dist` matches the final UI build. Workspace and
+runtime topology audits pass with one canonical checkout per app and one
+Paperclip dev service on port 3200. Stale readiness remains visibly fail-closed
+and is not treated as deployment authorization.
+
+The same closure found that the broad generated-work-product ignore pattern
+also ignored `ui/src/components/artifacts`. The ignore paths are now scoped to
+repository-root generated directories, so both artifact card components and
+their six focused tests are tracked and recoverable from a fresh clone. The
+final focused total is 46 passing tests.

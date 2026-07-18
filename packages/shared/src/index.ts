@@ -1456,9 +1456,17 @@ export {
   softwarehouseIssueTemplateCatalogResponseSchema,
   softwarehouseIssueTemplateKindSchema,
   softwarehouseIssueTemplateSchema,
+  softwarehouseControlGateSchema,
+  softwarehouseProjectTruthGapSchema,
+  softwarehouseProjectTruthStatusSchema,
+  softwarehouseControlStatusResponseSchema,
   type SoftwarehouseIssueTemplate,
   type SoftwarehouseIssueTemplateCatalogResponse,
   type SoftwarehouseIssueTemplateKind,
+  type SoftwarehouseControlGate,
+  type SoftwarehouseProjectTruthGap,
+  type SoftwarehouseProjectTruthStatus,
+  type SoftwarehouseControlStatusResponse,
 } from "./validators/softwarehouse.js";
 
 export {

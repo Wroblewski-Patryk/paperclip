@@ -1,5 +1,8 @@
 import { api } from "./client";
-import type { SoftwarehouseIssueTemplateCatalogResponse } from "@paperclipai/shared";
+import type {
+  SoftwarehouseControlStatusResponse,
+  SoftwarehouseIssueTemplateCatalogResponse,
+} from "@paperclipai/shared";
 
 export interface SoftwarehouseDoc {
   key: string;
@@ -54,6 +57,8 @@ export interface SoftwarehouseBacklog {
 }
 
 export const softwarehouseApi = {
+  status: (companyId: string) =>
+    api.get<SoftwarehouseControlStatusResponse>(`/companies/${companyId}/softwarehouse/status`),
   knowledge: (companyId: string) =>
     api.get<SoftwarehouseKnowledge>(`/companies/${companyId}/softwarehouse/knowledge`),
   tools: (companyId: string) =>

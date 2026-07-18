@@ -14,6 +14,9 @@ import {
   Settings,
   BrainCircuit,
   Activity as LearningActivity,
+  Factory,
+  PackageOpen,
+  UsersRound,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "@/lib/router";
@@ -101,6 +104,8 @@ export function Sidebar() {
           <SidebarNavItem to="/goals" label="Goals" icon={Target} />
           <SidebarNavItem to="/organizational-memory" label="Memory" icon={BrainCircuit} />
           <SidebarNavItem to="/organizational-learning" label="Evidence & learning" icon={LearningActivity} />
+          <SidebarNavItem to="/artifacts" label="Artifacts" icon={PackageOpen} />
+          <SidebarNavItem to="/softwarehouse" label="Softwarehouse" icon={Factory} />
           {showWorkspacesLink ? (
             <SidebarNavItem to="/workspaces" label="Workspaces" icon={GitBranch} />
           ) : null}
@@ -125,6 +130,7 @@ export function Sidebar() {
 
         <SidebarSection label="Company">
           <SidebarNavItem to="/org" label="Org" icon={Network} />
+          <SidebarNavItem to="/teams-catalog" label="Teams" icon={UsersRound} />
           <SidebarNavItem to="/skills" label="Skills" icon={Boxes} />
           <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />
           <SidebarNavItem to="/activity" label="Activity" icon={History} />

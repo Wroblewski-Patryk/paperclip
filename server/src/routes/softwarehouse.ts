@@ -1,7 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
+  softwarehouseControlStatusResponseSchema,
   softwarehouseIssueTemplateCatalogResponseSchema,
+  type SoftwarehouseControlStatusResponse,
   type SoftwarehouseIssueTemplate,
   type SoftwarehouseIssueTemplateCatalogResponse,
 } from "@paperclipai/shared";
@@ -17,6 +19,8 @@ function resolveWorkspaceRoot() {
 }
 
 const ROOT = resolveWorkspaceRoot();
+const SOFTWAREHOUSE_STATUS_PATH = "report/softwarehouse-readiness-snapshot.latest.json";
+const SOFTWAREHOUSE_STATUS_STALE_AFTER_SECONDS = 15 * 60;
 
 interface FileStatus {
   path: string;
@@ -252,8 +256,188 @@ function countMatching(rows: Array<Record<string, string>>, key: string, predica
   return rows.filter((row) => predicate(row[key]?.trim() ?? "")).length;
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function nullableString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function nullableBoolean(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function nullableCount(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function emptyControlStatus(now: Date, observedAt: string | null = null): SoftwarehouseControlStatusResponse {
+  return {
+    generatedAt: now.toISOString(),
+    observedAt,
+    sourcePath: SOFTWAREHOUSE_STATUS_PATH,
+    available: false,
+    stale: true,
+    staleAfterSeconds: SOFTWAREHOUSE_STATUS_STALE_AFTER_SECONDS,
+    ageSeconds: null,
+    auditOverall: null,
+    controlDecision: null,
+    effectiveOperatingPosture: null,
+    supervisionReady: null,
+    fullDeliveryReady: null,
+    activeRunCount: null,
+    liveRunCount: null,
+    operatorActionStatus: null,
+    headline: null,
+    recommendedAction: null,
+    primaryNextAction: null,
+    deliveryPermission: {
+      protectedDeliveryAllowed: null,
+      projectRepoMutationAllowed: null,
+      canStartNewLane: null,
+      allowedLaneTypes: [],
+      reason: null,
+    },
+    blockedGates: [],
+    dirtyProjects: [],
+    allowedWhileBlocked: [],
+    forbiddenWhileBlocked: [],
+    requiredBeforeFullDelivery: [],
+    nextControlActions: [],
+    projectTruth: {
+      projectCount: 0,
+      projectsWithGaps: 0,
+      criticalRuntimeFindings: 0,
+      totalGaps: 0,
+      projects: [],
+    },
+  };
+}
+
+export async function loadSoftwarehouseControlStatus(
+  workspaceRoot = ROOT,
+  now = new Date(),
+): Promise<SoftwarehouseControlStatusResponse> {
+  const fullPath = path.resolve(workspaceRoot, SOFTWAREHOUSE_STATUS_PATH);
+  let raw: Record<string, unknown>;
+  let fileModifiedAt: string | null = null;
+
+  try {
+    const [content, stats] = await Promise.all([
+      fs.readFile(fullPath, "utf8"),
+      fs.stat(fullPath),
+    ]);
+    raw = asRecord(JSON.parse(content));
+    fileModifiedAt = stats.mtime.toISOString();
+  } catch {
+    return softwarehouseControlStatusResponseSchema.parse(emptyControlStatus(now));
+  }
+
+  const controlBrief = asRecord(raw.controlBrief);
+  const deliveryPermission = asRecord(controlBrief.deliveryPermission);
+  const truth = asRecord(raw.projectTruthAudit);
+  const rawObservedAt = nullableString(raw.generatedAt) ?? fileModifiedAt;
+  const observedTimestamp = rawObservedAt ? Date.parse(rawObservedAt) : Number.NaN;
+  const observedAt = Number.isFinite(observedTimestamp)
+    ? new Date(observedTimestamp).toISOString()
+    : fileModifiedAt;
+  const ageSeconds = observedAt
+    ? Math.max(0, Math.floor((now.getTime() - Date.parse(observedAt)) / 1000))
+    : null;
+
+  const blockedGates = (Array.isArray(controlBrief.blockedGates)
+    ? controlBrief.blockedGates
+    : Array.isArray(raw.blockedGates) ? raw.blockedGates : [])
+    .map((value) => asRecord(value))
+    .map((gate) => ({
+      project: nullableString(gate.project),
+      rootBlocker: nullableString(gate.rootBlocker),
+      owner: nullableString(gate.owner),
+      evidenceRequired: nullableString(gate.ownerAction),
+      operatorPrompt: nullableString(gate.operatorPrompt),
+    }));
+
+  const projects = (Array.isArray(truth.projects) ? truth.projects : [])
+    .map((value) => asRecord(value))
+    .map((project) => {
+      const firstGap = asRecord(project.firstGap);
+      const hasFirstGap = Object.keys(firstGap).length > 0;
+      return {
+        name: nullableString(project.name) ?? "Unknown project",
+        ok: nullableBoolean(project.ok),
+        publicProbeStatus: nullableString(project.publicProbeStatus),
+        projectTruthStatus: nullableString(project.projectTruthStatus),
+        totalGaps: nullableCount(project.totalGaps) ?? 0,
+        firstGap: hasFirstGap ? {
+          kind: nullableString(firstGap.kind),
+          severity: nullableString(firstGap.severity),
+          userFlow: nullableString(firstGap.userFlow),
+          summary: nullableString(firstGap.summary),
+          nextOwner: nullableString(firstGap.nextOwner),
+          nextAction: nullableString(firstGap.nextAction),
+          risk: nullableString(firstGap.risk),
+        } : null,
+      };
+    });
+
+  const response: SoftwarehouseControlStatusResponse = {
+    ...emptyControlStatus(now, observedAt),
+    available: true,
+    stale: ageSeconds === null || ageSeconds > SOFTWAREHOUSE_STATUS_STALE_AFTER_SECONDS,
+    ageSeconds,
+    auditOverall: nullableString(raw.auditOverall),
+    controlDecision: nullableString(raw.controlDecision),
+    effectiveOperatingPosture: nullableString(raw.effectiveOperatingPosture),
+    supervisionReady: nullableBoolean(raw.supervisionReady),
+    fullDeliveryReady: nullableBoolean(raw.twoProjectFullDeliveryReady),
+    activeRunCount: nullableCount(raw.activeRunCount),
+    liveRunCount: nullableCount(raw.liveRunCount),
+    operatorActionStatus: nullableString(raw.operatorActionStatus),
+    headline: nullableString(controlBrief.headline),
+    recommendedAction: nullableString(raw.recommendedAction),
+    primaryNextAction: nullableString(controlBrief.primaryNextAction),
+    deliveryPermission: {
+      protectedDeliveryAllowed: nullableBoolean(deliveryPermission.protectedDeliveryAllowed),
+      projectRepoMutationAllowed: nullableBoolean(deliveryPermission.projectRepoMutationAllowed),
+      canStartNewLane: nullableBoolean(deliveryPermission.canStartNewLane),
+      allowedLaneTypes: stringArray(deliveryPermission.allowedLaneTypes),
+      reason: nullableString(deliveryPermission.reason),
+    },
+    blockedGates,
+    dirtyProjects: stringArray(raw.dirtyProjects),
+    allowedWhileBlocked: stringArray(raw.allowedWhileBlocked),
+    forbiddenWhileBlocked: stringArray(raw.forbiddenWhileBlocked),
+    requiredBeforeFullDelivery: stringArray(raw.requiredBeforeFullDelivery),
+    nextControlActions: stringArray(raw.nextControlActions),
+    projectTruth: {
+      projectCount: nullableCount(truth.projectCount) ?? projects.length,
+      projectsWithGaps: nullableCount(truth.projectsWithGaps) ?? projects.filter((project) => project.totalGaps > 0).length,
+      criticalRuntimeFindings: nullableCount(truth.criticalRuntimeFindings) ?? 0,
+      totalGaps: nullableCount(truth.totalGaps) ?? projects.reduce((sum, project) => sum + project.totalGaps, 0),
+      projects,
+    },
+  };
+
+  return softwarehouseControlStatusResponseSchema.parse(response);
+}
+
 export function softwarehouseRoutes() {
   const router = Router();
+
+  router.get("/companies/:companyId/softwarehouse/status", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    res.json(await loadSoftwarehouseControlStatus());
+  });
 
   router.get("/companies/:companyId/softwarehouse/knowledge", async (req, res) => {
     const companyId = req.params.companyId as string;

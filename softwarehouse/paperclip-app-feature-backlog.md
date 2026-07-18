@@ -151,6 +151,8 @@ clear.
 
 ## First Recommended Build
 
+Status: implemented and owner-visible as of 2026-07-18.
+
 Build a Softwarehouse-native `Knowledge`/`Tools` cockpit:
 
 - Knowledge page reads:
@@ -165,6 +167,16 @@ Build a Softwarehouse-native `Knowledge`/`Tools` cockpit:
 - No external secrets.
 - No provider writes.
 - No database migration in the first slice.
+
+The shipped slice also exposes the sanitized readiness snapshot, protected gate
+summary, Soar/Roost project-truth state, and next executable action. The
+Softwarehouse, Artifacts, and Teams surfaces are routed from the primary board
+navigation; Dashboard and Project Overview consume the same typed status
+contract. Raw report payloads and secret values are not exposed to the UI.
+The company-scoped Artifacts projection is mounted in the real server route
+composition, and artifact cards keep their issue destination and file actions
+as sibling links. Focused API/UI tests plus desktop and mobile browser smoke
+cover the actually served `server/ui-dist` output.
 
 This gives most of the operator/agent value with the lowest risk. After that,
 wire in CompanyCore bridge storage and external connector settings.
