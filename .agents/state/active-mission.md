@@ -665,3 +665,19 @@ or the relevant owners explicitly classify them as not required with evidence.
   topology pass audit. Focused regressions pass 188/188 and the canonical gate
   suite passes 180/180. Repo-wide `pnpm test` exceeded its bounded 240-second
   window and is unverified, not passing.
+
+## 2026-07-19 - Archive-Ready Autonomous Operation - Current
+
+- The canonical Paperclip instance remains the only active instance on port
+  3200 with its embedded PostgreSQL on 54329; Paperclip, Soar, and Roost remain
+  singleton roots.
+- Teams is available at `/LUC/teams`; the legacy `/LUC/teams-catalog` route is
+  compatibility-only. The actual backup restore drill is proved and leaves no
+  temporary database behind.
+- A zero-live-run snapshot between ticks is not itself a fault. The continuation
+  watchdog runs every five minutes and has live proof of dispatching product
+  work after an idle interval; use the next-legal-action selector to distinguish
+  a quiet healthy interval from missing runnable inventory.
+- Protected production, credential, deployment, and Soar Redis recovery gates
+  remain fail-closed. Their blocked issues are continuing company work, not
+  unfinished setup from the archived owner conversation.

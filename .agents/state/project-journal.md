@@ -4016,3 +4016,20 @@ connection is ready. A focused forced-no-psql test passes. The full
 seconds to isolated port 62346: 97 tables, 1 company, 39 agents, 1,473 issues,
 19 routines, 5,143 heartbeat runs, and 770 issue work products. The temporary
 database was removed and canonical ports `3200`/`54329` were untouched.
+
+## 2026-07-19 - Owner conversation archive checkpoint
+
+Final archive-readiness verification passed on the canonical local instance.
+Paperclip is healthy on strict port 3200, the singleton runtime and approved
+workspace-boundary audits pass, all 39 agent settings and instruction bundles
+pass, runtime-file and operating-standard audits pass, and the canonical gate
+suite passes 182/182. Paperclip, Soar, and Roost were clean at the checkpoint.
+
+The apparent zero-run state was a normal interval between scheduled cycles.
+The continuation watchdog fired at 02:00 Europe/Berlin, completed its recurring
+cycle cleanly, returned `LUC-770` to `todo`, and dispatched a new assignment run
+with continuing output. A dry-run next-action selection also found runnable
+project backlog and selected `start_runnable_work`; protected Soar Redis work
+remains correctly blocked behind `LUC-1374` rather than being retried without
+authority. The owner conversation may be archived without stopping the local
+company or losing its next-action context.
