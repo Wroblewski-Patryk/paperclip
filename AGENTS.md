@@ -201,6 +201,8 @@ Windows resource safety:
 - Prefer targeted Vitest files with one worker while the live local Paperclip database is running.
 - After any external timeout or interrupted test, verify that no `vitest` process or temporary `paperclip-*-service-*` Postgres master remains before retrying.
 - A command timeout is not a passing test. Record the unverified suite and continue with narrower evidence instead of repeatedly spawning it.
+- Embedded-Postgres cleanup on Windows must own exact PID trees. Protect the canonical database dynamically from the listener on strict port `54329`, rescan the owned tree for late reparented `io_worker` children, and require several consecutive snapshots with no listener before declaring a test port released. Never kill every `postgres.exe` by name.
+- Node child-process code that launches pnpm should prefer `process.execPath` plus `process.env.npm_execpath`; if a bare launcher fallback is unavoidable on Windows, use a deliberately scoped shell invocation. Do not assume `spawnSync("pnpm", ...)` resolves a `.cmd` shim.
 - This Windows 11 host is one bounded workstation. Do not overlap repo-wide builds, typechecks,
   browser suites, or embedded-Postgres suites; avoid full `Win32_Process` serialization and broad
   process-name kills. Inspect and terminate only a verified PID tree.

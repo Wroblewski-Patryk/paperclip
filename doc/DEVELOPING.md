@@ -124,6 +124,16 @@ These browser suites are intended for targeted local verification and CI, not th
 
 For normal issue work, start with the smallest targeted check that proves the change. Reserve repo-wide typecheck/build/test runs for PR-ready handoff or changes broad enough that narrow checks do not cover the risk.
 
+On Windows, run repository-wide validation and embedded-PostgreSQL suites
+sequentially. A timeout is unverified, never passing. Before retrying, prove
+that the exact Vitest/temporary-service PID tree is gone. Embedded-PostgreSQL
+cleanup should protect the canonical database by its current strict-port
+listener, rescan only the owned fixture tree for late `io_worker` descendants,
+and require repeated no-listener snapshots before considering a port released.
+Do not broad-kill PostgreSQL by process name. Node scripts that launch pnpm
+should use `process.execPath` with `process.env.npm_execpath`, with a scoped
+Windows shell fallback only when the entrypoint is unavailable.
+
 ## One-Command Local Run
 
 For a first-time local install, you can bootstrap and run in one command:

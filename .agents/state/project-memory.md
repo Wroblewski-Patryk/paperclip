@@ -1,6 +1,14 @@
 # Paperclip Softwarehouse Project Memory
 
-Last updated: 2026-07-15
+Last updated: 2026-07-20
+
+## 2026-07-20 Current Operating Note
+
+- The complete repository `pnpm test` command passed with exit code 0 after the Windows runner and embedded-Postgres teardown repairs; `SOL-032` is historical context rather than an active verification exception.
+- Canonical closing evidence also includes 182/182 Softwarehouse gate specs, all workspace typechecks, the production build, clean workspace/runtime topology audits, and no orphaned Vitest or temporary Postgres process.
+- Windows cleanup must remain ownership-based: terminate only captured descendant PID trees, protect the canonical listener on port `54329`, and require stable no-listener observations before declaring teardown complete.
+- Node scripts that invoke pnpm should prefer `process.execPath` plus `process.env.npm_execpath`, with a narrowly scoped Windows shell fallback only when that runtime path is unavailable.
+- Reusable environment and runner lessons should be promoted into shared repo instructions and synchronized live agent bundles, not left only in a conversation transcript.
 
 ## 2026-07-12 Current Operating Note
 
@@ -15,6 +23,13 @@ Last updated: 2026-07-15
 - The latest learning-loop apply run on `LUC-1222` found one repeated security/credential pattern that was already represented by an existing learning issue (`LUC-972`) and one worker-fanout duplicate suppressed as `LUC-1165` done.
 - No new capability-gap issue was created on this run, which keeps the learning loop in evidence-producing mode instead of turning every repeat into new noise.
 - No change to user intent, active mission, or parked-app policy was justified by the review.
+
+## 2026-07-19 Current Operating Note
+
+- Stage 1 remains active and Soar/Roost stay the current delivery proof for LuckySparrow Software House.
+- The live `LUC-1222` heartbeat was reopened in error and restored to `done` after revalidating the recorded apply-mode learning-loop evidence.
+- No new capability-gap issue was warranted; the current truth remains that the organizational learning loop suppresses already-covered patterns instead of cloning them.
+- No change to user intent, active mission, or parked-app policy was justified by the restore.
 
 ## 2026-07-03 Archived Thread: App-Completion And Company-Standards Context
 

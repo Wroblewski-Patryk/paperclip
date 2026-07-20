@@ -547,3 +547,36 @@ Current evidence:
 - Focused rolling-queue and policy-gate tests pass 188/188.
 - Live dry-run reports Soar `ready` and Roost `needs-another-child`, matching
   actual Paperclip wake semantics.
+
+## 2026-07-20 - Windows test teardown is an ownership protocol
+
+Observed pattern: a test assertion could pass while its teardown exceeded a
+generic 10-second hook limit, a late embedded-PostgreSQL `io_worker` survived
+its original parent, or a canonical database restarted with a new PID after the
+test baseline was captured. Treating those cases as one flaky timeout either
+reported false failures or risked killing the live control-plane database.
+
+Standing rule:
+
+- Separate assertion time from teardown time. Give Windows hooks a measured,
+  bounded allowance and keep non-Windows defaults unchanged.
+- Protect the canonical embedded database from its current strict-port
+  listener on every cleanup pass, not only from a startup PID snapshot.
+- Capture and terminate only the fixture-owned PID tree, then rescan it for
+  late reparented descendants. Never broad-kill PostgreSQL or Node by name.
+- Treat several consecutive no-listener snapshots as port release. A failed
+  Node rebind probe is not proof that PostgreSQL still owns the port.
+- After an interrupted aggregate run, prove there are no matching Vitest,
+  temporary Paperclip service, or non-canonical PostgreSQL processes before a
+  retry. A timeout remains unverified until a complete run exits 0.
+- Node scripts that spawn pnpm use the active JavaScript entrypoint via
+  `process.execPath + npm_execpath`, with a scoped Windows shell fallback.
+
+Current evidence:
+
+- Three complete DB iterations passed `108/108` active tests; three worktree
+  iterations passed `105/105`.
+- Full `pnpm test` exited 0 after 5,963.8 seconds, and post-run process audits
+  found no test Node process or PostgreSQL outside the canonical 54329 tree.
+- Recursive typecheck, build, build-gap typechecks, `182/182` Softwarehouse
+  gates, workspace-boundary audit, and runtime-topology audit pass.

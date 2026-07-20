@@ -1,10 +1,16 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-18
+Last updated: 2026-07-20
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
 ## Entries
+
+- 2026-07-20 / LUC-1201 longevity snapshot backup refresh:
+  - Refreshed the redacted Softwarehouse longevity snapshot with `node scripts/export-softwarehouse-longevity-snapshot.mjs`.
+  - Verification: `report/longevity/softwarehouse-longevity-snapshot.latest.md` and `.json` were regenerated at `2026-07-20T01:19:00.323Z`; the exporter reported `39` agents, `8` projects, `38` issues, `19` routines, `2` live runs, and `46` secret metadata rows.
+  - Durable evidence: uploaded `report/longevity/softwarehouse-longevity-snapshot.latest.md` as attachment `6acc4f38-a045-45cf-a247-f3a73c31a2a1` / work product `95f4721f-2a91-452b-8e2a-438b34e64ee2`, and `report/longevity/softwarehouse-longevity-snapshot.latest.json` as attachment `d6103ed6-cd8c-492d-a553-a047587145ec` / work product `de6dd5eb-c455-422c-a9c1-e00204e47874`.
+  - Decision: this remains an artifact-only evidence refresh. No repo product-doc change was required, and the issue was closed as `done` after the fresh snapshot was attached.
 
 - 2026-07-18 / Paperclip frontend UX/UI audit and durable design direction
   (conversation summary):
@@ -4022,8 +4028,33 @@ database was removed and canonical ports `3200`/`54329` were untouched.
 Final archive-readiness verification passed on the canonical local instance.
 Paperclip is healthy on strict port 3200, the singleton runtime and approved
 workspace-boundary audits pass, all 39 agent settings and instruction bundles
-pass, runtime-file and operating-standard audits pass, and the canonical gate
-suite passes 182/182. Paperclip, Soar, and Roost were clean at the checkpoint.
+pass, runtime-file and operating-standard audits pass, and all 182 tests in the
+canonical Softwarehouse gate-spec suite pass. Paperclip, Soar, and Roost were
+clean at the checkpoint.
+
+A fresh July 19 verification reran the evidence rather than relying on that
+checkpoint. The canonical Softwarehouse gate-spec suite passed 182/182, the
+rolling-queue suite passed 8/8, database backup/restore passed 6/6, focused
+server tests passed 25/25, focused UI tests passed 25/25, all 28 workspace
+typechecks passed, and the full build completed. All six Softwarehouse audits
+returned pass; the workspace-boundary audit also retained two informational
+warnings for parked sibling directories outside the approved roots. The UI
+tests emitted existing React `act(...)` warnings and the build emitted
+non-failing CSS Highlight API and bundle-size warnings, so those runs are
+passing with warnings rather than warning-free.
+
+The earlier checkpoint recorded byte-identical `ui/dist` and `server/ui-dist`
+trees across 185 files. Two fresh SHA-256 comparison attempts did not complete
+within 30- and 120-second bounds on this NTFS workspace, so current byte-level
+identity remains unverified rather than being carried forward as a fresh pass.
+
+The repository-wide `pnpm test` aggregate is still not green. A fresh bounded
+attempt hit its 260-second command limit while the general server group was
+still active. The exact test process tree was terminated afterward and a
+follow-up check found no matching Vitest or temporary Paperclip service test
+process. The timeout remains an explicit aggregate-runner hardening gap; the
+label `SOL-032` is historical shorthand only, because no corresponding local
+Paperclip or Soar issue record was found during this verification.
 
 The apparent zero-run state was a normal interval between scheduled cycles.
 The continuation watchdog fired at 02:00 Europe/Berlin, completed its recurring
@@ -4033,3 +4064,48 @@ project backlog and selected `start_runnable_work`; protected Soar Redis work
 remains correctly blocked behind `LUC-1374` rather than being retried without
 authority. The owner conversation may be archived without stopping the local
 company or losing its next-action context.
+
+## 2026-07-19 - Organizational Learning Loop Restore After Accidental Reopen
+
+Context: `LUC-1222` was reopened in the current heartbeat even though the
+apply-mode learning-loop result already had terminal evidence.
+
+- Action: rechecked the issue record, confirmed the stored completion bundle
+  still matched the completed apply run, and restored the issue to `done`.
+- Evidence: `docs/status/2026-07-15-luc-1222-organizational-learning-loop.md`
+  plus the existing memory note in `.agents/state/project-memory.md`.
+- Decision: no new capability-gap issue was warranted; the reopen was state
+  drift, not a fresh learning signal.
+- Promotion: current truth updated.
+
+## 2026-07-20 - Conversation summary: full Windows validation closure
+
+The owner asked Codex to remove the final honest exception around repository
+verification, investigate similar failure modes, and preserve reusable lessons
+for Paperclip agents. The work found several distinct Windows lifecycle defects
+rather than one generic flaky test: embedded-PostgreSQL teardown exceeded the
+default hook allowance; worktree cleanup trusted a Node rebind probe after the
+listener was already gone; late `io_worker` descendants survived their original
+parent; a restarted canonical database could have a PID absent from the test's
+initial protection set; the registered stop script killed only its parent; and
+`typecheck:build-gaps` tried to spawn a bare pnpm shim.
+
+The fixes establish exact process ownership, dynamic strict-port protection,
+stable no-listener release checks, full registered-tree stop, measured Windows
+hook limits, serialized heavy validation, and portable pnpm child-process
+invocation through `process.execPath + npm_execpath`. Focused proof passed three
+DB iterations (`108/108`) and three worktree iterations (`105/105`). A fresh
+uninterrupted `pnpm test` then exited 0 after 5,963.8 seconds. Recursive
+typecheck, production build, build-gap typechecks, forbidden-token and
+no-git-push checks, `182/182` canonical gates, diff check, workspace-boundary
+audit, runtime-topology audit, health readback, and orphan-process audit all
+passed. The SOL-032 shorthand is therefore historical for this checkout, not a
+current exception. Platform skips and existing React/PostgreSQL/Docker warning
+messages remain explicit non-failing diagnostics.
+
+The owner additionally set a durable collaboration preference: whenever Codex
+or an agent discovers a unique lesson shared by Paperclip configuration or
+multiple agents, promote it proactively into repository memory and the
+canonical shared instruction source, then sync and verify live bundles when
+safe. Promotion: current truth and responsibility lesson updated; no secrets or
+production mutations were recorded.

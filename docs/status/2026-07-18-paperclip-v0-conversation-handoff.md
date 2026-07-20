@@ -475,11 +475,21 @@ products. A Windows restore defect discovered by the drill was fixed: when
 stream, without racing the reader startup or materializing a large table in one
 string. The complete DB backup suite passes.
 
-Current validation includes 182/182 Softwarehouse gate specs, 8/8 rolling queue
-tests, all 28 workspace package typechecks, the full repository build, 39/39
-agent settings and instruction audits, runtime-file and operating-standard
-audits, strict workspace and singleton topology checks, and byte-identical
-`ui/dist`/`server/ui-dist` trees across 185 files. Repo-wide `pnpm test` retains
-the previously recorded timeout limitation; the focused suites above are
-explicit passing evidence rather than a claim that the aggregate runner was
-rerun successfully.
+Current validation includes a successful full `pnpm test` run (exit 0 after
+5,963.8 seconds), 182/182 tests in the canonical Softwarehouse gate-spec suite,
+all 28 workspace package typechecks, the full repository build, 39/39 agent
+settings and instruction audits, runtime-file and operating-standard audits,
+and strict workspace and singleton topology checks. Repeated database-project
+and worktree suites also passed three times each (108/108 and 105/105), and the
+post-run process audit found no orphaned Vitest process or temporary Paperclip
+Postgres service outside the canonical runtime tree. The build retains only its
+non-failing CSS Highlight API and bundle-size warnings, while the
+workspace-boundary audit retains informational warnings for parked sibling
+directories.
+
+The earlier bounded `pnpm test` timeout and `SOL-032` label are historical
+runner-hardening context, not a current exception. The closure repaired exact
+Windows PID-tree teardown, stable no-listener observation, portable pnpm child
+process invocation, and bounded Vitest batching. A timeout must still never be
+reported as passing, but the aggregate repository suite now has direct green
+evidence.

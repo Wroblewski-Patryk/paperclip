@@ -1,6 +1,6 @@
 # Board Context
 
-Last updated: 2026-07-18
+Last updated: 2026-07-20
 
 ## User Intent
 
@@ -67,6 +67,11 @@ ecosystem.
   keep nodes readable.
 - Prefer repo-local memory for project context so older and newer chats can
   converge.
+- When Codex or a Paperclip agent discovers a unique, reusable environment,
+  runner, process-ownership, or coordination lesson that affects more than one
+  task, promote it proactively into repository memory and the canonical shared
+  agent-instruction source. When safe, sync the live agent bundles and verify
+  the readback; do not leave the lesson only in a chat transcript.
 - Prefer Paperclip issues/work products for issue-specific execution evidence.
 - Keep high-risk actions gated: raw secrets, destructive infrastructure, paid
   resources, legal/customer/finance commitments, and LIVE trading/order proof.

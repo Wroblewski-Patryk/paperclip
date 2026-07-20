@@ -1,6 +1,6 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-18
+Last updated: 2026-07-20
 
 ## What This Workspace Is
 
@@ -200,6 +200,11 @@ Out of scope unless separately approved:
 - This Windows 11 / PowerShell 5.1 host is one bounded workstation. Do not
   overlap repo-wide validations, serialize the full process table, broad-kill
   process names, or retry a timed-out test before its verified PID tree is gone.
+- The July 20 runner closure proved full `pnpm test` green in 5,963.8 seconds.
+  Windows fixture cleanup must protect the live canonical database from the
+  current 54329 listener, terminate only an owned PID tree (including late
+  `io_worker` descendants), and require stable no-listener snapshots. Node
+  scripts should launch pnpm through `process.execPath` plus `npm_execpath`.
 - Product app repos are separate from this control-plane repo. Product changes
   should be made in the relevant product repo.
 

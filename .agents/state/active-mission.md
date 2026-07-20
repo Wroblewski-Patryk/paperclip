@@ -1,5 +1,26 @@
 # Active Mission
 
+## 2026-07-20 - Full Repository Validation And Windows Runner Closure - Current
+
+- The historical SOL-032 shorthand is no longer an active exception for this
+  checkout. A fresh, uninterrupted `pnpm test` completed with exit code 0 in
+  5,963.8 seconds after all Windows cleanup and timeout repairs were applied.
+- Embedded-PostgreSQL cleanup now protects the canonical database dynamically
+  from strict port 54329, owns exact fixture PID trees, rescans for late
+  reparented `io_worker` children, and requires stable no-listener snapshots.
+  Worktree cleanup follows the same ownership rule; the registered Softwarehouse
+  stop path terminates its full verified tree.
+- Focused stability proof passed three DB iterations (`108/108` active tests)
+  and three worktree iterations (`105/105`). Post-run inspection found zero
+  test Node processes and zero PostgreSQL processes outside the canonical tree.
+- Full recursive typecheck, production build, build-gap typechecks, forbidden
+  token and no-git-push policies, `182/182` canonical gate specs, diff check,
+  workspace-boundary audit, and strict runtime-topology audit all pass.
+- `typecheck:build-gaps` now invokes pnpm portably through Node's active pnpm
+  entrypoint, with a verified direct-node Windows fallback. Existing React
+  `act(...)`, PostgreSQL NOTICE, platform skip, and Docker-inventory-unavailable
+  messages remain explicit non-failing diagnostics rather than hidden passes.
+
 ## 2026-07-18 Rolling Worker Queue And Parallel Dispatch - Current
 
 - The owner confirmed Paperclip remains the control plane. Autonomy changes
@@ -681,3 +702,11 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Protected production, credential, deployment, and Soar Redis recovery gates
   remain fail-closed. Their blocked issues are continuing company work, not
   unfinished setup from the archived owner conversation.
+- Fresh verification on July 19 passes 182/182 tests in the canonical
+  Softwarehouse gate-spec suite, 8/8 rolling-queue tests, 6/6 database-backup
+  tests, 25/25 focused server tests, 25/25 focused UI tests, all 28 workspace
+  typechecks, and the full build. This is targeted passing evidence, not a
+  claim that every repository test passed: a fresh bounded `pnpm test` attempt
+  again timed out in the general server group and remains unverified. Its exact
+  process tree was terminated and no matching Vitest or temporary Paperclip
+  service test process remained.
