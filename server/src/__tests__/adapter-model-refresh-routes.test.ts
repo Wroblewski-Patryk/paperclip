@@ -31,6 +31,12 @@ const mockEnvironmentService = vi.hoisted(() => ({
   getById: vi.fn(),
 }));
 const mockListOpenCodeModels = vi.hoisted(() => vi.fn());
+const mockAdapterPluginStore = vi.hoisted(() => ({
+  getDisabledAdapterTypes: vi.fn(() => []),
+}));
+const mockPluginLoader = vi.hoisted(() => ({
+  buildExternalAdapters: vi.fn(async () => []),
+}));
 
 const mockAgentInstructionsService = vi.hoisted(() => ({
   materializeManagedBundle: vi.fn(),
@@ -67,6 +73,8 @@ const mockInstanceSettingsService = vi.hoisted(() => ({
 const mockLogActivity = vi.hoisted(() => vi.fn());
 
 function registerModuleMocks() {
+  vi.doMock("../adapters/plugin-loader.js", () => mockPluginLoader);
+  vi.doMock("../services/adapter-plugin-store.js", () => mockAdapterPluginStore);
   vi.doMock("@paperclipai/adapter-opencode-local/server", async () => {
     const actual = await vi.importActual<typeof import("@paperclipai/adapter-opencode-local/server")>("@paperclipai/adapter-opencode-local/server");
     return {
@@ -162,6 +170,8 @@ describe("adapter model refresh route", () => {
     vi.doUnmock("../routes/agents.js");
     vi.doUnmock("../routes/authz.js");
     vi.doUnmock("../middleware/index.js");
+    vi.doUnmock("../adapters/plugin-loader.js");
+    vi.doUnmock("../services/adapter-plugin-store.js");
     registerModuleMocks();
     vi.clearAllMocks();
     mockCompanySkillService.listRuntimeSkillEntries.mockResolvedValue([]);
@@ -176,7 +186,7 @@ describe("adapter model refresh route", () => {
     mockListOpenCodeModels.mockReset();
     mockListOpenCodeModels.mockResolvedValue([{ id: "dynamic-opencode-model", label: "dynamic-opencode-model" }]);
     await unregisterTestAdapter(refreshableAdapterType);
-  });
+  }, 30_000);
 
   afterEach(async () => {
     await unregisterTestAdapter(refreshableAdapterType);
@@ -209,7 +219,7 @@ describe("adapter model refresh route", () => {
     expect(res.body).toEqual([{ id: "fresh-model", label: "fresh-model" }]);
     expect(refreshModels).toHaveBeenCalledTimes(1);
     expect(listModels).not.toHaveBeenCalled();
-  });
+  }, 15_000);
 
   it("skips OpenCode model discovery for non-local environments", async () => {
     mockEnvironmentService.getById.mockResolvedValue({

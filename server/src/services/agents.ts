@@ -476,6 +476,38 @@ export function agentService(db: Db) {
       return updated ? normalizeAgentRow(updated) : null;
     },
 
+    clearError: async (id: string) => {
+      const existing = await getById(id);
+      if (!existing) return null;
+      if (existing.status === "terminated") {
+        throw conflict("Cannot clear error on terminated agent");
+      }
+      if (existing.status === "pending_approval") {
+        throw conflict("Pending approval agents cannot have errors cleared");
+      }
+      if (existing.status !== "error") {
+        throw conflict("Only agents in error status can have their error cleared");
+      }
+
+      const updated = await db
+        .update(agents)
+        .set({
+          status: "idle",
+          pauseReason: null,
+          pausedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(agents.id, id), eq(agents.status, "error")))
+        .returning()
+        .then((rows) => rows[0] ?? null);
+
+      if (updated) return normalizeAgentRow(updated);
+
+      const current = await getById(id);
+      if (!current) return null;
+      throw conflict("Only agents in error status can have their error cleared");
+    },
+
     terminate: async (id: string) => {
       const existing = await getById(id);
       if (!existing) return null;
@@ -547,7 +579,7 @@ export function agentService(db: Db) {
       return existing ? { agent: existing, activated: false } : null;
     },
 
-    updatePermissions: async (id: string, permissions: { canCreateAgents: boolean }) => {
+    updatePermissions: async (id: string, permissions: Record<string, unknown> & { canCreateAgents: boolean }) => {
       const existing = await getById(id);
       if (!existing) return null;
 

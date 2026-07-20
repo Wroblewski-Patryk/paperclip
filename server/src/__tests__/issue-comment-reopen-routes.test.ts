@@ -154,6 +154,11 @@ vi.mock("../services/index.js", () => ({
   workProductService: () => ({}),
 }));
 
+vi.mock("../services/source-trust.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../services/source-trust.js")>()),
+  resolveActorSourceTrustForIssue: vi.fn(async () => null),
+}));
+
 function createApp() {
   const app = express();
   app.use(express.json());
@@ -744,6 +749,7 @@ describe.sequential("issue comment reopen routes", () => {
         authorType: "user",
         presentation: { kind: "system_notice", tone: "warning", detailsDefaultOpen: false },
         metadata,
+        sourceTrust: null,
       },
     );
   });
@@ -1102,7 +1108,7 @@ describe.sequential("issue comment reopen routes", () => {
       .patch("/api/issues/11111111-1111-4111-8111-111111111111")
       .send({ comment: "please validate the follow-up", resume: true });
 
-    expect(res.status).toBe(200);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(mockIssueService.update).toHaveBeenCalledWith(
       "11111111-1111-4111-8111-111111111111",
       expect.objectContaining({
@@ -1346,7 +1352,7 @@ describe.sequential("issue comment reopen routes", () => {
 
     const res = await request(await installActor(createApp()))
       .patch("/api/issues/11111111-1111-4111-8111-111111111111")
-      .send({ status: "done" });
+      .send({ status: "done", comment: "Completion evidence recorded." });
 
     expect(res.status).toBe(200);
     expect(mockHeartbeatService.cancelRun).not.toHaveBeenCalled();

@@ -176,7 +176,9 @@ describe("issue execution policy routes", () => {
     });
     mockAccessService.canUser.mockResolvedValue(false);
     mockAccessService.decide.mockImplementation(async (input: { actor?: { type?: string; source?: string }; action?: string }) => {
-      const allowed = input.actor?.type === "board" && input.actor.source === "local_implicit"
+      const allowed = input.action === "issue:read" || input.action === "issue:mutate"
+        ? true
+        : input.actor?.type === "board" && input.actor.source === "local_implicit"
         ? true
         : Boolean(await mockAccessService.canUser() || await mockAccessService.hasPermission());
       return {
@@ -440,6 +442,7 @@ describe("issue execution policy routes", () => {
   });
 
   it("allows an agent-authored in_review transition with a scheduled monitor", async () => {
+    mockAccessService.hasPermission.mockResolvedValue(true);
     const issue = {
       id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       companyId: "company-1",

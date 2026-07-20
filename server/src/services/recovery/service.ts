@@ -2515,22 +2515,31 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       successfulRunHandoffEvidence: input.successfulRunHandoffEvidence,
     });
     const blockerIds = await existingUnresolvedBlockerIssueIds(input.issue.companyId, input.issue.id);
-    const updated = await issuesSvc.update(input.issue.id, {
+    let updated = await issuesSvc.update(input.issue.id, {
       status: "blocked",
       blockedByIssueIds: blockerIds,
       assigneeAgentId: recoveryAction.ownerAgentId ?? input.issue.assigneeAgentId,
       expectedStatus: input.previousStatus,
     });
     if (!updated) {
-      await recoveryActionsSvc.resolveActiveForIssue({
-        companyId: input.issue.companyId,
-        sourceIssueId: input.issue.id,
-        actionId: recoveryAction.id,
-        status: "cancelled",
-        outcome: "false_positive",
-        resolutionNote: "Source issue received a newer disposition before recovery escalation could be applied.",
-      });
-      return null;
+      const currentIssue = await issuesSvc.getById(input.issue.id);
+      const expectedOwnerAgentId = recoveryAction.ownerAgentId ?? input.issue.assigneeAgentId;
+      if (
+        currentIssue?.status === "blocked" &&
+        currentIssue.assigneeAgentId === expectedOwnerAgentId
+      ) {
+        updated = currentIssue;
+      } else {
+        await recoveryActionsSvc.resolveActiveForIssue({
+          companyId: input.issue.companyId,
+          sourceIssueId: input.issue.id,
+          actionId: recoveryAction.id,
+          status: "cancelled",
+          outcome: "false_positive",
+          resolutionNote: "Source issue received a newer disposition before recovery escalation could be applied.",
+        });
+        return null;
+      }
     }
 
     const prefix = await getCompanyIssuePrefix(input.issue.companyId);
@@ -3816,6 +3825,70 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     return result;
   }
 
+  async function sweepStaleIssueLocks() {
+    const lockedIssues = await db
+      .select({
+        id: issues.id,
+        companyId: issues.companyId,
+        checkoutRunId: issues.checkoutRunId,
+        executionRunId: issues.executionRunId,
+      })
+      .from(issues)
+      .where(sql`${issues.checkoutRunId} is not null or ${issues.executionRunId} is not null`);
+
+    const referencedRunIds = [...new Set(
+      lockedIssues.flatMap((issue) => [issue.checkoutRunId, issue.executionRunId]).filter((id): id is string => Boolean(id)),
+    )];
+    if (referencedRunIds.length === 0) return { cleared: 0, issueIds: [] as string[] };
+
+    const runRows = await db
+      .select({ id: heartbeatRuns.id, status: heartbeatRuns.status })
+      .from(heartbeatRuns)
+      .where(inArray(heartbeatRuns.id, referencedRunIds));
+    const statusByRunId = new Map(runRows.map((run) => [run.id, run.status]));
+    const activeStatuses = new Set(["queued", "running", "scheduled_retry"]);
+    const clearedIssueIds: string[] = [];
+
+    for (const issue of lockedIssues) {
+      const issueRunIds = [...new Set([issue.checkoutRunId, issue.executionRunId].filter((id): id is string => Boolean(id)))];
+      if (issueRunIds.length === 0) continue;
+      if (issueRunIds.some((runId) => activeStatuses.has(statusByRunId.get(runId) ?? "missing"))) continue;
+
+      const [cleared] = await db
+        .update(issues)
+        .set({
+          checkoutRunId: null,
+          executionRunId: null,
+          executionAgentNameKey: null,
+          executionLockedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(issues.id, issue.id),
+          issue.checkoutRunId ? eq(issues.checkoutRunId, issue.checkoutRunId) : isNull(issues.checkoutRunId),
+          issue.executionRunId ? eq(issues.executionRunId, issue.executionRunId) : isNull(issues.executionRunId),
+        ))
+        .returning({ id: issues.id });
+      if (!cleared) continue;
+
+      clearedIssueIds.push(cleared.id);
+      await logActivity(db, {
+        companyId: issue.companyId,
+        actorType: "system",
+        actorId: "heartbeat_recovery",
+        action: "issue.stale_lock_cleared",
+        entityType: "issue",
+        entityId: issue.id,
+        details: {
+          clearedCheckoutRunId: issue.checkoutRunId,
+          clearedExecutionRunId: issue.executionRunId,
+        },
+      });
+    }
+
+    return { cleared: clearedIssueIds.length, issueIds: clearedIssueIds };
+  }
+
   function readRecoveryTimerIntervalMs(raw: unknown, fallback: number) {
     return Math.max(1, Math.floor(asNumber(raw, fallback)));
   }
@@ -3829,6 +3902,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     reconcileStrandedAssignedIssues,
     buildIssueGraphLivenessAutoRecoveryPreview,
     reconcileIssueGraphLiveness,
+    sweepStaleIssueLocks,
     readRecoveryTimerIntervalMs,
   };
 }

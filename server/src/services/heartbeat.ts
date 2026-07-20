@@ -13,6 +13,7 @@ import {
   DEFAULT_CODEX_LOCAL_QUOTA_SHORT_WINDOW_HOLD_USED_PERCENT,
   ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
   MODEL_PROFILE_KEYS,
+  envBindingSchema,
   isEnvironmentDriverSupportedForAdapter,
   type BillingType,
   type EnvironmentLeaseStatus,
@@ -26,6 +27,7 @@ import {
   type ModelProfileKey,
   type RoutineRevisionSnapshotV1,
   type RunLivenessState,
+  type SourceTrustMetadata,
 } from "@paperclipai/shared";
 import {
   agents,
@@ -34,6 +36,7 @@ import {
   agentWakeupRequests,
   activityLog,
   approvals,
+  companies,
   companySkills as companySkillsTable,
   documentAnnotationComments,
   documentAnnotationThreads,
@@ -163,6 +166,11 @@ import {
 import { recoveryService } from "./recovery/service.js";
 import { productivityReviewService } from "./productivity-review.js";
 import { withAgentStartLock } from "./agent-start-lock.js";
+import { evaluateAgentInvokabilityFromDb } from "./agent-invokability.js";
+import {
+  redactQuarantinedBodyForHigherTrust,
+  sanitizeQuarantinedCommentForHigherTrust,
+} from "./source-trust.js";
 import {
   redactCurrentUserText,
   redactCurrentUserValue,
@@ -183,6 +191,11 @@ import { environmentService } from "./environments.js";
 import { environmentRuntimeService } from "./environment-runtime.js";
 import { environmentRunOrchestrator } from "./environment-run-orchestrator.js";
 import { isUnsafeSessionWorkspaceCwd } from "./session-workspace-cwd.js";
+import {
+  assertLowTrustRuntimeServicesAllowed,
+  assertLowTrustWorkspaceIsolation,
+} from "./low-trust-runtime-containment.js";
+import { resolveCoreTrustPreset, type TrustPresetResolution } from "./trust-preset-resolver.js";
 import type { PluginWorkerManager } from "./plugin-worker-manager.js";
 
 const MAX_LIVE_LOG_CHUNK_BYTES = 8 * 1024;
@@ -560,6 +573,9 @@ type RuntimeConfigSecretResolver = Pick<
   "resolveAdapterConfigForRuntime" | "resolveEnvBindings"
 >;
 
+const LOW_TRUST_SENSITIVE_ENV_KEY_RE =
+  /(api[-_]?key|access[-_]?token|auth(?:_?token)?|authorization|bearer|secret|passwd|password|credential|jwt|private[-_]?key|cookie|connectionstring)/i;
+
 function isPaperclipRuntimeEnvKey(key: string) {
   return key.startsWith("PAPERCLIP_");
 }
@@ -580,6 +596,24 @@ function stripPaperclipRuntimeEnvFromAdapterConfig(config: Record<string, unknow
   };
 }
 
+function assertLowTrustEnvConfigAllowed(envValue: unknown, source: string) {
+  const record = stripPaperclipRuntimeEnvBindings(envValue);
+  if (!record) return;
+  for (const [key, rawBinding] of Object.entries(record)) {
+    const parsed = envBindingSchema.safeParse(rawBinding);
+    if (!parsed.success) continue;
+    const binding = parsed.data;
+    const isPlainBinding =
+      typeof binding === "string" ||
+      (typeof binding === "object" && binding !== null && binding.type === "plain");
+    if (isPlainBinding && LOW_TRUST_SENSITIVE_ENV_KEY_RE.test(key)) {
+      throw new HttpError(422, `Low-trust execution cannot use inline sensitive env value ${source}.${key}`, {
+        code: "low_trust_inline_sensitive_env_denied",
+      });
+    }
+  }
+}
+
 export async function resolveExecutionRunAdapterConfig(input: {
   companyId: string;
   agentId?: string | null;
@@ -591,10 +625,19 @@ export async function resolveExecutionRunAdapterConfig(input: {
   projectEnv: unknown;
   routineEnv?: unknown;
   secretsSvc: RuntimeConfigSecretResolver;
+  trustPreset?: TrustPresetResolution;
 }) {
   const executionRunConfig = stripPaperclipRuntimeEnvFromAdapterConfig(input.executionRunConfig);
   const projectEnv = stripPaperclipRuntimeEnvBindings(input.projectEnv);
   const routineEnv = stripPaperclipRuntimeEnvBindings(input.routineEnv);
+  const lowTrustAllowedBindingIds = input.trustPreset?.kind === "low_trust_review"
+    ? input.trustPreset.boundary.allowedSecretBindingIds ?? []
+    : undefined;
+  if (input.trustPreset?.kind === "low_trust_review") {
+    assertLowTrustEnvConfigAllowed(executionRunConfig.env, "agent.env");
+    assertLowTrustEnvConfigAllowed(projectEnv, "project.env");
+    assertLowTrustEnvConfigAllowed(routineEnv, "routine.env");
+  }
   const { config: resolvedConfig, secretKeys, manifest } = await input.secretsSvc.resolveAdapterConfigForRuntime(
     input.companyId,
     executionRunConfig,
@@ -606,6 +649,7 @@ export async function resolveExecutionRunAdapterConfig(input: {
           actorId: input.agentId,
           issueId: input.issueId ?? null,
           heartbeatRunId: input.heartbeatRunId ?? null,
+          ...(lowTrustAllowedBindingIds !== undefined ? { allowedBindingIds: lowTrustAllowedBindingIds } : {}),
         }
       : undefined,
   );
@@ -621,6 +665,7 @@ export async function resolveExecutionRunAdapterConfig(input: {
               actorId: input.agentId ?? null,
               issueId: input.issueId ?? null,
               heartbeatRunId: input.heartbeatRunId ?? null,
+              ...(lowTrustAllowedBindingIds !== undefined ? { allowedBindingIds: lowTrustAllowedBindingIds } : {}),
             }
           : undefined,
       )
@@ -646,6 +691,7 @@ export async function resolveExecutionRunAdapterConfig(input: {
               actorId: input.agentId ?? null,
               issueId: input.issueId ?? null,
               heartbeatRunId: input.heartbeatRunId ?? null,
+              ...(lowTrustAllowedBindingIds !== undefined ? { allowedBindingIds: lowTrustAllowedBindingIds } : {}),
             }
           : undefined,
       )
@@ -931,6 +977,79 @@ function buildExecutionWorkspaceConfigSnapshot(
     return true;
   }) || hasExplicitEnvironmentSelection;
   return hasSnapshot ? snapshot : null;
+}
+
+export function stripHostWorkspaceProvisionForLowTrustSandbox(input: {
+  config: Record<string, unknown>;
+  trustPreset: TrustPresetResolution;
+  selectedEnvironmentDriver: string | null | undefined;
+}): Record<string, unknown> {
+  if (input.trustPreset.kind !== "low_trust_review") return input.config;
+  if (input.selectedEnvironmentDriver !== "sandbox") return input.config;
+
+  const workspaceStrategy = parseObject(input.config.workspaceStrategy);
+  if (typeof workspaceStrategy.provisionCommand !== "string") return input.config;
+
+  const nextWorkspaceStrategy = { ...workspaceStrategy };
+  delete nextWorkspaceStrategy.provisionCommand;
+
+  return {
+    ...input.config,
+    workspaceStrategy: nextWorkspaceStrategy,
+  };
+}
+
+export async function preflightLowTrustWorkspaceIsolation(input: {
+  db?: Db;
+  trustPreset: TrustPresetResolution;
+  isolatedWorkspacesEnabled: boolean;
+  effectiveExecutionWorkspaceMode: string | null | undefined;
+  issue: { companyId: string; id?: string | null; projectId?: string | null } | null;
+  resolveSelectedEnvironmentDriver: () => Promise<string | null | undefined>;
+}): Promise<string | null> {
+  if (input.trustPreset.kind !== "denied" && input.trustPreset.kind !== "low_trust_review") {
+    return null;
+  }
+
+  const selectedEnvironmentDriver =
+    input.trustPreset.kind === "low_trust_review"
+      ? await input.resolveSelectedEnvironmentDriver()
+      : null;
+
+  await assertLowTrustWorkspaceIsolation({
+    db: input.db,
+    resolution: input.trustPreset,
+    isolatedWorkspacesEnabled: input.isolatedWorkspacesEnabled,
+    effectiveExecutionWorkspaceMode: input.effectiveExecutionWorkspaceMode,
+    selectedEnvironmentDriver,
+    issue: input.issue,
+  });
+
+  return selectedEnvironmentDriver ?? null;
+}
+
+export async function resolveWorkspaceAfterLowTrustPreflight<TWorkspace>(input: {
+  db?: Db;
+  trustPreset: TrustPresetResolution;
+  isolatedWorkspacesEnabled: boolean;
+  effectiveExecutionWorkspaceMode: string | null | undefined;
+  issue: { companyId: string; id?: string | null; projectId?: string | null } | null;
+  resolveSelectedEnvironmentDriver: () => Promise<string | null | undefined>;
+  resolveWorkspace: () => Promise<TWorkspace>;
+}): Promise<{ selectedEnvironmentDriver: string | null; workspace: TWorkspace }> {
+  const selectedEnvironmentDriver = await preflightLowTrustWorkspaceIsolation({
+    db: input.db,
+    trustPreset: input.trustPreset,
+    isolatedWorkspacesEnabled: input.isolatedWorkspacesEnabled,
+    effectiveExecutionWorkspaceMode: input.effectiveExecutionWorkspaceMode,
+    issue: input.issue,
+    resolveSelectedEnvironmentDriver: input.resolveSelectedEnvironmentDriver,
+  });
+
+  return {
+    selectedEnvironmentDriver,
+    workspace: await input.resolveWorkspace(),
+  };
 }
 
 function deriveRepoNameFromRepoUrl(repoUrl: string | null): string | null {
@@ -1942,6 +2061,7 @@ export function shouldResetTaskSessionForWake(
 
   const wakeReason = readNonEmptyString(contextSnapshot?.wakeReason);
   if (
+    wakeReason === "heartbeat_timer" ||
     wakeReason === "issue_assigned" ||
     wakeReason === "execution_review_requested" ||
     wakeReason === "execution_approval_requested" ||
@@ -2010,12 +2130,15 @@ export function formatRuntimeWorkspaceWarningLog(warning: string) {
   };
 }
 
-function describeSessionResetReason(
+export function describeSessionResetReason(
   contextSnapshot: Record<string, unknown> | null | undefined,
 ) {
   if (contextSnapshot?.forceFreshSession === true) return "forceFreshSession was requested";
 
   const wakeReason = readNonEmptyString(contextSnapshot?.wakeReason);
+  if (wakeReason === "heartbeat_timer") {
+    return "wake reason is heartbeat_timer (timer-driven wake starts fresh)";
+  }
   if (wakeReason === "issue_assigned") return "wake reason is issue_assigned";
   if (wakeReason === "execution_review_requested") return "wake reason is execution_review_requested";
   if (wakeReason === "execution_approval_requested") return "wake reason is execution_approval_requested";
@@ -2023,7 +2146,7 @@ function describeSessionResetReason(
   return null;
 }
 
-function shouldAutoCheckoutIssueForWake(input: {
+export function shouldAutoCheckoutIssueForWake(input: {
   contextSnapshot: Record<string, unknown> | null | undefined;
   issueStatus: string | null;
   issueAssigneeAgentId: string | null;
@@ -2046,6 +2169,9 @@ function shouldAutoCheckoutIssueForWake(input: {
   const wakeReason = readNonEmptyString(input.contextSnapshot?.wakeReason);
   if (!wakeReason) return false;
   if (wakeReason === "issue_comment_mentioned") return false;
+  if (wakeReason === "issue_commented" && !readNonEmptyString(input.contextSnapshot?.reopenedFrom)) {
+    return false;
+  }
   if (wakeReason === "source_scoped_recovery_action") return false;
   if (wakeReason.startsWith("execution_")) return false;
 
@@ -2288,7 +2414,7 @@ export function mergeCoalescedContextSnapshot(
   return merged;
 }
 
-async function buildPaperclipWakePayload(input: {
+export async function buildPaperclipWakePayload(input: {
   db: Db;
   companyId: string;
   contextSnapshot: Record<string, unknown>;
@@ -2297,6 +2423,7 @@ async function buildPaperclipWakePayload(input: {
         key: string;
         title: string | null;
         body: string;
+        sourceTrust?: SourceTrustMetadata | null;
         updatedAt: Date;
       }
     | null;
@@ -2308,8 +2435,11 @@ async function buildPaperclipWakePayload(input: {
         status: string;
         priority: string;
         workMode: string;
+        projectId?: string | null;
+        executionPolicy?: unknown;
       }
     | null;
+  exposeLowTrustRaw?: boolean;
 }) {
   const executionStage = parseObject(input.contextSnapshot.executionStage);
   const commentIds = extractWakeCommentIds(input.contextSnapshot);
@@ -2347,6 +2477,12 @@ async function buildPaperclipWakePayload(input: {
             authorUserId: issueComments.authorUserId,
             presentation: issueComments.presentation,
             metadata: issueComments.metadata,
+            deletedAt: issueComments.deletedAt,
+            deletedByType: issueComments.deletedByType,
+            deletedByAgentId: issueComments.deletedByAgentId,
+            deletedByUserId: issueComments.deletedByUserId,
+            deletedByRunId: issueComments.deletedByRunId,
+            sourceTrust: issueComments.sourceTrust,
             createdAt: issueComments.createdAt,
           })
           .from(issueComments)
@@ -2362,6 +2498,10 @@ async function buildPaperclipWakePayload(input: {
   let remainingBodyChars = MAX_INLINE_WAKE_COMMENT_BODY_TOTAL_CHARS;
   let truncated = false;
   let missingCommentCount = 0;
+  const safeContinuationSummary =
+    continuationSummary && !input.exposeLowTrustRaw
+      ? redactQuarantinedBodyForHigherTrust(continuationSummary)
+      : continuationSummary;
 
   for (const commentId of commentIds) {
     const row = commentsById.get(commentId);
@@ -2375,7 +2515,11 @@ async function buildPaperclipWakePayload(input: {
       break;
     }
 
-    const fullBody = row.body;
+    const deletedAt = row.deletedAt ?? null;
+    const safeRow = deletedAt || input.exposeLowTrustRaw
+      ? row
+      : sanitizeQuarantinedCommentForHigherTrust(row);
+    const fullBody = deletedAt ? "" : safeRow.body;
     const allowedBodyChars = Math.min(MAX_INLINE_WAKE_COMMENT_BODY_CHARS, remainingBodyChars);
     if (allowedBodyChars <= 0) {
       truncated = true;
@@ -2393,8 +2537,14 @@ async function buildPaperclipWakePayload(input: {
       authorType: row.authorType ?? (row.authorAgentId ? "agent" : row.authorUserId ? "user" : "system"),
       body,
       bodyTruncated,
-      presentation: row.presentation ?? null,
-      metadata: row.metadata ?? null,
+      presentation: deletedAt ? null : safeRow.presentation ?? null,
+      metadata: deletedAt ? null : safeRow.metadata ?? null,
+      deletedAt: deletedAt ? deletedAt.toISOString() : null,
+      deletedByType: deletedAt ? row.deletedByType ?? null : null,
+      deletedByAgentId: deletedAt ? row.deletedByAgentId ?? null : null,
+      deletedByUserId: deletedAt ? row.deletedByUserId ?? null : null,
+      deletedByRunId: deletedAt ? row.deletedByRunId ?? null : null,
+      sourceTrust: row.sourceTrust ?? null,
       createdAt: row.createdAt.toISOString(),
       author: row.authorAgentId
         ? { type: "agent", id: row.authorAgentId }
@@ -2497,16 +2647,17 @@ async function buildPaperclipWakePayload(input: {
       ? input.contextSnapshot.unresolvedBlockerSummaries
       : [],
     executionStage: Object.keys(executionStage).length > 0 ? executionStage : null,
-    continuationSummary: continuationSummary
+    continuationSummary: safeContinuationSummary
       ? {
-          key: continuationSummary.key,
-          title: continuationSummary.title,
+          key: safeContinuationSummary.key,
+          title: safeContinuationSummary.title,
           body:
-            continuationSummary.body.length > 4_000
-              ? continuationSummary.body.slice(0, 4_000)
-              : continuationSummary.body,
-          bodyTruncated: continuationSummary.body.length > 4_000,
-          updatedAt: continuationSummary.updatedAt.toISOString(),
+            safeContinuationSummary.body.length > 4_000
+              ? safeContinuationSummary.body.slice(0, 4_000)
+              : safeContinuationSummary.body,
+          bodyTruncated: safeContinuationSummary.body.length > 4_000,
+          sourceTrust: safeContinuationSummary.sourceTrust ?? null,
+          updatedAt: safeContinuationSummary.updatedAt.toISOString(),
         }
       : null,
     commentIds,
@@ -2901,6 +3052,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       .then((rows) => rows[0] ?? null);
   }
 
+  async function getCompanyStatus(companyId: string) {
+    return db
+      .select({ status: companies.status })
+      .from(companies)
+      .where(eq(companies.id, companyId))
+      .then((rows) => rows[0]?.status ?? null);
+  }
+
   async function getRun(runId: string, opts?: { unsafeFullResultJson?: boolean }) {
     const safeForLegacyEncoding = !opts?.unsafeFullResultJson && await hasUnsafeTextProjectionDatabase();
     return db
@@ -2940,6 +3099,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         executionWorkspacePreference: issues.executionWorkspacePreference,
         assigneeAgentId: issues.assigneeAgentId,
         assigneeAdapterOverrides: issues.assigneeAdapterOverrides,
+        executionPolicy: issues.executionPolicy,
         executionWorkspaceSettings: issues.executionWorkspaceSettings,
         originKind: issues.originKind,
         originId: issues.originId,
@@ -3463,7 +3623,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     }
 
     try {
-      await enqueueWakeup(claimed.assigneeAgentId, {
+      const run = await enqueueWakeup(claimed.assigneeAgentId, {
         source: input.source,
         triggerDetail: input.triggerDetail,
         reason: input.wakeReason,
@@ -3489,6 +3649,9 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           manualTrigger: input.activitySource === "manual",
         },
       });
+      if (!run) {
+        throw conflict("Issue monitor assignee is not invokable");
+      }
 
       await db
         .update(issues)
@@ -3664,8 +3827,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     const dueMonitors = await db
       .select(issueMonitorDispatchColumns)
       .from(issues)
+      .innerJoin(companies, eq(companies.id, issues.companyId))
       .where(
         and(
+          eq(companies.status, "active"),
           sql`${issues.monitorNextCheckAt} is not null`,
           lte(issues.monitorNextCheckAt, now),
           isNull(issues.assigneeUserId),
@@ -5418,7 +5583,9 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       };
     }
 
-    if (agent.status === "paused" || agent.status === "terminated" || agent.status === "pending_approval") {
+    const companyStatus = await getCompanyStatus(run.companyId);
+    const invokability = await evaluateAgentInvokabilityFromDb(db, agent);
+    if (companyStatus !== "active" || !invokability.invokable) {
       return {
         allowed: false,
         reason: "Scheduled retry suppressed because the agent is not invokable",
@@ -5427,6 +5594,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         details: {
           agentId: agent.id,
           agentStatus: agent.status,
+          companyStatus,
+          ...(!invokability.invokable ? { invokabilityReason: invokability.reason } : {}),
         },
       };
     }
@@ -6714,11 +6883,18 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     if (run.status !== "queued") return run;
     const agent = await getAgent(run.agentId);
     if (!agent) {
-      await cancelRunInternal(run.id, "Cancelled because the agent no longer exists");
+      await cancelRunInternal(run.id, "Cancelled because the agent no longer exists", {
+        startNextQueuedRun: false,
+      });
       return null;
     }
-    if (agent.status === "paused" || agent.status === "terminated" || agent.status === "pending_approval") {
-      await cancelRunInternal(run.id, "Cancelled because the agent is not invokable");
+    const companyStatus = await getCompanyStatus(run.companyId);
+    if (companyStatus !== "active") return null;
+    const invokability = await evaluateAgentInvokabilityFromDb(db, agent);
+    if (!invokability.invokable) {
+      await cancelRunInternal(run.id, `Cancelled because the agent is not invokable: ${invokability.reason}`, {
+        startNextQueuedRun: false,
+      });
       return null;
     }
 
@@ -6728,7 +6904,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       projectId: readNonEmptyString(context.projectId),
     });
     if (budgetBlock) {
-      await cancelRunInternal(run.id, budgetBlock.reason);
+      await cancelRunInternal(run.id, budgetBlock.reason, { startNextQueuedRun: false });
       return null;
     }
 
@@ -6750,7 +6926,9 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         contextSnapshot: context,
       });
       if (activePauseHold && !treeHoldInteractionWake) {
-        await cancelRunInternal(run.id, "Cancelled because issue is held by an active subtree pause hold");
+        await cancelRunInternal(run.id, "Cancelled because issue is held by an active subtree pause hold", {
+          startNextQueuedRun: false,
+        });
         await logActivity(db, {
           companyId: run.companyId,
           actorType: "system",
@@ -7788,6 +7966,12 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
               authorUserId: issueComments.authorUserId,
               presentation: issueComments.presentation,
               metadata: issueComments.metadata,
+              deletedAt: issueComments.deletedAt,
+              deletedByType: issueComments.deletedByType,
+              deletedByAgentId: issueComments.deletedByAgentId,
+              deletedByUserId: issueComments.deletedByUserId,
+              deletedByRunId: issueComments.deletedByRunId,
+              sourceTrust: issueComments.sourceTrust,
             })
             .from(issueComments)
             .where(and(
@@ -7795,7 +7979,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
               eq(issueComments.issueId, issueContext.id),
               eq(issueComments.companyId, agent.companyId),
             ))
-            .then((rows) => rows[0] ?? null)
+            .then((rows) => {
+              const comment = rows[0] ?? null;
+              if (!comment?.deletedAt) return comment;
+              return { ...comment, body: "", presentation: null, metadata: null };
+            })
         : null;
     const issueAssigneeOverrides =
       issueContext && issueContext.assigneeAgentId === agent.id
@@ -7856,6 +8044,25 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       parseProjectExecutionWorkspacePolicy(projectContext?.executionWorkspacePolicy),
       isolatedWorkspacesEnabled,
     );
+    const trustPreset = resolveCoreTrustPreset({
+      companyId: agent.companyId,
+      agent: {
+        companyId: agent.companyId,
+        permissions: agent.permissions,
+      },
+      project: projectContext
+        ? {
+            companyId: agent.companyId,
+            executionWorkspacePolicy: projectExecutionWorkspacePolicy,
+          }
+        : null,
+      issue: issueContext
+        ? {
+            companyId: agent.companyId,
+            executionPolicy: issueContext.executionPolicy,
+          }
+        : null,
+    });
     const taskSession = taskKey
       ? await getTaskSession(agent.companyId, agent.id, agent.adapterType, taskKey)
       : null;
@@ -7875,17 +8082,15 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       (explicitResumeSessionDisplayId ? { sessionId: explicitResumeSessionDisplayId } : null) ??
       normalizeSessionParams(sessionCodec.deserialize(taskSessionForRun?.sessionParamsJson ?? null));
     const config = parseObject(agent.adapterConfig);
-    const requestedExecutionWorkspaceMode = resolveExecutionWorkspaceMode({
+    const resolvedExecutionWorkspaceMode = resolveExecutionWorkspaceMode({
       projectPolicy: projectExecutionWorkspacePolicy,
       issueSettings: issueExecutionWorkspaceSettings,
       legacyUseProjectWorkspace: issueAssigneeOverrides?.useProjectWorkspace ?? null,
     });
-    const resolvedWorkspace = await resolveWorkspaceForRun(
-      agent,
-      context,
-      previousSessionParams,
-      { useProjectWorkspace: requestedExecutionWorkspaceMode !== "agent_default" },
-    );
+    const requestedExecutionWorkspaceMode =
+      trustPreset.kind === "low_trust_review" && resolvedExecutionWorkspaceMode === "shared_workspace"
+        ? "isolated_workspace"
+        : resolvedExecutionWorkspaceMode;
     const issueRef = issueContext
       ? {
           id: issueContext.id,
@@ -7905,12 +8110,22 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     const continuationSummary = issueRef && !skipContinuationSummary
       ? await getIssueContinuationSummaryDocument(db, issueRef.id)
       : null;
+    const exposeLowTrustRaw = trustPreset.kind === "low_trust_review";
+    const safeContinuationSummary =
+      continuationSummary && !exposeLowTrustRaw
+        ? redactQuarantinedBodyForHigherTrust(continuationSummary)
+        : continuationSummary;
+    const safeWakeCommentContext =
+      wakeCommentContext && !exposeLowTrustRaw
+        ? sanitizeQuarantinedCommentForHigherTrust(wakeCommentContext)
+        : wakeCommentContext;
     if (continuationSummary) {
       context.paperclipContinuationSummary = {
-        key: continuationSummary.key,
-        title: continuationSummary.title,
-        body: continuationSummary.body,
-        updatedAt: continuationSummary.updatedAt.toISOString(),
+        key: safeContinuationSummary!.key,
+        title: safeContinuationSummary!.title,
+        body: safeContinuationSummary!.body,
+        sourceTrust: safeContinuationSummary!.sourceTrust ?? null,
+        updatedAt: safeContinuationSummary!.updatedAt.toISOString(),
       };
     } else {
       delete context.paperclipContinuationSummary;
@@ -7928,8 +8143,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             status: issueRef.status,
             priority: issueRef.priority,
             workMode: issueRef.workMode,
+            projectId: issueRef.projectId,
+            executionPolicy: issueContext?.executionPolicy ?? null,
           }
         : null,
+      exposeLowTrustRaw,
     });
     if (paperclipWakePayload) {
       context[PAPERCLIP_WAKE_PAYLOAD_KEY] = paperclipWakePayload;
@@ -7946,7 +8164,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             description: issueRef.description,
           }
         : null,
-      wakeComment: wakeCommentContext,
+      wakeComment: safeWakeCommentContext,
       interaction: {
         kind: readNonEmptyString(context.interactionKind),
         status: readNonEmptyString(context.interactionStatus),
@@ -7971,7 +8189,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       delete context.paperclipIssue;
     }
     if (wakeCommentContext) {
-      context.paperclipWakeComment = wakeCommentContext;
+      context.paperclipWakeComment = safeWakeCommentContext;
     } else {
       delete context.paperclipWakeComment;
     }
@@ -7986,14 +8204,25 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       issueRef?.executionWorkspacePreference === "reuse_existing" &&
       existingExecutionWorkspace !== null &&
       existingExecutionWorkspace.status !== "archived";
-    const canAutoReuseSharedWorkspace = canReuseSharedExecutionWorkspace({
-      workspace: existingExecutionWorkspace,
-      requestedMode: requestedExecutionWorkspaceMode,
-      projectId: executionProjectId ?? null,
-      projectWorkspaceId: issueRef?.projectWorkspaceId ?? resolvedWorkspace.workspaceId ?? null,
-      cwd: resolvedWorkspace.cwd,
-      forceFresh: resetTaskSession || context.forceFreshSession === true,
-    });
+    const trustedResolvedWorkspace =
+      trustPreset.kind !== "low_trust_review" && trustPreset.kind !== "denied"
+        ? await resolveWorkspaceForRun(
+            agent,
+            context,
+            previousSessionParams,
+            { useProjectWorkspace: requestedExecutionWorkspaceMode !== "agent_default" },
+          )
+        : null;
+    const canAutoReuseSharedWorkspace = trustedResolvedWorkspace
+      ? canReuseSharedExecutionWorkspace({
+          workspace: existingExecutionWorkspace,
+          requestedMode: requestedExecutionWorkspaceMode,
+          projectId: executionProjectId ?? null,
+          projectWorkspaceId: issueRef?.projectWorkspaceId ?? trustedResolvedWorkspace.workspaceId ?? null,
+          cwd: trustedResolvedWorkspace.cwd,
+          forceFresh: resetTaskSession || context.forceFreshSession === true,
+        })
+      : false;
     const shouldRequestExistingWorkspace = requestedShouldReuseExisting || canAutoReuseSharedWorkspace;
     const requestedReusableExecutionWorkspaceConfig = shouldRequestExistingWorkspace
       ? existingExecutionWorkspace?.config ?? null
@@ -8042,6 +8271,38 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         ? persistedExecutionWorkspaceMode
         : requestedExecutionWorkspaceMode;
     const selectedEnvironmentId = environmentResolution.environmentId;
+    const {
+      selectedEnvironmentDriver: lowTrustPreflightEnvironmentDriver,
+      workspace: resolvedWorkspace,
+    } = await resolveWorkspaceAfterLowTrustPreflight({
+      db,
+      trustPreset,
+      isolatedWorkspacesEnabled,
+      effectiveExecutionWorkspaceMode,
+      issue: issueRef
+        ? {
+            companyId: agent.companyId,
+            id: issueRef.id,
+            projectId: issueRef.projectId,
+          }
+        : null,
+      resolveSelectedEnvironmentDriver: async () => {
+        const preflightEnvironment = await envOrchestrator.resolveEnvironment({
+          companyId: agent.companyId,
+          selectedEnvironmentId,
+          defaultEnvironmentId: defaultEnvironment.id,
+        });
+        return preflightEnvironment.driver;
+      },
+      resolveWorkspace: () => trustedResolvedWorkspace
+        ? Promise.resolve(trustedResolvedWorkspace)
+        : resolveWorkspaceForRun(
+            agent,
+            context,
+            previousSessionParams,
+            { useProjectWorkspace: requestedExecutionWorkspaceMode !== "agent_default" },
+          ),
+    });
     const workspaceManagedConfig = shouldReuseExisting
       ? { ...config }
       : buildExecutionWorkspaceAdapterConfig({
@@ -8128,6 +8389,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       projectEnv: projectContext?.env ?? null,
       routineEnv: routineEnvContext.env,
       secretsSvc,
+      trustPreset,
     });
     if (secretManifest.length > 0) {
       context.paperclipSecrets = {
@@ -8150,6 +8412,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       ...effectiveResolvedConfig,
       paperclipRuntimeSkills: runtimeSkillEntries,
     };
+    const hostExecutionWorkspaceConfig = stripHostWorkspaceProvisionForLowTrustSandbox({
+      config: runtimeConfig,
+      trustPreset,
+      selectedEnvironmentDriver: lowTrustPreflightEnvironmentDriver,
+    });
     const workspaceOperationRecorder = workspaceOperationsSvc.createRecorder({
       companyId: agent.companyId,
       heartbeatRunId: run.id,
@@ -8198,7 +8465,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       : null;
     const executionWorkspace = reusedExecutionWorkspace ?? await realizeExecutionWorkspace({
           base: executionWorkspaceBase,
-          config: runtimeConfig,
+          config: hostExecutionWorkspaceConfig,
           issue: issueRef,
           agent: {
             id: agent.id,
@@ -8463,6 +8730,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           )
         : [];
     })();
+    assertLowTrustRuntimeServicesAllowed({
+      resolution: trustPreset,
+      runtimeServiceCount: runtimeServiceIntents.length,
+    });
     if (runtimeServiceIntents.length > 0) {
       context.paperclipRuntimeServiceIntents = runtimeServiceIntents;
     } else {
@@ -9743,6 +10014,39 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
 
     const agent = await getAgent(agentId);
     if (!agent) throw notFound("Agent not found");
+    const companyStatus = await getCompanyStatus(agent.companyId);
+    const explicitInvoke = source === "on_demand" && opts.requestedByActorType === "user";
+    if (companyStatus !== "active") {
+      if (explicitInvoke) {
+        throw conflict("Company is not active", { status: companyStatus });
+      }
+      await db.insert(agentWakeupRequests).values({
+        companyId: agent.companyId,
+        agentId,
+        source,
+        triggerDetail,
+        reason: "company.inactive",
+        payload,
+        status: "skipped",
+        requestedByActorType: opts.requestedByActorType ?? null,
+        requestedByActorId: opts.requestedByActorId ?? null,
+        idempotencyKey: opts.idempotencyKey ?? null,
+        error: `Wake suppressed because company status is ${companyStatus ?? "missing"}`,
+        finishedAt: new Date(),
+      });
+      return null;
+    }
+    const invokability = await evaluateAgentInvokabilityFromDb(db, agent);
+    if (!invokability.invokable) {
+      if (explicitInvoke) {
+        throw conflict(invokability.message, {
+          ...invokability.details,
+          reason: invokability.reason,
+          invalidOrgChain: invokability.invalidOrgChain,
+        });
+      }
+      return null;
+    }
     const explicitResumeSession = await resolveExplicitResumeSessionOverride(agent, payload, taskKey);
     if (explicitResumeSession) {
       enrichedContextSnapshot.resumeFromRunId = explicitResumeSession.resumeFromRunId;
@@ -10537,7 +10841,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     return wakeupIds.length;
   }
 
-  async function cancelRunInternal(runId: string, reason = "Cancelled by control plane") {
+  async function cancelRunInternal(
+    runId: string,
+    reason = "Cancelled by control plane",
+    options: { startNextQueuedRun?: boolean } = {},
+  ) {
     const run = await getRun(runId);
     if (!run) throw notFound("Heartbeat run not found");
     if (!CANCELLABLE_HEARTBEAT_RUN_STATUSES.includes(run.status as (typeof CANCELLABLE_HEARTBEAT_RUN_STATUSES)[number])) return run;
@@ -10587,7 +10895,9 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
 
     runningProcesses.delete(run.id);
     await finalizeAgentStatus(run.agentId, "cancelled");
-    await startNextQueuedRunForAgent(run.agentId);
+    if (options.startNextQueuedRun !== false) {
+      await startNextQueuedRunForAgent(run.agentId);
+    }
     return cancelled;
   }
 
@@ -10955,6 +11265,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
 
     reconcileIssueGraphLiveness,
 
+    sweepStaleIssueLocks: recovery.sweepStaleIssueLocks,
+
     scanSilentActiveRuns,
 
     reconcileProductivityReviews,
@@ -10962,7 +11274,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     buildRunOutputSilence,
 
     tickTimers: async (now = new Date()) => {
-      const allAgents = await db.select().from(agents);
+      const allAgents = await db
+        .select({ agent: agents })
+        .from(agents)
+        .innerJoin(companies, and(eq(companies.id, agents.companyId), eq(companies.status, "active")))
+        .then((rows) => rows.map((row) => row.agent));
       let checked = 0;
       let enqueued = 0;
       let skipped = 0;

@@ -38,6 +38,17 @@ export function resolveShell(): string {
   return shell;
 }
 
+export function resolveShellCommandArgs(shell: string, command: string, login = false): string[] {
+  const executable = path.basename(shell).toLowerCase();
+  if (executable === "powershell" || executable === "powershell.exe" || executable === "pwsh" || executable === "pwsh.exe") {
+    return ["-NoProfile", "-NonInteractive", "-Command", command];
+  }
+  if (executable === "cmd" || executable === "cmd.exe") {
+    return ["/d", "/s", "/c", command];
+  }
+  return [login ? "-lc" : "-c", command];
+}
+
 export interface ExecutionWorkspaceInput {
   baseCwd: string;
   source: "project_primary" | "task_session" | "agent_home";
@@ -273,7 +284,7 @@ export async function ensureServerWorkspaceLinksCurrent(
     const linkPath = path.join(workspaceRoot, "server", "node_modules", ...mismatch.packageName.split("/"));
     await fs.mkdir(path.dirname(linkPath), { recursive: true });
     await fs.rm(linkPath, { recursive: true, force: true });
-    await fs.symlink(mismatch.expectedPath, linkPath);
+    await fs.symlink(mismatch.expectedPath, linkPath, process.platform === "win32" ? "junction" : "dir");
   }
 
   const remainingMismatches = findServerWorkspaceLinkMismatches(workspaceRoot);
@@ -862,7 +873,7 @@ async function runWorkspaceCommand(input: {
   const shell = resolveShell();
   const proc = await executeProcess({
     command: shell,
-    args: ["-c", input.resolvedCommand ?? input.command],
+    args: resolveShellCommandArgs(shell, input.resolvedCommand ?? input.command),
     cwd: input.cwd,
     env: input.env,
   });
@@ -968,7 +979,7 @@ async function recordWorkspaceCommandOperation(
       const shell = resolveShell();
       const result = await executeProcess({
         command: shell,
-        args: ["-c", input.resolvedCommand ?? input.command],
+        args: resolveShellCommandArgs(shell, input.resolvedCommand ?? input.command),
         cwd: input.cwd,
         env: input.env,
       });
@@ -1681,10 +1692,14 @@ function renderRuntimeServiceEnv(input: {
   envConfig: Record<string, unknown>;
   templateData: ReturnType<typeof buildTemplateData>;
 }) {
+  const pathKeys = new Set(["PAPERCLIP_HOME", "PAPERCLIP_CONFIG", "PAPERCLIP_CONTEXT"]);
   const rendered: Record<string, string> = {};
   for (const [key, value] of Object.entries(input.envConfig)) {
     if (typeof value !== "string") continue;
-    rendered[key] = renderTemplate(value, input.templateData);
+    const renderedValue = renderTemplate(value, input.templateData);
+    rendered[key] = pathKeys.has(key) && renderedValue.trim().length > 0
+      ? path.normalize(renderedValue)
+      : renderedValue;
   }
   return rendered;
 }
@@ -2237,12 +2252,19 @@ async function startLocalRuntimeService(input: {
     onLog: input.onLog,
   });
 
-  const shell = resolveShell();
-  const child = spawn(shell, ["-lc", command], {
+  const shell = process.platform === "win32"
+    ? (process.env.ComSpec?.trim() || "cmd.exe")
+    : resolveShell();
+  const child = spawn(shell, resolveShellCommandArgs(shell, command, true), {
     cwd: serviceCwd,
     env,
     detached: process.platform !== "win32",
     stdio: ["ignore", "pipe", "pipe"],
+    // Node's default Windows argv escaping preserves the quotes inside a
+    // `cmd.exe /c` command as literal characters.  That turns e.g.
+    // `node -e "..."` into a JavaScript string literal instead of code.
+    // cmd.exe owns the command-line parsing here, so pass its argv verbatim.
+    windowsVerbatimArguments: process.platform === "win32",
   });
   const spawnErrorPromise = new Promise<never>((_, reject) => {
     child.once("error", (err) => {

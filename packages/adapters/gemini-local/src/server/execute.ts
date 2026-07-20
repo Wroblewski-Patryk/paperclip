@@ -503,6 +503,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     heartbeatPromptChars: renderedPrompt.length,
   };
 
+  // npm exposes Gemini as a .cmd shim on Windows. Literal line breaks in an
+  // argument are reinterpreted by cmd.exe as command separators, so preserve
+  // the prompt text as one command-line argument by flattening only newlines.
+  const commandPrompt = process.platform === "win32" ? prompt.replace(/\r?\n/g, " ") : prompt;
+
   const buildArgs = (resumeSessionId: string | null) => {
     const args = ["--output-format", "stream-json"];
     if (resumeSessionId) args.push("--resume", resumeSessionId);
@@ -514,7 +519,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       args.push("--sandbox=none");
     }
     if (extraArgs.length > 0) args.push(...extraArgs);
-    args.push("--prompt", prompt);
+    args.push("--prompt", commandPrompt);
     return args;
   };
 

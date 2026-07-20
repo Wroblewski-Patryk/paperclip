@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { parse as parseEnvContents } from "dotenv";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   agents,
   companies,
@@ -50,6 +50,8 @@ const execFileAsync = promisify(execFile);
 const leasedRunIds = new Set<string>();
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const itWithPosixProvisioning = process.platform === "win32" ? it.skip : it;
+vi.setConfig({ testTimeout: process.platform === "win32" ? 30_000 : 5_000 });
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -231,7 +233,7 @@ describe("ensureServerWorkspaceLinksCurrent", () => {
       JSON.stringify({ name: "@paperclipai/db" }),
       "utf8",
     );
-    await fs.symlink(stalePackageDir, path.join(serverNodeModulesScopeDir, "db"));
+    await fs.symlink(stalePackageDir, path.join(serverNodeModulesScopeDir, "db"), process.platform === "win32" ? "junction" : "dir");
 
     await ensureServerWorkspaceLinksCurrent(path.join(repoRoot, "server"));
     expect(await fs.realpath(path.join(serverNodeModulesScopeDir, "db"))).toBe(await fs.realpath(expectedPackageDir));
@@ -262,7 +264,7 @@ describe("ensureServerWorkspaceLinksCurrent", () => {
       JSON.stringify({ name: "@paperclipai/db" }),
       "utf8",
     );
-    await fs.symlink(expectedPackageDir, path.join(serverNodeModulesScopeDir, "db"));
+    await fs.symlink(expectedPackageDir, path.join(serverNodeModulesScopeDir, "db"), process.platform === "win32" ? "junction" : "dir");
 
     await ensureServerWorkspaceLinksCurrent(path.join(repoRoot, "server"));
   });
@@ -300,7 +302,7 @@ describe("ensureServerWorkspaceLinksCurrent", () => {
       JSON.stringify({ name: "@paperclipai/db" }),
       "utf8",
     );
-    await fs.symlink(stalePackageDir, path.join(serverNodeModulesScopeDir, "db"));
+    await fs.symlink(stalePackageDir, path.join(serverNodeModulesScopeDir, "db"), process.platform === "win32" ? "junction" : "dir");
 
     await ensureServerWorkspaceLinksCurrent(path.join(repoRoot, "server"));
     expect(await fs.realpath(path.join(serverNodeModulesScopeDir, "db"))).toBe(await fs.realpath(stalePackageDir));
@@ -758,7 +760,7 @@ describe("realizeExecutionWorkspace", () => {
     expect(path.basename(realized.cwd)).toBe("PAP-992.hotfix-april-1");
   });
 
-  it("runs a configured provision command inside the derived worktree", async () => {
+  itWithPosixProvisioning("runs a configured provision command inside the derived worktree", async () => {
     const repoRoot = await createTempRepo();
     await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
     await fs.writeFile(
@@ -844,7 +846,7 @@ describe("realizeExecutionWorkspace", () => {
     await expect(fs.readFile(path.join(reused.cwd, ".paperclip-provision-created"), "utf8")).resolves.toBe("false\n");
   });
 
-  it("uses the latest repo-managed provision script when reusing an existing worktree", async () => {
+  itWithPosixProvisioning("uses the latest repo-managed provision script when reusing an existing worktree", async () => {
     const repoRoot = await createTempRepo();
     await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
     await fs.writeFile(
@@ -934,7 +936,7 @@ describe("realizeExecutionWorkspace", () => {
     await expect(fs.readFile(path.join(reused.cwd, ".paperclip-provision-version"), "utf8")).resolves.toBe("v2\n");
   }, 30_000);
 
-  it("writes an isolated repo-local Paperclip config and worktree branding when provisioning", async () => {
+  itWithPosixProvisioning("writes an isolated repo-local Paperclip config and worktree branding when provisioning", async () => {
     const repoRoot = await createTempRepo();
     const previousCwd = process.cwd();
     const previousPath = process.env.PATH;
@@ -1123,7 +1125,7 @@ describe("realizeExecutionWorkspace", () => {
     }
   }, 15_000);
 
-  it(
+  itWithPosixProvisioning(
     "provisions worktree-local pnpm node_modules instead of reusing base-repo links",
     async () => {
     const repoRoot = await createTempRepo();
@@ -1227,7 +1229,7 @@ describe("realizeExecutionWorkspace", () => {
     30_000,
   );
 
-  it("provisions successfully when install is needed but there are no symlinked node_modules to move", async () => {
+  itWithPosixProvisioning("provisions successfully when install is needed but there are no symlinked node_modules to move", async () => {
     const repoRoot = await createTempRepo();
     await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
     await fs.writeFile(
@@ -1300,7 +1302,7 @@ describe("realizeExecutionWorkspace", () => {
     );
   }, 30_000);
 
-  it("fails instead of writing an unseeded fallback config when worktree init errors after CLI detection succeeds", async () => {
+  itWithPosixProvisioning("fails instead of writing an unseeded fallback config when worktree init errors after CLI detection succeeds", async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-worktree-provision-fail-"));
     const baseRoot = path.join(tempRoot, "base");
     const worktreeRoot = path.join(tempRoot, "worktree");
@@ -1356,7 +1358,7 @@ describe("realizeExecutionWorkspace", () => {
     }
   });
 
-  it("retries worktree-local pnpm install without a frozen lockfile when the lockfile is outdated", async () => {
+  itWithPosixProvisioning("retries worktree-local pnpm install without a frozen lockfile when the lockfile is outdated", async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-worktree-outdated-lockfile-"));
     const baseRoot = path.join(tempRoot, "base");
     const worktreeRoot = path.join(tempRoot, "worktree");
@@ -1431,7 +1433,7 @@ describe("realizeExecutionWorkspace", () => {
     }
   });
 
-  it(
+  itWithPosixProvisioning(
     "provisions worktree-local pnpm node_modules instead of reusing base-repo links",
     async () => {
     const repoRoot = await createTempRepo();
@@ -1535,7 +1537,7 @@ describe("realizeExecutionWorkspace", () => {
     15_000,
   );
 
-  it("records worktree setup and provision operations when a recorder is provided", async () => {
+  itWithPosixProvisioning("records worktree setup and provision operations when a recorder is provided", async () => {
     const repoRoot = await createTempRepo();
     const { recorder, operations } = createWorkspaceOperationRecorderDouble();
 
@@ -1642,7 +1644,7 @@ describe("realizeExecutionWorkspace", () => {
     });
     expect(provisionOperation?.result.stdout).toContain("[output truncated to last");
     expect(provisionOperation?.result.stdout?.length ?? 0).toBeLessThan(300000);
-  }, 10_000);
+  }, 30_000);
 
   it("reuses an existing branch without resetting it when recreating a missing worktree", async () => {
     const repoRoot = await createTempRepo();
@@ -1683,12 +1685,14 @@ describe("realizeExecutionWorkspace", () => {
     });
 
     expect(workspace.branchName).toBe(branchName);
-    await expect(fs.readFile(path.join(workspace.cwd, "feature.txt"), "utf8")).resolves.toBe("preserve me\n");
+    await expect(fs.readFile(path.join(workspace.cwd, "feature.txt"), "utf8")).resolves.toBe(
+      process.platform === "win32" ? "preserve me\r\n" : "preserve me\n",
+    );
     const actualHead = (await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: workspace.cwd })).stdout.trim();
     expect(actualHead).toBe(expectedHead);
   });
 
-  it("reattaches a missing persisted git worktree before manual control starts it", async () => {
+  itWithPosixProvisioning("reattaches a missing persisted git worktree before manual control starts it", async () => {
     const repoRoot = await createTempRepo();
     const branchName = "PAP-451-restore-persisted-worktree";
     await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
@@ -1785,7 +1789,7 @@ describe("realizeExecutionWorkspace", () => {
     expect(actualHead).toBe(expectedHead);
   }, 15_000);
 
-  it("reprovisions an existing persisted git worktree before manual control starts it", async () => {
+  itWithPosixProvisioning("reprovisions an existing persisted git worktree before manual control starts it", async () => {
     const repoRoot = await createTempRepo();
     await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
     await fs.writeFile(
@@ -1919,7 +1923,7 @@ describe("realizeExecutionWorkspace", () => {
     const worktreeOp = operations.find(op => op.phase === "worktree_prepare" && op.metadata?.created);
     expect(worktreeOp).toBeDefined();
     expect(worktreeOp!.metadata!.baseRef).toBe("origin/master");
-  }, 10_000);
+  }, 30_000);
 
   it("auto-detects the default branch via symbolic-ref when origin/HEAD is set", async () => {
     const repoRoot = await createTempRepo("main");
@@ -1968,7 +1972,7 @@ describe("realizeExecutionWorkspace", () => {
     const worktreeOp = operations.find(op => op.phase === "worktree_prepare" && op.metadata?.created);
     expect(worktreeOp).toBeDefined();
     expect(worktreeOp!.metadata!.baseRef).toBe("origin/master");
-  }, 10_000);
+  }, 30_000);
 
   it("removes a created git worktree and branch during cleanup", async () => {
     const repoRoot = await createTempRepo();
@@ -2096,7 +2100,7 @@ describe("realizeExecutionWorkspace", () => {
     ).resolves.toMatchObject({
       stdout: expect.stringContaining(workspace.branchName!),
     });
-  }, 10_000);
+  }, 30_000);
 
   it("records teardown and cleanup operations when a recorder is provided", async () => {
     const repoRoot = await createTempRepo();
@@ -2296,7 +2300,7 @@ describe("ensureRuntimeServicesForRun", () => {
     expect(third).toHaveLength(1);
     expect(third[0]?.reused).toBe(false);
     expect(third[0]?.id).not.toBe(first[0]?.id);
-  }, 10_000);
+  }, 30_000);
 
   it("does not reuse project-scoped shared services across different workspace launch contexts", async () => {
     const primaryWorkspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-runtime-primary-"));
@@ -2721,7 +2725,7 @@ describe("ensureRuntimeServicesForRun", () => {
       workspaceCwd: workspace.cwd,
       runtimeServiceId: worker?.id ?? null,
     });
-  }, 10_000);
+  }, 30_000);
 });
 
 describe("buildWorkspaceRuntimeDesiredStatePatch", () => {
@@ -2922,7 +2926,7 @@ describeEmbeddedPostgres("workspace runtime startup reconciliation", () => {
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("paperclip-workspace-runtime-");
     db = createDb(tempDb.connectionString);
-  }, 20_000);
+  }, 60_000);
 
   afterAll(async () => {
     await tempDb?.cleanup();

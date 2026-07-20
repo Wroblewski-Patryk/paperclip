@@ -19,6 +19,7 @@ vi.mock("../services/index.js", () => ({
     previewImport: vi.fn(),
     importBundle: vi.fn(),
   }),
+  companyArtifactsService: () => ({}),
   accessService: () => ({
     canUser: vi.fn(),
     ensureMembership: vi.fn(),

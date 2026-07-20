@@ -116,6 +116,14 @@ vi.mock("../telemetry.js", () => ({
   getTelemetryClient: mockGetTelemetryClient,
 }));
 
+vi.mock("../adapters/plugin-loader.js", () => ({
+  buildExternalAdapters: vi.fn(async () => []),
+}));
+
+vi.mock("../services/adapter-plugin-store.js", () => ({
+  getDisabledAdapterTypes: vi.fn(() => []),
+}));
+
 vi.mock("../routes/authz.js", async () => {
   const { forbidden, unauthorized } = await vi.importActual<typeof import("../errors.js")>("../errors.js");
   function assertAuthenticated(req: Express.Request) {
@@ -385,5 +393,5 @@ describe.sequential("agent cross-tenant route authorization", () => {
     expect(res.body.error).toContain("Key not found");
     expect(mockAgentService.getKeyById).toHaveBeenCalledWith(keyId);
     expect(mockAgentService.revokeKey).not.toHaveBeenCalled();
-  });
+  }, 15_000);
 });

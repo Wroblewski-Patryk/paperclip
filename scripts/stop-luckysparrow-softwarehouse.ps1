@@ -36,8 +36,11 @@ if (-not $pidValue) {
 
 $process = Get-Process -Id ([int]$pidValue) -ErrorAction SilentlyContinue
 if ($process) {
-  Stop-Process -Id $process.Id -Force
-  Write-Output "Stopped LuckySparrow Software House PID $pidValue"
+  & taskkill.exe /PID $process.Id /T /F | Write-Output
+  if ($LASTEXITCODE -ne 0) {
+    throw "Failed to stop LuckySparrow Software House process tree rooted at PID $pidValue"
+  }
+  Write-Output "Stopped LuckySparrow Software House process tree rooted at PID $pidValue"
 } else {
   Write-Output "No running process found for PID $pidValue"
 }

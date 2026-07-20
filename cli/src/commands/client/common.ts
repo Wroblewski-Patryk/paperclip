@@ -27,6 +27,50 @@ export interface ResolvedClientContext {
   authSource: "explicit" | "env" | "profile_env" | "stored_board" | "none";
 }
 
+type ApiPassthroughOptions = BaseClientOptions & Record<string, unknown>;
+
+export function registerApiPassthroughCommand(
+  parent: Command,
+  spec: {
+    usage: string;
+    description: string;
+    method: "get" | "post" | "patch" | "put" | "delete";
+    configure?: (command: Command) => void;
+    requireCompany?: boolean;
+    path: (args: string[], options: ApiPassthroughOptions, context: ResolvedClientContext) => string;
+    body?: (args: string[], options: ApiPassthroughOptions) => unknown;
+  },
+): void {
+  const command = parent.command(spec.usage).description(spec.description);
+  spec.configure?.(command);
+  addCommonClientOptions(command);
+  command.action(async (...actionArgs: unknown[]) => {
+    const invokedCommand = actionArgs.at(-1) as Command;
+    const args = actionArgs.slice(0, -2).map(String);
+    const options = invokedCommand.opts() as ApiPassthroughOptions;
+    try {
+      const context = resolveCommandContext(options, { requireCompany: spec.requireCompany });
+      const path = spec.path(args, options, context);
+      const body = spec.body?.(args, options);
+      const result = spec.method === "get" || spec.method === "delete"
+        ? await context.api[spec.method]<unknown>(path)
+        : await context.api[spec.method]<unknown>(path, body ?? {});
+      printOutput(result, { json: context.json });
+    } catch (error) {
+      handleCommandError(error);
+    }
+  });
+}
+
+export function parseJsonOption(value: unknown, label = "--payload-json"): unknown {
+  if (typeof value !== "string" || value.trim().length === 0) return {};
+  try {
+    return JSON.parse(value);
+  } catch {
+    throw new Error(`${label} must contain valid JSON.`);
+  }
+}
+
 export function addCommonClientOptions(command: Command, opts?: { includeCompany?: boolean }): Command {
   command
     .option("-c, --config <path>", "Path to Paperclip config file")

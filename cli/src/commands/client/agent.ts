@@ -13,6 +13,8 @@ import {
   formatInlineRecord,
   handleCommandError,
   printOutput,
+  parseJsonOption,
+  registerApiPassthroughCommand,
   resolveCommandContext,
   type BaseClientOptions,
 } from "./common.js";
@@ -308,6 +310,119 @@ export function registerAgentCommands(program: Command): void {
           console.log(exportsText);
         } catch (err) {
           handleCommandError(err);
+        }
+      }),
+    { includeCompany: false },
+  );
+
+  const payloadOption = (command: Command) => command.requiredOption("--payload-json <json>", "JSON payload");
+  const agentIdPath = (suffix = "") => ([agentId]: string[]) => `/api/agents/${agentId}${suffix}`;
+
+  registerApiPassthroughCommand(agent, {
+    usage: "create", description: "Create an agent", method: "post", requireCompany: true,
+    configure: (command) => payloadOption(command.requiredOption("-C, --company-id <id>", "Company ID")),
+    path: (_args, _options, context) => `/api/companies/${context.companyId}/agents`,
+    body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  registerApiPassthroughCommand(agent, {
+    usage: "hire", description: "Create an agent hire request", method: "post", requireCompany: true,
+    configure: (command) => payloadOption(command.requiredOption("-C, --company-id <id>", "Company ID")),
+    path: (_args, _options, context) => `/api/companies/${context.companyId}/agent-hires`,
+    body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  registerApiPassthroughCommand(agent, {
+    usage: "update <agentId>", description: "Update an agent", method: "patch", configure: payloadOption,
+    path: agentIdPath(), body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  for (const [name, suffix] of [
+    ["pause", "/pause"], ["resume", "/resume"], ["approve", "/approve"],
+    ["terminate", "/terminate"], ["heartbeat:invoke", "/heartbeat/invoke"], ["claude-login", "/claude-login"],
+  ] as const) {
+    registerApiPassthroughCommand(agent, {
+      usage: `${name} <agentId>`, description: `${name} agent`, method: "post", path: agentIdPath(suffix),
+    });
+  }
+  registerApiPassthroughCommand(agent, {
+    usage: "delete <agentId>", description: "Delete an agent", method: "delete",
+    configure: (command) => command.option("--yes", "Confirm deletion"), path: agentIdPath(),
+  });
+  registerApiPassthroughCommand(agent, {
+    usage: "permissions:update <agentId>", description: "Update agent permissions", method: "patch", configure: payloadOption,
+    path: agentIdPath("/permissions"), body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  for (const [name, suffix] of [
+    ["configuration", "/configuration"], ["config-revisions", "/config-revisions"],
+    ["runtime-state", "/runtime-state"], ["task-sessions", "/task-sessions"],
+    ["skills", "/skills"], ["instructions-bundle", "/instructions-bundle"],
+  ] as const) {
+    registerApiPassthroughCommand(agent, {
+      usage: `${name} <agentId>`, description: `Get agent ${name}`, method: "get", path: agentIdPath(suffix),
+    });
+  }
+  registerApiPassthroughCommand(agent, {
+    usage: "config-revision:get <agentId> <revisionId>", description: "Get an agent config revision", method: "get",
+    path: ([agentId, revisionId]) => `/api/agents/${agentId}/config-revisions/${revisionId}`,
+  });
+  registerApiPassthroughCommand(agent, {
+    usage: "config-revision:rollback <agentId> <revisionId>", description: "Rollback an agent config revision", method: "post",
+    path: ([agentId, revisionId]) => `/api/agents/${agentId}/config-revisions/${revisionId}/rollback`,
+  });
+  registerApiPassthroughCommand(agent, {
+    usage: "runtime-state:reset-session <agentId>", description: "Reset an agent runtime session", method: "post",
+    configure: (command) => command.requiredOption("--task-key <key>", "Task key"),
+    path: agentIdPath("/runtime-state/reset-session"), body: (_args, options) => ({ taskKey: options.taskKey }),
+  });
+  registerApiPassthroughCommand(agent, {
+    usage: "skills:sync <agentId>", description: "Synchronize agent skills", method: "post",
+    configure: (command) => command.requiredOption("--desired-skills <csv>", "Desired skills"),
+    path: agentIdPath("/skills/sync"),
+    body: (_args, options) => ({ desiredSkills: String(options.desiredSkills).split(",").map((value) => value.trim()).filter(Boolean) }),
+  });
+  for (const [name, suffix] of [
+    ["instructions-path:update", "/instructions-path"], ["instructions-bundle:update", "/instructions-bundle"],
+  ] as const) {
+    registerApiPassthroughCommand(agent, {
+      usage: `${name} <agentId>`, description: `Update agent ${name}`, method: "patch", configure: payloadOption,
+      path: agentIdPath(suffix), body: (_args, options) => parseJsonOption(options.payloadJson),
+    });
+  }
+  registerApiPassthroughCommand(agent, {
+    usage: "instructions-file:get <agentId>", description: "Read an instructions file", method: "get",
+    configure: (command) => command.requiredOption("--path <path>", "File path"),
+    path: ([agentId], options) => `/api/agents/${agentId}/instructions-bundle/file?path=${encodeURIComponent(String(options.path))}`,
+  });
+  registerApiPassthroughCommand(agent, {
+    usage: "instructions-file:put <agentId>", description: "Write an instructions file", method: "put",
+    configure: (command) => command.requiredOption("--path <path>", "File path").requiredOption("--content <text>", "File content"),
+    path: agentIdPath("/instructions-bundle/file"), body: (_args, options) => ({ path: options.path, content: options.content }),
+  });
+  registerApiPassthroughCommand(agent, {
+    usage: "instructions-file:delete <agentId>", description: "Delete an instructions file", method: "delete",
+    configure: (command) => command.requiredOption("--path <path>", "File path"),
+    path: ([agentId], options) => `/api/agents/${agentId}/instructions-bundle/file?path=${encodeURIComponent(String(options.path))}`,
+  });
+
+  addCommonClientOptions(
+    agent.command("wake <agentRef>")
+      .description("Wake an agent")
+      .requiredOption("-C, --company-id <id>", "Company ID")
+      .option("--reason <text>", "Wake reason")
+      .option("--payload <json>", "Wake payload")
+      .action(async (agentRef: string, opts: BaseClientOptions & { reason?: string; payload?: string }) => {
+        try {
+          const context = resolveCommandContext(opts, { requireCompany: true });
+          const query = new URLSearchParams({ companyId: context.companyId! });
+          const resolved = await context.api.get<Agent>(`/api/agents/${encodeURIComponent(agentRef)}?${query}`);
+          if (!resolved) throw new Error(`Agent not found: ${agentRef}`);
+          const result = await context.api.post(`/api/agents/${resolved.id}/wakeup`, {
+            source: "on_demand",
+            triggerDetail: "manual",
+            reason: opts.reason,
+            payload: parseJsonOption(opts.payload, "--payload"),
+          });
+          printOutput(result, { json: context.json });
+        } catch (error) {
+          handleCommandError(error);
         }
       }),
     { includeCompany: false },

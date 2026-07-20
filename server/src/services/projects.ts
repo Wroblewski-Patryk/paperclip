@@ -10,7 +10,6 @@ import {
   workspaceRuntimeServices,
 } from "@paperclipai/db";
 import {
-  PROJECT_COLORS,
   deriveProjectUrlKey,
   hasNonAsciiContent,
   isUuidLike,
@@ -71,6 +70,26 @@ interface ProjectShortnameRow {
 
 interface ResolveProjectNameOptions {
   excludeProjectId?: string | null;
+}
+
+export function buildProjectListMetricMaps(
+  taskCountRows: Array<{ projectId: string | null; count: number | string }>,
+  budgetRows: Array<{ scopeId: string; amount: number | string; windowKind: string }>,
+) {
+  const taskCountByProjectId = new Map<string, number>();
+  for (const row of taskCountRows) {
+    if (!row.projectId) continue;
+    taskCountByProjectId.set(row.projectId, Number(row.count));
+  }
+
+  const budgetByProjectId = new Map<string, { amountCents: number; windowKind: string }>();
+  for (const row of budgetRows) {
+    const amountCents = Number(row.amount);
+    if (!Number.isFinite(amountCents) || amountCents <= 0) continue;
+    budgetByProjectId.set(row.scopeId, { amountCents, windowKind: row.windowKind });
+  }
+
+  return { taskCountByProjectId, budgetByProjectId };
 }
 
 /** Batch-load goal refs for a set of projects. */
@@ -462,14 +481,6 @@ export function projectService(db: Db) {
   ): Promise<ProjectWithGoals> => {
     const { goalIds: inputGoalIds, ...projectData } = data;
     const ids = resolveGoalIds({ goalIds: inputGoalIds, goalId: projectData.goalId });
-
-    // Auto-assign a color from the palette if none provided
-    if (!projectData.color) {
-      const existing = await db.select({ color: projects.color }).from(projects).where(eq(projects.companyId, companyId));
-      const usedColors = new Set(existing.map((r) => r.color).filter(Boolean));
-      const nextColor = PROJECT_COLORS.find((c) => !usedColors.has(c)) ?? PROJECT_COLORS[existing.length % PROJECT_COLORS.length];
-      projectData.color = nextColor;
-    }
 
     const existingProjects = await db
       .select({ id: projects.id, name: projects.name })

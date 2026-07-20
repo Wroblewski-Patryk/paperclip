@@ -387,13 +387,15 @@ export function normalizeIssueExecutionPolicy(input: unknown): IssueExecutionPol
     }
     : null;
 
-  if (stages.length === 0 && !monitor) return null;
+  if (stages.length === 0 && !monitor && !parsed.data.reviewPreset && !parsed.data.authorizationPolicy) return null;
 
   return {
     mode: parsed.data.mode ?? "normal",
     commentRequired: true,
     stages,
     ...(monitor ? { monitor } : {}),
+    ...(parsed.data.reviewPreset ? { reviewPreset: parsed.data.reviewPreset } : {}),
+    ...(parsed.data.authorizationPolicy ? { authorizationPolicy: parsed.data.authorizationPolicy } : {}),
   };
 }
 

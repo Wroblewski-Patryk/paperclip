@@ -17,9 +17,14 @@ const mockWorkspaceOperationService = vi.hoisted(() => ({
   createRecorder: vi.fn(),
 }));
 
+const mockAccessService = vi.hoisted(() => ({
+  decide: vi.fn(async () => ({ allowed: true })),
+}));
+
 const mockLogActivity = vi.hoisted(() => vi.fn(async () => undefined));
 
 vi.mock("../services/index.js", () => ({
+  accessService: () => mockAccessService,
   executionWorkspaceService: () => mockExecutionWorkspaceService,
   logActivity: mockLogActivity,
   workspaceOperationService: () => mockWorkspaceOperationService,

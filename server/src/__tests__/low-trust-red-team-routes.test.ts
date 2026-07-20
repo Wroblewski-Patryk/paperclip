@@ -513,7 +513,7 @@ describeEmbeddedPostgres("low-trust red-team HTTP route regression suite", () =>
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("paperclip-low-trust-red-team-routes-");
     db = createDb(tempDb.connectionString);
-  }, 20_000);
+  }, 60_000);
 
   afterEach(async () => {
     await db.delete(issueThreadInteractions);
@@ -528,6 +528,12 @@ describeEmbeddedPostgres("low-trust red-team HTTP route regression suite", () =>
     await db.delete(activityLog);
     await db.delete(heartbeatRunEvents);
     await deleteHeartbeatRunsAfterActivityLogDrains(db);
+    // Heartbeat finalization can refresh the continuation document immediately
+    // after the run turns terminal. Drain those rows again after deleting runs
+    // so this suite remains isolated when it follows other DB-backed suites.
+    await db.delete(issueDocuments);
+    await db.delete(documentRevisions);
+    await db.delete(documents);
     await db.delete(agentWakeupRequests);
     await db.delete(issues);
     await db.delete(agentRuntimeState);

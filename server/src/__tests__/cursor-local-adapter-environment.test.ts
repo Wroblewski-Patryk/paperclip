@@ -4,11 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { runChildProcess } from "@paperclipai/adapter-utils/server-utils";
 import { testEnvironment } from "@paperclipai/adapter-cursor-local/server";
+import { fakeNodeCommandPath, writeFakeNodeCommand } from "./helpers/fake-node-command.js";
 
 async function writeFakeAgentCommand(binDir: string, argsCapturePath: string): Promise<string> {
-  const commandPath = path.join(binDir, "agent");
-  const script = `#!/usr/bin/env node
-const fs = require("node:fs");
+  const commandPath = fakeNodeCommandPath(path.join(binDir, "agent"));
+  const script = `const fs = require("node:fs");
 const outPath = process.env.PAPERCLIP_TEST_ARGS_PATH;
 if (outPath) {
   fs.writeFileSync(outPath, JSON.stringify(process.argv.slice(2)), "utf8");
@@ -23,18 +23,16 @@ console.log(JSON.stringify({
   result: "hello",
 }));
 `;
-  await fs.writeFile(commandPath, script, "utf8");
-  await fs.chmod(commandPath, 0o755);
+  await writeFakeNodeCommand(commandPath, script);
   return commandPath;
 }
 
 async function writeFakeCursorAgentCommand(commandPath: string): Promise<void> {
-  const script = `#!/usr/bin/env node
-const fs = require("node:fs");
+  const script = `const fs = require("node:fs");
 const outPath = process.env.PAPERCLIP_TEST_ARGS_PATH;
 if (outPath) {
   fs.writeFileSync(outPath, JSON.stringify({
-    command: process.argv[1],
+    command: process.env.PAPERCLIP_FAKE_COMMAND || process.argv[1],
     argv: process.argv.slice(2),
     path: process.env.PATH || "",
   }), "utf8");
@@ -50,8 +48,7 @@ console.log(JSON.stringify({
 }));
 `;
   await fs.mkdir(path.dirname(commandPath), { recursive: true });
-  await fs.writeFile(commandPath, script, "utf8");
-  await fs.chmod(commandPath, 0o755);
+  await writeFakeNodeCommand(commandPath, script);
 }
 
 function createLocalSandboxRunner() {
@@ -180,7 +177,7 @@ describe("cursor environment diagnostics", () => {
     await fs.rm(root, { recursive: true, force: true });
   });
 
-  it("prefers ~/.local/bin/cursor-agent for remote sandbox probes when using the default command", async () => {
+  it.skipIf(process.platform === "win32")("prefers ~/.local/bin/cursor-agent for remote sandbox probes when using the default command", async () => {
     const root = path.join(
       os.tmpdir(),
       `paperclip-cursor-sandbox-probe-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -188,7 +185,7 @@ describe("cursor environment diagnostics", () => {
     const homeDir = path.join(root, "home");
     const remoteCwd = path.join(root, "workspace");
     const argsCapturePath = path.join(root, "args.json");
-    const cursorAgentPath = path.join(homeDir, ".local", "bin", "cursor-agent");
+    const cursorAgentPath = fakeNodeCommandPath(path.join(homeDir, ".local", "bin", "cursor-agent"));
     await fs.mkdir(remoteCwd, { recursive: true });
     await writeFakeCursorAgentCommand(cursorAgentPath);
 
@@ -222,8 +219,8 @@ describe("cursor environment diagnostics", () => {
         argv: string[];
         path: string;
       };
-      expect(capture.command).toBe(cursorAgentPath);
-      expect(capture.path.split(":")[0]).toBe(path.join(homeDir, ".local", "bin"));
+      expect(capture.command.toLowerCase()).toBe(cursorAgentPath.toLowerCase());
+      expect(capture.path.split(path.delimiter)[0]).toBe(path.join(homeDir, ".local", "bin"));
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;

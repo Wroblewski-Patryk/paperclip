@@ -30,6 +30,7 @@ import type { Goal } from "./goal.js";
 import type { Project, ProjectWorkspace } from "./project.js";
 import type { ExecutionWorkspace, IssueExecutionWorkspaceSettings } from "./workspace-runtime.js";
 import type { IssueWorkProduct } from "./work-product.js";
+import type { LowTrustReviewPresetPolicy, TrustAuthorizationPolicy } from "../trust-policy.js";
 
 export type { IssueWorkMode };
 
@@ -464,6 +465,8 @@ export interface IssueExecutionPolicy {
   commentRequired: boolean;
   stages: IssueExecutionStage[];
   monitor?: IssueExecutionMonitorPolicy | null;
+  reviewPreset?: LowTrustReviewPresetPolicy;
+  authorizationPolicy?: TrustAuthorizationPolicy;
 }
 
 export interface IssueExecutionMonitorState {
@@ -603,6 +606,11 @@ export interface IssueComment {
   body: string;
   presentation: IssueCommentPresentation | null;
   metadata: IssueCommentMetadata | null;
+  deletedAt?: Date | null;
+  deletedByType?: IssueCommentAuthorType | null;
+  deletedByAgentId?: string | null;
+  deletedByUserId?: string | null;
+  deletedByRunId?: string | null;
   followUpRequested?: boolean;
   createdAt: Date;
   updatedAt: Date;

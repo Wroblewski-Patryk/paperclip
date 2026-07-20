@@ -82,9 +82,9 @@ export const queryKeys = {
     liveRuns: (issueId: string) => ["issues", "live-runs", issueId] as const,
     activeRun: (issueId: string) => ["issues", "active-run", issueId] as const,
     workProducts: (issueId: string) => ["issues", "work-products", issueId] as const,
-    fileResources: (issueId: string, params: unknown) => ["issues", "file-resources", issueId, params] as const,
-    fileResource: (issueId: string, params: unknown) => ["issues", "file-resource", issueId, params] as const,
-    fileResourceContent: (issueId: string, params: unknown) => ["issues", "file-resource-content", issueId, params] as const,
+    fileResources: (issueId: string, params: unknown) => ["issues", "file-resources", issueId, "list", params] as const,
+    fileResource: (issueId: string, params: unknown) => ["issues", "file-resources", issueId, "resource", params] as const,
+    fileResourceContent: (issueId: string, params: unknown) => ["issues", "file-resources", issueId, "content", params] as const,
   },
   fileResources: {
     list: (issueId: string, params: unknown) => ["file-resources", issueId, params] as const,

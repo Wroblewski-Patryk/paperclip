@@ -1825,7 +1825,7 @@ export async function ensurePaperclipSkillSymlink(
   source: string,
   target: string,
   linkSkill: (source: string, target: string) => Promise<void> = (linkSource, linkTarget) =>
-    fs.symlink(linkSource, linkTarget),
+    fs.symlink(linkSource, linkTarget, process.platform === "win32" ? "junction" : "dir"),
 ): Promise<"created" | "repaired" | "skipped"> {
   async function linkOrCopySkill(): Promise<void> {
     try {

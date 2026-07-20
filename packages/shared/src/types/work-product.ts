@@ -1,3 +1,5 @@
+import type { SourceTrustMetadata } from "../trust-policy.js";
+
 export type IssueWorkProductType =
   | "preview_url"
   | "runtime_service"
@@ -49,6 +51,7 @@ export interface IssueWorkProduct {
   healthStatus: "unknown" | "healthy" | "unhealthy";
   summary: string | null;
   metadata: Record<string, unknown> | null;
+  sourceTrust: SourceTrustMetadata | null;
   createdByRunId: string | null;
   createdAt: Date;
   updatedAt: Date;

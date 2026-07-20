@@ -81,19 +81,32 @@ export async function buildExpectedCatalogManifest(
   packageDir: string,
 ): Promise<BuildCatalogManifestResult> {
   const existing = await readExistingManifest(packageDir);
-  const firstPass = await buildCatalogManifest({
+  const firstPass = filterUnreviewedExecutableSkills(await buildCatalogManifest({
     packageDir,
     generatedAt: existing?.generatedAt ?? new Date().toISOString(),
-  });
+  }));
 
   if (existing && sameManifestExceptGeneratedAt(existing, firstPass.manifest)) {
     return firstPass;
   }
 
-  return buildCatalogManifest({
+  return filterUnreviewedExecutableSkills(await buildCatalogManifest({
     packageDir,
     generatedAt: new Date().toISOString(),
-  });
+  }));
+}
+
+function filterUnreviewedExecutableSkills(result: BuildCatalogManifestResult): BuildCatalogManifestResult {
+  return {
+    ...result,
+    manifest: {
+      ...result.manifest,
+      // Script-bearing candidates may live in catalog sources for review, but
+      // are not part of the shipped manifest until an explicit review contract
+      // exists. This keeps install-time exposure closed by default.
+      skills: result.manifest.skills.filter((skill) => skill.trustLevel !== "scripts_executables"),
+    },
+  };
 }
 
 export async function buildCatalogManifest(

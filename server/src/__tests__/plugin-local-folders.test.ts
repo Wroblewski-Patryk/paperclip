@@ -189,7 +189,7 @@ describe("plugin local folders", () => {
     });
   });
 
-  it("detects required symlinks that escape the configured folder", async () => {
+  it.skipIf(process.platform === "win32")("detects required symlinks that escape the configured folder", async () => {
     const root = await makeRoot();
     const outside = await makeRoot();
     await fs.writeFile(path.join(outside, "secret.txt"), "nope", "utf8");
@@ -243,7 +243,11 @@ describe("plugin local folders", () => {
     await fs.mkdir(path.join(root, "wiki/concepts"), { recursive: true });
     await fs.writeFile(path.join(root, "wiki/concepts/live.md"), "# Live\n", "utf8");
     await fs.writeFile(path.join(outside, "secret.md"), "# Secret\n", "utf8");
-    await fs.symlink(outside, path.join(root, "wiki/outside"));
+    await fs.symlink(
+      outside,
+      path.join(root, "wiki/outside"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
 
     const listing = await listPluginLocalFolderEntries(root, {
       relativePath: "wiki",
@@ -265,7 +269,7 @@ describe("plugin local folders", () => {
     const openSpy = vi.spyOn(fs, "open");
     openSpy.mockImplementationOnce(async (file, flags, mode) => {
       await fs.rm(nested, { recursive: true, force: true });
-      await fs.symlink(outside, nested);
+      await fs.symlink(outside, nested, process.platform === "win32" ? "junction" : "dir");
       return originalOpen(file, flags, mode);
     });
 

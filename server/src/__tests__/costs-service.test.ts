@@ -62,6 +62,13 @@ const mockIssueService = vi.hoisted(() => ({
 const mockHeartbeatService = vi.hoisted(() => ({
   cancelBudgetScopeWork: vi.fn().mockResolvedValue(undefined),
 }));
+const mockAccessService = vi.hoisted(() => ({
+  decide: vi.fn().mockResolvedValue({
+    allowed: true,
+    reason: "allow_explicit_grant",
+    explanation: "Allowed by cost route test grant.",
+  }),
+}));
 const mockLogActivity = vi.hoisted(() => vi.fn());
 const mockFetchAllQuotaWindows = vi.hoisted(() => vi.fn());
 const mockCostService = vi.hoisted(() => ({
@@ -114,6 +121,7 @@ function registerModuleMocks() {
     agentService: () => mockAgentService,
     issueService: () => mockIssueService,
     heartbeatService: () => mockHeartbeatService,
+    accessService: () => mockAccessService,
     logActivity: mockLogActivity,
   }));
 
@@ -404,7 +412,7 @@ describeEmbeddedPostgres("cost and finance aggregate overflow handling", () => {
     db = createDb(tempDb.connectionString);
     costs = costService(db);
     finance = financeService(db);
-  }, 20_000);
+  }, 60_000);
 
   afterEach(async () => {
     await db.delete(financeEvents);

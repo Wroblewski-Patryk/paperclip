@@ -104,7 +104,6 @@ import {
   claimJoinRequestApiKeySchema,
   createCliAuthChallengeSchema,
   resolveCliAuthChallengeSchema,
-  createBoardApiKeySchema,
   updateCompanyMemberSchema,
   updateCompanyMemberWithPermissionsSchema,
   archiveCompanyMemberSchema,
@@ -1262,15 +1261,6 @@ registry.registerPath({
   summary: "Resume an agent",
   request: { params: z.object({ id: z.string() }) },
   responses: { 200: r.ok(), 401: r.unauthorized },
-});
-
-registry.registerPath({
-  method: "post",
-  path: "/api/agents/{id}/clear-error",
-  tags: ["agents"],
-  summary: "Clear an agent error",
-  request: { params: z.object({ id: z.string() }) },
-  responses: { 200: r.ok(), 401: r.unauthorized, 403: r.forbidden, 404: r.notFound, 409: r.conflict },
 });
 
 registry.registerPath({
@@ -4121,13 +4111,6 @@ registry.registerPath({
 
 registerCurrentRoute({
   method: "get",
-  path: "/api/adapters/{type}",
-  tags: ["adapters"],
-  summary: "Get adapter registration details",
-});
-
-registerCurrentRoute({
-  method: "get",
   path: "/api/companies/{companyId}/adapters/{type}/model-profiles",
   tags: ["adapters"],
   summary: "List adapter model profiles for a company",
@@ -4149,30 +4132,6 @@ registerCurrentRoute({
   responses: { 200: r.ok(), 401: r.unauthorized, 404: r.notFound, 409: { description: "Instance admin already claimed" } },
 });
 
-registerCurrentRoute({
-  method: "get",
-  path: "/api/board-api-keys",
-  tags: ["access"],
-  summary: "List board API keys",
-  responses: { 200: r.ok(), 401: r.unauthorized },
-});
-
-registerCurrentRoute({
-  method: "post",
-  path: "/api/board-api-keys",
-  tags: ["access"],
-  summary: "Create a named board API key",
-  body: createBoardApiKeySchema,
-  responses: { 201: r.ok(), 400: r.badRequest, 401: r.unauthorized },
-});
-
-registerCurrentRoute({
-  method: "delete",
-  path: "/api/board-api-keys/{keyId}",
-  tags: ["access"],
-  summary: "Revoke a board API key",
-});
-
 for (const route of [
   ["get", "/api/companies/import/jobs/{jobId}", "Get company import job status"],
   ["get", "/api/companies/{companyId}/search", "Search company data"],
@@ -4192,6 +4151,23 @@ registerCurrentRoute({
   tags: ["costs"],
   summary: "Get issue cost summary",
 });
+
+for (const route of [
+  ["/api/companies/{companyId}/costs/model-profiles", "List model-profile cost summaries"],
+  ["/api/companies/{companyId}/secrets/metadata", "List secret metadata"],
+  ["/api/companies/{companyId}/softwarehouse/status", "Get softwarehouse control status"],
+  ["/api/companies/{companyId}/softwarehouse/knowledge", "Get softwarehouse knowledge catalog"],
+  ["/api/companies/{companyId}/softwarehouse/tools", "Get softwarehouse tool catalog"],
+  ["/api/companies/{companyId}/softwarehouse/backlog", "Get softwarehouse backlog"],
+  ["/api/companies/{companyId}/softwarehouse/issue-templates", "List softwarehouse issue templates"],
+] as const) {
+  registerCurrentRoute({
+    method: "get",
+    path: route[0],
+    tags: ["companies"],
+    summary: route[1],
+  });
+}
 
 for (const route of [
   ["get", "/api/companies/{companyId}/resource-memberships/me", "List current user's resource memberships"],

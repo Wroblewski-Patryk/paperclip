@@ -19,6 +19,9 @@ const SESSION_CWD_SYSTEM_ROOTS = new Set([
 export function isUnsafeSessionWorkspaceCwd(cwd: string | null | undefined): boolean {
   const value = typeof cwd === "string" && cwd.trim().length > 0 ? cwd.trim() : null;
   if (!value) return false;
-  const normalized = path.normalize(value.replace(/\/+$/, "") || "/");
+  // Session metadata may describe a remote POSIX sandbox even when the
+  // control plane itself runs on Windows.  Normalize using the path grammar
+  // of that metadata instead of the host OS grammar.
+  const normalized = path.posix.normalize(value.replace(/\\/g, "/").replace(/\/+$/, "") || "/");
   return SESSION_CWD_SYSTEM_ROOTS.has(normalized);
 }

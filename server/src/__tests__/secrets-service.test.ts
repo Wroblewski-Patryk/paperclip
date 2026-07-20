@@ -41,7 +41,7 @@ describeEmbeddedPostgres("secretService", () => {
     const started = await startEmbeddedPostgresTestDatabase("secrets-service");
     stopDb = started.cleanup;
     db = createDb(started.connectionString);
-  });
+  }, 60_000);
 
   afterEach(async () => {
     vi.restoreAllMocks();

@@ -21,6 +21,7 @@ function makeWorkProduct(overrides: Partial<IssueWorkProduct> & { id: string }):
     healthStatus: "unknown",
     summary: null,
     metadata: null,
+    sourceTrust: null,
     createdByRunId: null,
     createdAt: new Date("2026-05-30T12:00:00Z"),
     updatedAt: new Date("2026-05-30T12:00:00Z"),

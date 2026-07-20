@@ -221,6 +221,7 @@ export function issueReferenceService(db: Db) {
         companyId: issueComments.companyId,
         issueId: issueComments.issueId,
         body: issueComments.body,
+        deletedAt: issueComments.deletedAt,
       })
       .from(issueComments)
       .where(eq(issueComments.id, commentId))
@@ -233,7 +234,7 @@ export function issueReferenceService(db: Db) {
       sourceKind: "comment",
       sourceRecordId: comment.id,
       documentKey: null,
-      text: comment.body,
+      text: comment.deletedAt ? "" : comment.body,
     }, dbOrTx);
   }
 

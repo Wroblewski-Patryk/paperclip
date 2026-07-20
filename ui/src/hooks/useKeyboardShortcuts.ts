@@ -62,7 +62,7 @@ export function useKeyboardShortcuts({
       }
 
       // [ → Toggle Sidebar
-      if (e.key === "[" && !e.metaKey && !e.ctrlKey) {
+      if (e.key.toLowerCase() === "b" && (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey) {
         e.preventDefault();
         onToggleSidebar?.();
       }

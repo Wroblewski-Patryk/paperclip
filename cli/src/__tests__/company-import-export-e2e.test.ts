@@ -14,6 +14,18 @@ import { createStoredZipArchive } from "./helpers/zip.js";
 
 const execFileAsync = promisify(execFile);
 type ServerProcess = ReturnType<typeof spawn>;
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+
+function cliInvocation(args: string[]) {
+  return {
+    command: process.execPath,
+    args: [
+      path.join(repoRoot, "cli", "node_modules", "tsx", "dist", "cli.mjs"),
+      path.join(repoRoot, "cli", "src", "index.ts"),
+      ...args,
+    ],
+  };
+}
 
 async function getAvailablePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
@@ -188,6 +200,12 @@ function collectTextFiles(root: string, current: string, files: Record<string, s
 
 async function stopServerProcess(child: ServerProcess | null) {
   if (!child || child.exitCode !== null) return;
+  if (process.platform === "win32" && child.pid) {
+    await execFileAsync("taskkill", ["/pid", String(child.pid), "/T", "/F"]).catch((error) => {
+      if (child.exitCode === null) throw error;
+    });
+    return;
+  }
   child.kill("SIGTERM");
   await new Promise<void>((resolve) => {
     child.once("exit", () => resolve());
@@ -212,8 +230,7 @@ async function runCliJson<T>(
   args: string[],
   opts: TestPaperclipEnv & { apiBase?: string; includeConfigArg?: boolean },
 ) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-  const cliArgs = ["--silent", "paperclipai", ...args];
+  const cliArgs = [...args];
   if (opts.apiBase) {
     cliArgs.push("--api-base", opts.apiBase);
   }
@@ -221,9 +238,10 @@ async function runCliJson<T>(
     cliArgs.push("--config", opts.configPath);
   }
   cliArgs.push("--json");
+  const invocation = cliInvocation(cliArgs);
   const result = await execFileAsync(
-    "pnpm",
-    cliArgs,
+    invocation.command,
+    invocation.args,
     {
       cwd: repoRoot,
       env: createCliEnv(opts),
@@ -293,11 +311,11 @@ describeEmbeddedPostgres("paperclipai company import/export e2e", () => {
     writeTestConfig(configPath, tempRoot, port, tempDb.connectionString);
     apiBase = `http://127.0.0.1:${port}`;
 
-    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
     const output = { stdout: [] as string[], stderr: [] as string[] };
+    const invocation = cliInvocation(["run", "--config", configPath]);
     const child = spawn(
-      "pnpm",
-      ["paperclipai", "run", "--config", configPath],
+      invocation.command,
+      invocation.args,
       {
         cwd: repoRoot,
         env: createServerEnv(configPath, port, tempDb.connectionString, {

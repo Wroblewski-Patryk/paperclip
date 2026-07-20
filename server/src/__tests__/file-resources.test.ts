@@ -553,7 +553,7 @@ describeEmbeddedPostgres("workspace file resources", () => {
     expect(res.body?.details?.code).toBe("workspace_project_mismatch");
   });
 
-  it("blocks symlink escapes from explicit cross-project workspaces", async () => {
+  it.skipIf(process.platform === "win32")("blocks symlink escapes from explicit cross-project workspaces", async () => {
     const { root, projectRoot, targetProjectRoot, executionRoot } = await makeWorkspace();
     const graph = await seedGraph(db, { projectRoot, targetProjectRoot, executionRoot });
     await fs.writeFile(path.join(root, "outside-target.txt"), "secret\n", "utf8");
@@ -575,7 +575,11 @@ describeEmbeddedPostgres("workspace file resources", () => {
     const outsideDir = path.join(root, "outside-dir");
     await fs.mkdir(outsideDir, { recursive: true });
     await fs.writeFile(path.join(outsideDir, "secret.txt"), "secret\n", "utf8");
-    await fs.symlink(outsideDir, path.join(targetProjectRoot, "escape-dir"));
+    await fs.symlink(
+      outsideDir,
+      path.join(targetProjectRoot, "escape-dir"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
 
     await expect(workspaceFileResourceService(db).resolve(graph.issueId, {
       projectId: graph.targetProjectId,
@@ -620,7 +624,9 @@ describeEmbeddedPostgres("workspace file resources", () => {
     await fs.writeFile(path.join(executionRoot, "blob.bin"), Buffer.from([0, 1, 2, 3]));
     await fs.writeFile(path.join(projectRoot, "src-project.ts"), "export const project = true;\n", "utf8");
     await fs.writeFile(path.join(root, "outside.ts"), "secret\n", "utf8");
-    await fs.symlink(path.join(root, "outside.ts"), path.join(executionRoot, "escape.ts"));
+    if (process.platform !== "win32") {
+      await fs.symlink(path.join(root, "outside.ts"), path.join(executionRoot, "escape.ts"));
+    }
 
     const app = createApp(db, {
       type: "board",
@@ -902,7 +908,7 @@ describeEmbeddedPostgres("workspace file resources", () => {
     expect(doubleEncoded.status).toBe(404);
   });
 
-  it("blocks symlink escapes and symlinks to denied sensitive files", async () => {
+  it.skipIf(process.platform === "win32")("blocks symlink escapes and symlinks to denied sensitive files", async () => {
     const { root, projectRoot, executionRoot } = await makeWorkspace();
     const graph = await seedGraph(db, { projectRoot, executionRoot });
     await fs.writeFile(path.join(root, "outside-secret.txt"), "secret\n", "utf8");

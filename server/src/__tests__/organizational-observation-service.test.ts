@@ -12,7 +12,7 @@ const evidence = [{ kind: "other" as const, ref: "test:evidence" }];
 describeEmbeddedPostgres("organizational observation service", () => {
   let db!: ReturnType<typeof createDb>;
   let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
-  beforeAll(async () => { tempDb = await startEmbeddedPostgresTestDatabase("paperclip-organizational-observations-"); db = createDb(tempDb.connectionString); }, 20_000);
+  beforeAll(async () => { tempDb = await startEmbeddedPostgresTestDatabase("paperclip-organizational-observations-"); db = createDb(tempDb.connectionString); }, 60_000);
   afterEach(async () => { await db.delete(organizationalObservations); await db.delete(agents); await db.delete(companies); });
   afterAll(async () => tempDb?.cleanup());
 

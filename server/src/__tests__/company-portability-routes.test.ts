@@ -30,6 +30,9 @@ const mockCompanyPortabilityService = vi.hoisted(() => ({
   previewImport: vi.fn(),
   importBundle: vi.fn(),
 }));
+const mockCompanyArtifactsService = vi.hoisted(() => ({
+  list: vi.fn(),
+}));
 
 const mockLogActivity = vi.hoisted(() => vi.fn());
 const mockFeedbackService = vi.hoisted(() => ({
@@ -71,6 +74,7 @@ vi.mock("../services/index.js", () => ({
   accessService: () => mockAccessService,
   agentService: () => mockAgentService,
   budgetService: () => mockBudgetService,
+  companyArtifactsService: () => mockCompanyArtifactsService,
   companyPortabilityService: () => mockCompanyPortabilityService,
   companyService: () => mockCompanyService,
   feedbackService: () => mockFeedbackService,
@@ -82,6 +86,7 @@ function registerCompanyRouteMocks() {
     accessService: () => mockAccessService,
     agentService: () => mockAgentService,
     budgetService: () => mockBudgetService,
+    companyArtifactsService: () => mockCompanyArtifactsService,
     companyPortabilityService: () => mockCompanyPortabilityService,
     companyService: () => mockCompanyService,
     feedbackService: () => mockFeedbackService,

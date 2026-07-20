@@ -43,6 +43,7 @@ import type {
   IssueProductivityReview,
   IssueProductivityReviewTrigger,
   IssueRelationIssueSummary,
+  LowTrustBoundary,
   SuccessfulRunHandoffState,
 } from "@paperclipai/shared";
 import {
@@ -241,6 +242,7 @@ export interface IssueFilters {
   includePluginOperations?: boolean;
   includeBlockedBy?: boolean;
   includeBlockedInboxAttention?: boolean;
+  lowTrustBoundary?: LowTrustBoundary & { companyId: string };
   q?: string;
   limit?: number;
   offset?: number;
@@ -1178,6 +1180,39 @@ const PRODUCTIVITY_REVIEW_TRIGGERS: readonly IssueProductivityReviewTrigger[] = 
   "long_active_duration",
   "high_churn",
 ];
+
+function lowTrustBoundaryIssueCondition(
+  companyId: string,
+  boundary: (LowTrustBoundary & { companyId: string }) | null | undefined,
+) {
+  if (!boundary || boundary.companyId !== companyId) return null;
+  const clauses: SQL[] = [];
+  const issueIds = [...new Set(boundary.issueIds ?? [])];
+  const projectIds = [...new Set(boundary.projectIds ?? [])];
+  if (issueIds.length > 0) clauses.push(inArray(issues.id, issueIds));
+  if (projectIds.length > 0) clauses.push(inArray(issues.projectId, projectIds));
+  if (boundary.rootIssueId) {
+    clauses.push(sql<boolean>`
+      ${issues.id} IN (
+        WITH RECURSIVE descendants(id) AS (
+          SELECT ${issues.id}
+          FROM ${issues}
+          WHERE ${issues.companyId} = ${companyId}
+            AND ${issues.id} = ${boundary.rootIssueId}
+          UNION
+          SELECT ${issues.id}
+          FROM ${issues}
+          JOIN descendants ON ${issues.parentId} = descendants.id
+          WHERE ${issues.companyId} = ${companyId}
+        )
+        SELECT id FROM descendants
+      )
+    `);
+  }
+  if (clauses.length === 0) return sql<boolean>`false`;
+  return or(...clauses);
+}
+
 const BLOCKER_ATTENTION_OPEN_RECOVERY_TERMINAL_STATUSES = ["done", "cancelled"];
 const BLOCKER_ATTENTION_MAX_DEPTH = 8;
 const BLOCKER_ATTENTION_MAX_NODES = 2000;
@@ -1932,6 +1967,7 @@ const issueListSelect = {
   executionWorkspaceId: issues.executionWorkspaceId,
   executionWorkspacePreference: issues.executionWorkspacePreference,
   executionWorkspaceSettings: sql<null>`null`,
+  sourceTrust: issues.sourceTrust,
   startedAt: issues.startedAt,
   completedAt: issues.completedAt,
   cancelledAt: issues.cancelledAt,
@@ -2858,6 +2894,8 @@ async function blockedInboxIssueConditions(
       )
     `);
   }
+  const lowTrustCondition = lowTrustBoundaryIssueCondition(companyId, filters?.lowTrustBoundary);
+  if (lowTrustCondition) conditions.push(lowTrustCondition);
   if (filters?.status) {
     const statuses = filters.status.split(",").map((status) => status.trim()).filter(Boolean);
     if (statuses.length > 0) {
@@ -3134,7 +3172,7 @@ export function issueService(db: Db) {
     }
   }
 
-  function redactIssueComment<T extends { body: string; authorType?: string | null; authorAgentId?: string | null; authorUserId?: string | null; presentation?: unknown; metadata?: unknown }>(
+  function redactIssueComment<T extends { body: string; authorType?: string | null; authorAgentId?: string | null; authorUserId?: string | null; presentation?: unknown; metadata?: unknown; deletedAt?: Date | null }>(
     comment: T,
     censorUsernameInLogs: boolean,
   ): T & {
@@ -3142,12 +3180,17 @@ export function issueService(db: Db) {
     presentation: IssueCommentPresentation | null;
     metadata: IssueCommentMetadata | null;
   } {
+    const deleted = Boolean(comment.deletedAt);
     return {
       ...comment,
       authorType: deriveIssueCommentAuthorType(comment),
-      body: redactCurrentUserText(comment.body, { enabled: censorUsernameInLogs }),
-      presentation: issueCommentPresentationSchema.nullable().catch(null).parse(comment.presentation ?? null),
-      metadata: issueCommentMetadataSchema.nullable().catch(null).parse(comment.metadata ?? null),
+      body: deleted ? "" : redactCurrentUserText(comment.body, { enabled: censorUsernameInLogs }),
+      presentation: deleted
+        ? null
+        : issueCommentPresentationSchema.nullable().catch(null).parse(comment.presentation ?? null),
+      metadata: deleted
+        ? null
+        : issueCommentMetadataSchema.nullable().catch(null).parse(comment.metadata ?? null),
     };
   }
 
@@ -3791,6 +3834,8 @@ export function issueService(db: Db) {
           )
         `);
       }
+      const lowTrustCondition = lowTrustBoundaryIssueCondition(companyId, filters?.lowTrustBoundary);
+      if (lowTrustCondition) conditions.push(lowTrustCondition);
       if (filters?.status) {
         const statuses = filters.status.split(",").map((s) => s.trim());
         conditions.push(statuses.length === 1 ? eq(issues.status, statuses[0]) : inArray(issues.status, statuses));
@@ -5695,6 +5740,7 @@ export function issueService(db: Db) {
         authorType?: IssueCommentAuthorType | null;
         presentation?: IssueCommentPresentation | null;
         metadata?: IssueCommentMetadata | null;
+        sourceTrust?: typeof issueComments.$inferInsert.sourceTrust;
         createdAt?: Date | string | null;
       },
     ) => {
@@ -5729,6 +5775,7 @@ export function issueService(db: Db) {
           body: redactedBody,
           presentation,
           metadata,
+          sourceTrust: options?.sourceTrust ?? null,
           ...(createdAt && !Number.isNaN(createdAt.getTime()) ? { createdAt } : {}),
         })
         .returning();

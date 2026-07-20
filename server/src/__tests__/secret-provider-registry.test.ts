@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { checkSecretProviders, listSecretProviders } from "../secrets/provider-registry.js";
 
 describe("secret provider registry", () => {
+  const itWithPosixPermissions = process.platform === "win32" ? it.skip : it;
   const previousKeyFile = process.env.PAPERCLIP_SECRETS_MASTER_KEY_FILE;
   const previousMasterKey = process.env.PAPERCLIP_SECRETS_MASTER_KEY;
   const tmpDirs: string[] = [];
@@ -47,7 +48,7 @@ describe("secret provider registry", () => {
     );
   });
 
-  it("warns when the local encrypted key file is readable by group or others", async () => {
+  itWithPosixPermissions("warns when the local encrypted key file is readable by group or others", async () => {
     const dir = path.join(os.tmpdir(), `paperclip-secret-provider-${randomBytes(6).toString("hex")}`);
     tmpDirs.push(dir);
     mkdirSync(dir, { recursive: true });

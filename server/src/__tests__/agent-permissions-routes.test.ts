@@ -396,6 +396,11 @@ describe.sequential("agent permission routes", () => {
 
   it("redacts agent detail for authenticated company members without agent admin permission", async () => {
     mockAccessService.canUser.mockResolvedValue(false);
+    mockAccessService.decide.mockResolvedValue({
+      allowed: true,
+      reason: "allow_company_membership",
+      explanation: "Company members may read redacted agent details",
+    });
 
     const app = await createApp({
       type: "board",
@@ -414,6 +419,11 @@ describe.sequential("agent permission routes", () => {
 
   it("redacts company agent list for authenticated company members without agent admin permission", async () => {
     mockAccessService.canUser.mockResolvedValue(false);
+    mockAccessService.decide.mockResolvedValue({
+      allowed: true,
+      reason: "allow_company_membership",
+      explanation: "Company members may read the redacted agent list",
+    });
 
     const app = await createApp({
       type: "board",

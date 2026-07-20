@@ -14,9 +14,10 @@ import {
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { createServer } from "node:net";
 import { Readable } from "node:stream";
+import { promisify } from "node:util";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -516,6 +517,157 @@ async function findAvailablePort(preferredPort: number, reserved = new Set<numbe
     port += 1;
   }
   return port;
+}
+
+const execFileAsync = promisify(execFile);
+const WINDOWS_EMBEDDED_POSTGRES_STOP_TIMEOUT_MS = 30_000;
+
+async function getWindowsProcessTreePids(rootPid: number): Promise<number[]> {
+  const script = [
+    `$pending = [System.Collections.Generic.Queue[int]]::new()`,
+    `$seen = [System.Collections.Generic.HashSet[int]]::new()`,
+    `$pending.Enqueue(${rootPid})`,
+    `while ($pending.Count -gt 0) {`,
+    `  $current = $pending.Dequeue()`,
+    `  if (-not $seen.Add($current)) { continue }`,
+    `  Get-CimInstance Win32_Process -Filter \"ParentProcessId=$current\" -ErrorAction SilentlyContinue | ForEach-Object {`,
+    `    $pending.Enqueue([int]$_.ProcessId)`,
+    `  }`,
+    `}`,
+    `$seen -join ','`,
+  ].join("\n");
+  const { stdout } = await execFileAsync(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-Command", script],
+    { windowsHide: true },
+  );
+  return stdout
+    .trim()
+    .split(",")
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => Number.isInteger(value) && value > 0);
+}
+
+async function getWindowsPostgresListenerPids(port: number): Promise<number[]> {
+  const script = [
+    `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue |`,
+    `  Select-Object -ExpandProperty OwningProcess -Unique |`,
+    `  ForEach-Object {`,
+    `    $process = Get-CimInstance Win32_Process -Filter \"ProcessId=$_\" -ErrorAction SilentlyContinue`,
+    `    if ($process.Name -eq 'postgres.exe') { [int]$process.ProcessId }`,
+    `  }`,
+  ].join("\n");
+  const { stdout } = await execFileAsync(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-Command", script],
+    { windowsHide: true },
+  );
+  return stdout
+    .trim()
+    .split(/\s+/)
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => Number.isInteger(value) && value > 0);
+}
+
+async function getWindowsListenerPids(port: number): Promise<number[]> {
+  const script = [
+    `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue |`,
+    `  Select-Object -ExpandProperty OwningProcess -Unique`,
+  ].join("\n");
+  const { stdout } = await execFileAsync(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-Command", script],
+    { windowsHide: true },
+  );
+  return stdout
+    .trim()
+    .split(/\s+/)
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => Number.isInteger(value) && value > 0);
+}
+
+async function stopEmbeddedPostgres(instance: EmbeddedPostgresInstance, port: number): Promise<void> {
+  const pid = (instance as unknown as { process?: { pid?: number } }).process?.pid;
+  if (process.platform !== "win32" || !pid) {
+    await instance.stop();
+    return;
+  }
+
+  // embedded-postgres resolves stop as soon as the master exits, but starts
+  // taskkill without awaiting it. Capture and synchronously terminate the
+  // exact owned tree so an immediate reopen cannot race surviving workers.
+  const ownedPids = await getWindowsProcessTreePids(pid).catch(() => [pid]);
+  await execFileAsync("taskkill", ["/PID", String(pid), "/T", "/F"], {
+    windowsHide: true,
+  }).catch(() => {});
+  if (ownedPids.length > 0) {
+    await execFileAsync(
+      "taskkill",
+      [...ownedPids.flatMap((ownedPid) => ["/PID", String(ownedPid)]), "/F"],
+      { windowsHide: true },
+    ).catch(() => {});
+    for (const ownedPid of ownedPids) {
+      try {
+        process.kill(ownedPid, "SIGKILL");
+      } catch {
+        // The PID already exited, which is the desired state.
+      }
+    }
+  }
+
+  const deadline = Date.now() + WINDOWS_EMBEDDED_POSTGRES_STOP_TIMEOUT_MS;
+  let lastListenerPids: number[] = [];
+  let stableNoListenerSnapshots = 0;
+  while (Date.now() < deadline) {
+    // A final io_worker can appear after the first tree snapshot and keep the
+    // database directory locked even though the listening socket is already
+    // gone. On Windows its ParentProcessId still points at the original
+    // master, so re-scan that exact tree until it is stably empty.
+    const lateOwnedPids = (await getWindowsProcessTreePids(pid).catch(() => []))
+      .filter((ownedPid) => ownedPid !== pid)
+      .filter((ownedPid) => {
+        try {
+          process.kill(ownedPid, 0);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+    if (lateOwnedPids.length > 0) {
+      await execFileAsync(
+        "taskkill",
+        [...lateOwnedPids.flatMap((ownedPid) => ["/PID", String(ownedPid)]), "/F"],
+        { windowsHide: true },
+      ).catch(() => {});
+    }
+    const allListenerPids = await getWindowsListenerPids(port).catch(() => []);
+    lastListenerPids = allListenerPids;
+    if (allListenerPids.length === 0 && lateOwnedPids.length === 0) {
+      stableNoListenerSnapshots += 1;
+      if (stableNoListenerSnapshots >= 3) return;
+    } else {
+      stableNoListenerSnapshots = 0;
+    }
+    // taskkill /T can miss a PostgreSQL worker that is reparented while the
+    // master exits. Only terminate postgres.exe processes that still own the
+    // exact listener started by this handle; never kill by process name alone.
+    const listenerPids = await getWindowsPostgresListenerPids(port).catch(() => []);
+    for (const listenerPid of listenerPids) {
+      await execFileAsync("taskkill", ["/PID", String(listenerPid), "/T", "/F"], {
+        windowsHide: true,
+      }).catch(() => {});
+      try {
+        process.kill(listenerPid, "SIGKILL");
+      } catch {
+        // The PID already exited, which is the desired state.
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(
+    `Embedded PostgreSQL did not release port ${port} within ${WINDOWS_EMBEDDED_POSTGRES_STOP_TIMEOUT_MS}ms` +
+      ` (remaining listener PIDs: ${lastListenerPids.join(", ") || "none"})`,
+  );
 }
 
 function resolveRepoManagedWorktreesRoot(cwd: string): string | null {
@@ -1111,7 +1263,7 @@ async function ensureEmbeddedPostgres(dataDir: string, preferredPort: number): P
     port,
     startedByThisProcess: true,
     stop: async () => {
-      await instance.stop();
+      await stopEmbeddedPostgres(instance, port);
     },
   };
 }

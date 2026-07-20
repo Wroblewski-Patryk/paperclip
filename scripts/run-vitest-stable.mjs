@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, statSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { buildVitestInvocation, chunkItems } from "./lib/vitest-invocation.mjs";
+
 const repoRoot = process.cwd();
 const serverRoot = path.join(repoRoot, "server");
-const serverTestsDir = path.join(repoRoot, "server", "src", "__tests__");
+const serverSrcRoot = path.join(serverRoot, "src");
+const cliSrcRoot = path.join(repoRoot, "cli", "src");
 const nonServerProjects = [
   "@paperclipai/shared",
   "@paperclipai/skills-catalog",
@@ -57,12 +60,16 @@ const generalWorkspacesBGroupName = "general-workspaces-b";
 const generalWorkspacesAProjects = ["@paperclipai/ui", "paperclipai"];
 const generalWorkspacesBProjects = nonServerProjects.filter((project) => !generalWorkspacesAProjects.includes(project));
 const generalGroupNames = [generalServerGroupName, generalWorkspacesAGroupName, generalWorkspacesBGroupName];
-const runPnpmInShell = process.platform === "win32";
+// Keep Windows groups small enough that suites using embedded PostgreSQL do
+// not leak process-global database state into distant test files.
+const generalServerBatchSize = process.platform === "win32" ? 20 : Number.MAX_SAFE_INTEGER;
 const serializedServerVitestArgs = [
   "--no-file-parallelism",
   "--maxWorkers=1",
   "--minWorkers=1",
+  ...(process.platform === "win32" ? ["--hookTimeout=30000"] : []),
 ];
+const windowsHookTimeoutArgs = process.platform === "win32" ? ["--hookTimeout=30000"] : [];
 
 function walk(dir) {
   const entries = readdirSync(dir);
@@ -92,7 +99,19 @@ function isRouteOrAuthzTest(file) {
     return true;
   }
 
-  return additionalSerializedServerTests.has(file);
+  if (additionalSerializedServerTests.has(file)) {
+    return true;
+  }
+
+  // Embedded PostgreSQL suites need a fresh Vitest process on Windows. Keeping
+  // several of them in one general batch eventually makes later beforeAll
+  // hooks compete with teardown from earlier databases and hit the 20s hook
+  // timeout even though every suite passes in isolation.
+  return usesEmbeddedPostgres(file);
+}
+
+function usesEmbeddedPostgres(file) {
+  return readFileSync(path.join(repoRoot, file), "utf8").includes("startEmbeddedPostgresTestDatabase");
 }
 
 function fail(message) {
@@ -132,6 +151,7 @@ function parseCliOptions(argv) {
   let shardIndex = null;
   let shardCount = null;
   let group = null;
+  let batchIndex = null;
   let dryRun = false;
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -189,6 +209,17 @@ function parseCliOptions(argv) {
       continue;
     }
 
+    if (arg === "--batch-index") {
+      batchIndex = parseNonNegativeInteger(readOptionValue(argv, index, arg), arg);
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--batch-index=")) {
+      batchIndex = parseNonNegativeInteger(arg.slice("--batch-index=".length), "--batch-index");
+      continue;
+    }
+
     fail(`Unknown argument "${arg}".`);
   }
 
@@ -212,6 +243,10 @@ function parseCliOptions(argv) {
     fail(`Unknown group "${group}". Expected one of: ${generalGroupNames.join(", ")}.`);
   }
 
+  if (batchIndex !== null && (mode !== generalModeName || group !== generalServerGroupName)) {
+    fail("--batch-index requires --mode general --group general-server.");
+  }
+
   if (mode === serializedModeName) {
     const resolvedShardCount = shardCount ?? 1;
     const resolvedShardIndex = shardIndex ?? 0;
@@ -224,6 +259,7 @@ function parseCliOptions(argv) {
       shardIndex: resolvedShardIndex,
       shardCount: resolvedShardCount,
       group: null,
+      batchIndex: null,
       dryRun,
     };
   }
@@ -233,6 +269,7 @@ function parseCliOptions(argv) {
     shardIndex: null,
     shardCount: null,
     group,
+    batchIndex,
     dryRun,
   };
 }
@@ -256,11 +293,12 @@ function runVitest(args, label) {
   };
   mkdirSync(env.PAPERCLIP_HOME, { recursive: true });
   mkdirSync(env.TMPDIR, { recursive: true });
-  const result = spawnSync("pnpm", ["exec", "vitest", "run", ...args], {
+  const invocation = buildVitestInvocation(repoRoot, args);
+  const result = spawnSync(invocation.command, invocation.args, {
     cwd: repoRoot,
     env,
     stdio: "inherit",
-    shell: runPnpmInShell,
+    shell: invocation.shell,
   });
   if (result.error) {
     console.error(`[test:run] Failed to start Vitest: ${result.error.message}`);
@@ -271,30 +309,79 @@ function runVitest(args, label) {
   }
 }
 
-function runGeneralSuites(routeTests) {
+function runGeneralSuites(routeTests, generalServerTests) {
   for (const groupName of generalGroupNames) {
-    runGeneralGroup(routeTests, groupName);
+    runGeneralGroup(routeTests, generalServerTests, groupName);
   }
 }
 
 function runProjectGroup(projects, groupName) {
   for (const project of projects) {
+    if (process.platform === "win32" && project === "@paperclipai/ui") {
+      // The UI has enough files to exhaust Vitest's process-worker IPC on the
+      // bounded Windows workstation when the default parallel pool is used.
+      // One worker is still quick, and avoids intermittent ERR_IPC_CHANNEL_CLOSED
+      // failures after otherwise successful server batches.
+      runVitest(
+        ["--project", project, ...serializedServerVitestArgs],
+        `${groupName} project ${project} (single worker)`,
+      );
+      continue;
+    }
+    if (process.platform === "win32" && project === "@paperclipai/db") {
+      // The Windows embedded-Postgres test helper uses a before/after PID
+      // snapshot to remove reparented workers that taskkill /T cannot see.
+      // Keep DB files sequential so one fixture cannot enter another's PID
+      // ownership window.
+      runVitest(
+        ["--project", project, ...serializedServerVitestArgs],
+        `${groupName} project ${project} (single worker)`,
+      );
+      continue;
+    }
+    if (process.platform === "win32" && project === "paperclipai") {
+      const cliTests = walk(cliSrcRoot)
+        .filter((file) => /\.test\.[cm]?[jt]sx?$/.test(file))
+        .map(toRepoPath)
+        .sort((left, right) => left.localeCompare(right));
+      const isolatedCliTests = cliTests.filter(usesEmbeddedPostgres);
+      const isolatedCliTestPaths = new Set(isolatedCliTests);
+      const generalCliTests = cliTests.filter((file) => !isolatedCliTestPaths.has(file));
+
+      runVitest(
+        ["--project", project, ...serializedServerVitestArgs, ...generalCliTests],
+        `${groupName} project ${project} general (${generalCliTests.length} suites)`,
+      );
+      for (const testFile of isolatedCliTests) {
+        runVitest(
+          ["--project", project, ...serializedServerVitestArgs, testFile],
+          `${groupName} project ${project} isolated ${testFile}`,
+        );
+      }
+      continue;
+    }
     runVitest(["--project", project], `${groupName} project ${project}`);
   }
 }
 
-function runGeneralGroup(routeTests, groupName) {
+function runGeneralGroup(routeTests, generalServerTests, groupName, batchIndex = null) {
   if (groupName === generalServerGroupName) {
-    const excludeRouteArgs = routeTests.flatMap((file) => ["--exclude", file.serverPath]);
-    runVitest(
-      [
-        "--project",
-        "@paperclipai/server",
-        ...serializedServerVitestArgs,
-        ...excludeRouteArgs,
-      ],
-      `${groupName} server suites excluding ${routeTests.length} serialized suites`,
-    );
+    const batches = chunkItems(generalServerTests, generalServerBatchSize);
+    if (batchIndex !== null && batchIndex >= batches.length) {
+      fail(`--batch-index must be less than ${batches.length}. Received ${batchIndex}.`);
+    }
+    batches.forEach((batch, index) => {
+      if (batchIndex !== null && index !== batchIndex) return;
+      runVitest(
+        [
+          "--project",
+          "@paperclipai/server",
+          ...serializedServerVitestArgs,
+          ...batch.map((file) => file.repoPath),
+        ],
+        `${groupName} batch ${index + 1}/${batches.length} (${batch.length} suites; ${routeTests.length} serialized suites excluded)`,
+      );
+    });
     return;
   }
 
@@ -323,6 +410,7 @@ function runSerializedSuites(routeTests, shardIndex, shardCount) {
         "--project",
         "@paperclipai/server",
         routeTest.repoPath,
+        ...windowsHookTimeoutArgs,
         "--pool=forks",
         "--poolOptions.forks.isolate=true",
       ],
@@ -331,13 +419,16 @@ function runSerializedSuites(routeTests, shardIndex, shardCount) {
   }
 }
 
-const routeTests = walk(serverTestsDir)
-  .filter((file) => isRouteOrAuthzTest(toRepoPath(file)))
+const allServerTests = walk(serverSrcRoot)
+  .filter((file) => /\.test\.[cm]?[jt]sx?$/.test(file))
   .map((file) => ({
     repoPath: toRepoPath(file),
     serverPath: toServerPath(file),
   }))
   .sort((a, b) => a.repoPath.localeCompare(b.repoPath));
+const routeTests = allServerTests.filter((file) => isRouteOrAuthzTest(file.repoPath));
+const routeTestPaths = new Set(routeTests.map((file) => file.repoPath));
+const generalServerTests = allServerTests.filter((file) => !routeTestPaths.has(file.repoPath));
 
 const options = parseCliOptions(process.argv.slice(2));
 if (options.dryRun) {
@@ -352,7 +443,11 @@ if (options.dryRun) {
         shardIndex: options.shardIndex,
         shardCount: options.shardCount,
         group: options.group,
+        batchIndex: options.batchIndex,
         availableGeneralGroups: generalGroupNames,
+        generalServerSuiteCount: generalServerTests.length,
+        generalServerBatchSize: Math.min(generalServerBatchSize, Math.max(generalServerTests.length, 1)),
+        generalServerBatchCount: chunkItems(generalServerTests, generalServerBatchSize).length,
         serializedSuiteCount: routeTests.length,
         selectedSerializedSuites: serializedSuites.map((routeTest) => routeTest.repoPath),
       },
@@ -365,9 +460,9 @@ if (options.dryRun) {
 
 if (options.mode === generalModeName || options.mode === allModeName) {
   if (options.group) {
-    runGeneralGroup(routeTests, options.group);
+    runGeneralGroup(routeTests, generalServerTests, options.group, options.batchIndex);
   } else {
-    runGeneralSuites(routeTests);
+    runGeneralSuites(routeTests, generalServerTests);
   }
 }
 

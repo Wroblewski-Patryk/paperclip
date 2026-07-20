@@ -85,6 +85,14 @@ function formatEnvEntries(entries: Record<string, string>): string {
   ].join("\n");
 }
 
+const WORKTREE_ENV_PATH_KEYS = new Set(["PAPERCLIP_HOME", "PAPERCLIP_CONFIG", "PAPERCLIP_CONTEXT"]);
+
+function worktreeEnvValuesEqual(key: string, current: string | undefined, desired: string): boolean {
+  if (current === desired) return true;
+  if (!current || !WORKTREE_ENV_PATH_KEYS.has(key)) return false;
+  return path.resolve(expandHomePrefix(current)) === path.resolve(expandHomePrefix(desired));
+}
+
 function isPathInside(candidatePath: string, rootPath: string): boolean {
   const candidate = path.resolve(candidatePath);
   const root = path.resolve(rootPath);
@@ -439,7 +447,7 @@ export function maybeRepairLegacyWorktreeConfigAndEnvFiles(): {
   };
 
   const repairedEnv = Object.entries(desiredEnvEntries).some(
-    ([key, value]) => existingEnvEntries[key] !== value,
+    ([key, value]) => !worktreeEnvValuesEqual(key, existingEnvEntries[key], value),
   );
 
   if (repairedEnv) {

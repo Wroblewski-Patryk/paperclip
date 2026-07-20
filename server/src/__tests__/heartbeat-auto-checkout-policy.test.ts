@@ -22,4 +22,13 @@ describe("heartbeat auto-checkout policy", () => {
   it("still auto-checkouts direct assignment wakes", () => {
     expect(shouldAutoCheckoutIssueForWake(baseInput)).toBe(true);
   });
+
+  it("auto-checkouts a completed issue explicitly reopened for a deferred user comment", () => {
+    expect(
+      shouldAutoCheckoutIssueForWake({
+        ...baseInput,
+        contextSnapshot: { wakeReason: "issue_commented", reopenedFrom: "done" },
+      }),
+    ).toBe(true);
+  });
 });

@@ -1,5 +1,6 @@
 import { Command } from "commander";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import {
   addIssueCommentSchema,
   checkoutIssueSchema,
@@ -14,6 +15,9 @@ import {
   formatInlineRecord,
   handleCommandError,
   printOutput,
+  inferContentTypeFromPath,
+  parseJsonOption,
+  registerApiPassthroughCommand,
   resolveCommandContext,
   type BaseClientOptions,
 } from "./common.js";
@@ -378,6 +382,200 @@ export function registerIssueCommands(program: Command): void {
           handleCommandError(err);
         }
       }),
+  );
+
+  registerIssueParityCommands(issue);
+}
+
+function registerIssueParityCommands(issue: Command): void {
+  const payloadOption = (command: Command) => command.requiredOption("--payload-json <json>", "JSON payload");
+  const issuePath = (suffix = "") => ([issueId]: string[]) => `/api/issues/${issueId}${suffix}`;
+  const registerGet = (name: string, suffix: string) => registerApiPassthroughCommand(issue, {
+    usage: `${name} <issueId>`, description: `${name} for an issue`, method: "get", path: issuePath(suffix),
+  });
+
+  registerApiPassthroughCommand(issue, {
+    usage: "delete <issueId>", description: "Delete an issue", method: "delete",
+    configure: (command) => command.option("--yes", "Confirm deletion"), path: issuePath(),
+  });
+  for (const [name, suffix] of [
+    ["runs", "/runs"], ["live-runs", "/live-runs"], ["active-run", "/active-run"],
+    ["approvals", "/approvals"], ["recovery-actions", "/recovery-actions"],
+    ["work-products", "/work-products"], ["interactions", "/interactions"],
+    ["tree-state", "/tree-control/state"], ["attachments", "/attachments"],
+    ["feedback:votes", "/feedback-votes"],
+  ] as const) registerGet(name, suffix);
+  registerApiPassthroughCommand(issue, {
+    usage: "comments <issueId>", description: "List issue comments", method: "get",
+    configure: (command) => command.option("--limit <n>", "Result limit"),
+    path: ([issueId], options) => `/api/issues/${issueId}/comments${options.limit ? `?limit=${encodeURIComponent(String(options.limit))}` : ""}`,
+  });
+  for (const [name, method, suffix] of [
+    ["read", "post", "/read"], ["unread", "delete", "/read"],
+    ["archive", "post", "/inbox-archive"], ["unarchive", "delete", "/inbox-archive"],
+  ] as const) registerApiPassthroughCommand(issue, {
+    usage: `${name} <issueId>`, description: `${name} issue`, method, path: issuePath(suffix),
+  });
+  for (const [name, method] of [["comment:get", "get"], ["comment:delete", "delete"]] as const) {
+    registerApiPassthroughCommand(issue, {
+      usage: `${name} <issueId> <commentId>`, description: `${name} issue comment`, method,
+      path: ([issueId, commentId]) => `/api/issues/${issueId}/comments/${commentId}`,
+    });
+  }
+  registerApiPassthroughCommand(issue, {
+    usage: "approval:link <issueId> <approvalId>", description: "Link an approval", method: "post",
+    path: ([issueId]) => `/api/issues/${issueId}/approvals`, body: ([, approvalId]) => ({ approvalId }),
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "approval:unlink <issueId> <approvalId>", description: "Unlink an approval", method: "delete",
+    path: ([issueId, approvalId]) => `/api/issues/${issueId}/approvals/${approvalId}`,
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "recovery:resolve <issueId>", description: "Resolve an issue recovery action", method: "post",
+    configure: (command) => command.requiredOption("--outcome <outcome>").option("--source-issue-status <status>").option("--action-id <id>"),
+    path: issuePath("/recovery-actions/resolve"),
+    body: (_args, options) => ({ outcome: options.outcome, sourceIssueStatus: options.sourceIssueStatus, actionId: options.actionId }),
+  });
+
+  registerApiPassthroughCommand(issue, {
+    usage: "documents <issueId>", description: "List issue documents", method: "get",
+    configure: (command) => command.option("--include-system", "Include system documents"),
+    path: ([issueId], options) => `/api/issues/${issueId}/documents${options.includeSystem ? "?includeSystem=true" : ""}`,
+  });
+  for (const [name, method, suffix] of [
+    ["document:get", "get", ""], ["document:delete", "delete", ""],
+    ["document:lock", "post", "/lock"], ["document:unlock", "post", "/unlock"],
+    ["document:revisions", "get", "/revisions"],
+  ] as const) registerApiPassthroughCommand(issue, {
+    usage: `${name} <issueId> <key>`, description: `${name} issue document`, method,
+    path: ([issueId, key]) => `/api/issues/${issueId}/documents/${encodeURIComponent(key)}${suffix}`,
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "document:put <issueId> <key>", description: "Create or update an issue document", method: "put",
+    configure: (command) => command.requiredOption("--body <text>").option("--title <title>"),
+    path: ([issueId, key]) => `/api/issues/${issueId}/documents/${encodeURIComponent(key)}`,
+    body: (_args, options) => ({ body: options.body, title: options.title }),
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "document:restore <issueId> <key> <revisionId>", description: "Restore an issue document revision", method: "post",
+    path: ([issueId, key, revisionId]) => `/api/issues/${issueId}/documents/${encodeURIComponent(key)}/revisions/${revisionId}/restore`,
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "work-product:create <issueId>", description: "Create a work product", method: "post", configure: payloadOption,
+    path: issuePath("/work-products"), body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  for (const [name, method] of [["work-product:update", "patch"], ["work-product:delete", "delete"]] as const) {
+    registerApiPassthroughCommand(issue, {
+      usage: `${name} <productId>`, description: `${name} work product`, method,
+      configure: method === "patch" ? payloadOption : undefined,
+      path: ([productId]) => `/api/work-products/${productId}`,
+      body: (_args, options) => parseJsonOption(options.payloadJson),
+    });
+  }
+
+  registerIssueInteractionCommands(issue, payloadOption, issuePath);
+}
+
+function registerIssueInteractionCommands(
+  issue: Command,
+  payloadOption: (command: Command) => Command,
+  issuePath: (suffix?: string) => (args: string[]) => string,
+): void {
+  registerApiPassthroughCommand(issue, {
+    usage: "interaction:create <issueId>", description: "Create an interaction", method: "post", configure: payloadOption,
+    path: issuePath("/interactions"), body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  for (const action of ["accept", "reject", "cancel", "respond"] as const) {
+    registerApiPassthroughCommand(issue, {
+      usage: `interaction:${action} <issueId> <interactionId>`, description: `${action} interaction`, method: "post",
+      configure: (command) => {
+        command.option("--selected-client-keys <csv>").option("--selected-option-ids <csv>").option("--reason <text>").option("--answers-json <json>");
+      },
+      path: ([issueId, interactionId]) => `/api/issues/${issueId}/interactions/${interactionId}/${action}`,
+      body: (_args, options) => options.selectedOptionIds
+        ? { selectedOptionIds: parseCsv(String(options.selectedOptionIds)) }
+        : options.selectedClientKeys
+          ? { selectedClientKeys: parseCsv(String(options.selectedClientKeys)) }
+          : options.answersJson
+            ? { answers: parseJsonOption(options.answersJson, "--answers-json") }
+            : options.reason ? { reason: options.reason } : {},
+    });
+  }
+  registerApiPassthroughCommand(issue, {
+    usage: "tree-preview <issueId>", description: "Preview tree control", method: "post", configure: payloadOption,
+    path: issuePath("/tree-control/preview"), body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "tree-holds <issueId>", description: "List tree holds", method: "get",
+    configure: (command) => command.option("--status <status>").option("--include-members"),
+    path: ([issueId], options) => {
+      const query = new URLSearchParams();
+      if (options.status) query.set("status", String(options.status));
+      if (options.includeMembers) query.set("includeMembers", "true");
+      return `/api/issues/${issueId}/tree-holds${query.size ? `?${query}` : ""}`;
+    },
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "tree-hold:create <issueId>", description: "Create a tree hold", method: "post", configure: payloadOption,
+    path: issuePath("/tree-holds"), body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "tree-hold:get <issueId> <holdId>", description: "Get a tree hold", method: "get",
+    path: ([issueId, holdId]) => `/api/issues/${issueId}/tree-holds/${holdId}`,
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "tree-hold:release <issueId> <holdId>", description: "Release a tree hold", method: "post",
+    path: ([issueId, holdId]) => `/api/issues/${issueId}/tree-holds/${holdId}/release`,
+  });
+  for (const [name, method, suffix] of [
+    ["attachment:download", "get", "/content"], ["attachment:delete", "delete", ""],
+  ] as const) registerApiPassthroughCommand(issue, {
+    usage: `${name} <attachmentId>`, description: `${name} attachment`, method,
+    path: ([attachmentId]) => `/api/attachments/${attachmentId}${suffix}`,
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "label:list", description: "List labels", method: "get", requireCompany: true,
+    configure: (command) => command.requiredOption("-C, --company-id <id>"),
+    path: (_args, _options, context) => `/api/companies/${context.companyId}/labels`,
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "label:create", description: "Create a label", method: "post", requireCompany: true,
+    configure: (command) => command.requiredOption("-C, --company-id <id>").requiredOption("--name <name>").option("--color <color>"),
+    path: (_args, _options, context) => `/api/companies/${context.companyId}/labels`,
+    body: (_args, options) => ({ name: options.name, color: options.color }),
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "label:delete <labelId>", description: "Delete a label", method: "delete", path: ([labelId]) => `/api/labels/${labelId}`,
+  });
+  registerApiPassthroughCommand(issue, {
+    usage: "feedback:vote <issueId>", description: "Create a feedback vote", method: "post", configure: payloadOption,
+    path: issuePath("/feedback-votes"), body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+
+  addCommonClientOptions(
+    issue.command("attachment:upload <issueId>")
+      .description("Upload an issue attachment")
+      .requiredOption("-C, --company-id <id>", "Company ID")
+      .requiredOption("--file <path>", "File path")
+      .action(async (issueId: string, opts: BaseClientOptions & { file: string }) => {
+        try {
+          const context = resolveCommandContext(opts, { requireCompany: true });
+          const bytes = await readFile(opts.file);
+          const form = new FormData();
+          form.append("file", new File([bytes], path.basename(opts.file), { type: inferContentTypeFromPath(opts.file) }));
+          const headers: Record<string, string> = {};
+          if (context.api.apiKey) headers.authorization = `Bearer ${context.api.apiKey}`;
+          if (context.api.runId) headers["x-paperclip-run-id"] = context.api.runId;
+          const response = await fetch(`${context.api.apiBase}/api/companies/${context.companyId}/issues/${issueId}/attachments`, {
+            method: "POST", headers, body: form,
+          });
+          if (!response.ok) throw new Error(`Attachment upload failed (${response.status})`);
+          printOutput(await response.json(), { json: context.json });
+        } catch (error) {
+          handleCommandError(error);
+        }
+      }),
+    { includeCompany: false },
   );
 }
 

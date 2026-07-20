@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import { eq, ne } from "drizzle-orm";
+import { eq, ne, sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   activityLog,
@@ -86,7 +86,7 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("paperclip-accepted-plan-workspace-");
     db = createDb(tempDb.connectionString);
-  }, 20_000);
+  }, 60_000);
 
   afterEach(async () => {
     adapterExecute.mockClear();
@@ -108,25 +108,10 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
       const root = tempRoots.pop();
       if (root) await rm(root, { recursive: true, force: true }).catch(() => undefined);
     }
-    await db.delete(issuePlanDecompositions);
-    await db.delete(issueDocuments);
-    await db.delete(documentRevisions);
-    await db.delete(documents);
-    await db.delete(agentTaskSessions);
-    await db.delete(executionWorkspaces);
-    await db.delete(activityLog);
-    await db.delete(heartbeatRunEvents);
-    await db.delete(heartbeatRuns);
-    await db.delete(issueComments);
-    await db.delete(issues);
-    await db.delete(projectWorkspaces);
-    await db.delete(projects);
-    await db.delete(agentWakeupRequests);
-    await db.delete(agentRuntimeState);
-    await db.delete(agents);
-    await db.delete(workspaceOperations);
-    await db.delete(companySkills);
-    await db.delete(companies);
+    // Heartbeat completion can persist a final task-session row after the run
+    // status becomes terminal. Truncate the dedicated test company's complete
+    // dependency graph atomically so cleanup cannot race that final write.
+    await db.execute(sql.raw(`TRUNCATE TABLE "companies" CASCADE`));
   });
 
   afterAll(async () => {

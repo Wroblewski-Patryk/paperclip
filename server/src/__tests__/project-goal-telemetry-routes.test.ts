@@ -28,12 +28,20 @@ const mockEnvironmentService = vi.hoisted(() => ({
 const mockLogActivity = vi.hoisted(() => vi.fn());
 const mockGetTelemetryClient = vi.hoisted(() => vi.fn());
 const mockTelemetryTrack = vi.hoisted(() => vi.fn());
+const mockAccessService = vi.hoisted(() => ({
+  decide: vi.fn().mockResolvedValue({
+    allowed: true,
+    reason: "allow_explicit_grant",
+    explanation: "Allowed by telemetry route test grant.",
+  }),
+}));
 
 vi.mock("../telemetry.js", () => ({
   getTelemetryClient: mockGetTelemetryClient,
 }));
 
 vi.mock("../services/index.js", () => ({
+  accessService: () => mockAccessService,
   environmentService: () => mockEnvironmentService,
   goalService: () => mockGoalService,
   logActivity: mockLogActivity,
@@ -53,6 +61,7 @@ function registerModuleMocks() {
   }));
 
   vi.doMock("../services/index.js", () => ({
+    accessService: () => mockAccessService,
     environmentService: () => mockEnvironmentService,
     goalService: () => mockGoalService,
     logActivity: mockLogActivity,

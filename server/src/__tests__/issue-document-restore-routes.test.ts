@@ -18,6 +18,11 @@ const mockDocumentsService = vi.hoisted(() => ({
 const mockAccessService = vi.hoisted(() => ({
   canUser: vi.fn(),
   hasPermission: vi.fn(),
+  decide: vi.fn().mockResolvedValue({
+    allowed: true,
+    reason: "allow_explicit_grant",
+    explanation: "Allowed by document route test grant.",
+  }),
 }));
 
 const mockAgentService = vi.hoisted(() => ({

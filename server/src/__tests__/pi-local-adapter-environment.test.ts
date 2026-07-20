@@ -3,13 +3,13 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { testEnvironment } from "@paperclipai/adapter-pi-local/server";
+import { fakeNodeCommandPath, writeFakeNodeCommand } from "./helpers/fake-node-command.js";
 
 async function writeFakePiCommand(binDir: string, mode: "success" | "stale-package"): Promise<void> {
-  const commandPath = path.join(binDir, "pi");
+  const commandPath = fakeNodeCommandPath(path.join(binDir, "pi"));
   const script =
     mode === "success"
-      ? `#!/usr/bin/env node
-if (process.argv.includes("--list-models")) {
+      ? `if (process.argv.includes("--list-models")) {
   console.log("provider  model");
   console.log("openai    gpt-4.1-mini");
   process.exit(0);
@@ -27,15 +27,13 @@ console.log(JSON.stringify({
   toolResults: []
 }));
 `
-      : `#!/usr/bin/env node
-if (process.argv.includes("--list-models")) {
+      : `if (process.argv.includes("--list-models")) {
   console.error("npm error 404 'pi-driver@*' is not in this registry.");
   process.exit(1);
 }
 process.exit(1);
 `;
-  await fs.writeFile(commandPath, script, "utf8");
-  await fs.chmod(commandPath, 0o755);
+  await writeFakeNodeCommand(commandPath, script);
 }
 
 describe("pi_local environment diagnostics", () => {

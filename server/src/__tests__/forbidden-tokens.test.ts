@@ -4,7 +4,7 @@ const {
   resolveDynamicForbiddenTokens,
   resolveForbiddenTokens,
   runForbiddenTokenCheck,
-} = await import("../../../scripts/check-forbidden-tokens.mjs");
+} = await import("../../../scripts/lib/forbidden-tokens.mjs");
 
 describe("forbidden token check", () => {
   it("derives username tokens without relying on whoami", () => {

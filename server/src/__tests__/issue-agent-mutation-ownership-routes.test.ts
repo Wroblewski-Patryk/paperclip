@@ -280,10 +280,14 @@ describe("agent issue mutation checkout ownership", () => {
     mockAccessService.canUser.mockReset();
     mockAccessService.decide.mockReset();
     mockAccessService.decide.mockImplementation(async (input: { action: string }) => ({
-      allowed: input.action === "tasks:assign",
+      allowed: input.action === "issue:read" || input.action === "issue:mutate" || input.action === "tasks:assign",
       action: input.action,
-      reason: input.action === "tasks:assign" ? "allow_explicit_grant" : "deny_missing_grant",
-      explanation: input.action === "tasks:assign" ? "Allowed by test assignment default." : "Missing permission.",
+      reason: input.action === "issue:read" || input.action === "issue:mutate" || input.action === "tasks:assign"
+        ? "allow_explicit_grant"
+        : "deny_missing_grant",
+      explanation: input.action === "issue:read" || input.action === "issue:mutate" || input.action === "tasks:assign"
+        ? "Allowed by test route defaults."
+        : "Missing permission.",
     }));
     mockAccessService.hasPermission.mockReset();
     mockAgentService.getById.mockReset();
@@ -693,10 +697,14 @@ describe("agent issue mutation checkout ownership", () => {
 
   it("allows agents with the active-checkout management grant to mutate active checkouts", async () => {
     mockAccessService.decide.mockImplementation(async (input: { action: string }) => ({
-      allowed: input.action === "tasks:manage_active_checkouts",
+      allowed: input.action === "issue:read" || input.action === "issue:mutate" || input.action === "tasks:manage_active_checkouts",
       action: input.action,
-      reason: input.action === "tasks:manage_active_checkouts" ? "allow_explicit_grant" : "deny_missing_grant",
-      explanation: input.action === "tasks:manage_active_checkouts" ? "Allowed by checkout management grant." : "Missing permission.",
+      reason: input.action === "issue:read" || input.action === "issue:mutate" || input.action === "tasks:manage_active_checkouts"
+        ? "allow_explicit_grant"
+        : "deny_missing_grant",
+      explanation: input.action === "issue:read" || input.action === "issue:mutate" || input.action === "tasks:manage_active_checkouts"
+        ? "Allowed by checkout management test grant."
+        : "Missing permission.",
     }));
 
     const res = await request(await createApp(peerActor())).patch(`/api/issues/${issueId}`).send({ title: "Managed update" });
@@ -840,12 +848,19 @@ describe("agent issue mutation checkout ownership", () => {
   });
 
   it("uses the authorization decision path for assignment changes", async () => {
-    const decide = vi.fn(async () => ({
-      allowed: false,
-      action: "tasks:assign",
-      reason: "deny_policy_restricted",
-      explanation: "Target agent requires approval before task assignment.",
-    }));
+    const decide = vi.fn(async (input: { action: string }) => input.action === "issue:read" || input.action === "issue:mutate"
+      ? {
+          allowed: true,
+          action: input.action,
+          reason: "allow_explicit_grant",
+          explanation: "Issue is readable for the assignment test.",
+        }
+      : {
+          allowed: false,
+          action: input.action,
+          reason: "deny_policy_restricted",
+          explanation: "Target agent requires approval before task assignment.",
+        });
     (mockAccessService as any).decide = decide;
     mockIssueService.getById.mockResolvedValue(makeIssue({ assigneeAgentId: ownerAgentId }));
     mockAgentService.resolveByReference.mockResolvedValue({

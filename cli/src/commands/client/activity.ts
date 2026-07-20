@@ -5,6 +5,8 @@ import {
   formatInlineRecord,
   handleCommandError,
   printOutput,
+  parseJsonOption,
+  registerApiPassthroughCommand,
   resolveCommandContext,
   type BaseClientOptions,
 } from "./common.js";
@@ -68,4 +70,20 @@ export function registerActivityCommands(program: Command): void {
       }),
     { includeCompany: false },
   );
+
+  registerApiPassthroughCommand(activity, {
+    usage: "create",
+    description: "Create an activity entry",
+    method: "post",
+    configure: (command) => command.requiredOption("-C, --company-id <id>", "Company ID").requiredOption("--payload-json <json>", "Activity payload"),
+    requireCompany: true,
+    path: (_args, _options, context) => `/api/companies/${context.companyId}/activity`,
+    body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  registerApiPassthroughCommand(activity, {
+    usage: "issue <issueId>",
+    description: "List activity for an issue",
+    method: "get",
+    path: ([issueId]) => `/api/issues/${issueId}/activity`,
+  });
 }

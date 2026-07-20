@@ -3,12 +3,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 interface ShortcutEntry {
   keys: string[];
   label: string;
+  joiner?: "+" | "then";
 }
 
 interface ShortcutSection {
   title: string;
   shortcuts: ShortcutEntry[];
 }
+
+const primaryModifier = typeof navigator !== "undefined" && /Mac|iPhone|iPad/i.test(navigator.platform)
+  ? "⌘"
+  : "Ctrl";
 
 const sections: ShortcutSection[] = [
   {
@@ -40,7 +45,7 @@ const sections: ShortcutSection[] = [
     shortcuts: [
       { keys: ["/"], label: "Search current page or quick search" },
       { keys: ["c"], label: "New issue" },
-      { keys: ["["], label: "Toggle sidebar" },
+      { keys: [primaryModifier, "B"], label: "Collapse or expand sidebar", joiner: "+" },
       { keys: ["]"], label: "Toggle panel" },
       { keys: ["?"], label: "Show keyboard shortcuts" },
     ],
@@ -74,7 +79,9 @@ export function KeyboardShortcutsCheatsheetContent() {
                   <div className="flex items-center gap-1">
                     {shortcut.keys.map((key, i) => (
                       <span key={key} className="flex items-center gap-1">
-                        {i > 0 && <span className="text-xs text-muted-foreground">then</span>}
+                        {i > 0 && (
+                          <span className="text-xs text-muted-foreground">{shortcut.joiner ?? "then"}</span>
+                        )}
                         <KeyCap>{key}</KeyCap>
                       </span>
                     ))}

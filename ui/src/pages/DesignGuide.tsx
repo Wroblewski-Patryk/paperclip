@@ -157,6 +157,7 @@ function sampleOutput(
     isPrimary: Boolean(opts.isPrimary),
     healthStatus: "unknown",
     summary: null,
+    sourceTrust: null,
     createdByRunId: null,
     createdAt: new Date(opts.createdAt),
     updatedAt: new Date(opts.createdAt),

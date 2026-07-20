@@ -3,6 +3,7 @@ import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockIssueService = vi.hoisted(() => ({
+  addComment: vi.fn(),
   getById: vi.fn(),
   getWakeableParentAfterChildCompletion: vi.fn(),
   listWakeableBlockedDependents: vi.fn(),
@@ -32,6 +33,7 @@ function registerModuleMocks() {
     }),
     accessService: () => ({
       canUser: vi.fn(),
+      decide: vi.fn(async () => ({ allowed: true })),
       hasPermission: vi.fn(),
     }),
     agentService: () => mockAgentService,
@@ -76,6 +78,11 @@ function registerModuleMocks() {
     }),
     workProductService: () => ({}),
   }));
+
+  vi.doMock("../services/source-trust.js", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("../services/source-trust.js")>()),
+    resolveActorSourceTrustForIssue: vi.fn(async () => null),
+  }));
 }
 
 function makeIssue(status: "todo" | "done") {
@@ -90,6 +97,23 @@ function makeIssue(status: "todo" | "done") {
     title: "Telemetry test",
   };
 }
+
+const completionEvidence = {
+  summary: "Telemetry completion evidence.",
+  riskLevel: "standard" as const,
+  testEvidence: {
+    summary: "Telemetry route test passed.",
+    refs: [{ kind: "request_comment" as const, label: "Completion comment" }],
+  },
+  reviewEvidence: {
+    summary: "Telemetry behavior reviewed.",
+    refs: [{ kind: "request_comment" as const, label: "Completion comment" }],
+  },
+  documentationEvidence: {
+    summary: "No documentation change required.",
+    refs: [{ kind: "request_comment" as const, label: "Completion comment" }],
+  },
+};
 
 async function createApp(actor: Record<string, unknown>) {
   const [{ errorHandler }, { issueRoutes }] = await Promise.all([
@@ -113,6 +137,7 @@ describe("issue telemetry routes", () => {
     vi.doUnmock("@paperclipai/shared/telemetry");
     vi.doUnmock("../telemetry.js");
     vi.doUnmock("../services/index.js");
+    vi.doUnmock("../services/source-trust.js");
     vi.doUnmock("../routes/issues.js");
     vi.doUnmock("../routes/authz.js");
     vi.doUnmock("../middleware/index.js");
@@ -120,6 +145,12 @@ describe("issue telemetry routes", () => {
     vi.clearAllMocks();
     mockGetTelemetryClient.mockReturnValue({ track: vi.fn() });
     mockIssueService.getById.mockResolvedValue(makeIssue("todo"));
+    mockIssueService.addComment.mockImplementation(async (_issueId: string, body: string) => ({
+      id: "completion-comment",
+      issueId: "11111111-1111-4111-8111-111111111111",
+      companyId: "company-1",
+      body,
+    }));
     mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(null);
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
     mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
@@ -145,9 +176,13 @@ describe("issue telemetry routes", () => {
     });
     const res = await request(app)
       .patch("/api/issues/11111111-1111-4111-8111-111111111111")
-      .send({ status: "done" });
+      .send({
+        status: "done",
+        comment: "Completed and verified for telemetry.",
+        completionEvidence,
+      });
 
-    expect(res.status).toBe(200);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
     await vi.waitFor(() => {
       expect(mockTrackAgentTaskCompleted).toHaveBeenCalledWith(expect.anything(), {
         agentRole: "engineer",
@@ -168,9 +203,9 @@ describe("issue telemetry routes", () => {
     });
     const res = await request(app)
       .patch("/api/issues/11111111-1111-4111-8111-111111111111")
-      .send({ status: "done" });
+      .send({ status: "done", comment: "Board completion evidence." });
 
-    expect(res.status).toBe(200);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(mockTrackAgentTaskCompleted).not.toHaveBeenCalled();
     expect(mockAgentService.getById).not.toHaveBeenCalled();
   });

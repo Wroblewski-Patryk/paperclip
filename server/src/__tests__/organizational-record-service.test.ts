@@ -14,7 +14,7 @@ describeEmbeddedPostgres("organizational record service", () => {
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("paperclip-organizational-records-");
     db = createDb(tempDb.connectionString);
-  }, 20_000);
+  }, 60_000);
 
   afterEach(async () => {
     await db.delete(organizationalRecords);

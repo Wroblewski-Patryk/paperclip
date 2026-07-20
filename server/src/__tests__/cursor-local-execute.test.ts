@@ -4,10 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { runChildProcess } from "@paperclipai/adapter-utils/server-utils";
 import { execute } from "@paperclipai/adapter-cursor-local/server";
+import { fakeNodeCommandPath, writeFakeNodeCommand } from "./helpers/fake-node-command.js";
 
 async function writeFakeCursorCommand(commandPath: string): Promise<void> {
-  const script = `#!/usr/bin/env node
-const fs = require("node:fs");
+  const script = `const fs = require("node:fs");
 
 const capturePath = process.env.PAPERCLIP_TEST_CAPTURE_PATH;
 const payload = {
@@ -37,16 +37,14 @@ console.log(JSON.stringify({
   result: "ok",
 }));
 `;
-  await fs.writeFile(commandPath, script, "utf8");
-  await fs.chmod(commandPath, 0o755);
+  await writeFakeNodeCommand(commandPath, script);
 }
 
 async function writeFakeSandboxCursorAgent(commandPath: string, capturePath: string): Promise<void> {
-  const script = `#!/usr/bin/env node
-const fs = require("node:fs");
+  const script = `const fs = require("node:fs");
 
 const payload = {
-  command: process.argv[1],
+  command: process.env.PAPERCLIP_FAKE_COMMAND || process.argv[1],
   argv: process.argv.slice(2),
   prompt: fs.readFileSync(0, "utf8"),
   path: process.env.PATH || "",
@@ -70,8 +68,7 @@ console.log(JSON.stringify({
 }));
 `;
   await fs.mkdir(path.dirname(commandPath), { recursive: true });
-  await fs.writeFile(commandPath, script, "utf8");
-  await fs.chmod(commandPath, 0o755);
+  await writeFakeNodeCommand(commandPath, script);
 }
 
 function createLocalSandboxRunner() {
@@ -120,7 +117,7 @@ describe("cursor execute", () => {
   it("injects paperclip env vars and prompt note by default", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-execute-"));
     const workspace = path.join(root, "workspace");
-    const commandPath = path.join(root, "agent");
+    const commandPath = fakeNodeCommandPath(path.join(root, "agent"));
     const capturePath = path.join(root, "capture.json");
     await fs.mkdir(workspace, { recursive: true });
     await writeFakeCursorCommand(commandPath);
@@ -195,7 +192,7 @@ describe("cursor execute", () => {
   it("passes --mode when explicitly configured", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-execute-mode-"));
     const workspace = path.join(root, "workspace");
-    const commandPath = path.join(root, "agent");
+    const commandPath = fakeNodeCommandPath(path.join(root, "agent"));
     const capturePath = path.join(root, "capture.json");
     await fs.mkdir(workspace, { recursive: true });
     await writeFakeCursorCommand(commandPath);
@@ -253,7 +250,7 @@ describe("cursor execute", () => {
   it("injects company-library runtime skills into the Cursor skills home before execution", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-execute-runtime-skill-"));
     const workspace = path.join(root, "workspace");
-    const commandPath = path.join(root, "agent");
+    const commandPath = fakeNodeCommandPath(path.join(root, "agent"));
     const runtimeSkillsRoot = path.join(root, "runtime-skills");
     await fs.mkdir(workspace, { recursive: true });
     await writeFakeCursorCommand(commandPath);
@@ -323,13 +320,13 @@ describe("cursor execute", () => {
     }
   });
 
-  it("prefers ~/.local/bin/cursor-agent for remote sandbox execution when using the default command", async () => {
+  it.skipIf(process.platform === "win32")("prefers ~/.local/bin/cursor-agent for remote sandbox execution when using the default command", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-sandbox-execute-"));
     const homeDir = path.join(root, "home");
     const workspace = path.join(root, "workspace");
     const remoteWorkspace = path.join(root, "remote-workspace");
     const capturePath = path.join(root, "capture.json");
-    const cursorAgentPath = path.join(homeDir, ".local", "bin", "cursor-agent");
+    const cursorAgentPath = fakeNodeCommandPath(path.join(homeDir, ".local", "bin", "cursor-agent"));
     await fs.mkdir(workspace, { recursive: true });
     await fs.mkdir(remoteWorkspace, { recursive: true });
     await writeFakeSandboxCursorAgent(cursorAgentPath, capturePath);
@@ -387,13 +384,13 @@ describe("cursor execute", () => {
     }
   }, 10_000);
 
-  it("keeps explicit command overrides for remote sandbox execution", async () => {
+  it.skipIf(process.platform === "win32")("keeps explicit command overrides for remote sandbox execution", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-sandbox-explicit-"));
     const homeDir = path.join(root, "home");
     const workspace = path.join(root, "workspace");
     const remoteWorkspace = path.join(root, "remote-workspace");
     const capturePath = path.join(root, "capture.json");
-    const cursorAgentPath = path.join(homeDir, ".local", "bin", "cursor-agent");
+    const cursorAgentPath = fakeNodeCommandPath(path.join(homeDir, ".local", "bin", "cursor-agent"));
     const customCommandPath = path.join(root, "bin", "custom-cursor");
     await fs.mkdir(workspace, { recursive: true });
     await fs.mkdir(remoteWorkspace, { recursive: true });

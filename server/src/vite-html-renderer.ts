@@ -33,7 +33,7 @@ function injectViteDevPreamble(html: string): string {
       ? injectedHtml.replace("</head>", `    ${REACT_REFRESH_PREAMBLE}\n  </head>`)
       : `${REACT_REFRESH_PREAMBLE}\n${injectedHtml}`;
   }
-  if (injectedHtml.includes(VITE_CLIENT_TAG)) return injectedHtml;
+  if (/src=["']\/@vite\/client["']/.test(injectedHtml)) return injectedHtml;
   if (injectedHtml.includes(MAIN_ENTRY_TAG)) {
     return injectedHtml.replace(MAIN_ENTRY_TAG, `${VITE_CLIENT_TAG}\n    ${MAIN_ENTRY_TAG}`);
   }

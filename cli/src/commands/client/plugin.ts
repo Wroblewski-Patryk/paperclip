@@ -11,6 +11,8 @@ import {
   addCommonClientOptions,
   handleCommandError,
   printOutput,
+  parseJsonOption,
+  registerApiPassthroughCommand,
   resolveCommandContext,
   type BaseClientOptions,
 } from "./common.js";
@@ -531,4 +533,68 @@ export function registerPluginCommands(program: Command): void {
         }
       }),
   );
+
+  registerPluginParityCommands(plugin);
+}
+
+function registerPluginParityCommands(plugin: Command): void {
+  const payloadOption = (command: Command) => command.requiredOption("--payload-json <json>", "JSON payload");
+  for (const [name, path] of [["ui-contributions", "/api/plugins/ui-contributions"], ["tools", "/api/plugins/tools"]] as const) {
+    registerApiPassthroughCommand(plugin, { usage: name, description: `Get plugin ${name}`, method: "get", path: () => path });
+  }
+  registerApiPassthroughCommand(plugin, {
+    usage: "tool:execute", description: "Execute a plugin tool", method: "post", configure: payloadOption,
+    path: () => "/api/plugins/tools/execute", body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  for (const [name, method, suffix] of [
+    ["health", "get", "/health"], ["logs", "get", "/logs"], ["upgrade", "post", "/upgrade"],
+    ["config", "get", "/config"], ["jobs", "get", "/jobs"], ["dashboard", "get", "/dashboard"],
+  ] as const) registerApiPassthroughCommand(plugin, {
+    usage: `${name} <pluginKey>`, description: `${name} plugin`, method,
+    path: ([pluginKey]) => `/api/plugins/${pluginKey}${suffix}`,
+  });
+  for (const [name, suffix] of [["config:set", "/config"], ["config:test", "/config/test"]] as const) {
+    registerApiPassthroughCommand(plugin, {
+      usage: `${name} <pluginKey>`, description: `${name} plugin`, method: "post", configure: payloadOption,
+      path: ([pluginKey]) => `/api/plugins/${pluginKey}${suffix}`, body: (_args, options) => parseJsonOption(options.payloadJson),
+    });
+  }
+  for (const [name, method, suffix] of [
+    ["job:runs", "get", "/runs"], ["job:trigger", "post", "/trigger"],
+  ] as const) registerApiPassthroughCommand(plugin, {
+    usage: `${name} <pluginKey> <jobKey>`, description: `${name} plugin job`, method,
+    path: ([pluginKey, jobKey]) => `/api/plugins/${pluginKey}/jobs/${jobKey}${suffix}`,
+  });
+  registerApiPassthroughCommand(plugin, {
+    usage: "webhook <pluginKey> <endpoint>", description: "Invoke a plugin webhook", method: "post", configure: payloadOption,
+    path: ([pluginKey, endpoint]) => `/api/plugins/${pluginKey}/webhooks/${endpoint}`, body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  for (const [name, method, suffix] of [
+    ["bridge:data", "post", "/bridge/data"], ["bridge:action", "post", "/bridge/action"],
+  ] as const) registerApiPassthroughCommand(plugin, {
+    usage: `${name} <pluginKey>`, description: `${name} plugin bridge`, method, configure: payloadOption,
+    path: ([pluginKey]) => `/api/plugins/${pluginKey}${suffix}`, body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  registerApiPassthroughCommand(plugin, {
+    usage: "bridge:stream <pluginKey> <stream>", description: "Read a plugin bridge stream", method: "get",
+    configure: (command) => command.option("--duration-ms <n>"),
+    path: ([pluginKey, stream]) => `/api/plugins/${pluginKey}/bridge/stream/${stream}`,
+  });
+  for (const [name, suffix] of [["data", "/data/"], ["action", "/actions/"]] as const) registerApiPassthroughCommand(plugin, {
+    usage: `${name} <pluginKey> <key>`, description: `${name} plugin value`, method: "post", configure: payloadOption,
+    path: ([pluginKey, key]) => `/api/plugins/${pluginKey}${suffix}${key}`, body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
+  for (const [name, method, suffix, hasPayload] of [
+    ["local-folders", "get", "", false], ["local-folder:status", "get", "/status", false],
+    ["local-folder:validate", "post", "/validate", true], ["local-folder:set", "put", "", true],
+  ] as const) registerApiPassthroughCommand(plugin, {
+    usage: name === "local-folders" ? `${name} <pluginKey>` : `${name} <pluginKey> <sourceKey>`,
+    description: `${name} plugin folder`, method, requireCompany: true,
+    configure: (command) => {
+      command.requiredOption("-C, --company-id <id>");
+      if (hasPayload) payloadOption(command);
+    },
+    path: ([pluginKey, sourceKey], _options, context) => `/api/plugins/${pluginKey}/companies/${context.companyId}/local-folders${sourceKey ? `/${sourceKey}${suffix}` : ""}`,
+    body: (_args, options) => parseJsonOption(options.payloadJson),
+  });
 }

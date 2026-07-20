@@ -4,20 +4,32 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 const repoRoot = process.cwd();
+const pnpmEntrypoint = process.env.npm_execpath;
+
+function spawnPnpm(args, options = {}) {
+  return spawnSync(
+    pnpmEntrypoint ? process.execPath : "pnpm",
+    [...(pnpmEntrypoint ? [pnpmEntrypoint] : []), ...args],
+    {
+      cwd: repoRoot,
+      shell: process.platform === "win32" && !pnpmEntrypoint,
+      ...options,
+    },
+  );
+}
 
 function fail(message) {
   console.error(`[typecheck:build-gaps] ${message}`);
   process.exit(1);
 }
 
-function run(command, args) {
-  const result = spawnSync(command, args, {
-    cwd: repoRoot,
+function runPnpm(args) {
+  const result = spawnPnpm(args, {
     stdio: "inherit",
   });
 
   if (result.error) {
-    console.error(`[typecheck:build-gaps] Failed to spawn ${command}: ${result.error.message}`);
+    console.error(`[typecheck:build-gaps] Failed to spawn pnpm: ${result.error.message}`);
     process.exit(1);
   }
 
@@ -31,8 +43,7 @@ function readJson(filePath) {
 }
 
 function listWorkspacePackages() {
-  const result = spawnSync("pnpm", ["ls", "-r", "--depth", "-1", "--json"], {
-    cwd: repoRoot,
+  const result = spawnPnpm(["ls", "-r", "--depth", "-1", "--json"], {
     encoding: "utf8",
   });
 
@@ -86,8 +97,8 @@ if (buildGapPackages.length === 0) {
   process.exit(0);
 }
 
-run("pnpm", ["--filter", "@paperclipai/plugin-sdk", "ensure-build-deps"]);
+runPnpm(["--filter", "@paperclipai/plugin-sdk", "ensure-build-deps"]);
 
 for (const workspacePkg of buildGapPackages) {
-  run("pnpm", ["--filter", workspacePkg.name, "typecheck"]);
+  runPnpm(["--filter", workspacePkg.name, "typecheck"]);
 }
