@@ -137,4 +137,41 @@ describeEmbeddedPostgres("teams catalog install with no caller adapter overrides
       .map((row) => row.adapterType);
     expect(otherAdapters).toEqual(["claude_local", "claude_local"]);
   });
+
+  it("adopts explicitly bound agents without changing or duplicating them and persists installation state", async () => {
+    const companyId = await seedEmptyCompany();
+    const existing = [
+      { id: randomUUID(), name: "00 General: Existing Owner", adapterType: "codex_local" },
+      { id: randomUUID(), name: "09 Technology: Existing CTO", adapterType: "codex_local" },
+      { id: randomUUID(), name: "09 Technology: Existing QA", adapterType: "codex_local" },
+    ];
+    await db.insert(agents).values(existing.map((agent) => ({ ...agent, companyId })));
+    const svc = teamsCatalogService(db);
+
+    const result = await svc.installCatalogTeam(companyId, "core-exec-team", {
+      include: { projects: false, issues: false },
+      agentBindings: {
+        ceo: existing[0]!.id,
+        cto: existing[1]!.id,
+        qa: existing[2]!.id,
+      },
+    });
+
+    expect(result.portabilityImport.agents.map((agent) => agent.action)).toEqual([
+      "reused",
+      "reused",
+      "reused",
+    ]);
+    const after = await listAdapterTypesByName(companyId);
+    expect(after.size).toBe(3);
+    expect(Array.from(after.values()).every((agent) => agent.adapterType === "codex_local")).toBe(true);
+    const installed = await svc.listInstalledCatalogTeams(companyId);
+    expect(installed).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        catalogId: "paperclipai:bundled:company-defaults:core-exec-team",
+        installationStatus: "installed",
+        agentCount: 3,
+      }),
+    ]));
+  });
 });

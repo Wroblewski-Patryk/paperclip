@@ -162,6 +162,8 @@
     "softwarehouse:roost-secrets:apply": "pnpm run preflight:workspace-links && tsx scripts/bootstrap-roost-protected-api-key.ts --apply",
     "softwarehouse:workspace-boundary-audit": "node scripts/audit-softwarehouse-workspace-boundaries.mjs",
     "softwarehouse:runtime-topology-audit": "node scripts/audit-local-runtime-topology.mjs",
+    "softwarehouse:team-adoption": "node scripts/configure-softwarehouse-team-adoption.mjs",
+    "softwarehouse:team-adoption:apply": "node scripts/configure-softwarehouse-team-adoption.mjs --apply",
     "softwarehouse:restore-drill": "node scripts/run-softwarehouse-restore-drill.mjs",
     "softwarehouse:portfolio-index": "node scripts/update-softwarehouse-portfolio-index.mjs"
   },

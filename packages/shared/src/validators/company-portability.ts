@@ -244,6 +244,9 @@ export const companyPortabilityPreviewSchema = z.object({
   agents: portabilityAgentSelectionSchema.optional(),
   collisionStrategy: portabilityCollisionStrategySchema.optional(),
   nameOverrides: z.record(z.string().min(1), z.string().min(1)).optional(),
+  agentBindings: z.record(z.string().min(1), z.string().uuid()).optional(),
+  projectBindings: z.record(z.string().min(1), z.string().uuid()).optional(),
+  routineBindings: z.record(z.string().min(1), z.string().uuid()).optional(),
   selectedFiles: z.array(z.string().min(1)).optional(),
 });
 

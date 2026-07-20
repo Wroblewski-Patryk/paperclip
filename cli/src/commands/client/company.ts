@@ -527,17 +527,19 @@ function pluralize(count: number, singular: string, plural = `${singular}s`): st
 }
 
 function summarizePlanCounts(
-  plans: Array<{ action: "create" | "update" | "skip" }>,
+  plans: Array<{ action: "create" | "update" | "skip" | "reuse" }>,
   noun: string,
 ): string {
   if (plans.length === 0) return `0 ${pluralize(0, noun)} selected`;
   const createCount = plans.filter((plan) => plan.action === "create").length;
   const updateCount = plans.filter((plan) => plan.action === "update").length;
   const skipCount = plans.filter((plan) => plan.action === "skip").length;
+  const reuseCount = plans.filter((plan) => plan.action === "reuse").length;
   const parts: string[] = [];
   if (createCount > 0) parts.push(`${createCount} create`);
   if (updateCount > 0) parts.push(`${updateCount} update`);
   if (skipCount > 0) parts.push(`${skipCount} skip`);
+  if (reuseCount > 0) parts.push(`${reuseCount} reuse`);
   return `${plans.length} ${pluralize(plans.length, noun)} total (${parts.join(", ")})`;
 }
 
@@ -546,10 +548,12 @@ function summarizeImportAgentResults(agents: CompanyPortabilityImportResult["age
   const created = agents.filter((agent) => agent.action === "created").length;
   const updated = agents.filter((agent) => agent.action === "updated").length;
   const skipped = agents.filter((agent) => agent.action === "skipped").length;
+  const reused = agents.filter((agent) => agent.action === "reused").length;
   const parts: string[] = [];
   if (created > 0) parts.push(`${created} created`);
   if (updated > 0) parts.push(`${updated} updated`);
   if (skipped > 0) parts.push(`${skipped} skipped`);
+  if (reused > 0) parts.push(`${reused} reused`);
   return `${agents.length} ${pluralize(agents.length, "agent")} total (${parts.join(", ")})`;
 }
 
@@ -558,10 +562,12 @@ function summarizeImportProjectResults(projects: CompanyPortabilityImportResult[
   const created = projects.filter((project) => project.action === "created").length;
   const updated = projects.filter((project) => project.action === "updated").length;
   const skipped = projects.filter((project) => project.action === "skipped").length;
+  const reused = projects.filter((project) => project.action === "reused").length;
   const parts: string[] = [];
   if (created > 0) parts.push(`${created} created`);
   if (updated > 0) parts.push(`${updated} updated`);
   if (skipped > 0) parts.push(`${skipped} skipped`);
+  if (reused > 0) parts.push(`${reused} reused`);
   return `${projects.length} ${pluralize(projects.length, "project")} total (${parts.join(", ")})`;
 }
 
@@ -573,6 +579,9 @@ function actionChip(action: string): string {
     case "update":
     case "updated":
       return pc.yellow(action);
+    case "reuse":
+    case "reused":
+      return pc.cyan(action);
     case "skip":
     case "skipped":
     case "none":

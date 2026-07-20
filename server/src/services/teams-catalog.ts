@@ -1,7 +1,8 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Db } from "@paperclipai/db";
+import { catalogTeamInstallations, type Db } from "@paperclipai/db";
+import { eq } from "drizzle-orm";
 import type {
   CatalogManifest,
   CatalogTeam,
@@ -52,12 +53,16 @@ export interface CatalogTeamActorContext {
 }
 
 export interface CatalogTeamImportOptions {
+  deploymentMode?: "install" | "stage";
   targetManagerAgentId?: string | null;
   targetManagerSlug?: string | null;
   include?: Partial<CompanyPortabilityInclude>;
   agents?: CompanyPortabilityAgentSelection;
   collisionStrategy?: CompanyPortabilityCollisionStrategy;
   nameOverrides?: Record<string, string>;
+  agentBindings?: Record<string, string>;
+  projectBindings?: Record<string, string>;
+  routineBindings?: Record<string, string>;
   selectedFiles?: string[];
   adapterOverrides?: CompanyPortabilityImport["adapterOverrides"];
   secretValues?: CompanyPortabilityImport["secretValues"];
@@ -109,6 +114,7 @@ export interface CatalogTeamInstallResult {
   portabilityImport: CompanyPortabilityImportResult;
   skillPreparations: CatalogTeamSkillPreparation[];
   warnings: string[];
+  installationStatus?: "installed" | "staged";
 }
 
 export interface InstalledCatalogTeam {
@@ -119,6 +125,12 @@ export interface InstalledCatalogTeam {
   installedOriginHashes: string[];
   agentCount: number;
   outOfDate: boolean;
+  installationStatus?: "installed" | "staged";
+  bindings?: {
+    agents: Record<string, string>;
+    projects: Record<string, string>;
+    routines: Record<string, string>;
+  };
 }
 
 export interface CatalogTeamFileDetail {
@@ -733,6 +745,9 @@ function buildPortabilityInput(
     agents: options.agents,
     collisionStrategy: options.collisionStrategy ?? "rename",
     nameOverrides: options.nameOverrides,
+    agentBindings: options.agentBindings,
+    projectBindings: options.projectBindings,
+    routineBindings: options.routineBindings,
     selectedFiles: options.selectedFiles,
   };
 }
@@ -741,6 +756,42 @@ export function teamsCatalogService(db: Db) {
   const portability = companyPortabilityService(db);
   const companySkills = companySkillService(db);
   const agents = agentService(db);
+
+  function installationBindings(options: CatalogTeamImportOptions) {
+    return {
+      agents: options.agentBindings ?? {},
+      projects: options.projectBindings ?? {},
+      routines: options.routineBindings ?? {},
+    };
+  }
+
+  async function saveInstallation(
+    companyId: string,
+    team: CatalogTeam,
+    options: CatalogTeamImportOptions,
+    status: "installed" | "staged",
+  ) {
+    // Some focused service unit tests use lightweight dependency stubs. Real
+    // Paperclip Db instances always expose insert/select; integration coverage
+    // exercises the persisted path.
+    if (typeof db.insert !== "function") return;
+    const values = {
+      companyId,
+      catalogId: team.id,
+      catalogKey: team.key,
+      packageName: team.packageName ?? null,
+      packageVersion: team.packageVersion ?? null,
+      originHash: team.contentHash,
+      status,
+      bindings: installationBindings(options),
+      installedAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await db.insert(catalogTeamInstallations).values(values).onConflictDoUpdate({
+      target: [catalogTeamInstallations.companyId, catalogTeamInstallations.catalogId],
+      set: values,
+    });
+  }
 
   async function resolveTargetManagerReference(
     companyId: string,
@@ -909,6 +960,37 @@ export function teamsCatalogService(db: Db) {
       throw unprocessable(`Catalog team source preparation failed: ${prepared.errors.join("; ")}`);
     }
 
+    if (options.deploymentMode === "stage") {
+      const previewInput = buildPortabilityInput(companyId, prepared.source, options);
+      const preview = await portability.previewImport(previewInput, {
+        mode: "agent_safe",
+        sourceCompanyId: companyId,
+      });
+      const warnings = [
+        ...prepared.warnings,
+        ...preview.warnings,
+        "Team was staged only. No agents, projects, routines, skills, schedules, or existing configuration were changed.",
+      ];
+      await saveInstallation(companyId, prepared.team, options, "staged");
+      await logCatalogEvent("company.team_catalog_staged", companyId, prepared.team, options.actor, {
+        warningCount: warnings.length,
+        bindings: installationBindings(options),
+      });
+      return {
+        team: prepared.team,
+        portabilityImport: {
+          company: { id: companyId, name: preview.targetCompanyName ?? companyId, action: "unchanged" },
+          agents: [],
+          projects: [],
+          envInputs: preview.envInputs,
+          warnings,
+        },
+        skillPreparations: prepared.skillPreparations,
+        warnings,
+        installationStatus: "staged",
+      };
+    }
+
     const defaultAdapterType = defaultSafeCatalogAdapterType();
     const importInput: CompanyPortabilityImport = {
       ...buildPortabilityInput(companyId, prepared.source, options),
@@ -948,6 +1030,7 @@ export function teamsCatalogService(db: Db) {
     );
     warnings.push(...await prepareSkillInstalls(companyId, prepared));
     result.warnings.push(...warnings);
+    await saveInstallation(companyId, prepared.team, options, "installed");
     await logCatalogEvent("company.team_catalog_installed", companyId, prepared.team, options.actor, {
       warningCount: result.warnings.length,
       agentCount: result.agents.length,
@@ -959,6 +1042,7 @@ export function teamsCatalogService(db: Db) {
       portabilityImport: result,
       skillPreparations: prepared.skillPreparations,
       warnings: result.warnings,
+      installationStatus: "installed",
     };
   }
 
@@ -981,6 +1065,13 @@ export function teamsCatalogService(db: Db) {
     };
     const byCatalogId = new Map<string, Aggregate>();
 
+    const persisted = typeof db.select === "function"
+      ? await db
+        .select()
+        .from(catalogTeamInstallations)
+        .where(eq(catalogTeamInstallations.companyId, companyId))
+      : [];
+
     for (const agent of companyAgents) {
       const provenance = readCatalogTeamProvenance(
         agent.metadata as Record<string, unknown> | null,
@@ -1001,7 +1092,7 @@ export function teamsCatalogService(db: Db) {
       if (provenance.originHash) entry.originHashes.add(provenance.originHash);
     }
 
-    return Array.from(byCatalogId.values())
+    const legacy = Array.from(byCatalogId.values())
       .map((entry) => {
         const current = currentById.get(entry.catalogId) ?? null;
         const currentContentHash = current?.contentHash ?? null;
@@ -1022,6 +1113,28 @@ export function teamsCatalogService(db: Db) {
         } satisfies InstalledCatalogTeam;
       })
       .sort((left, right) => left.catalogId.localeCompare(right.catalogId));
+
+    const merged = new Map<string, InstalledCatalogTeam>(legacy.map((entry) => [entry.catalogId, entry]));
+    for (const installation of persisted) {
+      const current = currentById.get(installation.catalogId) ?? null;
+      const legacyEntry = merged.get(installation.catalogId);
+      const installedOriginHashes = Array.from(new Set([
+        ...(legacyEntry?.installedOriginHashes ?? []),
+        installation.originHash,
+      ])).sort();
+      merged.set(installation.catalogId, {
+        catalogId: installation.catalogId,
+        catalogKey: installation.catalogKey,
+        present: Boolean(current),
+        currentContentHash: current?.contentHash ?? null,
+        installedOriginHashes,
+        agentCount: legacyEntry?.agentCount ?? Object.keys(installation.bindings.agents).length,
+        outOfDate: Boolean(current && installedOriginHashes.some((hash) => hash !== current.contentHash)),
+        installationStatus: installation.status === "staged" ? "staged" : "installed",
+        bindings: installation.bindings,
+      });
+    }
+    return Array.from(merged.values()).sort((left, right) => left.catalogId.localeCompare(right.catalogId));
   }
 
   return {

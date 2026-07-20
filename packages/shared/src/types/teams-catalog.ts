@@ -140,12 +140,16 @@ export interface CatalogTeamSourcePolicy {
 }
 
 export interface CatalogTeamImportOptions {
+  deploymentMode?: "install" | "stage";
   targetManagerAgentId?: string | null;
   targetManagerSlug?: string | null;
   include?: Partial<CompanyPortabilityInclude>;
   agents?: CompanyPortabilityAgentSelection;
   collisionStrategy?: CompanyPortabilityCollisionStrategy;
   nameOverrides?: Record<string, string>;
+  agentBindings?: Record<string, string>;
+  projectBindings?: Record<string, string>;
+  routineBindings?: Record<string, string>;
   selectedFiles?: string[];
   sourcePolicy?: CatalogTeamSourcePolicy;
 }
@@ -186,6 +190,7 @@ export interface CatalogTeamInstallResult {
   portabilityImport: CompanyPortabilityImportResult;
   skillPreparations: CatalogTeamSkillPreparation[];
   warnings: string[];
+  installationStatus?: "installed" | "staged";
 }
 
 /**
@@ -212,6 +217,12 @@ export interface InstalledCatalogTeam {
   installedOriginHashes: string[];
   /** Number of non-terminated agents carrying this team's provenance. */
   agentCount: number;
+  installationStatus?: "installed" | "staged";
+  bindings?: {
+    agents: Record<string, string>;
+    projects: Record<string, string>;
+    routines: Record<string, string>;
+  };
   /** True when a present team has at least one stale installed originHash. */
   outOfDate: boolean;
 }

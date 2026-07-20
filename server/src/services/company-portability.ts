@@ -3853,11 +3853,14 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
 
     const agentPlans: CompanyPortabilityPreviewAgentPlan[] = [];
     const existingSlugToAgent = new Map<string, { id: string; name: string }>();
+    const existingAgentById = new Map<string, { id: string; name: string }>();
     const existingSlugs = new Set<string>();
     const projectPlans: CompanyPortabilityPreviewResult["plan"]["projectPlans"] = [];
     const issuePlans: CompanyPortabilityPreviewResult["plan"]["issuePlans"] = [];
     const existingProjectSlugToProject = new Map<string, { id: string; name: string }>();
+    const existingProjectById = new Map<string, { id: string; name: string }>();
     const existingProjectSlugs = new Set<string>();
+    const existingRoutineById = new Map<string, { id: string; title: string }>();
 
     if (input.target.mode === "existing_company") {
       const existingAgents = await agents.list(input.target.companyId);
@@ -3865,6 +3868,7 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
         const slug = normalizeAgentUrlKey(existing.name) ?? existing.id;
         if (!existingSlugToAgent.has(slug)) existingSlugToAgent.set(slug, existing);
         existingSlugs.add(slug);
+        existingAgentById.set(existing.id, existing);
       }
       const existingProjects = await projects.list(input.target.companyId);
       for (const existing of existingProjects) {
@@ -3872,6 +3876,11 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
           existingProjectSlugToProject.set(existing.urlKey, { id: existing.id, name: existing.name });
         }
         existingProjectSlugs.add(existing.urlKey);
+        existingProjectById.set(existing.id, { id: existing.id, name: existing.name });
+      }
+      const existingRoutines = await routineService(db).list(input.target.companyId);
+      for (const existing of existingRoutines) {
+        existingRoutineById.set(existing.id, { id: existing.id, title: existing.title });
       }
 
       const existingSkills = await companySkills.listFull(input.target.companyId);
@@ -3890,6 +3899,19 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
     }
 
     for (const manifestAgent of selectedAgents) {
+      const boundAgentId = input.agentBindings?.[manifestAgent.slug];
+      if (boundAgentId) {
+        const bound = existingAgentById.get(boundAgentId);
+        if (!bound) throw unprocessable(`Bound agent for ${manifestAgent.slug} does not belong to the target company.`);
+        agentPlans.push({
+          slug: manifestAgent.slug,
+          action: "reuse",
+          plannedName: bound.name,
+          existingAgentId: bound.id,
+          reason: "Explicitly mapped to an existing agent; configuration is preserved.",
+        });
+        continue;
+      }
       const existing = existingSlugToAgent.get(manifestAgent.slug) ?? null;
       if (!existing) {
         agentPlans.push({
@@ -3937,6 +3959,19 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
 
     if (include.projects) {
       for (const manifestProject of manifest.projects) {
+        const boundProjectId = input.projectBindings?.[manifestProject.slug];
+        if (boundProjectId) {
+          const bound = existingProjectById.get(boundProjectId);
+          if (!bound) throw unprocessable(`Bound project for ${manifestProject.slug} does not belong to the target company.`);
+          projectPlans.push({
+            slug: manifestProject.slug,
+            action: "reuse",
+            plannedName: bound.name,
+            existingProjectId: bound.id,
+            reason: "Explicitly mapped to an existing project; configuration is preserved.",
+          });
+          continue;
+        }
         const existing = existingProjectSlugToProject.get(manifestProject.slug) ?? null;
         if (!existing) {
           projectPlans.push({
@@ -4018,6 +4053,22 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
 
     if (include.issues) {
       for (const manifestIssue of manifest.issues) {
+        const boundRoutineId = input.routineBindings?.[manifestIssue.slug];
+        if (boundRoutineId) {
+          if (!manifestIssue.recurring) {
+            throw unprocessable(`Binding ${manifestIssue.slug} targets a routine but the catalog task is not recurring.`);
+          }
+          const bound = existingRoutineById.get(boundRoutineId);
+          if (!bound) throw unprocessable(`Bound routine for ${manifestIssue.slug} does not belong to the target company.`);
+          issuePlans.push({
+            slug: manifestIssue.slug,
+            action: "reuse",
+            plannedTitle: bound.title,
+            existingRoutineId: bound.id,
+            reason: "Explicitly mapped to an existing routine; schedule and configuration are preserved.",
+          });
+          continue;
+        }
         issuePlans.push({
           slug: manifestIssue.slug,
           action: "create",
@@ -4273,6 +4324,17 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
           });
           continue;
         }
+        if (planAgent.action === "reuse" && planAgent.existingAgentId) {
+          importedSlugToAgentId.set(planAgent.slug, planAgent.existingAgentId);
+          resultAgents.push({
+            slug: planAgent.slug,
+            id: planAgent.existingAgentId,
+            action: "reused",
+            name: planAgent.plannedName,
+            reason: planAgent.reason,
+          });
+          continue;
+        }
 
         const bundlePrefix = `agents/${manifestAgent.slug}/`;
         const bundleFiles = Object.fromEntries(
@@ -4430,6 +4492,17 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
           });
           continue;
         }
+        if (planProject.action === "reuse" && planProject.existingProjectId) {
+          importedSlugToProjectId.set(planProject.slug, planProject.existingProjectId);
+          resultProjects.push({
+            slug: planProject.slug,
+            id: planProject.existingProjectId,
+            action: "reused",
+            name: planProject.plannedName,
+            reason: planProject.reason,
+          });
+          continue;
+        }
 
         const projectLeadAgentId = manifestProject.leadAgentSlug
           ? importedSlugToAgentId.get(manifestProject.leadAgentSlug)
@@ -4528,6 +4601,10 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
     if (include.issues) {
       const routines = routineService(db);
       for (const manifestIssue of sourceManifest.issues) {
+        const issuePlan = plan.preview.plan.issuePlans.find((candidate) => candidate.slug === manifestIssue.slug);
+        if (issuePlan?.action === "reuse") {
+          continue;
+        }
         const markdownRaw = readPortableTextFile(plan.source.files, manifestIssue.path);
         const parsed = markdownRaw ? parseFrontmatterMarkdown(markdownRaw) : null;
         const description = parsed?.body || manifestIssue.description || null;

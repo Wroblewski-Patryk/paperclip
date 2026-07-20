@@ -3,6 +3,8 @@ import { useNavigate, useParams, useSearchParams } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Agent,
+  Project,
+  RoutineListItem,
   CatalogTeam,
   CatalogTeamEnvInputSummary,
   CatalogTeamImportPreviewResult,
@@ -21,6 +23,8 @@ import type {
 import { AGENT_ADAPTER_TYPES } from "@paperclipai/shared";
 import { teamCatalogApi } from "../api/teamCatalog";
 import { agentsApi } from "../api/agents";
+import { projectsApi } from "../api/projects";
+import { routinesApi } from "../api/routines";
 import { getAdapterLabel } from "../adapters/adapter-display-registry";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
@@ -660,6 +664,7 @@ export function TeamDetailPane({
   const invalid = team.compatibility === "invalid";
   const unsafe = team.trustLevel === "scripts_executables";
   const isInstalled = Boolean(installed);
+  const isStaged = installed?.installationStatus === "staged";
   const outOfDate = Boolean(installed?.outOfDate);
 
   const toggleDir = (name: string) =>
@@ -685,7 +690,7 @@ export function TeamDetailPane({
       ) : (
         <Download className="h-4 w-4" />
       )}
-      {isInstalled ? "Re-install latest" : "Install team"}
+      {isStaged ? "Configure staged team" : isInstalled ? "Re-install latest" : "Install team"}
     </Button>
   );
 
@@ -705,8 +710,8 @@ export function TeamDetailPane({
               <CompatChip compatibility={team.compatibility} />
               <ProvenanceBadge team={team} />
               {isInstalled && !outOfDate && (
-                <Badge variant="secondary" className="gap-1 text-[10px]">
-                  <CheckCircle2 className="h-3 w-3" /> Installed
+                <Badge variant="secondary" className={cn("gap-1 text-[10px]", isStaged && "text-blue-600 dark:text-blue-300")}>
+                  {isStaged ? <Boxes className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />} {isStaged ? "Staged" : "Installed"}
                 </Badge>
               )}
               {outOfDate && (
@@ -875,6 +880,7 @@ type ApplyPhase = "form" | "applying" | "done" | "error";
 // ---------------------------------------------------------------------------
 
 export interface TeamInstallFormState {
+  deploymentMode: "install" | "stage";
   targetManagerAgentId: string | null;
   fullCompany: boolean;
   allowExternalSources: boolean;
@@ -887,9 +893,13 @@ export interface TeamInstallFormState {
   adapterOverrides: Record<string, string>;
   /** scoped env input key -> operator-entered value */
   secretValues: Record<string, string>;
+  agentBindings: Record<string, string>;
+  projectBindings: Record<string, string>;
+  routineBindings: Record<string, string>;
 }
 
 export const EMPTY_INSTALL_FORM: TeamInstallFormState = {
+  deploymentMode: "install",
   targetManagerAgentId: null,
   fullCompany: false,
   allowExternalSources: false,
@@ -899,6 +909,9 @@ export const EMPTY_INSTALL_FORM: TeamInstallFormState = {
   nameOverrides: {},
   adapterOverrides: {},
   secretValues: {},
+  agentBindings: {},
+  projectBindings: {},
+  routineBindings: {},
 };
 
 export interface UseInstallTeamCatalogEntryOptions {
@@ -947,10 +960,14 @@ export function useInstallTeamCatalogEntry({
   // Preview body — the preview schema is strict and does NOT accept adapterOverrides.
   const buildPreviewOptions = useCallback(
     (form: TeamInstallFormState): CatalogTeamImportOptions => ({
+      deploymentMode: form.deploymentMode,
       targetManagerAgentId: simplified || form.fullCompany ? null : form.targetManagerAgentId,
       collisionStrategy: form.collisionStrategy,
       nameOverrides:
         Object.keys(form.nameOverrides).length > 0 ? form.nameOverrides : undefined,
+      agentBindings: Object.keys(form.agentBindings).length > 0 ? form.agentBindings : undefined,
+      projectBindings: Object.keys(form.projectBindings).length > 0 ? form.projectBindings : undefined,
+      routineBindings: Object.keys(form.routineBindings).length > 0 ? form.routineBindings : undefined,
       sourcePolicy: {
         allowExternalSources: form.allowExternalSources,
         allowUnpinnedOptionalSources: form.allowUnpinnedOptionalSources,
@@ -1036,6 +1053,8 @@ function TeamInstallerDialog({
   team,
   companyId,
   agents,
+  projects,
+  routines,
   open,
   onClose,
   onInstalled,
@@ -1043,6 +1062,8 @@ function TeamInstallerDialog({
   team: CatalogTeam;
   companyId: string;
   agents: Agent[];
+  projects: Project[];
+  routines: RoutineListItem[];
   open: boolean;
   onClose: () => void;
   onInstalled: () => void;
@@ -1063,6 +1084,10 @@ function TeamInstallerDialog({
 
   // Step 4 — preview controls
   const [collisionStrategy, setCollisionStrategy] = useState<CompanyPortabilityCollisionStrategy>("rename");
+  const [deploymentMode, setDeploymentMode] = useState<"install" | "stage">("install");
+  const [agentBindings, setAgentBindings] = useState<Record<string, string>>({});
+  const [projectBindings, setProjectBindings] = useState<Record<string, string>>({});
+  const [routineBindings, setRoutineBindings] = useState<Record<string, string>>({});
   const [nameOverrides, setNameOverrides] = useState<Record<string, string>>({});
   // slug -> adapterType override (the install schema accepts adapterOverrides).
   const [adapterOverrides, setAdapterOverrides] = useState<Record<string, string>>({});
@@ -1086,6 +1111,10 @@ function TeamInstallerDialog({
       setAllowUnpinnedOptionalSources(false);
       setAllowLocalPathSources(false);
       setCollisionStrategy("rename");
+      setDeploymentMode("install");
+      setAgentBindings({});
+      setProjectBindings({});
+      setRoutineBindings({});
       setNameOverrides({});
       setAdapterOverrides({});
       setSecretValues({});
@@ -1102,9 +1131,13 @@ function TeamInstallerDialog({
 
   // Preview body — the preview schema is strict and does NOT accept adapterOverrides.
   const buildPreviewOptions = () => ({
+    deploymentMode,
     targetManagerAgentId: fullCompany ? null : targetManagerAgentId,
     collisionStrategy,
     nameOverrides: Object.keys(nameOverrides).length > 0 ? nameOverrides : undefined,
+    agentBindings: Object.keys(agentBindings).length > 0 ? agentBindings : undefined,
+    projectBindings: Object.keys(projectBindings).length > 0 ? projectBindings : undefined,
+    routineBindings: Object.keys(routineBindings).length > 0 ? routineBindings : undefined,
     sourcePolicy: {
       allowExternalSources,
       allowUnpinnedOptionalSources,
@@ -1159,13 +1192,13 @@ function TeamInstallerDialog({
   // Auto-load preview when reaching the preview step.
   const previewRequested = useRef(false);
   useEffect(() => {
-    if (currentStep === "preview" && !previewRequested.current && !previewMutation.isPending) {
+    if (currentStep === "preview") {
       previewRequested.current = true;
       previewMutation.mutate();
     }
     if (currentStep !== "preview") previewRequested.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep]);
+  }, [currentStep, deploymentMode, agentBindings, projectBindings, routineBindings]);
 
   const targetManagerResolved = fullCompany || Boolean(targetManagerAgentId);
 
@@ -1272,6 +1305,17 @@ function TeamInstallerDialog({
                 loading={previewMutation.isPending}
                 error={previewError}
                 result={previewResult}
+                deploymentMode={deploymentMode}
+                onDeploymentModeChange={setDeploymentMode}
+                existingAgents={agents}
+                existingProjects={projects}
+                existingRoutines={routines}
+                agentBindings={agentBindings}
+                projectBindings={projectBindings}
+                routineBindings={routineBindings}
+                onAgentBinding={(slug, id) => setAgentBindings((cur) => id ? { ...cur, [slug]: id } : Object.fromEntries(Object.entries(cur).filter(([key]) => key !== slug)))}
+                onProjectBinding={(slug, id) => setProjectBindings((cur) => id ? { ...cur, [slug]: id } : Object.fromEntries(Object.entries(cur).filter(([key]) => key !== slug)))}
+                onRoutineBinding={(slug, id) => setRoutineBindings((cur) => id ? { ...cur, [slug]: id } : Object.fromEntries(Object.entries(cur).filter(([key]) => key !== slug)))}
                 collisionStrategy={collisionStrategy}
                 onCollisionStrategyChange={(s) => { setCollisionStrategy(s); previewRequested.current = false; previewMutation.mutate(); }}
                 nameOverrides={nameOverrides}
@@ -1690,6 +1734,17 @@ export function StepPreview({
   loading,
   error,
   result,
+  deploymentMode = "install",
+  onDeploymentModeChange = () => {},
+  existingAgents = [],
+  existingProjects = [],
+  existingRoutines = [],
+  agentBindings = {},
+  projectBindings = {},
+  routineBindings = {},
+  onAgentBinding = () => {},
+  onProjectBinding = () => {},
+  onRoutineBinding = () => {},
   collisionStrategy,
   onCollisionStrategyChange,
   nameOverrides,
@@ -1706,6 +1761,17 @@ export function StepPreview({
   loading: boolean;
   error: string | null;
   result: CatalogTeamImportPreviewResult | null;
+  deploymentMode?: "install" | "stage";
+  onDeploymentModeChange?: (mode: "install" | "stage") => void;
+  existingAgents?: Agent[];
+  existingProjects?: Project[];
+  existingRoutines?: RoutineListItem[];
+  agentBindings?: Record<string, string>;
+  projectBindings?: Record<string, string>;
+  routineBindings?: Record<string, string>;
+  onAgentBinding?: (slug: string, id: string) => void;
+  onProjectBinding?: (slug: string, id: string) => void;
+  onRoutineBinding?: (slug: string, id: string) => void;
   collisionStrategy: CompanyPortabilityCollisionStrategy;
   onCollisionStrategyChange: (s: CompanyPortabilityCollisionStrategy) => void;
   nameOverrides: Record<string, string>;
@@ -1756,6 +1822,41 @@ export function StepPreview({
           <SummaryCount label="Starter tasks" value={plan.issuePlans.length} />
           <SummaryCount label="Required skills" value={result.skillPreparations.length} />
         </div>
+      </div>
+
+      <div className="rounded-md border border-blue-500/30 bg-blue-500/5 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Deployment map</p>
+            <p className="text-xs text-muted-foreground">Reuse preserves the selected record. Create adds a resource. Stage records the blueprint without runtime changes.</p>
+          </div>
+          <Select value={deploymentMode} onValueChange={(value) => onDeploymentModeChange(value as "install" | "stage")}>
+            <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="install">Install now</SelectItem><SelectItem value="stage">Stage only</SelectItem></SelectContent>
+          </Select>
+        </div>
+        {deploymentMode === "install" && (
+          <div className="mt-3 grid gap-2">
+            {plan.agentPlans.map((item) => (
+              <ResourceMappingRow key={`agent-${item.slug}`} kind="Agent" slug={item.slug} value={agentBindings[item.slug] ?? "__create__"} onChange={(value) => onAgentBinding(item.slug, value === "__create__" ? "" : value)}>
+                <SelectItem value="__create__">Create new: {item.plannedName}</SelectItem>
+                {existingAgents.filter((agent) => agent.status !== "terminated").map((agent) => <SelectItem key={agent.id} value={agent.id}>Reuse: {agent.name}</SelectItem>)}
+              </ResourceMappingRow>
+            ))}
+            {plan.projectPlans.map((item) => (
+              <ResourceMappingRow key={`project-${item.slug}`} kind="Project" slug={item.slug} value={projectBindings[item.slug] ?? "__create__"} onChange={(value) => onProjectBinding(item.slug, value === "__create__" ? "" : value)}>
+                <SelectItem value="__create__">Create new: {item.plannedName}</SelectItem>
+                {existingProjects.filter((project) => !project.archivedAt).map((project) => <SelectItem key={project.id} value={project.id}>Reuse: {project.name}</SelectItem>)}
+              </ResourceMappingRow>
+            ))}
+            {plan.issuePlans.map((item) => (
+              <ResourceMappingRow key={`routine-${item.slug}`} kind="Routine" slug={item.slug} value={routineBindings[item.slug] ?? "__create__"} onChange={(value) => onRoutineBinding(item.slug, value === "__create__" ? "" : value)}>
+                <SelectItem value="__create__">Create new: {item.plannedTitle}</SelectItem>
+                {existingRoutines.filter((routine) => routine.status !== "archived").map((routine) => <SelectItem key={routine.id} value={routine.id}>Reuse: {routine.title}</SelectItem>)}
+              </ResourceMappingRow>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Collision strategy */}
@@ -1934,6 +2035,31 @@ function SummaryCount({ label, value }: { label: string; value: number }) {
     <div className="rounded-md border border-border px-3 py-2">
       <span className="text-lg font-semibold tabular-nums">{value}</span>
       <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function ResourceMappingRow({
+  kind,
+  slug,
+  value,
+  onChange,
+  children,
+}: {
+  kind: string;
+  slug: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid items-center gap-2 rounded border border-border/70 bg-background px-2 py-2 sm:grid-cols-[6rem_minmax(8rem,1fr)_minmax(14rem,1.5fr)]">
+      <Badge variant="outline" className="w-fit text-[10px] uppercase">{kind}</Badge>
+      <span className="truncate font-mono text-xs">{slug}</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+        <SelectContent>{children}</SelectContent>
+      </Select>
     </div>
   );
 }
@@ -2253,6 +2379,16 @@ export function TeamCatalog() {
     queryFn: () => agentsApi.list(selectedCompanyId!),
     enabled: Boolean(selectedCompanyId),
   });
+  const projectsQuery = useQuery({
+    queryKey: queryKeys.projects.list(selectedCompanyId ?? ""),
+    queryFn: () => projectsApi.list(selectedCompanyId!),
+    enabled: Boolean(selectedCompanyId),
+  });
+  const routinesQuery = useQuery({
+    queryKey: queryKeys.routines.list(selectedCompanyId ?? ""),
+    queryFn: () => routinesApi.list(selectedCompanyId!),
+    enabled: Boolean(selectedCompanyId),
+  });
 
   // Server-computed installed/out-of-date state. Drives the `INSTALLED · N`
   // group, the per-row out-of-date badge, and the detail header chip from a
@@ -2519,6 +2655,8 @@ export function TeamCatalog() {
           team={selectedTeam}
           companyId={selectedCompanyId}
           agents={agentsQuery.data ?? []}
+          projects={projectsQuery.data ?? []}
+          routines={routinesQuery.data ?? []}
           open={installOpen}
           onClose={() => setInstallOpen(false)}
           onInstalled={() => {
@@ -2528,6 +2666,8 @@ export function TeamCatalog() {
               queryKey: queryKeys.teamCatalog.installed(selectedCompanyId),
             });
             void queryClient.invalidateQueries({ queryKey: queryKeys.agents.list(selectedCompanyId) });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(selectedCompanyId) });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.routines.list(selectedCompanyId) });
           }}
         />
       )}

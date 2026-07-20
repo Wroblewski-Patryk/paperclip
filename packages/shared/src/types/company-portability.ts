@@ -242,12 +242,15 @@ export interface CompanyPortabilityPreviewRequest {
   agents?: CompanyPortabilityAgentSelection;
   collisionStrategy?: CompanyPortabilityCollisionStrategy;
   nameOverrides?: Record<string, string>;
+  agentBindings?: Record<string, string>;
+  projectBindings?: Record<string, string>;
+  routineBindings?: Record<string, string>;
   selectedFiles?: string[];
 }
 
 export interface CompanyPortabilityPreviewAgentPlan {
   slug: string;
-  action: "create" | "update" | "skip";
+  action: "create" | "update" | "skip" | "reuse";
   plannedName: string;
   existingAgentId: string | null;
   reason: string | null;
@@ -255,7 +258,7 @@ export interface CompanyPortabilityPreviewAgentPlan {
 
 export interface CompanyPortabilityPreviewProjectPlan {
   slug: string;
-  action: "create" | "update" | "skip";
+  action: "create" | "update" | "skip" | "reuse";
   plannedName: string;
   existingProjectId: string | null;
   reason: string | null;
@@ -263,8 +266,9 @@ export interface CompanyPortabilityPreviewProjectPlan {
 
 export interface CompanyPortabilityPreviewIssuePlan {
   slug: string;
-  action: "create" | "skip";
+  action: "create" | "skip" | "reuse";
   plannedTitle: string;
+  existingRoutineId?: string | null;
   reason: string | null;
 }
 
@@ -306,14 +310,14 @@ export interface CompanyPortabilityImportResult {
   agents: {
     slug: string;
     id: string | null;
-    action: "created" | "updated" | "skipped";
+    action: "created" | "updated" | "skipped" | "reused";
     name: string;
     reason: string | null;
   }[];
   projects: {
     slug: string;
     id: string | null;
-    action: "created" | "updated" | "skipped";
+    action: "created" | "updated" | "skipped" | "reused";
     name: string;
     reason: string | null;
   }[];

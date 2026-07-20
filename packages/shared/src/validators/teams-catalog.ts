@@ -134,12 +134,16 @@ export const catalogTeamSourcePolicySchema = z.object({
 }).strict();
 
 export const catalogTeamPreviewSchema = z.object({
+  deploymentMode: z.enum(["install", "stage"]).optional(),
   targetManagerAgentId: z.string().min(1).nullable().optional(),
   targetManagerSlug: z.string().min(1).nullable().optional(),
   include: portabilityIncludeSchema.omit({ company: true }).strict().optional(),
   agents: portabilityAgentSelectionSchema.optional(),
   collisionStrategy: portabilityCollisionStrategySchema.optional(),
   nameOverrides: z.record(z.string().min(1), z.string().min(1)).optional(),
+  agentBindings: z.record(z.string().min(1), z.string().uuid()).optional(),
+  projectBindings: z.record(z.string().min(1), z.string().uuid()).optional(),
+  routineBindings: z.record(z.string().min(1), z.string().uuid()).optional(),
   selectedFiles: z.array(z.string().min(1)).optional(),
   sourcePolicy: catalogTeamSourcePolicySchema.optional(),
 }).strict();

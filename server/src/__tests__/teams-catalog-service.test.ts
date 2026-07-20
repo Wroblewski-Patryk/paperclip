@@ -187,6 +187,39 @@ describe("teamsCatalogService", () => {
     );
   });
 
+  it("forwards explicit resource bindings so existing company records can be reused", async () => {
+    const svc = teamsCatalogService({} as any);
+
+    await svc.previewCatalogTeamImport("company-1", "core-exec-team", {
+      agentBindings: { ceo: "00000000-0000-4000-8000-000000000001" },
+      projectBindings: { "first-project": "00000000-0000-4000-8000-000000000002" },
+      routineBindings: { "first-heartbeat": "00000000-0000-4000-8000-000000000003" },
+    });
+
+    expect(mockCompanyPortabilityService.previewImport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentBindings: { ceo: "00000000-0000-4000-8000-000000000001" },
+        projectBindings: { "first-project": "00000000-0000-4000-8000-000000000002" },
+        routineBindings: { "first-heartbeat": "00000000-0000-4000-8000-000000000003" },
+      }),
+      { mode: "agent_safe", sourceCompanyId: "company-1" },
+    );
+  });
+
+  it("stages a team without importing entities or installing skills", async () => {
+    const svc = teamsCatalogService({} as any);
+
+    const result = await svc.installCatalogTeam("company-1", "content-machine", {
+      deploymentMode: "stage",
+    });
+
+    expect(result.installationStatus).toBe("staged");
+    expect(mockCompanyPortabilityService.importBundle).not.toHaveBeenCalled();
+    expect(mockCompanySkillService.installFromCatalog).not.toHaveBeenCalled();
+    expect(mockCompanySkillService.importFromSource).not.toHaveBeenCalled();
+    expect(result.warnings).toEqual(expect.arrayContaining([expect.stringContaining("staged only")]));
+  });
+
   it("forces catalog previews to exclude company metadata even when requested", async () => {
     const svc = teamsCatalogService({} as any);
 
