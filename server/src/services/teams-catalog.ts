@@ -596,6 +596,34 @@ function preparation(
   };
 }
 
+const PORTABILITY_MISSING_SKILL_WARNING =
+  /^Agent .+ references skill (.+), but that skill is not present in the package\.$/;
+
+/**
+ * The generic portability importer correctly warns about skill references that
+ * are absent from an inline bundle. A catalog team resolves those references
+ * through its separate skill-preparation plan, so repeating the generic
+ * warning is misleading. Keep unresolved/blocked references visible and
+ * de-duplicate the remaining warnings.
+ */
+function reconcileCatalogTeamWarnings(
+  warnings: string[],
+  preparations: CatalogTeamSkillPreparation[],
+) {
+  const resolvedRefs = new Set<string>();
+  for (const skill of preparations) {
+    if (skill.action === "blocked") continue;
+    for (const ref of [skill.ref, skill.catalogSkillId, skill.catalogSkillKey, skill.sourceLocator]) {
+      if (ref) resolvedRefs.add(ref);
+    }
+  }
+
+  return Array.from(new Set(warnings.filter((warning) => {
+    const match = PORTABILITY_MISSING_SKILL_WARNING.exec(warning);
+    return !match || !resolvedRefs.has(match[1]!);
+  })));
+}
+
 function isPinnedSourceRef(value: string | null | undefined) {
   return Boolean(value && /^[0-9a-f]{40}$/i.test(value.trim()));
 }
@@ -900,7 +928,10 @@ export function teamsCatalogService(db: Db) {
       mode: "agent_safe",
       sourceCompanyId: companyId,
     });
-    portabilityPreview.warnings.push(...prepared.warnings);
+    portabilityPreview.warnings = reconcileCatalogTeamWarnings(
+      [...portabilityPreview.warnings, ...prepared.warnings],
+      prepared.skillPreparations,
+    );
     portabilityPreview.errors.push(...prepared.errors);
     await logCatalogEvent("company.team_catalog_previewed", companyId, prepared.team, options.actor, {
       warningCount: portabilityPreview.warnings.length,
@@ -966,11 +997,11 @@ export function teamsCatalogService(db: Db) {
         mode: "agent_safe",
         sourceCompanyId: companyId,
       });
-      const warnings = [
+      const warnings = reconcileCatalogTeamWarnings([
         ...prepared.warnings,
         ...preview.warnings,
         "Team was staged only. No agents, projects, routines, skills, schedules, or existing configuration were changed.",
-      ];
+      ], prepared.skillPreparations);
       await saveInstallation(companyId, prepared.team, options, "staged");
       await logCatalogEvent("company.team_catalog_staged", companyId, prepared.team, options.actor, {
         warningCount: warnings.length,
@@ -1011,7 +1042,7 @@ export function teamsCatalogService(db: Db) {
     const defaultedAdapterSlugs = prepared.team.agentSlugs.filter(
       (slug) => !options.adapterOverrides?.[slug],
     );
-    const warnings = [
+    const warnings = reconcileCatalogTeamWarnings([
       ...prepared.warnings,
       ...importPreview.warnings,
       ...(defaultedAdapterSlugs.length > 0
@@ -1019,7 +1050,7 @@ export function teamsCatalogService(db: Db) {
             `Catalog agents without explicit overrides (${defaultedAdapterSlugs.join(", ")}) default to ${defaultAdapterType}. Pass adapterOverrides or PAPERCLIP_TEAMS_CATALOG_DEFAULT_ADAPTER_TYPE to use a different supported adapter.`,
           ]
         : []),
-    ];
+    ], prepared.skillPreparations);
     const result = await portability.importBundle(
       importInput,
       options.actor?.userId ?? (options.actor?.actorType === "user" ? options.actor.actorId : null),
@@ -1028,8 +1059,11 @@ export function teamsCatalogService(db: Db) {
         sourceCompanyId: companyId,
       },
     );
-    warnings.push(...await prepareSkillInstalls(companyId, prepared));
-    result.warnings.push(...warnings);
+    const skillWarnings = await prepareSkillInstalls(companyId, prepared);
+    result.warnings = reconcileCatalogTeamWarnings(
+      [...result.warnings, ...warnings, ...skillWarnings],
+      prepared.skillPreparations,
+    );
     await saveInstallation(companyId, prepared.team, options, "installed");
     await logCatalogEvent("company.team_catalog_installed", companyId, prepared.team, options.actor, {
       warningCount: result.warnings.length,

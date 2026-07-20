@@ -187,6 +187,37 @@ describe("teamsCatalogService", () => {
     );
   });
 
+  it("replaces generic missing-package skill noise with the catalog skill preparation plan", async () => {
+    mockCompanyPortabilityService.previewImport.mockResolvedValueOnce({
+      include: { company: false, agents: true, projects: true, issues: true, skills: true },
+      targetCompanyId: "company-1",
+      targetCompanyName: "Paperclip",
+      collisionStrategy: "rename",
+      selectedAgentSlugs: ["ceo"],
+      plan: { companyAction: "none", agentPlans: [], projectPlans: [], issuePlans: [] },
+      manifest: { agents: [], skills: [], projects: [], issues: [], envInputs: [], includes: { company: false, agents: true, projects: true, issues: true, skills: true }, company: null, schemaVersion: 1, generatedAt: new Date().toISOString(), source: null, sidebar: null },
+      files: {},
+      envInputs: [],
+      warnings: [
+        "Agent ceo references skill paperclipai/bundled/paperclip-operations/task-planning, but that skill is not present in the package.",
+        "A separate portability warning.",
+        "A separate portability warning.",
+      ],
+      errors: [],
+    });
+    const svc = teamsCatalogService({} as any);
+
+    const preview = await svc.previewCatalogTeamImport("company-1", "core-exec-team");
+
+    expect(preview.warnings).toEqual(["A separate portability warning."]);
+    expect(preview.skillPreparations).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        catalogSkillKey: "paperclipai/bundled/paperclip-operations/task-planning",
+        action: "catalog_install_required",
+      }),
+    ]));
+  });
+
   it("forwards explicit resource bindings so existing company records can be reused", async () => {
     const svc = teamsCatalogService({} as any);
 

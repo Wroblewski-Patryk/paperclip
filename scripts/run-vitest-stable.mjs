@@ -335,7 +335,7 @@ function runProjectGroup(projects, groupName) {
       const uiBatches = chunkItems(uiTests, uiBatchSize);
       uiBatches.forEach((batch, index) => {
         runVitest(
-          ["--project", project, ...serializedServerVitestArgs, ...batch],
+          ["--project", project, ...serializedServerVitestArgs, "--silent=true", ...batch],
           `${groupName} project ${project} batch ${index + 1}/${uiBatches.length} (${batch.length} suites; single worker)`,
         );
       });

@@ -1099,6 +1099,7 @@ function TeamInstallerDialog({
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [installResult, setInstallResult] = useState<CatalogTeamInstallResult | null>(null);
+  const lastPreviewRequestKey = useRef<string | null>(null);
 
   // Reset on open
   useEffect(() => {
@@ -1124,6 +1125,7 @@ function TeamInstallerDialog({
       setPreviewError(null);
       setApplyError(null);
       setInstallResult(null);
+      lastPreviewRequestKey.current = null;
     }
   }, [open]);
 
@@ -1190,15 +1192,31 @@ function TeamInstallerDialog({
   });
 
   // Auto-load preview when reaching the preview step.
-  const previewRequested = useRef(false);
+  const previewRequestKey = JSON.stringify({
+    deploymentMode,
+    targetManagerAgentId: fullCompany ? null : targetManagerAgentId,
+    collisionStrategy,
+    nameOverrides,
+    agentBindings,
+    projectBindings,
+    routineBindings,
+    sourcePolicy: {
+      allowExternalSources,
+      allowUnpinnedOptionalSources,
+      allowLocalPathSources,
+    },
+  });
   useEffect(() => {
-    if (currentStep === "preview") {
-      previewRequested.current = true;
-      previewMutation.mutate();
+    if (currentStep !== "preview") {
+      lastPreviewRequestKey.current = null;
+      return;
     }
-    if (currentStep !== "preview") previewRequested.current = false;
+
+    if (lastPreviewRequestKey.current === previewRequestKey) return;
+    lastPreviewRequestKey.current = previewRequestKey;
+    previewMutation.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, deploymentMode, agentBindings, projectBindings, routineBindings]);
+  }, [currentStep, previewRequestKey]);
 
   const targetManagerResolved = fullCompany || Boolean(targetManagerAgentId);
 
@@ -1317,7 +1335,7 @@ function TeamInstallerDialog({
                 onProjectBinding={(slug, id) => setProjectBindings((cur) => id ? { ...cur, [slug]: id } : Object.fromEntries(Object.entries(cur).filter(([key]) => key !== slug)))}
                 onRoutineBinding={(slug, id) => setRoutineBindings((cur) => id ? { ...cur, [slug]: id } : Object.fromEntries(Object.entries(cur).filter(([key]) => key !== slug)))}
                 collisionStrategy={collisionStrategy}
-                onCollisionStrategyChange={(s) => { setCollisionStrategy(s); previewRequested.current = false; previewMutation.mutate(); }}
+                onCollisionStrategyChange={setCollisionStrategy}
                 nameOverrides={nameOverrides}
                 onRename={(slug, name) => setNameOverrides((cur) => ({ ...cur, [slug]: name }))}
                 adapterOverrides={adapterOverrides}
