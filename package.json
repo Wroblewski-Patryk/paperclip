@@ -66,6 +66,8 @@
     "softwarehouse:autonomy-governor": "node scripts/configure-autonomy-governor.mjs",
     "softwarehouse:control-loop": "node scripts/run-autonomy-governor.mjs",
     "softwarehouse:control-tick": "node scripts/run-softwarehouse-control-tick.mjs",
+    "softwarehouse:queue-reconciler": "node scripts/run-issue-queue-reconciler.mjs",
+    "softwarehouse:queue-reconciler:apply": "node scripts/run-issue-queue-reconciler.mjs --apply",
     "softwarehouse:agent-settings-audit": "node scripts/audit-luckysparrow-agent-settings.mjs",
     "softwarehouse:operating-standard-audit": "node scripts/audit-softwarehouse-operating-standard.mjs",
     "softwarehouse:operating-standard-configure": "node scripts/configure-softwarehouse-operating-standard.mjs",

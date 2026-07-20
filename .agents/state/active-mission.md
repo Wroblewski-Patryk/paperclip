@@ -710,3 +710,20 @@ or the relevant owners explicitly classify them as not required with evidence.
   again timed out in the general server group and remains unverified. Its exact
   process tree was terminated and no matching Vitest or temporary Paperclip
   service test process remained.
+
+## 2026-07-20 - Holistic V0 Re-Audit
+
+- Current report: `docs/status/2026-07-20-paperclip-v0-holistic-audit.md`.
+- Local Paperclip, roster, instructions, bounded routines, runtime files,
+  workspace boundaries, active local secrets provider, budget gates, database
+  backups, and isolated database restore proof pass current checks.
+- Roost public probes pass. Soar remains not ready: API `/ready` returns 503
+  and Coolify Redis is `restarting:unhealthy`. `LUC-1524` and `LUC-972` remain
+  genuine protected owner/security gates.
+- Project-truth gaps decreased from 66 to 59: Soar 54 and Roost 5. Paperclip
+  and Soar have active dirty source-control packets; Roost is clean.
+- The longevity doctor routine catalog drift and bounded queue reconciliation
+  gap were repaired and covered by the canonical gate suite. The suite passes
+  187/187; current UI typecheck and focused company/sidebar/inbox tests pass.
+- Database restore is proved, but full-instance restore with uploads/storage
+  and the local secrets key remains unproved. Preserve this as a V0 DR gap.

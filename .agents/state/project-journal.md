@@ -6,6 +6,12 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-20 / LUC-1355 queue reconciler boundary-skip repair:
+  - The `softwarehouse:queue-reconciler` apply path initially hard-failed when a blocked-issue repair hit `403 Issue is outside this actor's authorization boundary`.
+  - Patched `scripts/run-issue-queue-reconciler.mjs` to treat authorization-boundary denials as bounded skips for both blocked-issue repairs and stalled-todo wakes, and surfaced the skip signal through `scripts/run-softwarehouse-control-tick.mjs`.
+  - Verification: `node --test scripts/softwarehouse-gate-specs.test.mjs` passed `187/187`; the reconciler apply rerun completed cleanly and no longer aborts on boundary-denied mutations.
+  - Durable outcome: the control tick can continue past one unauthorized lane instead of failing the whole reconciliation pass. The issue remains evidence-based and should be closed with the test and runtime proof recorded in-thread.
+
 - 2026-07-20 / LUC-1201 longevity snapshot backup refresh:
   - Refreshed the redacted Softwarehouse longevity snapshot with `node scripts/export-softwarehouse-longevity-snapshot.mjs`.
   - Verification: `report/longevity/softwarehouse-longevity-snapshot.latest.md` and `.json` were regenerated at `2026-07-20T01:19:00.323Z`; the exporter reported `39` agents, `8` projects, `38` issues, `19` routines, `2` live runs, and `46` secret metadata rows.
@@ -4109,3 +4115,27 @@ multiple agents, promote it proactively into repository memory and the
 canonical shared instruction source, then sync and verify live bundles when
 safe. Promotion: current truth and responsibility lesson updated; no secrets or
 production mutations were recorded.
+
+## 2026-07-20 - Conversation summary: holistic V0 audit and routine detector repair
+
+The owner asked for a cross-layer review of Paperclip assumptions, notes,
+journals, instructions, live behavior, missing implementation, and safe repair
+opportunities. Fresh API, runtime, project-truth, Coolify, source-control,
+budget, secrets, backup, restore, instruction, boundary, topology, longevity,
+and targeted test evidence was collected. The durable report is
+`docs/status/2026-07-20-paperclip-v0-holistic-audit.md`.
+
+V0 remains open. Roost public readiness passes, while Soar `/ready` is 503 and
+its Redis resource remains `restarting:unhealthy`. The least-privilege Redis
+action and credential rotation remain explicit protected gates. Product-truth
+gaps decreased from 66 to 59. Current Paperclip and Soar source-control packets
+must be closed before broad new dispatch; Roost is clean. Database restore is
+proved, but a full-instance restore including local storage and the secrets key
+is not.
+
+The audit found and repaired one control-plane defect: team-adoption routine
+renames were absent from the longevity doctor's accepted-title catalog, causing
+five false missing-routine warnings. Both legacy and current titles are now
+recognized, a regression test was added, `softwarehouse:test-gates` passes
+184/184, current UI typecheck passes, and 14 focused UI tests pass. No production
+mutation, credential change, or secret value was performed or recorded.

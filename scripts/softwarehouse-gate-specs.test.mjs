@@ -6,7 +6,11 @@ import { resolveIssuesByIdentifier } from "./lib/issue-discovery.mjs";
 import { gateFreshnessObservation, stableSecretMetadata } from "./lib/gate-freshness.mjs";
 import { secretForKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { planReusableRoutineRecoveryRestore } from "./lib/reusable-routine-recovery.mjs";
-import { planStaleCancelledBlockerRepair } from "./lib/stale-blocker-repair.mjs";
+import {
+  planResolvedBlockerRepair,
+  planStaleCancelledBlockerRepair,
+  planStalledTodoWake,
+} from "./lib/stale-blocker-repair.mjs";
 import { autonomyDispositionForMode, controlActionSummaryFor, controlActionTypeFor, deliveryPermissionForMode, gateBriefFor, staleGateOwnerActionLine } from "./lib/softwarehouse-control-brief.mjs";
 import { softwarehouseGateSpecs, softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
 import { finalizeRecurringIssue } from "./run-softwarehouse-continuation-watchdog.mjs";
@@ -651,6 +655,20 @@ test("longevity watchdog covers autonomous softwarehouse contract checks", async
   assert.match(configurator, /supervisor review/);
   assert.match(configurator, /deployment monitoring/);
   assert.match(configurator, /process-improvement loops/);
+});
+
+test("longevity doctor recognizes the current team-adoption routine titles", async () => {
+  const doctor = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
+
+  for (const title of [
+    "11 Innovation: Autonomy Governor",
+    "09 Technology: Stale Board Janitor",
+    "09 Technology: Agent Health and Model Governance",
+    "04 Operations: Organizational Learning Loop",
+    "06 People: AI-Agent Development Review",
+  ]) {
+    assert.equal(doctor.includes(title), true, `missing current routine title: ${title}`);
+  }
 });
 
 test("delivery runtime access restores role-scoped Soar and Roost smoke bindings", async () => {
@@ -2392,6 +2410,106 @@ test("stale blocker repair requires fresh completed triage and preserves active 
     blockedByIssueIds: ["active-id"],
     nextStatus: "blocked",
   });
+});
+
+test("resolved blocker repair removes only done dependencies and resumes only from fresh resolution", () => {
+  const repair = planResolvedBlockerRepair({
+    target: {
+      id: "target-id",
+      identifier: "LUC-1396",
+      status: "blocked",
+      updatedAt: "2026-07-14T20:00:00.000Z",
+    },
+    detailedTarget: {
+      blockedBy: [
+        {
+          id: "done-id",
+          identifier: "LUC-1420",
+          status: "done",
+          completedAt: "2026-07-14T21:00:00.000Z",
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(repair, {
+    issueId: "target-id",
+    issueIdentifier: "LUC-1396",
+    resolvedBlockerIdentifiers: ["LUC-1420"],
+    blockedByIssueIds: [],
+    nextStatus: "todo",
+    resolutionIsNewerThanTarget: true,
+  });
+
+  const newerBlockedDisposition = planResolvedBlockerRepair({
+    target: {
+      id: "target-id",
+      identifier: "LUC-1374",
+      status: "blocked",
+      updatedAt: "2026-07-14T22:00:00.000Z",
+    },
+    detailedTarget: {
+      blockedBy: [
+        { id: "done-id", identifier: "LUC-1387", status: "done", updatedAt: "2026-07-14T21:00:00.000Z" },
+        { id: "cancelled-id", identifier: "LUC-1400", status: "cancelled" },
+      ],
+    },
+  });
+
+  assert.deepEqual(newerBlockedDisposition, {
+    issueId: "target-id",
+    issueIdentifier: "LUC-1374",
+    resolvedBlockerIdentifiers: ["LUC-1387"],
+    blockedByIssueIds: ["cancelled-id"],
+    nextStatus: "blocked",
+    resolutionIsNewerThanTarget: false,
+  });
+});
+
+test("stalled todo wake is bounded to untouched non-routine agent work", () => {
+  const issue = {
+    id: "issue-id",
+    identifier: "LUC-1452",
+    status: "todo",
+    assigneeAgentId: "agent-id",
+    assigneeUserId: null,
+    originKind: "manual",
+    updatedAt: "2026-07-14T10:00:00.000Z",
+  };
+  const nowMs = Date.parse("2026-07-14T20:00:00.000Z");
+
+  assert.deepEqual(planStalledTodoWake({ issue, nowMs }), {
+    issueId: "issue-id",
+    issueIdentifier: "LUC-1452",
+    assigneeAgentId: "agent-id",
+    ageHours: 10,
+    idempotencyKey: "softwarehouse:stalled-todo:issue-id:2026-07-14T10:00:00.000Z",
+  });
+  assert.equal(planStalledTodoWake({ issue, nowMs, hasComments: true }), null);
+  assert.equal(planStalledTodoWake({ issue, nowMs, runIssueIds: new Set(["issue-id"]) }), null);
+  assert.equal(planStalledTodoWake({ issue, nowMs, liveAgentIds: new Set(["agent-id"]) }), null);
+  assert.equal(planStalledTodoWake({ issue: { ...issue, originKind: "routine_execution" }, nowMs }), null);
+  assert.equal(planStalledTodoWake({ issue: { ...issue, assigneeUserId: "user-id" }, nowMs }), null);
+});
+
+test("control tick applies the bounded issue queue reconciler", async () => {
+  const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
+  const reconciler = await readFile("scripts/run-issue-queue-reconciler.mjs", "utf8");
+
+  assert.match(source, /name: "issueQueueReconciler"/);
+  assert.match(source, /run-issue-queue-reconciler\.mjs", "--apply"/);
+  assert.match(source, /skippedCount: data\.skippedCount \?\? null/);
+  assert.match(source, /skipped: data\.skipped \?\? \[\]/);
+  assert.match(reconciler, /SOFTWAREHOUSE_QUEUE_MAX_BLOCKER_REPAIRS/);
+  assert.match(reconciler, /SOFTWAREHOUSE_QUEUE_MAX_TODO_WAKES/);
+  assert.match(reconciler, /const heartbeatAgentId = process\.env\.PAPERCLIP_AGENT_ID \?\? null/);
+  assert.match(reconciler, /function isIssueAuthorizationBoundaryError\(error\)/);
+  assert.match(reconciler, /function isCrossAgentWakeupError\(error\)/);
+  assert.match(reconciler, /Agent can only invoke itself/);
+  assert.match(reconciler, /reason: "stalled_todo_reconciler"/);
+  assert.match(reconciler, /skippedReason: "issue_authorization_boundary"/);
+  assert.match(reconciler, /if \(heartbeatAgentId && plan\.assigneeAgentId !== heartbeatAgentId\)/);
+  assert.match(reconciler, /An authorized board\/user or the assigned agent must wake this stalled todo\./);
 });
 
 test("recovery janitor only restores reusable routines after their own fresh successful recovery run", async () => {

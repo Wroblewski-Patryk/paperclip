@@ -566,6 +566,7 @@ if (apiReachable) {
       label: "autonomy and liveness governance",
       aliases: [
         "[Softwarehouse] Autonomy governor",
+        "11 Innovation: Autonomy Governor",
         "00 General: Owner Direction and Proposal Review",
         "00 General: Softwarehouse Liveness and Active Work Review",
       ],
@@ -574,6 +575,7 @@ if (apiReachable) {
       label: "board/project truth hygiene",
       aliases: [
         "[Softwarehouse] Stale board janitor",
+        "09 Technology: Stale Board Janitor",
         "04 Operations: Portfolio Truth and Workspace Boundary Review",
       ],
     },
@@ -581,6 +583,7 @@ if (apiReachable) {
       label: "agent health and model governance",
       aliases: [
         "[Softwarehouse] Agent health and model governance",
+        "09 Technology: Agent Health and Model Governance",
         "06 People: Agent Hiring and Governance Review",
       ],
     },
@@ -589,12 +592,16 @@ if (apiReachable) {
       aliases: [
         "[Softwarehouse] Docs and memory loop",
         "[Softwarehouse] Organizational learning loop",
+        "04 Operations: Organizational Learning Loop",
         "04 Operations: PDCA Learning and Company Memory Review",
       ],
     },
     {
       label: "AI-agent development review",
-      aliases: ["[Softwarehouse] AI-agent development review"],
+      aliases: [
+        "[Softwarehouse] AI-agent development review",
+        "06 People: AI-Agent Development Review",
+      ],
     },
   ]) {
     if (!hasActiveRoutine(activeRoutineTitles, routineCoverage.aliases)) {

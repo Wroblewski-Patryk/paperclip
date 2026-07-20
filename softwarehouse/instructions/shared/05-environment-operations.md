@@ -84,8 +84,17 @@ bounded workstation, not as an elastic build cluster.
 
   ```powershell
   $issueHelper = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-issue-update.mjs'
-  node $issueHelper --issue-id $env:PAPERCLIP_TASK_ID --status in_review --comment-file .\closeout.md
+  @'
+  ## Closeout
+
+  - Outcome and evidence go here.
+  '@ | node $issueHelper --issue-id $env:PAPERCLIP_TASK_ID --status in_review
   ```
+
+- Pass transient issue comments through stdin or an operating-system temporary
+  file. Never create `closeout*.md`, `.closeout.md`, or other transient payload
+  files in a repository/workspace root. A durable deliverable belongs in its
+  canonical tracked directory and must be uploaded as an artifact/work product.
 
 - Upload inspectable artifacts through the tracked Node helper in the same way:
 

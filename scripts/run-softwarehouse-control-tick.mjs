@@ -91,6 +91,19 @@ const steps = [
     }),
   },
   {
+    name: "issueQueueReconciler",
+    command: ["scripts/run-issue-queue-reconciler.mjs", "--apply"],
+    summary: (data) => ({
+      liveRunCount: data.liveRunCount ?? null,
+      blockerRepairCount: data.blockerRepairCount ?? null,
+      stalledTodoWakeCount: data.stalledTodoWakeCount ?? null,
+      skippedCount: data.skippedCount ?? null,
+      appliedCount: data.applied?.length ?? 0,
+      applied: data.applied ?? [],
+      skipped: data.skipped ?? [],
+    }),
+  },
+  {
     name: "composeOneoffJanitor",
     command: ["scripts/run-compose-oneoff-janitor.mjs", "--apply"],
     summary: (data) => ({
