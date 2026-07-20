@@ -10,6 +10,7 @@ const repoRoot = process.cwd();
 const serverRoot = path.join(repoRoot, "server");
 const serverSrcRoot = path.join(serverRoot, "src");
 const cliSrcRoot = path.join(repoRoot, "cli", "src");
+const uiSrcRoot = path.join(repoRoot, "ui", "src");
 const nonServerProjects = [
   "@paperclipai/shared",
   "@paperclipai/skills-catalog",
@@ -63,6 +64,11 @@ const generalGroupNames = [generalServerGroupName, generalWorkspacesAGroupName, 
 // Keep Windows groups small enough that suites using embedded PostgreSQL do
 // not leak process-global database state into distant test files.
 const generalServerBatchSize = process.platform === "win32" ? 20 : Number.MAX_SAFE_INTEGER;
+// A single sequential UI invocation currently contains more than 200 files and
+// exceeds five minutes on the bounded Windows workstation. Fresh Vitest
+// processes keep each batch observable and release jsdom/React handles between
+// groups instead of hiding the final result behind an outer command timeout.
+const uiBatchSize = process.platform === "win32" ? 40 : Number.MAX_SAFE_INTEGER;
 const serializedServerVitestArgs = [
   "--no-file-parallelism",
   "--maxWorkers=1",
@@ -322,10 +328,17 @@ function runProjectGroup(projects, groupName) {
       // bounded Windows workstation when the default parallel pool is used.
       // One worker is still quick, and avoids intermittent ERR_IPC_CHANNEL_CLOSED
       // failures after otherwise successful server batches.
-      runVitest(
-        ["--project", project, ...serializedServerVitestArgs],
-        `${groupName} project ${project} (single worker)`,
-      );
+      const uiTests = walk(uiSrcRoot)
+        .filter((file) => /\.test\.[cm]?[jt]sx?$/.test(file))
+        .map(toRepoPath)
+        .sort((left, right) => left.localeCompare(right));
+      const uiBatches = chunkItems(uiTests, uiBatchSize);
+      uiBatches.forEach((batch, index) => {
+        runVitest(
+          ["--project", project, ...serializedServerVitestArgs, ...batch],
+          `${groupName} project ${project} batch ${index + 1}/${uiBatches.length} (${batch.length} suites; single worker)`,
+        );
+      });
       continue;
     }
     if (process.platform === "win32" && project === "@paperclipai/db") {
@@ -448,6 +461,12 @@ if (options.dryRun) {
         generalServerSuiteCount: generalServerTests.length,
         generalServerBatchSize: Math.min(generalServerBatchSize, Math.max(generalServerTests.length, 1)),
         generalServerBatchCount: chunkItems(generalServerTests, generalServerBatchSize).length,
+        uiSuiteCount: walk(uiSrcRoot).filter((file) => /\.test\.[cm]?[jt]sx?$/.test(file)).length,
+        uiBatchSize,
+        uiBatchCount: chunkItems(
+          walk(uiSrcRoot).filter((file) => /\.test\.[cm]?[jt]sx?$/.test(file)),
+          uiBatchSize,
+        ).length,
         serializedSuiteCount: routeTests.length,
         selectedSerializedSuites: serializedSuites.map((routeTest) => routeTest.repoPath),
       },
