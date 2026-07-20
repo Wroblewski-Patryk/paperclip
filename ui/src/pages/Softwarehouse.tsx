@@ -148,7 +148,7 @@ function Metric({
   tone?: "muted" | "good" | "warn";
 }) {
   return (
-    <div className="border border-border bg-background p-3">
+    <div className="paperclip-surface p-3">
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-medium uppercase text-muted-foreground">{label}</span>
         <Icon className={cn("h-4 w-4", tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-amber-600" : "text-muted-foreground")} />
@@ -223,7 +223,7 @@ function ToolsView({ loading, tools }: { loading: boolean; tools?: Awaited<Retur
   if (loading && !tools) return <LoadingLine label="Loading local command catalog." />;
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <section className="min-w-0 overflow-hidden border border-border bg-background" aria-labelledby="softwarehouse-command-catalog-title">
+      <section className="paperclip-surface min-w-0 overflow-hidden" aria-labelledby="softwarehouse-command-catalog-title">
         <div className="border-b border-border px-3 py-2">
           <h2 id="softwarehouse-command-catalog-title" className="text-sm font-semibold">Command Catalog</h2>
           <p className="mt-1 text-xs text-muted-foreground">{tools?.commandCatalog.path}</p>
@@ -275,7 +275,7 @@ function RuntimeView({
   return (
     <div className="space-y-4">
       {status?.blockedGates.length ? (
-        <section className="overflow-hidden border border-border bg-background">
+        <section className="paperclip-surface overflow-hidden">
           <div className="border-b border-border px-3 py-2">
             <h2 className="text-sm font-semibold">Protected delivery gates</h2>
             <p className="mt-1 text-xs text-muted-foreground">These gates block protected production actions, not explicitly allowed local repair lanes.</p>
@@ -301,7 +301,7 @@ function RuntimeView({
         </section>
       ) : null}
 
-      <div className="overflow-hidden border border-border bg-background">
+      <div className="paperclip-surface overflow-hidden">
         <div className="border-b border-border px-3 py-2">
           <h2 className="text-sm font-semibold">Runtime Config Ledger</h2>
           <p className="mt-1 text-xs text-muted-foreground">Local config, auth, secrets metadata, workspaces, and VPS/Coolify facts.</p>
@@ -347,7 +347,7 @@ function BacklogView({ loading, backlog }: { loading: boolean; backlog?: Awaited
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="min-w-0 space-y-4">
         <DocPanel title="Backlog Sources" docs={[backlog?.featureBacklog, backlog?.unificationPlan].filter(Boolean) as SoftwarehouseDoc[]} />
-        <section className="border border-border bg-background">
+        <section className="paperclip-surface">
           <div className="border-b border-border px-3 py-2">
             <h2 className="text-sm font-semibold">Feature Candidates</h2>
           </div>
@@ -364,7 +364,7 @@ function BacklogView({ loading, backlog }: { loading: boolean; backlog?: Awaited
           </div>
         </section>
       </div>
-      <aside className="min-w-0 border border-border bg-background p-4 text-sm text-muted-foreground">
+      <aside className="paperclip-surface min-w-0 p-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2 text-foreground">
           <BrainCircuit className="h-4 w-4" />
           <span className="font-semibold">Current choice</span>
@@ -387,7 +387,7 @@ function DocPanel({
   compact?: boolean;
 }) {
   return (
-    <section className="min-w-0 max-w-full border border-border bg-background">
+    <section className="paperclip-surface min-w-0 max-w-full overflow-hidden">
       <div className="border-b border-border px-3 py-2">
         <h2 className="text-sm font-semibold">{title}</h2>
       </div>
@@ -418,7 +418,7 @@ function DocPanel({
 
 function FilePanel({ title, files }: { title: string; files: SoftwarehouseFileStatus[] }) {
   return (
-    <section className="min-w-0 max-w-full border border-border bg-background">
+    <section className="paperclip-surface min-w-0 max-w-full overflow-hidden">
       <div className="border-b border-border px-3 py-2">
         <h2 className="text-sm font-semibold">{title}</h2>
       </div>
@@ -442,7 +442,7 @@ function FilePanel({ title, files }: { title: string; files: SoftwarehouseFileSt
 
 function CountPanel({ title, rows }: { title: string; rows: Array<[string, number]> }) {
   return (
-    <section className="border border-border bg-background">
+    <section className="paperclip-surface overflow-hidden">
       <div className="border-b border-border px-3 py-2">
         <h2 className="text-sm font-semibold">{title}</h2>
       </div>
@@ -472,7 +472,7 @@ function Badge({ children, tone = "muted" }: { children: React.ReactNode; tone?:
 }
 
 function LoadingLine({ label }: { label: string }) {
-  return <div className="border border-border bg-background p-4 text-sm text-muted-foreground">{label}</div>;
+  return <div className="paperclip-surface p-4 text-sm text-muted-foreground">{label}</div>;
 }
 
 function formatDate(value: string) {

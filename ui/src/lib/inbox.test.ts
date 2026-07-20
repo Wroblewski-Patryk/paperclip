@@ -1008,6 +1008,13 @@ describe("inbox helpers", () => {
     expect(loadLastInboxTab()).toBe("blocked");
   });
 
+  it("hides routine executions in a fresh inbox by default", () => {
+    localStorage.clear();
+
+    expect(loadInboxFilterPreferences("company-fresh").issueFilters.hideRoutineExecutions).toBe(true);
+    expect(loadInboxFilterPreferences(null).issueFilters.hideRoutineExecutions).toBe(true);
+  });
+
   it("persists inbox filters per company", () => {
     saveInboxFilterPreferences("company-1", {
       allCategoryFilter: "approvals",

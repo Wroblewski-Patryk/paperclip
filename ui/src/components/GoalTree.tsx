@@ -50,7 +50,7 @@ function GoalNode({ goal, children, allGoals, depth, goalLink, onSelect }: GoalN
   );
 
   const classes = cn(
-    "flex items-center gap-2 px-3 py-1.5 text-sm transition-colors cursor-pointer hover:bg-accent/50",
+    "flex items-center gap-2 border-l-2 border-l-transparent px-3 py-2 text-sm transition-colors cursor-pointer hover:border-l-[var(--company-accent)] hover:bg-[var(--company-accent-subtle)]",
   );
 
   return (
@@ -100,7 +100,7 @@ export function GoalTree({ goals, goalLink, onSelect }: GoalTreeProps) {
   }
 
   return (
-    <div className="border border-border py-1">
+    <div className="paperclip-surface overflow-hidden py-1">
       {roots.map((goal) => (
         <GoalNode
           key={goal.id}

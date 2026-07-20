@@ -18,6 +18,7 @@ import {
   PackageOpen,
   UsersRound,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "@/lib/router";
 import { SidebarSection } from "./SidebarSection";
@@ -35,6 +36,21 @@ import { PluginSlotOutlet } from "@/plugins/slots";
 import { PluginLauncherOutlet } from "@/plugins/launchers";
 import { SidebarCompanyMenu } from "./SidebarCompanyMenu";
 
+const PRIMARY_SECTION_STORAGE_KEY = "paperclip.sidebar.primary-sections.v1";
+type PrimarySection = "work" | "organization" | "operations";
+
+function initialPrimarySections(): Record<PrimarySection, boolean> {
+  const defaults = { work: true, organization: true, operations: true };
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem(PRIMARY_SECTION_STORAGE_KEY) ?? "null",
+    ) as Partial<Record<PrimarySection, boolean>> | null;
+    return { ...defaults, ...stored };
+  } catch {
+    return defaults;
+  }
+}
+
 export function Sidebar() {
   const { openNewIssue } = useDialogActions();
   const { selectedCompanyId, selectedCompany } = useCompany();
@@ -51,6 +67,20 @@ export function Sidebar() {
   });
   const liveRunCount = liveRuns?.length ?? 0;
   const showWorkspacesLink = experimentalSettings?.enableIsolatedWorkspaces === true;
+  const [openSections, setOpenSections] = useState(initialPrimarySections);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PRIMARY_SECTION_STORAGE_KEY, JSON.stringify(openSections));
+    } catch {
+      // Sidebar preferences remain usable in-memory when storage is unavailable.
+    }
+  }, [openSections]);
+
+  const sectionState = (section: PrimarySection) => ({
+    open: openSections[section],
+    onOpenChange: (open: boolean) => setOpenSections((current) => ({ ...current, [section]: open })),
+  });
 
   const pluginContext = {
     companyId: selectedCompanyId,
@@ -58,7 +88,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-full h-full min-h-0 border-r border-border bg-background flex flex-col">
+    <aside className="w-full h-full min-h-0 border-r border-sidebar-border bg-sidebar flex flex-col">
       {/* Top bar: Company name (bold) + Search — aligned with top sections (no visible border) */}
       <div className="flex items-center gap-1 px-3 h-12 shrink-0">
         <SidebarCompanyMenu />
@@ -82,7 +112,7 @@ export function Sidebar() {
           <button
             onClick={() => openNewIssue()}
             data-slot="icon-button"
-            className="flex items-center gap-2.5 px-3 py-2 pointer-coarse:py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+            className="flex items-center gap-2.5 rounded-md px-3 py-2 pointer-coarse:py-1.5 text-[13px] font-medium text-foreground/75 hover:bg-[var(--company-accent-soft)] hover:text-foreground transition-colors"
           >
             <SquarePen className="h-4 w-4 shrink-0" />
             <span className="truncate">New Issue</span>
@@ -98,14 +128,11 @@ export function Sidebar() {
           />
         </div>
 
-        <SidebarSection label="Work">
+        <SidebarSection label="Work" collapsible={sectionState("work")}>
           <SidebarNavItem to="/issues" label="Issues" icon={CircleDot} />
           <SidebarNavItem to="/routines" label="Routines" icon={Repeat} />
           <SidebarNavItem to="/goals" label="Goals" icon={Target} />
-          <SidebarNavItem to="/memory" label="Memory" icon={BrainCircuit} />
-          <SidebarNavItem to="/learning" label="Evidence & learning" icon={LearningActivity} />
           <SidebarNavItem to="/artifacts" label="Artifacts" icon={PackageOpen} />
-          <SidebarNavItem to="/softwarehouse" label="Softwarehouse" icon={Factory} />
           {showWorkspacesLink ? (
             <SidebarNavItem to="/workspaces" label="Workspaces" icon={GitBranch} />
           ) : null}
@@ -128,14 +155,23 @@ export function Sidebar() {
 
         <SidebarAgents />
 
-        <SidebarSection label="Company">
+        <SidebarSection label="Organization" collapsible={sectionState("organization")}>
           <SidebarNavItem to="/org" label="Org" icon={Network} />
           <SidebarNavItem to="/teams" label="Teams" icon={UsersRound} />
           <SidebarNavItem to="/skills" label="Skills" icon={Boxes} />
+          <SidebarNavItem to="/memory" label="Memory" icon={BrainCircuit} />
+          <SidebarNavItem to="/learning" label="Evidence & learning" icon={LearningActivity} />
+        </SidebarSection>
+
+        <SidebarSection label="Operations" collapsible={sectionState("operations")}>
+          <SidebarNavItem to="/softwarehouse" label="Softwarehouse" icon={Factory} />
           <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />
           <SidebarNavItem to="/activity" label="Activity" icon={History} />
-          <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />
         </SidebarSection>
+
+        <div className="border-t border-sidebar-border pt-2">
+          <SidebarNavItem to="/company/settings" label="Company settings" icon={Settings} />
+        </div>
 
         <PluginSlotOutlet
           slotTypes={["sidebarPanel"]}

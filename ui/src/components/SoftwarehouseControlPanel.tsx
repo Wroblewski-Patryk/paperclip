@@ -42,7 +42,7 @@ export function SoftwarehouseControlPanel({
 
   if (!status?.available) {
     return (
-      <section className="rounded-lg border border-border bg-card p-4" aria-labelledby="softwarehouse-control-title">
+      <section className="paperclip-surface p-4" aria-labelledby="softwarehouse-control-title">
         <div className="flex items-start gap-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden />
           <div className="min-w-0 flex-1">
@@ -62,11 +62,11 @@ export function SoftwarehouseControlPanel({
   const blockedGateCount = status.blockedGates.length;
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card" aria-labelledby="softwarehouse-control-title">
-      <div className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+    <section className="paperclip-surface overflow-hidden" aria-labelledby="softwarehouse-control-title">
+      <div className="paperclip-surface-header flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-background">
-            <Factory className="h-4 w-4 text-muted-foreground" aria-hidden />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[var(--company-accent-border)] bg-[var(--company-accent-soft)]">
+            <Factory className="h-4 w-4 text-[var(--company-accent-strong)]" aria-hidden />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">

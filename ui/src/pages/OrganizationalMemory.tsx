@@ -183,7 +183,14 @@ export function OrganizationalMemory() {
 
       {recordsQuery.error ? <p className="text-sm text-destructive">{recordsQuery.error.message}</p> : null}
       {update.error ? <p className="text-sm text-destructive">{update.error.message}</p> : null}
-      {records.length === 0 ? <EmptyState icon={BrainCircuit} message={`No ${KIND_LABELS[kind].toLowerCase()} recorded.`} /> : (
+      {records.length === 0 ? <EmptyState
+        icon={BrainCircuit}
+        title={`No ${KIND_LABELS[kind].toLowerCase()} recorded`}
+        message="Capture the context future agents would otherwise have to rediscover."
+        examples={kind === "assumption" ? ["Customer preference", "Technical constraint", "Market premise"] : kind === "commitment" ? ["Delivery promise", "Review deadline", "Owner obligation"] : ["Architecture choice", "Priority decision", "Policy exception"]}
+        action={`Add ${kind}`}
+        onAction={() => setShowForm(true)}
+      /> : (
         <div className="grid gap-3 lg:grid-cols-2">{records.map((record) => <RecordCard key={record.id} record={record} pending={update.isPending} onTransition={(item, status) => update.mutate({ id: item.id, status })} />)}</div>
       )}
     </div>

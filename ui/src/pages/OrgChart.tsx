@@ -5,12 +5,13 @@ import { agentsApi, type OrgNode } from "../api/agents";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { queryKeys } from "../lib/queryKeys";
-import { agentUrl } from "../lib/utils";
+import { agentUrl, cn } from "../lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { EmptyState } from "../components/EmptyState";
 import { PageSkeleton } from "../components/PageSkeleton";
 import { AgentIcon } from "../components/AgentIconPicker";
-import { Download, Maximize2, Minus, Network, Plus, Upload } from "lucide-react";
+import { Download, FolderKanban, List, Maximize2, Minus, Network, Plus, Search, Upload } from "lucide-react";
 import { AGENT_ROLE_LABELS, type Agent } from "@paperclipai/shared";
 
 // Layout constants
@@ -21,6 +22,7 @@ const GAP_Y = 80;
 const PADDING = 60;
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
+const MIN_INITIAL_ZOOM = 0.7;
 const TOUCH_MOVE_THRESHOLD = 6;
 
 // ── Tree layout types ───────────────────────────────────────────────────
@@ -201,6 +203,7 @@ export function OrgChart() {
   const layout = useMemo(() => layoutForest(orgTree ?? []), [orgTree]);
   const allNodes = useMemo(() => flattenLayout(layout), [layout]);
   const edges = useMemo(() => collectEdges(layout), [layout]);
+  const rootIds = useMemo(() => new Set(layout.map((node) => node.id)), [layout]);
 
   // Compute SVG bounds
   const bounds = useMemo(() => {
@@ -217,6 +220,8 @@ export function OrgChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [search, setSearch] = useState("");
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const touchGesture = useRef<TouchGesture>({
@@ -242,6 +247,10 @@ export function OrgChart() {
   // Center the chart on first load
   const hasInitialized = useRef(false);
   useEffect(() => {
+    hasInitialized.current = false;
+  }, [selectedCompanyId]);
+
+  useEffect(() => {
     if (hasInitialized.current || allNodes.length === 0 || !containerRef.current) return;
     hasInitialized.current = true;
 
@@ -253,14 +262,15 @@ export function OrgChart() {
     const scaleX = (containerW - 40) / bounds.width;
     const scaleY = (containerH - 40) / bounds.height;
     const fitZoom = Math.min(scaleX, scaleY, 1);
+    const initialZoom = Math.max(fitZoom, MIN_INITIAL_ZOOM);
 
-    const chartW = bounds.width * fitZoom;
-    const chartH = bounds.height * fitZoom;
+    const chartW = bounds.width * initialZoom;
+    const chartH = bounds.height * initialZoom;
 
-    setZoom(fitZoom);
+    setZoom(initialZoom);
     setPan({
       x: (containerW - chartW) / 2,
-      y: (containerH - chartH) / 2,
+      y: initialZoom > fitZoom ? 24 : (containerH - chartH) / 2,
     });
   }, [allNodes, bounds]);
 
@@ -327,6 +337,29 @@ export function OrgChart() {
     setZoom(fitZoom);
     setPan({ x: (cW - chartW) / 2, y: (cH - chartH) / 2 });
   }, [bounds]);
+
+  const focusNode = useCallback((node: LayoutNode) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const focusZoom = Math.max(zoom, 0.9);
+    setZoom(focusZoom);
+    setPan({
+      x: container.clientWidth / 2 - (node.x + CARD_W / 2) * focusZoom,
+      y: container.clientHeight / 2 - (node.y + CARD_H / 2) * focusZoom,
+    });
+    setFocusedNodeId(node.id);
+  }, [zoom]);
+
+  const searchMatches = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase();
+    if (!term) return [];
+    return allNodes.filter((node) => {
+      const agent = agentMap.get(node.id);
+      return [node.name, node.role, agent?.title, agent?.capabilities]
+        .filter(Boolean)
+        .some((value) => String(value).toLocaleLowerCase().includes(term));
+    }).slice(0, 6);
+  }, [agentMap, allNodes, search]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length >= 2 && containerRef.current) {
@@ -442,7 +475,43 @@ export function OrgChart() {
 
   return (
     <div className="flex h-[calc(100dvh-9rem)] min-h-[420px] flex-col md:h-full md:min-h-0">
-      <div className="mb-2 flex shrink-0 flex-wrap items-center justify-start gap-2">
+      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2">
+        <div className="relative min-w-52 flex-1 sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && searchMatches[0]) focusNode(searchMatches[0]);
+              if (event.key === "Escape") { setSearch(""); setFocusedNodeId(null); }
+            }}
+            placeholder="Find agent, role, capability..."
+            aria-label="Search organization"
+            className="h-8 pl-8 text-xs"
+          />
+          {search && searchMatches.length > 0 ? (
+            <div className="absolute left-0 right-0 top-9 z-30 overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+              {searchMatches.map((node) => (
+                <button key={node.id} type="button" className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs hover:bg-accent" onClick={() => { focusNode(node); setSearch(node.name); }}>
+                  <span className="truncate font-medium">{node.name}</span>
+                  <span className="truncate text-muted-foreground">{agentMap.get(node.id)?.title ?? roleLabel(node.role)}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <Link to="/agents/all">
+          <Button variant="outline" size="sm">
+            <List className="mr-1.5 h-3.5 w-3.5" />
+            Agent list
+          </Button>
+        </Link>
+        <Link to="/projects">
+          <Button variant="outline" size="sm">
+            <FolderKanban className="mr-1.5 h-3.5 w-3.5" />
+            Projects
+          </Button>
+        </Link>
         <Link to="/company/import">
           <Button variant="outline" size="sm">
             <Upload className="mr-1.5 h-3.5 w-3.5" />
@@ -459,7 +528,7 @@ export function OrgChart() {
       <div
         ref={containerRef}
         data-testid="org-chart-viewport"
-        className="w-full flex-1 min-h-0 overflow-hidden relative bg-muted/20 border border-border rounded-lg"
+        className="paperclip-surface w-full flex-1 min-h-0 overflow-hidden relative bg-[var(--company-accent-subtle)]"
         style={{
           cursor: dragging ? "grabbing" : "grab",
           touchAction: "none",
@@ -476,9 +545,9 @@ export function OrgChart() {
         onTouchCancel={handleTouchEnd}
       >
         {/* Zoom controls */}
-        <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
+        <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5 rounded-lg border border-border bg-background/90 p-1 shadow-sm backdrop-blur">
           <button
-            className="flex size-9 items-center justify-center rounded border border-border bg-background text-sm transition-colors hover:bg-accent sm:size-7"
+            className="flex size-9 items-center justify-center rounded-md text-sm transition-colors hover:bg-[var(--company-accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:size-7"
             onClick={() => {
               const container = containerRef.current;
               if (container) {
@@ -494,7 +563,7 @@ export function OrgChart() {
             <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </button>
           <button
-            className="flex size-9 items-center justify-center rounded border border-border bg-background text-sm transition-colors hover:bg-accent sm:size-7"
+            className="flex size-9 items-center justify-center rounded-md text-sm transition-colors hover:bg-[var(--company-accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:size-7"
             onClick={() => {
               const container = containerRef.current;
               if (container) {
@@ -510,13 +579,19 @@ export function OrgChart() {
             <Minus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </button>
           <button
-            className="flex size-9 items-center justify-center rounded border border-border bg-background text-[10px] transition-colors hover:bg-accent sm:size-7"
+            className="flex size-9 items-center justify-center rounded-md bg-[var(--company-accent-soft)] text-[var(--company-accent-strong)] transition-colors hover:bg-[var(--company-accent-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:size-7"
             onClick={fitToScreen}
             title="Fit to screen"
             aria-label="Fit chart to screen"
           >
             <Maximize2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </button>
+        </div>
+
+        <div className="pointer-events-none absolute bottom-3 left-3 z-10 hidden items-center gap-2 rounded-full border border-border bg-background/85 px-3 py-1.5 text-[11px] text-muted-foreground shadow-sm backdrop-blur sm:flex">
+          <span>{Math.round(zoom * 100)}%</span>
+          <span aria-hidden="true">&middot;</span>
+          <span>Drag to move, scroll to zoom</span>
         </div>
 
         {/* SVG layer for edges */}
@@ -540,8 +615,8 @@ export function OrgChart() {
                   key={`${parent.id}-${child.id}`}
                   d={`M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`}
                   fill="none"
-                  stroke="var(--border)"
-                  strokeWidth={1.5}
+                  stroke="var(--company-accent-border)"
+                  strokeWidth={1.75}
                 />
               );
             })}
@@ -560,12 +635,21 @@ export function OrgChart() {
           {allNodes.map((node) => {
             const agent = agentMap.get(node.id);
             const dotColor = statusDotColor[node.status] ?? defaultDotColor;
+            const isRoot = rootIds.has(node.id);
 
             return (
-              <div
+              <button
+                type="button"
                 key={node.id}
                 data-org-card
-                className="absolute bg-card border border-border rounded-lg shadow-sm hover:shadow-md hover:border-foreground/20 transition-[box-shadow,border-color] duration-150 cursor-pointer select-none"
+                className={cn(
+                  "absolute overflow-hidden rounded-lg border bg-card text-left shadow-sm transition-[box-shadow,border-color,background-color] duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  isRoot
+                    ? "border-[var(--company-accent-border)] bg-[linear-gradient(110deg,var(--company-accent-soft),var(--card)_50%)]"
+                    : "border-border hover:border-[var(--company-accent-border)] hover:bg-[var(--company-accent-subtle)]",
+                  focusedNodeId === node.id && "border-[var(--company-accent)] bg-[var(--company-accent-soft)] shadow-[0_0_0_3px_var(--company-accent-border)]",
+                  "hover:shadow-md",
+                )}
                 style={{
                   left: node.x,
                   top: node.y,
@@ -580,6 +664,7 @@ export function OrgChart() {
                   e.stopPropagation();
                 }}
               >
+                <span className="absolute inset-y-0 left-0 w-0.5 bg-[var(--company-accent)]" aria-hidden="true" />
                 <div className="flex items-center px-4 py-3 gap-3">
                   {/* Agent icon + status dot */}
                   <div className="relative shrink-0">
@@ -611,7 +696,7 @@ export function OrgChart() {
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

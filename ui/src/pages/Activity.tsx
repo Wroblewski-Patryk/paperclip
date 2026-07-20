@@ -22,6 +22,16 @@ import { History } from "lucide-react";
 
 const ACTIVITY_PAGE_LIMIT = 200;
 
+function activityDayLabel(value: Date | string) {
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric" }).format(date);
+}
+
 function detailString(event: ActivityEvent, ...keys: string[]) {
   const details = event.details;
   for (const key of keys) {
@@ -116,10 +126,21 @@ export function Activity() {
   const entityTypes = data
     ? [...new Set(data.map((e) => e.entityType))].sort()
     : [];
+  const groupedActivity = (filtered ?? []).reduce<Array<{ label: string; events: ActivityEvent[] }>>((groups, event) => {
+    const label = activityDayLabel(event.createdAt);
+    const last = groups.at(-1);
+    if (last?.label === label) last.events.push(event);
+    else groups.push({ label, events: [event] });
+    return groups;
+  }, []);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">Activity</h1>
+          <p className="mt-1 text-sm text-muted-foreground">A chronological audit trail of work, decisions, and runtime events.</p>
+        </div>
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-[140px] h-8 text-xs">
             <SelectValue placeholder="Filter by type" />
@@ -142,16 +163,27 @@ export function Activity() {
       )}
 
       {filtered && filtered.length > 0 && (
-        <div className="border border-border divide-y divide-border">
-          {filtered.map((event) => (
-            <ActivityRow
-              key={event.id}
-              event={event}
-              agentMap={agentMap}
-              userProfileMap={userProfileMap}
-              entityNameMap={entityNameMap}
-              entityTitleMap={entityTitleMap}
-            />
+        <div className="space-y-5">
+          {groupedActivity.map((group) => (
+            <section key={group.label} aria-labelledby={`activity-${group.label.replaceAll(" ", "-").toLowerCase()}`}>
+              <div className="mb-2 flex items-center gap-3">
+                <h2 id={`activity-${group.label.replaceAll(" ", "-").toLowerCase()}`} className="paperclip-section-title">{group.label}</h2>
+                <span className="text-xs text-muted-foreground">{group.events.length} events</span>
+                <span className="h-px flex-1 bg-border/70" />
+              </div>
+              <div className="paperclip-surface divide-y divide-border/70 overflow-hidden">
+                {group.events.map((event) => (
+                  <ActivityRow
+                    key={event.id}
+                    event={event}
+                    agentMap={agentMap}
+                    userProfileMap={userProfileMap}
+                    entityNameMap={entityNameMap}
+                    entityTitleMap={entityTitleMap}
+                  />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}

@@ -7,6 +7,16 @@ import { cn } from "../lib/utils";
 import { formatActivityVerb } from "../lib/activity-format";
 import { deriveProjectUrlKey, type ActivityEvent, type Agent } from "@paperclipai/shared";
 import type { CompanyUserProfile } from "../lib/company-members";
+import { Bot, CircleDot, FolderKanban, GitBranch, ShieldCheck, Target } from "lucide-react";
+
+const activityEntityIcons = {
+  issue: CircleDot,
+  agent: Bot,
+  project: FolderKanban,
+  goal: Target,
+  approval: ShieldCheck,
+  heartbeat_run: GitBranch,
+} as const;
 
 function entityLink(entityType: string, entityId: string, name?: string | null): string | null {
   switch (entityType) {
@@ -51,10 +61,14 @@ export function ActivityRow({ event, agentMap, userProfileMap, entityNameMap, en
   const userProfile = event.actorType === "user" ? userProfileMap?.get(event.actorId) : null;
   const actorName = actor?.name ?? (event.actorType === "system" ? "System" : userProfile?.label ?? (event.actorType === "user" ? "Board" : event.actorId || "Unknown"));
   const actorAvatarUrl = userProfile?.image ?? null;
+  const EntityIcon = activityEntityIcons[event.entityType as keyof typeof activityEntityIcons] ?? CircleDot;
 
   const inner = (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--company-accent-border)] bg-[var(--company-accent-subtle)]">
+          <EntityIcon className="h-3.5 w-3.5 text-[var(--company-accent-strong)]" aria-hidden="true" />
+        </div>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Avatar size="xs">
             {actorAvatarUrl && <AvatarImage src={actorAvatarUrl} alt={actorName} />}
@@ -74,8 +88,8 @@ export function ActivityRow({ event, agentMap, userProfileMap, entityNameMap, en
   );
 
   const classes = cn(
-    "px-4 py-2 text-sm",
-    link && "cursor-pointer hover:bg-accent/50 transition-colors",
+    "px-4 py-3 text-sm",
+    link && "cursor-pointer transition-colors hover:bg-[var(--company-accent-subtle)]",
     className,
   );
 

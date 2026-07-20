@@ -1086,13 +1086,13 @@ export function AgentDetail() {
         </div>
       ) : null}
       {/* Header */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="paperclip-surface flex items-center justify-between gap-3 p-3 sm:p-4">
         <div className="flex items-center gap-3 min-w-0">
           <AgentIconPicker
             value={agent.icon}
             onChange={(icon) => updateIcon.mutate(icon)}
           >
-            <button className="shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-accent hover:bg-accent/80 transition-colors">
+            <button className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--company-accent-border)] bg-[var(--company-accent-soft)] transition-colors hover:bg-[var(--company-accent-border)]">
               <AgentIcon icon={agent.icon} className="h-6 w-6" />
             </button>
           </AgentIconPicker>
@@ -1412,10 +1412,9 @@ function LatestRunCard({ runs, agentId }: { runs: HeartbeatRun[]; agentId: strin
         </Link>
       </div>
 
-      <Link
-        to={`/agents/${agentId}/runs/${run.id}`}
+      <div
         className={cn(
-          "block border rounded-lg p-4 space-y-2 w-full no-underline transition-colors hover:bg-muted/50 cursor-pointer",
+          "block w-full space-y-2 rounded-lg border p-4",
           isLive ? "border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.08)]" : "border-border"
         )}
       >
@@ -1457,7 +1456,7 @@ function LatestRunCard({ runs, agentId }: { runs: HeartbeatRun[]; agentId: strin
             <MarkdownBody className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{summary}</MarkdownBody>
           </div>
         )}
-      </Link>
+      </div>
     </div>
   );
 }
@@ -1479,8 +1478,29 @@ function AgentOverview({
   agentId: string;
   agentRouteId: string;
 }) {
+  const liveRuns = runs.filter((run) => run.status === "running" || run.status === "queued").length;
+  const attentionIssues = assignedIssues.filter((issue) => issue.status === "blocked").length;
+  const finishedRuns = runs.filter((run) => ["succeeded", "failed", "cancelled", "timed_out"].includes(run.status));
+  const successfulRuns = finishedRuns.filter((run) => run.status === "succeeded").length;
+  const successRate = finishedRuns.length > 0 ? Math.round((successfulRuns / finishedRuns.length) * 100) : null;
+
   return (
     <div className="space-y-8">
+      <section className="paperclip-surface overflow-hidden" aria-labelledby="agent-health-heading">
+        <div className="paperclip-surface-header flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div>
+            <h3 id="agent-health-heading" className="text-sm font-semibold">Operational health</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">Current workload and recent execution signal.</p>
+          </div>
+          <StatusBadge status={agent.status} />
+        </div>
+        <div className="grid divide-y divide-border/70 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="h-3.5 w-3.5 text-[var(--company-accent-strong)]" />Live runs</div><div className="mt-1 text-2xl font-semibold tabular-nums">{liveRuns}</div></div>
+          <div className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Slash className="h-3.5 w-3.5 text-amber-500" />Blocked issues</div><div className="mt-1 text-2xl font-semibold tabular-nums">{attentionIssues}</div></div>
+          <div className="p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />Recent success</div><div className="mt-1 text-2xl font-semibold tabular-nums">{successRate == null ? "—" : `${successRate}%`}</div></div>
+        </div>
+      </section>
+
       {/* Latest Run */}
       <LatestRunCard runs={runs} agentId={agentRouteId} />
 

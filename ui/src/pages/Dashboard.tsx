@@ -336,7 +336,7 @@ export function Dashboard() {
             </div>
           ) : null}
 
-          <div className="grid grid-cols-2 xl:grid-cols-5 gap-1 sm:gap-2">
+          <div className="grid grid-cols-2 xl:grid-cols-5 gap-2 sm:gap-3">
             <MetricCard
               icon={Bot}
               value={data.agents.active + data.agents.running + data.agents.paused + data.agents.error}
@@ -425,11 +425,11 @@ export function Dashboard() {
           <div className="grid md:grid-cols-2 gap-4">
             {/* Recent Activity */}
             {recentActivity.length > 0 && (
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              <section className="paperclip-surface min-w-0 overflow-hidden">
+                <h3 className="paperclip-surface-header paperclip-section-title border-b border-border px-4 py-3">
                   Recent Activity
                 </h3>
-                <div className="border border-border divide-y divide-border overflow-hidden">
+                <div className="divide-y divide-border overflow-hidden">
                   {recentActivity.map((event) => (
                     <ActivityRow
                       key={event.id}
@@ -442,20 +442,20 @@ export function Dashboard() {
                     />
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
             {/* Recent Tasks */}
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            <section className="paperclip-surface min-w-0 overflow-hidden">
+              <h3 className="paperclip-surface-header paperclip-section-title border-b border-border px-4 py-3">
                 Recent Tasks
               </h3>
               {recentIssues.length === 0 ? (
-                <div className="border border-border p-4">
+                <div className="p-4">
                   <p className="text-sm text-muted-foreground">No tasks yet.</p>
                 </div>
               ) : (
-                <div className="border border-border divide-y divide-border overflow-hidden">
+                <div className="divide-y divide-border overflow-hidden">
                   {recentIssues.slice(0, 10).map((issue) => (
                     <Link
                       key={issue.id}
@@ -495,7 +495,7 @@ export function Dashboard() {
                   ))}
                 </div>
               )}
-            </div>
+            </section>
           </div>
 
         </>

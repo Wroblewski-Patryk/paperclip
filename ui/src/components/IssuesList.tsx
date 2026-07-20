@@ -1599,6 +1599,7 @@ export function IssuesList({
           return (
           <Collapsible
             key={group.key}
+            className="paperclip-surface overflow-hidden"
             open={!viewState.collapsedGroups.includes(group.key)}
             onOpenChange={(open) => {
               updateView({
@@ -1715,7 +1716,7 @@ export function IssuesList({
                         target.scrollIntoView({ behavior: "smooth", block: "nearest" });
                         target.focus?.();
                       }}
-                      className="inline-flex items-center rounded-full border border-amber-400/45 bg-amber-50/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-100/80 dark:border-amber-300/35 dark:bg-amber-400/10 dark:text-amber-300"
+                      className="inline-flex items-center rounded-full border border-amber-400/45 bg-amber-50/60 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-100/80 dark:border-amber-300/35 dark:bg-amber-400/10 dark:text-amber-300"
                       title={firstVisibleBlockerTitle}
                       aria-label={firstVisibleBlockerTitle}
                     >
@@ -1754,7 +1755,7 @@ export function IssuesList({
                             {issueBadge ? (
                               issueBadge === "Paused" ? (
                                 <span
-                                  className={cn("ml-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", statusBadge.paused)}
+                                  className={cn("ml-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium", statusBadge.paused)}
                                   aria-label="Paused"
                                   title="Paused"
                                 >
@@ -1762,14 +1763,14 @@ export function IssuesList({
                                   Paused
                                 </span>
                               ) : (
-                                <span className="ml-1.5 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                <span className="ml-1.5 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
                                   {issueBadge}
                                 </span>
                               )
                             ) : null}
                             {isSuccessfulRunHandoffRequired(issue) ? (
                               <span
-                                className="ml-1.5 inline-flex items-center gap-1 rounded-full border border-amber-400/45 bg-amber-50/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-amber-300/35 dark:bg-amber-400/10 dark:text-amber-300"
+                                className="ml-1.5 inline-flex items-center gap-1 rounded-full border border-amber-400/45 bg-amber-50/60 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:border-amber-300/35 dark:bg-amber-400/10 dark:text-amber-300"
                                 aria-label="Needs next step"
                                 title="This issue needs a next step"
                               >

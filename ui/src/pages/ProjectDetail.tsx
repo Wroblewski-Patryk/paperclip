@@ -729,20 +729,25 @@ export function ProjectDetail() {
           </button>
         </div>
       ) : null}
-      <div className="flex items-start gap-3">
+      <div className="paperclip-surface flex items-start gap-3 p-4">
         <div className="h-7 flex items-center">
           <ColorPicker
             currentColor={project.color ?? "#6366f1"}
             onSelect={(color) => updateProject.mutate({ color })}
           />
         </div>
-        <div className="min-w-0 space-y-2">
+        <div className="min-w-0 flex-1 space-y-2">
           <InlineEditor
             value={project.name}
             onSave={(name) => updateProject.mutate({ name })}
             as="h2"
             className="text-xl font-bold"
           />
+          {activeTab !== "overview" && project.description ? (
+            <p className="line-clamp-2 max-w-3xl text-sm leading-6 text-muted-foreground">{project.description}</p>
+          ) : activeTab !== "overview" ? (
+            <p className="text-sm text-muted-foreground">Add project context in Overview so delivery intent stays visible.</p>
+          ) : null}
           {project.pauseReason === "budget" ? (
             <div className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-red-200">
               <span className="h-2 w-2 rounded-full bg-red-400" />
@@ -755,6 +760,10 @@ export function ProjectDetail() {
               Managed by {project.managedByPlugin.pluginDisplayName}
             </div>
           ) : null}
+        </div>
+        <div className="hidden shrink-0 flex-col items-end gap-2 sm:flex">
+          <StatusBadge status={project.status} />
+          {project.targetDate ? <span className="text-xs text-muted-foreground">Target {project.targetDate}</span> : null}
         </div>
       </div>
 

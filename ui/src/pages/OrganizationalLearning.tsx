@@ -260,7 +260,14 @@ export function OrganizationalLearning() {
 
       {update.error ? <p className="text-sm text-destructive">{update.error.message}</p> : null}
       {visibleRecords.length === 0
-        ? <EmptyState icon={Activity} message={`No ${LABELS[kind].toLowerCase()} recorded.`} />
+        ? <EmptyState
+            icon={Activity}
+            title={`No ${LABELS[kind].toLowerCase()} recorded`}
+            message="Record an observation with its source so the company can learn from evidence instead of anecdotes."
+            examples={["Outcome", "Causal signal", "External evidence"]}
+            action="Record observation"
+            onAction={() => setShowForm(true)}
+          />
         : <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">{visibleRecords.map((item) => <ObservationCard key={item.id} item={item} pending={update.isPending} onTransition={(record, status) => update.mutate({ item: record, status })} />)}</div>}
     </div>
   );

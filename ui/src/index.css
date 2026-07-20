@@ -36,6 +36,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-company-accent: var(--company-accent);
+  --color-company-accent-foreground: var(--company-accent-foreground);
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0px;
@@ -93,6 +95,14 @@
   --paperclip-doc-annotation-highlight-focused: #fde047;
   --paperclip-doc-annotation-highlight-stale: #fef08a;
   --paperclip-doc-annotation-highlight-resolved: #fef9c3;
+  --company-accent: #64748b;
+  --company-accent-foreground: #ffffff;
+  --company-accent-soft: color-mix(in oklab, var(--company-accent) 14%, transparent);
+  --company-accent-subtle: color-mix(in oklab, var(--company-accent) 7%, var(--background));
+  --company-accent-border: color-mix(in oklab, var(--company-accent) 38%, var(--border));
+  --company-accent-strong: color-mix(in oklab, var(--company-accent) 82%, var(--foreground));
+  --status-live: #0891b2;
+  --status-live-foreground: #0e7490;
 }
 
 .dark {
@@ -144,6 +154,19 @@
   --paperclip-doc-annotation-highlight-focused: #ca8a04;
   --paperclip-doc-annotation-highlight-stale: #854d0e;
   --paperclip-doc-annotation-highlight-resolved: #713f12;
+  --status-live: #22d3ee;
+  --status-live-foreground: #67e8f9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 ::highlight(paperclip-doc-annotation-open) {
@@ -198,6 +221,36 @@
   .paperclip-mdxeditor [class*="_placeholder_"],
   .paperclip-mdxeditor-content {
     font-family: inherit;
+  }
+}
+
+@layer components {
+  .paperclip-surface {
+    border: 1px solid color-mix(in oklab, var(--company-accent) 12%, var(--border));
+    border-radius: 0.75rem;
+    background: var(--card);
+    box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 5%, transparent);
+  }
+
+  .paperclip-surface-header {
+    background: linear-gradient(110deg, var(--company-accent-soft), transparent 48%);
+  }
+
+  .paperclip-surface-interactive {
+    transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .paperclip-surface-interactive:hover {
+    border-color: var(--company-accent-border);
+    box-shadow: 0 8px 22px color-mix(in oklab, var(--company-accent) 8%, transparent);
+  }
+
+  .paperclip-section-title {
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
   }
 }
 

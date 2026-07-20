@@ -15,6 +15,18 @@ import { hasAssignedBacklogBlocker } from "../lib/issue-blockers";
 
 type UnreadState = "hidden" | "visible" | "fading";
 
+export function splitIssueTitle(value: string) {
+  const categories: string[] = [];
+  let remainder = value.trim();
+  while (categories.length < 4) {
+    const match = remainder.match(/^\[([^\]]+)\]\s*/);
+    if (!match) break;
+    categories.push(match[1].trim());
+    remainder = remainder.slice(match[0].length).trimStart();
+  }
+  return { categories, title: remainder || value };
+}
+
 interface IssueRowProps {
   issue: Issue;
   issueLinkState?: unknown;
@@ -61,6 +73,7 @@ export function IssueRow({
   className,
 }: IssueRowProps) {
   const issuePathId = issue.identifier ?? issue.id;
+  const parsedTitle = splitIssueTitle(issue.title);
   const identifier = issue.identifier ?? issue.id.slice(0, 8);
   const showUnreadSlot = unreadState !== null;
   const showUnreadDot = unreadState === "visible" || unreadState === "fading";
@@ -122,8 +135,20 @@ export function IssueRow({
         {recoveryIndicator}
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1 sm:contents">
-        <span className={cn("line-clamp-2 text-sm sm:order-2 sm:min-w-0 sm:flex-1 sm:truncate sm:line-clamp-none", titleClassName)}>
-          {issue.title}{titleSuffix}
+        <span
+          className={cn("line-clamp-2 text-sm sm:order-2 sm:min-w-0 sm:flex-1 sm:truncate sm:line-clamp-none", titleClassName)}
+          aria-label={issue.title}
+        >
+          {parsedTitle.categories.map((category, index) => (
+            <span
+              key={`${category}-${index}`}
+              className="mr-1.5 inline-flex max-w-36 translate-y-[-1px] truncate rounded-full border border-[var(--company-accent-border)] bg-[var(--company-accent-subtle)] px-1.5 py-0.5 text-[10px] font-medium leading-none text-[var(--company-accent-strong)]"
+              aria-hidden="true"
+            >
+              {category}
+            </span>
+          ))}
+          <span aria-hidden={parsedTitle.categories.length > 0 ? "true" : undefined}>{parsedTitle.title}</span>{titleSuffix}
         </span>
         {checklistDependencyChips ? (
           <span className="flex flex-wrap gap-1 sm:order-3 sm:ml-[calc(theme(spacing.3)+theme(spacing.2))]">

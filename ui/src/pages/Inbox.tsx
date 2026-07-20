@@ -2281,7 +2281,7 @@ export function Inbox() {
         <>
           {showSeparatorBefore("work_items") && <Separator />}
           <div>
-            <div ref={listRef} className="overflow-hidden rounded-xl">
+            <div ref={listRef} className="paperclip-surface overflow-hidden">
               {(() => {
                 const renderInboxIssue = ({
                   issue,
@@ -2713,7 +2713,7 @@ export function Inbox() {
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Alerts
             </h3>
-            <div className="divide-y divide-border border border-border">
+            <div className="paperclip-surface divide-y divide-border overflow-hidden">
               {showAggregateAgentError && (
                 <div className="group/alert relative flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50">
                   <Link

@@ -97,7 +97,7 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
   return (
     <Link
       to={href}
-      className="group flex flex-col gap-3 border-b border-border px-3 py-3 transition-colors hover:bg-accent/50 last:border-b-0 sm:flex-row sm:items-center no-underline text-inherit"
+      className="group flex flex-col gap-3 border-b border-border/70 px-3 py-3 text-inherit no-underline transition-colors last:border-b-0 hover:bg-[var(--company-accent-subtle)] sm:flex-row sm:items-center"
     >
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">

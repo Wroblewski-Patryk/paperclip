@@ -30,11 +30,13 @@ export function CompanySituationPanel({ situation }: { situation: CompanySituati
   const projectedCompletion = situation.forecast.projectedCompletion;
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+    <section className="paperclip-surface overflow-hidden">
+      <div className="paperclip-surface-header flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <Compass className="h-4 w-4 text-primary" />
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--company-accent-soft)] text-[var(--company-accent-strong)]">
+              <Compass className="h-4 w-4" />
+            </span>
             Company orientation
           </div>
           <p className="mt-1 truncate text-sm text-muted-foreground">
@@ -47,7 +49,7 @@ export function CompanySituationPanel({ situation }: { situation: CompanySituati
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-px bg-border sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-px border-b border-border bg-border sm:grid-cols-4">
         {[
           ["Runnable work", situation.work.runnable],
           ["Blocked", situation.work.blocked],
@@ -69,7 +71,7 @@ export function CompanySituationPanel({ situation }: { situation: CompanySituati
           </div>
         ) : null}
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 className="paperclip-section-title">
             Attention
           </h3>
           <span className="text-xs text-muted-foreground">

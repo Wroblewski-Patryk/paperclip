@@ -5,13 +5,14 @@ import {
   MAX_COMPANY_ATTACHMENT_MAX_BYTES,
 } from "@paperclipai/shared";
 import { useCompany } from "../context/CompanyContext";
+import { Link } from "@/lib/router";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { companiesApi } from "../api/companies";
 import { assetsApi } from "../api/assets";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { queryKeys } from "../lib/queryKeys";
 import { Button } from "@/components/ui/button";
-import { Settings, CloudUpload, Download, Upload } from "lucide-react";
+import { Settings, CloudUpload, Download, Upload, CircleDot, LayoutDashboard, Network } from "lucide-react";
 import { CompanyPatternIcon } from "../components/CompanyPatternIcon";
 import {
   Field,
@@ -58,6 +59,9 @@ export function CompanySettings() {
     && attachmentMaxBytes >= BYTES_PER_MIB
     && attachmentMaxBytes <= MAX_COMPANY_ATTACHMENT_MAX_BYTES;
   const cloudSyncEnabled = experimentalSettings?.enableCloudSync === true;
+  const previewBrandColor = /^#[0-9a-fA-F]{6}$/.test(brandColor)
+    ? brandColor
+    : selectedCompany?.brandColor ?? "#6366f1";
 
   const generalDirty =
     !!selectedCompany &&
@@ -181,7 +185,7 @@ export function CompanySettings() {
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           General
         </div>
-        <div className="space-y-3 rounded-md border border-border px-4 py-4">
+        <div className="paperclip-surface space-y-3 px-4 py-4">
           <Field label="Company name" hint="The display name for your company.">
             <input
               className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
@@ -210,7 +214,7 @@ export function CompanySettings() {
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Appearance
         </div>
-        <div className="space-y-3 rounded-md border border-border px-4 py-4">
+        <div className="paperclip-surface space-y-4 px-4 py-4">
           <div className="flex items-start gap-4">
             <div className="shrink-0">
               <CompanyPatternIcon
@@ -323,6 +327,38 @@ export function CompanySettings() {
               </Field>
             </div>
           </div>
+          <div className="overflow-hidden rounded-lg border border-border bg-background" aria-label="Live company appearance preview">
+            <div className="flex items-center justify-between border-b border-border bg-muted/20 px-3 py-2">
+              <span className="text-xs font-medium">Live preview</span>
+              <span className="font-mono text-[11px] text-muted-foreground">{previewBrandColor}</span>
+            </div>
+            <div className="grid min-h-44 grid-cols-[9rem_1fr]">
+              <div className="border-r border-border bg-sidebar/60 p-2">
+                <div className="mb-3 flex items-center gap-2 px-2 py-1.5">
+                  <CompanyPatternIcon companyName={companyName || selectedCompany.name} logoUrl={logoUrl || null} brandColor={previewBrandColor} className="h-7 w-7 rounded-lg" />
+                  <span className="truncate text-xs font-medium">{companyName || selectedCompany.name}</span>
+                </div>
+                {[{ icon: LayoutDashboard, label: "Dashboard", active: true }, { icon: CircleDot, label: "Issues" }, { icon: Network, label: "Org" }].map(({ icon: Icon, label, active }) => (
+                  <div key={label} className="relative mb-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs" style={active ? { backgroundColor: `${previewBrandColor}18` } : undefined}>
+                    {active ? <span className="absolute inset-y-1 left-0 w-0.5 rounded-full" style={{ backgroundColor: previewBrandColor }} /> : null}
+                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    {label}
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-3 p-4">
+                <div>
+                  <div className="text-sm font-semibold">Company workspace</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Navigation, focus, actions and graphs inherit this accent.</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-md border p-2" style={{ borderColor: `${previewBrandColor}55`, backgroundColor: `${previewBrandColor}0d` }}><div className="text-[11px] text-muted-foreground">Active work</div><div className="mt-1 text-lg font-semibold">12</div></div>
+                  <div className="rounded-md border border-border p-2"><div className="text-[11px] text-muted-foreground">Agents</div><div className="mt-1 text-lg font-semibold">8</div></div>
+                </div>
+                <button type="button" className="rounded-md px-3 py-1.5 text-xs font-medium text-white" style={{ backgroundColor: previewBrandColor }}>Primary action</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -354,7 +390,7 @@ export function CompanySettings() {
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Hiring
         </div>
-        <div className="rounded-md border border-border px-4 py-3">
+        <div className="paperclip-surface px-4 py-3">
           <ToggleField
             label="Require board approval for new hires"
             hint="New agent hires stay pending until approved by board."
@@ -370,31 +406,31 @@ export function CompanySettings() {
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Company Packages
         </div>
-        <div className="rounded-md border border-border px-4 py-4">
+        <div className="paperclip-surface px-4 py-4">
           <p className="text-sm text-muted-foreground">
             Import and export have moved to dedicated pages accessible from the{" "}
-            <a href="/org" className="underline hover:text-foreground">Org Chart</a> header.
+            <Link to="/org" className="underline hover:text-foreground">Org Chart</Link> header.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {cloudSyncEnabled ? (
               <Button size="sm" asChild>
-                <a href="/company/settings/cloud-upstream">
+                <Link to="/company/settings/cloud-upstream">
                   <CloudUpload className="mr-1.5 h-3.5 w-3.5" />
                   Send to Paperclip Cloud
-                </a>
+                </Link>
               </Button>
             ) : null}
             <Button size="sm" variant="outline" asChild>
-              <a href="/company/export">
+              <Link to="/company/export">
                 <Download className="mr-1.5 h-3.5 w-3.5" />
                 Export
-              </a>
+              </Link>
             </Button>
             <Button size="sm" variant="outline" asChild>
-              <a href="/company/import">
+              <Link to="/company/import">
                 <Upload className="mr-1.5 h-3.5 w-3.5" />
                 Import
-              </a>
+              </Link>
             </Button>
           </div>
         </div>

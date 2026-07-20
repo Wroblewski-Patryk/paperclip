@@ -352,7 +352,7 @@ export function Artifacts() {
       {error && <p className="text-sm text-destructive">{error.message}</p>}
 
       {isLoading ? (
-        <PageSkeleton variant="list" />
+        <PageSkeleton variant="artifacts" />
       ) : items.length === 0 ? (
         <EmptyState icon={showGroupCards ? Layers : Package} message={emptyMessage} />
       ) : (

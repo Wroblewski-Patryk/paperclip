@@ -155,10 +155,15 @@ export interface InboxIssueGroupCreateDefaults {
   assigneeUserId?: string;
 }
 
+const defaultInboxIssueFilterState: IssueFilterState = {
+  ...defaultIssueFilterState,
+  hideRoutineExecutions: true,
+};
+
 const defaultInboxFilterPreferences: InboxFilterPreferences = {
   allCategoryFilter: "everything",
   allApprovalFilter: "all",
-  issueFilters: defaultIssueFilterState,
+  issueFilters: defaultInboxIssueFilterState,
 };
 
 function normalizeInboxCategoryFilter(value: unknown): InboxCategoryFilter {
@@ -192,7 +197,7 @@ export function loadInboxFilterPreferences(
   if (!storageKey) {
     return {
       ...defaultInboxFilterPreferences,
-      issueFilters: { ...defaultIssueFilterState },
+      issueFilters: { ...defaultInboxIssueFilterState },
     };
   }
 
@@ -201,7 +206,7 @@ export function loadInboxFilterPreferences(
     if (!raw) {
       return {
         ...defaultInboxFilterPreferences,
-        issueFilters: { ...defaultIssueFilterState },
+        issueFilters: { ...defaultInboxIssueFilterState },
       };
     }
     const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -213,7 +218,7 @@ export function loadInboxFilterPreferences(
   } catch {
     return {
       ...defaultInboxFilterPreferences,
-      issueFilters: { ...defaultIssueFilterState },
+      issueFilters: { ...defaultInboxIssueFilterState },
     };
   }
 }

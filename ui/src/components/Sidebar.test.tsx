@@ -124,6 +124,7 @@ describe("Sidebar", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
+    localStorage.clear();
     mockHeartbeatsApi.liveRunsForCompany.mockResolvedValue([]);
   });
 
@@ -154,7 +155,8 @@ describe("Sidebar", () => {
     const workSection = [...container.querySelectorAll("nav [data-plugin-launcher-zone]")]
       .find((node) => node.getAttribute("data-plugin-launcher-zone") === "sidebar");
     expect(workSection?.textContent).toContain("Plugin launcher outlet");
-    const workSectionContainer = workSection?.parentElement?.parentElement;
+    const workSectionContainer = [...container.querySelectorAll("nav > div")]
+      .find((node) => node.textContent?.includes("Work") && node.textContent?.includes("Plugin launcher outlet"));
     expect(workSectionContainer?.textContent).toContain("Work");
     expect(workSectionContainer?.textContent).toContain("Issues");
     expect(workSectionContainer?.textContent).toContain("Goals");
@@ -219,6 +221,47 @@ describe("Sidebar", () => {
     expect(links.get("Softwarehouse")).toBe("/softwarehouse");
     expect(links.get("Artifacts")).toBe("/artifacts");
     expect(links.get("Teams")).toBe("/teams");
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("separates daily work, organizational knowledge, and operations", async () => {
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: false });
+    const root = await renderSidebar();
+
+    const sections = [...container.querySelectorAll("nav > div")].map((node) => node.textContent ?? "");
+    const work = sections.find((text) => text.includes("Work") && text.includes("Issues"));
+    const organization = sections.find((text) => text.includes("Organization"));
+    const operations = sections.find((text) => text.includes("Operations"));
+
+    expect(work).toContain("Artifacts");
+    expect(work).not.toContain("Memory");
+    expect(work).not.toContain("Softwarehouse");
+    expect(organization).toContain("Org");
+    expect(organization).toContain("Memory");
+    expect(organization).toContain("Evidence & learning");
+    expect(operations).toContain("Softwarehouse");
+    expect(operations).toContain("Costs");
+    expect(container.textContent).toContain("Company settings");
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("remembers collapsed primary navigation sections", async () => {
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: false });
+    const root = await renderSidebar();
+    const workToggle = container.querySelector('button[aria-label="Collapse Work"]') as HTMLButtonElement;
+
+    await act(async () => {
+      workToggle.click();
+    });
+
+    expect(JSON.parse(localStorage.getItem("paperclip.sidebar.primary-sections.v1") ?? "{}"))
+      .toMatchObject({ work: false, organization: true, operations: true });
 
     await act(async () => {
       root.unmount();
