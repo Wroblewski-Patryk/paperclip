@@ -3320,6 +3320,17 @@ test("Codex auth repair verifies each error agent before clearing its status", a
   assert.match(source, /skippedAgentsWithUnhealthyEnvironment/);
   assert.match(source, /liveRunAgentIds\.has\(agent\.id\)/);
 });
+
+test("Codex auth repair exposes help and dry-run guards before mutation", async () => {
+  const source = await readFile("scripts/repair-softwarehouse-codex-auth.mjs", "utf8");
+
+  assert.match(source, /helpRequested/);
+  assert.match(source, /process\.exit\(0\)/);
+  assert.match(source, /const dryRun = args\.has\("--dry-run"\)/);
+  assert.match(source, /plannedNormalizedAgents/);
+  assert.match(source, /plannedRepairedAgents/);
+  assert.match(source, /plannedStatus: "done"/);
+});
 test("softwarehouse learning loop writes bounded deduplicated learning observations", async () => {
   const source = await readFile("scripts/run-softwarehouse-learning-loop.mjs", "utf8");
   const instructions = await readFile("softwarehouse/instructions/shared/72-organizational-memory-and-learning.md", "utf8");

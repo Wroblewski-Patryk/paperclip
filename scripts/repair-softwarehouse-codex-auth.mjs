@@ -5,11 +5,31 @@ const blockerTitle = "[Softwarehouse][Blocker] Configure OpenAI runtime auth for
 const targetModel = process.env.SOFTWAREHOUSE_CODEX_MODEL ?? "gpt-5.5";
 const targetCheapModel = process.env.SOFTWAREHOUSE_CODEX_CHEAP_MODEL ?? "gpt-5.4";
 const unsupportedChatGptModels = new Set(["gpt-5", "gpt-5-mini", "gpt-5.3-codex"]);
+const args = new Set(process.argv.slice(2));
+const helpRequested = args.has("--help") || args.has("-h");
+const dryRun = args.has("--dry-run");
+
+if (helpRequested) {
+  console.log(`Usage: node scripts/repair-softwarehouse-codex-auth.mjs [--dry-run]
+
+Repairs safe LuckySparrow codex_local drift:
+- normalizes unsupported/Spark primary models to SOFTWAREHOUSE_CODEX_MODEL
+- normalizes cheap profile models to SOFTWAREHOUSE_CODEX_CHEAP_MODEL
+- probes Codex auth before clearing stale non-running error agents
+- closes the Codex auth blocker only after the probe passes
+
+Options:
+  --dry-run  Probe and report intended changes without patching agents or issues.
+  -h, --help Show this help without touching the Paperclip API.`);
+  process.exit(0);
+}
 
 async function request(method, route, body) {
+  const headers = { "content-type": "application/json" };
+  if (process.env.PAPERCLIP_RUN_ID && method !== "GET") headers["x-paperclip-run-id"] = process.env.PAPERCLIP_RUN_ID;
   const response = await fetch(`${apiBase}${route}`, {
     method,
-    headers: { "content-type": "application/json" },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
@@ -83,6 +103,7 @@ const [agents, issues, liveRuns] = await Promise.all([
 ]);
 
 const normalizedAgents = [];
+const plannedNormalizedAgents = [];
 for (const agent of agents.filter((entry) => entry.adapterType === "codex_local" && entry.status !== "terminated")) {
   const { adapterConfig, runtimeConfig } = normalizeAgentModelConfig(agent);
   if (
@@ -91,10 +112,17 @@ for (const agent of agents.filter((entry) => entry.adapterType === "codex_local"
     || runtimeConfig.modelProfiles?.cheap?.label !== agent.runtimeConfig?.modelProfiles?.cheap?.label
     || runtimeConfig.modelProfiles?.cheap?.adapterConfig?.model !== agent.runtimeConfig?.modelProfiles?.cheap?.adapterConfig?.model
   ) {
-    const updated = await request("PATCH", `/api/agents/${agent.id}?companyId=${company.id}`, {
-      adapterConfig,
-      runtimeConfig,
-    });
+    if (dryRun) {
+      plannedNormalizedAgents.push({
+        name: agent.name,
+        fromModel: agent.adapterConfig?.model ?? null,
+        toModel: adapterConfig.model,
+        fromCheapModel: agent.runtimeConfig?.modelProfiles?.cheap?.adapterConfig?.model ?? null,
+        toCheapModel: runtimeConfig.modelProfiles?.cheap?.adapterConfig?.model ?? null,
+      });
+      continue;
+    }
+    const updated = await request("PATCH", `/api/agents/${agent.id}?companyId=${company.id}`, { adapterConfig, runtimeConfig });
     normalizedAgents.push({
       name: updated.name,
       model: updated.adapterConfig?.model,
@@ -121,6 +149,7 @@ if (smoke.status === "fail" || failingCheck) {
 
 const liveRunAgentIds = new Set(liveRuns.map((run) => run.agentId).filter(Boolean));
 const repairedAgents = [];
+const plannedRepairedAgents = [];
 const skippedAgentsWithLiveRuns = [];
 const skippedAgentsWithUnhealthyEnvironment = [];
 for (const agent of refreshedAgents.filter((entry) => entry.status === "error" && entry.status !== "terminated")) {
@@ -146,35 +175,49 @@ for (const agent of refreshedAgents.filter((entry) => entry.status === "error" &
     });
     continue;
   }
-  await request("PATCH", `/api/agents/${agent.id}?companyId=${company.id}`, { status: "idle" });
-  repairedAgents.push(agent.name);
+  if (dryRun) {
+    plannedRepairedAgents.push(agent.name);
+  } else {
+    await request("PATCH", `/api/agents/${agent.id}?companyId=${company.id}`, { status: "idle" });
+    repairedAgents.push(agent.name);
+  }
 }
 
 const blocker = issues.find((issue) => issue.title === blockerTitle);
 let blockerResult = null;
 if (blocker) {
-  blockerResult = await request("PATCH", `/api/issues/${blocker.id}`, {
-    status: "done",
-    description: [
-      blocker.description ?? "",
-      "",
-      "Repair proof:",
-      `- ${new Date().toISOString()}: Codex adapter smoke test passed for ${codexAgent.name}.`,
-      repairedAgents.length > 0
-        ? `- Stale agent error statuses were cleared for agents with no live run: ${repairedAgents.join(", ")}.`
-        : "- No stale agent error statuses needed clearing.",
-      skippedAgentsWithLiveRuns.length > 0
-        ? `- Stale agent error status repair was skipped for agents with live runs: ${skippedAgentsWithLiveRuns.join(", ")}.`
-        : "- No stale error agents were skipped for live-run safety.",
-      skippedAgentsWithUnhealthyEnvironment.length > 0
-        ? `- Stale agent error status repair remained fail-closed for unhealthy environments: ${skippedAgentsWithUnhealthyEnvironment.map((entry) => `${entry.name} (${entry.code})`).join(", ")}.`
-        : "- Every non-running error agent considered for repair passed its own environment probe.",
-    ].join("\n"),
-  });
+  if (dryRun) {
+    blockerResult = {
+      identifier: blocker.identifier,
+      title: blocker.title,
+      status: blocker.status,
+      plannedStatus: "done",
+    };
+  } else {
+    blockerResult = await request("PATCH", `/api/issues/${blocker.id}`, {
+      status: "done",
+      description: [
+        blocker.description ?? "",
+        "",
+        "Repair proof:",
+        `- ${new Date().toISOString()}: Codex adapter smoke test passed for ${codexAgent.name}.`,
+        repairedAgents.length > 0
+          ? `- Stale agent error statuses were cleared for agents with no live run: ${repairedAgents.join(", ")}.`
+          : "- No stale agent error statuses needed clearing.",
+        skippedAgentsWithLiveRuns.length > 0
+          ? `- Stale agent error status repair was skipped for agents with live runs: ${skippedAgentsWithLiveRuns.join(", ")}.`
+          : "- No stale error agents were skipped for live-run safety.",
+        skippedAgentsWithUnhealthyEnvironment.length > 0
+          ? `- Stale agent error status repair remained fail-closed for unhealthy environments: ${skippedAgentsWithUnhealthyEnvironment.map((entry) => `${entry.name} (${entry.code})`).join(", ")}.`
+          : "- Every non-running error agent considered for repair passed its own environment probe.",
+      ].join("\n"),
+    });
+  }
 }
 
 console.log(JSON.stringify({
   apiBase,
+  dryRun,
   smoke: {
     agent: codexAgent.name,
     model: codexAgent.adapterConfig?.model ?? null,
@@ -185,7 +228,9 @@ console.log(JSON.stringify({
       message: check.message,
     })) ?? [],
   },
+  plannedNormalizedAgents,
   normalizedAgents,
+  plannedRepairedAgents,
   repairedAgents,
   skippedAgentsWithLiveRuns,
   skippedAgentsWithUnhealthyEnvironment,
@@ -194,5 +239,6 @@ console.log(JSON.stringify({
     identifier: blockerResult.identifier,
     title: blockerResult.title,
     status: blockerResult.status,
+    plannedStatus: blockerResult.plannedStatus ?? null,
   } : null,
 }, null, 2));
