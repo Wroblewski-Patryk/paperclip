@@ -1,6 +1,6 @@
 # Current Focus
 
-Last updated: 2026-07-04
+Last updated: 2026-07-20
 
 ## Paperclip Softwarehouse Direction
 
@@ -16,6 +16,22 @@ release/deploy coordination, monitoring, and learning. They must still stop or
 escalate for raw secret exposure, destructive infrastructure actions, paid or
 unavailable resources, legal/customer/finance commitments, and LIVE
 trading/order proof.
+
+## July 2026 Truth Anchor
+
+Verified snapshot source: `docs/status/2026-07-20-paperclip-v0-holistic-audit.md`.
+
+- Local Paperclip runtime is healthy at `http://127.0.0.1:3200`.
+- Roost public runtime passes; Soar still fails readiness because production
+  Redis is `restarting:unhealthy` and `https://api.soar.luckysparrow.ch/ready`
+  returns `503`.
+- `LUC-25` remains the hard V0 delivery parent for Soar and Roost.
+- `LUC-1524` remains the pending typed confirmation for the classified Redis
+  recovery path.
+- `LUC-972` remains the protected owner/security leaf for credential rotation
+  and invalidation.
+- Current source-control snapshot: Paperclip has 50 intentional paths, Soar has
+  48 evidence/product-truth paths, and Roost is clean.
 
 ## Active Stage 1 Mission
 

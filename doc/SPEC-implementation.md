@@ -483,7 +483,7 @@ V1 non-terminal liveness rule:
 - when Paperclip cannot safely infer the next action, it surfaces the problem through visible blocked/recovery work instead of silently completing or reassigning work
 - explicit recovery actions are the liveness primitive; source-scoped actions are the default form, issue-backed recovery is a fallback for independent repair work or safety boundaries, and comments alone are evidence rather than a healthy liveness path
 
-Detailed ownership, execution, blocker, active-run watchdog, crash-recovery, and non-terminal liveness semantics are documented in `doc/execution-semantics.md`.
+Detailed ownership, execution, blocker, active-run watchdog, crash-recovery, conveyor parent-liveness, and non-terminal liveness semantics are documented in `doc/execution-semantics.md`.
 
 ## 8.3 Approval Status
 

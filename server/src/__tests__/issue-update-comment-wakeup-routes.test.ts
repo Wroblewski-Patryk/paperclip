@@ -10,6 +10,7 @@ const mockIssueService = vi.hoisted(() => ({
   update: vi.fn(),
   addComment: vi.fn(),
   findMentionedAgents: vi.fn(),
+  listCommentIds: vi.fn(),
   listComments: vi.fn(),
   getRelationSummaries: vi.fn(),
   listAttachments: vi.fn(),
@@ -180,6 +181,14 @@ async function createApp(
   actorType: "board" | "agent" = "board",
   actorRunId: string | null = "22222222-2222-4222-8222-222222222222",
 ) {
+  const mockQuery = {
+    from: vi.fn(() => mockQuery),
+    where: vi.fn(() => mockQuery),
+    orderBy: vi.fn(async () => []),
+  };
+  const mockDb = {
+    select: vi.fn(() => mockQuery),
+  };
   const [{ errorHandler }, { issueRoutes }] = await Promise.all([
     vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
     vi.importActual<typeof import("../routes/issues.js")>("../routes/issues.js"),
@@ -204,7 +213,7 @@ async function createApp(
         };
     next();
   });
-  app.use("/api", issueRoutes({} as any, {} as any));
+  app.use("/api", issueRoutes(mockDb as any, {} as any));
   app.use(errorHandler);
   return app;
 }
@@ -241,6 +250,7 @@ describe("issue update comment wakeups", () => {
     mockIssueService.findMentionedAgents.mockResolvedValue([]);
     mockIssueService.getRelationSummaries.mockResolvedValue({ blockedBy: [], blocks: [] });
     mockIssueService.assertCheckoutOwner.mockResolvedValue({ adoptedFromRunId: null });
+    mockIssueService.listCommentIds.mockResolvedValue([]);
     mockIssueService.listComments.mockResolvedValue([]);
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
     mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(null);
@@ -456,6 +466,45 @@ describe("issue update comment wakeups", () => {
       });
 
     expect(res.status).toBe(200);
+    expect(mockIssueService.update).toHaveBeenCalledWith(
+      existing.id,
+      expect.objectContaining({ status: "done" }),
+    );
+  });
+
+  it("accepts comment evidence refs found through listCommentIds beyond the comment page fallback", async () => {
+    const existing = makeIssue({ status: "in_progress" });
+    const updated = makeIssue({ status: "done" });
+    const preservedCommentId = "55555555-5555-4555-8555-555555555555";
+    mockIssueService.getById.mockResolvedValue(existing);
+    mockIssueService.update.mockResolvedValue(updated);
+    mockIssueService.listCommentIds.mockResolvedValue([preservedCommentId]);
+    mockIssueService.listComments.mockResolvedValue([]);
+
+    const res = await request(await createApp())
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        status: "done",
+        completionEvidence: {
+          summary: "Historical issue-thread evidence still exists on the issue.",
+          riskLevel: "standard",
+          testEvidence: {
+            summary: "Earlier closeout comment captured the verification.",
+            refs: [{ kind: "comment", id: preservedCommentId }],
+          },
+          reviewEvidence: {
+            summary: "Earlier closeout comment captured the review notes.",
+            refs: [{ kind: "comment", id: preservedCommentId }],
+          },
+          documentationEvidence: {
+            summary: "Earlier closeout comment recorded the no-doc-change justification.",
+            refs: [{ kind: "comment", id: preservedCommentId }],
+          },
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(mockIssueService.listCommentIds).toHaveBeenCalledWith(existing.id);
     expect(mockIssueService.update).toHaveBeenCalledWith(
       existing.id,
       expect.objectContaining({ status: "done" }),

@@ -5670,6 +5670,15 @@ export function issueService(db: Db) {
       return enrichedComments.map((comment) => redactIssueComment(comment, censorUsernameInLogs));
     },
 
+    listCommentIds: async (issueId: string) =>
+      db
+        .select({
+          id: issueComments.id,
+        })
+        .from(issueComments)
+        .where(eq(issueComments.issueId, issueId))
+        .then((rows) => rows.map((row) => row.id)),
+
     getCommentCursor: async (issueId: string) => {
       const [latest, countRow] = await Promise.all([
         db

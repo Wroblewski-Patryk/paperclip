@@ -876,6 +876,52 @@ describe("issue execution policy transitions", () => {
       });
     });
 
+    it("reasserts the active stage and refreshes review instructions when a stale repair update lands", () => {
+      const freshReviewRequest = {
+        instructions: "Review the restored child handoff before any final disposition.",
+      };
+      const result = applyIssueExecutionPolicyTransition({
+        issue: {
+          status: "in_progress",
+          assigneeAgentId: coderAgentId,
+          assigneeUserId: null,
+          executionPolicy: policy,
+          executionState: {
+            status: "pending",
+            currentStageId: reviewStageId,
+            currentStageIndex: 0,
+            currentStageType: "review",
+            currentParticipant: { type: "agent", agentId: qaAgentId },
+            returnAssignee: { type: "agent", agentId: coderAgentId },
+            reviewRequest: { instructions: "Stale review instructions." },
+            completedStageIds: [],
+            lastDecisionId: null,
+            lastDecisionOutcome: null,
+          },
+        },
+        policy,
+        requestedStatus: "done",
+        requestedAssigneePatch: {},
+        actor: { agentId: coderAgentId },
+        reviewRequest: freshReviewRequest,
+        commentBody: "Repairing the issue after the child handoff completed.",
+      });
+
+      expect(result.patch).toMatchObject({
+        status: "in_review",
+        assigneeAgentId: qaAgentId,
+        assigneeUserId: null,
+        executionState: {
+          status: "pending",
+          currentStageId: reviewStageId,
+          currentStageType: "review",
+          currentParticipant: { type: "agent", agentId: qaAgentId },
+          reviewRequest: freshReviewRequest,
+        },
+      });
+      expect(result.workflowControlledAssignment).toBe(true);
+    });
+
     it("no policy and no state is a no-op", () => {
       const result = applyIssueExecutionPolicyTransition({
         issue: {

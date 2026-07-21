@@ -1,5 +1,83 @@
 # Responsibility Learning
 
+## 2026-07-21 - Protected readback must stay in the authorized lane
+
+Observed failure mode: SPA was the right role to notice the protected readback
+gap, but its local runtime lacked the managed-reference binding needed to read
+back the protected Soar evidence directly.
+
+Standing rule:
+
+- If SPA lacks the runtime or managed-reference binding for a protected readback,
+  stop at the boundary and route the request to the authorized DRE lane.
+- Treat the handoff as the durable action; do not retry the protected readback
+  from an unbound SPA context.
+- Preserve the issue chain and evidence anchor rather than manufacturing a
+  fallback credential path.
+
+Current evidence: `LUC-1569` now serves as the readback anchor for the
+`LUC-1568 -> LUC-1556 -> LUC-1559 -> LUC-1547` chain, and no credential value
+or production mutation was performed by Codex.
+
+## 2026-07-21 - Learning loops should confirm coverage, not duplicate it
+
+Observed failure mode: an organizational learning run can still encounter
+repeated blocker families that are already covered by existing learning issues
+or by an existing duplicate-suppression rule. If the loop treats those hits as
+fresh process gaps, it creates noise instead of preserving a useful evidence
+signal.
+
+Standing rule:
+
+- Keep the learning loop evidence-producing, not issue-cloning.
+- When apply mode finds an already-covered pattern, record a no-op on the
+  existing learning issue or suppress the duplicate and move on.
+- Do not turn bounded learning backfills into new capability-gap issues unless
+  the pattern is genuinely uncovered and the smallest process improvement is
+  still missing.
+- Record the retirement or merge-back condition so the lesson can stop firing
+  once coverage is stable.
+
+Current evidence: `LUC-1567` completed successfully on 2026-07-21, processed
+the bounded recent-learning backfill, suppressed the duplicate `LUC-1492`
+pattern via `LUC-1532`, and kept the existing `LUC-972` and worker-fanout
+learning coverage as no-ops.
+
+## 2026-07-21 - Terminal product parents can hide a dead delivery loop
+
+Observed failure mode: product execution parents were marked `done` after
+historical proof packets even though their explicit contracts required an
+owner-usable application and their latest comments still named unresolved
+gates. The parents also retained the control-plane project workspace instead of
+the product workspace. The hard delivery parent therefore remained blocked,
+while routine selectors had no persistent product owner that was obligated to
+integrate child results and commission the next problem.
+
+Standing rule:
+
+- Every unfinished active application has one persistent PM-owned completion
+  parent in its canonical product project/workspace.
+- The parent remains non-terminal until product acceptance is genuinely green;
+  a plan, report, generated index, local commit, clean repo, isolated proof, or
+  temporary runtime recovery cannot close it.
+- Child completion wakes the PM. The PM integrates current truth and either
+  routes the next smallest legal problem to the correct specialist unit or
+  attaches complete owner-usable acceptance evidence.
+- At every point an unfinished product exposes a live productive run, a
+  runnable correctly owned `todo`, or a resolvable first-class blocker with a
+  named owner and continuation mechanism. `backlog` alone is not liveness.
+- Cross-unit ownership failures are routed through the accountable manager or
+  a board-safe reassignment path; they must not remain indefinitely blocked on
+  `403 Agent cannot mutate another agent's issue`.
+- Eval the whole organizational handoff, not only individual scripts: require
+  at least two automatic unit-to-unit transitions and fail on early parent
+  closure, wrong-project workspace, backlog-only capacity, or a second writer
+  against a dirty product repository.
+
+Current evidence: `LUC-27` and `LUC-28` were restored to their Soar/Roost
+projects, `LUC-25` now blocks on them, and `LUC-1554` owns implementation and
+regression proof for the durable conveyor.
+
 ## 2026-07-15 - Windows script paths are not executable commands
 
 Observed failure mode: an agent invoked a tracked `.mjs` helper by path and

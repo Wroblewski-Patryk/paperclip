@@ -2195,7 +2195,11 @@ export function issueRoutes(
 
   async function loadIssueCompletionEvidenceInventory(issueId: string): Promise<IssueCompletionEvidenceInventory> {
     const [comments, documents, attachments, workProducts] = await Promise.all([
-      typeof svc.listComments === "function" ? svc.listComments(issueId, { limit: 500 }) : [],
+      typeof svc.listCommentIds === "function"
+        ? svc.listCommentIds(issueId)
+        : typeof svc.listComments === "function"
+          ? (await svc.listComments(issueId, { limit: 500 })).map((comment) => comment.id)
+          : [],
       typeof documentsSvc.listIssueDocuments === "function"
         ? documentsSvc.listIssueDocuments(issueId, { includeSystem: false })
         : [],
@@ -2204,7 +2208,7 @@ export function issueRoutes(
     ]);
 
     return {
-      commentIds: new Set((comments ?? []).map((item) => item.id)),
+      commentIds: new Set((comments ?? []).filter((id): id is string => typeof id === "string" && id.length > 0)),
       documentIds: new Set((documents ?? []).map((item) => item.id)),
       attachmentIds: new Set((attachments ?? []).map((item) => item.id)),
       workProductIds: new Set((workProducts ?? []).map((item) => item.id)),

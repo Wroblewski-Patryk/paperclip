@@ -358,6 +358,103 @@ A blocker chain is covered only when its unresolved leaf is live or explicitly w
 
 A `blocked` issue is stalled when the unresolved blocker leaf has no active run, queued wake, typed participant, pending interaction or approval, user owner, external owner/action, or recovery action. In that case the parent should show the first stalled leaf instead of presenting the dependency as calmly covered.
 
+## 8.1 Product-Parent Conveyor Contract
+
+This section defines the implementable parent-liveness and cross-unit transition contract for the product-to-completion conveyor used by the softwarehouse delivery lanes.
+
+The parent issue is the persistent product anchor. It is not a passive container for child issues, and it is not considered healthy just because one child exists. The parent remains live only when it has one of these explicit next-move paths:
+
+- an active child lane that is currently executing the next gap
+- a queued wake or continuation for the same owner
+- an explicit recovery action that names the owner and the next action
+- a clear waiting path such as a blocker, approval, or monitor that the parent can name directly
+
+The conveyor is serial within a project boundary. A parent may fan out into several child issues over its lifetime, but the current project should only have one active gap-selection lane at a time unless a separate recovery or review lane is intentionally opened.
+
+### Conveyor stages
+
+The conveyor is a sequence of durable issue units. The exact labels can vary by project, but the legal transition shape is:
+
+1. product problem framing
+2. owner selection and scope definition
+3. architecture or repair planning
+4. implementation or repo-side change
+5. source-control closure
+6. protected QA or review gate
+7. evidence fan-in
+8. next-gap selection or terminal acceptance
+
+Each stage must have its own explicit live path and its own terminal proof. A stage is not complete because a comment says it is complete. It is complete when the stage has the artifact, run, approval, or issue disposition that the next stage can safely consume.
+
+### Cross-unit transition rules
+
+- `parentId` is structural only; it explains why a child exists.
+- `blockedByIssueIds` is the dependency contract; use it when the parent or sibling cannot continue until another issue changes state.
+- The next legal transition must be driven by the first unresolved gap in the current project lane, not by the most recent comment or the newest child issue.
+- Cross-unit handoff requires durable evidence from the finished unit and a durable owner or blocker for the next unit.
+- When a unit fails, the conveyor should return to the smallest repairable unit in the same project lane instead of spawning a new parent and losing the original chain of custody.
+
+### Minimum stage contract
+
+| Stage | Required live path | Minimum terminal proof | Reusable implementation surface |
+|---|---|---|---|
+| Product problem framing | active parent issue, queued wake, or explicit recovery action | written gap statement and owner selection | issue comments, recovery actions |
+| Architecture or repair planning | assigned issue plus live planning path | accepted design note or plan artifact | `doc/execution-semantics.md`, `doc/SPEC-implementation.md` |
+| Implementation or repo-side change | active run or queued continuation | tests, code/docs change, and a closeout note | `server/src/services/issue-execution-policy.ts`, `server/src/services/workspace-runtime.ts` |
+| Source-control closure | explicit checkout/release or recovery path | clean repo evidence or commit/push/merge proof | `server/src/services/recovery/service.ts`, `server/src/services/execution-workspaces.ts` |
+| Protected QA or review gate | monitor, typed participant, or approval | gate result and review disposition | `server/src/services/issue-execution-policy.ts`, issue monitor fields |
+| Evidence fan-in | queued wake or explicit recovery action | artifact bundle linked to the source issue | attachments, work products, issue comments |
+| Next-gap selection | explicit parent wake or recovery path | next child issue or terminal accept state | recovery service liveness reconciliation |
+
+### Existing failure signals
+
+The current live failures already demonstrate the contract boundary:
+
+- `LUC-27` shows that a successful run can still leave a parent blocked when the missing disposition is not converted into an explicit next action.
+- `LUC-28` shows that the parent cannot be treated as healthy when the first unresolved leaf is still blocked behind a repair chain.
+- `LUC-1546` shows that a repo-side truth refresh and the issue-side disposition writeback are separate completion planes; if the writeback path is unavailable, the issue still needs a visible recovery or blocked disposition.
+
+### Reusable implementation surfaces
+
+The conveyor should reuse the existing liveness and runtime primitives instead of introducing a new controller first:
+
+- `server/src/services/recovery/service.ts`
+  - `reconcileIssueGraphLiveness`
+  - `reconcileStrandedAssignedIssue`
+  - `ensureSourceScopedStrandedRecoveryAction`
+  - `enqueueSourceScopedStrandedRecoveryWake`
+  - `reconcileStartup`
+  - `releaseRuntimeServicesForRun`
+- `server/src/services/issue-execution-policy.ts`
+  - `applyIssueExecutionPolicyTransition`
+  - `buildInitialIssueMonitorFields`
+  - `buildIssueMonitorTriggeredPatch`
+  - `buildIssueMonitorClearedPatch`
+  - `normalizeIssueExecutionPolicy`
+  - `parseIssueExecutionState`
+- `server/src/services/execution-workspaces.ts`
+  - `inspectGitCloseReadiness`
+  - workspace close-readiness and command orchestration
+- `server/src/services/execution-workspace-reuse.ts`
+  - `canReuseSharedExecutionWorkspace`
+- `server/src/services/workspace-runtime.ts`
+  - `ensureRuntimeServicesForRun`
+  - `startRuntimeServicesForWorkspaceControl`
+  - `releaseRuntimeServicesForRun`
+  - `stopRuntimeServicesForExecutionWorkspace`
+  - `reconcilePersistedRuntimeServicesOnStartup`
+
+### Smallest implementation change
+
+The smallest code change that would implement this contract is not a new controller tree. It is a thin transition policy layer that:
+
+1. chooses the next unresolved gap in the current project lane,
+2. records the evidence or blocker that closes the current stage,
+3. creates or reuses the next child lane in the same project,
+4. delegates wake/recovery/monitor work to the existing services above.
+
+Anything broader would duplicate logic that already exists in the recovery, execution-policy, and workspace-runtime services.
+
 ## 9. Crash and Restart Recovery
 
 Paperclip now treats crash/restart recovery as a stranded-assigned-work problem, not just a stranded-run problem.

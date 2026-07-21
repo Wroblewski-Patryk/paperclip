@@ -1,6 +1,28 @@
 # Paperclip Softwarehouse Project Memory
 
-Last updated: 2026-07-20
+Last updated: 2026-07-21
+
+## 2026-07-21 Current Operating Note
+
+- SPA learned the protected-readback boundary for the Soar recovery chain:
+  when the role lacks the managed-reference/runtime binding, it must route the
+  protected readback to the authorized DRE lane instead of retrying locally.
+- `LUC-1569` remains the readback anchor for the `LUC-1568 -> LUC-1556 ->
+  LUC-1559 -> LUC-1547` chain.
+- No credential value or production mutation was performed by Codex.
+
+## 2026-07-21 Current Operating Note
+
+- The organizational learning loop apply run on `LUC-1567` completed
+  successfully and did not create a new capability-gap issue.
+- The run processed the bounded recent-learning backfill, confirmed duplicate
+  suppression for the `LUC-1492` pattern against `LUC-1532`, and preserved the
+  existing `LUC-972` and worker-fanout learning coverage as no-ops.
+- The current truth remains that the learning loop should keep producing
+  evidence and suppressing already-covered patterns instead of cloning them
+  into new noise.
+- No change to user intent, active mission, or parked-app policy was justified
+  by this heartbeat.
 
 ## 2026-07-20 Current Operating Note
 

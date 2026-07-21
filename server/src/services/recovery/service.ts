@@ -1976,6 +1976,13 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       if (isAgentInvokable(candidate) && !budgetBlock) return candidate.id;
     }
 
+    if (issue.assigneeAgentId) {
+      const assignee = await getAgent(issue.assigneeAgentId);
+      if (assignee && assignee.companyId === issue.companyId && isAgentInvokable(assignee)) {
+        return assignee.id;
+      }
+    }
+
     return null;
   }
 
@@ -2069,9 +2076,9 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     const prefix = await getCompanyIssuePrefix(input.issue.companyId);
     const sourceAssignee = input.issue.assigneeAgentId ? await getAgent(input.issue.assigneeAgentId) : null;
     const recoveryCause = input.recoveryCause ?? "stranded_assigned_issue";
-    let recovery: Awaited<ReturnType<typeof issuesSvc.create>>;
+    let recovery: Awaited<ReturnType<typeof issuesSvc.createChild>>["issue"];
     try {
-      recovery = await issuesSvc.create(input.issue.companyId, {
+      recovery = (await issuesSvc.createChild(input.issue.id, {
         title: recoveryCause === SUCCESSFUL_RUN_MISSING_STATE_REASON
           ? `Recover missing next step ${input.issue.identifier ?? input.issue.title}`
           : `Recover stalled issue ${input.issue.identifier ?? input.issue.title}`,
@@ -2086,7 +2093,6 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         }),
         status: "todo",
         priority: input.issue.priority,
-        parentId: input.issue.id,
         projectId: input.issue.projectId,
         goalId: input.issue.goalId,
         assigneeAgentId: ownerAgentId,
@@ -2103,7 +2109,8 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         ].join(":"),
         billingCode: input.issue.billingCode,
         inheritExecutionWorkspaceFromIssueId: input.issue.id,
-      });
+        blockParentUntilDone: true,
+      })).issue;
     } catch (error) {
       if (!isUniqueStrandedIssueRecoveryConflict(error)) throw error;
       const raced = await findOpenStrandedIssueRecoveryIssue(input.issue.companyId, input.issue.id);
@@ -2608,6 +2615,16 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
           });
         }
       }
+    }
+
+    if (recoveryCause === SUCCESSFUL_RUN_MISSING_STATE_REASON) {
+      await ensureStrandedIssueRecoveryIssue({
+        issue: input.issue,
+        previousStatus: input.previousStatus,
+        latestRun: input.latestRun,
+        recoveryCause,
+        successfulRunHandoffEvidence: input.successfulRunHandoffEvidence,
+      });
     }
 
     await logActivity(db, {

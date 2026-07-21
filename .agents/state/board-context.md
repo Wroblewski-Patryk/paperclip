@@ -13,6 +13,22 @@ is V0: Paperclip remains the local Windows control plane while autonomously
 creating, developing, deploying, and verifying Soar and Roost on VPS. Moving
 Paperclip itself to VPS belongs to V1 built on this foundation.
 
+The owner wants completion capability proved in sequence rather than portfolio
+expansion by issue volume. Soar is the first completion priority because its
+remaining functional scope is expected to be small. After Soar is genuinely
+owner-usable, the same operating model should finish Roost and then the owner's
+other already-started applications according to their existing visions. Only
+after the Softwarehouse repeatedly proves that it can finish those applications
+should it be trusted to create a new application from zero.
+
+The expected operating behavior is self-propelling: a product problem is owned
+by its PM, classified, delegated to the appropriate specialist unit, passed
+through any required implementation, test, review, security, deployment,
+monitoring, and documentation units, then integrated by the PM. An unfinished
+product must retain a live run, runnable owned task, or resolvable first-class
+blocker. Recurring manual Codex/board nudges are evidence that the operating
+model is incomplete, not a normal way to run the company.
+
 ## Current Stage
 
 V0 local-control-plane and hosted-product delivery is active.

@@ -74,7 +74,7 @@
       "icon": "gem",
       "modelLane": "generalReasoning",
       "reportsTo": "ai-assistant",
-      "capabilities": "Owns product shape, acceptance quality, UX direction, and product handoff standards for applications maintained or built by the softwarehouse.",
+      "capabilities": "Owns product shape, acceptance quality, UX direction, product handoff standards, and the pre-build acceptance gate for applications maintained or built by the softwarehouse. Receives app candidates from 11 Innovations and turns board dreams plus project architecture notes into product briefs, workflow maps, acceptance criteria, non-goals, and release slices.",
       "defaultWorkspace": "softwarehouse"
     },
     {
@@ -129,7 +129,7 @@
       "icon": "cog",
       "modelLane": "generalReasoning",
       "reportsTo": "ai-assistant",
-      "capabilities": "Owns delivery operations, queue hygiene, coordination rituals, documentation stewardship, blocker routing, and execution visibility across softwarehouse work.",
+      "capabilities": "Owns delivery operations, queue hygiene, coordination rituals, documentation stewardship, blocker routing, execution visibility, and operating-process coherence across softwarehouse work.",
       "defaultWorkspace": "softwarehouse"
     },
     {

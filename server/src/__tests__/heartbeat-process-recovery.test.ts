@@ -772,7 +772,19 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
         eq(issues.originKind, "stranded_issue_recovery"),
         eq(issues.originId, input.issueId),
       ));
-    expect(recoveryIssues).toHaveLength(0);
+    if (input.kind === "missing_disposition") {
+      expect(recoveryIssues).toHaveLength(1);
+      expect(recoveryIssues[0]).toMatchObject({
+        parentId: input.issueId,
+        originId: input.issueId,
+        originKind: "stranded_issue_recovery",
+        status: "in_progress",
+        assigneeAgentId: input.agentId,
+      });
+      await expect(sourceBlockerIssueIds(input.companyId, input.issueId)).resolves.toEqual([recoveryIssues[0]?.id]);
+    } else {
+      expect(recoveryIssues).toHaveLength(0);
+    }
 
     const recoveryWakeup = await waitForValue(async () => {
       const wakeups = await db
@@ -787,9 +799,11 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
           payload?.strandedRunId === input.runId;
       }) ?? null;
     });
+    expect(recoveryWakeup?.companyId).toBe(input.companyId);
+    expect(recoveryWakeup?.source).toBe("assignment");
+    expect(["source_scoped_recovery_action", "issue_dependencies_blocked"]).toContain(recoveryWakeup?.reason);
     expect(recoveryWakeup).toMatchObject({
       companyId: input.companyId,
-      reason: "source_scoped_recovery_action",
       source: "assignment",
       payload: expect.objectContaining({
         modelProfile: "cheap",
@@ -799,25 +813,27 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       }),
     });
 
-    const recoveryRun = recoveryWakeup?.runId
-      ? await db
-        .select()
-        .from(heartbeatRuns)
-        .where(eq(heartbeatRuns.id, recoveryWakeup.runId))
-        .then((rows) => rows[0] ?? null)
-      : null;
-    expect(recoveryRun?.contextSnapshot).toMatchObject({
-      issueId: input.issueId,
-      taskId: input.issueId,
-      source: "issue_recovery_action",
-      recoveryActionId: action.id,
-      sourceIssueId: input.issueId,
-      strandedRunId: input.runId,
-      modelProfile: "cheap",
-      allowDeliverableWork: false,
-      allowDocumentUpdates: false,
-      resumeRequiresNormalModel: true,
-    });
+    if (input.kind !== "missing_disposition") {
+      const recoveryRun = recoveryWakeup?.runId
+        ? await db
+          .select()
+          .from(heartbeatRuns)
+          .where(eq(heartbeatRuns.id, recoveryWakeup.runId))
+          .then((rows) => rows[0] ?? null)
+        : null;
+      expect(recoveryRun?.contextSnapshot).toMatchObject({
+        issueId: input.issueId,
+        taskId: input.issueId,
+        source: "issue_recovery_action",
+        recoveryActionId: action.id,
+        sourceIssueId: input.issueId,
+        strandedRunId: input.runId,
+        modelProfile: "cheap",
+        allowDeliverableWork: false,
+        allowDocumentUpdates: false,
+        resumeRequiresNormalModel: true,
+      });
+    }
     await waitForHeartbeatIdle(db);
     const sourceIssue = await db
       .select()
@@ -1547,11 +1563,6 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
 
     const workProducts = await db.select().from(issueWorkProducts).where(eq(issueWorkProducts.issueId, issueId));
     expect(workProducts).toHaveLength(1);
-    const recoveryIssues = await db
-      .select()
-      .from(issues)
-      .where(and(eq(issues.companyId, companyId), eq(issues.originKind, "stranded_issue_recovery")));
-    expect(recoveryIssues).toHaveLength(0);
   });
 
   it("redacts secret-bearing successful-run detected progress before handoff disclosure", async () => {
@@ -1671,7 +1682,12 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
 
     const sourceIssue = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0] ?? null);
     expect(sourceIssue?.status).toBe("blocked");
-    await expect(sourceBlockerIssueIds(companyId, issueId)).resolves.toEqual([]);
+    const recoveryIssue = await db
+      .select()
+      .from(issues)
+      .where(and(eq(issues.companyId, companyId), eq(issues.parentId, issueId), eq(issues.originKind, "stranded_issue_recovery")))
+      .then((rows) => rows[0] ?? null);
+    await expect(sourceBlockerIssueIds(companyId, issueId)).resolves.toEqual([recoveryIssue?.id]);
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
     expect(comments[0]?.body).toBe(SUCCESSFUL_RUN_HANDOFF_EXHAUSTED_NOTICE_BODY);
@@ -1753,6 +1769,20 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       latestRunStatus: "succeeded",
       missingDisposition: "clear_next_step",
     });
+
+    const recoveryIssue = await db
+      .select()
+      .from(issues)
+      .where(and(eq(issues.companyId, companyId), eq(issues.parentId, issueId), eq(issues.originKind, "stranded_issue_recovery")))
+      .then((rows) => rows[0] ?? null);
+    expect(recoveryIssue).toMatchObject({
+      parentId: issueId,
+      originId: issueId,
+      originKind: "stranded_issue_recovery",
+      status: "in_progress",
+      assigneeAgentId: agentId,
+    });
+    await expect(sourceBlockerIssueIds(companyId, issueId)).resolves.toEqual([recoveryIssue?.id]);
   });
 
   it("clears the detached warning when the run reports activity again", async () => {

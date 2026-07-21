@@ -6,6 +6,12 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-07-20 / LUC-1560 security/credential blocker pattern LUC-1374 disposition:
+  - Failure signal: Redis recovery and related mutation work remained blocked behind an unapproved least-privilege owner path, so repeated retries without the named owner action are fail-closed rather than actionable.
+  - Decision: no role instruction update, routine update, guardrail command, or project-template change is needed; the standing least-privilege rule in `.agents/state/responsibility-learning.md` already covers this class of blocker.
+  - Retirement/merge-back condition: treat future instances as part of the existing security/credential blocker lesson unless a new issue shows a distinct auth-boundary or credential-handling gap; then open a fresh learning record instead of duplicating this one.
+  - Evidence: current issue `LUC-1560`, the historical Soar Redis blocker chain around `LUC-1374`, and the standing owner-path rule already recorded in project memory.
+
 - 2026-07-20 / LUC-1355 queue reconciler boundary-skip repair:
   - The `softwarehouse:queue-reconciler` apply path initially hard-failed when a blocked-issue repair hit `403 Issue is outside this actor's authorization boundary`.
   - Patched `scripts/run-issue-queue-reconciler.mjs` to treat authorization-boundary denials as bounded skips for both blocked-issue repairs and stalled-todo wakes, and surfaced the skip signal through `scripts/run-softwarehouse-control-tick.mjs`.
@@ -4139,3 +4145,65 @@ five false missing-routine warnings. Both legacy and current titles are now
 recognized, a regression test was added, `softwarehouse:test-gates` passes
 184/184, current UI typecheck passes, and 14 focused UI tests pass. No production
 mutation, credential change, or secret value was performed or recorded.
+
+## 2026-07-21 - Conversation summary: Soar-first completion and autonomous problem conveyor
+
+The owner clarified that the desired Softwarehouse is not a collection of
+agents that Codex manually pushes each week. Every product problem should be
+owned by the responsible product unit, classified, delegated through the
+specialist units required by that problem, independently verified, integrated,
+and followed automatically by the next legal problem until the application is
+genuinely complete. Soar is the first priority; after Soar, the same capability
+should finish Roost and the owner's other already-started applications according
+to their visions. Only then should the company be trusted with a new application
+created from zero.
+
+The owner explicitly approved the reviewed Soar Redis cache-only recovery:
+backup the volume, remove broken AOF files, restart Redis, and run the required
+readiness/regression smoke. The `LUC-1524` confirmation was accepted; Security
+closed the gate and DRE began `LUC-1553`.
+
+Fresh board inspection exposed a structural continuity defect: `LUC-27` and
+`LUC-28` were terminal even though their own owner-usable completion contracts
+were not satisfied, and both pointed to the Softwarehouse workspace. They were
+restored as persistent product-completion parents in the Soar and Roost
+workspaces, and `LUC-25` now blocks on them directly. `LUC-1554` was created for
+COO to implement and prove the durable cross-unit problem-to-completion
+conveyor. Live delegation already produced the DRE Redis execution, DSM Soar
+current-focus refresh, CRS Roost packet classification, and separate Roost QVE
+proof lanes. This note records conversation intent plus verified Paperclip API
+mutations; completion of those active tasks remains subject to fresh evidence.
+
+## 2026-07-21 - Conversation summary: SOL reconciliation and conveyor correction
+
+The owner asked Codex to repair the actionable gaps found in the repository's
+`SOL-*` notes. Fresh board and artifact inspection showed that the Soar Redis
+recovery itself had completed and public readiness returned `200`, but QVE
+correctly lacked an authorized protected-smoke binding. Codex created
+`LUC-1568` for `10 SPA` and repaired the explicit dependency chain to
+`LUC-1568 -> LUC-1556 -> LUC-1559 -> LUC-1547`. SPA then proved that its own
+runner lacked the managed protected-smoke binding, so Codex routed the read-only
+operational readback to DRE as `LUC-1569` and made SPA block on that evidence.
+No credential value or production mutation was performed by Codex.
+
+The same inspection found that all children of the operating-model parent
+`LUC-1554` had been marked done even though the delivered code only completed
+the full comment-ID evidence lookup and preserved existing wake primitives. It
+did not implement the accepted first-unresolved-gap transition coordinator or
+prove the required two automatic cross-unit handoffs. The focused execution
+policy and issue-update suites passed `62/62`, so those primitives remain valid.
+Codex rejected the pending review, reopened DPM/IPM implementation `LUC-1562`,
+AIM/QVE eval `LUC-1563`, and CRS final source-control closure `LUC-1565`, and
+made `LUC-1554` block on the final independent closure lane.
+
+`docs/softwarehouse-v0-v1-solution-index.csv` was reconciled with this live
+state. Historical `SOL-015` and `SOL-022` are now implemented; `SOL-018`,
+`SOL-019`, `SOL-024`, and `SOL-087` retain explicit current gaps and owners.
+Promotion: current truth updated; unresolved work remains on typed Paperclip
+issues rather than being treated as completed from conversation notes.
+
+The remaining unowned SOL gaps were also materialized without violating the
+Soar-first sequence. `LUC-1570` assigns the full-instance restore proof to DRE
+with mandatory SPA/QVE handoffs and blocks it on Soar completion `LUC-27`.
+`LUC-1571` assigns the V0/V1 hosted-target wording audit to DSM with COO review
+and blocks it on conveyor source-control closure `LUC-1565`.

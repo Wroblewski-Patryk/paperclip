@@ -1,5 +1,40 @@
 # Active Mission
 
+## 2026-07-21 - Product Completion Conveyor And Soar-First Closure - Current
+
+- The owner-approved Soar Redis cache-only recovery is complete in `LUC-1553`.
+  Public API health/readiness, web, and build-info probes return `200` in the
+  QVE evidence attached to `LUC-1556`. Protected `/ready/details`, worker
+  readiness, and provider/Redis readback remain separated into the authorized
+  DRE/SPA lanes. SPA lacked the required runtime binding and correctly routed
+  the managed-reference readback to `LUC-1569`; the explicit chain is now
+  `LUC-1569` -> `LUC-1568` -> `LUC-1556` -> `LUC-1559` -> `LUC-1547`.
+- `LUC-27` and `LUC-28` had been marked `done` even though their own contracts
+  required owner-usable product completion and their last evidence still named
+  blockers. They also pointed at the Softwarehouse project instead of their
+  product workspaces. They are restored as persistent product-completion
+  parents: `LUC-27` is active in the Soar workspace; `LUC-28` is active in the
+  Roost workspace and serialized behind the current Roost closure chain.
+- `LUC-25` now blocks directly on `LUC-27` and `LUC-28`. Historical reports,
+  plans, clean-repo snapshots, and isolated proofs remain evidence, not product
+  completion.
+- `LUC-1554` is the critical COO-owned operating-model program. It must
+  implement and prove an autonomous problem-to-completion conveyor across PM,
+  architecture/engineering, source-control review, QA/test, security,
+  deployment/monitoring, and documentation. It cannot close for design-only
+  output; acceptance requires a multi-handoff eval with no manual board mutation
+  between stages and negative tests for early parent closure, backlog-only
+  queues, wrong-project workspaces, and dirty-repo concurrent writers.
+  Board verification on 2026-07-21 rejected its premature review disposition:
+  focused primitive tests passed `62/62`, but the first-unresolved-gap
+  transition coordinator and mandatory two-handoff eval were not delivered.
+  `LUC-1562`, `LUC-1563`, and `LUC-1565` are reopened with explicit dependency
+  routing; the parent blocks on final independent source-control closure.
+- Portfolio sequence is Soar first, Roost second, then the owner's other
+  already-started applications according to their established visions. New
+  application creation from zero comes only after the company has repeatedly
+  proved it can finish existing applications.
+
 ## 2026-07-20 - Full Repository Validation And Windows Runner Closure - Current
 
 - The historical SOL-032 shorthand is no longer an active exception for this
