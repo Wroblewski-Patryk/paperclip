@@ -2505,6 +2505,9 @@ test("control tick applies the bounded issue queue reconciler", async () => {
   assert.match(reconciler, /const heartbeatAgentId = process\.env\.PAPERCLIP_AGENT_ID \?\? null/);
   assert.match(reconciler, /function isIssueAuthorizationBoundaryError\(error\)/);
   assert.match(reconciler, /function isCrossAgentWakeupError\(error\)/);
+  assert.match(reconciler, /isRequestTimeoutError/);
+  assert.match(reconciler, /candidateScanStatus = isRequestTimeoutError\(error\) \? "timed_out" : "api_error"/);
+  assert.match(reconciler, /skippedReason: candidateScanStatus === "timed_out" \? "candidate_scan_timeout" : "candidate_scan_api_error"/);
   assert.match(reconciler, /Agent can only invoke itself/);
   assert.match(reconciler, /reason: "stalled_todo_reconciler"/);
   assert.match(reconciler, /skippedReason: "issue_authorization_boundary"/);
@@ -2515,12 +2518,15 @@ test("control tick applies the bounded issue queue reconciler", async () => {
 test("recovery janitor only restores reusable routines after their own fresh successful recovery run", async () => {
   const source = await readFile("scripts/run-recovery-action-janitor.mjs", "utf8");
   assert.match(source, /softwarehousePilotActiveRoutineTitles/);
+  assert.match(source, /function canReuseIssueRunsForRecurringRestore/);
   assert.match(source, /issues\?status=backlog,todo,in_progress,in_review,blocked&limit=2000&includeBlockedBy=true/);
   assert.match(source, /healthReportedActiveRunCount = health\?\.devServer\?\.activeRunCount \?\? null/);
   assert.match(source, /activeRunCount = liveActiveRunCount/);
   assert.match(source, /restored_recurring_controller/);
   assert.match(source, /deferred_serial_repair/);
   assert.match(source, /\["\[Softwarehouse\] Continuation watchdog", 0\]/);
+  assert.match(source, /const reusableRoutineRestoreCandidate = canReuseIssueRunsForRecurringRestore\(detail, blockers\);/);
+  assert.match(source, /const issueRuns = clearBlockedResolution \|\| !reusableRoutineRestoreCandidate\s+\? \[\]\s+: await request\("GET", `\/api\/issues\/\$\{detail\.id\}\/runs`\);/);
 
   const issue = {
     id: "issue-id",
@@ -2547,6 +2553,18 @@ test("recovery janitor only restores reusable routines after their own fresh suc
     sourceIssueStatus: "todo",
     outcome: "restored",
   });
+  const nonRoutineIssue = {
+    ...issue,
+    title: "Review productivity for LUC-1438",
+  };
+  assert.equal(
+    source.includes("softwarehousePilotActiveRoutineTitles.has(issue?.title ?? \"\")"),
+    true,
+  );
+  assert.equal(
+    planReusableRoutineRecoveryRestore({ issue: nonRoutineIssue, activeBlockers: [], runs, activeRoutineTitles }),
+    null,
+  );
   assert.equal(planReusableRoutineRecoveryRestore({ issue, activeBlockers: ["LUC-1"], runs, activeRoutineTitles }), null);
   assert.equal(planReusableRoutineRecoveryRestore({ issue, activeBlockers: [], runs: [{ ...runs[0], status: "failed" }], activeRoutineTitles }), null);
 });

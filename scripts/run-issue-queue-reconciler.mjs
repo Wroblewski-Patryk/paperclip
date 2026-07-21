@@ -3,6 +3,7 @@ import {
   planStalledTodoWake,
 } from "./lib/stale-blocker-repair.mjs";
 import { softwarehousePilotActiveRoutineTitles } from "./lib/softwarehouse-active-routines.mjs";
+import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
@@ -15,27 +16,15 @@ const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_QUEUE_RECONCILER_TIMEO
 const heartbeatAgentId = process.env.PAPERCLIP_AGENT_ID ?? null;
 
 async function request(method, route, body) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
-  const headers = { "content-type": "application/json" };
-  if (process.env.PAPERCLIP_API_KEY) headers.authorization = `Bearer ${process.env.PAPERCLIP_API_KEY}`;
-  if (method !== "GET" && process.env.PAPERCLIP_RUN_ID) {
-    headers["x-paperclip-run-id"] = process.env.PAPERCLIP_RUN_ID;
-  }
-  try {
-    const response = await fetch(`${apiBase}${route}`, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: controller.signal,
-    });
-    const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
-    if (!response.ok) throw new Error(`${method} ${route} failed with ${response.status}: ${text}`);
-    return data;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return requestJson({
+    apiBase,
+    method,
+    route,
+    body,
+    timeoutMs: requestTimeoutMs,
+    authToken: process.env.PAPERCLIP_API_KEY,
+    runId: process.env.PAPERCLIP_RUN_ID,
+  });
 }
 
 function isIssueAuthorizationBoundaryError(error) {
@@ -74,11 +63,26 @@ async function resolveCompany() {
 }
 
 const company = await resolveCompany();
-const [issues, liveRuns, recentRuns] = await Promise.all([
-  request("GET", `/api/companies/${company.id}/issues?status=todo,blocked&limit=2000`),
-  request("GET", `/api/companies/${company.id}/live-runs?limit=200&minCount=0`),
-  request("GET", `/api/companies/${company.id}/heartbeat-runs?limit=1000`),
-]);
+let issues = [];
+let liveRuns = [];
+let recentRuns = [];
+let candidateScanStatus = "ok";
+const candidateScanSkipped = [];
+try {
+  [issues, liveRuns, recentRuns] = await Promise.all([
+    request("GET", `/api/companies/${company.id}/issues?status=todo,blocked&limit=2000`),
+    request("GET", `/api/companies/${company.id}/live-runs?limit=200&minCount=0`),
+    request("GET", `/api/companies/${company.id}/heartbeat-runs?limit=1000`),
+  ]);
+} catch (error) {
+  candidateScanStatus = isRequestTimeoutError(error) ? "timed_out" : "api_error";
+  candidateScanSkipped.push({
+    kind: "issue_queue_reconciler",
+    skippedReason: candidateScanStatus === "timed_out" ? "candidate_scan_timeout" : "candidate_scan_api_error",
+    ownerAction: "Retry issue queue reconciliation after the local Paperclip issue-list/live-run/heartbeat-run routes are responsive.",
+    error: error instanceof Error ? error.message : String(error),
+  });
+}
 
 const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean));
 const liveAgentIds = new Set(liveRuns.map((run) => run.agentId).filter(Boolean));
@@ -118,7 +122,7 @@ const todoPlans = (await mapWithConcurrency(staleTodoCandidates, 8, async (issue
 const selectedBlockerPlans = blockerPlans.slice(0, Math.max(0, maxBlockerRepairs));
 const selectedTodoPlans = todoPlans.slice(0, Math.max(0, maxTodoWakes));
 const applied = [];
-const skipped = [];
+const skipped = [...candidateScanSkipped];
 
 if (apply) {
   for (const plan of selectedBlockerPlans) {
@@ -199,6 +203,8 @@ console.log(JSON.stringify({
   company,
   mode: apply ? "apply" : "dry-run",
   thresholds: { stalledTodoHours, maxBlockerRepairs, maxTodoWakes },
+  requestTimeoutMs,
+  candidateScanStatus,
   liveRunCount: liveRuns.length,
   blockerRepairCount: blockerPlans.length,
   blockerRepairs: blockerPlans,

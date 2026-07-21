@@ -14,6 +14,15 @@ const repairPriority = new Map([
   ["[Softwarehouse] Autonomy governor", 1],
 ]);
 
+function canReuseIssueRunsForRecurringRestore(issue, blockers) {
+  const action = issue?.activeRecoveryAction;
+  return issue?.status === "blocked"
+    && action?.status === "active"
+    && action?.kind === "stranded_assigned_issue"
+    && blockers.length === 0
+    && softwarehousePilotActiveRoutineTitles.has(issue?.title ?? "");
+}
+
 async function request(method, route, body) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
@@ -113,7 +122,8 @@ for (const issue of issues.filter((candidate) => candidate.activeRecoveryAction?
   const blockers = activeBlockerIdentifiers(detail);
   const sourceAlreadyBlocked = detail.status === "blocked";
   const clearBlockedResolution = sourceAlreadyBlocked && blockers.length > 0;
-  const issueRuns = clearBlockedResolution
+  const reusableRoutineRestoreCandidate = canReuseIssueRunsForRecurringRestore(detail, blockers);
+  const issueRuns = clearBlockedResolution || !reusableRoutineRestoreCandidate
     ? []
     : await request("GET", `/api/issues/${detail.id}/runs`);
   const recurringRestore = planReusableRoutineRecoveryRestore({
