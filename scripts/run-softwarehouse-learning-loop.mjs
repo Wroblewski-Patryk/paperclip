@@ -2,6 +2,7 @@ import {
   buildOpenIssueTitles,
   classifyLearningGapFromIssues,
   collectTransitiveBlockerRelatedIssues,
+  findInReviewIssuesWithoutStructuredDecisionPath,
   findActiveRunCoveredOpsReleaseBlockerChain,
   findBoardAuthorizationWaitChain,
   findCompletedBlockerDelegatedRecoveryChain,
@@ -24,6 +25,10 @@ import {
   formatWorkerFanoutContract,
   summarizeWorkerBacklogTracks,
 } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
+import {
+  approvalRows,
+  interactionRows,
+} from "./lib/softwarehouse-routine-gates.mjs";
 import {
   findByOrganizationalDedupeKey,
   isUuid,
@@ -142,13 +147,15 @@ let projects;
 let initialIssues;
 let labels;
 let goals;
+let liveRuns;
 try {
-  [agents, projects, initialIssues, labels, goals] = await Promise.all([
+  [agents, projects, initialIssues, labels, goals, liveRuns] = await Promise.all([
     request("GET", `/api/companies/${company.id}/agents`),
     request("GET", `/api/companies/${company.id}/projects`),
     request("GET", `/api/companies/${company.id}/issues?status=${activeIssueStatuses.join(",")}&limit=2000`),
     request("GET", `/api/companies/${company.id}/labels`),
     request("GET", `/api/companies/${company.id}/goals`),
+    request("GET", `/api/companies/${company.id}/live-runs`),
   ]);
 } catch (error) {
   if (!isRequestTimeoutError(error)) throw error;
@@ -227,6 +234,7 @@ const trackBacklog = summarizeWorkerBacklogTracks({
   terminalStatuses,
   plannedStatuses,
 });
+const liveIssueIds = new Set((liveRuns ?? []).map((run) => run.issueId).filter(Boolean));
 const weakTrackLines = trackBacklog.weakTracks.map(formatWeakTrackSummary);
 const blockedGroups = new Map();
 for (const issue of openIssues.filter((issue) => issue.status === "blocked")) {
@@ -911,10 +919,27 @@ if (workerFanoutWeak) {
   }
 }
 
-const reviewIssuesWithoutDecision = openIssues.filter((issue) =>
-  issue.status === "in_review"
-  && !/decision|reviewer|approve|reject|return|block|delegate/i.test(`${issue.description ?? ""}\n${issue.title ?? ""}`)
+const reviewIssueStateById = new Map(
+  await Promise.all(
+    openIssues
+      .filter((issue) => issue.status === "in_review")
+      .map(async (issue) => {
+        const [interactions, approvals] = await Promise.all([
+          request("GET", `/api/issues/${issue.id}/interactions`)
+            .then(interactionRows)
+            .catch(() => []),
+          request("GET", `/api/issues/${issue.id}/approvals`)
+            .then(approvalRows)
+            .catch(() => []),
+        ]);
+        return [issue.id, { interactions, approvals }];
+      }),
+  ),
 );
+const reviewIssuesWithoutDecision = findInReviewIssuesWithoutStructuredDecisionPath(openIssues, {
+  liveIssueIds,
+  issueStateById: reviewIssueStateById,
+});
 if (reviewIssuesWithoutDecision.length > 0) {
   const portfolioDirector = agentByName.get("Portfolio Director") ?? null;
   const sourceIssueIdentifiers = reviewIssuesWithoutDecision

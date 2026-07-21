@@ -5,6 +5,7 @@ import {
   buildOpenIssueTitles,
   classifyLearningGapFromIssues,
   collectTransitiveBlockerRelatedIssues,
+  findInReviewIssuesWithoutStructuredDecisionPath,
   findActiveRunCoveredOpsReleaseBlockerChain,
   findBoardAuthorizationWaitChain,
   findCompletedBlockerDelegatedRecoveryChain,
@@ -3073,6 +3074,53 @@ test("findSuppressibleV2ReviewDecisionPathDuplicate allows a new source issue de
   });
 
   assert.equal(duplicate, null);
+});
+
+test("findInReviewIssuesWithoutStructuredDecisionPath suppresses pending structured review interactions", () => {
+  const issues = [
+    {
+      id: "issue-luc-1569",
+      identifier: "LUC-1569",
+      title: "[Soar][DRE] Execute protected post-Redis readiness readback using managed bindings",
+      status: "in_review",
+      assigneeAgentId: "dre-agent",
+    },
+    {
+      id: "issue-luc-1609",
+      identifier: "LUC-1609",
+      title: "[Softwarehouse] Missing typed review path",
+      status: "in_review",
+      assigneeAgentId: "runtime-agent",
+    },
+  ];
+  const issueStateById = new Map([
+    ["issue-luc-1569", {
+      interactions: [
+        {
+          id: "ba1b3b44-55a9-402e-91ef-e6543bb3e385",
+          kind: "request_confirmation",
+          status: "pending",
+          idempotencyKey: "confirmation:LUC-1569:smoke-auth-binding:v1",
+          continuationPolicy: "wake_assignee",
+        },
+      ],
+      approvals: [],
+    }],
+    ["issue-luc-1609", {
+      interactions: [],
+      approvals: [],
+    }],
+  ]);
+
+  const candidates = findInReviewIssuesWithoutStructuredDecisionPath(issues, {
+    liveIssueIds: new Set(),
+    issueStateById,
+  });
+
+  assert.deepEqual(
+    candidates.map((issue) => issue.identifier),
+    ["LUC-1609"],
+  );
 });
 
 test("hasPendingRequestConfirmation treats pending confirmations as stop signs", () => {

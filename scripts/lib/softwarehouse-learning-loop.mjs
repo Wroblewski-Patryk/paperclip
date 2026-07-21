@@ -1,3 +1,5 @@
+import { hasStructuredInReviewDecisionPath } from "./in-review-decision-path.mjs";
+
 export function buildOpenIssueTitles(issues, terminalStatuses) {
   const openTitles = new Set();
   for (const issue of issues) {
@@ -227,6 +229,24 @@ function issueTimestamp(issue) {
   const raw = issue.updatedAt ?? issue.completedAt ?? issue.createdAt ?? null;
   const time = raw ? Date.parse(raw) : NaN;
   return Number.isFinite(time) ? time : 0;
+}
+
+export function findInReviewIssuesWithoutStructuredDecisionPath(
+  issues,
+  {
+    liveIssueIds = new Set(),
+    issueStateById = new Map(),
+  } = {},
+) {
+  return issues.filter((issue) => {
+    if (issue?.status !== "in_review") return false;
+    const state = issueStateById.get(issue.id) ?? {};
+    return !hasStructuredInReviewDecisionPath(issue, {
+      liveIssueIds,
+      interactions: state.interactions ?? [],
+      approvals: state.approvals ?? [],
+    });
+  });
 }
 
 function latestIssue(issues) {
