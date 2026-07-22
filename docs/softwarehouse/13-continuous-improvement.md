@@ -51,6 +51,15 @@ The softwarehouse should improve after every meaningful delivery, failed run, bl
 - no old evidence treated as current truth without promotion and supersession
   check
 
+## Learning Loop Hygiene
+
+- When the organizational learning loop finds a repeated pattern that is already
+  covered by an existing learning issue or duplicate-suppression rule, record a
+  no-op or suppression on the existing issue instead of cloning the pattern
+  into a new capability-gap issue.
+- Create a new capability-gap issue only when the repeated pattern still lacks a
+  process, role, routine, instruction, or template improvement.
+
 ## Agent Improvement Flywheel
 
 The canonical loop is:

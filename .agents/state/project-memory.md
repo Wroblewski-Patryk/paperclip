@@ -1,6 +1,18 @@
 # Paperclip Softwarehouse Project Memory
 
-Last updated: 2026-07-21
+Last updated: 2026-07-22
+
+## 2026-07-22 Current Operating Note
+
+- The organizational learning-loop lesson from `LUC-1567` is now promoted into
+  `docs/softwarehouse/13-continuous-improvement.md`, where duplicate learning
+  patterns must be recorded as no-ops or suppressed on the existing issue
+  instead of being cloned into new capability-gap issues.
+- The current truth remains that the learning loop should keep producing
+  evidence and suppressing already-covered patterns instead of cloning them
+  into new noise.
+- No change to user intent, active mission, or parked-app policy was justified
+  by this heartbeat.
 
 ## 2026-07-21 Current Operating Note
 
