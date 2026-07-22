@@ -55,9 +55,10 @@ The current owner priority is completion capability, not portfolio expansion:
 finish Soar first, then Roost, then the owner's other already-started
 applications according to their established visions. Creating a new application
 from zero comes only after the Softwarehouse repeatedly proves it can finish
-existing products without recurring manual Codex/board nudges. `LUC-1554` is
-the active operating-model repair for that autonomous problem-to-completion
-conveyor; `LUC-27` and `LUC-28` are the persistent product-completion parents.
+existing products without recurring manual Codex/board nudges. `LUC-1554` and
+its implementation/eval/review chain completed on 2026-07-22. `LUC-27` and
+`LUC-28` are the persistent product-completion parents; new Project Truth work
+must be dispatched as a runnable blocking child of the matching parent.
 
 The current verified gap report is
 `docs/status/2026-07-20-paperclip-v0-holistic-audit.md`. Read it before broad

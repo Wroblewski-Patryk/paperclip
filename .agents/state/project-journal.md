@@ -4292,3 +4292,27 @@ Canonical plan:
 `doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md`. Promotion:
 V0/V1 scope, execution order, issue anchors, acceptance scorecard, and the
 future handoff packet were added to durable project memory.
+
+## 2026-07-22 - First Softwarehouse V0 conveyor gate implemented
+
+Implemented the persistent-parent Project Truth dispatcher contract. New gaps
+are created only as blocking children of live `LUC-27` or `LUC-28` parents;
+`backlog`, blocked copies, and detached history cannot suppress a runnable
+lane. The V0/V1 boundary was synchronized to all 39 agent instruction bundles
+and the instruction audit passed without failures or warnings.
+
+Independent review `LUC-1646` found two dispatcher defects and two stale gate
+assertions; all were corrected and the final review passed. Focused local
+verification passed 9/9 dispatcher tests and 188/188 Softwarehouse gate tests.
+The initial `LUC-1563` wake incorrectly restored stale completion evidence, so
+board verification reopened it. The fresh eval then proved two automatic
+cross-unit handoffs plus the early-parent-close, backlog-only, wrong-workspace,
+dirty-writer, and `LUC-1546` negative/regression paths and attached
+`doc/evals/2026-07-22-luc-1563-conveyor-eval.md` as a work product.
+
+`LUC-1562`, `LUC-1563`, `LUC-1565`, and parent `LUC-1554` are now done. The
+COO recovery required one board-side agent resume because an earlier
+dependency-blocked continuation left the COO in `error`; recovery owner AIA
+then completed the parent from the accepted child evidence. Next legal work is
+to commit the reviewed implementation packet separately from this memory
+packet, then allow Soar-first dispatch under `LUC-27`.

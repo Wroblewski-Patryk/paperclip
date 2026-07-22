@@ -42,18 +42,14 @@
 - `LUC-25` now blocks directly on `LUC-27` and `LUC-28`. Historical reports,
   plans, clean-repo snapshots, and isolated proofs remain evidence, not product
   completion.
-- `LUC-1554` is the critical COO-owned operating-model program. It must
-  implement and prove an autonomous problem-to-completion conveyor across PM,
-  architecture/engineering, source-control review, QA/test, security,
-  deployment/monitoring, and documentation. It cannot close for design-only
-  output; acceptance requires a multi-handoff eval with no manual board mutation
-  between stages and negative tests for early parent closure, backlog-only
-  queues, wrong-project workspaces, and dirty-repo concurrent writers.
-  Board verification on 2026-07-21 rejected its premature review disposition:
-  focused primitive tests passed `62/62`, but the first-unresolved-gap
-  transition coordinator and mandatory two-handoff eval were not delivered.
-  `LUC-1562`, `LUC-1563`, and `LUC-1565` are reopened with explicit dependency
-  routing; the parent blocks on final independent source-control closure.
+- `LUC-1554` completed on 2026-07-22 after its implementation, fresh
+  acceptance eval, documentation, and independent source-control review lanes
+  completed. The accepted conveyor now dispatches Project Truth work only as a
+  runnable blocking child of the matching persistent parent (`LUC-27` or
+  `LUC-28`); detached, blocked, and backlog-only copies do not establish
+  liveness. The fresh `LUC-1563` artifact proves two automatic handoffs and
+  the required early-close, backlog-only, wrong-workspace, dirty-writer, and
+  `LUC-1546` regression paths.
 - Portfolio sequence is Soar first, Roost second, then the owner's other
   already-started applications according to their established visions. New
   application creation from zero comes only after the company has repeatedly
@@ -797,8 +793,9 @@ or the relevant owners explicitly classify them as not required with evidence.
   `LUC-28`.
 - Broad business-plan, CRM, sales, marketing, finance, HR, customer-success,
   provider-write, and external-communication operation is deferred to V1.
-- `LUC-1554` remains the immediate operating-model gate. Its existing
-  `LUC-1562`, `LUC-1563`, and `LUC-1565` chain must prove the autonomous
-  problem-to-completion conveyor before normal Soar gap execution resumes.
+- `LUC-1554`, `LUC-1562`, `LUC-1563`, and `LUC-1565` are complete. The next
+  legal V0 work is source-control closure for this reviewed packet, followed
+  by normal Soar-first Project Truth dispatch under `LUC-27`; Roost continues
+  under `LUC-28` when its serialized lane is legal.
 - Canonical execution plan:
   `doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md`.

@@ -65,6 +65,13 @@ V1 scopes, not requirements for local Softwarehouse V0 acceptance.
 Canonical V0 implementation plan:
 `doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md`.
 
+The first implementation gate completed on 2026-07-22. `LUC-1554` and its
+implementation/eval/review chain (`LUC-1562`, `LUC-1563`, `LUC-1565`) are
+done with fresh evidence. New Project Truth gaps must now be runnable blocking
+children of `LUC-27` or `LUC-28`; detached, blocked, or backlog-only copies do
+not count as live work. The reviewed local packet must be committed separately
+from durable state/memory updates before automatic Soar-first dispatch resumes.
+
 ## Desired Collaboration
 
 - Speak naturally and keep project context alive across chats.
