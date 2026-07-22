@@ -43,6 +43,14 @@ human board control over risk, production, budget, and direction.
 
 ## Current Stage 1 State
 
+V0 means a complete local autonomous softwarehouse for application creation
+and completion, not a locally operated version of every future company
+department. Paperclip stays on Windows in V0 while Soar and Roost may be
+delivered to VPS. Hosting Paperclip and activating broad business-plan, CRM,
+sales, marketing, finance, HR, customer-success, provider-write, and external
+communication operations belong to V1. The canonical implementation contract
+is `doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md`.
+
 The current owner priority is completion capability, not portfolio expansion:
 finish Soar first, then Roost, then the owner's other already-started
 applications according to their established visions. Creating a new application

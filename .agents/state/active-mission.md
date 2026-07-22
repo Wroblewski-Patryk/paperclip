@@ -786,3 +786,19 @@ or the relevant owners explicitly classify them as not required with evidence.
   187/187; current UI typecheck and focused company/sidebar/inbox tests pass.
 - Database restore is proved, but full-instance restore with uploads/storage
   and the local secrets key remains unproved. Preserve this as a V0 DR gap.
+
+## 2026-07-22 - Local Softwarehouse V0 Scope Correction
+
+- V0 is now explicitly defined as the complete local autonomous softwarehouse
+  for creating and finishing applications, not the first implementation of all
+  future autonomous-company business functions.
+- Paperclip remains on the canonical local Windows runtime in V0. Soar and
+  Roost remain the named VPS delivery targets under `LUC-25`, `LUC-27`, and
+  `LUC-28`.
+- Broad business-plan, CRM, sales, marketing, finance, HR, customer-success,
+  provider-write, and external-communication operation is deferred to V1.
+- `LUC-1554` remains the immediate operating-model gate. Its existing
+  `LUC-1562`, `LUC-1563`, and `LUC-1565` chain must prove the autonomous
+  problem-to-completion conveyor before normal Soar gap execution resumes.
+- Canonical execution plan:
+  `doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md`.

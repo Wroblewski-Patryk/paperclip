@@ -4269,3 +4269,26 @@ Canonical contract:
 `docs/softwarehouse/18-roost-company-knowledge-plane.md`. Promotion: current
 truth and durable decisions updated from conversation summary; implementation
 and live connection proof remain future scoped work.
+
+## 2026-07-22 - Conversation summary: local application-building Softwarehouse V0
+
+The owner corrected the implementation boundary: V0 must implement everything
+needed for agents to create and finish applications in the local Softwarehouse,
+but it must not attempt to operate the full autonomous business. Paperclip
+stays on the local Windows host during V0; Soar and Roost remain the named VPS
+product targets. Hosting Paperclip and activating business-plan, CRM, sales,
+marketing, finance, HR, customer-success, provider-write, or autonomous
+external-communication operations belong to V1.
+
+Live readback on 2026-07-22 confirmed that the existing program already has the
+correct anchors and must not be duplicated: `LUC-25`, `LUC-27`, `LUC-28`, and
+`LUC-1554` remain blocked; conveyor implementation `LUC-1562` is in review;
+handoff eval `LUC-1563` and source-control closure `LUC-1565` remain blocked.
+The next legal work is therefore to close the existing conveyor chain, prove
+automatic handoffs and negative paths, finish Soar, repeat the factory for
+Roost, prove resilience/learning, and only then accept V0.
+
+Canonical plan:
+`doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md`. Promotion:
+V0/V1 scope, execution order, issue anchors, acceptance scorecard, and the
+future handoff packet were added to durable project memory.

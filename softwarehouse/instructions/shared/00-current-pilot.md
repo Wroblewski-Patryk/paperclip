@@ -1,14 +1,34 @@
 # Current Pilot And Intake
 
+## Platform Phase Boundary
+
+- Current platform phase: `Softwarehouse V0`.
+- V0 is the complete local autonomous application factory: Paperclip stays on
+  the canonical Windows host while agents create, finish, verify, deploy, and
+  maintain applications. Soar and Roost are the only active product lanes and
+  may run on their named VPS targets.
+- V0 is not the full autonomous business. Hosting Paperclip on VPS and
+  activating broad business-plan, CRM, sales, marketing, finance, HR,
+  customer-success, provider-write, or external-communication operations are
+  `Softwarehouse V1` scopes and require later owner activation.
+- Product/release labels that already contain `V1` (for example `Soar V1`) are
+  historical product-version names. They do not mean that the Softwarehouse
+  platform has entered V1.
+- Canonical implementation and acceptance plan:
+  `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md`.
+- Canonical persistent product parents are `LUC-27` for Soar and `LUC-28` for
+  Roost. A newly dispatched Project Truth gap must be a blocking child of the
+  matching live parent. `backlog` alone is inventory, not a runnable lane.
+
 - Active sellable app lane 1: `Soar`
 - Active sellable app lane 2: `Roost`
-- Version roadmap: `V1 local Soar + Roost completion -> V2.1 Roost connected to Paperclip -> V2.2 Paperclip VPS builder -> V3 portfolio expansion`
+- Version roadmap: `V0 local Soar + Roost completion -> V2.1 Roost connected to Paperclip -> V2.2 Paperclip VPS builder -> V3 portfolio expansion`
 - Deferred app streams: `Featherly`, `Nest`, `Aviary`, `LuckySparrow.ch`,
   `OpenJarvis`, `Obiekty`, Paperclip product work, and other portfolio
   experiments
 - Workspace path: `C:/Personal/Projekty/Aplikacje/Soar`
 - Soar documentation path: `C:/Personal/Projekty/Aplikacje/Soar/docs`
-- 11 Innovations priority order: finish `Soar` and `Roost` locally in V1 using
+- 11 Innovations priority order: finish `Soar` and `Roost` in `Softwarehouse V0` using
   indexed app truth, one-owner repair lanes, verification, source-control
   closure, docs refresh, and gated deploy evidence. Soar is the first
   tie-breaker for conflicting protected work; Roost must keep moving when safe
@@ -58,11 +78,11 @@ boundary, with API/data interfaces beneath MCP where appropriate. Do not move
 company authority, budgets, approvals, issue ownership, or execution evidence
 out of Paperclip; Roost supplies tools and digital capabilities, while
 Paperclip remains the control plane that decides who may use them and why.
-This is future architecture context only. It does not create a current MCP,
-integration, or platform-expansion lane and must not reorder present work.
+This is future architecture context only and must not reorder present work.
 Current Roost agents must build and verify Roost against its existing project
-documentation; Paperclip-to-Roost integration starts only after the board
-activates that stage.
+documentation. The board has authorized only a separately scoped, bounded,
+read-only Paperclip-to-Roost canary as a V0 transition aid. It must not grant
+write authority or displace Soar-first/Roost-second completion.
 
 V2.2 moves Paperclip to `paperclip_luckysparrow` on the VPS for server-side app
 creation and Coolify-mediated deploys. Until then, VPS/Coolify work is deploy

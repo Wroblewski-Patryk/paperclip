@@ -3,8 +3,13 @@ import {
   workerBacklogTrackForIssue,
 } from "./softwarehouse-worker-backlog-tracks.mjs";
 
-const activeDispatchStatuses = new Set(["backlog", "todo", "in_progress", "in_review"]);
+const activeDispatchStatuses = new Set(["todo", "in_progress", "in_review"]);
 const defaultTerminalStatuses = new Set(["done", "cancelled"]);
+
+export const persistentCompletionParentIdentifierByProject = Object.freeze({
+  Soar: "LUC-27",
+  Roost: "LUC-28",
+});
 
 function identifierNumber(identifier) {
   const match = String(identifier ?? "").match(/(\d+)$/);
@@ -22,11 +27,42 @@ export function parseProjectTruthSourceItemId(issue) {
   return match?.[1]?.trim() ?? null;
 }
 
+export function persistentCompletionParentForProject({ projectName, issues }) {
+  const identifier = persistentCompletionParentIdentifierByProject[projectName];
+  if (!identifier) return null;
+  return (issues ?? []).find((issue) =>
+    issue?.identifier === identifier
+    && !issue?.hiddenAt
+    && !defaultTerminalStatuses.has(issue?.status)
+  ) ?? null;
+}
+
+export function isReusableProjectTruthGapIssue(issue, completionParentId) {
+  return Boolean(
+    issue
+    && completionParentId
+    && issue.parentId === completionParentId
+    && !issue.hiddenAt
+    && activeDispatchStatuses.has(issue.status)
+  );
+}
+
+export function selectReusableProjectTruthGapIssue(issues, completionParentId) {
+  return (issues ?? [])
+    .filter((issue) => isReusableProjectTruthGapIssue(issue, completionParentId))
+    .sort((left, right) =>
+      identifierNumber(left.identifier) - identifierNumber(right.identifier)
+      || String(left.createdAt ?? "").localeCompare(String(right.createdAt ?? ""))
+    )
+    .at(0) ?? null;
+}
+
 export function activeProjectTruthTrackIssues({
   projectName,
   issues,
   projects,
   marker,
+  completionParentId = null,
   terminalStatuses = defaultTerminalStatuses,
 }) {
   const track = controlledProjectNameFor(projectName);
@@ -36,6 +72,7 @@ export function activeProjectTruthTrackIssues({
     .filter((issue) => !terminalStatuses.has(issue.status))
     .filter((issue) => activeDispatchStatuses.has(issue.status))
     .filter((issue) => isDispatcherProjectTruthIssue(issue, marker))
+    .filter((issue) => !completionParentId || issue.parentId === completionParentId)
     .filter((issue) => workerBacklogTrackForIssue(issue, projectById) === track)
     .sort((left, right) =>
       identifierNumber(left.identifier) - identifierNumber(right.identifier)

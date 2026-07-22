@@ -15,6 +15,10 @@ This contract records the intended V0-to-V1 boundary. It does not authorize
 unscoped production writes, direct database access, secret disclosure, or the
 activation of currently parked business departments.
 
+The executable local Softwarehouse V0 scope, workstream order, and acceptance
+scorecard are defined in
+`doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md`.
+
 ## System Boundaries
 
 | System | Canonical responsibility |

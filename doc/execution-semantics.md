@@ -391,6 +391,11 @@ Each stage must have its own explicit live path and its own terminal proof. A st
 - `parentId` is structural only; it explains why a child exists.
 - `blockedByIssueIds` is the dependency contract; use it when the parent or sibling cannot continue until another issue changes state.
 - The next legal transition must be driven by the first unresolved gap in the current project lane, not by the most recent comment or the newest child issue.
+- For active Softwarehouse V0 product lanes, a newly dispatched Project Truth
+  gap is created as a blocking child of the live persistent completion parent
+  (`LUC-27` for Soar or `LUC-28` for Roost). A detached top-level gap does not
+  establish parent liveness, and `backlog` inventory does not count as a
+  runnable conveyor lane.
 - Cross-unit handoff requires durable evidence from the finished unit and a durable owner or blocker for the next unit.
 - When a unit fails, the conveyor should return to the smallest repairable unit in the same project lane instead of spawning a new parent and losing the original chain of custody.
 

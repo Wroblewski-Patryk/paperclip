@@ -1909,9 +1909,9 @@ test("next legal action selector starts project truth gap dispatch when control 
 test("project truth dispatcher does not treat terminal issues as active gap coverage", async () => {
   const source = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
 
-  assert.match(source, /function canonicalExistingIssue\(title, issues\)/);
-  assert.match(source, /\.filter\(\(issue\) => !terminalStatuses\.has\(issue\.status\)\)/);
-  assert.doesNotMatch(source, /filter\(\(issue\) => terminalStatuses\.has\(issue\.status\)\)/);
+  assert.match(source, /function canonicalExistingIssue\(title, issues, completionParentId\)/);
+  assert.match(source, /selectReusableProjectTruthGapIssue/);
+  assert.match(source, /completionParentId/);
   assert.match(source, /"kept_existing_project_truth_gap_issue"/);
 });
 
@@ -2603,6 +2603,15 @@ test("softwarehouse instructions preserve V1 to V3 autonomous roadmap", async ()
   assert.match(operatingManual, /Roost must not be parked when local\s+known-state, source-control, implementation, proof, or documentation work is\s+legal and owner-scoped/);
 });
 
+test("softwarehouse instructions distinguish local platform V0 from product V1 labels", async () => {
+  const source = await readFile("softwarehouse/instructions/shared/00-current-pilot.md", "utf8");
+
+  assert.match(source, /Current platform phase: `Softwarehouse V0`/);
+  assert.match(source, /Product\/release labels that already contain `V1`/);
+  assert.match(source, /`LUC-27` for Soar and\s+`LUC-28` for\s+Roost/);
+  assert.match(source, /`backlog` alone is inventory, not a runnable lane/);
+});
+
 test("access unblock seeder assigns project workspaces instead of execution workspace ids", async () => {
   const source = await readFile("scripts/run-access-unblock-task-seeder.mjs", "utf8");
 
@@ -2750,6 +2759,12 @@ test("project truth indexes route app-completion proof gaps instead of treating 
   assert.match(dispatcher, /App-completion rule/);
   assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_PER_TRACK_DEPTH \?\? 1/);
   assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_MAX_GAPS \?\? \(perTrackDispatchDepth \* 2\)/);
+  assert.match(dispatcher, /persistentCompletionParentForProject/);
+  assert.match(dispatcher, /isReusableProjectTruthGapIssue/);
+  assert.match(dispatcher, /findExistingIssueForGap\([\s\S]*completionParent\.id/);
+  assert.match(dispatcher, /noop_persistent_completion_parent_missing/);
+  assert.match(dispatcher, /\/api\/issues\/\$\{completionParent\.id\}\/children/);
+  assert.match(dispatcher, /blockParentUntilDone: true/);
   assert.match(dispatcher, /function dispatchableGaps/);
   assert.match(dispatcher, /appCompletionCandidatePolicy = "product_boundaries_v2"/);
   assert.match(dispatcher, /refreshStaleAppCompletionContracts/);
@@ -2789,9 +2804,9 @@ test("project truth indexes route app-completion proof gaps instead of treating 
 test("project truth dispatcher ignores exact terminal visible issues for current gaps", async () => {
   const dispatcher = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
 
-  assert.match(dispatcher, /const exactTitleIssues = issues/);
-  assert.match(dispatcher, /issue\.title === title && !issue\.hiddenAt/);
-  assert.match(dispatcher, /\.filter\(\(issue\) => !terminalStatuses\.has\(issue\.status\)\)/);
+  assert.match(dispatcher, /function canonicalExistingIssue\(title, issues, completionParentId\)/);
+  assert.match(dispatcher, /selectReusableProjectTruthGapIssue\(/);
+  assert.match(dispatcher, /filter\(\(issue\) => issue\.title === title\)/);
   assert.doesNotMatch(dispatcher, /updatedDelta/);
 });
 

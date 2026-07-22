@@ -5,7 +5,11 @@ import path from "node:path";
 import { agentWipBlockerFor, fetchAgentWipState } from "./lib/agent-wip-guard.mjs";
 import {
   activeProjectTruthTrackIssues,
+  isReusableProjectTruthGapIssue,
   parseProjectTruthSourceItemId,
+  persistentCompletionParentForProject,
+  persistentCompletionParentIdentifierByProject,
+  selectReusableProjectTruthGapIssue,
 } from "./lib/project-truth-gap-dispatcher.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
@@ -243,28 +247,26 @@ function identifierNumber(identifier) {
   return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
 }
 
-function canonicalExistingIssue(title, issues) {
-  const exactTitleIssues = issues
-    .filter((issue) => issue.title === title && !issue.hiddenAt);
-  return exactTitleIssues
-    .filter((issue) => !terminalStatuses.has(issue.status))
-    .sort((a, b) => identifierNumber(a.identifier) - identifierNumber(b.identifier))
-    .at(0) ?? null;
+function canonicalExistingIssue(title, issues, completionParentId) {
+  return selectReusableProjectTruthGapIssue(
+    (issues ?? []).filter((issue) => issue.title === title),
+    completionParentId,
+  );
 }
 
-async function findExistingIssueByTitle(companyId, title, initialIssues) {
+async function findExistingIssueByTitle(companyId, title, initialIssues, completionParentId) {
   const searched = await request(
     "GET",
     `/api/companies/${companyId}/issues?q=${encodeURIComponent(title)}&limit=25`,
   );
-  return canonicalExistingIssue(title, [...initialIssues, ...searched]);
+  return canonicalExistingIssue(title, [...initialIssues, ...searched], completionParentId);
 }
 
-async function findExistingIssueBySourceItemId(companyId, sourceItemId, initialIssues) {
+async function findExistingIssueBySourceItemId(companyId, sourceItemId, initialIssues, completionParentId) {
   if (!sourceItemId) return null;
   const normalized = String(sourceItemId).trim();
   const localMatch = initialIssues
-    .filter((issue) => !terminalStatuses.has(issue.status))
+    .filter((issue) => isReusableProjectTruthGapIssue(issue, completionParentId))
     .find((issue) => parseProjectTruthSourceItemId(issue) === normalized) ?? null;
   if (localMatch) return localMatch;
   const searched = await request(
@@ -272,7 +274,7 @@ async function findExistingIssueBySourceItemId(companyId, sourceItemId, initialI
     `/api/companies/${companyId}/issues?q=${encodeURIComponent(normalized)}&limit=25`,
   );
   return searched
-    .filter((issue) => !terminalStatuses.has(issue.status))
+    .filter((issue) => isReusableProjectTruthGapIssue(issue, completionParentId))
     .find((issue) => parseProjectTruthSourceItemId(issue) === normalized) ?? null;
 }
 
@@ -286,12 +288,12 @@ function relatedRuntimeProbeTerms(gap) {
   return terms;
 }
 
-function relatedExistingIssue(gap, issues) {
+function relatedExistingIssue(gap, issues, completionParentId) {
   const project = String(gap.project ?? "");
   const terms = relatedRuntimeProbeTerms(gap);
   if (terms.length === 0) return null;
   return issues
-    .filter((issue) => !terminalStatuses.has(issue.status))
+    .filter((issue) => isReusableProjectTruthGapIssue(issue, completionParentId))
     .filter((issue) => String(issue.title ?? "").includes(`[${project}][Project Truth]`))
     .filter((issue) => {
       const text = `${issue.title ?? ""}\n${issue.description ?? ""}`.toLowerCase();
@@ -304,10 +306,15 @@ function relatedExistingIssue(gap, issues) {
     .at(0) ?? null;
 }
 
-async function findExistingIssueForGap(companyId, title, gap, initialIssues) {
-  const bySourceItem = await findExistingIssueBySourceItemId(companyId, gap.sourceItemId, initialIssues);
+async function findExistingIssueForGap(companyId, title, gap, initialIssues, completionParentId) {
+  const bySourceItem = await findExistingIssueBySourceItemId(
+    companyId,
+    gap.sourceItemId,
+    initialIssues,
+    completionParentId,
+  );
   if (bySourceItem) return bySourceItem;
-  const exact = await findExistingIssueByTitle(companyId, title, initialIssues);
+  const exact = await findExistingIssueByTitle(companyId, title, initialIssues, completionParentId);
   if (exact) return exact;
   const relatedTerms = relatedRuntimeProbeTerms(gap);
   if (relatedTerms.length === 0) return null;
@@ -315,7 +322,18 @@ async function findExistingIssueForGap(companyId, title, gap, initialIssues) {
     "GET",
     `/api/companies/${companyId}/issues?q=${encodeURIComponent(`[${gap.project}][Project Truth]`)}&limit=50`,
   );
-  return relatedExistingIssue(gap, [...initialIssues, ...searched]);
+  return relatedExistingIssue(gap, [...initialIssues, ...searched], completionParentId);
+}
+
+async function fetchPersistentCompletionParent(identifier) {
+  try {
+    return await request("GET", `/api/issues/${identifier}`);
+  } catch (error) {
+    if (/failed with 404\b/.test(error instanceof Error ? error.message : String(error))) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 function findProject(projects, name) {
@@ -583,9 +601,10 @@ let labels;
 let issues;
 let projectTruthIssues;
 let liveRuns;
+let completionParents;
 try {
   company = await resolveCompany();
-  [health, projects, agents, goals, labels, issues, projectTruthIssues, liveRuns] = await Promise.all([
+  [health, projects, agents, goals, labels, issues, projectTruthIssues, liveRuns, completionParents] = await Promise.all([
     request("GET", "/api/health"),
     request("GET", `/api/companies/${company.id}/projects`),
     request("GET", `/api/companies/${company.id}/agents`),
@@ -594,6 +613,8 @@ try {
     request("GET", `/api/companies/${company.id}/issues?limit=1000`),
     request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent("[Project Truth]")}&limit=200`),
     request("GET", `/api/companies/${company.id}/live-runs`),
+    Promise.all(Object.values(persistentCompletionParentIdentifierByProject)
+      .map((identifier) => fetchPersistentCompletionParent(identifier))),
   ]);
 } catch (error) {
   console.log(JSON.stringify({
@@ -635,6 +656,30 @@ for (const projectGapSet of gapsToDispatch) {
     });
     continue;
   }
+  const completionParent = persistentCompletionParentForProject({
+    projectName,
+    issues: completionParents,
+  });
+  if (!completionParent) {
+    const action = {
+      action: "noop_persistent_completion_parent_missing",
+      project: projectName,
+      expectedIdentifier: persistentCompletionParentIdentifierByProject[projectName] ?? null,
+      ownerAction: `Restore the live persistent ${projectName} completion parent before dispatching another gap.`,
+    };
+    actions.push(action);
+    trackPlans.push({
+      project: projectName,
+      targetDepth: perTrackDispatchDepth,
+      startingActiveDepth: 0,
+      resultingPlannedDepth: 0,
+      indexedGapCount: projectGapSet.gaps.length,
+      activeIssueIdentifiers: [],
+      actions: [action],
+      missingDepthReasons: [{ reason: "persistent_completion_parent_missing" }],
+    });
+    continue;
+  }
   const dirtyProjectRepo = dirtyDispatchProjects.get(projectName);
   if (dirtyProjectRepo) {
     const action = {
@@ -668,6 +713,7 @@ for (const projectGapSet of gapsToDispatch) {
     issues,
     projects,
     marker,
+    completionParentId: completionParent.id,
     terminalStatuses,
   });
   for (const issue of activeTrackIssues) {
@@ -697,7 +743,13 @@ for (const projectGapSet of gapsToDispatch) {
       });
       continue;
     }
-    const existing = await findExistingIssueForGap(company.id, title, gap, issues);
+    const existing = await findExistingIssueForGap(
+      company.id,
+      title,
+      gap,
+      issues,
+      completionParent.id,
+    );
     if (existing) {
       retainedDispatchTitles.add(existing.title);
       retainedDispatchIds.add(existing.id);
@@ -708,17 +760,9 @@ for (const projectGapSet of gapsToDispatch) {
         title: existing.title,
         project: gap.project,
         assignee: agents.find((agent) => agent.id === existing.assigneeAgentId)?.name ?? null,
+        parentIdentifier: completionParent.identifier,
       });
-      if (["backlog", "todo", "in_progress", "in_review"].includes(existing.status)) {
-        trackDepth += 1;
-      } else {
-        missingDepthReasons.push({
-          reason: "existing_issue_not_active_queue_lane",
-          identifier: existing.identifier,
-          status: existing.status,
-          title: existing.title,
-        });
-      }
+      trackDepth += 1;
       continue;
     }
 
@@ -730,6 +774,7 @@ for (const projectGapSet of gapsToDispatch) {
       gap,
       trackDepthBefore: trackDepth,
       trackDepthTarget: perTrackDispatchDepth,
+      parentIdentifier: completionParent.identifier,
     });
 
     if (apply) {
@@ -748,7 +793,7 @@ for (const projectGapSet of gapsToDispatch) {
         gap.kind === "event_chain_gap" ? "architecture" : "runtime",
         gap.kind === "runtime_error" ? "ops" : "architecture",
       ];
-      const created = await request("POST", `/api/companies/${company.id}/issues`, {
+      const created = await request("POST", `/api/issues/${completionParent.id}/children`, {
         title,
         description: descriptionForGap(gap, audit),
         status: "todo",
@@ -771,6 +816,7 @@ for (const projectGapSet of gapsToDispatch) {
           "If the lane leaves repo changes uncommitted, it does not close done without a linked open source-control closure sidecar or exact no-commit blocker.",
           "For runtime findings, production health is restored with smoke proof or an exact remaining provider/permission blocker is assigned.",
         ],
+        blockParentUntilDone: true,
       });
       const wakeBlocker = activeConflictForCreatedIssue(created, wip);
       const wakeBoundary = directWakeBoundaryForAgent(created.assigneeAgentId);

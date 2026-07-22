@@ -53,12 +53,12 @@ engine. Useful graph-workflow semantics are expressed through existing, inspecta
 These are behavioral contracts, not a requirement to copy another framework's API. Add a plugin only
 when the capability cannot be expressed update-safely through Paperclip configuration and native
 contracts. Roost owns the company knowledge/management plane and reusable application/tool
-capabilities; Paperclip retains agent execution governance. The board activated the architectural
-direction on 2026-07-22 and authorized a bounded local-Paperclip-to-hosted-Roost read-only canary as
-a V0 transition aid. That lane must remain least-privilege, evidence-backed, and subordinate to the
-Soar-first and Roost-second completion mission. It does not authorize broad provider writes,
-production mutation, or direct database access. The canonical boundary and rollout gates live in
-`docs/softwarehouse/18-roost-company-knowledge-plane.md`.
+capabilities; Paperclip retains agent execution governance. On July 22, 2026, the board activated
+the architectural direction and authorized only a bounded local-Paperclip-to-Roost-VPS read-only
+canary as a `Softwarehouse V0` transition aid. That lane must remain least-privilege,
+evidence-backed, and subordinate to the Soar-first and Roost-second completion mission. It does not
+authorize broad provider writes, production mutation, or direct database access. The canonical
+boundary and rollout gates live in `docs/softwarehouse/18-roost-company-knowledge-plane.md`.
 
 Agent self-correction follows the Agent Improvement Flywheel: every meaningful failed or weak run
 should produce a redacted trace, feedback, eval/regression gate, and improvement task when needed.
@@ -66,9 +66,11 @@ No improvement task closes without EvalRun `PASS`.
 
 ## Local Deployment Boundary
 
-V1 targets local trusted development first. Project applications such as Soar and Roost are built
-locally by agents, committed to git, pushed, deployed through Coolify, and verified through
-production health checks. Paperclip must keep the local state and production-facing evidence aligned.
+In the current `Softwarehouse V0` phase, Paperclip stays local on the canonical Windows host.
+Project applications such as Soar and Roost are built locally by agents, committed to git, pushed,
+deployed through Coolify to their named VPS targets, and verified through production health checks.
+Hosting Paperclip itself on VPS remains a later `Softwarehouse V1` step. Paperclip must keep the
+local state and production-facing evidence aligned.
 
 ## Mission Control Contract
 

@@ -9,9 +9,12 @@ autonomous softwarehouse that can create, maintain, verify, deploy, and later
 sell or operate digital products with AI agents acting as an organized company.
 
 The project is both product work and company-building work. The current proof
-is V0: Paperclip remains the local Windows control plane while autonomously
-creating, developing, deploying, and verifying Soar and Roost on VPS. Moving
-Paperclip itself to VPS belongs to V1 built on this foundation.
+is V0: a complete local autonomous softwarehouse for creating and finishing
+applications. Paperclip remains the local Windows control plane while agents
+autonomously create, develop, deploy, verify, and maintain Soar and Roost; the
+products may run on VPS. V0 is not expected to operate the whole business.
+Moving Paperclip itself to VPS and activating broad business departments belong
+to V1 built on this foundation.
 
 The owner wants completion capability proved in sequence rather than portfolio
 expansion by issue volume. Soar is the first completion priority because its
@@ -55,7 +58,12 @@ Roost, not to hosting Paperclip itself.
 V1 begins only after V0 is accepted and Roost is sufficiently complete for the
 company layer to make sense. V1 covers moving Paperclip itself to VPS and
 connecting the hosted control plane with Soar and the wider Roost-backed
-ecosystem.
+ecosystem. Autonomous business-plan, CRM, sales, marketing, finance, HR,
+customer-success, provider-write, and external-communication operations are
+V1 scopes, not requirements for local Softwarehouse V0 acceptance.
+
+Canonical V0 implementation plan:
+`doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md`.
 
 ## Desired Collaboration
 
