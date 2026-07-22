@@ -15,7 +15,6 @@ const graphPath = path.join(outputRoot, "graphs", "architecture-awareness.json")
 const statusDir = path.join(outputRoot, "status");
 const jsonOut = path.join(statusDir, "app-completion-index.json");
 const mdOut = path.join(statusDir, "app-completion-index.md");
-const generatedAt = new Date().toISOString();
 
 function rel(value) {
   return value.split(path.sep).join("/");
@@ -133,6 +132,7 @@ function completionRisk(item) {
 }
 
 const graph = JSON.parse(await readFile(graphPath, "utf8"));
+const generatedAt = graph.generated_at ?? graph.generatedAt ?? "1970-01-01T00:00:00.000Z";
 const entities = graph.entities ?? [];
 const relations = graph.relations ?? [];
 const entitiesById = new Map(entities.map((entity) => [entity.id, entity]));

@@ -62,7 +62,7 @@ const graphsDir = path.join(outputRoot, "graphs");
 const statusDir = path.join(outputRoot, "status");
 const curatedGraphPath = path.join(graphsDir, "architecture-graph.json");
 const startedAtMs = Date.now();
-const now = new Date().toISOString();
+const defaultUpdatedAt = "1970-01-01T00:00:00.000Z";
 const statusOnly = hasFlag("--status-only");
 const maxElapsedMs = Math.max(0, intArg("--max-elapsed-ms", 0));
 const progressEveryFiles = Math.max(1, intArg("--progress-every", 250) || 250);
@@ -77,6 +77,16 @@ const generatedOutputFiles = new Set([
   path.join(statusDir, "architecture-dependency-report.md"),
   path.join(statusDir, "architecture-ownership-report.md"),
   path.join(statusDir, "task-synchronization-report.md"),
+  path.join(statusDir, "app-completion-index.json"),
+  path.join(statusDir, "app-completion-index.md"),
+  path.join(statusDir, "event-chain-index.json"),
+  path.join(statusDir, "event-chain-index.md"),
+  path.join(statusDir, "operational-readiness-index.json"),
+  path.join(statusDir, "operational-readiness-index.md"),
+  path.join(statusDir, "project-truth-index.json"),
+  path.join(statusDir, "project-truth-index.md"),
+  path.join(statusDir, "runtime-error-index.json"),
+  path.join(statusDir, "runtime-error-index.md"),
 ]);
 
 const ignoredDirs = new Set([
@@ -548,7 +558,7 @@ function addEntity(map, input) {
     owner: input.owner ?? "",
     dependencies: uniq([...(existing?.dependencies ?? []), ...(input.dependencies ?? [])]),
     related_entities: uniq([...(existing?.related_entities ?? []), ...(input.related_entities ?? [])]),
-    updated_at: input.updated_at ?? now,
+    updated_at: input.updated_at ?? existing?.updated_at ?? defaultUpdatedAt,
     evidence: uniq([...(existing?.evidence ?? []), ...(input.evidence ?? [])]),
   };
   map.set(id, merged);
@@ -566,7 +576,10 @@ function addRelation(relations, from, to, type, evidence = "") {
     to: to.id,
     type,
     evidence,
-    updated_at: now,
+    updated_at: [from.updated_at, to.updated_at]
+      .filter((value) => typeof value === "string" && value.length > 0)
+      .sort()
+      .at(-1) ?? defaultUpdatedAt,
   });
 }
 
@@ -1347,9 +1360,15 @@ try {
   // Optional curated priority test links file.
 }
 
+const generatedAt = [...entities.values(), ...relations.values()]
+  .map((item) => item.updated_at)
+  .filter((value) => typeof value === "string" && value.length > 0)
+  .sort()
+  .at(-1) ?? defaultUpdatedAt;
+
 const graph = {
   schema_version: 1,
-  generated_at: now,
+  generated_at: generatedAt,
   project: {
     name: projectName,
     root: toPosix(repoRoot),
@@ -1366,8 +1385,15 @@ const graph = {
   },
   task_imports: taskImportStats,
   status_values: [...statusValues],
-  entities: [...entities.values()].sort((a, b) => a.type.localeCompare(b.type) || a.path.localeCompare(b.path)),
-  relations: [...relations.values()].sort((a, b) => a.type.localeCompare(b.type) || a.from.localeCompare(b.from)),
+  entities: [...entities.values()].sort((a, b) =>
+    a.type.localeCompare(b.type)
+    || a.path.localeCompare(b.path)
+    || a.id.localeCompare(b.id)),
+  relations: [...relations.values()].sort((a, b) =>
+    a.type.localeCompare(b.type)
+    || a.from.localeCompare(b.from)
+    || a.to.localeCompare(b.to)
+    || a.id.localeCompare(b.id)),
 };
 
 enforceTimeBudget("graph_built", { entities: graph.entities.length, relations: graph.relations.length });
@@ -1788,7 +1814,7 @@ const completion = JSON.stringify({
   project: projectName,
   root: toPosix(repoRoot),
   output: toPosix(outputRoot),
-  generatedAt: now,
+  generatedAt: graph.generated_at,
   elapsedMs: Date.now() - startedAtMs,
   entities: graph.entities.length,
   relations: graph.relations.length,

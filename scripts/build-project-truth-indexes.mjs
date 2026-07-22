@@ -17,7 +17,7 @@ const statusDir = path.join(repoRoot, "docs", "status");
 const graphPath = path.join(repoRoot, "docs", "graphs", "architecture-awareness.json");
 const appCompletionPath = path.join(statusDir, "app-completion-index.json");
 const apply = hasFlag("--apply");
-const generatedAt = new Date().toISOString();
+let generatedAt = "1970-01-01T00:00:00.000Z";
 
 const outputPaths = {
   eventChainJson: path.join(statusDir, "event-chain-index.json"),
@@ -575,6 +575,16 @@ const [graph, appCompletion, publicProbe] = await Promise.all([
   readJsonIfExists(appCompletionPath, { counts: {}, flows: [], priorityReviewItems: [] }),
   publicProbeForProject(),
 ]);
+
+generatedAt = [
+  graph.generated_at,
+  graph.generatedAt,
+  appCompletion.generatedAt,
+  publicProbe.generatedAt,
+]
+  .filter((value) => typeof value === "string" && value.length > 0)
+  .sort()
+  .at(-1) ?? generatedAt;
 
 const missingInputs = [];
 if (!await fileExists(graphPath)) missingInputs.push(toPosix(path.relative(repoRoot, graphPath)));
