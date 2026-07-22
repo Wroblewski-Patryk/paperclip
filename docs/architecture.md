@@ -52,10 +52,13 @@ engine. Useful graph-workflow semantics are expressed through existing, inspecta
 
 These are behavioral contracts, not a requirement to copy another framework's API. Add a plugin only
 when the capability cannot be expressed update-safely through Paperclip configuration and native
-contracts. Roost owns reusable application/tool capabilities; Paperclip retains company governance.
-The Roost/MCP row is a future boundary, not an active implementation lane. Until the board activates
-that stage, agents build Roost according to its existing product architecture and do not create
-speculative integration work or change current delivery priorities.
+contracts. Roost owns the company knowledge/management plane and reusable application/tool
+capabilities; Paperclip retains agent execution governance. The board activated the architectural
+direction on 2026-07-22 and authorized a bounded local-Paperclip-to-hosted-Roost read-only canary as
+a V0 transition aid. That lane must remain least-privilege, evidence-backed, and subordinate to the
+Soar-first and Roost-second completion mission. It does not authorize broad provider writes,
+production mutation, or direct database access. The canonical boundary and rollout gates live in
+`docs/softwarehouse/18-roost-company-knowledge-plane.md`.
 
 Agent self-correction follows the Agent Improvement Flywheel: every meaningful failed or weak run
 should produce a redacted trace, feedback, eval/regression gate, and improvement task when needed.

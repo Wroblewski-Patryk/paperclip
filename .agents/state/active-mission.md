@@ -1,5 +1,29 @@
 # Active Mission
 
+## 2026-07-22 - Roost Knowledge Plane Direction Activated - Current
+
+- The owner confirmed the target boundary: Paperclip is the governed control
+  plane for agents and execution; Roost is the central company knowledge and
+  management plane used by humans and Paperclip agents through scoped API/MCP.
+  Product repositories remain authoritative for product architecture, code,
+  tests, deployment contracts, and actual behavior.
+- Roost should consolidate ClickUp and Google Drive through provider-aware,
+  bidirectional synchronization with stable IDs, revisions, field authority,
+  loop prevention, conflict handling, audit, and loss-aware Docs/Markdown and
+  Sheets/CSV projections. Paperclip should consume these capabilities through
+  a connector/plugin boundary instead of duplicating every provider integration.
+- The owner authorized a bounded local-Paperclip-to-hosted-Roost read-only
+  canary as a V0 transition aid. It requires one accountable agent, one
+  workspace, TLS, a least-privilege key stored by secret reference, read-only
+  MCP mode, cross-workspace denial, blocked-write proof, audit visibility, and
+  rotation/revocation evidence. Later write phases remain separately gated.
+- This clarification does not reorder current delivery. Soar remains first,
+  Roost second, and both remain in `11 Innovation` until a versioned
+  sale-readiness contract proves that access can be sold responsibly. The
+  integration lane must not become a substitute for product completion.
+- Canonical contract:
+  `docs/softwarehouse/18-roost-company-knowledge-plane.md`.
+
 ## 2026-07-21 - Product Completion Conveyor And Soar-First Closure - Current
 
 - The owner-approved Soar Redis cache-only recovery is complete in `LUC-1553`.

@@ -1,6 +1,6 @@
 # Softwarehouse Innovation To Product Lifecycle
 
-Last updated: 2026-07-04
+Last updated: 2026-07-22
 
 Purpose: define how LuckySparrow applications move from innovation work into
 product/service ownership once they become usable and sellable.
@@ -10,9 +10,11 @@ product/service ownership once they become usable and sellable.
 Department `11 Innovation` is an incubator, not a permanent home for every app.
 
 An application starts in `11 Innovation` while the company is discovering,
-validating, building, and proving the concept. When the application becomes
-usable, supportable, deployable, and commercially meaningful, it should move to
-department `02 Product` for product/service refinement and saleable access.
+validating, building, and proving the concept. Internal users, test users,
+registration, or a deployed URL do not end incubation. When the application is
+usable, supportable, deployable, and safe enough that the owner can responsibly
+sell access, it should move to department `02 Product` for product/service
+operation, refinement, and saleable access.
 
 ## Lifecycle
 
@@ -40,7 +42,15 @@ the accountable product/innovation owner should produce a transition packet:
 - known risks and blockers;
 - pricing/access/entitlement assumptions if commercial;
 - documentation/onboarding state;
+- versioned sale-readiness scope and evidence for every required journey;
+- security, data-isolation, permissions, backup/recovery, rollback, monitoring,
+  incident-response, and supportability evidence appropriate to the product;
+- explicit non-blocking deferrals and known limitations;
 - owner decision requested: move now, keep incubating, or stop/park.
+
+`100%` means complete against the explicit, versioned transition scope. It does
+not mean that software can never contain another defect. Hidden unknowns,
+unverified required journeys, or blocking risks keep the product in innovation.
 
 ## Naming Rule
 
@@ -62,6 +72,8 @@ can be used, maintained, and sold or granted access to.
 
 - Soar: active in `11 Innovation`; first Stage 1 lane.
 - Roost: active in `11 Innovation`; second Stage 1 lane and future company OS.
+- Both may have internal/test users while incubating. Neither becomes a
+  commercial product merely because registration or VPS deployment works.
 - Featherly, Aviary, Nest: parked future portfolio lanes until VPS plus owner
   activation.
 

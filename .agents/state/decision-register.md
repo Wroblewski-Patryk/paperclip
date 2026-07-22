@@ -1,6 +1,6 @@
 # Decision Register
 
-Last updated: 2026-07-03
+Last updated: 2026-07-22
 
 This file records durable Paperclip Softwarehouse decisions from recent owner
 coordination.
@@ -20,6 +20,13 @@ coordination.
 | DEC-PSH-011 | 2026-07-03 | Repeated queued wakeups for the same issue/agent should be coalesced in code rather than cleaned up manually on the board. | accepted | Reduces `issue_assignee_changed` cancellation churn and dashboard noise. | Confirm `server/src/services/heartbeat.ts` coalescing change and regression test are committed/preserved. |
 | DEC-PSH-012 | 2026-07-03 | Keep one Codex-level Paperclip supervisor: `check-paperclip-soar-autonomy` / `Paperclip Softwarehouse liveness watchdog`, every 480 minutes, with strategic standards review, teacher-loop scope, and approve-task routing merged in. | accepted | Prevents two parent automations from diverging and gives Paperclip one temporary external supervisor while it learns to self-supervise through its own agents, routines, evidence gates, and owner approve tasks. | Verify the watchdog writes liveness/teacher reports, routes strategic owner decisions as Paperclip approve tasks, and retire it only when Paperclip has evidence-backed self-supervision. |
 | DEC-PSH-013 | 2026-07-04 | Softwarehouse memory must be layered into current truth, decisions, evidence, lessons, and archive instead of treating all old issue history as equal context. | accepted | Reduces long-run noise and prevents stale facts from 5,000 tasks ago from overriding current Soar/Roost or company truth. | Use `docs/softwarehouse/17-knowledge-governance.md`; promote evidence into current truth only through accountable review. |
+| DEC-PSH-014 | 2026-07-22 | Paperclip is the agent execution control plane; Roost is the central company knowledge and management plane used through governed API/MCP; product repos remain authoritative for product truth. | accepted | Prevents Paperclip, Roost, and product repos from becoming competing systems of record. | Apply `docs/softwarehouse/18-roost-company-knowledge-plane.md` to future integration and data-model work. |
+| DEC-PSH-015 | 2026-07-22 | Soar and Roost remain durable offerings in `11 Innovation` until a versioned sale-readiness contract proves access can be sold responsibly; internal/test users and deployment do not by themselves trigger transition to `02 Product`. | accepted | Makes commercial readiness, not registration, the lifecycle gate and preserves offering identity across department transitions. | Extend product completion/transition evidence with the sale-readiness contract before commercial activation. |
+| DEC-PSH-016 | 2026-07-22 | Roost provider sync must use stable identities, revisions, per-field authority, idempotency, loop prevention, conflict handling, audit, and loss-aware normalized projections. | accepted | Enables safe ClickUp and Google Drive synchronization without silent overwrite or destructive Docs/Markdown and Sheets/CSV round trips. | Specify provider-specific mapping and conflict contracts before enabling two-way writes. |
+| DEC-PSH-017 | 2026-07-22 | Departments are durable company functions; teams are durable specialist groups; squads are temporary cross-department delivery groups; humans and agents occupy roles and assignments. | accepted | Keeps organizational accountability distinct from temporary product execution. | Use this vocabulary in future Roost organization data and Paperclip context projections. |
+| DEC-PSH-018 | 2026-07-22 | The first Paperclip-to-Roost phase is a bounded read-only canary using one accountable agent, one workspace, TLS, least privilege, secret refs, denial tests, audit, and key lifecycle proof. | accepted | Begins the V0-to-V1 transition without granting broad provider or production write authority or displacing Soar/Roost completion. | Create a separately scoped implementation issue/plan and keep later write phases behind explicit gates. |
+| DEC-PSH-019 | 2026-07-22 | ClickUp tasks are provider representations, Roost work items are normalized company records, and Paperclip issues are agent execution units; Paperclip child/run state reaches Roost only through an explicit aggregation/acceptance mapping. | accepted | Avoids three competing task masters and keeps technical execution/recovery noise out of human business queues. | Define stable external refs and status/evidence mapping before task synchronization is activated. |
+| DEC-PSH-020 | 2026-07-22 | V0 knowledge uses existing layered roots: `docs/softwarehouse` for stable company standards, `.agents/state` for operating memory, product `docs/` for product truth, and issues/work products for execution evidence; Markdown/CSV are primary projections, with generated Mermaid and optional later Turtle/BPMN/GraphML. | accepted | Preserves readable, diffable local foundations without creating a duplicate company warehouse before Roost is ready. | Keep IDs and provenance stable across future Roost imports and generated graph views. |
 
 ## Open Decision Queue
 
@@ -29,3 +36,7 @@ coordination.
   lanes, plugins, or owner approve tasks.
 - Decide whether the heartbeat coalescing fix from the archived thread should
   become a PR-ready committed change if it is still only local.
+- Define provider-specific field-authority and conflict matrices before ClickUp
+  or Google Drive two-way writes are activated.
+- Define the versioned Soar and Roost sale-readiness scopes before either
+  offering transitions from `11 Innovation` to `02 Product`.

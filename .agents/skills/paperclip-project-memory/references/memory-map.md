@@ -1,6 +1,6 @@
 # Paperclip Project Memory Map
 
-Last updated: 2026-07-04
+Last updated: 2026-07-22
 
 ## Files
 
@@ -14,6 +14,7 @@ Last updated: 2026-07-04
 | `.agents/state/agent-evals.md` | Evaluations of agent behavior and quality. | Reviewing agent performance or learning-loop outcomes. |
 | `.agents/workflows/context-capture.md` | Procedure for turning chats into memory. | The capture workflow itself changes. |
 | `docs/softwarehouse/17-knowledge-governance.md` | Company rule for separating current truth, decisions, evidence, lessons, and archive. | Agents need to decide whether old run evidence should become durable truth or remain historical context. |
+| `docs/softwarehouse/18-roost-company-knowledge-plane.md` | Canonical Paperclip/Roost/product-repo boundary, company knowledge model, provider-sync assumptions, context policy, and staged autonomy path. | Future work changes the Roost company-plane role, integration phases, provider sync, offering lifecycle, or autonomy boundary. |
 
 ## Boundaries
 

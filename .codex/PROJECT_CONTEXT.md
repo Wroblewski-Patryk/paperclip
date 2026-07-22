@@ -1,6 +1,6 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-20
+Last updated: 2026-07-22
 
 ## What This Workspace Is
 
@@ -123,9 +123,13 @@ capabilities become usable and governed, Paperclip agents should consume them
 through MCP-first interfaces. Paperclip remains the company control plane;
 Roost does not replace issue ownership, permissions, approvals, budgets, or
 evidence gates.
-This is future architecture context only. It does not authorize current MCP or
-Paperclip-to-Roost integration work; current agents continue building Roost
-from its existing project documentation until the owner activates that stage.
+The owner activated this direction on 2026-07-22. A bounded read-only canary
+from local Paperclip to hosted Roost may be planned and verified during V0 as a
+transition aid, using a least-privilege secret ref and one accountable agent.
+This does not authorize broad writes, provider mutations, direct database
+access, or priority drift away from finishing Soar first and Roost second.
+Canonical boundaries are in
+`docs/softwarehouse/18-roost-company-knowledge-plane.md`.
 
 Agents should model a real softwarehouse:
 

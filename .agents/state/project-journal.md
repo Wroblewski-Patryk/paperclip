@@ -4207,3 +4207,65 @@ Soar-first sequence. `LUC-1570` assigns the full-instance restore proof to DRE
 with mandatory SPA/QVE handoffs and blocks it on Soar completion `LUC-27`.
 `LUC-1571` assigns the V0/V1 hosted-target wording audit to DSM with COO review
 and blocks it on conveyor source-control closure `LUC-1565`.
+
+## 2026-07-22 - Conversation summary: Roost company knowledge plane and V0-to-V1 boundary
+
+The owner clarified and approved the target LuckySparrow architecture. Paperclip
+is the governed control plane for AI agents, assignments, runs, routines,
+budgets, approvals, and evidence. Roost/CompanyCore is the central company
+knowledge and management plane: twelve coordinated department systems plus
+company orchestration over shared records, tables, tasks, pipelines,
+procedures, resources, clients, knowledge, metrics, decisions, integrations,
+and audit. Product repositories remain authoritative for product intent,
+architecture, code, tests, deployment contracts, and actual behavior.
+
+Roost is expected to consolidate ClickUp and Google Drive through safe
+bidirectional synchronization. The durable contract requires provider and
+normalized IDs, revisions, per-field authority, idempotency, loop prevention,
+conflict handling, deletion/archive semantics, audit, and loss-aware Google
+Docs -> Markdown and Google Sheets -> CSV projections. Paperclip should consume
+Roost through a connector/plugin and scoped API/MCP rather than adding every
+business-provider integration directly to Paperclip core.
+
+Task ownership is also separated: ClickUp tasks are provider-facing
+representations, Roost work items are normalized company records, and
+Paperclip issues are single-owner agent execution units. A Roost work item may
+decompose into several Paperclip issues; intermediate child/run status does not
+blindly overwrite the business outcome. Only an explicit aggregation and
+acceptance mapping publishes evidence-backed progress back to Roost/ClickUp.
+
+Soar and Roost remain durable offerings in `11 Innovation` while access is not
+ready to sell responsibly, even though internal/test users and registration may
+exist. Transition to `02 Product` depends on an explicit versioned
+sale-readiness contract with evidence, known limitations, and owner acceptance;
+`100%` means complete against that declared scope, not an impossible guarantee
+that software will never have another defect.
+
+The owner also approved the organization vocabulary of durable departments,
+specialist teams, temporary cross-department squads, roles, and human/agent
+members. Agent context should be the smallest sufficient packet selected by
+role, department, offering, initiative, task, risk, and freshness. Autonomy
+progresses from observe, through draft and per-action approval, to bounded
+autonomy and exception supervision; agents may propose but cannot self-grant
+greater authority.
+
+For local V0, the existing layered roots remain canonical instead of adding a
+second company warehouse: `docs/softwarehouse/` for stable company standards,
+`.agents/state/` for operating memory, product-repository `docs/` for product
+truth, and Paperclip issues/work products for execution evidence. Markdown and
+CSV are the primary readable projections; Mermaid is generated visualization,
+with Turtle/RDF, BPMN, and GraphML reserved for later semantic, process, or
+interchange needs.
+
+A bounded local-Paperclip-to-hosted-Roost read-only canary is now an authorized
+V0 transition aid. It must use one accountable agent, one workspace, TLS, a
+least-privilege key stored by secret reference, read-only MCP mode, denial and
+cross-workspace tests, audit visibility, and rotation/revocation evidence. This
+does not authorize later write phases, provider mutation, direct database
+access, secret disclosure, or priority drift. Soar remains first, Roost second,
+and the integration lane must not substitute for finishing either product.
+
+Canonical contract:
+`docs/softwarehouse/18-roost-company-knowledge-plane.md`. Promotion: current
+truth and durable decisions updated from conversation summary; implementation
+and live connection proof remain future scoped work.

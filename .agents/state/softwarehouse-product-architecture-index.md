@@ -1,6 +1,6 @@
 # Softwarehouse Product Architecture Index
 
-Last updated: 2026-07-04
+Last updated: 2026-07-22
 
 Purpose: define where Paperclip agents must look before changing Soar or
 Roost, and how product architecture truth should constrain autonomous work.
@@ -106,6 +106,13 @@ Observed from current Roost docs:
   feedback -> improvement -> next intent.
 - Future work must use scoped task contracts, command-shaped writes,
   permission gates, audit evidence, and module confidence updates.
+- Roost is the intended central company knowledge and management plane for
+  humans and Paperclip agents. Paperclip remains the agent execution control
+  plane; product repositories remain authoritative for product truth.
+- The owner authorized a bounded read-only Paperclip-to-hosted-Roost canary on
+  2026-07-22. Its boundary, synchronization assumptions, context model, and
+  staged autonomy gates are defined in
+  `docs/softwarehouse/18-roost-company-knowledge-plane.md`.
 
 ## Product Work Preflight
 

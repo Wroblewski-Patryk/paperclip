@@ -1,6 +1,6 @@
 # Board Context
 
-Last updated: 2026-07-20
+Last updated: 2026-07-22
 
 ## User Intent
 
@@ -127,15 +127,26 @@ ecosystem.
 - LuckySparrow Software House is the local autonomous company instance.
 - Soar is the first active sellable/personal-capital app lane.
 - Roost is the second active sellable app lane and part of the same hard
-  delivery-to-VPS mission. It is also the intended application/tool layer for
-  reusable digital company capabilities. Paperclip agents should ultimately
-  consume those capabilities through governed MCP-first interfaces exposed by
-  Roost, while Paperclip keeps authority, budgets, approvals, ownership, and
-  execution evidence.
-- The Roost/MCP direction is future architecture context and does not change
-  current agent work or priorities. For now, agents build Roost according to
-  its existing documentation. Paperclip-to-Roost integration begins only when
-  the owner explicitly activates that later stage.
+  delivery-to-VPS mission. It is also the intended company knowledge and
+  management plane: twelve department systems plus company orchestration over
+  shared engines for records, tables, tasks, pipelines, procedures, resources,
+  knowledge, relations, metrics, decisions, integrations, and audit.
+- Paperclip remains the agent control plane. It owns agents, execution,
+  assignments, runs, routines, budgets, approvals, and evidence gates. It
+  should use Roost through governed API/MCP interfaces rather than integrating
+  ClickUp, Google Drive, and every future company tool directly into core.
+- Product repositories remain the source of truth for product intent,
+  architecture, code, tests, deployment contracts, and actual behavior. Roost
+  consolidates and relates those sources without silently replacing them.
+- The owner activated the Paperclip-to-Roost direction on 2026-07-22. A bounded
+  local-Paperclip-to-hosted-Roost read-only canary may be planned and proved
+  during V0 when it helps the transition, but it must not displace the
+  Soar-first/Roost-second completion mission or authorize broad writes,
+  provider mutation, direct database access, or secret disclosure.
+- Soar and Roost remain in `11 Innovation` while they have internal/test users
+  but are not ready to sell responsibly. Their transition to `02 Product` is
+  governed by an explicit sale-readiness contract, not by registration or
+  deployment alone.
 - Featherly, Aviary, Nest, and other app ideas remain parked unless explicitly
   activated.
 
@@ -196,6 +207,8 @@ dependencies.
   `.agents/state/softwarehouse-stage1-delivery-foundation.md`.
 - Knowledge governance:
   `docs/softwarehouse/17-knowledge-governance.md`.
+- Roost company knowledge plane and integration boundary:
+  `docs/softwarehouse/18-roost-company-knowledge-plane.md`.
 
 Historical Stage 0/v0 files remain as background only and should not override
 the active Stage 1 delivery mission.
