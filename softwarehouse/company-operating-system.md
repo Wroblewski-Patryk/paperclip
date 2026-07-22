@@ -14,26 +14,24 @@ creation.
 
 ## Version Roadmap And Active Scope
 
-`V1 local Soar + Roost completion -> V2.1 Roost connected to Paperclip -> V2.2 Paperclip VPS builder -> V3 portfolio expansion`
+`Softwarehouse V0 local app factory (Soar + Roost) -> Softwarehouse V1 hosted Paperclip + governed Roost company plane -> Softwarehouse V2 portfolio expansion`
 
-- V1 is the current local Paperclip operating target: agents finish Soar and
+- V0 is the current local Paperclip operating target: agents finish Soar and
   Roost through indexed frontend/backend/worker/event-chain evidence,
   source-control closure, local verification, and gated deploy proof where
   credentials/production access are available.
-- Soar and Roost are both active V1 application lanes. Soar remains the first
+- Soar and Roost are both active V0 application lanes. Soar remains the first
   tie-breaker when two safe actions compete for the same owner, credential, or
   protected production gate, but Roost must not be parked when local
   known-state, source-control, implementation, proof, or documentation work is
   legal and owner-scoped.
-- V2.1 starts only after Roost is fully working as an app and then connects
-  Roost/CompanyCore into Paperclip through an accepted API/MCP/data boundary.
-- V2.2 moves Paperclip to a dedicated VPS so agents can build applications on
-  the server and let project pushes redeploy through Coolify to production.
-- V3 opens additional application projects after the local+VPS operating loop
+- V1 starts only after V0 acceptance. It moves Paperclip to VPS and connects
+  the hosted control plane to the governed Roost company-knowledge boundary.
+- V2 opens additional application projects after the local+VPS operating loop
   proves it can run Soar and Roost without silent idle, duplicate churn, or
   hidden blockers.
 - Aviary, Nest, Featherly, and other future apps remain parked until the board
-  explicitly reopens them for V3 or a named exception.
+  explicitly reopens them for V2 or a named exception.
 
 ## Value Streams
 

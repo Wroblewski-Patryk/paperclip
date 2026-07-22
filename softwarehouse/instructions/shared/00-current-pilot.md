@@ -22,7 +22,7 @@
 
 - Active sellable app lane 1: `Soar`
 - Active sellable app lane 2: `Roost`
-- Version roadmap: `V0 local Soar + Roost completion -> V2.1 Roost connected to Paperclip -> V2.2 Paperclip VPS builder -> V3 portfolio expansion`
+- Version roadmap: `Softwarehouse V0 local app factory (Soar + Roost) -> Softwarehouse V1 hosted Paperclip + governed Roost company plane -> Softwarehouse V2 portfolio expansion`
 - Deferred app streams: `Featherly`, `Nest`, `Aviary`, `LuckySparrow.ch`,
   `OpenJarvis`, `Obiekty`, Paperclip product work, and other portfolio
   experiments
@@ -32,7 +32,7 @@
   indexed app truth, one-owner repair lanes, verification, source-control
   closure, docs refresh, and gated deploy evidence. Soar is the first
   tie-breaker for conflicting protected work; Roost must keep moving when safe
-  local work is available. Everything else stays backlog/archived until V3 or
+  local work is available. Everything else stays backlog/archived until V2 or
   explicit board reopen.
 - Roost workspace path: `C:/Personal/Projekty/Aplikacje/Roost`
 - Roost documentation path: `C:/Personal/Projekty/Aplikacje/Roost/docs`
@@ -71,7 +71,7 @@ safe/default development lane.
 Roost owns the second active sellable lane. Keep local implementation,
 known-state, source-control closure, project-truth gap repair, and milestone
 evidence moving whenever the work is safe and owner-scoped. Roost also carries
-the V2.1 integration purpose: Roost is the product/application layer in which
+the V1 integration purpose: Roost is the product/application layer in which
 reusable company capabilities should ultimately live. Once each capability is
 usable and governed, Paperclip agents consume it through an accepted MCP-first
 boundary, with API/data interfaces beneath MCP where appropriate. Do not move
@@ -84,7 +84,7 @@ documentation. The board has authorized only a separately scoped, bounded,
 read-only Paperclip-to-Roost canary as a V0 transition aid. It must not grant
 write authority or displace Soar-first/Roost-second completion.
 
-V2.2 moves Paperclip to `paperclip_luckysparrow` on the VPS for server-side app
+V1 moves Paperclip to `paperclip_luckysparrow` on the VPS for server-side app
 creation and Coolify-mediated deploys. Until then, VPS/Coolify work is deploy
 evidence and remains gated, while local Roost repair/proof/docs work continues.
 

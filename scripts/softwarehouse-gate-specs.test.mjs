@@ -2590,13 +2590,13 @@ test("softwarehouse routing does not reserve LUC-261 as a Roost gate", async () 
   }
 });
 
-test("softwarehouse instructions preserve V1 to V3 autonomous roadmap", async () => {
+test("softwarehouse instructions preserve the V0 to V2 autonomous roadmap", async () => {
   const currentPilot = await readFile("softwarehouse/instructions/shared/00-current-pilot.md", "utf8");
   const operatingManual = await readFile("softwarehouse/company-operating-system.md", "utf8");
   const companyOsConfigurator = await readFile("scripts/configure-softwarehouse-company-os.mjs", "utf8");
 
   for (const source of [currentPilot, operatingManual, companyOsConfigurator]) {
-    assert.match(source, /V1 local Soar \+ Roost completion -> V2\.1 Roost connected to Paperclip -> V2\.2 Paperclip VPS builder -> V3 portfolio expansion/);
+    assert.match(source, /Softwarehouse V0 local app factory \(Soar \+ Roost\) -> Softwarehouse V1 hosted Paperclip \+ governed Roost company plane -> Softwarehouse V2 portfolio expansion/);
     assert.match(source, /Soar and Roost|Soar` and `Roost`|finish `Soar` and `Roost`/);
   }
   assert.match(currentPilot, /Roost must keep moving when safe\s+local work is available/);
