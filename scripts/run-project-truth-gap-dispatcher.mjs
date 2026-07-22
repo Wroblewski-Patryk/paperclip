@@ -172,10 +172,20 @@ function slugFor(value) {
     .slice(0, 64) || "gap";
 }
 
+function evidenceTargetSlug(gap) {
+  const evidence = Array.isArray(gap.evidence) ? gap.evidence.find(Boolean) : null;
+  const path = String(evidence ?? "").split("#")[0].replaceAll("\\", "/");
+  const segments = path.split("/").filter(Boolean);
+  return segments.length > 0 ? slugFor(segments.slice(-5).join("-")) : null;
+}
+
 function sourceItemSlug(gap) {
   const sourceItemId = String(gap.sourceItemId ?? "").trim();
   if (sourceItemId) {
     const parts = sourceItemId.split(":").filter(Boolean);
+    if (parts[0] === "route" && parts[1] === "page-tsx") {
+      return evidenceTargetSlug(gap) ?? slugFor(parts[1]);
+    }
     return slugFor(parts.length >= 2 ? parts[1] : parts[0]);
   }
   const evidence = Array.isArray(gap.evidence) ? gap.evidence.find(Boolean) : null;
@@ -376,6 +386,7 @@ function descriptionForGap(gap, audit) {
     `- userFlow: ${gap.userFlow ?? "n/a"}`,
     `- summary: ${String(gap.summary ?? "").trim() || "n/a"}`,
     `- source item: ${gap.sourceItemId ?? "n/a"}`,
+    `- authoritative evidence path(s): ${Array.isArray(gap.evidence) && gap.evidence.length > 0 ? gap.evidence.join(", ") : "n/a"}`,
     `- indexed owner: ${gap.nextOwner ?? "n/a"}`,
     `- indexed next action: ${gap.nextAction ?? "n/a"}`,
     "",
@@ -388,7 +399,7 @@ function descriptionForGap(gap, audit) {
     projectSummary?.publicProbe?.summary ? `- public probe: ${String(projectSummary.publicProbe.summary).trim()}` : "",
     "",
     "Required autonomous chain:",
-    "1. Diagnose the indexed gap using project indexes and current runtime evidence.",
+    "1. Diagnose the exact indexed source item and authoritative evidence path(s) above using project indexes and current runtime evidence. The title and user-flow label are only routing summaries: never substitute a generic page, endpoint, component, test, or browser route for the exact target. For a dynamic route, use a concrete fixture URL that resolves that exact path.",
     "2. If a code/config fix is needed, create or update the smallest owner-scoped repair issue with affected files, acceptance criteria, and validation command.",
     "3. If verification is needed, hand off to QA/Test Automation with the exact failing command or smoke route.",
     "4. If docs/indexes changed or new truth was found, hand off to Docs Memory with exact files/indexes to update.",

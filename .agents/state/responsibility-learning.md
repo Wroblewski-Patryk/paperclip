@@ -658,3 +658,32 @@ Current evidence:
   found no test Node process or PostgreSQL outside the canonical 54329 tree.
 - Recursive typecheck, build, build-gap typechecks, `182/182` Softwarehouse
   gates, workspace-boundary audit, and runtime-topology audit pass.
+
+## 2026-07-22 - Project Truth targets are identifiers and paths, not titles
+
+Observed pattern: Project Truth issue titles intentionally summarize a broad
+user flow, so a QA agent interpreted two `page-tsx` lanes as the generic
+dashboard page even though the issue description named a different dynamic
+route. Generic browser proof can therefore look plausible while leaving the
+indexed source item unchanged.
+
+Standing rule:
+
+- Treat `source item` and `authoritative evidence path(s)` as the executable
+  target. The issue title and `userFlow` are routing summaries only.
+- Never substitute a generic page, endpoint, component, test, or browser route
+  for the exact indexed target.
+- Dynamic routes require a concrete fixture URL that resolves the exact path.
+- A proof lane stays open until the exact source item is removed or truthfully
+  reclassified by the refreshed Project Truth indexes, and its evidence/state
+  packet receives source-control closure.
+
+Current evidence:
+
+- `LUC-1650` closed the exact bot-assistant route and reduced Soar truth gaps
+  from 51 to 50 with clean commit `87adc571c`.
+- `LUC-1653` initially drifted to generic `/dashboard`; board supervision
+  cancelled that run and a fresh session accepted the exact bot-edit route.
+- The dispatcher now emits authoritative evidence paths, path-specific route
+  title slugs, and an explicit exact-target rule. Focused dispatcher and
+  Softwarehouse gate tests pass `197/197`.

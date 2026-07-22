@@ -4316,3 +4316,27 @@ dependency-blocked continuation left the COO in `error`; recovery owner AIA
 then completed the parent from the accepted child evidence. Next legal work is
 to commit the reviewed implementation packet separately from this memory
 packet, then allow Soar-first dispatch under `LUC-27`.
+
+## 2026-07-22 - Soar Project Truth burn-down started under LUC-27
+
+The first exact Soar gap, `route:page-tsx:58248c9afe` for the selected-bot
+assistant page, passed its focused route test and concrete dynamic browser
+probe. Docs Memory added the exact scanner and documentation relations,
+rebuilt the canonical indexes, and reduced the Soar gap count from 51 to 50.
+Source-control issue `LUC-1652` committed the coherent proof/state packet as
+`87adc571cc64e06426b8af1375614edfcc713d67`; the Soar worktree was clean and
+parent proof lane `LUC-1650` closed automatically.
+
+Dispatcher apply then created `LUC-1653` for
+`route:page-tsx:63cfb064e6` ->
+`apps/web/src/app/dashboard/bots/[id]/edit/page.tsx`. Its first QVE run inferred
+the generic dashboard page from the summary title, so supervision cancelled
+the run, posted the exact-target correction, and forced a fresh session. The
+fresh session acknowledged the dynamic edit route and found the dedicated
+`/dashboard/bots/luc-2188-bot/edit` harness action.
+
+The operating-system correction makes future Project Truth issue titles
+route-specific and records authoritative evidence paths plus an explicit rule
+that source item/path outrank title/user-flow summaries. Focused dispatcher
+and Softwarehouse gate tests pass `197/197`. The Paperclip change remains a
+local source-control packet until its own clean commit is created.

@@ -2757,6 +2757,10 @@ test("project truth indexes route app-completion proof gaps instead of treating 
   assert.match(dispatcher, /\[App Completion\]/);
   assert.match(dispatcher, /gap\.kind === "app_completion_gap"/);
   assert.match(dispatcher, /App-completion rule/);
+  assert.match(dispatcher, /authoritative evidence path\(s\)/);
+  assert.match(dispatcher, /never substitute a generic page, endpoint, component, test, or browser route for the exact target/);
+  assert.match(dispatcher, /parts\[0\] === "route" && parts\[1\] === "page-tsx"/);
+  assert.match(dispatcher, /evidenceTargetSlug/);
   assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_PER_TRACK_DEPTH \?\? 1/);
   assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_MAX_GAPS \?\? \(perTrackDispatchDepth \* 2\)/);
   assert.match(dispatcher, /persistentCompletionParentForProject/);
