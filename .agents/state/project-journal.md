@@ -4373,3 +4373,24 @@ one hard-delivery blocker: pending interaction
 Soar protected readiness path. This remains owner-governed. Full-instance DR
 `LUC-1570`, final `LUC-27`, and `LUC-25` acceptance remain downstream and must
 not be claimed before that approval and evidence chain completes.
+
+## 2026-07-23 - Stale readiness export corrected during V0 acceptance audit
+
+The continuing V0 audit found that the short readiness exporter generated a
+new `generatedAt` while copying a control tick that was nearly an hour old.
+That made already closed Project Truth gates and obsolete source-control state
+look current even though direct API and Git probes disagreed. The exporter now
+fails closed after a configurable 15-minute source age, preserves the source
+timestamp and age, marks `currentStateUsable=false`, renders a prominent stale
+warning, and returns non-zero. Focused plus canonical verification passes
+`191/191`; operating docs and operating-standard audits pass. Implementation
+commit: `7aab7847`; regenerated Paperclip architecture/project-truth packet:
+`971c624c`.
+
+Two late Roost agent writes were reviewed as valid historical clarification
+and committed locally as `b62cf987` and `ff337321`; cancelled-issue run tails
+were removed without touching production. The current runner still has no
+managed protected-input binding name, and the interaction on `LUC-1569`
+remains pending. No secret value, push, deployment, restart, or production
+mutation occurred. The next legal protected action is still the owner's
+approval of the managed read-only Soar readiness path.

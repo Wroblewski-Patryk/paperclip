@@ -822,3 +822,21 @@ or the relevant owners explicitly classify them as not required with evidence.
 - After `LUC-1569` and its security/QA/docs consumers close, complete
   `LUC-27`, run the disposable full-instance restore `LUC-1570`, refresh the
   final V0 scorecard, and request owner acceptance on `LUC-25`.
+
+## 2026-07-23 - Readiness evidence now fails closed when stale
+
+- Fresh direct readiness and source-control checks still name only `LUC-1569`
+  as the hard delivery blocker; the protected interaction remains pending and
+  no `SMOKE_AUTH_*` or `SOAR_PROD_*` binding name is available in the current
+  runner.
+- `softwarehouse:readiness-snapshot` previously re-exported an old control
+  tick with a new export timestamp, so closed gates and historical dirty state
+  could look current. Commit `7aab7847` adds a 15-minute source-age guard,
+  explicit freshness metadata, `currentStateUsable=false`, a visible warning,
+  and non-zero exit for stale input. The canonical gate suite passes `191/191`.
+- Paperclip architecture and project-truth projections were refreshed at
+  `971c624c`; all three repositories were clean after Roost historical-state
+  closeouts `b62cf987` and `ff337321`.
+- Do not use a readiness snapshot with `stale=true` for routing or acceptance.
+  Prefer fresh API/readiness/source-control probes, or run a new governed
+  control tick when its mutating supervision sequence is appropriate.
