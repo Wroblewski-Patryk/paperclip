@@ -28,6 +28,7 @@ import detectPort from "detect-port";
 import { createApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { logger } from "./middleware/logger.js";
+import { createRestoreCoupledSnapshot } from "./restore-coupled-snapshot.js";
 import { setupLiveEventsWebSocketServer } from "./realtime/live-events-ws.js";
 import {
   feedbackService,
@@ -615,6 +616,15 @@ export async function startServer(): Promise<StartedServer> {
           ? { minFreeBytes: config.databaseBackupMinFreeBytes }
           : false,
       });
+      let restoreCoupledSnapshot = null;
+      if (config.storageProvider === "local_disk" && config.secretsProvider === "local_encrypted") {
+        restoreCoupledSnapshot = await createRestoreCoupledSnapshot({
+          backupDir: config.databaseBackupDir,
+          backupFile: result.backupFile,
+          storageDir: config.storageLocalDiskBaseDir,
+          secretsMasterKeyFilePath: config.secretsMasterKeyFilePath,
+        });
+      }
       const finishedAt = new Date();
       const response: InstanceDatabaseBackupRunResult = {
         ...result,
@@ -630,6 +640,7 @@ export async function startServer(): Promise<StartedServer> {
           backupFile: result.backupFile,
           sizeBytes: result.sizeBytes,
           prunedCount: result.prunedCount,
+          restoreCoupledSnapshot,
           backupDir: config.databaseBackupDir,
           retention,
           trigger,

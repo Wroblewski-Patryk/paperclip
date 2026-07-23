@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import postgres from "postgres";
-import { createBufferedTextFileWriter, runDatabaseBackup, runDatabaseRestore } from "./backup-lib.js";
+import { createBufferedTextFileWriter, pruneOldBackups, runDatabaseBackup, runDatabaseRestore } from "./backup-lib.js";
 import { ensurePostgresDatabase } from "./client.js";
 import {
   getEmbeddedPostgresTestSupport,
@@ -72,6 +72,34 @@ describe("createBufferedTextFileWriter", () => {
     await writer.close();
 
     expect(fs.readFileSync(outputPath, "utf8")).toBe(lines.join("\n"));
+  });
+});
+
+describe("pruneOldBackups", () => {
+  it("counts and removes restore-coupled sidecars with their database backups", () => {
+    const backupDir = createTempDir("paperclip-coupled-retention-");
+    const olderBackup = path.join(backupDir, "paperclip-test-20260722-010101.sql.gz");
+    const newerBackup = path.join(backupDir, "paperclip-test-20260723-010101.sql.gz");
+    const olderSnapshot = path.join(backupDir, "paperclip-test-20260722-010101.restore-coupled");
+    const newerSnapshot = path.join(backupDir, "paperclip-test-20260723-010101.restore-coupled");
+    fs.writeFileSync(olderBackup, "db");
+    fs.writeFileSync(newerBackup, "db");
+    fs.mkdirSync(olderSnapshot);
+    fs.mkdirSync(newerSnapshot);
+    fs.writeFileSync(path.join(olderSnapshot, "payload"), "x".repeat(100));
+    fs.writeFileSync(path.join(newerSnapshot, "payload"), "ok");
+    fs.utimesSync(olderBackup, new Date("2026-07-22T01:01:01Z"), new Date("2026-07-22T01:01:01Z"));
+    fs.utimesSync(newerBackup, new Date("2026-07-23T01:01:01Z"), new Date("2026-07-23T01:01:01Z"));
+
+    expect(pruneOldBackups(
+      backupDir,
+      { dailyDays: 7, weeklyWeeks: 4, monthlyMonths: 1, maxTotalBytes: 10 },
+      "paperclip-test",
+    )).toBe(1);
+    expect(fs.existsSync(olderBackup)).toBe(false);
+    expect(fs.existsSync(olderSnapshot)).toBe(false);
+    expect(fs.existsSync(newerBackup)).toBe(true);
+    expect(fs.existsSync(newerSnapshot)).toBe(true);
   });
 });
 

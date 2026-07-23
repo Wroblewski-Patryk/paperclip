@@ -1,4 +1,4 @@
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, statfsSync, statSync, unlinkSync } from "node:fs";
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, rmSync, statfsSync, statSync, unlinkSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { once } from "node:events";
@@ -127,6 +127,24 @@ function monthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function resolveRestoreCoupledSnapshotDir(backupFileName: string, backupDir: string): string {
+  const backupStem = backupFileName.replace(/\.sql(?:\.gz)?$/, "");
+  return resolve(backupDir, `${backupStem}.restore-coupled`);
+}
+
+function directorySizeBytes(dirPath: string): number {
+  let total = 0;
+  for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
+    const entryPath = resolve(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      total += directorySizeBytes(entryPath);
+    } else if (entry.isFile()) {
+      total += statSync(entryPath).size;
+    }
+  }
+  return total;
+}
+
 function inspectBackupDiskSpace(backupDir: string): BackupDiskSpaceSnapshot | null {
   try {
     const stats = statfsSync(backupDir);
@@ -167,7 +185,7 @@ function assertSufficientBackupDiskSpace(
  * - Monthly tier: keep the NEWEST backup per calendar month for `monthlyMonths` months
  * - Everything else is deleted
  */
-function pruneOldBackups(backupDir: string, retention: BackupRetentionPolicy, filenamePrefix: string): number {
+export function pruneOldBackups(backupDir: string, retention: BackupRetentionPolicy, filenamePrefix: string): number {
   if (!existsSync(backupDir)) return 0;
 
   const now = Date.now();
@@ -228,17 +246,26 @@ function pruneOldBackups(backupDir: string, retention: BackupRetentionPolicy, fi
   const maxTotalBytes = retention.maxTotalBytes;
   if (typeof maxTotalBytes === "number" && Number.isFinite(maxTotalBytes) && maxTotalBytes > 0) {
     const retained = entries.filter((entry) => !toDelete.has(entry.fullPath));
-    let retainedBytes = retained.reduce((total, entry) => total + entry.sizeBytes, 0);
+    let retainedBytes = retained.reduce((total, entry) => {
+      const coupledSnapshotSize = existsSync(resolveRestoreCoupledSnapshotDir(entry.name, backupDir))
+        ? directorySizeBytes(resolveRestoreCoupledSnapshotDir(entry.name, backupDir))
+        : 0;
+      return total + entry.sizeBytes + coupledSnapshotSize;
+    }, 0);
     for (let index = retained.length - 1; index >= 0 && retainedBytes > maxTotalBytes; index -= 1) {
       const entry = retained[index];
       if (!entry) continue;
       toDelete.add(entry.fullPath);
-      retainedBytes -= entry.sizeBytes;
+      const coupledSnapshotDir = resolveRestoreCoupledSnapshotDir(entry.name, backupDir);
+      const coupledSnapshotSize = existsSync(coupledSnapshotDir) ? directorySizeBytes(coupledSnapshotDir) : 0;
+      retainedBytes -= entry.sizeBytes + coupledSnapshotSize;
     }
   }
 
   for (const filePath of toDelete) {
+    const snapshotDir = resolveRestoreCoupledSnapshotDir(basename(filePath), backupDir);
     unlinkSync(filePath);
+    rmSync(snapshotDir, { recursive: true, force: true });
   }
 
   return toDelete.size;

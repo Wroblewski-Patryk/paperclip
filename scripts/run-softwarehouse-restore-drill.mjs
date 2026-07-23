@@ -1,10 +1,14 @@
 import { createRequire } from "node:module";
-import { createDecipheriv, createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
 import { cp, copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  assertInside,
+  summarizeFiles,
+  validateRestoredAssets,
+  validateRestoredSecrets,
+} from "./lib/softwarehouse-restore-validation.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -20,24 +24,12 @@ const backupDir = path.join(
   "backups",
 );
 const reportPath = path.join(repoRoot, "report", "softwarehouse-restore-drill.latest.json");
-const canonicalInstanceRoot = path.join(
-  repoRoot,
-  ".paperclip",
-  "runtime",
-  "home",
-  "instances",
-  "default",
-);
-const canonicalStorageDir = path.join(canonicalInstanceRoot, "data", "storage");
-const canonicalSecretsKeyFile = path.join(canonicalInstanceRoot, "secrets", "master.key");
 const requestedBackup = process.argv.find((arg) => arg.startsWith("--backup="))?.slice("--backup=".length) ?? null;
 const backupStabilityWindowMs = 5 * 60 * 1_000;
 
-function assertInside(candidate, parent, label) {
-  const relative = path.relative(parent, candidate);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new Error(`${label} must stay inside ${parent}`);
-  }
+function resolveRestoreCoupledSnapshotDir(backupFile) {
+  const backupStem = path.basename(backupFile).replace(/\.sql(?:\.gz)?$/, "");
+  return path.join(path.dirname(backupFile), `${backupStem}.restore-coupled`);
 }
 
 async function allocatePort() {
@@ -64,6 +56,7 @@ async function resolveBackupFile() {
   if (requestedBackup) {
     const resolved = path.resolve(requestedBackup);
     await stat(resolved);
+    await validateSnapshotLayout(resolved);
     return resolved;
   }
   const candidates = await Promise.all(
@@ -78,10 +71,39 @@ async function resolveBackupFile() {
   const stableCandidates = candidates
     .filter(({ stats }) => stats.isFile() && stats.size > 0 && stats.mtimeMs <= stabilityCutoff)
     .sort((left, right) => right.stats.mtimeMs - left.stats.mtimeMs);
-  if (!stableCandidates[0]) {
-    throw new Error(`No completed .sql.gz backups older than the five-minute stability window found in ${backupDir}`);
+  for (const candidate of stableCandidates) {
+    if (await validateSnapshotLayout(candidate.filePath, { throwOnFailure: false })) return candidate.filePath;
   }
-  return stableCandidates[0].filePath;
+  throw new Error(`No completed backup with a restore-coupled storage/key snapshot found in ${backupDir}`);
+}
+
+async function validateSnapshotLayout(backupFile, { throwOnFailure = true } = {}) {
+  try {
+    const snapshotDir = resolveRestoreCoupledSnapshotDir(backupFile);
+    const manifestPath = path.join(snapshotDir, "manifest.json");
+    const storageDir = path.join(snapshotDir, "storage");
+    const keyFile = path.join(snapshotDir, "secrets", "master.key");
+    const [manifest, backupStats, storageStats, keyStats] = await Promise.all([
+      readFile(manifestPath, "utf8").then(JSON.parse),
+      stat(backupFile),
+      stat(storageDir),
+      stat(keyFile),
+    ]);
+    if (
+      manifest.schemaVersion !== 1 ||
+      manifest.backupFileName !== path.basename(backupFile) ||
+      manifest.backupSizeBytes !== backupStats.size ||
+      !storageStats.isDirectory() ||
+      !keyStats.isFile() ||
+      keyStats.size !== manifest.secretsKeyBytes
+    ) {
+      throw new Error("restore-coupled snapshot manifest does not match its backup/storage/key payload");
+    }
+    return { snapshotDir, manifest, storageDir, keyFile };
+  } catch (error) {
+    if (!throwOnFailure) return null;
+    throw new Error(`Backup is not a complete restore-coupled bundle: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 async function loadRuntimeDependencies() {
@@ -96,71 +118,10 @@ async function loadRuntimeDependencies() {
   };
 }
 
-async function summarizeFiles(root) {
-  let fileCount = 0;
-  let sizeBytes = 0;
-  const pending = [root];
-  while (pending.length > 0) {
-    const current = pending.pop();
-    for (const entry of await readdir(current, { withFileTypes: true })) {
-      const entryPath = path.join(current, entry.name);
-      if (entry.isDirectory()) pending.push(entryPath);
-      if (entry.isFile()) {
-        fileCount += 1;
-        sizeBytes += (await stat(entryPath)).size;
-      }
-    }
-  }
-  return { fileCount, sizeBytes };
-}
-
-async function sha256Stream(stream) {
-  const hash = createHash("sha256");
-  for await (const chunk of stream) hash.update(chunk);
-  return hash.digest("hex");
-}
-
-function resolveStorageObjectPath(baseDir, objectKey) {
-  const normalized = String(objectKey ?? "").replaceAll("\\", "/").trim();
-  const parts = normalized.split("/").filter(Boolean);
-  if (!normalized || normalized.startsWith("/") || parts.some((part) => part === "." || part === "..")) {
-    throw new Error("Restore validation failed: invalid storage object key");
-  }
-  const resolved = path.resolve(baseDir, ...parts);
-  assertInside(resolved, baseDir, "Restored storage object");
-  return resolved;
-}
-
-function decodeMasterKey(raw) {
-  const trimmed = raw.trim();
-  if (/^[A-Fa-f0-9]{64}$/.test(trimmed)) return Buffer.from(trimmed, "hex");
-  const base64 = Buffer.from(trimmed, "base64");
-  if (base64.length === 32) return base64;
-  if (Buffer.byteLength(trimmed, "utf8") === 32) return Buffer.from(trimmed, "utf8");
-  throw new Error("Restore validation failed: restored encrypted-secrets key is invalid");
-}
-
-function resolveLocalEncryptedMaterial(masterKey, material) {
-  if (
-    !material ||
-    material.scheme !== "local_encrypted_v1" ||
-    typeof material.iv !== "string" ||
-    typeof material.tag !== "string" ||
-    typeof material.ciphertext !== "string"
-  ) {
-    throw new Error("Restore validation failed: stored local-encrypted material is invalid");
-  }
-  const decipher = createDecipheriv("aes-256-gcm", masterKey, Buffer.from(material.iv, "base64"));
-  decipher.setAuthTag(Buffer.from(material.tag, "base64"));
-  return Buffer.concat([
-    decipher.update(Buffer.from(material.ciphertext, "base64")),
-    decipher.final(),
-  ]);
-}
-
 const startedAt = new Date();
 const backupFile = await resolveBackupFile();
 const backupStats = await stat(backupFile);
+const backupBundle = await validateSnapshotLayout(backupFile);
 await mkdir(restoreRoot, { recursive: true });
 const drillDir = path.join(restoreRoot, `drill-${startedAt.toISOString().replaceAll(":", "-").replaceAll(".", "-")}`);
 assertInside(drillDir, restoreRoot, "Restore drill directory");
@@ -187,14 +148,19 @@ try {
     prepareEmbeddedPostgresNativeRuntime,
     runDatabaseRestore,
   } = await loadRuntimeDependencies();
-  const canonicalKeyStats = await stat(canonicalSecretsKeyFile);
-  if (!canonicalKeyStats.isFile()) throw new Error("Canonical encrypted-secrets master key is not a file");
+  const bundledKeyStats = await stat(backupBundle.keyFile);
   await mkdir(path.dirname(restoredSecretsKeyFile), { recursive: true });
   await mkdir(path.dirname(restoredStorageDir), { recursive: true });
-  await copyFile(canonicalSecretsKeyFile, restoredSecretsKeyFile);
-  await cp(canonicalStorageDir, restoredStorageDir, { recursive: true, force: false, errorOnExist: true });
+  await copyFile(backupBundle.keyFile, restoredSecretsKeyFile);
+  await cp(backupBundle.storageDir, restoredStorageDir, { recursive: true, force: false, errorOnExist: true });
   const restoredStorageSummary = await summarizeFiles(restoredStorageDir);
   const restoredKeyStats = await stat(restoredSecretsKeyFile);
+  if (
+    restoredStorageSummary.fileCount !== backupBundle.manifest.storage.fileCount ||
+    restoredStorageSummary.sizeBytes !== backupBundle.manifest.storage.sizeBytes
+  ) {
+    throw new Error("Restore-coupled storage snapshot does not match its manifest summary");
+  }
 
   process.env.PAPERCLIP_SECRETS_MASTER_KEY_FILE = restoredSecretsKeyFile;
   delete process.env.PAPERCLIP_SECRETS_MASTER_KEY;
@@ -241,37 +207,17 @@ try {
     WHERE provider = 'local_disk'
     ORDER BY created_at DESC
   `;
-  const [secretVersion] = await sql`
+  const secretVersions = await sql`
     SELECT csv.material, csv.value_sha256
     FROM company_secret_versions csv
     INNER JOIN company_secrets cs ON cs.id = csv.secret_id
     WHERE cs.provider = 'local_encrypted'
       AND cs.status = 'active'
       AND csv.status = 'current'
-    ORDER BY csv.created_at DESC
-    LIMIT 1
+    ORDER BY csv.created_at ASC
   `;
-
-  if (assets.length === 0) throw new Error("Restore validation failed: no local-disk asset metadata available for readback");
-  if (!secretVersion) throw new Error("Restore validation failed: no current local-encrypted secret version available");
-
-  let matchedAsset = null;
-  for (const asset of assets) {
-    const restoredObjectPath = resolveStorageObjectPath(restoredStorageDir, asset.object_key);
-    const restoredObjectStats = await stat(restoredObjectPath).catch(() => null);
-    if (!restoredObjectStats?.isFile() || restoredObjectStats.size !== Number(asset.byte_size)) continue;
-    const restoredObjectSha256 = await sha256Stream(createReadStream(restoredObjectPath));
-    if (restoredObjectSha256 === asset.sha256) {
-      matchedAsset = asset;
-      break;
-    }
-  }
-  const assetReadbackMatches = matchedAsset !== null;
-
-  const restoredMasterKey = decodeMasterKey(await readFile(restoredSecretsKeyFile, "utf8"));
-  const resolvedSecret = resolveLocalEncryptedMaterial(restoredMasterKey, secretVersion.material);
-  const secretResolutionMatches =
-    createHash("sha256").update(resolvedSecret).digest("hex") === secretVersion.value_sha256;
+  const assetValidation = await validateRestoredAssets(restoredStorageDir, assets);
+  const secretValidation = await validateRestoredSecrets(restoredSecretsKeyFile, secretVersions);
   const tableCount = Number(tableRows[0]?.count ?? 0);
   const normalizedCounts = Object.fromEntries(
     Object.entries(counts ?? {}).map(([key, value]) => [key, Number(value)]),
@@ -282,9 +228,7 @@ try {
     ...requiredPositive
       .filter((key) => !(normalizedCounts[key] > 0))
       .map((key) => `expected restored ${key} rows`),
-    ...(!assetReadbackMatches ? ["restored local-disk artifact readback did not match database metadata"] : []),
-    ...(!secretResolutionMatches ? ["restored encrypted secret did not match its stored digest"] : []),
-    ...(restoredKeyStats.size !== canonicalKeyStats.size ? ["restored encrypted-secrets key file size differs"] : []),
+    ...(restoredKeyStats.size !== bundledKeyStats.size ? ["restored encrypted-secrets key file size differs from bundle"] : []),
     ...(restoredStorageSummary.fileCount < 1 ? ["restored storage contains no files"] : []),
   ];
   if (failedChecks.length > 0) throw new Error(`Restore validation failed: ${failedChecks.join("; ")}`);
@@ -297,6 +241,7 @@ try {
       fileName: path.basename(backupFile),
       sizeBytes: backupStats.size,
       modifiedAt: backupStats.mtime.toISOString(),
+      coupledSnapshot: path.basename(backupBundle.snapshotDir),
     },
     isolation: {
       canonicalPaperclipPortUntouched: 3_200,
@@ -310,12 +255,15 @@ try {
       storage: {
         fileCount: restoredStorageSummary.fileCount,
         sizeBytes: restoredStorageSummary.sizeBytes,
-        assetMetadataRows: assets.length,
-        artifactReadback: "pass",
+        assetMetadataRows: assetValidation.metadataRows,
+        verifiedAssetRows: assetValidation.verifiedRows,
+        completeness: "pass",
       },
       encryptedSecrets: {
         restoredKeyBytes: restoredKeyStats.size,
-        resolutionDigestMatch: "pass",
+        currentVersions: secretValidation.currentVersions,
+        verifiedVersions: secretValidation.verifiedVersions,
+        completeness: "pass",
       },
     },
   };

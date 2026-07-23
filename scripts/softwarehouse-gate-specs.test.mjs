@@ -430,6 +430,10 @@ test("restore drill stays isolated from the canonical runtime and cleans up", as
 
   assert.match(source, /port !== 3_200 && port !== 54_329/);
   assert.match(source, /runDatabaseRestore/);
+  assert.match(source, /validateSnapshotLayout/);
+  assert.match(source, /validateRestoredAssets/);
+  assert.match(source, /validateRestoredSecrets/);
+  assert.doesNotMatch(source, /canonicalStorageDir|canonicalSecretsKeyFile/);
   assert.match(source, /FROM companies/);
   assert.match(source, /FROM heartbeat_runs/);
   assert.match(source, /await instance\?\.stop/);
