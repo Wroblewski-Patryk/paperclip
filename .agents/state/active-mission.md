@@ -1,5 +1,30 @@
 # Active Mission
 
+## 2026-07-23 - V0 Accepted; Credential Incident Closed - Current
+
+- Local Softwarehouse V0 is achieved. `LUC-25`, Soar delivery, Roost delivery,
+  the two-project readiness contract, local runtime/topology checks, and the
+  final autonomous handoff proof are complete. Paperclip remains local on
+  Windows; moving it to VPS and activating the wider autonomous business are
+  V1 and are not part of the current local scope.
+- The last protected security hold, `LUC-972`, is complete under approval
+  `1f7d1a94-2759-4ffd-81e0-35634c05865a`. Seven Coolify/Soar/Roost
+  token/password families advanced to fresh Paperclip secret versions. Both
+  old Coolify API tokens were revoked, old Soar/Roost passwords were rejected,
+  and post-rotation access smokes passed without a deploy, restart, or source
+  push. Raw values were never written to evidence or source.
+- Durable operator:
+  `scripts/rotate-luc-972-credentials.ts`. Its LUC-972 work product is
+  `077a3069-32fb-419e-b081-12cb839c50a9`.
+- Paperclip automatically resumed `LUC-496`, `LUC-494`, `LUC-1137`, and the
+  autonomy governor after the protected gate closed. Let those agents
+  synthesize and close their evidence rather than manually duplicating work.
+- The next program after incident closure is local product maturation:
+  evidence-backed sale-readiness contracts and gap burn-down for Soar first,
+  then Roost, while both remain in `11 Innovation`. Do not activate sales,
+  marketing, customer outreach, broad provider writes, or hosted Paperclip
+  until the separately governed V1 transition.
+
 ## 2026-07-22 - Roost Knowledge Plane Direction Activated - Current
 
 - The owner confirmed the target boundary: Paperclip is the governed control

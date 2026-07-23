@@ -1,6 +1,24 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-22
+Last updated: 2026-07-23
+
+## 2026-07-23 Current State
+
+- Local Softwarehouse V0 is achieved; `LUC-25`, Soar, and Roost hosted-product
+  delivery are complete. Paperclip stays local on strict ports 3200/54329.
+- Protected incident gate `LUC-972` is done under approval
+  `1f7d1a94-2759-4ffd-81e0-35634c05865a`: seven Coolify/Soar/Roost
+  credential families were rotated, both old Coolify tokens were revoked, old
+  product passwords were rejected, and new-access smokes passed without
+  deploy/restart/push. No raw values entered source or evidence.
+- Durable value-redacting operator:
+  `scripts/rotate-luc-972-credentials.ts`; Paperclip work product
+  `077a3069-32fb-419e-b081-12cb839c50a9`.
+- Paperclip automatically resumed the dependent security/learning/governor
+  lanes. The next intended local program is Soar-first, Roost-second product
+  maturation and sale-readiness while both remain in `11 Innovation`.
+- Do not start hosted Paperclip or whole-company V1 operations without a new
+  governed transition.
 
 ## What This Workspace Is
 

@@ -4394,3 +4394,33 @@ managed protected-input binding name, and the interaction on `LUC-1569`
 remains pending. No secret value, push, deployment, restart, or production
 mutation occurred. The next legal protected action is still the owner's
 approval of the managed read-only Soar readiness path.
+
+## 2026-07-23 - Protected credential rotation completed after V0
+
+The stale dependency chain was repaired without changing substantive blockers:
+completed `LUC-25` was removed from `LUC-1137`, the queue reconciler returned
+zero remaining repairs, and the autonomy governor reduced the chain to the
+real local-board gate `LUC-972`.
+
+Approval `1f7d1a94-2759-4ffd-81e0-35634c05865a` authorized the bounded
+credential remediation. A purpose-built operator,
+`scripts/rotate-luc-972-credentials.ts`, now performs an approval/company
+preflight, preserves existing Coolify token abilities and team scope, rotates
+Paperclip managed versions, revokes old provider tokens, changes Soar
+passwords through its authenticated security endpoint, changes Roost
+passwords through its deployed application model, verifies new access and old
+credential rejection, and rolls back partial prepares. It defaults to dry-run
+and emits value-free JSON only.
+
+The apply run completed seven token/password families: Coolify read, deploy,
+and login; Soar production test and owner; Roost production AI-owner smoke and
+integration owner. Both old Coolify API tokens were deleted. New Coolify read
+access, Soar logins, and Roost logins passed; old product passwords and the old
+Coolify read token were rejected. Targeted TypeScript checking passed. No raw
+value, deploy, restart, source push, or unrelated production mutation occurred.
+
+`LUC-972` is done with high-risk security/deployment/monitoring evidence and
+workspace work product `077a3069-32fb-419e-b081-12cb839c50a9`. Paperclip then
+automatically resumed `LUC-496`, `LUC-494`, `LUC-1137`, and the autonomy
+governor. The intended next local program is product maturation and versioned
+sale-readiness, Soar first and Roost second; whole-company V1 remains deferred.

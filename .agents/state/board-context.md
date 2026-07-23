@@ -1,6 +1,22 @@
 # Board Context
 
-Last updated: 2026-07-22
+Last updated: 2026-07-23
+
+## Current Checkpoint
+
+Local Softwarehouse V0 is achieved. `LUC-25` and the Soar/Roost hosted-product
+delivery contract are complete; Paperclip intentionally remains local on
+Windows. The protected credential-incident gate `LUC-972` completed on
+2026-07-23 under the already-approved local-board scope. Seven managed
+Coolify/Soar/Roost token/password families were rotated, old credentials were
+revoked or rejected, and value-free post-rotation smokes passed. The durable
+operator is `scripts/rotate-luc-972-credentials.ts`.
+
+Current legal direction is local product maturation, not V1 company expansion:
+keep Soar and Roost in `11 Innovation`, define versioned sale-readiness
+contracts, burn down verified gaps Soar-first and Roost-second, and preserve
+the human approval boundary. V1 remains the later migration of Paperclip to
+VPS plus Roost-backed whole-company operations.
 
 ## User Intent
 
