@@ -107,7 +107,11 @@ governor, and complete the Softwarehouse audit in the expected order.
 
 For a shorter PM/operator handoff after a control tick, run
 `pnpm softwarehouse:readiness-snapshot`. It reads the latest control tick and
-writes runtime-only snapshot files:
+fails closed when that source is older than 15 minutes (configurable with
+`SOFTWAREHOUSE_READINESS_SNAPSHOT_MAX_AGE_MS`), so an old gate or repository
+state cannot be presented as current operating truth. A stale export is still
+written for diagnosis, but is explicitly labelled unusable and the command
+returns a non-zero status. The command writes runtime-only snapshot files:
 
 - `report/softwarehouse-readiness-snapshot.latest.json`
 - `report/softwarehouse-readiness-snapshot.latest.md`

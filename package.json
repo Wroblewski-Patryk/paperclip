@@ -121,7 +121,7 @@
     "softwarehouse:blocked-root-guardrail:apply": "node scripts/run-blocked-root-guardrail.mjs --apply",
     "softwarehouse:blocked-triage-lane-starter": "node scripts/run-blocked-triage-lane-starter.mjs",
     "softwarehouse:blocked-triage-lane-starter:apply": "node scripts/run-blocked-triage-lane-starter.mjs --apply",
-    "softwarehouse:test-gates": "node --test scripts/softwarehouse-gate-specs.test.mjs",
+    "softwarehouse:test-gates": "node --test scripts/softwarehouse-gate-specs.test.mjs scripts/softwarehouse-readiness-snapshot.test.mjs",
     "softwarehouse:gate-approval": "node scripts/record-softwarehouse-gate-approval.mjs",
     "softwarehouse:gate-approval:apply": "node scripts/record-softwarehouse-gate-approval.mjs --apply",
     "softwarehouse:unblock-packet": "node scripts/export-softwarehouse-unblock-packet.mjs",
