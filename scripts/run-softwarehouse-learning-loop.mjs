@@ -25,6 +25,7 @@ import {
   formatWorkerFanoutContract,
   summarizeWorkerBacklogTracks,
 } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
+import { loadTrackTruthByTrack } from "./lib/softwarehouse-track-truth.mjs";
 import {
   approvalRows,
   interactionRows,
@@ -233,6 +234,7 @@ const trackBacklog = summarizeWorkerBacklogTracks({
   isSupervisor,
   terminalStatuses,
   plannedStatuses,
+  trackTruthByTrack: await loadTrackTruthByTrack(),
 });
 const liveIssueIds = new Set((liveRuns ?? []).map((run) => run.issueId).filter(Boolean));
 const weakTrackLines = trackBacklog.weakTracks.map(formatWeakTrackSummary);

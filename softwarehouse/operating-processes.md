@@ -98,6 +98,11 @@ issue is in DISCOVERY until Product/PM/Portfolio can classify it.
   backlog health. Today that means Soar and Roost each need at least three
   legal worker-ready `todo/backlog` lanes, or an explicit legal blocker for
   every missing lane.
+- Track fan-out must also respect the active product truth for that exact app.
+  When the current truth says the remaining work is blocked, accepted deferral,
+  external/non-blocking, or intentionally empty, routines must report that
+  per-track hold reason and must not create duplicate product lanes just to hit
+  a queue-depth target.
 - `in_progress` worker execution is useful delivery evidence, but it does not by
   itself retire planned backlog starvation. A track with live worker execution
   is still weak when it lacks the required per-track `todo/backlog` depth.

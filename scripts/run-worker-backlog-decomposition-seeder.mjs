@@ -7,6 +7,7 @@ import {
   filterSupersededProjectTruthLanes,
   summarizeWorkerBacklogTracks,
 } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
+import { loadTrackTruthByTrack } from "./lib/softwarehouse-track-truth.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyNames = new Set(["LuckySparrow Software House", "LuckySparrow"]);
@@ -186,6 +187,7 @@ const activeProjects = projects.filter((project) => !project.archivedAt);
 const activeProjectIds = new Set(activeProjects.map((project) => project.id));
 const agentById = new Map(agents.map((agent) => [agent.id, agent]));
 const currentGapIdsByTrack = await currentProjectTruthGapIds();
+const trackTruthByTrack = await loadTrackTruthByTrack();
 const currentIssues = filterSupersededProjectTruthLanes({ issues, projects, currentGapIdsByTrack });
 const openIssues = issues.filter((issue) =>
   activeProjectIds.has(issue.projectId)
@@ -215,6 +217,7 @@ const trackBacklog = summarizeWorkerBacklogTracks({
   terminalStatuses,
   plannedStatuses,
   hasNamedBlocker: namedBlockerForIssue,
+  trackTruthByTrack,
 });
 const existing = issues.find((issue) => issue.title === targetTitle && !terminalStatuses.has(issue.status));
 const sourceControlClosureState = await controlledRepoClosureState();

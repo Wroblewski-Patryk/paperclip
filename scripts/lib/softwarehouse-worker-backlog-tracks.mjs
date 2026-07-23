@@ -60,7 +60,10 @@ export function formatWeakTrackSummary(trackSummary) {
 }
 
 export function formatTrackDispositionSummary(trackSummary) {
-  return `${trackSummary.track}: ${trackSummary.disposition} (runnable=${trackSummary.runnableWorkerIssueCount}/${trackSummary.targetRunnableWorkerLaneCount}, planned=${trackSummary.plannedWorkerIssueCount}/${trackSummary.targetPlannedWorkerLaneCount}, named blockers=${trackSummary.namedBlockedLaneCount})`;
+  const fanoutSuffix = trackSummary.fanoutDecision === "hold"
+    ? `, fanout=hold:${trackSummary.fanoutReason}`
+    : "";
+  return `${trackSummary.track}: ${trackSummary.disposition} (runnable=${trackSummary.runnableWorkerIssueCount}/${trackSummary.targetRunnableWorkerLaneCount}, planned=${trackSummary.plannedWorkerIssueCount}/${trackSummary.targetPlannedWorkerLaneCount}, named blockers=${trackSummary.namedBlockedLaneCount}${fanoutSuffix})`;
 }
 
 function laneReferenceForIssue(issue, assignee) {
@@ -100,6 +103,7 @@ export function summarizeWorkerBacklogTracks({
   isSupervisor,
   terminalStatuses,
   plannedStatuses,
+  trackTruthByTrack = null,
   runnableStatuses = new Set(["todo"]),
   hasNamedBlocker = (issue) => Array.isArray(issue?.blockedBy) && issue.blockedBy.length > 0,
   targetPlannedWorkerLaneCount = 3,
@@ -130,6 +134,15 @@ export function summarizeWorkerBacklogTracks({
     missingWorkerReadyLaneCount: targetRunnableWorkerLaneCount,
     missingPlannedWorkerLaneCount: targetPlannedWorkerLaneCount,
     disposition: "needs-another-child",
+    dispositionReason: null,
+    fanoutDecision: "create_or_promote",
+    fanoutReason: null,
+    fanoutSummary: null,
+    projectTruthStatus: null,
+    currentGapCount: null,
+    releaseGapOpenCount: 0,
+    releaseGapDeferredCount: 0,
+    releaseGapExternalNonBlockingCount: 0,
   }));
   const summaryByTrack = new Map(trackSummaries.map((summary) => [summary.track, summary]));
 
@@ -162,6 +175,14 @@ export function summarizeWorkerBacklogTracks({
   }
 
   for (const summary of trackSummaries) {
+    const truth = trackTruthByTrack?.get(summary.track) ?? null;
+    if (truth) {
+      summary.projectTruthStatus = truth.projectTruthStatus ?? null;
+      summary.currentGapCount = truth.currentGapCount ?? null;
+      summary.releaseGapOpenCount = truth.openBlockingEntries?.length ?? 0;
+      summary.releaseGapDeferredCount = truth.deferredEntries?.length ?? 0;
+      summary.releaseGapExternalNonBlockingCount = truth.externalNonBlockingEntries?.length ?? 0;
+    }
     summary.workerReadyLaneCount = summary.runnableWorkerIssueCount;
     summary.missingWorkerReadyLaneCount = Math.max(0, targetRunnableWorkerLaneCount - summary.runnableWorkerIssueCount);
     summary.missingPlannedWorkerLaneCount = Math.max(0, targetPlannedWorkerLaneCount - summary.plannedWorkerIssueCount);
@@ -182,13 +203,22 @@ export function summarizeWorkerBacklogTracks({
       )
     ) {
       summary.disposition = "blocked";
+      summary.dispositionReason = "named_blockers_cover_missing_lanes";
     } else {
       summary.disposition = "needs-another-child";
+    }
+    if (truth?.allowsNewProductLane === false) {
+      summary.disposition = "blocked";
+      summary.dispositionReason = truth.holdReason ?? "project_truth_hold";
+      summary.fanoutDecision = "hold";
+      summary.fanoutReason = truth.holdReason ?? "project_truth_hold";
+      summary.fanoutSummary = truth.holdSummary ?? null;
     }
   }
 
   const weakTracks = trackSummaries.filter((summary) => {
     if (summary.openIssueCount === 0) return false;
+    if (summary.fanoutDecision === "hold") return false;
     if (
       summary.blockedIssueCount === 0
       && summary.openIssueCount === summary.inProgressWorkerIssueCount
@@ -203,6 +233,14 @@ export function summarizeWorkerBacklogTracks({
       track: summary.track,
       disposition: summary.disposition,
       dispositionReason: summary.dispositionReason ?? null,
+      fanoutDecision: summary.fanoutDecision,
+      fanoutReason: summary.fanoutReason,
+      fanoutSummary: summary.fanoutSummary,
+      projectTruthStatus: summary.projectTruthStatus,
+      currentGapCount: summary.currentGapCount,
+      releaseGapOpenCount: summary.releaseGapOpenCount,
+      releaseGapDeferredCount: summary.releaseGapDeferredCount,
+      releaseGapExternalNonBlockingCount: summary.releaseGapExternalNonBlockingCount,
       targetPlannedWorkerLaneCount: summary.targetPlannedWorkerLaneCount,
       targetRunnableWorkerLaneCount: summary.targetRunnableWorkerLaneCount,
       targetWorkerReadyLaneCount: summary.targetWorkerReadyLaneCount,

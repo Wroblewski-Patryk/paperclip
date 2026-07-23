@@ -230,6 +230,49 @@ test("track dispositions report ready, blocked, and needs-another-child per cont
   );
 });
 
+test("project truth can legally hold per-track fan-out without creating duplicate product lanes", () => {
+  const projects = [{ id: "roost", name: "11 Innovation: Roost", status: "in_progress" }];
+  const agentById = new Map([
+    ["worker", { id: "worker", metadata: { rosterKey: "test-automation-engineer" } }],
+  ]);
+  const summary = summarizeWorkerBacklogTracks({
+    issues: [
+      {
+        projectId: "roost",
+        title: "[Roost][Validation] Prove read-only local-Paperclip-to-hosted-Roost canary for v1.0 contract",
+        status: "blocked",
+        assigneeAgentId: "worker",
+      },
+    ],
+    projects,
+    agentById,
+    isWorker: (agent) => agent?.metadata?.rosterKey === "test-automation-engineer",
+    isSupervisor: () => false,
+    terminalStatuses: new Set(["done", "cancelled"]),
+    plannedStatuses: new Set(["todo", "backlog"]),
+    trackTruthByTrack: new Map([["Roost", {
+      projectTruthStatus: "known_and_routable",
+      currentGapCount: 0,
+      openBlockingEntries: [{ id: "SR-001" }],
+      deferredEntries: [{ id: "SR-002" }],
+      externalNonBlockingEntries: [{ id: "SR-003" }],
+      allowsNewProductLane: false,
+      holdReason: "release_gap_open_blocker_only",
+      holdSummary: "Current project truth has no routable gaps; release gap register stays blocked by SR-001.",
+    }]]),
+  });
+
+  assert.deepEqual(summary.weakTracks, []);
+  assert.equal(summary.trackDispositions[0].disposition, "blocked");
+  assert.equal(summary.trackDispositions[0].fanoutDecision, "hold");
+  assert.equal(summary.trackDispositions[0].fanoutReason, "release_gap_open_blocker_only");
+  assert.match(summary.trackDispositions[0].fanoutSummary, /SR-001/);
+  assert.equal(
+    formatTrackDispositionSummary(summary.trackSummaries[0]),
+    "Roost: blocked (runnable=0/1, planned=0/3, named blockers=0, fanout=hold:release_gap_open_blocker_only)",
+  );
+});
+
 test("formatWorkerFanoutContract keeps the fan-out rule track-scoped and evidence-named", () => {
   const contract = formatWorkerFanoutContract();
 

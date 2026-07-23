@@ -35,6 +35,10 @@ Kanban is the default planning and flow-management standard:
 - keep parent/controller issues out of stale `in_progress`;
 - pull the next task from `todo/backlog` only when the current lane has a
   durable disposition;
+- evaluate worker fan-out per active track, not by company-wide totals, and
+  suppress duplicate lane creation when that track's current product truth says
+  the remaining gaps are blocked, accepted deferral, external/non-blocking, or
+  intentionally empty;
 - make blockers first-class with owner, reason, unblock condition, and parent
   notification;
 - use `in_review` for independent review, QA, security, ops, or PM acceptance;
