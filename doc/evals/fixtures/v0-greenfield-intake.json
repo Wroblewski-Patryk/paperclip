@@ -1,0 +1,34 @@
+{
+  "kind": "greenfield_intake_fixture",
+  "mode": "fixture_only",
+  "activated": false,
+  "ownerIntent": "Prove that the local Softwarehouse can turn an approved app idea into a bounded first release without activating a third product.",
+  "targetUser": "A single owner-operator validating an internal workflow",
+  "primaryJob": "Submit one structured input and receive one inspectable result",
+  "firstReleaseSlice": "Local-only form, validated API command, persisted fixture result, and readback page",
+  "acceptanceOwner": "Portfolio Director",
+  "architecture": [
+    { "layer": "frontend", "responsibility": "One input and result route" },
+    { "layer": "backend", "responsibility": "One company-scoped validated command and query" },
+    { "layer": "data", "responsibility": "One reversible fixture entity with audit metadata" },
+    { "layer": "integration", "responsibility": "No external write; local adapter contract only" }
+  ],
+  "acceptanceMap": [
+    { "outcome": "Owner can submit valid input", "proof": "Focused UI and API tests", "owner": "Test Automation Engineer" },
+    { "outcome": "Invalid or cross-company input fails closed", "proof": "Negative authorization tests", "owner": "Security Review Lead" },
+    { "outcome": "Result is inspectable and documented", "proof": "Browser readback and docs review", "owner": "QA Regression Lead" }
+  ],
+  "issueTopology": [
+    { "type": "persistent_parent", "owner": "Product Manager", "status": "fixture_only" },
+    { "type": "first_slice", "owner": "Engineering Delivery Lead", "status": "fixture_only" },
+    { "type": "verification", "owner": "QA Regression Lead", "status": "fixture_only" }
+  ],
+  "workspacePlan": {
+    "plannedRoot": "OWNER_APPROVED_ROOT_REQUIRED",
+    "createNow": false,
+    "cleanRequired": true,
+    "oneWriter": true,
+    "allowedEffects": ["fixture validation", "plan review"],
+    "forbiddenEffects": ["repository creation", "portfolio activation", "deployment", "external communication"]
+  }
+}

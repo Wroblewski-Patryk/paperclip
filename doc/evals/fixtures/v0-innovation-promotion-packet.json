@@ -1,0 +1,30 @@
+{
+  "kind": "innovation_to_product_packet",
+  "offering": "Soar/Roost V0 promotion fixture",
+  "repository": "Soar or Roost after product-specific evidence binding",
+  "currentDepartment": "11 Innovation",
+  "proposedDepartment": "02 Product",
+  "scopeVersion": "softwarehouse-v0-promotion-v1",
+  "readinessEvidence": {
+    "productTruth": [],
+    "tests": [],
+    "review": [],
+    "documentation": [],
+    "security": [],
+    "deployment": [],
+    "monitoring": [],
+    "recovery": []
+  },
+  "knownRisks": ["Product-specific protected production evidence must be bound before approval"],
+  "nonBlockingDeferrals": ["Pricing, marketing, sales outreach, and customer communication remain V1/business-operation decisions"],
+  "ownerDecision": {
+    "required": true,
+    "status": "pending",
+    "options": ["move_now", "keep_incubating", "stop_or_park"]
+  },
+  "commercialActivation": {
+    "authorized": false,
+    "automaticTransition": false,
+    "separateDecision": "Owner accepts a product-specific versioned sale-readiness packet"
+  }
+}
