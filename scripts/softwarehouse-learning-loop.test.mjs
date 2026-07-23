@@ -230,6 +230,33 @@ test("classifyLearningGapFromIssues prioritizes credential rotation over deploy-
   });
 });
 
+test("classifyLearningGapFromIssues does not route superseded project-truth dispatcher gaps into security credentials", () => {
+  const gap = classifyLearningGapFromIssues("LUC-1688", [
+    {
+      identifier: "LUC-1688",
+      status: "blocked",
+      title: "[Soar][Project Truth][App Completion] Prove login browser-review",
+      description: [
+        "softwarehouse-project-truth-gap-dispatcher:v1",
+        "",
+        "softwarehouse-project-truth-gap-dispatcher:v1:superseded",
+        "",
+        "This project-truth issue was created from an older first-gap snapshot and is no longer one of the current dispatchable first gaps.",
+        "Owner action: stop treating this issue as the active first-gap lane.",
+        "Browser auth proof and evidence need to follow the current dispatcher-created gap instead.",
+      ].join("\n"),
+      blockedBy: [],
+    },
+  ]);
+
+  assert.deepEqual(gap, {
+    area: "qa-proof",
+    owner: "QA Regression Lead",
+    title: "[Softwarehouse][Learning] QA/evidence blocker pattern LUC-1688",
+    boundary: "repeatable proof command and regression guard ownership",
+  });
+});
+
 test("findSuppressibleV1LearningDuplicate suppresses a closed exact root blocker duplicate", () => {
   const duplicate = findSuppressibleV1LearningDuplicate({
     issues: [

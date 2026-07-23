@@ -72,9 +72,37 @@ export function resolveLearningOwner(agents, ownerName, fallbackOwnerNames = [])
   return null;
 }
 
+const projectTruthDispatcherMarker = "softwarehouse-project-truth-gap-dispatcher:v1";
+const supersededProjectTruthDispatcherMarker = `${projectTruthDispatcherMarker}:superseded`;
+
+function isProjectTruthDispatcherIssue(issue) {
+  return String(issue?.title ?? "").includes("[Project Truth]")
+    && String(issue?.description ?? "").includes(projectTruthDispatcherMarker);
+}
+
+function hasFirstClassBlockerChain(issue, rootKey) {
+  return blockerKeys(issue).some((key) => !issueMatchesKey(issue, key))
+    || (
+      blockerAttentionReferencesRoot(issue, rootKey)
+      && !issueMatchesKey(issue, rootKey)
+    );
+}
+
+function isSupersededOrDetachedProjectTruthDispatcherIssue(rootKey, issue) {
+  if (!isProjectTruthDispatcherIssue(issue)) return false;
+  const description = String(issue?.description ?? "");
+  if (description.includes(supersededProjectTruthDispatcherMarker)) return true;
+  return !hasFirstClassBlockerChain(issue, rootKey);
+}
+
 export function classifyLearningGapFromIssues(key, issues) {
   const text = issues.map((issue) => `${issue.title}\n${issue.description ?? ""}`).join("\n").toLowerCase();
-  if (/auth|secret|credential|token|permission|account|security/.test(text)) return {
+  const seededOnlyBySupersededProjectTruthDispatch = issues.length > 0
+    && issues.every((issue) => isSupersededOrDetachedProjectTruthDispatcherIssue(key, issue));
+  if (
+    /auth|secret|credential|token|permission|account|security/.test(text)
+    && !seededOnlyBySupersededProjectTruthDispatch
+  ) return {
     area: "security-credentials",
     owner: "Security Review Lead",
     title: `[Softwarehouse][Learning] Security/credential blocker pattern ${key}`,
