@@ -19,11 +19,14 @@
 - Paperclip automatically resumed `LUC-496`, `LUC-494`, `LUC-1137`, and the
   autonomy governor after the protected gate closed. Let those agents
   synthesize and close their evidence rather than manually duplicating work.
-- The next program after incident closure is local product maturation:
-  evidence-backed sale-readiness contracts and gap burn-down for Soar first,
-  then Roost, while both remain in `11 Innovation`. Do not activate sales,
-  marketing, customer outreach, broad provider writes, or hosted Paperclip
-  until the separately governed V1 transition.
+- Local product maturation is now active. The three completed Stage 1/hosted
+  product delivery goals are `achieved`. `LUC-1787` is the live Soar-first
+  sale-readiness contract/gap-register parent under goal
+  `45d5d36a-8f83-4571-a9ac-bfd20a8bf9b1`; `LUC-1788` and Roost goal
+  `4c1390fd-d09a-45a3-9cfa-8aa9745f8988` are serialized behind it. Both
+  products remain in `11 Innovation`. Do not activate sales, marketing,
+  customer outreach, broad provider writes, or hosted Paperclip until the
+  separately governed V1 transition.
 
 ## 2026-07-22 - Roost Knowledge Plane Direction Activated - Current
 

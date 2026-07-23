@@ -18,6 +18,12 @@ contracts, burn down verified gaps Soar-first and Roost-second, and preserve
 the human approval boundary. V1 remains the later migration of Paperclip to
 VPS plus Roost-backed whole-company operations.
 
+This program is live: `LUC-1787` is assigned to Soar Product Manager under
+active goal `45d5d36a-8f83-4571-a9ac-bfd20a8bf9b1`; Roost parent `LUC-1788`
+and goal `4c1390fd-d09a-45a3-9cfa-8aa9745f8988` are serialized behind Soar.
+The obsolete Stage 1, Soar VPS-delivery, and Roost VPS-delivery goals are
+marked `achieved`.
+
 ## User Intent
 
 The user wants Paperclip to become the control plane for LuckySparrow: an

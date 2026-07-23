@@ -15,8 +15,10 @@ Last updated: 2026-07-23
   `scripts/rotate-luc-972-credentials.ts`; Paperclip work product
   `077a3069-32fb-419e-b081-12cb839c50a9`.
 - Paperclip automatically resumed the dependent security/learning/governor
-  lanes. The next intended local program is Soar-first, Roost-second product
-  maturation and sale-readiness while both remain in `11 Innovation`.
+  lanes. Soar-first, Roost-second product maturation is now active:
+  `LUC-1787` is the live Soar sale-readiness parent and `LUC-1788` is blocked
+  behind it for Roost. Both remain in `11 Innovation`; three completed
+  delivery goals are now `achieved`.
 - Do not start hosted Paperclip or whole-company V1 operations without a new
   governed transition.
 

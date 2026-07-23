@@ -4424,3 +4424,15 @@ workspace work product `077a3069-32fb-419e-b081-12cb839c50a9`. Paperclip then
 automatically resumed `LUC-496`, `LUC-494`, `LUC-1137`, and the autonomy
 governor. The intended next local program is product maturation and versioned
 sale-readiness, Soar first and Roost second; whole-company V1 remains deferred.
+
+The board was then advanced out of stale delivery-goal state. The Stage 1,
+Soar VPS-delivery, and Roost VPS-delivery goals are now `achieved`. Active
+product-maturation goals were created for Soar
+(`45d5d36a-8f83-4571-a9ac-bfd20a8bf9b1`) and Roost
+(`4c1390fd-d09a-45a3-9cfa-8aa9745f8988`) under the long-term autonomy goal.
+`LUC-1787` started automatically with Soar Product Manager to establish the
+versioned v1.0 sale-readiness contract, verified gap register, and next SDLC
+handoff. `LUC-1788` is assigned to Roost Product Manager but blocked by
+`LUC-1787`, preserving the owner-required Soar-first sequence. Neither issue
+authorizes sales, customer outreach, broad provider writes, LIVE trading, or
+hosted Paperclip V1.
