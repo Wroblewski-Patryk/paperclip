@@ -34,6 +34,27 @@ export function workerBacklogTrackForIssue(issue, projectById) {
   return controlledProjectNameFor(projectById.get(issue?.projectId)?.name);
 }
 
+function projectTruthSourceItemId(issue) {
+  const match = String(issue?.description ?? "").match(/(?:\u0007)?(api_endpoint|pi_endpoint|route|component):[A-Za-z0-9_./:[\]-]+/i);
+  if (!match) return null;
+  return match[0]
+    .replace(/^\u0007/i, "")
+    .replace(/^pi_endpoint:/i, "api_endpoint:");
+}
+
+export function filterSupersededProjectTruthLanes({ issues, projects, currentGapIdsByTrack }) {
+  const projectById = new Map(projects.map((project) => [project.id, project]));
+  return issues.filter((issue) => {
+    if (!/\[Project Truth\]\[App Completion\]/i.test(String(issue?.title ?? ""))) return true;
+    const track = workerBacklogTrackForIssue(issue, projectById);
+    const currentGapIds = track ? currentGapIdsByTrack.get(track) : null;
+    if (!(currentGapIds instanceof Set)) return true;
+    if (currentGapIds.size === 0) return false;
+    const sourceItemId = projectTruthSourceItemId(issue);
+    return sourceItemId ? currentGapIds.has(sourceItemId) : true;
+  });
+}
+
 export function formatWeakTrackSummary(trackSummary) {
   return `${trackSummary.track}: runnable worker=${trackSummary.runnableWorkerIssueCount}, planned worker=${trackSummary.plannedWorkerIssueCount}, planned supervisor=${trackSummary.plannedSupervisorIssueCount}, open=${trackSummary.openIssueCount}, blocked=${trackSummary.blockedIssueCount}`;
 }

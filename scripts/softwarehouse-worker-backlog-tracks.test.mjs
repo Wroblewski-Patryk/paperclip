@@ -4,12 +4,58 @@ import { readFile } from "node:fs/promises";
 
 import {
   controlledProjectNameFor,
+  filterSupersededProjectTruthLanes,
   formatTrackDispositionSummary,
   formatWeakTrackSummary,
   formatWorkerFanoutContract,
   summarizeWorkerBacklogTracks,
   workerBacklogTrackForIssue,
 } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
+
+test("filterSupersededProjectTruthLanes removes stale reserve gaps when current truth is zero", () => {
+  const projects = [{ id: "roost", name: "11 Innovation: Roost", status: "in_progress", archivedAt: null }];
+  const issues = [
+    {
+      id: "stale",
+      projectId: "roost",
+      status: "backlog",
+      title: "[Roost][Project Truth][App Completion] Prove missing-test-link",
+      description: "Source item: api_endpoint:use-projects:2ab7f26357",
+    },
+    { id: "release", projectId: "roost", status: "todo", title: "[Roost][Release] Verify current VPS build" },
+  ];
+
+  assert.deepEqual(
+    filterSupersededProjectTruthLanes({
+      issues,
+      projects,
+      currentGapIdsByTrack: new Map([["Roost", new Set()]]),
+    }).map((issue) => issue.id),
+    ["release"],
+  );
+});
+
+test("filterSupersededProjectTruthLanes retains current and unknown truth lanes", () => {
+  const projects = [{ id: "soar", name: "Soar", status: "in_progress", archivedAt: null }];
+  const issue = {
+    id: "current",
+    projectId: "soar",
+    status: "backlog",
+    title: "[Soar][Project Truth][App Completion] Prove browser review",
+    description: "Source item: route:page-tsx:abc123",
+  };
+
+  assert.equal(filterSupersededProjectTruthLanes({
+    issues: [issue],
+    projects,
+    currentGapIdsByTrack: new Map([["Soar", new Set(["route:page-tsx:abc123"])]]),
+  }).length, 1);
+  assert.equal(filterSupersededProjectTruthLanes({
+    issues: [issue],
+    projects,
+    currentGapIdsByTrack: new Map(),
+  }).length, 1);
+});
 
 test("controlledProjectNameFor resolves canonical Soar and Roost aliases", () => {
   assert.equal(controlledProjectNameFor("11 Innovation: Soar"), "Soar");

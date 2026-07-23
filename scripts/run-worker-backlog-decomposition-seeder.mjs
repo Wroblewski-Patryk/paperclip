@@ -4,6 +4,7 @@ import {
   formatTrackDispositionSummary,
   formatWeakTrackSummary,
   formatWorkerFanoutContract,
+  filterSupersededProjectTruthLanes,
   summarizeWorkerBacklogTracks,
 } from "./lib/softwarehouse-worker-backlog-tracks.mjs";
 
@@ -86,6 +87,26 @@ async function controlledRepoClosureState() {
   }
 }
 
+async function currentProjectTruthGapIds() {
+  const { readFile } = await import("node:fs/promises");
+  const path = await import("node:path");
+  const roots = new Map([
+    ["Soar", process.env.SOAR_ROOT ?? path.resolve(process.cwd(), "..", "Soar")],
+    ["Roost", process.env.ROOST_ROOT ?? path.resolve(process.cwd(), "..", "Roost")],
+  ]);
+  const result = new Map();
+  for (const [track, root] of roots) {
+    try {
+      const packet = JSON.parse(await readFile(path.join(root, "docs", "status", "project-truth-index.json"), "utf8"));
+      result.set(track, new Set((packet.gaps ?? []).map((gap) => gap.sourceItemId).filter(Boolean)));
+    } catch {
+      // Unknown truth must fail open: retain existing lanes until a current
+      // index can prove that they are superseded.
+    }
+  }
+  return result;
+}
+
 async function request(method, route, body) {
   const response = await fetch(`${apiBase}${route}`, {
     method,
@@ -164,6 +185,8 @@ const agentWip = summarizeAgentWip({ activeRunCount, liveRuns });
 const activeProjects = projects.filter((project) => !project.archivedAt);
 const activeProjectIds = new Set(activeProjects.map((project) => project.id));
 const agentById = new Map(agents.map((agent) => [agent.id, agent]));
+const currentGapIdsByTrack = await currentProjectTruthGapIds();
+const currentIssues = filterSupersededProjectTruthLanes({ issues, projects, currentGapIdsByTrack });
 const openIssues = issues.filter((issue) =>
   activeProjectIds.has(issue.projectId)
   && !terminalStatuses.has(issue.status)
@@ -179,11 +202,12 @@ const runnableWorkerIssues = plannedWorkerIssues.filter((issue) => issue.status 
 const plannedSupervisorIssues = plannedIssues.filter((issue) => isSupervisor(agentById.get(issue.assigneeAgentId)));
 function namedBlockerForIssue(issue) {
   if (Array.isArray(issue.blockedBy) && issue.blockedBy.length > 0) return true;
+  if (issue.blockerAttention?.sampleBlockerIdentifier) return true;
   const text = `${issue.title ?? ""}\n${issue.description ?? ""}`;
   return /(blocker|blocked by|unblock owner|owner action|source-control closure|required approval)/i.test(text);
 }
 const trackBacklog = summarizeWorkerBacklogTracks({
-  issues,
+  issues: currentIssues,
   projects,
   agentById,
   isWorker,
