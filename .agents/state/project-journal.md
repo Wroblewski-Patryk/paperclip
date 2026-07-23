@@ -4340,3 +4340,36 @@ route-specific and records authoritative evidence paths plus an explicit rule
 that source item/path outrank title/user-flow summaries. Focused dispatcher
 and Softwarehouse gate tests pass `197/197`. The Paperclip change remains a
 local source-control packet until its own clean commit is created.
+
+## 2026-07-22 - Soar/Roost zero-gap closure and final protected gate
+
+Soar's final 25 app-completion gaps were closed evidence-first with focused
+web/API tests, fresh local Chromium proof, exact test/docs relations, and
+regenerated truth indexes. The canonical Soar result is zero gaps at commit
+`6bf6f609d`; a failed database-dependent aggregate test caused by absent
+`localhost:5432` was recorded honestly and not counted as passing. Roost was
+refreshed through the same generators, remains zero-gap and clean at
+`19b15f5b`, and `LUC-28` reached its existing production acceptance contract.
+
+The work exposed two controller feedback defects. The learning loop mistook a
+superseded Project Truth issue for a credential blocker; the fix passes 73/73
+tests at `af4a20ed`. The worker-backlog routine then promoted obsolete Roost
+reserve gaps after current truth was already zero; stale lanes were cancelled,
+the seeder now filters only provably superseded Project Truth lanes while
+failing open on missing truth, and its focused suite passes 10/10 at
+`cbf3457c` with a live dry-run returning `shouldSeed=false`.
+
+V0 lifecycle readiness is now executable rather than narrative-only: the
+greenfield fixture validates architecture, acceptance, issue topology, and a
+non-created governed workspace; the innovation-to-product packet requires an
+owner decision and rejects automatic commercial activation. Both positive and
+negative evals pass at `86792586`.
+
+Fresh Softwarehouse audits pass for the canonical 3200/54329 runtime,
+workspace boundaries, runtime files, all 39 instruction bundles, settings, and
+operating standard. `softwarehouse:two-project-readiness` now names exactly
+one hard-delivery blocker: pending interaction
+`ba1b3b44-55a9-402e-91ef-e6543bb3e385` on `LUC-1569` for a managed read-only
+Soar protected readiness path. This remains owner-governed. Full-instance DR
+`LUC-1570`, final `LUC-27`, and `LUC-25` acceptance remain downstream and must
+not be claimed before that approval and evidence chain completes.

@@ -799,3 +799,26 @@ or the relevant owners explicitly classify them as not required with evidence.
   under `LUC-28` when its serialized lane is legal.
 - Canonical execution plan:
   `doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md`.
+
+## 2026-07-22 - V0 implementation at protected owner gate
+
+- Soar canonical app-completion and project-truth indexes both report zero
+  gaps at clean commit `6bf6f609d`; public `/health`, `/ready`, and Web probes
+  return HTTP 200.
+- Roost canonical indexes both report zero gaps at clean commit `19b15f5b`;
+  `LUC-28` is done with typed production acceptance evidence.
+- Paperclip control-plane, topology, workspace, runtime-file, agent settings,
+  instruction, and operating-standard audits pass. Source control is clean.
+- The greenfield intake and innovation-to-product lifecycle eval passes and
+  forbids portfolio activation or commercial transition without an explicit
+  owner decision (`86792586`).
+- Two continuity defects discovered during burn-down are regression-covered:
+  superseded truth gaps no longer become credential-learning noise, and stale
+  zero-gap reserve lanes are not promoted (`af4a20ed`, `cbf3457c`).
+- The only hard-delivery blocker reported by
+  `softwarehouse:two-project-readiness` is `LUC-1569`: owner approval for a
+  managed, read-only Soar protected readiness path. Do not self-approve,
+  request raw secrets, push, deploy, or bypass this gate.
+- After `LUC-1569` and its security/QA/docs consumers close, complete
+  `LUC-27`, run the disposable full-instance restore `LUC-1570`, refresh the
+  final V0 scorecard, and request owner acceptance on `LUC-25`.
