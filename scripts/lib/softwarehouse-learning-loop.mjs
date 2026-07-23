@@ -191,6 +191,29 @@ function sameStringArray(left = [], right = []) {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+function parseWeakTrackSummary(summary) {
+  const text = String(summary ?? "").trim();
+  const currentMatch = text.match(
+    /^(?<track>[A-Za-z0-9_-]+): runnable worker=(?<runnable>\d+), planned worker=(?<planned>\d+), planned supervisor=(?<supervisor>\d+), open=(?<open>\d+), blocked=(?<blocked>\d+)$/i,
+  );
+  if (currentMatch?.groups) {
+    return {
+      track: currentMatch.groups.track,
+      signature: `${currentMatch.groups.track}: runnable worker=${currentMatch.groups.runnable}, planned worker=${currentMatch.groups.planned}, planned supervisor=${currentMatch.groups.supervisor}, open=${currentMatch.groups.open}, blocked=${currentMatch.groups.blocked}`,
+    };
+  }
+  const legacyMatch = text.match(
+    /^(?<track>[A-Za-z0-9_-]+): planned worker=(?<planned>\d+), planned supervisor=(?<supervisor>\d+), open=(?<open>\d+), blocked=(?<blocked>\d+)$/i,
+  );
+  if (legacyMatch?.groups) {
+    return {
+      track: legacyMatch.groups.track,
+      signature: `${legacyMatch.groups.track}: planned worker=${legacyMatch.groups.planned}, planned supervisor=${legacyMatch.groups.supervisor}, open=${legacyMatch.groups.open}, blocked=${legacyMatch.groups.blocked}`,
+    };
+  }
+  return null;
+}
+
 function reviewDecisionPathLearningSignature(input) {
   return [
     input.title,
@@ -207,8 +230,12 @@ export function parseV2WorkerFanoutLearningSignature(issue) {
   const plannedWorkerIssueCount = numericLearningField(description, "Planned worker issue count");
   const plannedSupervisorIssueCount = numericLearningField(description, "Planned supervisor issue count");
   const plannedIssueCount = numericLearningField(description, "Planned issue count");
-  const weakTrackSummaries = [...description.matchAll(/^- ([A-Za-z0-9_-]+: planned worker=\d+, planned supervisor=\d+, open=\d+, blocked=\d+)$/gm)]
-    .map((match) => match[1])
+  const weakTrackSummaries = description
+    .split("\n")
+    .map((line) => line.match(/^- (.+)$/)?.[1] ?? null)
+    .map((line) => parseWeakTrackSummary(line))
+    .filter(Boolean)
+    .map((summary) => summary.signature)
     .sort();
   if (
     plannedWorkerIssueCount === null

@@ -99,7 +99,7 @@ test("parseV2WorkerFanoutLearningSignature extracts the title and queue counts",
       "Planned issue count: 9",
       "",
       "Weak tracks:",
-      "- Roost: planned worker=1, planned supervisor=0, open=3, blocked=2",
+      "- Roost: runnable worker=1, planned worker=1, planned supervisor=0, open=3, blocked=2",
     ].join("\n"),
   });
 
@@ -109,7 +109,7 @@ test("parseV2WorkerFanoutLearningSignature extracts the title and queue counts",
     plannedWorkerIssueCount: 1,
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 9,
-    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
+    weakTrackSummaries: ["Roost: runnable worker=1, planned worker=1, planned supervisor=0, open=3, blocked=2"],
     weakTrackNames: ["roost"],
     signature: [
       "[softwarehouse][learning] worker queue fan-out capability gap",
@@ -117,9 +117,30 @@ test("parseV2WorkerFanoutLearningSignature extracts the title and queue counts",
       "1",
       "7",
       "9",
-      "roost: planned worker=1, planned supervisor=0, open=3, blocked=2",
+      "roost: runnable worker=1, planned worker=1, planned supervisor=0, open=3, blocked=2",
     ].join("\n"),
   });
+});
+
+test("parseV2WorkerFanoutLearningSignature keeps legacy weak-track summaries parseable for family dedupe", () => {
+  const parsed = parseV2WorkerFanoutLearningSignature({
+    title: "[Softwarehouse][Learning] Worker queue fan-out capability gap",
+    description: [
+      "softwarehouse-learning-loop:v2",
+      "",
+      "Observed process gap: runnable work is concentrated above the leaf worker layer.",
+      "",
+      "Planned supervisor issue count: 7",
+      "Planned worker issue count: 1",
+      "Planned issue count: 9",
+      "",
+      "Weak tracks:",
+      "- Roost: planned worker=1, planned supervisor=0, open=3, blocked=2",
+    ].join("\n"),
+  });
+
+  assert.deepEqual(parsed?.weakTrackNames, ["roost"]);
+  assert.deepEqual(parsed?.weakTrackSummaries, ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"]);
 });
 
 test("parseV2ReviewDecisionPathLearningSignature extracts source issue identifiers", () => {
@@ -2886,7 +2907,7 @@ function workerFanoutLearningIssue(overrides = {}) {
       "Planned issue count: 9",
       "",
       "Weak tracks:",
-      "- Roost: planned worker=1, planned supervisor=0, open=3, blocked=2",
+      "- Roost: runnable worker=1, planned worker=1, planned supervisor=0, open=3, blocked=2",
     ].join("\n"),
     ...overrides,
   };
@@ -2909,7 +2930,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate suppresses an existing done duplic
     plannedWorkerIssueCount: 1,
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 9,
-    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
+    weakTrackSummaries: ["Roost: runnable worker=1, planned worker=1, planned supervisor=0, open=3, blocked=2"],
     sourceIssues: workerFanoutSourceIssues,
   });
 
@@ -2926,7 +2947,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate suppresses an existing blocked dup
     plannedWorkerIssueCount: 1,
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 9,
-    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
+    weakTrackSummaries: ["Roost: runnable worker=1, planned worker=1, planned supervisor=0, open=3, blocked=2"],
     sourceIssues: workerFanoutSourceIssues,
   });
 
@@ -2940,7 +2961,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate suppresses a narrower repeat of a 
     plannedWorkerIssueCount: 0,
     plannedSupervisorIssueCount: 1,
     plannedIssueCount: 1,
-    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
+    weakTrackSummaries: ["Roost: runnable worker=1, planned worker=1, planned supervisor=0, open=3, blocked=2"],
     sourceIssues: [
       {
         identifier: "LUC-1505",
@@ -2962,7 +2983,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate ignores source timestamp churn for
     plannedWorkerIssueCount: 1,
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 9,
-    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=3, blocked=2"],
+    weakTrackSummaries: ["Roost: runnable worker=1, planned worker=1, planned supervisor=0, open=3, blocked=2"],
     sourceIssues: [
       {
         identifier: "LUC-1505",
@@ -2986,7 +3007,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate cools down changed counters for th
     plannedWorkerIssueCount: 1,
     plannedSupervisorIssueCount: 0,
     plannedIssueCount: 1,
-    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=5, blocked=0"],
+    weakTrackSummaries: ["Roost: runnable worker=1, planned worker=1, planned supervisor=0, open=5, blocked=0"],
     sourceIssues: workerFanoutSourceIssues,
     now: new Date("2026-06-02T09:00:00.000Z"),
   });
@@ -3003,7 +3024,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate allows the same weak track family 
     plannedWorkerIssueCount: 1,
     plannedSupervisorIssueCount: 0,
     plannedIssueCount: 1,
-    weakTrackSummaries: ["Roost: planned worker=1, planned supervisor=0, open=5, blocked=0"],
+    weakTrackSummaries: ["Roost: runnable worker=1, planned worker=1, planned supervisor=0, open=5, blocked=0"],
     sourceIssues: workerFanoutSourceIssues,
     now: new Date("2026-06-02T09:00:00.000Z"),
   });
@@ -3028,7 +3049,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate does not suppress per-track fanout
     plannedWorkerIssueCount: 0,
     plannedSupervisorIssueCount: 2,
     plannedIssueCount: 2,
-    weakTrackSummaries: ["Roost: planned worker=0, planned supervisor=0, open=3, blocked=0"],
+    weakTrackSummaries: ["Roost: runnable worker=0, planned worker=0, planned supervisor=0, open=3, blocked=0"],
     sourceIssues: workerFanoutSourceIssues,
   });
 
@@ -3042,7 +3063,7 @@ test("findSuppressibleV2WorkerFanoutDuplicate does not suppress a true new worke
     plannedWorkerIssueCount: 2,
     plannedSupervisorIssueCount: 7,
     plannedIssueCount: 10,
-    weakTrackSummaries: ["Roost: planned worker=2, planned supervisor=0, open=3, blocked=1"],
+    weakTrackSummaries: ["Roost: runnable worker=2, planned worker=2, planned supervisor=0, open=3, blocked=1"],
     sourceIssues: [
       {
         identifier: "LUC-1480",
