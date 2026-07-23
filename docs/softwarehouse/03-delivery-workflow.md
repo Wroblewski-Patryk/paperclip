@@ -50,6 +50,10 @@ or exposes waste.
 - No issue is abandoned without `BLOCKED`, `DELEGATED`, or `NEXT_ACTION`.
 - Parent/controller issues should not stay in `in_progress`; leaf work owns live execution.
 - Handoffs must name owner, layer, context files, expected output, verification, and blocker.
+- When transcript/log/agent-output secret exposure is detected, open or link
+  one protected credential incident lane and block downstream implementation,
+  deploy, provenance, or review issues on that lane instead of rediscovering
+  the same credential pattern.
 
 ## PDCA Flow
 

@@ -1689,6 +1689,25 @@ test("source-control sidecars require bounded redaction scans", async () => {
   assert.match(shared, /return matching file names or counts, capped at 100 paths/);
 });
 
+test("shared contracts promote transcript secret exposure into a protected credential incident lane", async () => {
+  const credentials = await readFile("softwarehouse/instructions/shared/30-credentials-and-accounts.md", "utf8");
+  const security = await readFile("docs/softwarehouse/07-security-standard.md", "utf8");
+  const workflow = await readFile("docs/softwarehouse/03-delivery-workflow.md", "utf8");
+
+  assert.match(credentials, /transcript, log, screenshot, or\s+downstream agent output/i);
+  assert.match(credentials, /protected credential incident lane/i);
+  assert.match(credentials, /affected\s+binding\/account\/service names/i);
+  assert.match(credentials, /raw value/i);
+
+  assert.match(security, /Transcript Secret-Exposure Routine/);
+  assert.match(security, /Minimum incident record:/);
+  assert.match(security, /linked downstream blocker issues that must wait on the incident lane/i);
+  assert.match(security, /LUC-1786/);
+
+  assert.match(workflow, /protected credential incident lane/i);
+  assert.match(workflow, /rediscovering\s+the same credential pattern/i);
+});
+
 test("local source-control sidecars preserve parallelism across independent projects and agents", async () => {
   const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
 

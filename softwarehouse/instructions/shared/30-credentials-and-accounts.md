@@ -20,6 +20,22 @@ repo files, issue comments, screenshots, generated artifacts, or logs.
   after testing.
 - Screenshots and logs from authenticated production checks must be redacted or
   described without exposing private data.
+- If a real secret value is exposed in a transcript, log, screenshot, or
+  downstream agent output, immediately open or link one protected credential
+  incident lane instead of continuing ad hoc investigation in the affected
+  implementation issue.
+- The incident record must stay name-only: capture the affected
+  binding/account/service names, the owner or operator path, the required
+  invalidation or rotation expectation, the proof expected before resume, and
+  the downstream issues that must block on the incident lane. Never paste the
+  raw value or claim provider rotation that the current lane cannot perform.
+- Downstream provenance, deploy, implementation, or review issues must link to
+  the protected credential incident lane as their blocker instead of
+  rediscovering the same secret-exposure pattern independently.
+- Use the shared incident routine and then follow the provider/security runbook
+  for provider-specific rotation or audit steps. In this repo the existing
+  baseline reference is `doc/SECRETS-AWS-PROVIDER.md` under `Incident Response
+  Runbook`.
 - When a blocker is classified as security/credential-related because it names
   auth boundaries, paused owners, or `403` authorization failures, first
   classify whether the real unblock is an authorized owner path. The permitted
