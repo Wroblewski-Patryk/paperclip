@@ -1,6 +1,6 @@
 # App Completion Index
 
-Generated: 2026-07-03T01:26:03.470Z
+Generated: 2026-07-23T01:19:08.800Z
 Project: Paperclip
 Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 Source graph: docs/graphs/architecture-awareness.json
@@ -9,115 +9,115 @@ Source graph: docs/graphs/architecture-awareness.json
 
 This index turns architecture-awareness entities into user-facing completion lanes.
 Agents use it to decide what to plan next: backend/API proof, frontend/browser proof, auth/subscription/configuration gates, exchange integration proof, or cleanup.
+Internal functions and modules are implementation details: they receive proof through their owning product boundary and are not dispatched as one issue per symbol.
 
 ## Counts
 
-- Items: 14205
-- User flows: 8
-- Needs browser/screenshot review: 425
-- Missing test link: 10858
-- Missing doc link: 2870
-- Implemented, needs proof: 21
+- Items: 481
+- User flows: 7
+- Needs browser/screenshot review: 72
+- Missing test link: 352
+- Missing doc link: 25
+- Implemented, needs proof: 1
 - Blocked: 0
-- Known non-ok risk items: 14174
-- Priority review items indexed: 200/14174
+- Known non-ok risk items: 450
+- Priority review items indexed: 200/450
 - Priority review truncated: true
 
 ## Flow Summary
 
-- Unclassified user workflow: 12426 entities; risks {"ok":19,"missing_test_link":9517,"missing_doc_link":2497,"implemented_needs_proof":19,"needs_browser_review":374}; gates {"auth":87,"configuration":311}
-- User configuration: 877 entities; risks {"missing_doc_link":147,"missing_test_link":701,"implemented_needs_proof":1,"needs_browser_review":28}; gates {"configuration":807,"auth":31}
-- Account access: 561 entities; risks {"ok":9,"missing_test_link":370,"missing_doc_link":172,"implemented_needs_proof":1,"needs_browser_review":9}; gates {"auth":561,"configuration":37,"subscription":1}
-- Trading operation: 143 entities; risks {"missing_test_link":126,"missing_doc_link":13,"needs_browser_review":4}; gates {"auth":2}
-- Dashboard overview: 123 entities; risks {"missing_test_link":93,"missing_doc_link":23,"needs_browser_review":7}; gates {"configuration":21,"auth":3}
-- Subscription and entitlement: 49 entities; risks {"missing_test_link":37,"missing_doc_link":9,"needs_browser_review":3}; gates {"subscription":49,"configuration":1}
-- Admin operation: 17 entities; risks {"ok":3,"missing_test_link":9,"missing_doc_link":5}; gates {"auth":6}
-- Exchange connection and configuration: 9 entities; risks {"missing_test_link":5,"missing_doc_link":4}; gates {"configuration":9}
+- Unclassified user workflow: 413 entities; risks {"ok":19,"missing_test_link":314,"missing_doc_link":20,"implemented_needs_proof":1,"needs_browser_review":59}; gates {"auth":1,"configuration":15}
+- User configuration: 37 entities; risks {"missing_doc_link":2,"missing_test_link":27,"needs_browser_review":8}; gates {"configuration":33,"auth":2}
+- Account access: 15 entities; risks {"ok":9,"missing_doc_link":3,"missing_test_link":1,"needs_browser_review":2}; gates {"auth":15}
+- Dashboard overview: 7 entities; risks {"missing_test_link":4,"needs_browser_review":3}; gates {}
+- Admin operation: 6 entities; risks {"ok":3,"missing_test_link":3}; gates {"auth":5}
+- Trading operation: 2 entities; risks {"missing_test_link":2}; gates {}
+- Subscription and entitlement: 1 entities; risks {"missing_test_link":1}; gates {"subscription":1}
 
 ## Priority Review Queue
 
 | User flow | Risk | Kind | Entity | Owner | Path | Gates |
 | --- | --- | --- | --- | --- | --- | --- |
-| Account access | missing_test_link | api_endpoint | POST /agents/:id/claude-login | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/claude-login | auth |
-| Account access | missing_test_link | api_endpoint | POST /agents/:id/runtime-state/reset-session | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/runtime-state/reset-session | auth |
-| Account access | missing_test_link | api_endpoint | GET /agents/:id/task-sessions | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/task-sessions | auth |
-| Account access | missing_test_link | api_endpoint | PATCH /profile | Backend Platform Lead | server/src/routes/auth.ts#/profile | auth |
-| Account access | missing_doc_link | feature_or_capability | jsonResponse | Developer Experience Lead | cli/src/__tests__/auth-command-registration.test.ts#jsonResponse | auth |
-| Account access | missing_doc_link | feature_or_capability | run | Developer Experience Lead | cli/src/__tests__/auth-command-registration.test.ts#run | auth |
-| Account access | missing_doc_link | feature_or_capability | createTempAuthPath | Developer Experience Lead | cli/src/__tests__/board-auth.test.ts#createTempAuthPath | auth |
-| Account access | missing_doc_link | feature_or_capability | deployment-auth-check.ts | Developer Experience Lead | cli/src/checks/deployment-auth-check.ts | auth |
-| Account access | missing_doc_link | feature_or_capability | deploymentAuthCheck | Developer Experience Lead | cli/src/checks/deployment-auth-check.ts#deploymentAuthCheck | auth |
-| Account access | missing_doc_link | feature_or_capability | board-auth.ts | Developer Experience Lead | cli/src/client/board-auth.ts | auth |
-| Account access | missing_doc_link | feature_or_capability | defaultBoardAuthStore | Developer Experience Lead | cli/src/client/board-auth.ts#defaultBoardAuthStore | auth |
-| Account access | missing_test_link | feature_or_capability | getStoredBoardCredential | Developer Experience Lead | cli/src/client/board-auth.ts#getStoredBoardCredential | auth, configuration |
-| Account access | missing_test_link | feature_or_capability | loginBoardCli | Developer Experience Lead | cli/src/client/board-auth.ts#loginBoardCli | auth |
-| Account access | missing_doc_link | feature_or_capability | normalizeApiBase | Developer Experience Lead | cli/src/client/board-auth.ts#normalizeApiBase | auth |
-| Account access | missing_test_link | feature_or_capability | openUrl | Developer Experience Lead | cli/src/client/board-auth.ts#openUrl | auth |
-| Account access | missing_test_link | feature_or_capability | readBoardAuthStore | Developer Experience Lead | cli/src/client/board-auth.ts#readBoardAuthStore | auth |
-| Account access | missing_test_link | feature_or_capability | removeStoredBoardCredential | Developer Experience Lead | cli/src/client/board-auth.ts#removeStoredBoardCredential | auth, configuration |
-| Account access | missing_test_link | feature_or_capability | requestJson | Developer Experience Lead | cli/src/client/board-auth.ts#requestJson | auth |
-| Account access | missing_doc_link | feature_or_capability | resolveBoardAuthStorePath | Developer Experience Lead | cli/src/client/board-auth.ts#resolveBoardAuthStorePath | auth |
-| Account access | missing_test_link | feature_or_capability | revokeStoredBoardCredential | Developer Experience Lead | cli/src/client/board-auth.ts#revokeStoredBoardCredential | auth, configuration |
-| Account access | missing_test_link | feature_or_capability | setStoredBoardCredential | Developer Experience Lead | cli/src/client/board-auth.ts#setStoredBoardCredential | auth, configuration |
-| Account access | missing_test_link | feature_or_capability | sleep | Developer Experience Lead | cli/src/client/board-auth.ts#sleep | auth |
-| Account access | missing_doc_link | feature_or_capability | toStringOrNull | Developer Experience Lead | cli/src/client/board-auth.ts#toStringOrNull | auth |
-| Account access | missing_test_link | feature_or_capability | writeBoardAuthStore | Developer Experience Lead | cli/src/client/board-auth.ts#writeBoardAuthStore | auth |
-| Account access | missing_test_link | feature_or_capability | auth-bootstrap-ceo.ts | Developer Experience Lead | cli/src/commands/auth-bootstrap-ceo.ts | auth |
-| Account access | missing_test_link | feature_or_capability | bootstrapCeoInvite | Developer Experience Lead | cli/src/commands/auth-bootstrap-ceo.ts#bootstrapCeoInvite | auth |
-| Account access | missing_test_link | feature_or_capability | createInviteToken | Developer Experience Lead | cli/src/commands/auth-bootstrap-ceo.ts#createInviteToken | auth |
-| Account access | missing_test_link | feature_or_capability | hashToken | Developer Experience Lead | cli/src/commands/auth-bootstrap-ceo.ts#hashToken | auth |
-| Account access | missing_test_link | feature_or_capability | resolveBaseUrl | Developer Experience Lead | cli/src/commands/auth-bootstrap-ceo.ts#resolveBaseUrl | auth |
-| Account access | missing_test_link | feature_or_capability | resolveDbUrl | Developer Experience Lead | cli/src/commands/auth-bootstrap-ceo.ts#resolveDbUrl | auth |
-| Account access | missing_test_link | feature_or_capability | registerAccessCommands | Developer Experience Lead | cli/src/commands/client/access.ts#registerAccessCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerActivityCommands | Developer Experience Lead | cli/src/commands/client/activity.ts#registerActivityCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerAdapterCommands | Developer Experience Lead | cli/src/commands/client/adapter.ts#registerAdapterCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerAgentCommands | Developer Experience Lead | cli/src/commands/client/agent.ts#registerAgentCommands | auth |
-| Account access | missing_doc_link | feature_or_capability | registerApprovalCommands | Developer Experience Lead | cli/src/commands/client/approval.ts#registerApprovalCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerAssetCommands | Developer Experience Lead | cli/src/commands/client/asset.ts#registerAssetCommands | auth |
-| Account access | implemented_needs_proof | feature_or_capability | auth.ts | Developer Experience Lead | cli/src/commands/client/auth.ts | auth |
-| Account access | missing_test_link | feature_or_capability | parseJson | Developer Experience Lead | cli/src/commands/client/auth.ts#parseJson | auth |
-| Account access | missing_test_link | feature_or_capability | registerClientAuthCommands | Developer Experience Lead | cli/src/commands/client/auth.ts#registerClientAuthCommands | auth |
-| Account access | missing_test_link | feature_or_capability | resolveChallengeToken | Developer Experience Lead | cli/src/commands/client/auth.ts#resolveChallengeToken | auth |
-| Account access | missing_test_link | feature_or_capability | authorizeConnection | Developer Experience Lead | cli/src/commands/client/cloud.ts#authorizeConnection | auth |
-| Account access | missing_test_link | feature_or_capability | authorizeWithBrowser | Developer Experience Lead | cli/src/commands/client/cloud.ts#authorizeWithBrowser | auth |
-| Account access | missing_test_link | feature_or_capability | authorizeWithDeviceCode | Developer Experience Lead | cli/src/commands/client/cloud.ts#authorizeWithDeviceCode | auth |
-| Account access | missing_test_link | feature_or_capability | registerCloudCommands | Developer Experience Lead | cli/src/commands/client/cloud.ts#registerCloudCommands | auth |
-| Account access | missing_test_link | feature_or_capability | canAttemptInteractiveBoardAuth | Developer Experience Lead | cli/src/commands/client/common.ts#canAttemptInteractiveBoardAuth | auth |
-| Account access | missing_test_link | feature_or_capability | shouldRecoverBoardAuth | Developer Experience Lead | cli/src/commands/client/common.ts#shouldRecoverBoardAuth | auth |
-| Account access | missing_test_link | feature_or_capability | registerCompanyCommands | Developer Experience Lead | cli/src/commands/client/company.ts#registerCompanyCommands | auth |
-| Account access | missing_doc_link | feature_or_capability | registerConnectCommand | Developer Experience Lead | cli/src/commands/client/connect.ts#registerConnectCommand | auth |
-| Account access | missing_test_link | feature_or_capability | registerContextCommands | Developer Experience Lead | cli/src/commands/client/context.ts#registerContextCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerCostCommands | Developer Experience Lead | cli/src/commands/client/cost.ts#registerCostCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerDashboardCommands | Developer Experience Lead | cli/src/commands/client/dashboard.ts#registerDashboardCommands | auth |
-| Account access | missing_doc_link | feature_or_capability | registerFeedbackCommands | Developer Experience Lead | cli/src/commands/client/feedback.ts#registerFeedbackCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerGoalCommands | Developer Experience Lead | cli/src/commands/client/goal.ts#registerGoalCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerIssueCommands | Developer Experience Lead | cli/src/commands/client/issue.ts#registerIssueCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerPluginCommands | Developer Experience Lead | cli/src/commands/client/plugin.ts#registerPluginCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerProjectCommands | Developer Experience Lead | cli/src/commands/client/project.ts#registerProjectCommands | auth |
-| Account access | missing_doc_link | feature_or_capability | registerPromptCommands | Developer Experience Lead | cli/src/commands/client/prompt.ts#registerPromptCommands | auth |
-| Account access | missing_doc_link | feature_or_capability | registerRoutineApiCommands | Developer Experience Lead | cli/src/commands/client/routine-api.ts#registerRoutineApiCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerRunCommands | Developer Experience Lead | cli/src/commands/client/run.ts#registerRunCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerSecretCommands | Developer Experience Lead | cli/src/commands/client/secrets.ts#registerSecretCommands | auth, configuration |
-| Account access | missing_test_link | feature_or_capability | registerSkillCommands | Developer Experience Lead | cli/src/commands/client/skill.ts#registerSkillCommands | auth |
-| Account access | missing_test_link | feature_or_capability | printCatalogInstallResult | Developer Experience Lead | cli/src/commands/client/skills.ts#printCatalogInstallResult | auth |
-| Account access | missing_doc_link | feature_or_capability | registerAgentSkillCommands | Developer Experience Lead | cli/src/commands/client/skills.ts#registerAgentSkillCommands | auth |
-| Account access | missing_doc_link | feature_or_capability | registerSkillsCommands | Developer Experience Lead | cli/src/commands/client/skills.ts#registerSkillsCommands | auth |
-| Account access | missing_doc_link | feature_or_capability | registerTeamCommands | Developer Experience Lead | cli/src/commands/client/teams.ts#registerTeamCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerTokenCommands | Developer Experience Lead | cli/src/commands/client/token.ts#registerTokenCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerWorkspaceCommands | Developer Experience Lead | cli/src/commands/client/workspace.ts#registerWorkspaceCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerEnvLabCommands | Developer Experience Lead | cli/src/commands/env-lab.ts#registerEnvLabCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerRoutineCommands | Developer Experience Lead | cli/src/commands/routines.ts#registerRoutineCommands | auth |
-| Account access | missing_test_link | feature_or_capability | registerWorktreeCommands | Developer Experience Lead | cli/src/commands/worktree.ts#registerWorktreeCommands | auth |
-| Account access | missing_test_link | feature_or_capability | resolveDefaultCliAuthPath | Developer Experience Lead | cli/src/config/home.ts#resolveDefaultCliAuthPath | auth, configuration |
-| Account access | missing_test_link | feature_or_capability | resolveOperationAuthLevel | Docs Memory Lead | doc/plans/2026-05-23-cli-api-parity-openapi-reference.ts#resolveOperationAuthLevel | auth |
-| Account access | missing_test_link | feature_or_capability | adapterExecutionTargetSessionIdentity | Adapters Runtime Lead | packages/adapter-utils/src/execution-target.ts#adapterExecutionTargetSessionIdentity | auth |
-| Account access | missing_test_link | feature_or_capability | adapterExecutionTargetSessionMatches | Adapters Runtime Lead | packages/adapter-utils/src/execution-target.ts#adapterExecutionTargetSessionMatches | auth |
-| Account access | missing_test_link | feature_or_capability | buildRemoteExecutionSessionIdentity | Adapters Runtime Lead | packages/adapter-utils/src/remote-managed-runtime.ts#buildRemoteExecutionSessionIdentity | auth |
-| Account access | missing_test_link | feature_or_capability | remoteExecutionSessionMatches | Adapters Runtime Lead | packages/adapter-utils/src/remote-managed-runtime.ts#remoteExecutionSessionMatches | auth |
-| Account access | missing_test_link | feature_or_capability | authorizeSandboxCallbackBridgeRequestWithRoutes | Adapters Runtime Lead | packages/adapter-utils/src/sandbox-callback-bridge.ts#authorizeSandboxCallbackBridgeRequestWithRoutes | auth |
-| Account access | missing_test_link | feature_or_capability | buildSandboxExecutionSessionIdentity | Adapters Runtime Lead | packages/adapter-utils/src/sandbox-managed-runtime.ts#buildSandboxExecutionSessionIdentity | auth |
-| Account access | missing_test_link | feature_or_capability | sandboxExecutionSessionMatches | Adapters Runtime Lead | packages/adapter-utils/src/sandbox-managed-runtime.ts#sandboxExecutionSessionMatches | auth |
-| Account access | missing_doc_link | feature_or_capability | session-compaction.ts | Adapters Runtime Lead | packages/adapter-utils/src/session-compaction.ts | auth |
+| Account access | missing_doc_link | api_endpoint | POST /agents/:id/claude-login | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/claude-login | auth |
+| Account access | missing_doc_link | api_endpoint | POST /agents/:id/runtime-state/reset-session | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/runtime-state/reset-session | auth |
+| Account access | missing_doc_link | api_endpoint | GET /agents/:id/task-sessions | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/task-sessions | auth |
+| Account access | missing_test_link | api_endpoint | GET /profile | Backend Platform Lead | server/src/routes/auth.ts#/profile | auth |
+| Account access | needs_browser_review | screen_or_route | Auth.tsx | Frontend Experience Lead | ui/src/pages/Auth.tsx | auth |
+| Account access | needs_browser_review | screen_or_route | CliAuth.tsx | Frontend Experience Lead | ui/src/pages/CliAuth.tsx | auth |
+| Admin operation | missing_test_link | api_endpoint | POST /admin/users/:userId/demote-instance-admin | Backend Platform Lead | server/src/routes/access.ts#/admin/users/:userId/demote-instance-admin | auth |
+| Admin operation | missing_test_link | api_endpoint | POST /admin/users/:userId/promote-instance-admin | Backend Platform Lead | server/src/routes/access.ts#/admin/users/:userId/promote-instance-admin | auth |
+| Admin operation | missing_test_link | api_endpoint | POST /issues/:id/admin/force-release | Backend Platform Lead | server/src/routes/issues.ts#/issues/:id/admin/force-release | - |
+| Dashboard overview | missing_test_link | api_endpoint | GET /companies/:companyId/budgets/overview | Backend Platform Lead | server/src/routes/costs.ts#/companies/:companyId/budgets/overview | - |
+| Dashboard overview | missing_test_link | api_endpoint | GET /companies/:companyId/dashboard | Backend Platform Lead | server/src/routes/dashboard.ts#/companies/:companyId/dashboard | - |
+| Dashboard overview | missing_test_link | api_endpoint | GET /companies/:companyId/situation | Backend Platform Lead | server/src/routes/dashboard.ts#/companies/:companyId/situation | - |
+| Dashboard overview | missing_test_link | api_endpoint | GET /plugins/:pluginId/dashboard | Backend Platform Lead | server/src/routes/plugins.ts#/plugins/:pluginId/dashboard | - |
+| Dashboard overview | needs_browser_review | screen_or_route | ProjectDeliveryOverview.tsx | Frontend Experience Lead | ui/src/components/ProjectDeliveryOverview.tsx | - |
+| Dashboard overview | needs_browser_review | screen_or_route | Dashboard.tsx | Frontend Experience Lead | ui/src/pages/Dashboard.tsx | - |
+| Dashboard overview | needs_browser_review | screen_or_route | DashboardLive.tsx | Frontend Experience Lead | ui/src/pages/DashboardLive.tsx | - |
+| Subscription and entitlement | missing_test_link | api_endpoint | POST /issues/:id/checkout | Backend Platform Lead | server/src/routes/issues.ts#/issues/:id/checkout | subscription |
+| Trading operation | missing_test_link | api_endpoint | GET /issues/:id/accepted-plan-decompositions | Backend Platform Lead | server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions | - |
+| Trading operation | missing_test_link | api_endpoint | POST /issues/:id/accepted-plan-decompositions | Backend Platform Lead | server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | USE /assets | Backend Platform Lead | server/src/app.ts#/assets | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /bootstrap/claim | Backend Platform Lead | server/src/routes/access.ts#/bootstrap/claim | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/join-requests/:requestId/approve | Backend Platform Lead | server/src/routes/access.ts#/companies/:companyId/join-requests/:requestId/approve | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/join-requests/:requestId/reject | Backend Platform Lead | server/src/routes/access.ts#/companies/:companyId/join-requests/:requestId/reject | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/members/:memberId/archive | Backend Platform Lead | server/src/routes/access.ts#/companies/:companyId/members/:memberId/archive | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | PATCH /companies/:companyId/members/:memberId/permissions | Backend Platform Lead | server/src/routes/access.ts#/companies/:companyId/members/:memberId/permissions | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | PATCH /companies/:companyId/members/:memberId/role-and-grants | Backend Platform Lead | server/src/routes/access.ts#/companies/:companyId/members/:memberId/role-and-grants | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /invites/:inviteId/revoke | Backend Platform Lead | server/src/routes/access.ts#/invites/:inviteId/revoke | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /invites/:token/skills/:skillName | Backend Platform Lead | server/src/routes/access.ts#/invites/:token/skills/:skillName | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /invites/:token/skills/index | Backend Platform Lead | server/src/routes/access.ts#/invites/:token/skills/index | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /skills/available | Backend Platform Lead | server/src/routes/access.ts#/skills/available | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/activity | Backend Platform Lead | server/src/routes/activity.ts#/companies/:companyId/activity | - |
+| Unclassified user workflow | missing_doc_link | api_endpoint | POST /companies/:companyId/activity | Backend Platform Lead | server/src/routes/activity.ts#/companies/:companyId/activity | - |
+| Unclassified user workflow | missing_doc_link | api_endpoint | GET /heartbeat-runs/:runId/issues | Backend Platform Lead | server/src/routes/activity.ts#/heartbeat-runs/:runId/issues | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /issues/:id/activity | Backend Platform Lead | server/src/routes/activity.ts#/issues/:id/activity | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /issues/:id/runs | Backend Platform Lead | server/src/routes/activity.ts#/issues/:id/runs | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /adapters | Backend Platform Lead | server/src/routes/adapters.ts#/adapters | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | DELETE /adapters/:type | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/:type | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | PATCH /adapters/:type | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/:type | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | PATCH /adapters/:type/override | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/:type/override | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /adapters/:type/reinstall | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/:type/reinstall | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /adapters/:type/reload | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/:type/reload | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /adapters/:type/ui-parser.js | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/:type/ui-parser.js | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /adapters/install | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/install | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | DELETE /agents/:id | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/:id | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | PATCH /agents/:id | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /agents/:id/approve | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/approve | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /agents/:id/heartbeat/invoke | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/heartbeat/invoke | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/:id/instructions-bundle | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/instructions-bundle | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | PATCH /agents/:id/instructions-bundle | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/instructions-bundle | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | DELETE /agents/:id/instructions-bundle/file | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/instructions-bundle/file | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/:id/instructions-bundle/file | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/instructions-bundle/file | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | PUT /agents/:id/instructions-bundle/file | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/instructions-bundle/file | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | PATCH /agents/:id/instructions-path | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/instructions-path | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/:id/keys | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/keys | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /agents/:id/keys | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/keys | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | DELETE /agents/:id/keys/:keyId | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/keys/:keyId | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /agents/:id/pause | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/pause | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | PATCH /agents/:id/permissions | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/permissions | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /agents/:id/resume | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/resume | - |
+| Unclassified user workflow | missing_doc_link | api_endpoint | GET /agents/:id/runtime-state | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/runtime-state | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/:id/skills | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/skills | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /agents/:id/skills/sync | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/skills/sync | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /agents/:id/terminate | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/terminate | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /agents/:id/wakeup | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/wakeup | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/me | Backend Platform Lead | server/src/routes/agents.ts#/agents/me | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/me/inbox-lite | Backend Platform Lead | server/src/routes/agents.ts#/agents/me/inbox-lite | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/me/inbox/mine | Backend Platform Lead | server/src/routes/agents.ts#/agents/me/inbox/mine | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/adapters/:type/detect-model | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/adapters/:type/detect-model | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/adapters/:type/models | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/adapters/:type/models | - |
+| Unclassified user workflow | missing_doc_link | api_endpoint | POST /companies/:companyId/adapters/:type/test-environment | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/adapters/:type/test-environment | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/agent-hires | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/agent-hires | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/agents | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/agents | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/agents | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/agents | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/heartbeat-runs | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/heartbeat-runs | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/live-runs | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/live-runs | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/org | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/org | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/org.png | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/org.png | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/org.svg | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/org.svg | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /heartbeat-runs/:runId | Backend Platform Lead | server/src/routes/agents.ts#/heartbeat-runs/:runId | - |
 
 ## Agent Rule
 
