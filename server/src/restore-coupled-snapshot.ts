@@ -1,11 +1,18 @@
-import { randomUUID } from "node:crypto";
-import { cp, mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { createCipheriv, randomBytes, randomUUID } from "node:crypto";
+import { cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 function assertInside(candidate: string, parent: string, label: string): void {
   const relative = path.relative(parent, candidate);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new Error(`${label} must stay inside ${parent}`);
+  }
+}
+
+function assertOutside(candidate: string, parent: string, label: string): void {
+  const relative = path.relative(parent, candidate);
+  if (!relative.startsWith("..") && !path.isAbsolute(relative)) {
+    throw new Error(`${label} must remain outside ${parent}`);
   }
 }
 
@@ -20,6 +27,7 @@ export type RestoreCoupledSnapshotOptions = {
   backupFile: string;
   storageDir: string;
   secretsMasterKeyFilePath: string;
+  recoveryKeyFilePath: string;
 };
 
 export type RestoreCoupledSnapshotResult = {
@@ -27,8 +35,34 @@ export type RestoreCoupledSnapshotResult = {
   manifestPath: string;
   storageFileCount: number;
   storageSizeBytes: number;
-  secretsKeyBytes: number;
+  encryptedSecretsKeyBytes: number;
 };
+
+function decodeWrappingKey(raw: string): Buffer {
+  const trimmed = raw.trim();
+  if (/^[A-Fa-f0-9]{64}$/.test(trimmed)) return Buffer.from(trimmed, "hex");
+  const base64 = Buffer.from(trimmed, "base64");
+  if (base64.length === 32) return base64;
+  if (Buffer.byteLength(trimmed, "utf8") === 32) return Buffer.from(trimmed, "utf8");
+  throw new Error("Restore recovery key must be exactly 32 bytes (base64, hex, or raw)");
+}
+
+async function loadOrCreateRecoveryKey(filePath: string): Promise<Buffer> {
+  const resolved = path.resolve(filePath);
+  await mkdir(path.dirname(resolved), { recursive: true });
+  try {
+    return decodeWrappingKey(await readFile(resolved, "utf8"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  const encoded = randomBytes(32).toString("base64");
+  try {
+    await writeFile(resolved, `${encoded}\n`, { encoding: "utf8", mode: 0o600, flag: "wx" });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+  return decodeWrappingKey(await readFile(resolved, "utf8"));
+}
 
 async function countFilesAndBytes(root: string): Promise<{ fileCount: number; sizeBytes: number }> {
   let fileCount = 0;
@@ -60,6 +94,8 @@ export async function createRestoreCoupledSnapshot(
   assertInside(backupFile, backupDir, "Database backup");
   assertInside(snapshotDir, backupDir, "Restore-coupled snapshot");
   assertInside(stagingDir, backupDir, "Restore-coupled snapshot staging directory");
+  assertOutside(path.resolve(options.secretsMasterKeyFilePath), backupDir, "Secrets master key");
+  assertOutside(path.resolve(options.recoveryKeyFilePath), backupDir, "Restore recovery key");
 
   const backupStats = await stat(backupFile);
   if (!backupStats.isFile() || backupStats.size <= 0) {
@@ -74,6 +110,7 @@ export async function createRestoreCoupledSnapshot(
   if (!keyStats.isFile()) {
     throw new Error(`Restore-coupled snapshot requires a secrets key file: ${options.secretsMasterKeyFilePath}`);
   }
+  const recoveryKey = await loadOrCreateRecoveryKey(options.recoveryKeyFilePath);
 
   const existingSnapshot = await stat(snapshotDir).catch(() => null);
   if (existingSnapshot) {
@@ -87,8 +124,23 @@ export async function createRestoreCoupledSnapshot(
   try {
     await mkdir(secretsSnapshotDir, { recursive: true });
     await cp(options.storageDir, storageSnapshotDir, { recursive: true, force: false, errorOnExist: true });
-    const snapshotKeyFile = path.join(secretsSnapshotDir, "master.key");
-    await cp(options.secretsMasterKeyFilePath, snapshotKeyFile, { force: false, errorOnExist: true });
+    const masterKeyPlaintext = await readFile(options.secretsMasterKeyFilePath);
+    const iv = randomBytes(12);
+    const cipher = createCipheriv("aes-256-gcm", recoveryKey, iv);
+    const ciphertext = Buffer.concat([cipher.update(masterKeyPlaintext), cipher.final()]);
+    const encryptedKeyEnvelope = {
+      schemaVersion: 1,
+      algorithm: "aes-256-gcm",
+      iv: iv.toString("base64"),
+      tag: cipher.getAuthTag().toString("base64"),
+      ciphertext: ciphertext.toString("base64"),
+    };
+    const encryptedKeyPayload = `${JSON.stringify(encryptedKeyEnvelope, null, 2)}\n`;
+    await writeFile(path.join(secretsSnapshotDir, "master.key.enc.json"), encryptedKeyPayload, {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx",
+    });
 
     const storageSummary = await countFilesAndBytes(storageSnapshotDir);
     const manifest = {
@@ -97,7 +149,11 @@ export async function createRestoreCoupledSnapshot(
       backupSizeBytes: backupStats.size,
       createdAt: new Date().toISOString(),
       storage: storageSummary,
-      secretsKeyBytes: keyStats.size,
+      secrets: {
+        format: "aes-256-gcm",
+        encryptedKeyBytes: Buffer.byteLength(encryptedKeyPayload),
+        recoveryKeyRequired: true,
+      },
     };
     await writeFile(path.join(stagingDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, {
       encoding: "utf8",
@@ -110,7 +166,7 @@ export async function createRestoreCoupledSnapshot(
       manifestPath: path.join(snapshotDir, "manifest.json"),
       storageFileCount: storageSummary.fileCount,
       storageSizeBytes: storageSummary.sizeBytes,
-      secretsKeyBytes: keyStats.size,
+      encryptedSecretsKeyBytes: Buffer.byteLength(encryptedKeyPayload),
     };
   } catch (error) {
     await rm(stagingDir, { recursive: true, force: true });

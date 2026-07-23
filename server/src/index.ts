@@ -1,7 +1,7 @@
 /// <reference path="./types/express.d.ts" />
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
-import { resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { pathToFileURL } from "node:url";
@@ -623,6 +623,9 @@ export async function startServer(): Promise<StartedServer> {
           backupFile: result.backupFile,
           storageDir: config.storageLocalDiskBaseDir,
           secretsMasterKeyFilePath: config.secretsMasterKeyFilePath,
+          recoveryKeyFilePath:
+            process.env.PAPERCLIP_BACKUP_RECOVERY_KEY_FILE?.trim() ||
+            join(dirname(config.secretsMasterKeyFilePath), "backup-recovery.key"),
         });
       }
       const finishedAt = new Date();
@@ -640,7 +643,13 @@ export async function startServer(): Promise<StartedServer> {
           backupFile: result.backupFile,
           sizeBytes: result.sizeBytes,
           prunedCount: result.prunedCount,
-          restoreCoupledSnapshot,
+          restoreCoupledSnapshot: restoreCoupledSnapshot
+            ? {
+                storageFileCount: restoreCoupledSnapshot.storageFileCount,
+                storageSizeBytes: restoreCoupledSnapshot.storageSizeBytes,
+                encryptedSecretsKeyBytes: restoreCoupledSnapshot.encryptedSecretsKeyBytes,
+              }
+            : null,
           backupDir: config.databaseBackupDir,
           retention,
           trigger,

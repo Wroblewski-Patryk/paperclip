@@ -433,6 +433,9 @@ test("restore drill stays isolated from the canonical runtime and cleans up", as
   assert.match(source, /validateSnapshotLayout/);
   assert.match(source, /validateRestoredAssets/);
   assert.match(source, /validateRestoredSecrets/);
+  assert.match(source, /master\.key\.enc\.json/);
+  assert.match(source, /Recovery key must remain outside the backup directory/);
+  assert.doesNotMatch(source, /path\.join\(snapshotDir, "secrets", "master\.key"\)/);
   assert.doesNotMatch(source, /canonicalStorageDir|canonicalSecretsKeyFile/);
   assert.match(source, /FROM companies/);
   assert.match(source, /FROM heartbeat_runs/);

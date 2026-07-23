@@ -54,6 +54,30 @@ export function decodeMasterKey(raw) {
   throw new Error("Restore validation failed: restored encrypted-secrets key is invalid");
 }
 
+export function decryptMasterKeyEnvelope(recoveryKeyRaw, envelope) {
+  const recoveryKey = decodeMasterKey(recoveryKeyRaw);
+  if (
+    !envelope ||
+    envelope.schemaVersion !== 1 ||
+    envelope.algorithm !== "aes-256-gcm" ||
+    typeof envelope.iv !== "string" ||
+    typeof envelope.tag !== "string" ||
+    typeof envelope.ciphertext !== "string"
+  ) {
+    throw new Error("Restore validation failed: encrypted master-key envelope is invalid");
+  }
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", recoveryKey, Buffer.from(envelope.iv, "base64"));
+    decipher.setAuthTag(Buffer.from(envelope.tag, "base64"));
+    return Buffer.concat([
+      decipher.update(Buffer.from(envelope.ciphertext, "base64")),
+      decipher.final(),
+    ]);
+  } catch {
+    throw new Error("Restore validation failed: encrypted master key cannot be opened by the recovery key");
+  }
+}
+
 export function resolveLocalEncryptedMaterial(masterKey, material) {
   if (
     !material ||

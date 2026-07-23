@@ -191,9 +191,15 @@ configuration. The server merges the daily/weekly/monthly policy from Instance
 Settings with the instance-file `maxTotalBytes` and `minFreeBytes` capacity guards;
 manual and scheduled backups therefore enforce the same disk safety policy.
 
-Database backups do not include non-database instance files such as local-disk
-uploads, workspace files, or the local encrypted secrets master key. Back those paths
-up separately when you need full instance disaster recovery.
+When both `local_disk` storage and `local_encrypted` secrets are active, server-run
+backups publish a matching `<backup>.restore-coupled` sidecar. It contains the local
+storage snapshot and an AES-256-GCM-wrapped copy of the secrets master key; it never
+contains the plaintext master key. The wrapping key stays outside the backup directory,
+defaults to `backup-recovery.key` beside the configured master key, is created with
+restricted permissions, and can be overridden with
+`PAPERCLIP_BACKUP_RECOVERY_KEY_FILE`. Protect and back up that recovery key separately:
+the database/sidecar and recovery key are intentionally insufficient on their own.
+Workspace files are not part of this bundle and require their own backup policy.
 
 ## Secret storage
 
@@ -211,7 +217,7 @@ For local/default installs, the active provider is `local_encrypted`:
 - Secret material is encrypted at rest with a local master key.
 - Default key file: `~/.paperclip/instances/default/secrets/master.key` (auto-created if missing).
 - CLI config location: `~/.paperclip/instances/default/config.json` under `secrets.localEncrypted.keyFilePath`.
-- Backup/restore requires both the database metadata and the local master key file; either artifact alone is insufficient.
+- Server backup/restore requires the database sidecar bundle plus the separately protected backup recovery key; either artifact alone is insufficient.
 - The server best-effort enforces `0600` key file permissions and provider health reports permission warnings.
 
 Optional overrides:

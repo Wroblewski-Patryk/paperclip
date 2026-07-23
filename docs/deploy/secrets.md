@@ -316,10 +316,13 @@ If import preview fails:
 
 Each provider family has a different backup story:
 
-- `local_encrypted`: back up the local master key file and the Paperclip
-  database together. Either alone is not enough to restore the encrypted
-  values, and the vault row only records the path and acknowledgement, not the
-  key bytes.
+- `local_encrypted`: with `local_disk`, server-run backups create a matching
+  restore sidecar containing storage plus an AES-256-GCM-wrapped master key.
+  The separate recovery key defaults beside the configured master key as
+  `backup-recovery.key` (override with `PAPERCLIP_BACKUP_RECOVERY_KEY_FILE`).
+  Back up that recovery key in a different protection boundary. The recovery
+  key alone and the database/sidecar alone are each insufficient, and the
+  plaintext master key is never copied into the backup directory.
 - `aws_secrets_manager`: back up Paperclip's database for vault metadata
   (vault id, region, prefix, KMS key id, default flag, bindings, version
   pointers). The actual secret values live in AWS Secrets Manager under the

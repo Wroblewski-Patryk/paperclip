@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import {
+  decryptMasterKeyEnvelope,
   validateRestoredAssets,
   validateRestoredSecrets,
 } from "./lib/softwarehouse-restore-validation.mjs";
@@ -93,4 +94,17 @@ test("secret completeness passes only when every current version decrypts to its
     );
     assert.deepEqual(result, { currentVersions: 2, verifiedVersions: 2, mismatchedVersions: 0 });
   });
+});
+
+test("wrapped master key opens only with its separate recovery key", () => {
+  const recoveryKey = randomBytes(32);
+  const masterKey = randomBytes(32);
+  const envelope = encrypt(recoveryKey, masterKey);
+  envelope.schemaVersion = 1;
+  envelope.algorithm = "aes-256-gcm";
+  assert.deepEqual(decryptMasterKeyEnvelope(recoveryKey.toString("base64"), envelope), masterKey);
+  assert.throws(
+    () => decryptMasterKeyEnvelope(randomBytes(32).toString("base64"), envelope),
+    /cannot be opened by the recovery key/,
+  );
 });

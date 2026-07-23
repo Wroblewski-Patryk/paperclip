@@ -1,10 +1,11 @@
 import { createRequire } from "node:module";
-import { cp, copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   assertInside,
+  decryptMasterKeyEnvelope,
   summarizeFiles,
   validateRestoredAssets,
   validateRestoredSecrets,
@@ -24,6 +25,10 @@ const backupDir = path.join(
   "backups",
 );
 const reportPath = path.join(repoRoot, "report", "softwarehouse-restore-drill.latest.json");
+const recoveryKeyFile = path.resolve(
+  process.env.PAPERCLIP_BACKUP_RECOVERY_KEY_FILE ??
+    path.join(repoRoot, ".paperclip", "runtime", "home", "instances", "default", "secrets", "backup-recovery.key"),
+);
 const requestedBackup = process.argv.find((arg) => arg.startsWith("--backup="))?.slice("--backup=".length) ?? null;
 const backupStabilityWindowMs = 5 * 60 * 1_000;
 
@@ -82,24 +87,26 @@ async function validateSnapshotLayout(backupFile, { throwOnFailure = true } = {}
     const snapshotDir = resolveRestoreCoupledSnapshotDir(backupFile);
     const manifestPath = path.join(snapshotDir, "manifest.json");
     const storageDir = path.join(snapshotDir, "storage");
-    const keyFile = path.join(snapshotDir, "secrets", "master.key");
-    const [manifest, backupStats, storageStats, keyStats] = await Promise.all([
+    const encryptedKeyFile = path.join(snapshotDir, "secrets", "master.key.enc.json");
+    const [manifest, backupStats, storageStats, encryptedKeyStats] = await Promise.all([
       readFile(manifestPath, "utf8").then(JSON.parse),
       stat(backupFile),
       stat(storageDir),
-      stat(keyFile),
+      stat(encryptedKeyFile),
     ]);
     if (
       manifest.schemaVersion !== 1 ||
       manifest.backupFileName !== path.basename(backupFile) ||
       manifest.backupSizeBytes !== backupStats.size ||
       !storageStats.isDirectory() ||
-      !keyStats.isFile() ||
-      keyStats.size !== manifest.secretsKeyBytes
+      !encryptedKeyStats.isFile() ||
+      manifest.secrets?.format !== "aes-256-gcm" ||
+      manifest.secrets?.recoveryKeyRequired !== true ||
+      encryptedKeyStats.size !== manifest.secrets?.encryptedKeyBytes
     ) {
       throw new Error("restore-coupled snapshot manifest does not match its backup/storage/key payload");
     }
-    return { snapshotDir, manifest, storageDir, keyFile };
+    return { snapshotDir, manifest, storageDir, encryptedKeyFile };
   } catch (error) {
     if (!throwOnFailure) return null;
     throw new Error(`Backup is not a complete restore-coupled bundle: ${error instanceof Error ? error.message : String(error)}`);
@@ -122,6 +129,10 @@ const startedAt = new Date();
 const backupFile = await resolveBackupFile();
 const backupStats = await stat(backupFile);
 const backupBundle = await validateSnapshotLayout(backupFile);
+const recoveryKeyRelative = path.relative(backupDir, recoveryKeyFile);
+if (!recoveryKeyRelative.startsWith("..") && !path.isAbsolute(recoveryKeyRelative)) {
+  throw new Error("Recovery key must remain outside the backup directory");
+}
 await mkdir(restoreRoot, { recursive: true });
 const drillDir = path.join(restoreRoot, `drill-${startedAt.toISOString().replaceAll(":", "-").replaceAll(".", "-")}`);
 assertInside(drillDir, restoreRoot, "Restore drill directory");
@@ -148,10 +159,11 @@ try {
     prepareEmbeddedPostgresNativeRuntime,
     runDatabaseRestore,
   } = await loadRuntimeDependencies();
-  const bundledKeyStats = await stat(backupBundle.keyFile);
   await mkdir(path.dirname(restoredSecretsKeyFile), { recursive: true });
   await mkdir(path.dirname(restoredStorageDir), { recursive: true });
-  await copyFile(backupBundle.keyFile, restoredSecretsKeyFile);
+  const encryptedKeyEnvelope = JSON.parse(await readFile(backupBundle.encryptedKeyFile, "utf8"));
+  const restoredMasterKey = decryptMasterKeyEnvelope(await readFile(recoveryKeyFile, "utf8"), encryptedKeyEnvelope);
+  await writeFile(restoredSecretsKeyFile, restoredMasterKey, { mode: 0o600, flag: "wx" });
   await cp(backupBundle.storageDir, restoredStorageDir, { recursive: true, force: false, errorOnExist: true });
   const restoredStorageSummary = await summarizeFiles(restoredStorageDir);
   const restoredKeyStats = await stat(restoredSecretsKeyFile);
@@ -228,7 +240,7 @@ try {
     ...requiredPositive
       .filter((key) => !(normalizedCounts[key] > 0))
       .map((key) => `expected restored ${key} rows`),
-    ...(restoredKeyStats.size !== bundledKeyStats.size ? ["restored encrypted-secrets key file size differs from bundle"] : []),
+    ...(restoredKeyStats.size < 1 ? ["restored encrypted-secrets key file is empty"] : []),
     ...(restoredStorageSummary.fileCount < 1 ? ["restored storage contains no files"] : []),
   ];
   if (failedChecks.length > 0) throw new Error(`Restore validation failed: ${failedChecks.join("; ")}`);
@@ -261,6 +273,7 @@ try {
       },
       encryptedSecrets: {
         restoredKeyBytes: restoredKeyStats.size,
+        recoveryKeySeparation: "pass",
         currentVersions: secretValidation.currentVersions,
         verifiedVersions: secretValidation.verifiedVersions,
         completeness: "pass",
