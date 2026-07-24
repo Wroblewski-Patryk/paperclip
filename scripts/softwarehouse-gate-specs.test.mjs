@@ -878,7 +878,7 @@ test("final disposition janitor scopes open issues and paginates candidate scan"
   assert.match(source, /FINAL_DISPOSITION_JANITOR_REQUEST_TIMEOUT_MS \?\? 30_000/);
   assert.match(source, /FINAL_DISPOSITION_JANITOR_ISSUE_PAGE_SIZE \?\? 500/);
   assert.match(source, /FINAL_DISPOSITION_JANITOR_CONCURRENCY \?\? 8/);
-  assert.match(source, /const candidateStatuses = new Set\(\["in_progress", "in_review"\]\)/);
+  assert.match(source, /const candidateStatuses = new Set\(\["in_progress", "in_review", "blocked"\]\)/);
   assert.match(source, /const candidateStatusList = \[\.\.\.candidateStatuses\]/);
   assert.match(source, /async function requestAllPages/);
   assert.match(source, /async function mapWithConcurrency/);
