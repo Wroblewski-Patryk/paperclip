@@ -1,8 +1,23 @@
 # Board Context
 
-Last updated: 2026-07-23
+Last updated: 2026-07-24
 
 ## Current Checkpoint
+
+The Soar protected provenance/redeployment chain is closed. `LUC-1819`,
+`LUC-1818`, `LUC-1812`, `LUC-507`, and `LUC-448` are all `done` with
+completion evidence. The authoritative live API/Web revision is
+`9d1801d9b023211d4446629aac7bd58def70322d`; public health, readiness,
+build-info, and source-aware smoke checks pass. There are zero pending
+approvals and zero queued/in-progress Coolify deployments.
+
+The API now embeds immutable release provenance at image build time. Coolify
+build concurrency is deliberately `1` on the bounded 74 GB VPS, and
+build-cache-only pruning is the approved emergency capacity lever. A broad
+recursive `/app` ownership layer was replaced by scoped writable-directory
+ownership. Two technical worker build helpers were cancelled during the disk
+emergency without touching existing serving worker versions; any worker
+revision reconciliation must proceed serially.
 
 Local Softwarehouse V0 is achieved. `LUC-25` and the Soar/Roost hosted-product
 delivery contract are complete; Paperclip intentionally remains local on

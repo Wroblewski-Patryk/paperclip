@@ -1,6 +1,28 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-23
+Last updated: 2026-07-24
+
+## 2026-07-24 Current State
+
+- The protected Soar provenance/redeployment chain (`LUC-1819`, `LUC-1818`,
+  `LUC-1812`, `LUC-507`, `LUC-448`) is complete with evidence.
+- The authoritative deployed Soar API/Web revision is
+  `9d1801d9b023211d4446629aac7bd58def70322d`. Public `/health`, `/ready`,
+  `/api/build-info`, and the source-aware deployment smoke pass.
+- Soar commit `9d1801d9` embeds a validated immutable API source revision at
+  image build time, supports canonical Coolify/GitHub SHA aliases, and removes
+  the broad recursive `/app` ownership layer. It is pushed to `main`.
+- The 74 GB VPS reached full disk during concurrent image builds. Use only
+  bounded build-cache pruning for emergency recovery, keep Coolify build
+  concurrency at `1`, and reconcile worker revisions serially. Existing
+  serving workers were not stopped when two technical build helpers were
+  cancelled.
+- Coolify app 3 must retain one non-preview dynamic `SOURCE_COMMIT` row with
+  value `$SOURCE_COMMIT`; do not recreate duplicate rows or permanently pin a
+  release SHA in the environment.
+- Pending approvals: `0`. Queued/in-progress Coolify deployments: `0`.
+  Paperclip remains local on strict ports 3200/54329; do not expand to hosted
+  Paperclip or whole-company V1 without a separately governed transition.
 
 ## 2026-07-23 Current State
 

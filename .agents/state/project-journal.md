@@ -4436,3 +4436,46 @@ handoff. `LUC-1788` is assigned to Roost Product Manager but blocked by
 `LUC-1787`, preserving the owner-required Soar-first sequence. Neither issue
 authorizes sales, customer outreach, broad provider writes, LIVE trading, or
 hosted Paperclip V1.
+
+## 2026-07-24 - Soar immutable provenance recovery and protected chain closure
+
+The Soar closure chain exposed a real deployment-truth defect: the public API
+reported an older source revision even after a successful Coolify build.
+Direct inspection found two duplicate app-3 `SOURCE_COMMIT` environment rows
+with a stale SHA. Removing the duplicates revealed the deeper contract gap:
+manual Coolify deployment did not supply the placeholder in the same way as
+the webhook path, while the API Dockerfile had no reliable alias fallback or
+immutable build artifact.
+
+Soar commit `9d1801d9b023211d4446629aac7bd58def70322d` fixes the source contract.
+The API image accepts the canonical source aliases, validates a full Git SHA,
+writes it into the image, and exports it at runtime. Repository guardrails and
+17 focused tests pass. The build also replaces a recursive ownership rewrite
+over all of `/app` with scoped ownership of writable runtime directories; the
+affected layer fell from roughly 210 seconds to 0.2 seconds. The commit is
+pushed to Soar `main`.
+
+Concurrent Web and worker image builds filled the bounded 74 GB VPS. Recovery
+used build-cache-only pruning and exact helper-container/PID cancellation
+semantics derived from the installed Coolify implementation. Coolify build
+concurrency was reduced from `2` to `1`. Two technical worker build helpers
+were cancelled under approved emergency gates, while existing serving worker
+versions remained untouched. No image, volume, database, or serving product
+container was broadly deleted.
+
+For the controlled manual API recovery, the sole app-3 `SOURCE_COMMIT` row was
+temporarily set to the exact target SHA so the generated Dockerfile received a
+concrete build argument. After the successful deployment it was restored to
+the non-preview dynamic value `$SOURCE_COMMIT`. Future operators must preserve
+one canonical row and distinguish webhook expansion from manual-deployment
+placeholder behavior.
+
+Public API `/health` and `/ready`, Web `/api/build-info`, and the source-aware
+smoke all pass at exact revision `9d1801d9b023211d4446629aac7bd58def70322d`.
+The protected chain `LUC-1819` -> `LUC-1818` -> `LUC-1812` -> `LUC-507` ->
+`LUC-448` is `done` with completion evidence. Pending approvals and active
+Coolify deployments are both zero. Workspace-boundary and runtime-topology
+audits pass; the topology audit only notes that the unrelated local Docker
+Desktop engine is unavailable. Paperclip remains the local V0 control plane
+on strict ports 3200/54329, and this recovery does not activate hosted
+Paperclip or whole-company V1.

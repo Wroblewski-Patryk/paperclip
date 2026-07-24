@@ -1,5 +1,39 @@
 # Active Mission
 
+## 2026-07-24 - Soar Provenance Recovery Closed - Current
+
+- The protected Soar production recovery chain is complete:
+  `LUC-1819`, `LUC-1818`, `LUC-1812`, `LUC-507`, and `LUC-448` are `done`
+  with inspectable completion evidence. There are no pending approvals and no
+  queued or in-progress Coolify deployments.
+- The authoritative deployed Soar source is
+  `9d1801d9b023211d4446629aac7bd58def70322d`. Public API `/health` and
+  `/ready`, Web `/api/build-info`, and the source-aware deployment smoke all
+  pass. API reports immutable build provenance from the image; Web reports the
+  same revision from its deployment environment.
+- Soar now embeds a validated full Git SHA during the API image build and
+  exports it at runtime. The Dockerfile accepts the canonical Coolify/GitHub
+  build aliases, and repository guardrails prevent regression. Commit
+  `9d1801d9` is pushed to Soar `main`.
+- A full VPS disk was the principal recovery hazard. Build-cache-only pruning
+  was used as the safe emergency lever. Coolify build concurrency is now `1`
+  on this bounded 74 GB host. Two technical worker build helpers were
+  cancelled under the approved disk emergency; existing serving worker
+  versions were not touched. Worker revision reconciliation may continue
+  serially and is not evidence against the completed API/Web gate.
+- Never restore a broad recursive `/app` ownership rewrite to the Soar API
+  image. Scoping ownership to the writable runtime directories reduced that
+  layer from roughly 210 seconds to 0.2 seconds and materially reduces disk
+  pressure.
+- Coolify webhook and manual deployments resolve dynamic source variables
+  differently. App 3 has one canonical dynamic `SOURCE_COMMIT` row
+  (`$SOURCE_COMMIT`, non-preview). The recovery temporarily pinned its exact
+  value only for the controlled manual deployment, then restored the dynamic
+  value. Do not add duplicate source-provenance rows.
+- Paperclip remains the local V0 control plane on strict ports 3200/54329.
+  This closure does not authorize hosted Paperclip, whole-company V1, sales,
+  outreach, or broader autonomous business operations.
+
 ## 2026-07-23 - V0 Accepted; Credential Incident Closed - Current
 
 - Local Softwarehouse V0 is achieved. `LUC-25`, Soar delivery, Roost delivery,
