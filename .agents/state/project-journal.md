@@ -4479,3 +4479,43 @@ audits pass; the topology audit only notes that the unrelated local Docker
 Desktop engine is unavailable. Paperclip remains the local V0 control plane
 on strict ports 3200/54329, and this recovery does not activate hosted
 Paperclip or whole-company V1.
+
+## 2026-07-24 - Local V0 supervision, recovery-loop closure, and baseline reconciliation
+
+The next supervision pass found a control-plane recovery loop rather than a
+product failure. `LUC-1513` and `LUC-1542` already had successful source runs
+and typed completion evidence, but their obsolete recovery actions had reached
+143 and 144 attempts. Both actions were resolved from the actual source state.
+The recovery-action janitor then resolved stale `LUC-1809` as blocked by the
+existing first-class issue `LUC-1810`.
+
+Paperclip's final-disposition janitor was extended to reconcile `blocked`
+issues, with focused policy-gate verification passing `189/189`. The exact
+two-file change is committed locally as `6d3592e3`. No runtime restart was
+needed; a brief API slowdown during agent startup recovered on its own.
+
+The Soar known-state lane refreshed its generated architecture and completion
+evidence and committed the clean packet as `d3d163d83`. It remains one local
+commit ahead of `origin/main`; this cycle did not push it. The Roost lane first
+generated contradictory current-state wording around the hosted canary. Board
+supervision stopped the exact run, required reconciliation, and let the same
+owner finish a single coherent packet. Roost commit `cfb5390c` removes the
+stale claim that the exact `X-API-Key` handshake is unproven, merges the
+duplicate canary section, refreshes the architecture baseline, and leaves the
+repository clean. Generated architecture JSON parses and `git diff --check`
+passed before commit.
+
+`LUC-1787`, `LUC-1788`, and `LUC-1799` are now `done` with completion
+evidence. `LUC-1825` closed the Roost baseline, `LUC-1829` repaired its
+temporary live-run/status mismatch, and `LUC-1828` verified clean janitor
+state. `LUC-1829` is `done`; `LUC-1828` returned to `todo` as a reusable
+janitor lane while retaining typed evidence for the completed pass. The
+follow-up architecture gap lane `LUC-1827` remains parked in backlog. A
+comment posted after parking briefly created another wake, proving that final
+comments must precede parking or the exact queued wake must be cancelled.
+
+Final readback: Paperclip, Soar, and Roost worktrees are clean; Paperclip API
+health is `ok`; live runs and pending approvals are both zero. Workspace
+boundary and strict runtime-topology audits pass. The only topology warning is
+that the unrelated Docker Desktop engine is unavailable. No deployment,
+restart, provider write, protected secret access, or new product push occurred.

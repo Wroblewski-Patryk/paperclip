@@ -4,6 +4,19 @@ Last updated: 2026-07-24
 
 ## 2026-07-24 Current State
 
+- Local supervision is stable: Paperclip `6d3592e3`, Soar `d3d163d83`, and
+  Roost `cfb5390c` are clean. Soar is one local commit ahead of `origin/main`;
+  no new product push was performed in this cycle.
+- `LUC-1787`, `LUC-1788`, and Roost canary `LUC-1799` are `done` with
+  completion evidence. Roost current-state memory consistently treats the
+  scoped `X-API-Key` handshake as proven.
+- Obsolete recovery actions for `LUC-1513` and `LUC-1542` were resolved after
+  143/144 repeated attempts. `LUC-1809` was resolved against first-class
+  blocker `LUC-1810`; janitors then verified clean state. `LUC-1829` is
+  `done`; reusable janitor lane `LUC-1828` is `todo` with the completed pass
+  preserved in typed evidence.
+- API health is `ok`; live runs and pending approvals are both `0`.
+  Workspace-boundary and runtime-topology audits pass.
 - The protected Soar provenance/redeployment chain (`LUC-1819`, `LUC-1818`,
   `LUC-1812`, `LUC-507`, `LUC-448`) is complete with evidence.
 - The authoritative deployed Soar API/Web revision is
@@ -37,10 +50,9 @@ Last updated: 2026-07-24
   `scripts/rotate-luc-972-credentials.ts`; Paperclip work product
   `077a3069-32fb-419e-b081-12cb839c50a9`.
 - Paperclip automatically resumed the dependent security/learning/governor
-  lanes. Soar-first, Roost-second product maturation is now active:
-  `LUC-1787` is the live Soar sale-readiness parent and `LUC-1788` is blocked
-  behind it for Roost. Both remain in `11 Innovation`; three completed
-  delivery goals are now `achieved`.
+  lanes. The first Soar-first, Roost-second sale-readiness contract pass is now
+  complete: `LUC-1787` and `LUC-1788` are `done`. Both products remain in
+  `11 Innovation`; three completed delivery goals are `achieved`.
 - Do not start hosted Paperclip or whole-company V1 operations without a new
   governed transition.
 

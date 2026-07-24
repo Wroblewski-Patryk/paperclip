@@ -4,6 +4,27 @@ Last updated: 2026-07-24
 
 ## Current Checkpoint
 
+The latest local supervision cycle is stable. Paperclip is clean at
+`6d3592e3`, Soar is clean at local baseline commit `d3d163d83`, and Roost is
+clean at local baseline commit `cfb5390c`. There are zero live runs and zero
+pending approvals. Workspace-boundary and strict runtime-topology audits pass;
+the topology audit only warns that the unrelated Docker Desktop engine is not
+running.
+
+The sale-readiness coordination state has advanced: `LUC-1787`, `LUC-1788`,
+and Roost read-only canary `LUC-1799` are `done` with completion evidence.
+Roost current-state files now consistently record the exact `X-API-Key`
+handshake as proven rather than blocked. The next Roost architecture gap
+triage `LUC-1827` remains parked in backlog.
+
+The repeated recovery loop on `LUC-1513` and `LUC-1542` is closed. Their
+obsolete recovery actions had reached 143/144 attempts despite successful
+source runs; both were resolved from source truth, and the stale `LUC-1809`
+action was resolved against first-class blocker `LUC-1810`. `LUC-1828` and
+`LUC-1829` subsequently verified that the board and live-run state were clean.
+`LUC-1829` is `done`; the reusable `LUC-1828` janitor lane returned to `todo`
+after recording the completed pass in typed evidence.
+
 The Soar protected provenance/redeployment chain is closed. `LUC-1819`,
 `LUC-1818`, `LUC-1812`, `LUC-507`, and `LUC-448` are all `done` with
 completion evidence. The authoritative live API/Web revision is
@@ -33,11 +54,12 @@ contracts, burn down verified gaps Soar-first and Roost-second, and preserve
 the human approval boundary. V1 remains the later migration of Paperclip to
 VPS plus Roost-backed whole-company operations.
 
-This program is live: `LUC-1787` is assigned to Soar Product Manager under
-active goal `45d5d36a-8f83-4571-a9ac-bfd20a8bf9b1`; Roost parent `LUC-1788`
-and goal `4c1390fd-d09a-45a3-9cfa-8aa9745f8988` are serialized behind Soar.
-The obsolete Stage 1, Soar VPS-delivery, and Roost VPS-delivery goals are
-marked `achieved`.
+This program has completed its first contract pass: `LUC-1787` and
+`LUC-1788` are `done`, and their evidence now drives bounded product-specific
+follow-ups. The active maturation goals remain
+`45d5d36a-8f83-4571-a9ac-bfd20a8bf9b1` for Soar and
+`4c1390fd-d09a-45a3-9cfa-8aa9745f8988` for Roost. The obsolete Stage 1, Soar
+VPS-delivery, and Roost VPS-delivery goals are marked `achieved`.
 
 ## User Intent
 

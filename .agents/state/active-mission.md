@@ -1,5 +1,27 @@
 # Active Mission
 
+## 2026-07-24 - Local V0 Supervision Stabilized - Current
+
+- Soar and Roost known-state baselines are closed with clean local
+  source-control packets. Soar is at `d3d163d83` (one local commit ahead of
+  `origin/main`) and Roost is at `cfb5390c` (local only). Paperclip is clean at
+  `6d3592e3`.
+- `LUC-1787`, `LUC-1788`, and the scoped Roost hosted read-only canary
+  `LUC-1799` are `done` with completion evidence. Current Roost knowledge no
+  longer treats the exact `X-API-Key` handshake as an open blocker.
+- Paperclip commit `6d3592e3` extends final-disposition reconciliation to
+  blocked issues. Focused policy-gate verification passes `189/189`.
+- Obsolete recovery actions for `LUC-1513` and `LUC-1542` were resolved after
+  143/144 repeated attempts, and the stale `LUC-1809` recovery action was
+  resolved against its first-class blocker `LUC-1810`. Follow-up janitors
+  completed a clean verification pass; `LUC-1829` is `done`, while the
+  reusable `LUC-1828` janitor lane is back in `todo` with that pass recorded
+  in completion evidence.
+- Current checkpoint: API health is `ok`, live runs `0`, pending approvals `0`,
+  and workspace-boundary/runtime-topology audits pass. Paperclip remains local
+  on strict ports 3200/54329. No deployment, restart, provider write, or new
+  push was performed in this supervision cycle.
+
 ## 2026-07-24 - Soar Provenance Recovery Closed - Current
 
 - The protected Soar production recovery chain is complete:
@@ -53,14 +75,14 @@
 - Paperclip automatically resumed `LUC-496`, `LUC-494`, `LUC-1137`, and the
   autonomy governor after the protected gate closed. Let those agents
   synthesize and close their evidence rather than manually duplicating work.
-- Local product maturation is now active. The three completed Stage 1/hosted
-  product delivery goals are `achieved`. `LUC-1787` is the live Soar-first
-  sale-readiness contract/gap-register parent under goal
-  `45d5d36a-8f83-4571-a9ac-bfd20a8bf9b1`; `LUC-1788` and Roost goal
-  `4c1390fd-d09a-45a3-9cfa-8aa9745f8988` are serialized behind it. Both
-  products remain in `11 Innovation`. Do not activate sales, marketing,
-  customer outreach, broad provider writes, or hosted Paperclip until the
-  separately governed V1 transition.
+- Local product maturation is active. The three completed Stage 1/hosted
+  product delivery goals are `achieved`. The first sale-readiness contract
+  pass, `LUC-1787` for Soar and `LUC-1788` for Roost, is now complete under
+  goals `45d5d36a-8f83-4571-a9ac-bfd20a8bf9b1` and
+  `4c1390fd-d09a-45a3-9cfa-8aa9745f8988`. Both products remain in
+  `11 Innovation`. Do not activate sales, marketing, customer outreach, broad
+  provider writes, or hosted Paperclip until the separately governed V1
+  transition.
 
 ## 2026-07-22 - Roost Knowledge Plane Direction Activated - Current
 

@@ -687,3 +687,34 @@ Current evidence:
 - The dispatcher now emits authoritative evidence paths, path-specific route
   title slugs, and an explicit exact-target rule. Focused dispatcher and
   Softwarehouse gate tests pass `197/197`.
+
+## 2026-07-24 - Recovery and comment wakes require terminal-state deduplication
+
+Observed pattern: successful source work can leave an obsolete recovery action
+alive, and repeated retries then wake the same agent indefinitely. Separately,
+adding a comment to an assigned issue can create a new wake even when the issue
+has just been parked in `backlog`.
+
+Standing rule:
+
+- Before retrying recovery, read the source issue, its latest run, typed
+  completion evidence, and any first-class blocker. Resolve the recovery action
+  when that source truth is already terminal or explicitly blocked.
+- Treat a high recovery attempt count as a control-plane fault signal, not as
+  evidence that another identical agent run is useful.
+- Park an assigned issue only after the final explanatory comment, or cancel
+  the exact queued wake created by a later comment. Do not broad-cancel agents
+  or processes.
+- Bounded repo inspection must start from named files and helper paths. Avoid
+  recursive workspace-wide searches across runtime/plugin directories.
+
+Current evidence:
+
+- `LUC-1513` and `LUC-1542` recovery actions were resolved after 143/144
+  attempts once their successful source evidence was read.
+- The recovery janitor resolved `LUC-1809` against blocker `LUC-1810`.
+- A comment-after-backlog wake for `LUC-1827` was cancelled by exact run ID;
+  the issue remains parked without product mutation.
+- `LUC-1828` and `LUC-1829` produced clean live-run, final-disposition, and
+  issue-queue janitor evidence. `LUC-1829` closed; the reusable `LUC-1828`
+  lane returned to `todo` after preserving the completed pass as evidence.
