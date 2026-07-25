@@ -15,6 +15,7 @@ import type {
 import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight, Clock, Coins, DollarSign, Gauge, ReceiptText, Route } from "lucide-react";
 import { budgetsApi } from "../api/budgets";
 import { costsApi } from "../api/costs";
+import { agentsApi } from "../api/agents";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { BillerSpendCard } from "../components/BillerSpendCard";
 import { BudgetIncidentCard } from "../components/BudgetIncidentCard";
@@ -353,6 +354,16 @@ export function Costs() {
 
   const weekRange = useMemo(() => currentWeekRange(), [today]);
   const companyId = selectedCompanyId ?? NO_COMPANY;
+  const { data: agents = [] } = useQuery({
+    queryKey: queryKeys.agents.list(companyId),
+    queryFn: () => agentsApi.list(companyId),
+    enabled: !!selectedCompanyId,
+    staleTime: 30_000,
+  });
+  const agentIconById = useMemo(
+    () => new Map(agents.map((agent) => [agent.id, agent.icon ?? null])),
+    [agents],
+  );
 
   const { data: budgetData, isLoading: budgetLoading, error: budgetError } = useQuery({
     queryKey: queryKeys.budgets.overview(companyId),
@@ -1010,7 +1021,11 @@ export function Costs() {
                                 ) : (
                                   <span className="h-3 w-3 shrink-0" />
                                 )}
-                                <Identity name={row.agentName ?? row.agentId} size="sm" />
+                                <Identity
+                                  name={row.agentName ?? row.agentId}
+                                  agentIcon={agentIconById.get(row.agentId) ?? null}
+                                  size="sm"
+                                />
                                 {row.agentStatus === "terminated" ? <StatusBadge status="terminated" /> : null}
                               </div>
                               <div className="text-right text-sm tabular-nums">

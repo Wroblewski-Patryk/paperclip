@@ -203,6 +203,7 @@ export function InboxIssueTrailingColumns({
   workspaceId,
   workspaceName,
   assigneeName,
+  assigneeAgentIcon,
   assigneeUserName,
   assigneeUserAvatarUrl,
   currentUserId,
@@ -218,6 +219,7 @@ export function InboxIssueTrailingColumns({
   workspaceId?: string | null;
   workspaceName: string | null;
   assigneeName: string | null;
+  assigneeAgentIcon?: string | null;
   assigneeUserName?: string | null;
   assigneeUserAvatarUrl?: string | null;
   currentUserId: string | null;
@@ -245,6 +247,7 @@ export function InboxIssueTrailingColumns({
               <span key={column} className="min-w-0 text-xs text-foreground">
                 <Identity
                   name={assigneeName ?? issue.assigneeAgentId.slice(0, 8)}
+                  agentIcon={assigneeAgentIcon ?? null}
                   size="sm"
                   className="min-w-0"
                 />

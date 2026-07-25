@@ -195,13 +195,13 @@ export function ArtifactCard({ artifact }: ArtifactCardProps) {
     <article
       data-testid="artifact-card"
       data-media-kind={artifact.mediaKind}
-      className="group relative flex flex-col overflow-hidden rounded-[8px] border border-border bg-card transition-colors hover:border-foreground/20"
+      className="paperclip-surface paperclip-surface-interactive group relative flex flex-col overflow-hidden transition-colors hover:border-[var(--company-accent-border)]"
     >
       <Link
         to={artifact.href}
         disableIssueQuicklook
         aria-label={`Open ${artifact.title}`}
-        className="absolute inset-0 z-0 rounded-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="absolute inset-0 z-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <span className="sr-only">Open {artifact.title}</span>
       </Link>

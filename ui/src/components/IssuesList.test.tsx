@@ -1365,6 +1365,7 @@ describe("IssuesList", () => {
       expect((parentRow?.parentElement as HTMLDivElement | null)?.style.containIntrinsicSize).toBe("");
       expect((childRow?.parentElement as HTMLDivElement | null)?.style.contentVisibility).toBe("auto");
       expect((childRow?.parentElement as HTMLDivElement | null)?.style.containIntrinsicSize).toBe("44px");
+      expect(container.querySelector('[aria-label="Collapse PAP-1"]')).not.toBeNull();
     });
 
     act(() => {

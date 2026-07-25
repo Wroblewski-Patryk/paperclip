@@ -44,6 +44,7 @@ export const companySkillListItemSchema = companySkillSchema.extend({
 export const companySkillUsageAgentSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
+  icon: z.string().nullable(),
   urlKey: z.string().min(1),
   adapterType: z.string().min(1),
   desired: z.boolean(),

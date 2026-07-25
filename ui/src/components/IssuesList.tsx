@@ -370,6 +370,7 @@ function shouldSuppressSinglePreviousSiblingBlockerChip(
 interface Agent {
   id: string;
   name: string;
+  icon?: string | null;
 }
 
 type CreatorOption = {
@@ -757,6 +758,10 @@ export function IssuesList({
   const agentName = useCallback((id: string | null) => {
     if (!id || !agents) return null;
     return agents.find((a) => a.id === id)?.name ?? null;
+  }, [agents]);
+  const agentById = useCallback((id: string | null) => {
+    if (!id || !agents) return null;
+    return agents.find((agent) => agent.id === id) ?? null;
   }, [agents]);
 
   const companyUserLabelMap = useMemo(
@@ -1783,7 +1788,13 @@ export function IssuesList({
                         className={isMutedIssue ? "opacity-70" : undefined}
                         mobileLeading={
                           hasChildren ? (
-                            <button type="button" data-slot="icon-button" onClick={toggleCollapse}>
+                            <button
+                              type="button"
+                              data-slot="icon-button"
+                              onClick={toggleCollapse}
+                              aria-label={`${isExpanded ? "Collapse" : "Expand"} ${issue.identifier}`}
+                              title={`${isExpanded ? "Collapse" : "Expand"} sub-issues`}
+                            >
                               <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", isExpanded && "rotate-90")} />
                             </button>
                           ) : (
@@ -1800,6 +1811,8 @@ export function IssuesList({
                                 data-slot="icon-button"
                                 className="hidden shrink-0 items-center sm:inline-flex"
                                 onClick={toggleCollapse}
+                                aria-label={`${isExpanded ? "Collapse" : "Expand"} ${issue.identifier}`}
+                                title={`${isExpanded ? "Collapse" : "Expand"} sub-issues`}
                               >
                                 <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", isExpanded && "rotate-90")} />
                               </button>
@@ -1855,7 +1868,12 @@ export function IssuesList({
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                                     >
                                       {issue.assigneeAgentId && agentName(issue.assigneeAgentId) ? (
-                                        <Identity name={agentName(issue.assigneeAgentId)!} size="sm" className="min-w-0" />
+                                        <Identity
+                                          name={agentName(issue.assigneeAgentId)!}
+                                          agentIcon={agentById(issue.assigneeAgentId)?.icon ?? null}
+                                          size="sm"
+                                          className="min-w-0"
+                                        />
                                       ) : issue.assigneeUserId ? (
                                         <Identity
                                           name={assigneeUserLabel ?? "User"}
@@ -1934,7 +1952,7 @@ export function IssuesList({
                                               assignIssue(issue.id, agent.id, null);
                                             }}
                                           >
-                                            <Identity name={agent.name} size="sm" className="min-w-0" />
+                                            <Identity name={agent.name} agentIcon={agent.icon} size="sm" className="min-w-0" />
                                           </button>
                                         ))}
                                     </div>

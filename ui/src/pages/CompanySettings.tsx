@@ -190,6 +190,7 @@ export function CompanySettings() {
             <input
               className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
               type="text"
+              aria-label="Company name"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
             />
@@ -201,6 +202,7 @@ export function CompanySettings() {
             <input
               className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
               type="text"
+              aria-label="Description"
               value={description}
               placeholder="Optional company description"
               onChange={(e) => setDescription(e.target.value)}
@@ -232,6 +234,7 @@ export function CompanySettings() {
                 <div className="space-y-2">
                   <input
                     type="file"
+                    aria-label="Company logo"
                     accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
                     onChange={handleLogoFileChange}
                     className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs"
@@ -273,12 +276,14 @@ export function CompanySettings() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
+                    aria-label="Brand color picker"
                     value={brandColor || "#6366f1"}
                     onChange={(e) => setBrandColor(e.target.value)}
                     className="h-8 w-8 cursor-pointer rounded border border-border bg-transparent p-0"
                   />
                   <input
                     type="text"
+                    aria-label="Brand color hex value"
                     value={brandColor}
                     onChange={(e) => {
                       const v = e.target.value;
@@ -309,6 +314,7 @@ export function CompanySettings() {
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
+                      aria-label="Attachment size limit in MiB"
                       min={1}
                       max={MAX_COMPANY_ATTACHMENT_MAX_MIB}
                       step={1}

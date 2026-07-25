@@ -21,7 +21,7 @@ interface AgentIconProps {
 
 export function AgentIcon({ icon, className }: AgentIconProps) {
   const Icon = getAgentIcon(icon);
-  return <Icon className={className} />;
+  return <Icon className={className} aria-hidden="true" />;
 }
 
 interface AgentIconPickerProps {

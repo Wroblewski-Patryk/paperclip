@@ -9,6 +9,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useSidebar } from "../context/SidebarContext";
 import { queryKeys } from "../lib/queryKeys";
 import { StatusBadge } from "../components/StatusBadge";
+import { AgentIcon } from "../components/AgentIconPicker";
 import { MembershipAction } from "../components/MembershipAction";
 import { agentStatusDot, agentStatusDotDefault } from "../lib/status-colors";
 import { EntityRow } from "../components/EntityRow";
@@ -245,9 +246,10 @@ export function Agents() {
                   resourceMembershipState(membershipsQuery.data, "agent", agent.id) === "left" ? "text-foreground/55" : "",
                 )}
                 leading={
-                  <span className="relative flex h-2.5 w-2.5">
+                  <span className="relative flex h-8 w-8 items-center justify-center rounded-md border border-border bg-muted/35 text-muted-foreground">
+                    <AgentIcon icon={agent.icon} className="h-4 w-4" />
                     <span
-                      className={`absolute inline-flex h-full w-full rounded-full ${agentStatusDot[agent.status] ?? agentStatusDotDefault}`}
+                      className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background ${agentStatusDot[agent.status] ?? agentStatusDotDefault}`}
                     />
                   </span>
                 }
@@ -398,8 +400,9 @@ function OrgTreeNode({
           membershipState === "left" && "text-foreground/55",
         )}
       >
-        <span className="relative flex h-2.5 w-2.5 shrink-0">
-          <span className={`absolute inline-flex h-full w-full rounded-full ${statusColor}`} />
+        <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted/35 text-muted-foreground">
+          <AgentIcon icon={agent?.icon ?? null} className="h-4 w-4" />
+          <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background ${statusColor}`} />
         </span>
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium">{node.name}</span>

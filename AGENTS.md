@@ -228,6 +228,9 @@ When adding endpoints:
 - Keep routes and nav aligned with available API surface
 - Use company selection context for company-scoped pages
 - Surface failures clearly; do not silently ignore API errors
+- Follow `doc/UI-DESIGN-SYSTEM.md` for structural surfaces and agent identity. Use
+  the shared `Card`/`.paperclip-surface` system rather than introducing another
+  generic card treatment, and preserve semantic or interaction-specific exceptions.
 
 ## 10. Pull Request Requirements
 

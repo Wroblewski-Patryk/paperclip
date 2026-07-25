@@ -56,6 +56,7 @@ export function resolveKanbanTargetStatus(overId: string, issues: Issue[]): Issu
 interface Agent {
   id: string;
   name: string;
+  icon?: string | null;
 }
 
 interface KanbanBoardProps {
@@ -207,6 +208,10 @@ function KanbanCard({
     if (!id || !agents) return null;
     return agents.find((a) => a.id === id)?.name ?? null;
   };
+  const agentById = (id: string | null) => {
+    if (!id || !agents) return null;
+    return agents.find((agent) => agent.id === id) ?? null;
+  };
 
   return (
     <div
@@ -259,7 +264,7 @@ function KanbanCard({
           {issue.assigneeAgentId && (() => {
             const name = agentName(issue.assigneeAgentId);
             return name ? (
-              <Identity name={name} size="xs" />
+              <Identity name={name} agentIcon={agentById(issue.assigneeAgentId)?.icon ?? null} size="xs" />
             ) : (
               <span className="text-xs text-muted-foreground font-mono">
                 {issue.assigneeAgentId.slice(0, 8)}

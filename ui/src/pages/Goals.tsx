@@ -62,9 +62,9 @@ export function Goals() {
       {goals && goals.length > 0 && (
         <>
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="paperclip-surface p-3"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Target className="h-3.5 w-3.5" />Total goals</div><div className="mt-1 text-xl font-semibold">{goals.length}</div></div>
-            <div className="paperclip-surface p-3"><div className="flex items-center gap-2 text-xs text-muted-foreground"><CheckCircle2 className="h-3.5 w-3.5" />Achieved</div><div className="mt-1 text-xl font-semibold">{goals.filter((goal) => goal.status === "achieved").length}</div></div>
-            <div className="paperclip-surface p-3"><div className="flex items-center gap-2 text-xs text-muted-foreground"><GitBranch className="h-3.5 w-3.5" />Root outcomes</div><div className="mt-1 text-xl font-semibold">{goals.filter((goal) => !goal.parentId).length}</div></div>
+            <div className="paperclip-surface p-3"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Target className="h-3.5 w-3.5 text-[var(--company-accent-strong)]" />Total goals</div><div className="mt-1 text-xl font-semibold">{goals.length}</div></div>
+            <div className="paperclip-surface p-3"><div className="flex items-center gap-2 text-xs text-muted-foreground"><CheckCircle2 className="h-3.5 w-3.5 text-[var(--company-accent-strong)]" />Achieved</div><div className="mt-1 text-xl font-semibold">{goals.filter((goal) => goal.status === "achieved").length}</div></div>
+            <div className="paperclip-surface p-3"><div className="flex items-center gap-2 text-xs text-muted-foreground"><GitBranch className="h-3.5 w-3.5 text-[var(--company-accent-strong)]" />Root outcomes</div><div className="mt-1 text-xl font-semibold">{goals.filter((goal) => !goal.parentId).length}</div></div>
           </div>
           <GoalTree goals={goals} goalLink={(goal) => `/goals/${goal.id}`} />
         </>

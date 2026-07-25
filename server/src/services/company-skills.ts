@@ -2132,6 +2132,7 @@ export function companySkillService(db: Db) {
     return desiredAgents.map((agent) => ({
       id: agent.id,
       name: agent.name,
+      icon: agent.icon,
       urlKey: agent.urlKey,
       adapterType: agent.adapterType,
       desired: true,

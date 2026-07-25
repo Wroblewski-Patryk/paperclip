@@ -52,7 +52,7 @@ export function ApprovalCard({
   const hasFooter = showResolutionButtons || Boolean(detailLink || onOpen);
 
   return (
-    <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm">
+    <div className="paperclip-surface p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-3">
@@ -70,7 +70,7 @@ export function ApprovalCard({
                 {requesterAgent && (
                   <div className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Requested by</span>
-                    <Identity name={requesterAgent.name} size="sm" className="inline-flex" />
+                    <Identity name={requesterAgent.name} agentIcon={requesterAgent.icon} size="sm" className="inline-flex" />
                   </div>
                 )}
               </div>

@@ -3281,6 +3281,7 @@ export function agentRoutes(
       createdAt: heartbeatRuns.createdAt,
       agentId: heartbeatRuns.agentId,
       agentName: agentsTable.name,
+      agentIcon: agentsTable.icon,
       adapterType: agentsTable.adapterType,
       logBytes: heartbeatRuns.logBytes,
       livenessState: heartbeatRuns.livenessState,
@@ -3527,6 +3528,7 @@ export function agentRoutes(
         createdAt: heartbeatRuns.createdAt,
         agentId: heartbeatRuns.agentId,
         agentName: agentsTable.name,
+        agentIcon: agentsTable.icon,
         adapterType: agentsTable.adapterType,
         logBytes: heartbeatRuns.logBytes,
         livenessState: heartbeatRuns.livenessState,
@@ -3609,6 +3611,7 @@ export function agentRoutes(
       ...enrichRunModelProfile(run),
       agentId: agent.id,
       agentName: agent.name,
+      agentIcon: agent.icon,
       adapterType: agent.adapterType,
       outputSilence: await heartbeat.buildRunOutputSilence({ ...run, companyId: issue.companyId }),
     });

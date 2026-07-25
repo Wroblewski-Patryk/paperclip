@@ -27,6 +27,7 @@ interface BlockedInboxViewProps {
   companyId: string;
   searchQuery: string;
   agentNameById: ReadonlyMap<string, string>;
+  agentIconById?: ReadonlyMap<string, string | null>;
   userLabelById?: ReadonlyMap<string, string>;
   issueLinkState: unknown;
   groupBy: BlockedInboxGroupBy;
@@ -46,6 +47,7 @@ export function BlockedInboxView({
   companyId,
   searchQuery,
   agentNameById,
+  agentIconById,
   userLabelById,
   issueLinkState,
   groupBy,
@@ -208,6 +210,7 @@ export function BlockedInboxView({
               row={row}
               issueLinkState={issueLinkState}
               agentNameById={agentNameById}
+              agentIconById={agentIconById}
               userLabelById={userLabelById}
               showStatusColumn={showStatusColumn}
               showIdentifierColumn={showIdentifierColumn}
@@ -235,6 +238,7 @@ export function BlockedInboxView({
                         row={row}
                         issueLinkState={issueLinkState}
                         agentNameById={agentNameById}
+                        agentIconById={agentIconById}
                         userLabelById={userLabelById}
                         showStatusColumn={showStatusColumn}
                         showIdentifierColumn={showIdentifierColumn}
@@ -256,6 +260,7 @@ interface BlockedInboxRowProps {
   row: BlockedInboxIssueRow;
   issueLinkState: unknown;
   agentNameById: ReadonlyMap<string, string>;
+  agentIconById?: ReadonlyMap<string, string | null>;
   userLabelById?: ReadonlyMap<string, string>;
   showStatusColumn: boolean;
   showIdentifierColumn: boolean;
@@ -282,6 +287,7 @@ function BlockedInboxRow({
   row,
   issueLinkState,
   agentNameById,
+  agentIconById,
   userLabelById,
   showStatusColumn,
   showIdentifierColumn,
@@ -306,6 +312,7 @@ function BlockedInboxRow({
         <span className="hidden w-[150px] min-w-0 items-center text-muted-foreground sm:inline-flex">
           <Identity
             name={ownerName}
+            agentIcon={isAgent ? agentIconById?.get(row.attention.owner.agentId ?? "") ?? null : undefined}
             size="xs"
             className="max-w-full"
           />

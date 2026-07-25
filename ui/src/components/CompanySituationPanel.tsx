@@ -26,19 +26,21 @@ function SignalIcon({ signal }: { signal: CompanySituationSignal }) {
 
 export function CompanySituationPanel({ situation }: { situation: CompanySituation }) {
   const primaryGoal = situation.mission.activeGoals[0] ?? null;
-  const visibleSignals = situation.attention.slice(0, 6);
+  const visibleSignals = situation.attention
+    .filter((signal) => !["budget_incident", "pending_approval", "blocked_work"].includes(signal.kind))
+    .slice(0, 6);
   const projectedCompletion = situation.forecast.projectedCompletion;
 
   return (
     <section className="paperclip-surface overflow-hidden">
       <div className="paperclip-surface-header flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--company-accent-soft)] text-[var(--company-accent-strong)]">
               <Compass className="h-4 w-4" />
             </span>
             Company orientation
-          </div>
+          </h2>
           <p className="mt-1 truncate text-sm text-muted-foreground">
             {primaryGoal ? primaryGoal.title : "No active goal recorded"}
           </p>
@@ -51,12 +53,12 @@ export function CompanySituationPanel({ situation }: { situation: CompanySituati
 
       <div className="grid grid-cols-2 gap-px border-b border-border bg-border sm:grid-cols-4">
         {[
-          ["Runnable work", situation.work.runnable],
-          ["Blocked", situation.work.blocked],
-          ["Available agents", situation.capacity.availableAgents],
-          ["Active targets", situation.temporal.projectsWithTargets],
+          ["Active goals", situation.mission.activeGoals.length],
+          ["Active projects", situation.temporal.activeProjects],
+          ["Targets set", situation.temporal.projectsWithTargets],
+          ["Reviews due", situation.deliberation.dueReviews],
         ].map(([label, value]) => (
-          <div key={label} className="bg-card px-4 py-3">
+          <div key={label} className="bg-background/80 px-4 py-3">
             <div className="text-lg font-semibold tabular-nums">{value}</div>
             <div className="text-xs text-muted-foreground">{label}</div>
           </div>
@@ -72,15 +74,15 @@ export function CompanySituationPanel({ situation }: { situation: CompanySituati
         ) : null}
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="paperclip-section-title">
-            Attention
+            Additional signals
           </h3>
           <span className="text-xs text-muted-foreground">
-            Deterministic facts · {situation.attention.length} signal{situation.attention.length === 1 ? "" : "s"}
+            Deterministic facts · {visibleSignals.length} signal{visibleSignals.length === 1 ? "" : "s"}
           </span>
         </div>
 
         {visibleSignals.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No current orientation signals.</p>
+          <p className="text-sm text-muted-foreground">No additional orientation signals beyond the owner queue.</p>
         ) : (
           <div className="grid gap-2 md:grid-cols-2">
             {visibleSignals.map((signal) => (

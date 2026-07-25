@@ -110,7 +110,7 @@ export function InstanceAccess() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <section className="space-y-4 rounded-xl border border-border bg-card p-4">
+        <section className="paperclip-surface space-y-4 p-4">
           <label className="block space-y-2 text-sm">
             <span className="font-medium">Search users</span>
             <input
@@ -149,7 +149,7 @@ export function InstanceAccess() {
           </div>
         </section>
 
-        <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <section className="paperclip-surface space-y-4 p-5">
           {!selectedUserId ? (
             <div className="text-sm text-muted-foreground">Select a user to inspect instance access.</div>
           ) : userAccessQuery.isLoading ? (

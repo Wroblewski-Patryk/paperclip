@@ -949,6 +949,11 @@ export function Inbox() {
     for (const agent of agents ?? []) map.set(agent.id, agent.name);
     return map;
   }, [agents]);
+  const agentIconById = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const agent of agents ?? []) map.set(agent.id, agent.icon ?? null);
+    return map;
+  }, [agents]);
 
   const issueById = useMemo(() => {
     const map = new Map<string, Issue>();
@@ -2242,6 +2247,7 @@ export function Inbox() {
           companyId={selectedCompanyId!}
           searchQuery={searchQuery}
           agentNameById={agentById}
+          agentIconById={agentIconById}
           userLabelById={companyUserLabelMap}
           issueLinkState={issueLinkState}
           groupBy={blockedGroupBy}
@@ -2387,6 +2393,7 @@ export function Inbox() {
                               defaultProjectWorkspaceIdByProjectId,
                             })}
                             assigneeName={agentName(issue.assigneeAgentId)}
+                            assigneeAgentIcon={issue.assigneeAgentId ? agentIconById.get(issue.assigneeAgentId) ?? null : null}
                             assigneeUserName={
                               formatAssigneeUserLabel(issue.assigneeUserId, currentUserId, companyUserLabelMap)
                               ?? assigneeUserProfile?.label

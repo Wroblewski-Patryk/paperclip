@@ -723,16 +723,19 @@ test("heartbeat scheduler gates codex_local starts on provider quota pressure", 
 
 test("dashboard surfaces provider quota separately from dollar spend", async () => {
   const source = await readFile("ui/src/pages/Dashboard.tsx", "utf8");
+  const innovationCommandCenter = await readFile(
+    "ui/src/components/InnovationCommandCenter.tsx",
+    "utf8",
+  );
+  const dashboardSurface = `${source}\n${innovationCommandCenter}`;
   const dashboardService = await readFile("server/src/services/dashboard.ts", "utf8");
   const dashboardTypes = await readFile("packages/shared/src/types/dashboard.ts", "utf8");
 
   assert.match(source, /costsApi\.quotaWindows/);
   assert.match(source, /queryKeys\.usageQuotaWindows/);
-  assert.match(source, /Provider Quota/);
-  assert.match(source, /Month Spend/);
-  assert.match(source, /formatCents\(data\.costs\.monthSpendCents\)/);
-  assert.match(source, /subscriptionMonthlyBudgetCents/);
-  assert.match(source, /subscriptionPlanLabel/);
+  assert.match(dashboardSurface, /Provider quota/i);
+  assert.match(dashboardSurface, /API spend this month/i);
+  assert.match(dashboardSurface, /formatCents\(dashboard\.costs\.monthSpendCents\)/);
   assert.match(dashboardService, /reportedMonthSpendCents/);
   assert.match(dashboardTypes, /reportedMonthSpendCents/);
 });

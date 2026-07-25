@@ -106,8 +106,8 @@ export function SoftwarehouseControlPanel({
           valueClassName={stateTone(status.deliveryPermission.canStartNewLane)}
         />
         <ControlMetric
-          label="Full delivery"
-          value={status.fullDeliveryReady ? "Ready" : "Gated"}
+          label="Local delivery posture"
+          value={status.fullDeliveryReady ? "Runnable" : "Gated"}
           icon={status.fullDeliveryReady ? CheckCircle2 : ShieldAlert}
           valueClassName={stateTone(status.fullDeliveryReady)}
         />
@@ -120,7 +120,7 @@ export function SoftwarehouseControlPanel({
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <Link to="/issues" className="font-medium text-primary hover:underline">Open issues</Link>
             <span>{blockedGateCount} protected gate{blockedGateCount === 1 ? "" : "s"}</span>
-            <span>{status.projectTruth.totalGaps} project-truth gap{status.projectTruth.totalGaps === 1 ? "" : "s"}</span>
+            <span>{status.projectTruth.totalGaps} indexed project gap{status.projectTruth.totalGaps === 1 ? "" : "s"}</span>
           </div>
         </div>
 
@@ -132,11 +132,12 @@ export function SoftwarehouseControlPanel({
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-medium">{project.name}</span>
                 <span className={cn("text-xs font-medium", projectProbeTone(project.publicProbeStatus))}>
-                  Probe {humanize(project.publicProbeStatus, "unknown")}
+                  Public runtime {humanize(project.publicProbeStatus, "unknown")}
                 </span>
               </div>
               <p className="mt-1 line-clamp-2 break-words text-xs leading-5 text-muted-foreground">
-                {project.totalGaps} gaps{project.firstGap?.summary ? ` · ${project.firstGap.summary}` : ""}
+                Technical map: {project.totalGaps} known indexed gap{project.totalGaps === 1 ? "" : "s"}
+                {project.firstGap?.summary ? ` · ${project.firstGap.summary}` : ""}. This is not a sale-readiness verdict.
               </p>
             </div>
           ))}

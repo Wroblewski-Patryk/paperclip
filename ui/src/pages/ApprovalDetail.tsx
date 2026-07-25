@@ -13,7 +13,7 @@ import { PageSkeleton } from "../components/PageSkeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
-import type { ApprovalComment } from "@paperclipai/shared";
+import type { Agent, ApprovalComment } from "@paperclipai/shared";
 import { MarkdownBody } from "../components/MarkdownBody";
 
 export function ApprovalDetail() {
@@ -57,9 +57,9 @@ export function ApprovalDetail() {
     setSelectedCompanyId(approval.companyId, { source: "route_sync" });
   }, [approval?.companyId, selectedCompanyId, setSelectedCompanyId]);
 
-  const agentNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const agent of agents ?? []) map.set(agent.id, agent.name);
+  const agentById = useMemo(() => {
+    const map = new Map<string, Agent>();
+    for (const agent of agents ?? []) map.set(agent.id, agent);
     return map;
   }, [agents]);
 
@@ -214,7 +214,8 @@ export function ApprovalDetail() {
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground text-xs">Requested by</span>
               <Identity
-                name={agentNameById.get(approval.requestedByAgentId) ?? approval.requestedByAgentId.slice(0, 8)}
+                name={agentById.get(approval.requestedByAgentId)?.name ?? approval.requestedByAgentId.slice(0, 8)}
+                agentIcon={agentById.get(approval.requestedByAgentId)?.icon ?? null}
                 size="sm"
               />
             </div>
@@ -332,7 +333,8 @@ export function ApprovalDetail() {
                 {comment.authorAgentId ? (
                   <Link to={`/agents/${comment.authorAgentId}`} className="hover:underline">
                     <Identity
-                      name={agentNameById.get(comment.authorAgentId) ?? comment.authorAgentId.slice(0, 8)}
+                      name={agentById.get(comment.authorAgentId)?.name ?? comment.authorAgentId.slice(0, 8)}
+                      agentIcon={agentById.get(comment.authorAgentId)?.icon ?? null}
                       size="sm"
                     />
                   </Link>

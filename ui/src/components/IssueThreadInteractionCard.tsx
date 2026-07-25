@@ -740,7 +740,7 @@ function AskUserQuestionsCard({
           {questions.map((question, index) => (
             <div
               key={question.id}
-              className="rounded-2xl border border-border/70 bg-background/82 p-4 shadow-[0_18px_42px_rgba(15,23,42,0.06)]"
+              className="rounded-xl border border-border/70 bg-background/82 p-4 shadow-[0_18px_42px_rgba(15,23,42,0.06)]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -787,7 +787,7 @@ function AskUserQuestionsCard({
             </div>
           ))}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background/75 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-background/75 p-4">
             <div className="text-sm text-muted-foreground">
               Submit once after you finish the full form.
             </div>
@@ -827,7 +827,7 @@ function AskUserQuestionsCard({
           </div>
         </div>
       ) : interaction.status === "cancelled" ? (
-        <div className="rounded-2xl border border-rose-300/60 bg-rose-50/85 p-4 text-sm leading-6 text-rose-950 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-100">
+        <div className="rounded-xl border border-rose-300/60 bg-rose-50/85 p-4 text-sm leading-6 text-rose-950 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-100">
           <div className="font-semibold">Question cancelled</div>
           {interaction.result?.cancellationReason ? (
             <p className="mt-1">{interaction.result.cancellationReason}</p>
@@ -845,7 +845,7 @@ function AskUserQuestionsCard({
             return (
               <div
                 key={question.id}
-                className="rounded-2xl border border-border/70 bg-background/82 p-4"
+                className="rounded-xl border border-border/70 bg-background/82 p-4"
               >
                 <div className="text-sm font-semibold text-foreground">
                   {question.prompt}
@@ -864,7 +864,7 @@ function AskUserQuestionsCard({
           })}
 
           {interaction.result?.summaryMarkdown ? (
-            <div className="rounded-2xl border border-emerald-300/60 bg-emerald-50/85 p-4">
+            <div className="rounded-xl border border-emerald-300/60 bg-emerald-50/85 p-4">
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
                 Submitted summary
               </div>

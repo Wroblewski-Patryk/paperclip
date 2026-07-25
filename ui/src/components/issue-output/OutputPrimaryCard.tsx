@@ -28,7 +28,7 @@ export function OutputPrimaryCard({ item, creatorName }: OutputPrimaryCardProps)
   const contentType = meta?.contentType;
 
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-card">
+    <div className="paperclip-surface overflow-hidden">
       {/* Media region */}
       {meta && isVideoContentType(contentType) ? (
         <OutputVideoPlayer src={meta.contentPath} title={filename} />

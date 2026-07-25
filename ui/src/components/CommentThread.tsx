@@ -362,6 +362,7 @@ function CommentCard({
           <Link to={`/agents/${comment.authorAgentId}`} className="hover:underline">
             <Identity
               name={agentMap?.get(comment.authorAgentId)?.name ?? comment.authorAgentId.slice(0, 8)}
+              agentIcon={agentMap?.get(comment.authorAgentId)?.icon ?? null}
               size="sm"
             />
           </Link>

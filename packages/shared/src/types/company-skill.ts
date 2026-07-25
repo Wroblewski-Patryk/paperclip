@@ -60,6 +60,7 @@ export interface CompanySkillListItem {
 export interface CompanySkillUsageAgent {
   id: string;
   name: string;
+  icon: string | null;
   urlKey: string;
   adapterType: string;
   desired: boolean;

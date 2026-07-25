@@ -1,10 +1,11 @@
 import { memo, type ComponentType, type SVGProps } from "react";
-import { Bot, FileText, Hexagon, MessageSquare, Quote } from "lucide-react";
+import { FileText, Hexagon, MessageSquare, Quote } from "lucide-react";
 import type { Agent, CompanySearchResult } from "@paperclipai/shared";
 import { Link } from "@/lib/router";
 import { cn } from "@/lib/utils";
 import { StatusIcon } from "../StatusIcon";
 import { Identity } from "../Identity";
+import { AgentIcon } from "../AgentIconPicker";
 import { HighlightedText, type HighlightedTextProps } from "./HighlightedText";
 
 type SnippetStyle = {
@@ -45,7 +46,7 @@ function formatRelativeTime(input: string | null): string {
 
 export interface SearchResultRowProps {
   result: CompanySearchResult;
-  agentsById?: ReadonlyMap<string, Pick<Agent, "id" | "name">>;
+  agentsById?: ReadonlyMap<string, Pick<Agent, "id" | "name" | "icon">>;
   isActive?: boolean;
   className?: string;
 }
@@ -66,8 +67,8 @@ function SearchResultRowImpl({
         className={cn(ROW_BASE, "py-3", isActive && "bg-muted/40", className)}
         data-result-type="agent"
       >
-        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <Bot className="h-3 w-3" />
+        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+          <AgentIcon icon={agentsById?.get(result.id)?.icon ?? null} className="h-3 w-3" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
@@ -113,6 +114,9 @@ function SearchResultRowImpl({
   if (!issue) return null;
   const assigneeName = issue.assigneeAgentId
     ? agentsById?.get(issue.assigneeAgentId)?.name ?? null
+    : null;
+  const assigneeIcon = issue.assigneeAgentId
+    ? agentsById?.get(issue.assigneeAgentId)?.icon ?? null
     : null;
   const updated = formatRelativeTime(result.updatedAt ?? issue.updatedAt);
   const titleHighlights = result.snippets.find((snippet) => snippet.field === "title")?.highlights;
@@ -164,7 +168,7 @@ function SearchResultRowImpl({
         <div className="ml-2 hidden shrink-0 flex-col items-end gap-2 sm:flex">
           {assigneeName || updated ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {assigneeName ? <Identity name={assigneeName} size="sm" /> : null}
+              {assigneeName ? <Identity name={assigneeName} agentIcon={assigneeIcon} size="sm" /> : null}
               {updated ? <span className="tabular-nums">{updated}</span> : null}
             </div>
           ) : null}

@@ -1274,7 +1274,7 @@ export function IssueProperties({
   );
 
   const assigneeTrigger = assignee ? (
-    <Identity name={assignee.name} size="sm" />
+    <Identity name={assignee.name} agentIcon={assignee.icon} size="sm" />
   ) : assigneeUserLabel ? (
     <>
       <User className="h-3.5 w-3.5 text-muted-foreground" />
@@ -2080,7 +2080,11 @@ export function IssueProperties({
                 to={`/agents/${issue.createdByAgentId}`}
                 className="hover:underline"
               >
-                <Identity name={agentName(issue.createdByAgentId) ?? issue.createdByAgentId.slice(0, 8)} size="sm" />
+                <Identity
+                  name={agentName(issue.createdByAgentId) ?? issue.createdByAgentId.slice(0, 8)}
+                  agentIcon={agents?.find((agent) => agent.id === issue.createdByAgentId)?.icon ?? null}
+                  size="sm"
+                />
               </Link>
             ) : (
               <>

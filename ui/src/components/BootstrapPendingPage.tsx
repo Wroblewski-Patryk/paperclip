@@ -36,7 +36,7 @@ function CliFallback({ hasActiveInvite = false }: { hasActiveInvite?: boolean })
 function StateChrome({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto max-w-xl py-10">
-      <div className="rounded-lg border border-border bg-card p-6">{children}</div>
+      <div className="paperclip-surface p-6">{children}</div>
     </div>
   );
 }

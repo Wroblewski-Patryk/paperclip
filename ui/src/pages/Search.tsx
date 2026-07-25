@@ -201,8 +201,8 @@ export function Search() {
     enabled: !!selectedCompanyId,
   });
 
-  const agentsById = useMemo<ReadonlyMap<string, Pick<Agent, "id" | "name">>>(() => {
-    const map = new Map<string, Pick<Agent, "id" | "name">>();
+  const agentsById = useMemo<ReadonlyMap<string, Pick<Agent, "id" | "name" | "icon">>>(() => {
+    const map = new Map<string, Pick<Agent, "id" | "name" | "icon">>();
     for (const agent of agents ?? []) map.set(agent.id, agent);
     return map;
   }, [agents]);
@@ -423,7 +423,7 @@ interface SearchTabContentProps {
   subgroups: Array<{ key: SubGroupKey; results: CompanySearchResult[] }>;
   totalResults: number;
   isFetching: boolean;
-  agentsById: ReadonlyMap<string, Pick<Agent, "id" | "name">>;
+  agentsById: ReadonlyMap<string, Pick<Agent, "id" | "name" | "icon">>;
 }
 
 function SearchTabContent({

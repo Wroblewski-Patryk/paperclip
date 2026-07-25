@@ -365,7 +365,7 @@ export function IssueWorkspaceCard({
   const showEditingControls = livePreview || editing;
 
   return (
-    <div className="rounded-lg border border-border p-3 space-y-2">
+    <div className="paperclip-surface space-y-2 p-3">
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">

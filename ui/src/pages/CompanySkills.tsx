@@ -1598,7 +1598,7 @@ function SkillPane({
                     to={`/agents/${agent.urlKey}/skills`}
                     className="group rounded-md border border-transparent p-2 no-underline hover:border-border hover:bg-accent/40"
                   >
-                    <Identity name={agent.name} size="sm" />
+                    <Identity name={agent.name} agentIcon={agent.icon} size="sm" />
                   </Link>
                 ))}
               </div>

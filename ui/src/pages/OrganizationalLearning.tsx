@@ -61,7 +61,7 @@ function ObservationCard({
   const longSummary = item.summary.length > 280;
 
   return (
-    <article className="min-w-0 rounded-lg border border-border bg-card p-4">
+    <article className="paperclip-surface min-w-0 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="font-medium">{item.title}</h3>
@@ -214,7 +214,7 @@ export function OrganizationalLearning() {
         <Button size="sm" onClick={() => setShowForm((value) => !value)}><Plus className="mr-1 h-4 w-4" />New observation</Button>
       </div>
 
-      <section className="grid grid-cols-2 overflow-hidden rounded-lg border border-border bg-card md:grid-cols-4" aria-label="Evidence summary">
+      <section className="paperclip-surface grid grid-cols-2 overflow-hidden md:grid-cols-4" aria-label="Evidence summary">
         <LearningMetric icon={Activity} label="All observations" value={records.length} />
         <LearningMetric icon={ShieldCheck} label="Validated/current" value={validatedRecords} />
         <LearningMetric icon={Clock3} label="Current external" value={currentExternalSignals} />
@@ -240,7 +240,7 @@ export function OrganizationalLearning() {
       </div>
 
       {showForm ? (
-        <form className="space-y-3 rounded-lg border border-border bg-card p-4" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
+        <form className="paperclip-surface space-y-3 p-4" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
           <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What was observed?" required />
           <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} placeholder="State the evidence and its operational meaning without inventing causality" required />
           <div className="grid gap-3 sm:grid-cols-3">

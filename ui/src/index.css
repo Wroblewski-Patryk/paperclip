@@ -108,7 +108,7 @@
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: var(--background);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
@@ -226,9 +226,9 @@
 
 @layer components {
   .paperclip-surface {
-    border: 1px solid color-mix(in oklab, var(--company-accent) 12%, var(--border));
-    border-radius: 0.75rem;
-    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: color-mix(in oklab, var(--background) 94%, transparent);
     box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 5%, transparent);
   }
 
@@ -242,7 +242,20 @@
 
   .paperclip-surface-interactive:hover {
     border-color: var(--company-accent-border);
+    background: var(--company-accent-subtle);
     box-shadow: 0 8px 22px color-mix(in oklab, var(--company-accent) 8%, transparent);
+  }
+
+  .paperclip-inset {
+    border: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklab, var(--muted) 24%, transparent);
+  }
+
+  .paperclip-empty-state {
+    border: 1px dashed color-mix(in oklab, var(--border) 84%, transparent);
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklab, var(--background) 82%, transparent);
   }
 
   .paperclip-section-title {

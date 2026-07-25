@@ -508,7 +508,7 @@ function IssueChatFallbackThread({
           "text-center text-sm text-muted-foreground",
           variant === "embedded"
             ? "rounded-xl border border-dashed border-border/70 bg-background/60 px-4 py-6"
-            : "rounded-2xl border border-dashed border-border bg-card px-6 py-10",
+            : "rounded-xl border border-dashed border-border bg-card px-6 py-10",
         )}>
           {emptyMessage}
         </div>
@@ -4227,7 +4227,7 @@ export function IssueChatThread({
                   "text-center text-sm text-muted-foreground",
                   variant === "embedded"
                     ? "rounded-xl border border-dashed border-border/70 bg-background/60 px-4 py-6"
-                    : "rounded-2xl border border-dashed border-border bg-card px-6 py-10",
+                    : "rounded-xl border border-dashed border-border bg-card px-6 py-10",
                 )}>
                   {resolvedEmptyMessage}
                 </div>

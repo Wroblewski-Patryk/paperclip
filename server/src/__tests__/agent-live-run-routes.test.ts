@@ -178,6 +178,7 @@ describe("agent live run routes", () => {
       id: "agent-1",
       companyId: "company-1",
       name: "Builder",
+      icon: "code-2",
       adapterType: "codex_local",
     });
     mockInstanceSettingsService.get.mockResolvedValue({
@@ -382,6 +383,7 @@ describe("agent live run routes", () => {
       createdAt: new Date("2026-04-10T09:29:59.000Z"),
       agentId: "agent-1",
       agentName: "Builder",
+      agentIcon: "code-2",
       adapterType: "codex_local",
       logBytes: 0,
       livenessState: "healthy",
@@ -434,6 +436,7 @@ describe("agent live run routes", () => {
       createdAt: new Date(`2026-04-10T09:${String(index % 60).padStart(2, "0")}:00.000Z`),
       agentId: "agent-1",
       agentName: "Builder",
+      agentIcon: "code-2",
       adapterType: "codex_local",
       logBytes: 0,
       livenessState: "healthy",
@@ -458,6 +461,7 @@ describe("agent live run routes", () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(limit).toHaveBeenCalledWith(50);
     expect(res.body).toHaveLength(50);
+    expect(res.body[0]).toMatchObject({ agentIcon: "code-2" });
   });
 
   it("does not pad with recent runs when no minCount is requested", async () => {

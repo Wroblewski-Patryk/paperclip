@@ -14,18 +14,17 @@ import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { queryKeys } from "../lib/queryKeys";
-import { MetricCard } from "../components/MetricCard";
 import { EmptyState } from "../components/EmptyState";
 import { StatusIcon } from "../components/StatusIcon";
 
 import { ActivityRow } from "../components/ActivityRow";
 import { Identity } from "../components/Identity";
 import { timeAgo } from "../lib/timeAgo";
-import { cn, formatCents } from "../lib/utils";
-import { Bot, CircleDot, DollarSign, Gauge, ShieldCheck, LayoutDashboard, PauseCircle } from "lucide-react";
+import { cn } from "../lib/utils";
+import { Bot, LayoutDashboard } from "lucide-react";
 import { ActiveAgentsPanel } from "../components/ActiveAgentsPanel";
 import { CompanySituationPanel } from "../components/CompanySituationPanel";
-import { SoftwarehouseControlPanel } from "../components/SoftwarehouseControlPanel";
+import { InnovationCommandCenter } from "../components/InnovationCommandCenter";
 import { ChartCard, RunActivityChart, PriorityChart, IssueStatusChart, SuccessRateChart } from "../components/ActivityCharts";
 import { PageSkeleton } from "../components/PageSkeleton";
 import type { Agent, Issue, ProviderQuotaResult, QuotaWindow } from "@paperclipai/shared";
@@ -305,100 +304,27 @@ export function Dashboard() {
         </div>
       )}
 
-      <SoftwarehouseControlPanel
-        status={softwarehouseStatus}
-        loading={isSoftwarehouseStatusLoading}
-        compact
-      />
-
-      <ActiveAgentsPanel companyId={selectedCompanyId!} />
-
-      {companySituation && <CompanySituationPanel situation={companySituation} />}
+      {data ? (
+        <InnovationCommandCenter
+          status={softwarehouseStatus}
+          loading={isSoftwarehouseStatusLoading}
+          projects={projects ?? []}
+          issues={issues ?? []}
+          dashboard={data}
+          situation={companySituation}
+          quota={quotaMetric}
+        />
+      ) : null}
 
       {data && (
         <>
-          {data.budgets.activeIncidents > 0 ? (
-            <div className="flex items-start justify-between gap-3 rounded-xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(255,80,80,0.12),rgba(255,255,255,0.02))] px-4 py-3">
-              <div className="flex items-start gap-2.5">
-                <PauseCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
-                <div>
-                  <p className="text-sm font-medium text-red-50">
-                    {data.budgets.activeIncidents} active budget incident{data.budgets.activeIncidents === 1 ? "" : "s"}
-                  </p>
-                  <p className="text-xs text-red-100/70">
-                    {data.budgets.pausedAgents} agents paused · {data.budgets.pausedProjects} projects paused · {data.budgets.pendingApprovals} pending budget approvals
-                  </p>
-                </div>
-              </div>
-              <Link to="/costs" className="text-sm underline underline-offset-2 text-red-100">
-                Open budgets
-              </Link>
-            </div>
-          ) : null}
+          <ActiveAgentsPanel
+            companyId={selectedCompanyId!}
+            title="Recent autonomous work"
+            cardClassName="h-[240px]"
+          />
 
-          <div className="grid grid-cols-2 xl:grid-cols-5 gap-2 sm:gap-3">
-            <MetricCard
-              icon={Bot}
-              value={data.agents.active + data.agents.running + data.agents.paused + data.agents.error}
-              label="Agents Enabled"
-              to="/agents"
-              description={
-                <span>
-                  {data.agents.running} running{", "}
-                  {data.agents.paused} paused{", "}
-                  {data.agents.error} errors
-                </span>
-              }
-            />
-            <MetricCard
-              icon={CircleDot}
-              value={data.tasks.inProgress}
-              label="Tasks In Progress"
-              to="/issues"
-              description={
-                <span>
-                  {data.tasks.open} open{", "}
-                  {data.tasks.blocked} blocked
-                </span>
-              }
-            />
-            <MetricCard
-              icon={DollarSign}
-              value={formatCents(data.costs.monthSpendCents)}
-              label="API Month Spend"
-              to="/costs"
-              description={
-                <span>
-                  {data.costs.monthBudgetCents > 0
-                    ? `${data.costs.monthUtilizationPercent}% of ${formatCents(data.costs.monthBudgetCents)} API budget`
-                    : "Unlimited budget"}
-                  {data.costs.subscriptionMonthlyBudgetCents != null
-                    ? ` - ${data.costs.subscriptionPlanLabel ?? "subscription"} tracked in Provider Quota`
-                    : null}
-                </span>
-              }
-            />
-            <MetricCard
-              icon={Gauge}
-              value={quotaMetric.value}
-              label="Provider Quota"
-              to="/costs"
-              description={<span className="break-words">{quotaMetric.description}</span>}
-            />
-            <MetricCard
-              icon={ShieldCheck}
-              value={data.pendingApprovals + data.budgets.pendingApprovals}
-              label="Pending Approvals"
-              to="/approvals"
-              description={
-                <span>
-                  {data.budgets.pendingApprovals > 0
-                    ? `${data.budgets.pendingApprovals} budget overrides awaiting board review`
-                    : "Awaiting board review"}
-                </span>
-              }
-            />
-          </div>
+          {companySituation && <CompanySituationPanel situation={companySituation} />}
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <ChartCard title="Run Activity" subtitle="Last 14 days">
@@ -481,7 +407,15 @@ export function Dashboard() {
                             {issue.assigneeAgentId && (() => {
                               const name = agentName(issue.assigneeAgentId);
                               return name
-                                ? <span className="hidden sm:inline-flex"><Identity name={name} size="sm" /></span>
+                                ? (
+                                    <span className="hidden sm:inline-flex">
+                                      <Identity
+                                        name={name}
+                                        agentIcon={agentMap.get(issue.assigneeAgentId)?.icon ?? null}
+                                        size="sm"
+                                      />
+                                    </span>
+                                  )
                                 : null;
                             })()}
                             <span className="text-xs text-muted-foreground sm:hidden">&middot;</span>

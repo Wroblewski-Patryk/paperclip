@@ -36,6 +36,7 @@ export interface ActiveRunForIssue {
   createdAt: string | Date;
   agentId: string;
   agentName: string;
+  agentIcon?: string | null;
   adapterType: string;
   logBytes?: number | null;
   lastOutputBytes?: number | null;
@@ -61,6 +62,7 @@ export interface LiveRunForIssue {
   createdAt: string;
   agentId: string;
   agentName: string;
+  agentIcon?: string | null;
   adapterType: string;
   logBytes?: number | null;
   lastOutputBytes?: number | null;

@@ -66,7 +66,7 @@ function RecordCard({ record, onTransition, pending }: {
   const transitions = NEXT_STATUSES[record.kind][record.status] ?? [];
 
   return (
-    <article className="rounded-lg border border-border bg-card p-4">
+    <article className="paperclip-surface p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="font-medium text-foreground">{record.title}</h3>
@@ -166,7 +166,7 @@ export function OrganizationalMemory() {
       </div>
 
       {showForm ? (
-        <form className="space-y-3 rounded-lg border border-border bg-card p-4" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
+        <form className="paperclip-surface space-y-3 p-4" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
           <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={`${kind} title`} required maxLength={300} />
           <Textarea value={statement} onChange={(event) => setStatement(event.target.value)} placeholder="State the premise, promise, or decision precisely" required />
           <Textarea value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder="Rationale and evidence context (optional)" />

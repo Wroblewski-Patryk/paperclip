@@ -118,9 +118,9 @@ export function ActiveAgentsPanel({
 
   return (
     <div>
-      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         {title}
-      </h3>
+      </h2>
       {runs.length === 0 ? (
         <div className="rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
@@ -175,7 +175,7 @@ const AgentRunCard = memo(function AgentRunCard({
     <div className={cn(
       "flex h-[320px] flex-col overflow-hidden rounded-xl border shadow-sm",
       isActive
-        ? "border-cyan-500/25 bg-cyan-500/[0.04] shadow-[0_16px_40px_rgba(6,182,212,0.08)]"
+        ? "border-[var(--company-accent-border)] bg-[var(--company-accent-subtle)] ring-1 ring-inset ring-[var(--company-accent-soft)]"
         : "border-border bg-background/70",
       className,
     )}>
@@ -185,13 +185,18 @@ const AgentRunCard = memo(function AgentRunCard({
             <div className="flex items-center gap-2">
               {isActive ? (
                 <span className="relative flex h-2.5 w-2.5 shrink-0">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-70" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--company-accent)] opacity-70" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--company-accent)]" />
                 </span>
               ) : (
                 <span className="inline-flex h-2.5 w-2.5 rounded-full bg-muted-foreground/35" />
               )}
-              <Identity name={run.agentName} size="sm" className="[&>span:last-child]:!text-[11px]" />
+              <Identity
+                name={run.agentName}
+                agentIcon={run.agentIcon}
+                size="sm"
+                className="[&>span:last-child]:!text-[11px]"
+              />
             </div>
             <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
               <span>{isActive ? "Live now" : run.finishedAt ? `Finished ${relativeTime(run.finishedAt)}` : `Started ${relativeTime(run.createdAt)}`}</span>
@@ -227,7 +232,7 @@ const AgentRunCard = memo(function AgentRunCard({
               to={`/issues/${issue?.identifier ?? run.issueId}`}
               className={cn(
                 "line-clamp-2 hover:underline",
-                isActive ? "text-cyan-700 dark:text-cyan-300" : "text-muted-foreground hover:text-foreground",
+                isActive ? "text-[var(--company-accent-strong)]" : "text-muted-foreground hover:text-foreground",
               )}
               title={issue?.title ? `${issue?.identifier ?? run.issueId.slice(0, 8)} - ${issue.title}` : issue?.identifier ?? run.issueId.slice(0, 8)}
             >

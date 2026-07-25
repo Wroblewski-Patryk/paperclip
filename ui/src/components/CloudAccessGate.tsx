@@ -10,7 +10,7 @@ import { BootstrapPendingPage } from "@/components/BootstrapPendingPage";
 function NoBoardAccessPage() {
   return (
     <div className="mx-auto max-w-xl py-10">
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="paperclip-surface p-6">
         <h1 className="text-xl font-semibold">No company access</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           This account is signed in, but it does not have an active company membership or instance-admin access on

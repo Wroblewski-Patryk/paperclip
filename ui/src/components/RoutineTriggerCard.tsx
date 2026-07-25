@@ -70,7 +70,7 @@ export function RoutineTriggerCard({
   return (
     <form
       aria-label={`Trigger: ${trigger.label ?? trigger.kind}`}
-      className="space-y-4 rounded-lg border border-border p-4"
+      className="paperclip-surface space-y-4 p-4"
       onSubmit={(event) => event.preventDefault()}
     >
       <div className="flex items-start justify-between gap-3">
