@@ -132,8 +132,7 @@ describe("ProjectWorkspaceSummaryCard", () => {
     const actions = container.querySelector('[data-testid="workspace-summary-actions"]');
     expect(actions?.className).toContain("flex-col");
     const card = container.firstElementChild;
-    expect(card?.className).toContain("rounded-lg");
-    expect(card?.className).toContain("border");
+    expect(card?.className).toContain("paperclip-surface");
 
     act(() => {
       root.unmount();

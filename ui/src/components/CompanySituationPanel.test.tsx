@@ -87,7 +87,7 @@ describe("CompanySituationPanel", () => {
     container = null;
   });
 
-  it("renders mission, bounded orientation facts, and an action link", async () => {
+  it("renders mission and bounded orientation facts without duplicating the owner queue", async () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -98,9 +98,10 @@ describe("CompanySituationPanel", () => {
 
     expect(container.textContent).toContain("Company orientation");
     expect(container.textContent).toContain("Deliver useful products coherently");
-    expect(container.textContent).toContain("5Runnable work");
-    expect(container.textContent).toContain("2 blocked issues");
-    expect(container.querySelector('a[href="/issues"]')).not.toBeNull();
+    expect(container.textContent).toContain("2Active projects");
+    expect(container.textContent).toContain("1Targets set");
+    expect(container.textContent).not.toContain("2 blocked issues");
+    expect(container.querySelector('a[href="/issues"]')).toBeNull();
 
     await act(async () => root.unmount());
   });

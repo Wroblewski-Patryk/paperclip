@@ -289,7 +289,7 @@ describe("Inbox toolbar", () => {
 
     expect(container.querySelector('input[placeholder="Search inbox…"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="inbox-blocked-tab-badge"]')).toBeNull();
-    expect(container.querySelector('button[title="Filter"]')).not.toBeNull();
+    expect(container.querySelector('button[title^="Filter"]')).not.toBeNull();
     expect(container.querySelector('button[title="Group"]')).not.toBeNull();
     expect(container.querySelector('button[title="Columns"]')).not.toBeNull();
     expect(container.querySelector('button[title="Sort"]')).not.toBeNull();
