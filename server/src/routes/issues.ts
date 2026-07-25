@@ -2257,6 +2257,12 @@ export function issueRoutes(
       ["securityEvidence", input.bundle.securityEvidence ?? null],
       ["deploymentEvidence", input.bundle.deploymentEvidence ?? null],
       ["monitoringEvidence", input.bundle.monitoringEvidence ?? null],
+      [
+        "learningDisposition",
+        input.bundle.learningDisposition?.classification === "systemic"
+          ? input.bundle.learningDisposition.preventionEvidence ?? null
+          : null,
+      ],
     ] as const;
 
     const errors: Array<{ path: string[]; message: string }> = [];
@@ -2277,6 +2283,34 @@ export function issueRoutes(
     }
 
     return errors;
+  }
+
+  async function validateCompletionLearningDisposition(input: {
+    bundle: IssueCompletionEvidenceBundle;
+    issueId: string;
+    companyId: string;
+  }) {
+    const disposition = input.bundle.learningDisposition;
+    if (disposition?.classification !== "systemic" || disposition.preventionStatus !== "follow_up") {
+      return [];
+    }
+
+    const followUpIssue = disposition.followUpIssueId
+      ? await svc.getById(disposition.followUpIssueId)
+      : null;
+    if (!followUpIssue || followUpIssue.companyId !== input.companyId || followUpIssue.id === input.issueId) {
+      return [{
+        path: ["learningDisposition", "followUpIssueId"],
+        message: "Systemic prevention follow-up must reference another issue in the same company",
+      }];
+    }
+    if (followUpIssue.status === "cancelled") {
+      return [{
+        path: ["learningDisposition", "followUpIssueId"],
+        message: "Systemic prevention follow-up cannot reference a cancelled issue",
+      }];
+    }
+    return [];
   }
 
   function respondClosedIssueExecutionWorkspace(
@@ -5025,6 +5059,17 @@ export function issueRoutes(
         });
         return;
       }
+      if (agentRequiresTypedCompletionEvidence && !completionEvidence?.learningDisposition) {
+        res.status(422).json({
+          error: "Agent completion requires a learningDisposition",
+          details: {
+            issueId: existing.id,
+            classifications: ["not_applicable", "one_off", "systemic"],
+            systemicRequirement: "Provide implemented prevention evidence or a same-company follow-up issue.",
+          },
+        });
+        return;
+      }
 
       const completionEvidenceInventory = await loadIssueCompletionEvidenceInventory(existing.id);
       if (!completionEvidence && !commentBody && !hasStoredCompletionEvidence(completionEvidenceInventory)) {
@@ -5039,11 +5084,18 @@ export function issueRoutes(
       }
 
       if (completionEvidence) {
-        const completionEvidenceErrors = validateCompletionEvidenceBundle({
-          bundle: completionEvidence,
-          hasRequestComment: Boolean(commentBody),
-          inventory: completionEvidenceInventory,
-        });
+        const completionEvidenceErrors = [
+          ...validateCompletionEvidenceBundle({
+            bundle: completionEvidence,
+            hasRequestComment: Boolean(commentBody),
+            inventory: completionEvidenceInventory,
+          }),
+          ...await validateCompletionLearningDisposition({
+            bundle: completionEvidence,
+            issueId: existing.id,
+            companyId: existing.companyId,
+          }),
+        ];
         if (completionEvidenceErrors.length > 0) {
           res.status(422).json({
             error: "Completion evidence bundle references missing or invalid issue evidence",

@@ -718,3 +718,32 @@ Current evidence:
 - `LUC-1828` and `LUC-1829` produced clean live-run, final-disposition, and
   issue-queue janitor evidence. `LUC-1829` closed; the reusable `LUC-1828`
   lane returned to `todo` after preserving the completed pass as evidence.
+
+## 2026-07-25 - Corrective closure must classify recurrence
+
+Observed pattern: policy documents told agents to improve the process after
+repeated failures, but the issue-close API allowed a local repair to finish
+without any recurrence classification. Organizational learning and completion
+evidence therefore existed as disconnected mechanisms, leaving prevention to
+agent intuition.
+
+Standing rule:
+
+- Every agent-owned completion explicitly classifies whether corrective
+  learning is not applicable, an isolated standard-risk one-off, or systemic.
+- One-off classification includes the root cause and why recurrence risk is
+  low; it is unavailable for high-risk corrective work.
+- Systemic closure either proves prevention was implemented in the current
+  issue or points to another non-cancelled same-company prevention issue.
+- Preserve the board's explicit override and historical evidence compatibility;
+  do not backfill invented learning claims.
+- Keep the classification lightweight for ordinary delivery. Do not create a
+  prevention issue merely to satisfy ceremony.
+
+Current evidence:
+
+- Shared validator tests pass `29/29`.
+- Issue route tests pass `14/14`.
+- Issue-update helper tests pass `2/2`.
+- Adapter prompt tests pass `36` with `3` unrelated skips.
+- Shared, adapter-utils, and server typechecks pass.

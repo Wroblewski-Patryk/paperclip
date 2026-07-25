@@ -113,6 +113,10 @@ const completionEvidence = {
     summary: "No documentation change required.",
     refs: [{ kind: "request_comment" as const, label: "Completion comment" }],
   },
+  learningDisposition: {
+    classification: "not_applicable" as const,
+    rationale: "This fixture verifies completion telemetry rather than a corrective change.",
+  },
 };
 
 async function createApp(actor: Record<string, unknown>) {

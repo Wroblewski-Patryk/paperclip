@@ -217,6 +217,7 @@ export type {
   IssueCompletionEvidenceBundle,
   IssueCompletionEvidenceCategory,
   IssueCompletionEvidenceRef,
+  IssueLearningDisposition,
   IssueBlockerAttention,
   IssueBlockerAttentionReason,
   IssueBlockerAttentionState,

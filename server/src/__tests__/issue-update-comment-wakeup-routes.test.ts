@@ -239,6 +239,26 @@ function makeIssue(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function makeCompletionEvidence(learningDisposition?: Record<string, unknown>) {
+  return {
+    summary: "Closeout evidence recorded in the issue thread.",
+    riskLevel: "standard",
+    testEvidence: {
+      summary: "Focused route coverage passed.",
+      refs: [{ kind: "request_comment", label: "Closeout comment" }],
+    },
+    reviewEvidence: {
+      summary: "Self-review captured in the closeout comment.",
+      refs: [{ kind: "request_comment", label: "Closeout comment" }],
+    },
+    documentationEvidence: {
+      summary: "Documentation outcome captured in the closeout comment.",
+      refs: [{ kind: "request_comment", label: "Closeout comment" }],
+    },
+    ...(learningDisposition ? { learningDisposition } : {}),
+  };
+}
+
 describe("issue update comment wakeups", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -310,6 +330,78 @@ describe("issue update comment wakeups", () => {
 
     expect(res.status).toBe(422);
     expect(res.body.error).toBe("Done status requires a typed completionEvidence bundle");
+    expect(mockIssueService.update).not.toHaveBeenCalled();
+  });
+
+  it("requires agent completions to classify recurrence and learning", async () => {
+    const existing = makeIssue({
+      status: "in_progress",
+      assigneeAgentId: ASSIGNEE_AGENT_ID,
+      assigneeUserId: null,
+    });
+    mockIssueService.getById.mockResolvedValue(existing);
+
+    const res = await request(await createApp("agent"))
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        status: "done",
+        comment: "Implemented and verified with focused route tests.",
+        completionEvidence: makeCompletionEvidence(),
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error).toBe("Agent completion requires a learningDisposition");
+    expect(mockIssueService.update).not.toHaveBeenCalled();
+  });
+
+  it("accepts an explicit not-applicable disposition before enforcing the agent run id", async () => {
+    const existing = makeIssue({
+      status: "in_progress",
+      assigneeAgentId: ASSIGNEE_AGENT_ID,
+      assigneeUserId: null,
+    });
+    mockIssueService.getById.mockResolvedValue(existing);
+
+    const res = await request(await createApp("agent", null))
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        status: "done",
+        comment: "Implemented and verified with focused route tests.",
+        completionEvidence: makeCompletionEvidence({
+          classification: "not_applicable",
+          rationale: "This issue delivered a new capability rather than correcting a failure.",
+        }),
+      });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("Agent run id required");
+    expect(mockIssueService.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects systemic prevention follow-ups outside the same-company issue graph", async () => {
+    const existing = makeIssue({ status: "in_progress" });
+    const missingFollowUpId = "66666666-6666-4666-8666-666666666666";
+    mockIssueService.getById.mockImplementation(async (id: string) => id === existing.id ? existing : null);
+
+    const res = await request(await createApp())
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        status: "done",
+        comment: "Contained locally; prevention remains separately owned.",
+        completionEvidence: makeCompletionEvidence({
+          classification: "systemic",
+          rootCause: "The shared close gate lacked a recurrence assessment.",
+          preventionStatus: "follow_up",
+          preventionSummary: "A bounded follow-up owns the shared prevention mechanism.",
+          followUpIssueId: missingFollowUpId,
+        }),
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error).toBe("Completion evidence bundle references missing or invalid issue evidence");
+    expect(res.body.details.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: ["learningDisposition", "followUpIssueId"] }),
+    ]));
     expect(mockIssueService.update).not.toHaveBeenCalled();
   });
 

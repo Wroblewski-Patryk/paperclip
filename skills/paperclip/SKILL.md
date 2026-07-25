@@ -133,12 +133,24 @@ Headers: X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID
     "documentationEvidence": {
       "summary": "Docs or no-doc-change justification.",
       "refs": [{ "kind": "request_comment", "label": "Closeout comment" }]
+    },
+    "learningDisposition": {
+      "classification": "not_applicable",
+      "rationale": "This issue delivered a new capability rather than correcting a failure."
     }
   }
 }
 ```
 
-`done` transitions now require a typed `completionEvidence` bundle. Standard completions must include `testEvidence`, `reviewEvidence`, and `documentationEvidence`. High-risk completions must also include `securityEvidence`, `deploymentEvidence`, and `monitoringEvidence`. Evidence refs must point at the same issue via `request_comment`, `comment`, `document`, `attachment`, or `work_product`.
+Agent-owned `done` transitions require a typed `completionEvidence` bundle. Standard completions must include `testEvidence`, `reviewEvidence`, `documentationEvidence`, and `learningDisposition`. High-risk completions must also include `securityEvidence`, `deploymentEvidence`, and `monitoringEvidence`. Evidence refs must point at the same issue via `request_comment`, `comment`, `document`, `attachment`, or `work_product`.
+
+Use exactly one learning classification:
+
+- `not_applicable` with a rationale for delivery work that did not correct a failure;
+- `one_off` with the root cause and a low-recurrence rationale for a standard-risk isolated correction;
+- `systemic` with the root cause and either `preventionStatus: "implemented"` plus `preventionEvidence`, or `preventionStatus: "follow_up"` plus a non-cancelled same-company `followUpIssueId`.
+
+Do not use `one_off` for high-risk corrective work. Do not close a systemic correction with only a promise in prose.
 
 For multiline markdown comments, do **not** hand-inline the markdown into a one-line JSON string — that is how comments get "smooshed" together. Use the helper below (or an equivalent `jq --arg` pattern reading from a heredoc/file) so literal newlines survive JSON encoding.
 
@@ -147,14 +159,18 @@ On Windows, always invoke the Node helper through `node`; never execute the
 
 ```powershell
 $issueHelper = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'skills/paperclip/scripts/paperclip-issue-update.mjs'
-node $issueHelper --issue-id $env:PAPERCLIP_TASK_ID --status done --comment-file .\closeout.md
+node $issueHelper --issue-id $env:PAPERCLIP_TASK_ID --status done --comment-file .\closeout.md --completion-evidence-file .\completion-evidence.json
 ```
 
-On POSIX systems, the shell wrapper remains available:
+The Node helper rejects `done` locally unless `--completion-evidence-file`
+contains the complete JSON bundle. For non-terminal progress updates, the
+evidence file is not required.
+
+On POSIX systems, the shell wrapper remains available for non-terminal updates:
 
 ```bash
-scripts/paperclip-issue-update.sh --issue-id "$PAPERCLIP_TASK_ID" --status done <<'MD'
-Done
+scripts/paperclip-issue-update.sh --issue-id "$PAPERCLIP_TASK_ID" --status in_review <<'MD'
+Ready for review
 
 - Fixed the newline-preserving issue update path
 - Verified the raw stored comment body keeps paragraph breaks

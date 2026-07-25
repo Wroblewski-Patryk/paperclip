@@ -94,6 +94,25 @@ export interface IssueCompletionEvidenceCategory {
   refs: IssueCompletionEvidenceRef[];
 }
 
+export type IssueLearningDisposition =
+  | {
+      classification: "not_applicable";
+      rationale: string;
+    }
+  | {
+      classification: "one_off";
+      rootCause: string;
+      recurrenceRationale: string;
+    }
+  | {
+      classification: "systemic";
+      rootCause: string;
+      preventionStatus: "implemented" | "follow_up";
+      preventionSummary: string;
+      preventionEvidence?: IssueCompletionEvidenceCategory | null;
+      followUpIssueId?: string | null;
+    };
+
 export interface IssueCompletionEvidenceBundle {
   summary: string;
   riskLevel: "standard" | "high";
@@ -103,6 +122,7 @@ export interface IssueCompletionEvidenceBundle {
   securityEvidence?: IssueCompletionEvidenceCategory | null;
   deploymentEvidence?: IssueCompletionEvidenceCategory | null;
   monitoringEvidence?: IssueCompletionEvidenceCategory | null;
+  learningDisposition?: IssueLearningDisposition | null;
 }
 
 export type DocumentFormat = "markdown";

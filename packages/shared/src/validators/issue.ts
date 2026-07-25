@@ -467,6 +467,28 @@ export const issueCompletionEvidenceCategorySchema = z.object({
 
 export type IssueCompletionEvidenceCategory = z.infer<typeof issueCompletionEvidenceCategorySchema>;
 
+export const issueLearningDispositionSchema = z.discriminatedUnion("classification", [
+  z.object({
+    classification: z.literal("not_applicable"),
+    rationale: z.string().trim().min(1).max(1000),
+  }).strict(),
+  z.object({
+    classification: z.literal("one_off"),
+    rootCause: z.string().trim().min(1).max(2000),
+    recurrenceRationale: z.string().trim().min(1).max(2000),
+  }).strict(),
+  z.object({
+    classification: z.literal("systemic"),
+    rootCause: z.string().trim().min(1).max(2000),
+    preventionStatus: z.enum(["implemented", "follow_up"]),
+    preventionSummary: z.string().trim().min(1).max(2000),
+    preventionEvidence: issueCompletionEvidenceCategorySchema.optional().nullable(),
+    followUpIssueId: z.string().uuid().optional().nullable(),
+  }).strict(),
+]);
+
+export type IssueLearningDisposition = z.infer<typeof issueLearningDispositionSchema>;
+
 export const issueCompletionEvidenceBundleSchema = z.object({
   summary: z.string().trim().min(1).max(2000),
   riskLevel: z.enum(["standard", "high"]).optional().default("standard"),
@@ -476,21 +498,45 @@ export const issueCompletionEvidenceBundleSchema = z.object({
   securityEvidence: issueCompletionEvidenceCategorySchema.optional().nullable(),
   deploymentEvidence: issueCompletionEvidenceCategorySchema.optional().nullable(),
   monitoringEvidence: issueCompletionEvidenceCategorySchema.optional().nullable(),
+  learningDisposition: issueLearningDispositionSchema.optional().nullable(),
 }).strict().superRefine((value, ctx) => {
-  if (value.riskLevel !== "high") return;
+  if (value.riskLevel === "high") {
+    const requiredHighRiskEvidence = [
+      ["securityEvidence", value.securityEvidence],
+      ["deploymentEvidence", value.deploymentEvidence],
+      ["monitoringEvidence", value.monitoringEvidence],
+    ] as const;
 
-  const requiredHighRiskEvidence = [
-    ["securityEvidence", value.securityEvidence],
-    ["deploymentEvidence", value.deploymentEvidence],
-    ["monitoringEvidence", value.monitoringEvidence],
-  ] as const;
+    for (const [key, evidence] of requiredHighRiskEvidence) {
+      if (evidence) continue;
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [key],
+        message: "High-risk completions require security, deployment, and monitoring evidence",
+      });
+    }
+    if (value.learningDisposition?.classification === "one_off") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["learningDisposition", "classification"],
+        message: "High-risk corrective work cannot be classified as a one-off",
+      });
+    }
+  }
 
-  for (const [key, evidence] of requiredHighRiskEvidence) {
-    if (evidence) continue;
+  if (value.learningDisposition?.classification !== "systemic") return;
+  if (value.learningDisposition.preventionStatus === "implemented" && !value.learningDisposition.preventionEvidence) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      path: [key],
-      message: "High-risk completions require security, deployment, and monitoring evidence",
+      path: ["learningDisposition", "preventionEvidence"],
+      message: "Implemented systemic prevention requires evidence from the current issue",
+    });
+  }
+  if (value.learningDisposition.preventionStatus === "follow_up" && !value.learningDisposition.followUpIssueId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["learningDisposition", "followUpIssueId"],
+      message: "Deferred systemic prevention requires a follow-up issue",
     });
   }
 });

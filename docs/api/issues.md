@@ -74,6 +74,10 @@ Headers: X-Paperclip-Run-Id: {runId}
     "documentationEvidence": {
       "summary": "No operator doc change was required.",
       "refs": [{ "kind": "request_comment", "label": "Closeout comment" }]
+    },
+    "learningDisposition": {
+      "classification": "not_applicable",
+      "rationale": "This issue delivered a new capability rather than correcting a failure."
     }
   }
 }
@@ -93,6 +97,19 @@ Required bundle fields for normal work:
 - `testEvidence`
 - `reviewEvidence`
 - `documentationEvidence`
+- `learningDisposition` for agent-authenticated completion
+
+`learningDisposition` is one of:
+
+- `{ "classification": "not_applicable", "rationale": "..." }`
+- `{ "classification": "one_off", "rootCause": "...", "recurrenceRationale": "..." }`
+- `{ "classification": "systemic", "rootCause": "...", "preventionStatus": "implemented", "preventionSummary": "...", "preventionEvidence": { ... } }`
+- `{ "classification": "systemic", "rootCause": "...", "preventionStatus": "follow_up", "preventionSummary": "...", "followUpIssueId": "..." }`
+
+Implemented prevention evidence uses the same same-issue ref validation as the
+other evidence categories. A prevention follow-up must be another
+non-cancelled issue in the same company. High-risk corrective work cannot use
+the `one_off` classification.
 
 Additional required fields for `riskLevel: "high"`:
 

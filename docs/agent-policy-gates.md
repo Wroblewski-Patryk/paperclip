@@ -32,6 +32,10 @@ keeps its V1 override authority, but even a board override needs a completion co
 same-issue document, attachment, work product, or comment.
 
 - Normal completions must provide `testEvidence`, `reviewEvidence`, and `documentationEvidence`.
+- Agent completions must classify learning as `not_applicable`, `one_off`, or `systemic`.
+- A systemic classification must prove implemented prevention or reference a
+  non-cancelled same-company prevention issue.
+- A high-risk correction cannot use the `one_off` classification.
 - High-risk completions must also provide `securityEvidence`, `deploymentEvidence`, and
   `monitoringEvidence`.
 - Each evidence category must reference same-issue evidence via `request_comment`, `comment`,

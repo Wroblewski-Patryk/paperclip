@@ -281,6 +281,11 @@ test("shared supervision teaches the canonical completion evidence reference con
   assert.match(supervision, /`comment`\/`document`\/`attachment`\//);
   assert.match(supervision, /Do not invent file-path refs/i);
   assert.match(supervision, /instead of retrying the same shape/i);
+  assert.match(supervision, /Every agent completion also needs a `learningDisposition`/i);
+  assert.match(supervision, /`not_applicable`/);
+  assert.match(supervision, /`one_off` only for a[\s\S]*standard-risk isolated correction/i);
+  assert.match(supervision, /`systemic`/);
+  assert.match(supervision, /same-company prevention\s+issue/i);
   assert.match(supervision, /Do not recursively search/i);
   assert.match(supervision, /session JSONL files/i);
   assert.match(supervision, /runtime evidence, not API documentation/i);

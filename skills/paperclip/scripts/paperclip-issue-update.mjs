@@ -18,6 +18,7 @@ Options:
   --status STATUS
   --comment TEXT
   --comment-file PATH
+  --completion-evidence-file PATH
   --output FORMAT       json or body (default: body)
   --dry-run
   --help, -h
@@ -52,6 +53,8 @@ let issueId = process.env.PAPERCLIP_TASK_ID ?? "";
 let status = "";
 let comment = "";
 let commentFile = "";
+let completionEvidenceFile = "";
+let completionEvidence = null;
 let outputFormat = "body";
 let dryRun = false;
 
@@ -77,6 +80,10 @@ for (let index = 0; index < args.length; index += 1) {
     commentFile = args[++index] ?? "";
     continue;
   }
+  if (arg === "--completion-evidence-file") {
+    completionEvidenceFile = args[++index] ?? "";
+    continue;
+  }
   if (arg === "--output") {
     outputFormat = args[++index] ?? "";
     continue;
@@ -96,10 +103,21 @@ if (!comment && commentFile) {
 if (!comment) {
   comment = await readCommentFromStdin();
 }
+if (completionEvidenceFile) {
+  const parsed = JSON.parse(await readFile(completionEvidenceFile, "utf8"));
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("--completion-evidence-file must contain a JSON object.");
+  }
+  completionEvidence = parsed;
+}
+if (status === "done" && !completionEvidence) {
+  throw new Error("Agent done updates require --completion-evidence-file.");
+}
 
 const payload = {
   ...(status ? { status } : {}),
   ...(comment ? { comment } : {}),
+  ...(completionEvidence ? { completionEvidence } : {}),
 };
 
 if (Object.keys(payload).length === 0) {

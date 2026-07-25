@@ -442,6 +442,13 @@ The current implementation includes additional V1-control-plane tables beyond th
 - Organizational orientation: a company-scoped `CompanySituation` read model projects active goals, product-work posture, agent capacity, project target facts, governance counts, typed organizational records, sourced attention signals, and a clearly labelled historical-throughput range without creating a second source of truth or an automatic deadline.
 - Deliberation memory: `organizational_records` stores company-scoped assumptions, commitments, and decisions with owners, evidence refs, goal/project/issue links, review/due/expiry times, lifecycle state, and supersession. Decision records never grant execution authority or bypass policy gates.
 - Evidence and learning: `organizational_observations` stores sourced outcomes, causal findings, freshness-bounded external signals, and learning candidates. Learning must transition through validation before promotion and promotion names a durable operating target.
+- Corrective completion: agent-authenticated issue closure must classify the
+  learning disposition. Non-corrective work may declare `not_applicable`;
+  standard-risk isolated corrections may declare `one_off` with a root-cause
+  and recurrence rationale; systemic corrections must attach prevention
+  evidence or name a non-cancelled same-company prevention issue. This keeps
+  historical JSON bundles and the board override compatible while preventing
+  agents from closing recurring problems as local fixes only.
 
 ## 8. State Machines
 

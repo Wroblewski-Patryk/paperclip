@@ -69,6 +69,15 @@ such as `path` and `note`; register an important workspace file as a work
 product first. If the API rejects an evidence payload, read the validation
 error and repair the payload once instead of retrying the same shape.
 
+Every agent completion also needs a `learningDisposition`. Use
+`not_applicable` for non-corrective delivery, `one_off` only for a
+standard-risk isolated correction with a root-cause and recurrence rationale,
+or `systemic` for a repeated/cross-project/high-impact cause. A systemic
+disposition must either attach same-issue evidence that prevention was
+implemented or reference a separate non-cancelled same-company prevention
+issue. This is the bridge between the local fix and the Softwarehouse PDCA
+loop; a prose promise is not a prevention path.
+
 Treat the tracked Paperclip skill, `docs/api/issues.md`, and the live API error
 as the authoritative issue-update contract. Do not recursively search
 `.paperclip/runtime`, managed `codex-home`, session JSONL files, archived run

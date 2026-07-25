@@ -65,10 +65,103 @@ describe("issue validators", () => {
         summary: "Docs updated.",
         refs: [{ kind: "request_comment", label: "Closeout comment" }],
       },
+      learningDisposition: {
+        classification: "not_applicable",
+        rationale: "This issue delivered a new capability rather than correcting a failure.",
+      },
     });
 
     expect(parsed.riskLevel).toBe("standard");
     expect(parsed.testEvidence.refs[0]).toMatchObject({ kind: "work_product" });
+    expect(parsed.learningDisposition?.classification).toBe("not_applicable");
+  });
+
+  it("requires implemented systemic prevention to carry issue evidence", () => {
+    const base = {
+      summary: "Systemic repair",
+      riskLevel: "standard" as const,
+      testEvidence: {
+        summary: "Focused tests passed.",
+        refs: [{ kind: "request_comment" as const }],
+      },
+      reviewEvidence: {
+        summary: "Review completed.",
+        refs: [{ kind: "request_comment" as const }],
+      },
+      documentationEvidence: {
+        summary: "Operating contract updated.",
+        refs: [{ kind: "request_comment" as const }],
+      },
+    };
+
+    expect(issueCompletionEvidenceBundleSchema.safeParse({
+      ...base,
+      learningDisposition: {
+        classification: "systemic",
+        rootCause: "The close gate never asked agents to assess recurrence.",
+        preventionStatus: "implemented",
+        preventionSummary: "The close gate now requires an explicit learning disposition.",
+      },
+    }).success).toBe(false);
+
+    expect(issueCompletionEvidenceBundleSchema.safeParse({
+      ...base,
+      learningDisposition: {
+        classification: "systemic",
+        rootCause: "The close gate never asked agents to assess recurrence.",
+        preventionStatus: "implemented",
+        preventionSummary: "The close gate now requires an explicit learning disposition.",
+        preventionEvidence: {
+          summary: "Regression coverage proves the new gate.",
+          refs: [{ kind: "request_comment" }],
+        },
+      },
+    }).success).toBe(true);
+  });
+
+  it("requires deferred systemic prevention to name a follow-up issue", () => {
+    const parsed = issueCompletionEvidenceBundleSchema.safeParse({
+      summary: "Local containment with a separate prevention lane",
+      riskLevel: "standard",
+      testEvidence: {
+        summary: "Containment tests passed.",
+        refs: [{ kind: "request_comment" }],
+      },
+      reviewEvidence: {
+        summary: "Containment reviewed.",
+        refs: [{ kind: "request_comment" }],
+      },
+      documentationEvidence: {
+        summary: "Known limitation recorded.",
+        refs: [{ kind: "request_comment" }],
+      },
+      learningDisposition: {
+        classification: "systemic",
+        rootCause: "The shared mechanism needs a separate bounded change.",
+        preventionStatus: "follow_up",
+        preventionSummary: "A dedicated prevention issue owns the shared fix.",
+      },
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects one-off classifications for high-risk corrective work", () => {
+    expect(issueCompletionEvidenceBundleSchema.safeParse({
+      summary: "High-risk completion",
+      riskLevel: "high",
+      testEvidence: { summary: "Tests passed.", refs: [{ kind: "request_comment" }] },
+      reviewEvidence: { summary: "Reviewed.", refs: [{ kind: "request_comment" }] },
+      documentationEvidence: { summary: "Docs updated.", refs: [{ kind: "request_comment" }] },
+      securityEvidence: { summary: "Security reviewed.", refs: [{ kind: "request_comment" }] },
+      deploymentEvidence: { summary: "Deployment proven.", refs: [{ kind: "request_comment" }] },
+      monitoringEvidence: { summary: "Monitoring proven.", refs: [{ kind: "request_comment" }] },
+      learningDisposition: {
+        classification: "one_off",
+        rootCause: "Operator typo.",
+        recurrenceRationale: "Claimed to be isolated.",
+      },
+    }).success).toBe(false);
   });
 
   it("requires security, deployment, and monitoring evidence for high-risk completions", () => {

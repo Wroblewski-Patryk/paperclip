@@ -19,11 +19,19 @@ This SDLC is the default operating contract for Paperclip Softwarehouse agents.
 | Process Improvement | updated docs, scripts, policies, evals, or backlog | closes the PDCA loop with EvalRun PASS when an AgentImprovementTask exists |
 
 For agent-authenticated work, the runtime issue API enforces a typed closure gate: `status: done` must include a
-`completionEvidence` bundle with `testEvidence`, `reviewEvidence`, and `documentationEvidence`.
+`completionEvidence` bundle with `testEvidence`, `reviewEvidence`, `documentationEvidence`, and a
+`learningDisposition`.
 When the bundle declares `riskLevel: "high"`, it must also include `securityEvidence`,
 `deploymentEvidence`, and `monitoringEvidence`. Each category must reference evidence attached to
 the same issue through a same-request comment or an existing comment, document, attachment, or work
 product.
+
+The learning disposition makes the PDCA decision explicit without forcing a
+new improvement issue for every delivery. Non-corrective work uses
+`not_applicable`; a standard-risk isolated correction may use `one_off` with a
+root-cause and recurrence rationale; a systemic correction must prove
+implemented prevention or reference a separate non-cancelled same-company
+prevention issue. High-risk corrective work cannot be dismissed as one-off.
 
 Board-authenticated closure remains an explicit operator override. It may use legacy inspectable
 evidence instead of a typed bundle, but cannot close a completely evidence-free issue.
