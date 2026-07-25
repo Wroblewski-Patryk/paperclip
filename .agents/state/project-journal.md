@@ -4519,3 +4519,133 @@ health is `ok`; live runs and pending approvals are both zero. Workspace
 boundary and strict runtime-topology audits pass. The only topology warning is
 that the unrelated Docker Desktop engine is unavailable. No deployment,
 restart, provider write, protected secret access, or new product push occurred.
+
+## 2026-07-25 - Owner readiness audit and Roost Product Map direction
+
+Conversation summary and fresh read-only audit: the owner asked whether Soar
+and Roost can already be used confidently and requested one approachable map
+of product progress, flows, layers, dependencies, impacts, relations, and the
+path from innovation to a personally usable and later saleable
+product/service. The owner then clarified that this map may belong in Roost or
+be coupled with Paperclip depending on version and freshness.
+
+The accepted direction preserves the existing system boundary instead of
+creating duplicate truth. Roost should render the durable owner-facing Product
+Map / Offering projection. Paperclip remains authoritative for live execution,
+issues, runs, approvals, budgets, blockers, and evidence gates. Soar/Roost
+repositories remain authoritative for product intent, architecture, code,
+tests, release contracts, deployment evidence, and actual behavior. Projected
+facts must retain exact version/SHA, source, observed and verified timestamps,
+freshness, accountable owner, confidence, conflict, and supersession.
+
+Fresh probes showed Soar public `/health`, `/ready`, and Web build-info passing
+at deployed SHA `9d1801d9b023211d4446629aac7bd58def70322d`; however the
+versioned Soar sale-readiness contract is still `NO-GO` with owner acceptance
+pending. Soar's public registration exists, but the screen says password reset
+is not yet available. Roost public health and owner console respond at deployed
+SHA `070b150f5477d701d462485aad8b91450d0c3d71`; its contract permits only a
+guided owner-operated pilot, not self-serve or general availability. Local
+Roost is 73 commits ahead of `origin/main`, so local proof cannot be treated as
+the deployed release. Roost's public landing page also displays unlabelled
+sample-looking metrics (`128` tasks, `34` people, `17` agents, `98.4%`).
+
+The existing Paperclip `InnovationCommandCenter` and
+`ProjectDeliveryOverview` are useful foundations, but the live readiness
+snapshot was stale and disagreed with the deterministic company situation
+about executing-run count. Generated Soar/Roost indexes report zero gaps, yet
+the commercial contracts and UI inspection still expose bounded or unresolved
+limitations. Future verdicts must fail closed for stale data, SHA/source
+conflicts, public-only health, or zero gaps without current versioned
+journey-level evidence.
+
+Created high-priority CPO-owned issue `LUC-1831`, "[Portfolio UX] Build
+versioned Product Map across Roost, Paperclip, and product repositories", under
+the Softwarehouse project and long-term autonomy goal. Its acceptance contract
+requires readiness scopes for personal use, guided pilot, self-serve, and
+commercial availability; journey-by-layer evidence; graph plus accessible
+table views; Paperclip deep links; exact source/deployed SHA separation; and
+tests for stale/conflicting facts, source supersession, and
+zero-gap-but-NO-GO cases.
+
+## 2026-07-25 - Conversation summary: local fix plus systemic prevention
+
+The owner recognized the same takeover/debt pattern in Roost and likely Soar:
+agents can spend more effort navigating stale truth and process residue than
+fixing the user problem, then close the local repair without improving the
+system that allowed it. The durable direction is to treat recurring,
+cross-project, or high-impact causes as Softwarehouse learning: contain the
+current problem, identify the cause, install a prevention path, and verify the
+new regression signal without creating a new framework for every one-off.
+
+Paperclip already documented this PDCA principle and stored organizational
+observations, but the agent-owned issue close route enforced only test, review,
+and documentation evidence. A local implementation now adds a typed
+`learningDisposition` to completion evidence. Non-corrective work declares
+`not_applicable`; standard-risk isolated corrections may declare `one_off`
+with a root-cause and recurrence rationale; systemic work must attach
+prevention evidence or reference a separate non-cancelled same-company issue.
+High-risk corrective work cannot use `one_off`. Historical bundles and the
+board override remain compatible.
+
+The tracked issue-update helper now accepts
+`--completion-evidence-file` and fails locally when an agent attempts `done`
+without it. Focused validator `29/29`, issue-route `14/14`, helper `2/2`, and
+adapter-utils `36 passed / 3 skipped` tests pass. Shared, adapter-utils, and
+server typechecks pass. The new Softwarehouse contract test passes in
+isolation. The full policy file is `188/189` because a pre-existing parallel
+Dashboard change no longer contains the static `Provider Quota` label; that
+unrelated dirty work was preserved. No commit, runtime restart, deployment, or
+live board mutation was performed.
+
+## 2026-07-25 - Paperclip Product Map vertical slice implemented
+
+The owner-facing information architecture was resolved without creating a
+second portfolio database. Softwarehouse remains under Operations as the
+control/runtime/tooling cockpit. Its ambiguous `Knowledge` and `Backlog` labels
+now render as `Control sources` and `App candidates`, and it links directly to
+the project map for product phase and release questions. `Projects` now carries
+the innovation-to-product-to-service projection.
+
+The shared/server/UI contract reads the allowlisted innovation portfolio,
+release contracts, local git HEADs, and bounded public build-info endpoints.
+It presents runtime health, commercial use boundary, local source SHA,
+production SHA, alignment, source timestamps, Roost owner-map publication
+state, and the next governed gate as separate facts. Current live readback
+shows Soar `d3d163d83f...` locally versus `9d1801d9b0...` deployed with
+`NO-GO`; Roost `cfb5390c97...` locally versus `070b150f54...` deployed with
+guided-pilot-only readiness. Both are correctly labelled `different`.
+
+Roost `docs/maps/product-map.md` exists, but there is no deployed Product Map
+screen yet, so Paperclip labels it `source_only`. `LUC-1832` and `LUC-1833`
+record the remaining versioned read-only projection and live Roost UI work.
+They remain unassigned backlog because the current control snapshot forbids a
+new lane until Paperclip source-control closure.
+
+Verification passed: shared/server/UI typechecks, 5/5 Softwarehouse route
+tests, 5/5 Projects/delivery tests, live API schema readback, and browser QA of
+Projects, Softwarehouse, and Soar Overview on canonical port 3200. The focused
+UI suite still emits pre-existing React `act(...)` warnings; the new undefined
+query warning was removed from its fixture.
+
+## 2026-07-25 - Product Map packet committed; OS closure isolated
+
+The Product Map packet received a final security review before source-control
+closure. Portfolio workspace reads are now restricted to the three approved
+singleton roots, and public build-info fetches accept only HTTPS hosts under
+`luckysparrow.ch`. A regression fixture proves that an outside workspace and a
+loopback URL are ignored without issuing a fetch. The focused server test,
+typechecks, builds, boundary audit, and topology audit pass.
+
+Paperclip committed the ten-file vertical slice as `eac73699`
+(`feat: add truthful innovation product map`). Roost committed the versioned
+map source as `cac58482` (`docs: publish versioned product map source`). Roost
+and Soar are clean. Push and deploy remain intentionally absent.
+
+The subsequent source-control scan found 93 remaining Paperclip OS paths:
+86 unstaged and seven untracked. They include multiple independent packets
+covering completion/learning evidence, company skills, broad UI work,
+agent/live-run surfaces, operating docs/scripts, and durable memory. They were
+not staged or attributed to the Product Map. `LUC-1834` records the required
+owner-by-owner closure; `LUC-1832` and `LUC-1833` carry explicit gate-blocker
+comments. The current safe state is therefore: Product Map source complete,
+Roost publication work queued, project mutations blocked pending OS closure.

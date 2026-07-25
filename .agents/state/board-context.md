@@ -1,8 +1,51 @@
 # Board Context
 
-Last updated: 2026-07-24
+Last updated: 2026-07-25
 
 ## Current Checkpoint
+
+The owner established a cross-project quality principle after comparing Roost
+and Soar takeover debt: meaningful corrections must separate the immediate
+local fix from recurrence prevention, and reusable causes should improve the
+Softwarehouse rather than create copied workarounds in each application.
+Paperclip's agent-owned issue close contract now has a local implementation
+slice for that principle: every typed completion classifies learning as
+`not_applicable`, `one_off`, or `systemic`; systemic completion must prove
+implemented prevention or reference a non-cancelled same-company prevention
+issue. This local change is verified but not yet committed, deployed, or
+propagated to the live agent instruction bundles.
+
+The owner clarified that application readiness needs one approachable,
+version-aware Product Map covering user journeys, implementation layers,
+dependencies, impacts, relations, evidence, deployment truth, blockers, and
+next actions. The durable owner-facing projection should live in Roost as the
+Offering/company knowledge plane, while Paperclip remains the live execution,
+approval, issue, run, budget, blocker, and evidence-gate authority. Product
+repositories remain authoritative for architecture, code, tests, release
+contracts, and actual behavior. Every projected fact must carry its source,
+exact release/SHA, observed/verified time, freshness boundary, and conflict or
+supersession state. Paperclip issue `LUC-1831` completed the source/authority
+matrix. The first Paperclip vertical slice is implemented locally: `Projects`
+shows lifecycle, use boundary, local/deployed SHA comparison, Roost publication
+state, and next gate; project Overview carries the same facts; Softwarehouse is
+explicitly the Operations cockpit and links to the project map.
+
+The Roost Product Map is still `source_only`, not a deployed UI. Backlog issues
+`LUC-1832` and `LUC-1833` preserve the remaining integration work: a versioned
+least-privilege Paperclip portfolio projection and the authenticated
+owner-facing Product Map screen in Roost. Neither lane should start while the
+current control snapshot reports `canStartNewLane=false`.
+
+A fresh owner-readiness audit found that deployed availability is not the same
+as complete user readiness. Soar public health/readiness and Web build-info pass
+at `9d1801d9b023211d4446629aac7bd58def70322d`, but its sale-readiness contract
+is still `NO-GO` with owner acceptance pending. Roost responds at deployed
+commit `070b150f5477d701d462485aad8b91450d0c3d71` and remains approved only for a
+guided owner-operated pilot, not self-serve or general availability. Roost is
+73 local commits ahead of `origin/main`, so local and deployed truth must not
+be conflated. The current Paperclip readiness snapshot is stale and disagrees
+with the deterministic live situation about executing runs; stale or
+conflicting data must fail closed instead of producing a green verdict.
 
 The latest local supervision cycle is stable. Paperclip is clean at
 `6d3592e3`, Soar is clean at local baseline commit `d3d163d83`, and Roost is
@@ -286,3 +329,15 @@ dependencies.
 
 Historical Stage 0/v0 files remain as background only and should not override
 the active Stage 1 delivery mission.
+
+## 2026-07-25 - Product Map board truth
+
+- `LUC-1831` is done. Its implementation is locally committed as Paperclip
+  `eac73699` and Roost `cac58482`; neither commit is pushed or deployed.
+- `LUC-1832` and `LUC-1833` are high-priority backlog lanes and must not start
+  while `projectRepoMutationAllowed=false`.
+- `LUC-1834` is the explicit Softwarehouse OS closure lane for 93 remaining
+  Paperclip paths. Soar and Roost are clean; the dirty-state blocker belongs
+  to Paperclip OS, not to either product repository.
+- Product readiness remains evidence-scoped: Soar is `NO-GO`; Roost is
+  guided-pilot-only. Healthy public probes are not commercial acceptance.

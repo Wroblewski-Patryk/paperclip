@@ -1,5 +1,66 @@
 # Active Mission
 
+## 2026-07-25 - Corrective Learning Completion Gate - Local Implementation
+
+- Owner direction: repeated or cross-project problems must produce both a
+  bounded local correction and a durable prevention path; this must be a
+  Paperclip control-plane behavior, not a hope that individual agents infer it.
+- The local implementation extends typed agent completion evidence with
+  `learningDisposition`: `not_applicable`, standard-risk `one_off`, or
+  `systemic`. Systemic closure requires same-issue prevention evidence or a
+  non-cancelled same-company follow-up issue.
+- Historical completion JSON and board override authority remain compatible.
+  The Windows-safe issue-update helper now accepts
+  `--completion-evidence-file` and rejects agent `done` calls that omit it.
+- Focused shared validator, issue-route, helper, adapter-prompt, and policy
+  contract tests pass; shared, adapter-utils, and server typechecks pass.
+- The full Softwarehouse gate file is `188/189` because an unrelated existing
+  dirty-dashboard change removed the literal `Provider Quota` expected by its
+  static test. The new completion-contract test itself passes in isolation.
+- Remaining broader gap: historical/sequential failure-signature detection and
+  material validation/promotion of organizational observations are not yet
+  product-enforced by this slice.
+
+## 2026-07-25 - Owner Product Map And Readiness Truth - Current
+
+- The owner wants one readable map for each application from innovation through
+  personal use, guided pilot, self-serve product, commercial service, and
+  ongoing improvement. It must expose user journeys, layers, dependencies,
+  impacts, relations, exact-version evidence, blockers, and next actions.
+- The target boundary is complementary: Roost owns the durable owner-facing
+  Product Map / Offering projection; Paperclip owns live agent execution,
+  issues, runs, approvals, budgets, blockers, and evidence gates; product
+  repositories own product intent, architecture, code, tests, release
+  provenance, deployment contracts, and actual behavior.
+- `LUC-1831` is complete. Roost now has the versioned source/authority matrix
+  at `docs/maps/product-map.md`, and Paperclip has the first truthful vertical
+  slice in `Projects`, project Overview, and the Softwarehouse-to-Projects
+  handoff.
+- The Paperclip projection reads allowlisted release contracts, local git HEAD,
+  and public build-info endpoints. It exposes source SHA and deployed SHA
+  separately, labels their alignment, preserves `NO-GO`/guided-only commercial
+  boundaries, and labels the Roost owner map `source_only` until its UI is
+  actually published.
+- `LUC-1832` and `LUC-1833` are backlog follow-ups for the versioned read-only
+  Paperclip projection contract and authenticated Roost Product Map UI. They
+  were intentionally not assigned or started while the control snapshot says
+  `canStartNewLane=false`.
+- Fresh read-only verification shows Soar public health/readiness/build-info at
+  deployed SHA `9d1801d9b023211d4446629aac7bd58def70322d`, but Soar remains
+  `NO-GO` because owner acceptance and exact-candidate readiness are not fully
+  closed. Roost is reachable at deployed SHA
+  `070b150f5477d701d462485aad8b91450d0c3d71` and is limited to a guided
+  owner-operated pilot; local Roost is 73 commits ahead of `origin/main`.
+- Current generated zero-gap indexes are insufficient by themselves. The
+  Softwarehouse readiness snapshot is stale and conflicts with the live
+  deterministic situation on executing-run count. Stale data, source/SHA
+  disagreement, public-only health, or zero indexed gaps without a current
+  versioned readiness contract must fail closed.
+- User-facing audit findings to retain: Soar registration says password reset
+  is not yet available; Roost landing metrics look live but are not labelled as
+  demo/sample data. Both must be represented as explicit readiness/UX truth,
+  not hidden behind a zero-gap aggregate.
+
 ## 2026-07-24 - Local V0 Supervision Stabilized - Current
 
 - Soar and Roost known-state baselines are closed with clean local
@@ -924,3 +985,17 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Do not use a readiness snapshot with `stale=true` for routing or acceptance.
   Prefer fresh API/readiness/source-control probes, or run a new governed
   control tick when its mutating supervision sequence is appropriate.
+
+## 2026-07-25 - Product Map source-control checkpoint
+
+- The truthful Paperclip Product Map vertical slice is committed locally at
+  `eac73699`; the versioned Roost map source is committed locally at
+  `cac58482`. Soar is clean at `d3d163d83`.
+- No push or deployment was performed. The current control decision remains
+  `operating_source_control_closure_needed`, with project-repository mutation
+  and protected delivery disabled.
+- `LUC-1832` (read-only Paperclip-to-Roost projection) and `LUC-1833`
+  (owner-facing Roost Product Map UI) remain backlog until the gate changes.
+- `LUC-1834` owns classification and closure of the remaining 93 unrelated
+  Paperclip OS paths. Do not mix those packets with the completed Product Map
+  commits or infer that Soar/Roost commercial readiness is green.
