@@ -1,6 +1,37 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-24
+Last updated: 2026-07-25
+
+## 2026-07-25 Product Map Archive Checkpoint
+
+- The product/OS implementation baseline before this memory checkpoint is
+  Paperclip `2e5e07ca`; Soar is clean at `d3d163d83` and Roost at
+  `3f8850c2`. The Paperclip Product Map, learning disposition gate, unified
+  agent identity/UI work, and the owner-facing Roost Product Map are committed
+  locally. Run a fresh source-control audit for the later memory-commit SHA.
+- `LUC-1831`, `LUC-1833`, and `LUC-1834` are `done`. `LUC-1832` is the only
+  remaining Product Map integration lane: a versioned read-only portfolio
+  projection from Paperclip to Roost. It is intentionally `backlog` and
+  unassigned for a subsequent governed work cycle.
+- Roost exposes the locally verified owner route
+  `/areas?area=00-ogolny&view=product-map`. Its build and browser
+  navigation/reload proof pass, but commit `3f8850c2` has not been pushed or
+  deployed. The public Roost build remains
+  `070b150f5477d701d462485aad8b91450d0c3d71`; the public Soar build remains
+  `9d1801d9b023211d4446629aac7bd58def70322d`.
+- Paperclip is healthy on the strict local topology `3200`/`54329`, with one
+  registered dev service and no live agent runs. Workspace-boundary and
+  runtime-topology audits pass; parked/external sibling warnings and missing
+  Docker Desktop inventory are non-blocking and no sibling was modified.
+- The aggregate Softwarehouse status snapshot is stale and fail-closed.
+  Fresh direct checks prove clean source control and healthy runtime, but
+  `projectRepoMutationAllowed=false` and `protectedDeliveryAllowed=false`
+  remain the safe routing facts until a new governed control cycle.
+- Commercial truth is unchanged: Soar is `NO-GO`; Roost is limited to a
+  guided pilot. Healthy endpoints and local UI completion do not establish
+  subscription or public sale readiness.
+- No push, VPS deployment, protected mutation, or thread archive was performed
+  in this checkpoint.
 
 ## 2026-07-24 Current State
 

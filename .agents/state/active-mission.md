@@ -988,14 +988,17 @@ or the relevant owners explicitly classify them as not required with evidence.
 
 ## 2026-07-25 - Product Map source-control checkpoint
 
-- The truthful Paperclip Product Map vertical slice is committed locally at
-  `eac73699`; the versioned Roost map source is committed locally at
-  `cac58482`. Soar is clean at `d3d163d83`.
-- No push or deployment was performed. The current control decision remains
-  `operating_source_control_closure_needed`, with project-repository mutation
-  and protected delivery disabled.
-- `LUC-1832` (read-only Paperclip-to-Roost projection) and `LUC-1833`
-  (owner-facing Roost Product Map UI) remain backlog until the gate changes.
-- `LUC-1834` owns classification and closure of the remaining 93 unrelated
-  Paperclip OS paths. Do not mix those packets with the completed Product Map
-  commits or infer that Soar/Roost commercial readiness is green.
+- The Product Map source-control and Paperclip OS closure packets are complete.
+  Paperclip's implementation baseline before the archive-memory commit is
+  `2e5e07ca`; Soar is clean at `d3d163d83` and Roost at `3f8850c2`.
+- `LUC-1831`, `LUC-1833`, and `LUC-1834` are done. The owner-facing Roost
+  Product Map route is locally implemented, built, and browser-verified.
+- `LUC-1832` is the sole remaining Product Map integration mission: publish a
+  versioned read-only portfolio projection from Paperclip to Roost. Keep it
+  unassigned in backlog until a fresh governed cycle legally opens the lane.
+- No product push or deployment was performed. The current aggregate status is
+  stale and fail-closed; fresh audits show healthy strict runtime and clean
+  repositories, while project mutation and protected delivery stay disabled.
+- Do not infer commercial readiness from this closure. Soar remains `NO-GO`;
+  Roost remains guided-pilot-only, and the local Roost Product Map commit is
+  not present on the VPS.

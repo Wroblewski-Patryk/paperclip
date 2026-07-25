@@ -332,12 +332,20 @@ the active Stage 1 delivery mission.
 
 ## 2026-07-25 - Product Map board truth
 
-- `LUC-1831` is done. Its implementation is locally committed as Paperclip
-  `eac73699` and Roost `cac58482`; neither commit is pushed or deployed.
-- `LUC-1832` and `LUC-1833` are high-priority backlog lanes and must not start
-  while `projectRepoMutationAllowed=false`.
-- `LUC-1834` is the explicit Softwarehouse OS closure lane for 93 remaining
-  Paperclip paths. Soar and Roost are clean; the dirty-state blocker belongs
-  to Paperclip OS, not to either product repository.
+- `LUC-1831`, `LUC-1833`, and `LUC-1834` are done with implementation and
+  verification evidence. The Paperclip implementation baseline before the
+  archive-memory commit is `2e5e07ca`; Soar is clean at `d3d163d83` and Roost
+  at `3f8850c2`.
+- `LUC-1832` is the only remaining Product Map integration lane. It owns a
+  versioned read-only Paperclip-to-Roost portfolio projection and remains
+  intentionally unassigned in `backlog` for the next governed work cycle.
+- The owner-facing Roost route
+  `/areas?area=00-ogolny&view=product-map` is locally built and
+  browser-verified. It is not on the VPS: public Roost still reports
+  `070b150f5477d701d462485aad8b91450d0c3d71`, while local Roost is
+  `3f8850c2`.
 - Product readiness remains evidence-scoped: Soar is `NO-GO`; Roost is
   guided-pilot-only. Healthy public probes are not commercial acceptance.
+- No push or deployment occurred. The aggregate Softwarehouse status snapshot
+  is stale and fail-closed; fresh source-control/runtime audits pass, no agent
+  runs are live, and project mutation plus protected delivery remain disabled.

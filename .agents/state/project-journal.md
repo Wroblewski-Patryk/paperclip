@@ -1,6 +1,6 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-20
+Last updated: 2026-07-25
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
@@ -4649,3 +4649,36 @@ not staged or attributed to the Product Map. `LUC-1834` records the required
 owner-by-owner closure; `LUC-1832` and `LUC-1833` carry explicit gate-blocker
 comments. The current safe state is therefore: Product Map source complete,
 Roost publication work queued, project mutations blocked pending OS closure.
+
+## 2026-07-25 - Archive-ready Product Map checkpoint
+
+The owner requested a final truth audit before archiving the conversation.
+Direct source-control inspection reported the implementation baseline clean at
+Paperclip `2e5e07ca`, Soar `d3d163d83`, and Roost `3f8850c2`; the subsequent
+archive-memory commit necessarily advances Paperclip HEAD.
+`LUC-1831`, `LUC-1833`, and `LUC-1834` are done. `LUC-1832` remains the one
+explicitly unfinished integration lane and is intentionally unassigned in
+backlog; it must publish the versioned read-only Paperclip portfolio projection
+into Roost in a later governed cycle.
+
+The canonical runtime was recovered and checked on strict ports `3200` and
+`54329`. An exact stale dev-runner PID was identified as a non-listener,
+terminated without broad process cleanup, and the topology audit then passed
+with one registered dev service. The workspace-boundary audit also passed;
+parked/external sibling warnings were left untouched. No agent runs are live.
+
+The local Roost Product Map at
+`/areas?area=00-ogolny&view=product-map` passed build and Playwright
+navigation/reload verification. It has not been pushed or deployed: public
+Roost still reports `070b150f5477d701d462485aad8b91450d0c3d71`, and public
+Soar reports `9d1801d9b023211d4446629aac7bd58def70322d`. Product Map focused
+tests, relevant typechecks/builds, Paperclip browser QA, learning-disposition
+policy tests, and Roost browser proof passed in the implementation cycle.
+
+The aggregate Softwarehouse status readback is stale, so it was not used as
+fresh acceptance evidence and no mutating control tick was started merely for
+archive preparation. Fresh direct checks establish clean source and healthy
+runtime; the safe control facts remain
+`projectRepoMutationAllowed=false` and `protectedDeliveryAllowed=false`.
+Soar is still `NO-GO`, Roost remains guided-pilot-only, and no push, VPS
+deployment, protected mutation, or thread archive occurred in this checkpoint.
