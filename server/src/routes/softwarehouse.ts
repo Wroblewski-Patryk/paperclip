@@ -21,6 +21,7 @@ function resolveWorkspaceRoot() {
 const ROOT = resolveWorkspaceRoot();
 const SOFTWAREHOUSE_STATUS_PATH = "report/softwarehouse-readiness-snapshot.latest.json";
 const SOFTWAREHOUSE_STATUS_STALE_AFTER_SECONDS = 15 * 60;
+const INNOVATION_PORTFOLIO_PATH = "softwarehouse/portfolio/innovation-portfolio.csv";
 
 interface FileStatus {
   path: string;
@@ -280,6 +281,243 @@ function stringArray(value: unknown): string[] {
     : [];
 }
 
+interface PortfolioEntry {
+  name: string;
+  paperclipProjectName: string;
+  lifecycleStage: string;
+  offeringType: string;
+  workspacePath: string;
+  readinessContractPath: string;
+  productUrl: string;
+  buildInfoUrl: string;
+  ownerSurfacePath: string;
+  ownerSurfaceUrl: string;
+  ownerSurfaceRole: "owner_facing_aggregate" | "represented_in_aggregate";
+}
+
+function markdownField(content: string, label: string): string | null {
+  const match = content.match(new RegExp(`^${label}:\\s*(.+)$`, "im"));
+  return match?.[1]?.replaceAll("`", "").trim() || null;
+}
+
+function markdownSection(content: string, heading: string): string | null {
+  const lines = content.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trim().toLowerCase() === `## ${heading}`.toLowerCase());
+  if (start < 0) return null;
+  const body = lines.slice(start + 1);
+  const end = body.findIndex((line) => /^##\s+/.test(line.trim()));
+  const section = (end >= 0 ? body.slice(0, end) : body)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
+  return section[0]?.replace(/^[-*\d.]+\s*/, "").replaceAll("`", "").trim() || null;
+}
+
+function markdownCurrentDecision(content: string): string | null {
+  const sectionStart = content.search(/^## Current Decision\s*$/im);
+  if (sectionStart < 0) return null;
+  const section = content.slice(sectionStart).split(/\r?\n##\s+/)[0] ?? "";
+  const codeDecision = section.match(/^`([^`]+)`\s*$/m);
+  return codeDecision?.[1]?.trim() || markdownSection(content, "Current Decision");
+}
+
+async function readPortfolioEntries(workspaceRoot: string): Promise<PortfolioEntry[]> {
+  const content = await readTextOptional(INNOVATION_PORTFOLIO_PATH, workspaceRoot);
+  return parseCsv(content)
+    .map((row) => ({
+      name: row.name ?? "",
+      paperclipProjectName: row.paperclipProjectName ?? "",
+      lifecycleStage: row.lifecycleStage ?? "",
+      offeringType: row.offeringType ?? "",
+      workspacePath: row.workspacePath ?? "",
+      readinessContractPath: row.readinessContractPath ?? "",
+      productUrl: row.productUrl ?? "",
+      buildInfoUrl: row.buildInfoUrl ?? "",
+      ownerSurfacePath: row.ownerSurfacePath ?? "",
+      ownerSurfaceUrl: row.ownerSurfaceUrl ?? "",
+      ownerSurfaceRole: row.ownerSurfaceRole === "owner_facing_aggregate"
+        ? "owner_facing_aggregate" as const
+        : "represented_in_aggregate" as const,
+    }))
+    .filter((entry) => entry.name && entry.paperclipProjectName && entry.workspacePath && entry.readinessContractPath);
+}
+
+function resolveAllowedPortfolioWorkspace(entry: PortfolioEntry, workspaceRoot: string): string | null {
+  const workspacePath = path.resolve(workspaceRoot, entry.workspacePath);
+  const allowedWorkspaceRoots = [
+    path.resolve(workspaceRoot),
+    path.resolve(workspaceRoot, "../Soar"),
+    path.resolve(workspaceRoot, "../Roost"),
+  ];
+  return allowedWorkspaceRoots.includes(workspacePath) ? workspacePath : null;
+}
+
+function allowedPublicPortfolioUrl(value: string): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return null;
+    if (url.hostname !== "luckysparrow.ch" && !url.hostname.endsWith(".luckysparrow.ch")) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function readGitSource(entry: PortfolioEntry, workspaceRoot: string) {
+  const workspacePath = resolveAllowedPortfolioWorkspace(entry, workspaceRoot);
+  if (!workspacePath) return { branch: null, headSha: null, observedAt: null };
+  const gitPath = path.join(workspacePath, ".git");
+  try {
+    const headPath = path.join(gitPath, "HEAD");
+    const [head, headStats] = await Promise.all([
+      fs.readFile(headPath, "utf8"),
+      fs.stat(headPath),
+    ]);
+    const trimmedHead = head.trim();
+    if (!trimmedHead.startsWith("ref:")) {
+      return {
+        branch: null,
+        headSha: /^[0-9a-f]{40}$/i.test(trimmedHead) ? trimmedHead : null,
+        observedAt: headStats.mtime.toISOString(),
+      };
+    }
+
+    const ref = trimmedHead.slice(4).trim();
+    const refPath = path.join(gitPath, ...ref.split("/"));
+    let sha: string | null = null;
+    let observedAt = headStats.mtime.toISOString();
+    try {
+      const [refContent, refStats] = await Promise.all([
+        fs.readFile(refPath, "utf8"),
+        fs.stat(refPath),
+      ]);
+      sha = /^[0-9a-f]{40}$/i.test(refContent.trim()) ? refContent.trim() : null;
+      observedAt = refStats.mtime.toISOString();
+    } catch {
+      const packedRefs = await fs.readFile(path.join(gitPath, "packed-refs"), "utf8");
+      const packed = packedRefs
+        .split(/\r?\n/)
+        .find((line) => line.endsWith(` ${ref}`) && /^[0-9a-f]{40}\s/i.test(line));
+      sha = packed?.split(/\s+/, 1)[0] ?? null;
+    }
+    return {
+      branch: ref.startsWith("refs/heads/") ? ref.slice("refs/heads/".length) : ref,
+      headSha: sha,
+      observedAt,
+    };
+  } catch {
+    return { branch: null, headSha: null, observedAt: null };
+  }
+}
+
+function deployedShaFromBuildInfo(value: unknown): string | null {
+  const root = asRecord(value);
+  const release = asRecord(root.release);
+  const build = asRecord(root.build);
+  return nullableString(root.gitSha)
+    ?? nullableString(release.gitSha)
+    ?? nullableString(build.commit)
+    ?? nullableString(root.commit);
+}
+
+async function readDeployment(entry: PortfolioEntry, now: Date) {
+  const observedAt = now.toISOString();
+  const productUrl = allowedPublicPortfolioUrl(entry.productUrl);
+  const buildInfoUrl = allowedPublicPortfolioUrl(entry.buildInfoUrl);
+  if (!buildInfoUrl) {
+    return {
+      status: "not_configured" as const,
+      deployedSha: null,
+      observedAt,
+      productUrl,
+      buildInfoUrl: null,
+    };
+  }
+  try {
+    const response = await fetch(buildInfoUrl, {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) throw new Error("build-info-unavailable");
+    const body: unknown = await response.json();
+    return {
+      status: "reachable" as const,
+      deployedSha: deployedShaFromBuildInfo(body),
+      observedAt,
+      productUrl,
+      buildInfoUrl,
+    };
+  } catch {
+    return {
+      status: "unreachable" as const,
+      deployedSha: null,
+      observedAt,
+      productUrl,
+      buildInfoUrl,
+    };
+  }
+}
+
+async function readOwnerSurface(entry: PortfolioEntry, workspaceRoot: string) {
+  if (!entry.ownerSurfacePath) return null;
+  const fullPath = path.resolve(workspaceRoot, entry.ownerSurfacePath);
+  const allowedRoot = path.resolve(workspaceRoot, "../Roost");
+  if (fullPath !== allowedRoot && !fullPath.startsWith(`${allowedRoot}${path.sep}`)) return null;
+  const sourcePath = path.relative(workspaceRoot, fullPath).replaceAll("\\", "/");
+  try {
+    const stats = await fs.stat(fullPath);
+    return {
+      system: "Roost",
+      role: entry.ownerSurfaceRole,
+      publicationStatus: "source_only" as const,
+      sourcePath,
+      sourceUpdatedAt: stats.mtime.toISOString(),
+      publicUrl: entry.ownerSurfaceUrl || null,
+    };
+  } catch {
+    return {
+      system: "Roost",
+      role: entry.ownerSurfaceRole,
+      publicationStatus: "unavailable" as const,
+      sourcePath,
+      sourceUpdatedAt: null,
+      publicUrl: entry.ownerSurfaceUrl || null,
+    };
+  }
+}
+
+function versionAlignment(sourceSha: string | null, deployedSha: string | null) {
+  if (!sourceSha || !deployedSha) return "unknown" as const;
+  return sourceSha === deployedSha ? "aligned" as const : "different" as const;
+}
+
+async function readCommercialReadiness(entry: PortfolioEntry, workspaceRoot: string) {
+  const workspacePath = resolveAllowedPortfolioWorkspace(entry, workspaceRoot);
+  if (!workspacePath) return null;
+  const contractPath = path.resolve(workspacePath, entry.readinessContractPath);
+  const sourcePath = path.relative(workspaceRoot, contractPath).replaceAll("\\", "/");
+  const contractInsideWorkspace = contractPath === workspacePath || contractPath.startsWith(`${workspacePath}${path.sep}`);
+  if (!contractInsideWorkspace) return null;
+  try {
+    const [content, stats] = await Promise.all([
+      fs.readFile(contractPath, "utf8"),
+      fs.stat(contractPath),
+    ]);
+    return {
+      status: markdownField(content, "Status"),
+      version: markdownField(content, "Version"),
+      owner: markdownField(content, "Owner"),
+      lastReviewed: markdownField(content, "Last reviewed") ?? markdownField(content, "Last updated"),
+      decision: markdownCurrentDecision(content) ?? markdownSection(content, "Decision"),
+      nextGate: markdownSection(content, "Minimal Next Legal Lanes") ?? markdownSection(content, "Remaining Work"),
+      sourcePath,
+      sourceUpdatedAt: stats.mtime.toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function emptyControlStatus(now: Date, observedAt: string | null = null): SoftwarehouseControlStatusResponse {
   return {
     generatedAt: now.toISOString(),
@@ -366,13 +604,54 @@ export async function loadSoftwarehouseControlStatus(
       operatorPrompt: nullableString(gate.operatorPrompt),
     }));
 
+  const portfolioEntries = await readPortfolioEntries(workspaceRoot);
+  const portfolioByName = new Map(portfolioEntries.map((entry) => [entry.name.toLowerCase(), entry]));
+  const commercialReadiness = new Map(
+    await Promise.all(portfolioEntries.map(async (entry) => [
+      entry.name.toLowerCase(),
+      await readCommercialReadiness(entry, workspaceRoot),
+    ] as const)),
+  );
+  const sourceControl = new Map(
+    await Promise.all(portfolioEntries.map(async (entry) => [
+      entry.name.toLowerCase(),
+      await readGitSource(entry, workspaceRoot),
+    ] as const)),
+  );
+  const deployments = new Map(
+    await Promise.all(portfolioEntries.map(async (entry) => [
+      entry.name.toLowerCase(),
+      await readDeployment(entry, now),
+    ] as const)),
+  );
+  const ownerSurfaces = new Map(
+    await Promise.all(portfolioEntries.map(async (entry) => [
+      entry.name.toLowerCase(),
+      await readOwnerSurface(entry, workspaceRoot),
+    ] as const)),
+  );
+
   const projects = (Array.isArray(truth.projects) ? truth.projects : [])
     .map((value) => asRecord(value))
     .map((project) => {
       const firstGap = asRecord(project.firstGap);
       const hasFirstGap = Object.keys(firstGap).length > 0;
+      const name = nullableString(project.name) ?? "Unknown project";
+      const portfolio = portfolioByName.get(name.toLowerCase());
+      const source = sourceControl.get(name.toLowerCase()) ?? {
+        branch: null,
+        headSha: null,
+        observedAt: null,
+      };
+      const deployment = deployments.get(name.toLowerCase()) ?? {
+        status: "not_configured" as const,
+        deployedSha: null,
+        observedAt: now.toISOString(),
+        productUrl: null,
+        buildInfoUrl: null,
+      };
       return {
-        name: nullableString(project.name) ?? "Unknown project",
+        name,
         ok: nullableBoolean(project.ok),
         publicProbeStatus: nullableString(project.publicProbeStatus),
         projectTruthStatus: nullableString(project.projectTruthStatus),
@@ -385,6 +664,16 @@ export async function loadSoftwarehouseControlStatus(
           nextOwner: nullableString(firstGap.nextOwner),
           nextAction: nullableString(firstGap.nextAction),
           risk: nullableString(firstGap.risk),
+        } : null,
+        portfolio: portfolio ? {
+          paperclipProjectName: portfolio.paperclipProjectName,
+          lifecycleStage: portfolio.lifecycleStage,
+          offeringType: portfolio.offeringType,
+          ownerSurface: ownerSurfaces.get(name.toLowerCase()) ?? null,
+          sourceControl: source,
+          deployment,
+          versionAlignment: versionAlignment(source.headSha, deployment.deployedSha),
+          commercialReadiness: commercialReadiness.get(name.toLowerCase()) ?? null,
         } : null,
       };
     });

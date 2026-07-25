@@ -4,6 +4,7 @@ import {
   BookOpen,
   Boxes,
   BrainCircuit,
+  ArrowRight,
   Clock3,
   Database,
   FileText,
@@ -19,6 +20,7 @@ import { useCompany } from "../context/CompanyContext";
 import { softwarehouseApi, type SoftwarehouseDoc, type SoftwarehouseFileStatus } from "../api/softwarehouse";
 import { queryKeys } from "../lib/queryKeys";
 import { cn } from "../lib/utils";
+import { Link } from "@/lib/router";
 
 type Tab = "knowledge" | "tools" | "runtime" | "backlog";
 
@@ -84,7 +86,7 @@ export function Softwarehouse() {
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">Softwarehouse</h1>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Local read-only knowledge, command safety, runtime truth, and app-feature backlog without external CompanyCore or memory plugins.
+              Operations cockpit for control sources, command safety, runtime truth, and governed integration state. Product phase and sale-readiness live in Projects; Roost owns the aggregate product map.
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={refreshAll}>
@@ -103,11 +105,20 @@ export function Softwarehouse() {
 
       <SoftwarehouseControlPanel status={statusQuery.data} loading={statusQuery.isLoading} />
 
+      <div className="flex flex-col gap-2 border border-[var(--company-accent-border)] bg-[var(--company-accent-subtle)] px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-muted-foreground">
+          Looking for Soar or Roost lifecycle, exact build alignment, commercial boundary, or the next gate?
+        </p>
+        <Link to="/projects" className="inline-flex shrink-0 items-center gap-1 font-medium text-[var(--company-accent-strong)] hover:underline">
+          Open project map <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+        </Link>
+      </div>
+
       <nav className="flex flex-wrap gap-1 border-b border-border" role="tablist" aria-label="Softwarehouse views">
-        <TabButton active={tab === "knowledge"} onClick={() => setTab("knowledge")} icon={BookOpen} label="Knowledge" />
+        <TabButton active={tab === "knowledge"} onClick={() => setTab("knowledge")} icon={BookOpen} label="Control sources" />
         <TabButton active={tab === "tools"} onClick={() => setTab("tools")} icon={Wrench} label="Tools" />
         <TabButton active={tab === "runtime"} onClick={() => setTab("runtime")} icon={Database} label="Runtime" />
-        <TabButton active={tab === "backlog"} onClick={() => setTab("backlog")} icon={Boxes} label="Backlog" />
+        <TabButton active={tab === "backlog"} onClick={() => setTab("backlog")} icon={Boxes} label="App candidates" />
       </nav>
 
       {tab === "knowledge" ? (
@@ -151,7 +162,7 @@ function Metric({
     <div className="paperclip-surface p-3">
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-medium uppercase text-muted-foreground">{label}</span>
-        <Icon className={cn("h-4 w-4", tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-amber-600" : "text-muted-foreground")} />
+        <Icon className={cn("h-4 w-4", tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-amber-600" : "text-[var(--company-accent-strong)]")} />
       </div>
       <div className="mt-2 text-2xl font-semibold">{value}</div>
     </div>
@@ -177,7 +188,7 @@ function TabButton({
       className={cn(
         "inline-flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition",
         active
-          ? "border-foreground text-foreground"
+          ? "border-[var(--company-accent)] text-foreground"
           : "border-transparent text-muted-foreground hover:text-foreground",
       )}
       onClick={onClick}
@@ -370,7 +381,7 @@ function BacklogView({ loading, backlog }: { loading: boolean; backlog?: Awaited
           <span className="font-semibold">Current choice</span>
         </div>
         <p className="mt-3 leading-6">
-          The first build stays local and read-only. External CompanyCore bridge and hindsight-memory are deferred until they are worth the token and integration cost.
+          Paperclip remains the execution and evidence control plane. Roost is the durable owner-facing product and company map. Only bounded, least-privilege projections should cross between them; source repositories remain authoritative for code, contracts, and deployment truth.
         </p>
       </aside>
     </div>

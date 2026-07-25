@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   softwarehouseControlStatusResponseSchema,
   softwarehouseIssueTemplateCatalogResponseSchema,
@@ -83,7 +83,50 @@ describe("softwarehouse control status", () => {
   it("normalizes the readiness snapshot into a safe owner-facing contract", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-softwarehouse-status-"));
     const reportDir = path.join(root, "report");
-    await fs.mkdir(reportDir, { recursive: true });
+    const portfolioDir = path.join(root, "softwarehouse", "portfolio");
+    const soarDocsDir = path.join(root, "apps", "Soar", "docs");
+    const gitRefDir = path.join(root, ".git", "refs", "heads");
+    await Promise.all([
+      fs.mkdir(reportDir, { recursive: true }),
+      fs.mkdir(portfolioDir, { recursive: true }),
+      fs.mkdir(soarDocsDir, { recursive: true }),
+      fs.mkdir(gitRefDir, { recursive: true }),
+    ]);
+    const sourceSha = "1111111111111111111111111111111111111111";
+    const deployedSha = "2222222222222222222222222222222222222222";
+    await Promise.all([
+      fs.writeFile(path.join(root, ".git", "HEAD"), "ref: refs/heads/main\n", "utf8"),
+      fs.writeFile(path.join(gitRefDir, "main"), `${sourceSha}\n`, "utf8"),
+    ]);
+    await fs.writeFile(
+      path.join(portfolioDir, "innovation-portfolio.csv"),
+      [
+        "name,paperclipProjectName,lifecycleStage,offeringType,workspacePath,readinessContractPath,productUrl,buildInfoUrl",
+        "Soar,11 Innovation: Soar,innovation,application,.,apps/Soar/docs/sale-readiness.md,https://soar.luckysparrow.ch,https://soar.luckysparrow.ch/api/build-info",
+        "Outside,11 Innovation: Outside,innovation,application,../../outside,contract.md,http://127.0.0.1:54329,http://127.0.0.1:54329/private",
+      ].join("\n"),
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(soarDocsDir, "sale-readiness.md"),
+      [
+        "# Soar sale readiness",
+        "",
+        "Version: `v1.0-test`",
+        "Status: `NO-GO`",
+        "Owner: `11 SPM`",
+        "Last reviewed: 2026-07-18",
+        "",
+        "## Current Decision",
+        "",
+        "`NO-GO / OWNER_ACCEPTANCE_PENDING`",
+        "",
+        "## Minimal Next Legal Lanes",
+        "",
+        "1. Owner acceptance lane.",
+      ].join("\n"),
+      "utf8",
+    );
     await fs.writeFile(path.join(reportDir, "softwarehouse-readiness-snapshot.latest.json"), JSON.stringify({
       generatedAt: "2026-07-18T12:00:00.000Z",
       auditOverall: "attention",
@@ -137,9 +180,22 @@ describe("softwarehouse control status", () => {
             nextOwner: "DRE",
             nextAction: "Diagnose read-only first.",
           },
+        }, {
+          name: "Outside",
+          ok: false,
+          publicProbeStatus: "unknown",
+          projectTruthStatus: "untrusted_source",
+          totalGaps: 0,
         }],
       },
     }), "utf8");
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      gitSha: deployedSha,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
 
     try {
       const status = await loadSoftwarehouseControlStatus(root, new Date("2026-07-18T12:05:00.000Z"));
@@ -151,7 +207,49 @@ describe("softwarehouse control status", () => {
       expect(status.blockedGates[0]?.evidenceRequired).toBe("Attach fresh proof.");
       expect(JSON.stringify(status)).not.toContain("must-not-leak");
       expect(status.projectTruth.projects[0]?.publicProbeStatus).toBe("failed");
+      expect(status.projectTruth.projects[0]?.portfolio).toMatchObject({
+        paperclipProjectName: "11 Innovation: Soar",
+        lifecycleStage: "innovation",
+        sourceControl: {
+          branch: "main",
+          headSha: sourceSha,
+        },
+        deployment: {
+          status: "reachable",
+          deployedSha,
+          productUrl: "https://soar.luckysparrow.ch/",
+          buildInfoUrl: "https://soar.luckysparrow.ch/api/build-info",
+        },
+        versionAlignment: "different",
+        commercialReadiness: {
+          status: "NO-GO",
+          version: "v1.0-test",
+          owner: "11 SPM",
+          decision: "NO-GO / OWNER_ACCEPTANCE_PENDING",
+          nextGate: "Owner acceptance lane.",
+        },
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://soar.luckysparrow.ch/api/build-info",
+        expect.objectContaining({ headers: { accept: "application/json" } }),
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(status.projectTruth.projects[1]?.portfolio).toMatchObject({
+        sourceControl: {
+          branch: null,
+          headSha: null,
+        },
+        deployment: {
+          status: "not_configured",
+          deployedSha: null,
+          productUrl: null,
+          buildInfoUrl: null,
+        },
+        versionAlignment: "unknown",
+        commercialReadiness: null,
+      });
     } finally {
+      fetchMock.mockRestore();
       await fs.rm(root, { recursive: true, force: true });
     }
   });

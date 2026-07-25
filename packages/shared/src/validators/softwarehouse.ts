@@ -52,6 +52,42 @@ export const softwarehouseProjectTruthStatusSchema = z.object({
   projectTruthStatus: z.string().nullable(),
   totalGaps: z.number().int().nonnegative(),
   firstGap: softwarehouseProjectTruthGapSchema.nullable(),
+  portfolio: z.object({
+    paperclipProjectName: z.string(),
+    lifecycleStage: z.string(),
+    offeringType: z.string(),
+    ownerSurface: z.object({
+      system: z.string(),
+      role: z.enum(["owner_facing_aggregate", "represented_in_aggregate"]),
+      publicationStatus: z.enum(["live", "source_only", "unavailable"]),
+      sourcePath: z.string(),
+      sourceUpdatedAt: z.string().datetime().nullable(),
+      publicUrl: z.string().url().nullable(),
+    }).nullable(),
+    sourceControl: z.object({
+      branch: z.string().nullable(),
+      headSha: z.string().nullable(),
+      observedAt: z.string().datetime().nullable(),
+    }),
+    deployment: z.object({
+      status: z.enum(["reachable", "unreachable", "not_configured"]),
+      deployedSha: z.string().nullable(),
+      observedAt: z.string().datetime(),
+      productUrl: z.string().url().nullable(),
+      buildInfoUrl: z.string().url().nullable(),
+    }),
+    versionAlignment: z.enum(["aligned", "different", "unknown"]),
+    commercialReadiness: z.object({
+      status: z.string().nullable(),
+      version: z.string().nullable(),
+      owner: z.string().nullable(),
+      lastReviewed: z.string().nullable(),
+      decision: z.string().nullable(),
+      nextGate: z.string().nullable(),
+      sourcePath: z.string(),
+      sourceUpdatedAt: z.string().datetime().nullable(),
+    }).nullable(),
+  }).nullable(),
 });
 
 export const softwarehouseControlStatusResponseSchema = z.object({

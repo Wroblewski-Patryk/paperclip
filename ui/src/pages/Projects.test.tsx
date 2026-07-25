@@ -13,6 +13,10 @@ const mockProjectsApi = vi.hoisted(() => ({
   list: vi.fn(),
 }));
 
+const mockSoftwarehouseApi = vi.hoisted(() => ({
+  status: vi.fn(),
+}));
+
 const mockResourceMembershipsApi = vi.hoisted(() => ({
   listMine: vi.fn(),
   updateProject: vi.fn(),
@@ -41,6 +45,10 @@ vi.mock("../context/BreadcrumbContext", () => ({
 
 vi.mock("../api/projects", () => ({
   projectsApi: mockProjectsApi,
+}));
+
+vi.mock("../api/softwarehouse", () => ({
+  softwarehouseApi: mockSoftwarehouseApi,
 }));
 
 vi.mock("../api/resourceMemberships", () => ({
@@ -141,6 +149,10 @@ describe("Projects", () => {
         updatedAt: new Date("2026-01-01T00:00:00Z"),
       }),
     ]);
+    mockSoftwarehouseApi.status.mockResolvedValue({
+      available: false,
+      projectTruth: { projects: [] },
+    });
     mockResourceMembershipsApi.listMine.mockResolvedValue({
       projectMemberships: { "project-b": "left" },
       agentMemberships: {},

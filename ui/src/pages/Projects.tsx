@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Project } from "@paperclipai/shared";
 import { projectsApi } from "../api/projects";
+import { softwarehouseApi } from "../api/softwarehouse";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
@@ -11,6 +12,7 @@ import { StatusBadge } from "../components/StatusBadge";
 import { MembershipAction } from "../components/MembershipAction";
 import { EmptyState } from "../components/EmptyState";
 import { PageSkeleton } from "../components/PageSkeleton";
+import { ProjectPortfolioMap } from "../components/ProjectPortfolioMap";
 import { formatDate, projectUrl } from "../lib/utils";
 import {
   resourceMembershipState,
@@ -87,6 +89,12 @@ export function Projects() {
     queryKey: queryKeys.projects.list(selectedCompanyId!),
     queryFn: () => projectsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId,
+  });
+  const softwarehouseStatusQuery = useQuery({
+    queryKey: queryKeys.softwarehouse.status(selectedCompanyId ?? ""),
+    queryFn: () => softwarehouseApi.status(selectedCompanyId!),
+    enabled: Boolean(selectedCompanyId),
+    refetchInterval: 30_000,
   });
   const membershipsQuery = useResourceMemberships(selectedCompanyId);
   const membershipMutation = useResourceMembershipMutation(selectedCompanyId);
@@ -171,6 +179,12 @@ export function Projects() {
       </div>
 
       {error && <p className="text-sm text-destructive">{error.message}</p>}
+
+      <ProjectPortfolioMap
+        projects={projects}
+        status={softwarehouseStatusQuery.data}
+        loading={softwarehouseStatusQuery.isLoading}
+      />
 
       {!isLoading && projects.length === 0 && (
         <EmptyState

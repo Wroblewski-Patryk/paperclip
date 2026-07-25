@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   CircleDot,
+  ExternalLink,
   FolderGit2,
   ShieldAlert,
 } from "lucide-react";
@@ -56,6 +57,8 @@ export function ProjectDeliveryOverview({
     const candidateName = normalizeProjectName(candidate.name);
     return projectName === candidateName || projectName.includes(candidateName) || candidateName.includes(projectName);
   });
+  const commercial = truth?.portfolio?.commercialReadiness;
+  const portfolio = truth?.portfolio;
   const primaryWorkspace = project.primaryWorkspace ?? project.workspaces.find((workspace) => workspace.isPrimary) ?? null;
   const repoRef = project.codebase.repoRef ?? project.codebase.defaultRef ?? primaryWorkspace?.repoRef ?? primaryWorkspace?.defaultRef;
   const repoUrl = project.codebase.repoUrl ?? primaryWorkspace?.repoUrl;
@@ -66,19 +69,28 @@ export function ProjectDeliveryOverview({
   }
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card" aria-labelledby="project-delivery-title">
-      <div className="flex flex-col gap-2 border-b border-border px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+    <section className="paperclip-surface overflow-hidden" aria-labelledby="project-delivery-title">
+      <div className="paperclip-surface-header flex flex-col gap-2 border-b border-border px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 id="project-delivery-title" className="text-sm font-semibold">Delivery overview</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Work state, evidence coverage, source truth, and the next release gap.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Technical delivery evidence and commercial readiness are separate decisions.</p>
         </div>
         <Link to={`/projects/${project.urlKey}/issues`} className="text-xs font-medium text-primary hover:underline">
           Open project issues
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 border-b border-border md:grid-cols-4">
-        <DeliveryMetric label="Public probe" value={truth?.publicProbeStatus ?? "unknown"} tone={truth?.publicProbeStatus === "pass" ? "good" : truth?.publicProbeStatus === "failed" ? "bad" : "muted"} />
+      <div className="grid grid-cols-2 border-b border-border md:grid-cols-5">
+        <DeliveryMetric label="Public runtime" value={truth?.publicProbeStatus === "pass" ? "Responding" : truth?.publicProbeStatus ?? "unknown"} tone={truth?.publicProbeStatus === "pass" ? "good" : truth?.publicProbeStatus === "failed" ? "bad" : "muted"} />
+        <DeliveryMetric
+          label="Sale-readiness"
+          value={commercial?.status?.toLowerCase() === "conditional_guided_sale_ready" ? "Guided pilot only" : commercial?.status ?? "No contract"}
+          tone={commercial?.status?.toLowerCase() === "go"
+            ? "good"
+            : commercial?.status?.toLowerCase().includes("no-go") || commercial?.status?.toLowerCase().includes("no_go")
+              ? "bad"
+              : commercial?.status ? "warn" : "muted"}
+        />
         <DeliveryMetric label="Open work" value={String(summary.open)} tone={summary.open > 0 ? "warn" : "good"} />
         <DeliveryMetric label="Blocked" value={String(summary.blocked)} tone={summary.blocked > 0 ? "bad" : "good"} />
         <DeliveryMetric label="Evidence coverage" value={summary.evidenceCoverage === null ? "No done work" : `${summary.evidenceCoverage}%`} tone={summary.evidenceCoverage !== null && summary.evidenceCoverage >= 90 ? "good" : "warn"} />
@@ -95,7 +107,47 @@ export function ProjectDeliveryOverview({
             <SourceFact label="Repository ref" value={repoRef ?? "Not recorded"} mono />
             <SourceFact label="Repository" value={repoUrl ?? project.codebase.repoName ?? "Not recorded"} />
             <SourceFact label="Local folder" value={localFolder ?? "Not recorded"} mono />
+            <SourceFact label={`Local ${portfolio?.sourceControl.branch ?? "source"} SHA`} value={portfolio?.sourceControl.headSha ?? "Not observed"} mono />
+            <SourceFact label="Deployed SHA" value={portfolio?.deployment.deployedSha ?? "Not observed"} mono />
           </dl>
+
+          {portfolio ? (
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Lifecycle and owner map</p>
+              <p className="mt-1 text-sm font-medium capitalize">
+                {portfolio.lifecycleStage.replaceAll("_", " ")} → Product → Service
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Source and deployed versions are {portfolio.versionAlignment === "aligned" ? "aligned." : portfolio.versionAlignment === "different" ? "different and must remain visible separately." : "not comparable yet."}
+                {" "}Roost map: {portfolio.ownerSurface?.publicationStatus === "live" ? "published" : portfolio.ownerSurface?.publicationStatus === "source_only" ? "source ready, UI not published" : "unavailable"}.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-3 text-xs">
+                {portfolio.ownerSurface?.publicUrl ? (
+                  <a href={portfolio.ownerSurface.publicUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+                    Open owner surface <ExternalLink className="h-3 w-3" aria-hidden />
+                  </a>
+                ) : null}
+                {portfolio.deployment.productUrl ? (
+                  <a href={portfolio.deployment.productUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                    Open deployed app <ExternalLink className="h-3 w-3" aria-hidden />
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {commercial ? (
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Commercial contract</p>
+              <p className="mt-1 text-sm font-medium">{commercial.status?.replaceAll("_", " ") ?? "Status not recorded"}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {commercial.decision ?? "No decision summary recorded."}
+              </p>
+              <p className="mt-2 break-all text-[11px] text-muted-foreground">
+                {commercial.version ?? "Version not stated"} · {commercial.lastReviewed ?? "Review date not stated"} · {commercial.sourcePath}
+              </p>
+            </div>
+          ) : null}
 
           {truth?.firstGap ? (
             <div className="mt-4 border-t border-border pt-4">

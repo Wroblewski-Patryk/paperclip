@@ -1,0 +1,3 @@
+name,paperclipProjectName,lifecycleStage,offeringType,workspacePath,readinessContractPath,productUrl,buildInfoUrl,ownerSurfacePath,ownerSurfaceUrl,ownerSurfaceRole
+Soar,11 Innovation: Soar,innovation,application,../Soar,docs/planning/soar-v1-sale-readiness-contract.md,https://soar.luckysparrow.ch,https://soar.luckysparrow.ch/api/build-info,../Roost/docs/maps/product-map.md,https://roost.luckysparrow.ch,represented_in_aggregate
+Roost,11 Innovation: Roost,innovation,application,../Roost,docs/releases/roost-v1-0-sale-readiness-contract.md,https://roost.luckysparrow.ch,https://roost.luckysparrow.ch/api/build-info,../Roost/docs/maps/product-map.md,https://roost.luckysparrow.ch,owner_facing_aggregate

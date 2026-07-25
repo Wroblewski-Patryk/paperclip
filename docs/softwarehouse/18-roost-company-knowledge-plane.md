@@ -254,6 +254,46 @@ External communication, offers, legal/financial commitments, production and
 provider mutations, secret use, destructive actions, and autonomy changes stay
 fail-closed until their policy explicitly permits the action class.
 
+## Product Map Placement And Projection Contract
+
+Roost is the single owner-facing aggregate for the innovation-to-product
+lifecycle. Paperclip must not become a second product portfolio database.
+Paperclip projects instead expose an execution-oriented projection that helps
+the owner answer five questions without weakening source authority:
+
+1. which lifecycle stage the offering is in;
+2. whether the public runtime responds;
+3. what the release/sale-readiness contract permits;
+4. whether local source and the deployed build are the same exact SHA;
+5. which governed gate is next.
+
+The placement contract is:
+
+| Surface | Responsibility |
+| --- | --- |
+| Paperclip `Projects` | Project phase, technical truth, commercial boundary, exact source/deployment comparison, evidence, blockers, and next gate. |
+| Paperclip `Softwarehouse` under Operations | Control sources, runtime/integration health, command safety, tool catalog, and candidate app-control features. |
+| Roost product map | Durable owner-facing offering graph, department ownership, innovation-to-product transition, business context, and aggregate progress. |
+| Product repositories | Product intent, architecture, release contract, source SHA, tests, deployment evidence, and actual behavior. |
+
+`Softwarehouse` therefore links to `Projects` for project phase and readiness.
+Its local `Knowledge` label is rendered as `Control sources` to avoid implying
+that Paperclip owns durable company/product knowledge. Its backlog is rendered
+as `App candidates`; executable work remains in Paperclip issues/projects.
+
+The Paperclip project projection reads the allowlisted
+`softwarehouse/portfolio/innovation-portfolio.csv`, the product release
+contract, local git HEAD, and the configured public build-info endpoint. It
+returns source SHA and deployed SHA separately, uses `aligned`, `different`,
+or `unknown` version alignment, and fails closed when a source is unavailable.
+It never promotes health or zero indexed gaps into a commercial `GO`.
+
+The Roost map source currently lives at `docs/maps/product-map.md`. Until Roost
+renders that source as an authenticated owner-facing screen, Paperclip must
+label it `source_only` rather than `live`. The public Roost URL may be linked as
+the owner surface, but that link is not proof that the Product Map UI has been
+published.
+
 ## Paperclip-To-Roost Integration
 
 The approved direction is:
