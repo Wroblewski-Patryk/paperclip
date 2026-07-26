@@ -48,6 +48,8 @@ Push is allowed only when all of these are true:
 
 - the issue, PM, Delivery Lead, or Ops gate explicitly expects a pushed branch
   or source ref;
+- the destination remote is verified as owner-controlled for this project;
+  the mere presence of a configured Git remote is not push authorization;
 - the application, repository path, local branch, remote target, and deployment
   branch meaning are known;
 - the committed source SHA is recorded in the issue;
@@ -57,6 +59,14 @@ Push is allowed only when all of these are true:
 - the batch has a meaningful release reason: blocker/prod fix, coherent
   validated code/config/test/dependency set, stale source ref blocking deploy,
   or PM/Delivery/Ops release-ready decision.
+
+For the local Paperclip control-plane checkout, `HenkDz/paperclip` and
+`paperclipai/paperclip` are external public upstream sources, not LuckySparrow
+publication targets. Never push to either remote under standing autonomous
+release consent. The owner's Paperclip publication repository must be
+separately identified and configured before any Paperclip push. Until that
+mapping is verified, record `push status: not configured` rather than probing
+external remotes with write attempts.
 
 For the current LuckySparrow active-app model, a push can intentionally trigger
 Coolify auto-redeploy to VPS production. That is allowed for Soar first and

@@ -2,6 +2,21 @@
 
 Last updated: 2026-07-26
 
+## 2026-07-26 Paperclip Repository Ownership Clarification
+
+The owner clarified that this local Paperclip installation was obtained from
+someone else's public repository. `HenkDz/paperclip` is not the owner's push
+destination, and agents must not treat a configured remote as permission to
+probe it with a write. `paperclipai/paperclip` is likewise an external
+upstream. The intended owner-controlled Paperclip repository is a different
+repository that is not yet identified in the current checkout.
+
+Standing autonomous push consent applies only to an owner-controlled,
+positively verified repository and its intended release/deployment branch.
+Until the Paperclip repository mapping is configured, report its push state as
+`not configured`; do not retry either public upstream, guess the destination,
+or change remotes without verified repository identity.
+
 ## 2026-07-26 Application And Business Lifecycle Direction
 
 The owner clarified that autonomous delivery must be understood as a complete

@@ -2,6 +2,19 @@
 
 Last updated: 2026-07-26
 
+## 2026-07-26 Paperclip Remote Ownership Boundary
+
+- The local Paperclip installation originates from external public sources.
+  Remotes `henkdz` (`HenkDz/paperclip`) and `upstream`
+  (`paperclipai/paperclip`) are fetch/upstream references, not owner-controlled
+  publication targets.
+- Never attempt an autonomous push to either external repository. Standing
+  push consent applies only after the owner's separate Paperclip repository
+  and intended branch/deployment binding are positively identified.
+- No owner-controlled Paperclip remote is currently configured in this
+  checkout. Treat Paperclip push state as `not configured`, not as a GitHub
+  permission failure. Do not guess or silently rewire the remote.
+
 ## 2026-07-26 Autonomous Application Lifecycle
 
 - The active company-wide procedure is `PROC-SH-APPLICATION-LIFECYCLE`,
