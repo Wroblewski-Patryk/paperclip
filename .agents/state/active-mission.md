@@ -1,23 +1,30 @@
 # Active Mission
 
-## 2026-07-26 - Owner Paperclip Repository Convergence Identified
+## 2026-07-26 - Local-Only Paperclip And Hosted Retirement Active
 
 - The owner repository is `Wroblewski-Patryk/paperclip`, configured locally as
   remote `owner`.
-- `owner/main` is `52209941`; the healthy authenticated service at
-  `paperclip.luckysparrow.ch` has a build timestamp matching that commit, but
-  exact Coolify source metadata remains required.
+- `owner/main` is `52209941`; the authenticated service at
+  `paperclip.luckysparrow.ch` is the obsolete first deployment attempt and the
+  owner authorized its decommission to recover scarce VPS capacity.
 - Local HEAD and `owner/main` have no merge base. Production `main` is frozen
   against local overwrite, force-push, unrelated-history merge, or Coolify
   repointing.
-- The governed V1 path is documented in
+- Paperclip remains exclusively local on strict ports `3200` and `54329` as
+  the control plane that develops applications. VPS capacity is for Soar,
+  Roost, and every other existing or started application; none may be touched
+  by the Paperclip decommission.
+- The governed path is documented in
   `doc/plans/2026-07-26-paperclip-owner-repository-convergence.md`: preserve
-  both histories, keep Hindsight retired, evaluate relevant Roost and Docker
-  capabilities locally, publish a clean candidate branch, rehearse data
-  migration, then stage and cut over with backup, rollback, exact SHA,
-  monitoring, and browser evidence. Roost is the current and only name used
-  for the company-plane; older labels are historical source evidence only.
-- `LUC-1896` tracks this work in backlog without starting a production mutation.
+  both Git histories, independently identify the exclusive hosted Paperclip
+  boundary, retire only that Coolify resource, prove every other VPS app
+  unaffected, and publish the local lineage without hosting Paperclip again.
+- `LUC-1897` and `LUC-1898` are done. Coolify application
+  `tcf6zwrsz3x5cjtyx9in8aj2` and exclusive volume
+  `7cff7696bb5136cb1e0025ac` were removed; every other application, the one
+  service, and both databases remained. Local Paperclip, Soar, and Roost health
+  probes pass. `LUC-1896` remains the parent for publishing and canonicalizing
+  the local Git lineage without a hosted Paperclip binding.
 
 ## 2026-07-26 - Autonomous Application And Business Lifecycle Active
 

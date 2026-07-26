@@ -23,6 +23,16 @@ Last updated: 2026-07-26
   backup/rollback/SHA/browser evidence. Roost is the current product name;
   older labels in historical sources must not be reused.
 - Paperclip issue `LUC-1896` tracks the convergence lane in backlog.
+- The owner made Paperclip local-only. The obsolete first-attempt deployment at
+  `paperclip.luckysparrow.ch` is authorized for exact-target decommission to
+  recover VPS capacity; local Paperclip stays on `3200`/`54329`.
+- This authorization does not include any other VPS resource. Soar, Roost, and
+  every other existing or started application/project/domain/database/volume
+  must remain untouched. `LUC-1897` and `LUC-1898` are done: exact application
+  `tcf6zwrsz3x5cjtyx9in8aj2` and exclusive volume
+  `7cff7696bb5136cb1e0025ac` were removed, all other Coolify inventory remained,
+  local Paperclip/Soar/Roost probes passed, and the hosted Paperclip domain now
+  returns HTTP 503.
 
 ## 2026-07-26 Autonomous Application Lifecycle
 

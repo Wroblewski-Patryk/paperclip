@@ -1,16 +1,17 @@
-# Paperclip Owner Repository Convergence And VPS Migration Plan
+# Paperclip Local Control Plane, Owner Repository, And VPS Retirement Plan
 
 Date: 2026-07-26
-Status: proposed governed V1 lane
+Status: hosted retirement complete; repository publication pending
 Owner repository: `https://github.com/Wroblewski-Patryk/paperclip`
 Tracking issue: `LUC-1896`
 
 ## Objective
 
-Make the owner's repository the durable home for both the currently serving
-VPS Paperclip lineage and the newer local Softwarehouse lineage, without
-rewriting the deployed branch, losing data, or pretending two unrelated Git
-histories can be merged safely.
+Make the owner's repository the durable home of the local Softwarehouse
+Paperclip lineage, keep Paperclip local as the control plane for developing
+applications, and retire only the obsolete first-attempt Paperclip deployment
+from the capacity-constrained VPS. Soar, Roost, and every other existing or
+started VPS application remain preserved.
 
 ## Verified Baseline
 
@@ -20,6 +21,13 @@ histories can be merged safely.
 - The public root reports a last-modified time matching the owner-repository
   commit time. This strongly suggests that `owner/main` is the serving source,
   but exact Coolify `git_commit_sha` evidence is still required.
+- The owner has declared that hosted instance obsolete and authorized its
+  removal. It is not a migration target for the local Paperclip lineage.
+- Hosted retirement completed under `LUC-1897`/`LUC-1898`: exact application
+  and exclusive volume removed, with all other Coolify resources preserved.
+- Local Paperclip remains authoritative on strict ports `3200` and `54329`.
+- VPS capacity is reserved for deployable products, including Soar, Roost, and
+  other existing or started applications that local Paperclip will help finish.
 - Local branch at analysis time: `codex/rolling-work-queue` at `72cdc8b0`.
 - Git reports no merge base between local HEAD and `owner/main`.
 - The owner lineage has 39 commits unavailable locally; the local lineage has
@@ -50,68 +58,73 @@ older designs must be adapted or rejected, not copied blindly.
 
 ## Governed Sequence
 
-### 1. Freeze And Identify Production
+### 1. Freeze And Identify The Decommission Target
 
-- read Coolify application metadata and record repository, branch,
-  `git_commit_sha`, resource UUID, domains, deployment id, and image state;
-- inventory persistent volumes, PostgreSQL location/version, auth mode,
-  encrypted-secret key material location, and rollback target without exposing
-  secret values;
-- create and verify database/config/volume backups before any deployment
-  binding changes.
+- identify the exact Coolify application serving
+  `paperclip.luckysparrow.ch`, including project, environment, UUID, repository,
+  branch, SHA, deployment, storage, database, and network relationships;
+- explicitly prove the target is not Soar, Roost, or another preserved VPS
+  application and shares no required dependency with them;
+- record a redacted reconstruction manifest and the smallest safe backup of
+  unique state worth retaining without worsening VPS capacity pressure;
+- require independent security/scope evidence before deletion.
 
 ### 2. Preserve Both Histories
 
 - keep `owner/main` unchanged while it is the suspected production branch;
-- publish the clean local lineage later to a new non-deployment branch such as
+- preserve the old hosted lineage as a recoverable Git branch or tag;
+- publish the clean local lineage to a new non-deployment branch such as
   `softwarehouse-v1`, only after worktree ownership and secret/history scans;
-- retain immutable refs for the confirmed VPS baseline and the first local
-  migration candidate;
-- never force-push, merge unrelated histories, or repoint Coolify during this
-  phase.
+- retain immutable refs for the confirmed hosted baseline and the first local
+  canonical candidate;
+- never force-push or merge unrelated histories; no Paperclip branch is to be
+  bound to Coolify after hosted retirement.
 
-### 3. Harvest Features Locally
+### 3. Retire Only Hosted Paperclip
 
-- create one scoped issue per capability group;
-- port against current local contracts with db/shared/server/UI synchronization;
-- add focused tests, security review, documentation, and migration notes;
-- run locally on strict Paperclip ports `3200` and `54329`;
-- keep hosted-only integrations disabled or read-only until separately proven.
+- use `LUC-1897` for the read-only deletion-boundary PASS/BLOCK decision;
+- allow `LUC-1898` to proceed only after that PASS and a fresh exact-target
+  check;
+- take before evidence for Paperclip, Soar, Roost, every other existing VPS
+  resource, and disk usage;
+- stop and delete only the verified obsolete Paperclip application and storage
+  proven exclusive to it;
+- do not delete its GitHub repository or rewrite its history.
 
-### 4. Rehearse State Migration
+### 4. Prove Unaffected VPS State
 
-- restore a redacted or protected production backup into an isolated rehearsal
-  environment, never over the canonical local or production database;
-- run schema migrations and verify companies, agents, issues, routines,
-  approvals, secrets metadata, plugins, artifacts, and authentication;
-- prove rollback from the candidate schema and application version;
-- test browser flows on desktop and mobile with agents initially paused.
+- verify `paperclip.luckysparrow.ch` no longer serves Paperclip;
+- verify Soar, Roost, and all other pre-existing resources remain present and
+  healthy;
+- record the exact deleted UUIDs and recovered VPS disk capacity;
+- keep reconstruction information available without retaining another running
+  Paperclip copy.
 
-### 5. Stage And Cut Over
+### 5. Canonicalize The Local Repository Lineage
 
-- build the candidate from an exact owner-repository branch and SHA;
-- deploy to a separate staging/blue-green resource when capacity permits;
-- verify health, auth, bootstrap, persistence, background execution, resource
-  use, logs, and critical browser journeys;
-- perform a controlled production cutover only with verified backup, rollback,
-  exact source SHA, monitoring, and owner acceptance;
-- promote the accepted lineage to the canonical release branch only after the
-  old service and data remain recoverable.
+- verify local Paperclip health, persistence, agent execution, and backups;
+- scan the local history for secrets and inappropriate large objects;
+- push the local lineage to a clean branch in
+  `Wroblewski-Patryk/paperclip` without touching the hosted legacy ref;
+- select the local lineage as the repository default only after its remote
+  integrity is proven;
+- document that Paperclip is local-only and that product applications, not the
+  control plane, are deployed to VPS.
 
 ## Completion Evidence
 
-- exact Coolify source/branch/SHA and current production deployment proof;
-- verified backups and restore rehearsal;
-- feature disposition matrix: port, adapt, replace, or retire;
-- clean owner-repository branch containing the local candidate lineage;
-- test, security, review, documentation, deployment, monitoring, and browser
-  evidence attached to the Paperclip issue;
-- rollback drill and final owner acceptance;
-- one documented canonical repository/branch/deployment relationship.
+- exact legacy Coolify target and exclusive dependency proof;
+- independent security PASS and redacted reconstruction manifest;
+- deletion proof for only the hosted Paperclip UUIDs;
+- before/after capacity evidence and unaffected-resource health evidence;
+- healthy authoritative local Paperclip with backup proof;
+- clean owner-repository branch containing the local lineage;
+- one documented canonical repository/local-runtime relationship and no hosted
+  Paperclip deployment.
 
 ## Current Decision
 
-The repository is suitable as the future single owner-controlled source, but
-not through an immediate push to `main`. The safe next implementation lane is
-production-source verification plus a feature-disposition matrix, followed by
-a clean non-deployment branch for the local lineage.
+The hosted retirement and unaffected-resource proof are complete. The remaining
+lane is repository-only: scan the local history and object sizes, publish it to
+a non-deployment branch in the owner repository, verify remote integrity, then
+select the canonical default branch without deploying Paperclip again.

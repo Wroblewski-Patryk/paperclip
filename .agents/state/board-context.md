@@ -26,6 +26,19 @@ evaluated only as input to Roost. Use `Roost` in all current communication,
 plans, issues, code, and UI; any older product label is historical evidence,
 not an active name.
 
+The owner subsequently clarified the deployment model: Paperclip is local-only
+and exists to develop applications on the workstation. The hosted Paperclip at
+`paperclip.luckysparrow.ch` is an obsolete first attempt and should be removed
+to recover limited VPS capacity. This authorization applies only to that exact
+Paperclip resource. Soar, Roost, and every other existing or started VPS
+application, project, domain, database, volume, network, and repository must be
+preserved for future development through local Paperclip.
+
+The exact hosted Paperclip resource and its exclusive volume were removed on
+2026-07-26 under `LUC-1897`/`LUC-1898`. All other VPS applications, the existing
+service, and both databases remained present; Soar and Roost production probes
+continued to return HTTP 200. The old Paperclip domain now returns HTTP 503.
+
 ## 2026-07-26 Application And Business Lifecycle Direction
 
 The owner clarified that autonomous delivery must be understood as a complete

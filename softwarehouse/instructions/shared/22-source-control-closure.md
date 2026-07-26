@@ -79,6 +79,15 @@ historical hosted knowledge/tool behavior only against the current Roost
 company-plane. Use `Roost` as the sole current name in issues, documentation,
 code, UI, and agent communication; older labels are historical evidence only.
 
+Paperclip is a local-only Softwarehouse control plane on strict ports
+`3200`/`54329`; do not deploy a second Paperclip copy to VPS. The obsolete
+first-attempt deployment at `paperclip.luckysparrow.ch` is separately approved
+for exact-target decommission under `LUC-1897`/`LUC-1898`. That approval does
+not extend to Soar, Roost, or any other existing or started VPS application,
+project, domain, database, volume, network, or repository. Preserve all of
+them. Publish the local Paperclip lineage to its owner repository only after
+secret/history/size checks, with no Coolify binding.
+
 For the current LuckySparrow active-app model, a push can intentionally trigger
 Coolify auto-redeploy to VPS production. That is allowed for Soar first and
 Roost second only when the local proof is recorded, the commit bundle is scoped,
