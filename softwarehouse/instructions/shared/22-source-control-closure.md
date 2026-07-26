@@ -63,10 +63,21 @@ Push is allowed only when all of these are true:
 For the local Paperclip control-plane checkout, `HenkDz/paperclip` and
 `paperclipai/paperclip` are external public upstream sources, not LuckySparrow
 publication targets. Never push to either remote under standing autonomous
-release consent. The owner's Paperclip publication repository must be
-separately identified and configured before any Paperclip push. Until that
-mapping is verified, record `push status: not configured` rather than probing
-external remotes with write attempts.
+release consent. The owner repository is `Wroblewski-Patryk/paperclip`, remote
+`owner`. Its `main` is the suspected live VPS lineage and has no merge base
+with the newer local lineage. Never push local HEAD to `owner/main`, force,
+merge unrelated histories, or change its Coolify binding. Follow the governed
+repository-convergence plan: confirm production SHA/backups, preserve both
+histories, use a clean non-deployment candidate branch, port features
+selectively, rehearse state migration, and require rollback plus production
+acceptance evidence before canonical-branch promotion.
+
+Hindsight Memory is retired from the Paperclip convergence scope. Do not port,
+enable, or introduce it: the Softwarehouse memory mechanisms are authoritative,
+and Hindsight adds token cost plus external-service registration. Evaluate any
+historical hosted knowledge/tool behavior only against the current Roost
+company-plane. Use `Roost` as the sole current name in issues, documentation,
+code, UI, and agent communication; older labels are historical evidence only.
 
 For the current LuckySparrow active-app model, a push can intentionally trigger
 Coolify auto-redeploy to VPS production. That is allowed for Soar first and

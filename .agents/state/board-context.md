@@ -8,14 +8,23 @@ The owner clarified that this local Paperclip installation was obtained from
 someone else's public repository. `HenkDz/paperclip` is not the owner's push
 destination, and agents must not treat a configured remote as permission to
 probe it with a write. `paperclipai/paperclip` is likewise an external
-upstream. The intended owner-controlled Paperclip repository is a different
-repository that is not yet identified in the current checkout.
+upstream. The owner-controlled repository is
+`Wroblewski-Patryk/paperclip`, now configured as remote `owner`.
 
 Standing autonomous push consent applies only to an owner-controlled,
 positively verified repository and its intended release/deployment branch.
-Until the Paperclip repository mapping is configured, report its push state as
-`not configured`; do not retry either public upstream, guess the destination,
-or change remotes without verified repository identity.
+The owner's `main` appears to serve the existing VPS Paperclip and has no merge
+base with the newer local history. Do not push local work to `owner/main` or
+merge unrelated histories. Preserve `main`, verify its exact Coolify SHA and
+backups, then publish a clean local candidate to a non-deployment branch and
+rehearse migration under the repository-convergence plan.
+
+Hindsight Memory is explicitly excluded from that convergence: existing
+Softwarehouse memory mechanisms remain authoritative, avoiding duplicate token
+cost and external-service registration. Historical VPS knowledge/tool code is
+evaluated only as input to Roost. Use `Roost` in all current communication,
+plans, issues, code, and UI; any older product label is historical evidence,
+not an active name.
 
 ## 2026-07-26 Application And Business Lifecycle Direction
 

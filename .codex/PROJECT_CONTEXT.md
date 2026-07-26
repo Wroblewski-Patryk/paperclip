@@ -11,9 +11,18 @@ Last updated: 2026-07-26
 - Never attempt an autonomous push to either external repository. Standing
   push consent applies only after the owner's separate Paperclip repository
   and intended branch/deployment binding are positively identified.
-- No owner-controlled Paperclip remote is currently configured in this
-  checkout. Treat Paperclip push state as `not configured`, not as a GitHub
-  permission failure. Do not guess or silently rewire the remote.
+- The owner identified `Wroblewski-Patryk/paperclip`; it is configured locally
+  as remote `owner`. Its `main` is `52209941` and appears to be the source of
+  the healthy VPS service at `paperclip.luckysparrow.ch`.
+- Local HEAD and `owner/main` have no merge base. Never push local HEAD to
+  `owner/main`, merge unrelated histories, or repoint Coolify. Follow
+  `doc/plans/2026-07-26-paperclip-owner-repository-convergence.md`: preserve
+  production, publish the clean local lineage later on a non-deployment
+  branch, keep Hindsight retired, selectively adapt useful hosted behavior to
+  current Roost contracts, rehearse state migration, and cut over with
+  backup/rollback/SHA/browser evidence. Roost is the current product name;
+  older labels in historical sources must not be reused.
+- Paperclip issue `LUC-1896` tracks the convergence lane in backlog.
 
 ## 2026-07-26 Autonomous Application Lifecycle
 
