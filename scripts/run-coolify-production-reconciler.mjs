@@ -255,6 +255,8 @@ function summarizeResources(raw, envIds, fallbackType) {
     kind: fallbackType,
     status: item.status ?? item.state ?? item.applicationStatus ?? item.server_status ?? null,
     serverStatus: item.server_status ?? null,
+    gitBranch: item.git_branch ?? null,
+    gitCommitSha: item.git_commit_sha ?? null,
     hasGitBranch: Boolean(item.git_branch),
     hasGitCommitSha: Boolean(item.git_commit_sha),
   })).filter((item) => item.id || item.name || item.type || item.status);
@@ -268,6 +270,8 @@ function summarizeDirectResource(raw, fallbackType, key) {
     kind: fallbackType,
     status: item.status ?? item.state ?? item.applicationStatus ?? item.server_status ?? null,
     serverStatus: item.server_status ?? null,
+    gitBranch: item.git_branch ?? null,
+    gitCommitSha: item.git_commit_sha ?? null,
     hasGitBranch: Boolean(item.git_branch),
     hasGitCommitSha: Boolean(item.git_commit_sha),
     source: key,
