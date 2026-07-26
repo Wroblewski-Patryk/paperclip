@@ -1,6 +1,30 @@
 # Board Context
 
-Last updated: 2026-07-25
+Last updated: 2026-07-26
+
+## 2026-07-26 Application And Business Lifecycle Direction
+
+The owner clarified that autonomous delivery must be understood as a complete
+business and software lifecycle, not only local code -> commit -> push ->
+Coolify -> browser smoke. The durable operating contract is now
+`PROC-SH-APPLICATION-LIFECYCLE` in
+`docs/softwarehouse/19-autonomous-application-business-lifecycle.md`.
+
+It joins strategic fit and opportunity validation with business framing,
+product/UX acceptance, architecture/data/threat design, scoped implementation,
+automated and user-flow proof, independent review, documentation and
+operational readiness, meaningful source-control release, production
+acceptance, support/observability, business outcome measurement, incidents,
+and systemic learning. Deployment health never implies product or commercial
+readiness by itself.
+
+Paperclip owns live agents, work, policy gates, runs, approvals, blockers, and
+evidence. Roost is the intended owner-facing company procedure/offering/KPI
+projection. Product repositories retain product, architecture, source, test,
+runbook, and release truth. The current hosted Roost integration remains
+read-only, so the Roost procedure contract is `source_only` until a governed
+owner surface/API publishes it with access, freshness, conflict, audit, and
+browser proof.
 
 ## Current Checkpoint
 

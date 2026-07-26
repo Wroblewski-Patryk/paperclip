@@ -30,6 +30,15 @@ Improvement -> Planning.
 Each stage must either attach evidence or record a blocker with the next owner. Empty loops are a
 control-plane failure, not a valid result.
 
+The complete application-and-business state machine, including opportunity
+validation, product/UX acceptance, architecture and threat design,
+source-control closure, deployment, production acceptance, support,
+commercial transition, and organizational learning, is the active procedure
+`PROC-SH-APPLICATION-LIFECYCLE` in
+`docs/softwarehouse/19-autonomous-application-business-lifecycle.md`.
+This architecture summary must not be used to skip one of that procedure's
+entry, evidence, ownership, or exit gates.
+
 ## Durable Workflow Semantics
 
 Paperclip and Codex provide the softwarehouse workflow runtime without adding a second orchestration

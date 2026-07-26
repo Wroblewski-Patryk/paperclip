@@ -1,13 +1,14 @@
 # Softwarehouse Procedure System
 
-Last updated: 2026-07-04
+Last updated: 2026-07-26
 
 Purpose: define how LuckySparrow Softwarehouse agents create, follow, review,
 and improve procedures/flows without acting blindly or creating noisy task
 trees.
 
-This is a Stage 0 configuration contract. It does not create Paperclip issues,
-run routines, or approve Stage 1.
+This began as a Stage 0 configuration contract. The application lifecycle is
+now active for local Softwarehouse V0 application delivery; this document does
+not independently authorize a protected action or a new project.
 
 ## Core Principle
 
@@ -98,6 +99,13 @@ These procedures should guide the first Stage 1 cycles:
 | `PROC-10-SECRET-DEPLOY-GATE` | 10 Prawo | `10 SPA` | gate secrets, production, deploy, privacy, and security-sensitive actions | Paused |
 | `PROC-06-AGENT-HIRING` | 06 Kadry | `06 AIM` | evaluate, approve, create, onboard, and review AI agents | Paused |
 | `PROC-11-PRODUCT-ARCHITECTURE-PREFLIGHT` | 11 Innowacje | `11 SPM` / `11 RPM` | read product architecture and define accepted product outcome before implementation | Paused |
+| `PROC-SH-APPLICATION-LIFECYCLE` | Cross-company | Board / `00 AIA` / Product / Operations / Technology | run an application from strategic fit and validated user problem through implementation, release, production operation, business outcome, and learning | Active |
+
+The active procedure's versioned contract is
+`docs/softwarehouse/19-autonomous-application-business-lifecycle.md`. Narrower
+procedures such as delivery closure, evidence review, and secret/deploy safety
+are subprocesses of that lifecycle and cannot redefine its source boundaries
+or bypass its gates.
 
 ## Procedure Run Record
 

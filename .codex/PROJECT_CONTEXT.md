@@ -1,6 +1,27 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-25
+Last updated: 2026-07-26
+
+## 2026-07-26 Autonomous Application Lifecycle
+
+- The active company-wide procedure is `PROC-SH-APPLICATION-LIFECYCLE`,
+  version 1.0, in
+  `docs/softwarehouse/19-autonomous-application-business-lifecycle.md`.
+- The procedure covers strategic fit, problem validation, business/product/UX
+  acceptance, architecture and threat design, delivery planning,
+  implementation, automated and browser proof, independent review,
+  documentation/operations, release decision, meaningful commit/push,
+  Coolify/VPS deployment, production acceptance, support/observability,
+  business outcomes, incidents, and learning.
+- Paperclip remains the live execution/evidence authority; Roost owns the
+  owner-facing company procedure/offering/KPI projection; product repositories
+  own versioned product, architecture, source, test, and release truth.
+- The shared lifecycle instruction was synchronized to all 39 local agent
+  bundles. Agent-instruction, operating-standard, and strict runtime-topology
+  audits pass.
+- The Roost repository contains a `source_only` projection contract. Do not
+  call it live on the VPS until an authenticated owner surface/API publishes
+  version 1.0 with freshness, conflicts, evidence, and access-denial proof.
 
 ## 2026-07-25 Product Map Archive Checkpoint
 

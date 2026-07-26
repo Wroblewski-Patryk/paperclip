@@ -2,6 +2,11 @@
 
 This SDLC is the default operating contract for Paperclip Softwarehouse agents.
 
+The authoritative end-to-end application and business procedure is
+`PROC-SH-APPLICATION-LIFECYCLE` in
+`docs/softwarehouse/19-autonomous-application-business-lifecycle.md`. The table
+below is its compact engineering-stage projection, not a shorter alternative.
+
 | Stage | Required output | Gate |
 |---|---|---|
 | Discovery | indexed symptoms, impacted apps, repro notes, source files, owners | issue exists and has a clear next action |
@@ -17,6 +22,18 @@ This SDLC is the default operating contract for Paperclip Softwarehouse agents.
 | Monitoring | post-deploy health checks, logs, alarms, production smoke | monitoring evidence attached for high-risk deploys |
 | Retrospective | what failed, what repeated, what changed in process | repeated failures create improvement tasks |
 | Process Improvement | updated docs, scripts, policies, evals, or backlog | closes the PDCA loop with EvalRun PASS when an AgentImprovementTask exists |
+
+Before Discovery, an activated application slice must also pass the lifecycle
+direction, opportunity/problem validation, business framing, and product/UX
+acceptance stages. After Monitoring, an owner-usable application must retain
+an operating/support path, outcome metrics, incident handling, commercial-use
+boundary, and a governed improve/maintain/pause/retire decision. Deployment is
+therefore neither product acceptance nor commercial readiness by itself.
+
+Every stage transition records an accountable owner, current source, entry
+fact, required output, gate state (`verified`, justified `not_applicable`,
+`blocked`, `stale`, or `failed`), evidence reference, and next owner. Only the
+first two gate states allow forward movement.
 
 For agent-authenticated work, the runtime issue API enforces a typed closure gate: `status: done` must include a
 `completionEvidence` bundle with `testEvidence`, `reviewEvidence`, `documentationEvidence`, and a

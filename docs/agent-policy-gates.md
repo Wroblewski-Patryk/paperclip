@@ -17,6 +17,14 @@ Policy gates prevent autonomous agents from calling work done when the company c
 - No AgentImprovementTask closure without EvalRun `PASS`.
 - No normal trace log may contain raw secrets, tokens, passwords, owner credentials,
   private provider payloads, or unredacted sensitive prompts.
+- No application release may treat deployment health as product acceptance or
+  commercial readiness; the declared user journey, operating owner, use
+  boundary, and applicable business gates must also be current.
+- No application lifecycle transition may proceed from `blocked`, `stale`, or
+  `failed` evidence. Only `verified` and justified `not_applicable` are green.
+
+The complete lifecycle and gate ownership matrix is
+`docs/softwarehouse/19-autonomous-application-business-lifecycle.md`.
 
 ## Risky Actions
 

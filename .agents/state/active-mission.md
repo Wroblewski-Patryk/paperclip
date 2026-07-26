@@ -1,5 +1,29 @@
 # Active Mission
 
+## 2026-07-26 - Autonomous Application And Business Lifecycle Active
+
+- The board expanded the standing release direction into a full autonomous
+  application/business operating lifecycle. The active versioned procedure is
+  `PROC-SH-APPLICATION-LIFECYCLE` in
+  `docs/softwarehouse/19-autonomous-application-business-lifecycle.md`.
+- The procedure has 18 accountable stages from direction and problem
+  validation through product/UX/architecture, implementation, independent
+  evidence gates, release/deployment, production acceptance,
+  operations/support, business outcomes, incidents, and learning.
+- Shared agent module
+  `softwarehouse/instructions/shared/21-autonomous-application-lifecycle.md`
+  was fully synchronized to all 39 agent bundles. Instruction audit,
+  operating-standard audit, lifecycle contract tests, and strict runtime
+  topology pass.
+- Roost now has a repository-side company projection contract. It remains
+  `source_only`; hosted publication requires a separately governed write/UI
+  implementation because the active Paperclip-to-Roost bridge is read-only.
+- The procedure preserves standing autonomous pushes for meaningful,
+  evidence-backed application batches and requires Coolify/resource/SHA/API/
+  browser/monitoring proof, while keeping manual deploy/restart/rollback,
+  secrets, destructive actions, paid resources, and live-account mutations
+  separately gated.
+
 ## 2026-07-25 - Corrective Learning Completion Gate - Local Implementation
 
 - Owner direction: repeated or cross-project problems must produce both a
