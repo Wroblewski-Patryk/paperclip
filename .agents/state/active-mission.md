@@ -25,6 +25,10 @@
   service, and both databases remained. Local Paperclip, Soar, and Roost health
   probes pass. `LUC-1896` remains the parent for publishing and canonicalizing
   the local Git lineage without a hosted Paperclip binding.
+- Repository size gates pass (largest reachable blob about 19.4 MiB; none over
+  50 MiB). Publication is held because Gitleaks `8.30.1` found 37 historical
+  candidates in documentation/tests/smoke/sandbox-provider paths. Classify or
+  sanitize them without printing values before pushing the full local history.
 
 ## 2026-07-26 - Autonomous Application And Business Lifecycle Active
 

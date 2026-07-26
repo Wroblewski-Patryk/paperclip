@@ -33,6 +33,10 @@ Last updated: 2026-07-26
   `7cff7696bb5136cb1e0025ac` were removed, all other Coolify inventory remained,
   local Paperclip/Soar/Roost probes passed, and the hosted Paperclip domain now
   returns HTTP 503.
+- Do not push the full local Paperclip history yet. Size checks pass, but a
+  redacted Gitleaks `8.30.1` scan found 37 historical candidates in docs/tests/
+  smoke/sandbox-provider paths. `LUC-1896` must classify or sanitize them before
+  publishing a non-deployment owner branch.
 
 ## 2026-07-26 Autonomous Application Lifecycle
 

@@ -34,6 +34,13 @@ started VPS application remain preserved.
   2938 commits unavailable on `owner/main`.
 - The working tree contains pre-existing unrelated changes, so publishing the
   local lineage is currently held.
+- The local lineage is within GitHub object limits: packed objects total about
+  73.6 MiB, the largest reachable blob is about 19.4 MiB, and no reachable blob
+  exceeds 50 MiB.
+- Gitleaks `8.30.1` reported 37 historical findings, all currently located in
+  documentation, test fixtures, smoke scripts, or sandbox-provider code. They
+  require explicit false-positive/real-secret classification before any full
+  history publication; no secret values were printed during the scan.
 
 ## VPS-Lineage Capability Disposition
 
@@ -125,6 +132,7 @@ older designs must be adapted or rejected, not copied blindly.
 ## Current Decision
 
 The hosted retirement and unaffected-resource proof are complete. The remaining
-lane is repository-only: scan the local history and object sizes, publish it to
-a non-deployment branch in the owner repository, verify remote integrity, then
-select the canonical default branch without deploying Paperclip again.
+lane is repository-only. Object-size checks pass, while the local-history push
+is held behind classification of 37 redacted Gitleaks findings. After that gate
+passes, publish to a non-deployment branch, verify remote integrity, then select
+the canonical default branch without deploying Paperclip again.
