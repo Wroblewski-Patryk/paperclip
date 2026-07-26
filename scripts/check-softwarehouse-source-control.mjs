@@ -172,8 +172,8 @@ function closureLaneFor(repo, group) {
     action: guidance.action,
     evidenceRequired: guidance.evidenceRequired,
     forbidden: repo.name === "Paperclip_Softwarehouse"
-      ? ["push without explicit approval", "mix unrelated project repo changes into this commit"]
-      : ["mutate project files before classification", "push without explicit approval", "deploy or restart production"],
+      ? ["push outside the standing release-consent contract", "mix unrelated project repo changes into this commit"]
+      : ["mutate project files before classification", "push outside the standing release-consent contract", "manual deploy or restart production without explicit approval"],
     sample: group.sample,
   };
 }
@@ -250,7 +250,7 @@ function nextActionFor(repo) {
   if (!repo.git) return "Classify this path before assigning git/source-control work.";
   if (repo.clean) return "No source-control closure action needed.";
   if (repo.name === "Paperclip_Softwarehouse") return "Commit or classify Paperclip OS changes before treating the operating system as stable.";
-  if (repo.name === "Soar") return "Route through Soar PM/source-control closure. Inspect diffs, preserve agent work, decide commit/no-commit, and do not push without explicit approval.";
+  if (repo.name === "Soar") return "Route through Soar PM/source-control closure. Inspect diffs, preserve agent work, and decide commit/no-commit. Push a meaningful evidence-backed batch without asking again when it meets the standing release-consent contract, then verify normal auto-redeploy and production smoke.";
   if (repo.name === "Roost") return "Route through Roost PM/source-control closure before full delivery mode.";
   if (repo.name === "Aviary") return "Route through Aviary PM/source-control closure before full delivery mode.";
   if (repo.name === "Nest") return "Route through Nest PM/source-control closure before full delivery mode.";

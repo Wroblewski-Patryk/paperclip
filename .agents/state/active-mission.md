@@ -1002,3 +1002,21 @@ or the relevant owners explicitly classify them as not required with evidence.
 - Do not infer commercial readiness from this closure. Soar remains `NO-GO`;
   Roost remains guided-pilot-only, and the local Roost Product Map commit is
   not present on the VPS.
+
+## 2026-07-26 - Standing autonomous release execution
+
+- The owner explicitly reaffirmed that meaningful constructive application
+  commits with inspectable evidence should be pushed without asking which
+  commits to push.
+- The default completion path is now local implementation and verification ->
+  coherent commit/batch -> push to the known deployment branch -> normal
+  Coolify/VPS auto-redeploy observation -> deployed-SHA and resource-health
+  proof -> public browser/readiness verification -> recorded outcome and next
+  action.
+- Current release candidates are clean, non-divergent `main` branches: Soar is
+  eight commits ahead of `origin/main`; Roost is eighty commits ahead. Both
+  require post-push deployment/readback evidence before the delivery loop can
+  be called complete.
+- This standing consent does not authorize force-push, manual deploy/restart/
+  rollback, secret mutation or disclosure, destructive operations, paid
+  resource changes, or live-account mutation.

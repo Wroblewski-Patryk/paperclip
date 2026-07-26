@@ -15,6 +15,16 @@ this policy. This standing consent does not allow reckless production mutation.
 Agents must still fail closed when the target, resource count, team/workspace,
 rollback path, server capacity, or required credentials are unknown.
 
+This standing consent also satisfies the approval requirement for pushing a
+meaningful, evidence-backed application batch to its known deployment branch
+when the expected downstream action is the project's normal Coolify
+auto-redeploy. Agents must not stop to ask which qualifying commits to push.
+They must push the coherent batch, observe the redeploy, verify the deployed SHA
+and resource health, perform the relevant public browser/readiness smoke, and
+record the result before treating delivery as complete. Manual deploys,
+restarts, rollbacks, force-pushes, secret changes, destructive actions, and live
+account mutations remain separately gated.
+
 ## Commit Policy
 
 Local commits are expected when a lane has a coherent output and validation or

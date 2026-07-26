@@ -237,6 +237,13 @@ from durable state/memory updates before automatic Soar-first dispatch resumes.
   direction does not authorize force-push, manual deploy, restart, rollback,
   protected smoke beyond the approved proof path, live account mutation, paid
   resource changes, or secret disclosure.
+- Owner reaffirmation as of 2026-07-26: do not pause to ask which meaningful,
+  evidence-backed commits should be pushed. When a coherent application batch
+  has real constructive changes, a clean/non-divergent branch, relevant test
+  evidence, and a known normal Coolify auto-redeploy path, push it
+  autonomously. Then follow the release through Coolify/VPS, verify the public
+  production surface in a browser, record the deployed SHA and evidence, and
+  continue the local-to-remote delivery loop across all affected layers.
 
 ## Current Company Shape
 

@@ -36,6 +36,14 @@ repo you changed, not in Paperclip, unless the issue is about Paperclip itself.
 
 ## Push Rules
 
+The owner's standing release consent permits an autonomous push without a new
+question when the batch is meaningful and constructive, all rules below are
+satisfied, and the only expected production effect is the application's known
+normal Coolify auto-redeploy. A qualifying push must be followed through to
+Coolify/VPS status, deployed-SHA confirmation, and relevant public browser and
+readiness smoke. This consent does not cover manual deploy/restart/rollback,
+force-push, secrets, destructive actions, or live-account mutation.
+
 Push is allowed only when all of these are true:
 
 - the issue, PM, Delivery Lead, or Ops gate explicitly expects a pushed branch

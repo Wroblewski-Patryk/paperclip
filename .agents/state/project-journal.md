@@ -4682,3 +4682,21 @@ runtime; the safe control facts remain
 `projectRepoMutationAllowed=false` and `protectedDeliveryAllowed=false`.
 Soar is still `NO-GO`, Roost remains guided-pilot-only, and no push, VPS
 deployment, protected mutation, or thread archive occurred in this checkpoint.
+
+## 2026-07-26 - Standing push-to-production delivery consent reaffirmed
+
+The owner clarified that autonomous application work must not stop after local
+commits or ask which qualifying commits to push. Meaningful constructive
+changes with a clean, non-divergent branch, scoped verification evidence, and
+a known normal Coolify auto-redeploy path should be pushed automatically. The
+same delivery lane must then observe the VPS redeploy, confirm deployed SHA and
+resource health, inspect the public production UI in a browser, record the
+evidence, and continue with any concrete recovery or next implementation lane.
+
+This is durable standing consent for the normal evidence-backed application
+release path across local code, source control, Coolify/VPS, APIs, and browser
+surfaces. It does not expand authority to force-pushes, manual deploys,
+restarts, rollbacks, secrets, destructive actions, paid-resource changes, or
+live-account mutation. The release policy, shared source-control instructions,
+and generated autonomy-governor wording were aligned so agents execute this
+direction instead of repeatedly requesting the same approval.
