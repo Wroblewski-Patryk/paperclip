@@ -1,13 +1,14 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveLocalCodexCommand } from "./lib/local-codex-command.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const appsRoot = path.resolve(root, "..");
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
-const localCodexCommand = path.join(root, "scripts", "codex.cmd");
+const localCodexCommand = resolveLocalCodexCommand(root);
 const rosterPath = path.join(root, "softwarehouse", "agent-roster.json");
 const commonInstructionsPath = path.join(root, "softwarehouse", "instructions", "common-operating-context.md");
 const roleInstructionsDir = path.join(root, "softwarehouse", "instructions", "roles");

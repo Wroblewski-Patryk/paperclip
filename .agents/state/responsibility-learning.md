@@ -747,3 +747,30 @@ Current evidence:
 - Issue-update helper tests pass `2/2`.
 - Adapter prompt tests pass `36` with `3` unrelated skips.
 - Shared, adapter-utils, and server typechecks pass.
+
+## 2026-07-26 - Windows agent commands must bypass batch argument forwarding
+
+Observed pattern: managed Codex agents used `scripts/codex.cmd` as their
+command while Roost CompanyCore MCP settings supplied quoted TOML values and
+Windows paths through `-c`. Batch forwarding re-parsed those arguments, so
+Codex rejected the final stdin marker with `unexpected argument '-'` before a
+model turn began. The failure repeated across AIA, CTO, DRE, and Roost PM.
+
+Standing rule:
+
+- Resolve the platform-native Codex executable from the installed optional
+  package and persist that executable as the agent command.
+- Do not use `.cmd` forwarding for structured CLI arguments containing quoted
+  TOML, JSON, or Windows paths.
+- Audit both the default adapter configuration and every model-profile
+  adapter configuration against the native command.
+- Prove recovery with an actual run using the formerly failing argument set;
+  clearing a stale `error` status alone is not repair evidence.
+
+Current evidence:
+
+- Native-command resolver tests pass `2/2` on Codex CLI `0.133.0`.
+- Full managed synchronization updated `39/39` agents.
+- Agent-settings audit reports zero findings.
+- AIA and CTO completed post-fix runs with the quoted CompanyCore MCP
+  configuration and explicit stdin `-` argument.

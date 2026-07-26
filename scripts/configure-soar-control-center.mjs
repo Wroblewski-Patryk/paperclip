@@ -1,13 +1,14 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { softwarehousePilotActiveRoutineTitles } from "./lib/softwarehouse-active-routines.mjs";
+import { resolveLocalCodexCommand } from "./lib/local-codex-command.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const appsRoot = path.resolve(root, "..");
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
-const localCodexCommand = path.join(root, "scripts", "codex.cmd");
+const localCodexCommand = resolveLocalCodexCommand(root);
 
 const activeRoutineTitles = softwarehousePilotActiveRoutineTitles;
 

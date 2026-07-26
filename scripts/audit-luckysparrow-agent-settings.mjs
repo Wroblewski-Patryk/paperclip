@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveLocalCodexCommand } from "./lib/local-codex-command.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -8,6 +9,7 @@ const appsRoot = path.resolve(root, "..");
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const rosterPath = path.join(root, "softwarehouse", "agent-roster.json");
+const localCodexCommand = resolveLocalCodexCommand(root);
 
 async function request(method, route, body) {
   const response = await fetch(`${apiBase}${route}`, {
@@ -30,7 +32,7 @@ function normalizePath(value) {
 function expectedAdapterConfig(roster, laneKey) {
   const lane = roster.modelPolicy[laneKey];
   return {
-    command: path.join(root, "scripts", "codex.cmd"),
+    command: localCodexCommand,
     cwd: expectedWorkspaceCwd(roster, null),
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,

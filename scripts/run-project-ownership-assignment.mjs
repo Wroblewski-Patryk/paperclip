@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
+import { resolveLocalCodexCommand } from "./lib/local-codex-command.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -11,7 +12,7 @@ const companyName = "LuckySparrow Software House";
 const companyNameAliases = [companyName, "LuckySparrow"];
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const apply = process.argv.includes("--apply");
-const localCodexCommand = path.join(root, "scripts", "codex.cmd");
+const localCodexCommand = resolveLocalCodexCommand(root);
 const rosterPath = path.join(root, "softwarehouse", "agent-roster.json");
 const sharedDir = path.join(root, "softwarehouse", "instructions", "shared");
 const rolesDir = path.join(root, "softwarehouse", "instructions", "roles");
