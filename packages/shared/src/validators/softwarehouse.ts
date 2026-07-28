@@ -131,6 +131,98 @@ export const softwarehouseControlStatusResponseSchema = z.object({
   }),
 });
 
+export const roostBridgePortfolioSchemaVersion = "1.0" as const;
+export const roostBridgePortfolioRouteVersion = "v1" as const;
+export const roostBridgePortfolioSourceVersion = "softwarehouse-status-v1" as const;
+
+const boundedCountMapSchema = z.record(z.string(), z.number().int().nonnegative());
+
+export const roostBridgePortfolioAggregateSchema = z.object({
+  total: z.number().int().nonnegative(),
+  byStatus: boundedCountMapSchema,
+  limit: z.number().int().positive(),
+  truncated: z.boolean(),
+}).strict();
+
+export const roostBridgePortfolioItemSchema = z.object({
+  offeringId: z.string().min(1),
+  companyId: z.string().min(1),
+  paperclipProjectId: z.string().min(1).nullable(),
+  paperclipProjectName: z.string().min(1),
+  paperclipProjectLink: z.string().min(1).nullable(),
+  lifecycleStage: z.string().min(1),
+  offeringType: z.string().min(1),
+  mappingState: z.enum(["mapped", "unmapped"]),
+  conflictState: z.enum([
+    "none",
+    "project_mapping_conflict",
+    "owner_surface_unavailable",
+  ]),
+  supersessionState: z.enum(["current", "superseded", "unknown"]),
+  sourceControl: z.object({
+    branch: z.string().nullable(),
+    sourceSha: z.string().nullable(),
+    deployedSha: z.string().nullable(),
+    versionAlignment: z.enum(["aligned", "different", "unknown"]),
+  }).strict(),
+  readiness: z.object({
+    status: z.enum(["GO", "NO-GO", "UNKNOWN"]),
+    decision: z.string().nullable(),
+    evidenceState: z.enum(["complete", "missing", "unknown"]),
+    zeroGapButNoGo: z.boolean(),
+    totalGaps: z.number().int().nonnegative(),
+    nextGate: z.string().nullable(),
+  }).strict(),
+  aggregates: z.object({
+    issues: roostBridgePortfolioAggregateSchema.extend({
+      withCompletionEvidence: z.number().int().nonnegative(),
+    }).strict(),
+    runs: roostBridgePortfolioAggregateSchema,
+    approvals: roostBridgePortfolioAggregateSchema.extend({
+      pending: z.number().int().nonnegative(),
+    }).strict(),
+    evidence: roostBridgePortfolioAggregateSchema.extend({
+      healthy: z.number().int().nonnegative(),
+      reviewed: z.number().int().nonnegative(),
+    }).strict(),
+  }).strict(),
+  provenance: z.object({
+    controlStatusPath: z.string().min(1),
+    controlStatusObservedAt: z.string().datetime().nullable(),
+    readinessSourcePath: z.string().min(1).nullable(),
+    readinessSourceUpdatedAt: z.string().datetime().nullable(),
+    ownerSurfacePath: z.string().min(1).nullable(),
+    ownerSurfaceUpdatedAt: z.string().datetime().nullable(),
+  }).strict(),
+}).strict();
+
+export const roostBridgePortfolioProjectionSchema = z.object({
+  schemaVersion: z.literal(roostBridgePortfolioSchemaVersion),
+  sourceVersion: z.literal(roostBridgePortfolioSourceVersion),
+  compatibility: z.object({
+    routeVersion: z.literal(roostBridgePortfolioRouteVersion),
+    supportedSchemaVersions: z.tuple([z.literal(roostBridgePortfolioSchemaVersion)]),
+    backwardCompatibleWith: z.tuple([]),
+  }).strict(),
+  observedAt: z.string().datetime(),
+  companyId: z.string().min(1),
+  sourceSnapshotId: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+  sourceState: z.enum(["available", "unavailable", "timed_out"]),
+  stale: z.boolean(),
+  conflictState: z.enum([
+    "none",
+    "source_unavailable",
+    "project_mapping_conflict",
+    "owner_surface_unavailable",
+  ]),
+  supersessionState: z.enum(["current", "superseded", "unknown"]),
+  failure: z.object({
+    code: z.enum(["source_unavailable", "source_timeout"]),
+    retryable: z.boolean(),
+  }).strict().nullable(),
+  items: z.array(roostBridgePortfolioItemSchema),
+}).strict();
+
 export type SoftwarehouseIssueTemplateKind = z.infer<typeof softwarehouseIssueTemplateKindSchema>;
 export type SoftwarehouseIssueTemplate = z.infer<typeof softwarehouseIssueTemplateSchema>;
 export type SoftwarehouseIssueTemplateCatalogResponse = z.infer<typeof softwarehouseIssueTemplateCatalogResponseSchema>;
@@ -138,3 +230,6 @@ export type SoftwarehouseControlGate = z.infer<typeof softwarehouseControlGateSc
 export type SoftwarehouseProjectTruthGap = z.infer<typeof softwarehouseProjectTruthGapSchema>;
 export type SoftwarehouseProjectTruthStatus = z.infer<typeof softwarehouseProjectTruthStatusSchema>;
 export type SoftwarehouseControlStatusResponse = z.infer<typeof softwarehouseControlStatusResponseSchema>;
+export type RoostBridgePortfolioAggregate = z.infer<typeof roostBridgePortfolioAggregateSchema>;
+export type RoostBridgePortfolioItem = z.infer<typeof roostBridgePortfolioItemSchema>;
+export type RoostBridgePortfolioProjection = z.infer<typeof roostBridgePortfolioProjectionSchema>;

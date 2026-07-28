@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { Db } from "@paperclipai/db";
 import {
+  roostBridgePortfolioRouteVersion,
   softwarehouseControlStatusResponseSchema,
   softwarehouseIssueTemplateCatalogResponseSchema,
   type SoftwarehouseControlStatusResponse,
@@ -8,6 +10,11 @@ import {
   type SoftwarehouseIssueTemplateCatalogResponse,
 } from "@paperclipai/shared";
 import { Router } from "express";
+import { HttpError, unprocessable } from "../errors.js";
+import {
+  buildRoostBridgePortfolioProjection,
+  createRoostBridgePortfolioRepository,
+} from "../services/roost-bridge-portfolio.js";
 import { assertCompanyAccess } from "./authz.js";
 
 function resolveWorkspaceRoot() {
@@ -719,8 +726,27 @@ export async function loadSoftwarehouseControlStatus(
   return softwarehouseControlStatusResponseSchema.parse(response);
 }
 
-export function softwarehouseRoutes() {
+export function softwarehouseRoutes(db?: Db) {
   const router = Router();
+
+  router.get("/companies/:companyId/softwarehouse/portfolio-projection/:version", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    const version = req.params.version as string;
+    assertCompanyAccess(req, companyId);
+    if (version !== roostBridgePortfolioRouteVersion) {
+      throw unprocessable("Unsupported Roost bridge portfolio projection version", {
+        requestedVersion: version,
+        supportedRouteVersions: [roostBridgePortfolioRouteVersion],
+      });
+    }
+    if (!db) throw new HttpError(503, "Portfolio projection data source is unavailable");
+
+    res.json(await buildRoostBridgePortfolioProjection({
+      companyId,
+      repository: createRoostBridgePortfolioRepository(db),
+      loadControlStatus: () => loadSoftwarehouseControlStatus(),
+    }));
+  });
 
   router.get("/companies/:companyId/softwarehouse/status", async (req, res) => {
     const companyId = req.params.companyId as string;

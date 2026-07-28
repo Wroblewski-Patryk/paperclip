@@ -20,6 +20,7 @@ scoped and inspectable.
 | CompanySituation | Deterministic company-scoped projection over goals, projects, issues, agents, approvals, and budget incidents | `server/src/services/company-situation.ts` |
 | OrganizationalRecord | Typed assumption, commitment, or decision with lifecycle, owner, evidence, review timing, and supersession | `packages/db/src/schema/organizational_records.ts` |
 | OrganizationalObservation | Source-backed outcome, causal finding, external signal, or learning candidate with freshness and governed promotion | `packages/db/src/schema/organizational_observations.ts` |
+| RoostPortfolioProjectionV1 | Versioned, company-scoped, read-only projection of stable offerings/projects, bounded execution/evidence aggregates, readiness, SHA alignment, and fail-closed source state for Roost consumption | `server/src/services/roost-bridge-portfolio.ts` |
 
 ## Operating Flow
 

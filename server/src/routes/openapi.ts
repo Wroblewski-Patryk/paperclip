@@ -4156,6 +4156,7 @@ for (const route of [
   ["/api/companies/{companyId}/costs/model-profiles", "List model-profile cost summaries"],
   ["/api/companies/{companyId}/secrets/metadata", "List secret metadata"],
   ["/api/companies/{companyId}/softwarehouse/status", "Get softwarehouse control status"],
+  ["/api/companies/{companyId}/softwarehouse/portfolio-projection/{version}", "Get versioned read-only Roost bridge portfolio projection"],
   ["/api/companies/{companyId}/softwarehouse/knowledge", "Get softwarehouse knowledge catalog"],
   ["/api/companies/{companyId}/softwarehouse/tools", "Get softwarehouse tool catalog"],
   ["/api/companies/{companyId}/softwarehouse/backlog", "Get softwarehouse backlog"],

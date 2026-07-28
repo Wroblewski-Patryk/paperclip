@@ -79,6 +79,38 @@ describe("softwarehouse issue template catalog route", () => {
   });
 });
 
+describe("Roost bridge portfolio projection route", () => {
+  it("denies cross-company reads before resolving projection inputs", async () => {
+    const response = await request(createApp({
+      type: "board",
+      source: "session",
+      userId: "user-1",
+      companyIds: ["company-2"],
+      memberships: [{ companyId: "company-2", membershipRole: "operator", status: "active" }],
+    })).get("/api/companies/company-1/softwarehouse/portfolio-projection/v1");
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toBe("User does not have access to this company");
+  });
+
+  it("rejects incompatible route versions explicitly", async () => {
+    const response = await request(createApp({
+      type: "board",
+      source: "session",
+      userId: "user-1",
+      companyIds: ["company-1"],
+      memberships: [{ companyId: "company-1", membershipRole: "operator", status: "active" }],
+    })).get("/api/companies/company-1/softwarehouse/portfolio-projection/v2");
+
+    expect(response.status).toBe(422);
+    expect(response.body.error).toBe("Unsupported Roost bridge portfolio projection version");
+    expect(response.body.details).toEqual({
+      requestedVersion: "v2",
+      supportedRouteVersions: ["v1"],
+    });
+  });
+});
+
 describe("softwarehouse control status", () => {
   it("normalizes the readiness snapshot into a safe owner-facing contract", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-softwarehouse-status-"));

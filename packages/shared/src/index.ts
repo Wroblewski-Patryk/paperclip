@@ -1461,6 +1461,12 @@ export {
   softwarehouseProjectTruthGapSchema,
   softwarehouseProjectTruthStatusSchema,
   softwarehouseControlStatusResponseSchema,
+  roostBridgePortfolioAggregateSchema,
+  roostBridgePortfolioItemSchema,
+  roostBridgePortfolioProjectionSchema,
+  roostBridgePortfolioRouteVersion,
+  roostBridgePortfolioSchemaVersion,
+  roostBridgePortfolioSourceVersion,
   type SoftwarehouseIssueTemplate,
   type SoftwarehouseIssueTemplateCatalogResponse,
   type SoftwarehouseIssueTemplateKind,
@@ -1468,6 +1474,9 @@ export {
   type SoftwarehouseProjectTruthGap,
   type SoftwarehouseProjectTruthStatus,
   type SoftwarehouseControlStatusResponse,
+  type RoostBridgePortfolioAggregate,
+  type RoostBridgePortfolioItem,
+  type RoostBridgePortfolioProjection,
 } from "./validators/softwarehouse.js";
 
 export {

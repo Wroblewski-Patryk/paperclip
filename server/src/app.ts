@@ -238,7 +238,7 @@ export async function createApp(
   api.use(resourceMembershipRoutes(db));
   api.use(inboxDismissalRoutes(db));
   api.use(instanceSettingsRoutes(db));
-  api.use(softwarehouseRoutes());
+  api.use(softwarehouseRoutes(db));
   api.use(teamsCatalogRoutes(db));
   if (opts.databaseBackupService) {
     api.use(instanceDatabaseBackupRoutes(opts.databaseBackupService));
