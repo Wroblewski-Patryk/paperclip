@@ -99,9 +99,21 @@ export function classifyLearningGapFromIssues(key, issues) {
   const text = issues.map((issue) => `${issue.title}\n${issue.description ?? ""}`).join("\n").toLowerCase();
   const seededOnlyBySupersededProjectTruthDispatch = issues.length > 0
     && issues.every((issue) => isSupersededOrDetachedProjectTruthDispatcherIssue(key, issue));
+  const sourceControlIssues = issues.filter((issue) =>
+    isProjectMutationSourceControlGuard(issue) || isNonReleaseRootEvidence(issue)
+  );
+  const sourceControlSemantics = sourceControlIssues.length > 0;
+  const sourceControlRoot = sourceControlIssues.find((issue) => issueMatchesKey(issue, key));
+  const securityText = sourceControlRoot
+    ? `${sourceControlRoot.title}\n${sourceControlRoot.description ?? ""}`.toLowerCase()
+    : sourceControlSemantics
+    ? sourceControlIssues.map((issue) => `${issue.title}\n${issue.description ?? ""}`).join("\n").toLowerCase()
+    : text;
+  const affirmativeSecurityEvidence = /\b(?:secret|credential|token|api key|password)[^.\n]{0,100}\b(?:expos(?:ed|ure)?|leak(?:ed|age)?|compromis(?:ed|e)?|rotat(?:e|ed|ion)|revoke|unauthori[sz]ed|missing|required|denied|forbidden|expired|invalid)\b|\b(?:expos(?:ed|ure)?|leak(?:ed|age)?|compromis(?:ed|e)?|rotat(?:e|ed|ion)|revoke)\b[^.\n]{0,100}\b(?:secret|credential|token|api key|password)\b|\b(?:auth(?:entication)?|authori[sz]ation|permission|account)[^.\n]{0,100}\b(?:fail(?:ed|ure)?|denied|missing|required|forbidden|expired|invalid|unauthori[sz]ed)\b|\b(?:provide|approved?|bind|authenticate|authorize)[^.\n]{0,100}\b(?:protected|production)[-\s]*smoke\b[^.\n]{0,100}\b(?:auth|credential|secret|token|principal|account|authori[sz]|permission)\b/.test(securityText);
   if (
     /auth|secret|credential|token|permission|account|security/.test(text)
     && !seededOnlyBySupersededProjectTruthDispatch
+    && (!sourceControlSemantics || affirmativeSecurityEvidence)
   ) return {
     area: "security-credentials",
     owner: "Security Review Lead",
@@ -547,6 +559,10 @@ function isRecoveryRepairEvidence(issue) {
 
 function isNonReleaseRootEvidence(issue) {
   const text = `${issue?.title ?? ""}\n${issue?.description ?? ""}`.toLowerCase();
+  if (
+    /source-control closure sweep|source control closure sweep/.test(text)
+    && /dirty groups?|commit\/no-commit|commit\/no commit/.test(text)
+  ) return true;
   return /source-level|source map|source-map|source control|source-control|backend|api|auth map|fix-lane stub/.test(text)
     && !/release permit|redeploy|restart|coolify|vps|rollback|production proof packet|protected journey proof/.test(text);
 }

@@ -251,6 +251,54 @@ test("classifyLearningGapFromIssues prioritizes credential rotation over deploy-
   });
 });
 
+test("classifyLearningGapFromIssues suppresses negative secret boilerplate for source-control guards", () => {
+  const gap = classifyLearningGapFromIssues("LUC-1904", [
+    {
+      identifier: "LUC-1904",
+      status: "blocked",
+      title: "[Soar] Source-control closure sweep",
+      description: [
+        "Use the generated source-control packet to classify dirty groups, ownership, evidence, verification needs, and commit/no-commit decisions.",
+        "No push, deploy, restart, production mutation, protected smoke, or secret access occurs in this sweep.",
+      ].join("\n"),
+    },
+    {
+      identifier: "LUC-1905",
+      status: "blocked",
+      title: "[Soar] Wait for source-control closure",
+      description: "Blocked by the source-control owner packet; do not print or access secret values.",
+    },
+  ]);
+
+  assert.deepEqual(gap, {
+    area: "ops-release",
+    owner: "Ops Release Lead",
+    title: "[Softwarehouse][Learning] Ops/release blocker pattern LUC-1904",
+    boundary: "release/deploy evidence, rollback, and protected gate contract",
+  });
+});
+
+test("classifyLearningGapFromIssues retains protected-smoke credential routing for source-control guards", () => {
+  const gap = classifyLearningGapFromIssues("LUC-1904", [
+    {
+      identifier: "LUC-1904",
+      status: "blocked",
+      title: "[Soar] Source-control closure sweep",
+      description: [
+        "Use the generated source-control packet to classify dirty groups and make a commit/no-commit decision.",
+        "Provide the approved protected-smoke auth binding before the next smoke run.",
+      ].join("\n"),
+    },
+  ]);
+
+  assert.deepEqual(gap, {
+    area: "security-credentials",
+    owner: "Security Review Lead",
+    title: "[Softwarehouse][Learning] Security/credential blocker pattern LUC-1904",
+    boundary: "credential/account proof and least-privilege unblock path",
+  });
+});
+
 test("classifyLearningGapFromIssues does not route superseded project-truth dispatcher gaps into security credentials", () => {
   const gap = classifyLearningGapFromIssues("LUC-1688", [
     {
