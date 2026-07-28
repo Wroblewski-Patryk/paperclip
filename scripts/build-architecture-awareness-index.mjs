@@ -91,6 +91,7 @@ const generatedOutputFiles = new Set([
 
 const ignoredDirs = new Set([
   ".paperclip",
+  ".tmp",
   ".codex",
   ".claude",
   ".cursor",
