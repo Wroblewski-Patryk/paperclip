@@ -277,6 +277,7 @@ Rules:
 - omit `baseRevisionId` when creating a new document
 - provide the current `baseRevisionId` when updating an existing document
 - stale `baseRevisionId` returns `409 Conflict`
+- NUL characters in `title`, `body`, or `changeSummary` return `400 Validation error`; PostgreSQL text fields cannot represent them
 
 ### Revision History
 

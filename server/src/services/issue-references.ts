@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   documentAnnotationComments,
@@ -114,6 +114,29 @@ function diffIssueSummaries(
 }
 
 export function issueReferenceService(db: Db) {
+  function sourceLockKey(input: {
+    sourceIssueId: string;
+    sourceKind: IssueReferenceSourceKind;
+    sourceRecordId?: string | null;
+  }) {
+    return `issue-reference:${input.sourceKind}:${input.sourceRecordId ?? input.sourceIssueId}`;
+  }
+
+  async function lockSourceMentions(
+    input: {
+      sourceIssueId: string;
+      sourceKind: IssueReferenceSourceKind;
+      sourceRecordId?: string | null;
+    },
+    tx: any,
+  ) {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${sourceLockKey(input)}, 0))`);
+  }
+
+  function inTransaction<T>(dbOrTx: any, work: (tx: any) => Promise<T>): Promise<T> {
+    return dbOrTx === db ? db.transaction(work) : work(dbOrTx);
+  }
+
   async function replaceSourceMentions(
     input: {
       companyId: string;
@@ -125,6 +148,7 @@ export function issueReferenceService(db: Db) {
     },
     dbOrTx: any = db,
   ) {
+    await lockSourceMentions(input, dbOrTx);
     const matches = extractIssueReferenceMatches(input.text ?? "");
     const identifiers = matches.map((match) => match.identifier);
     type ResolvedTargetRow = {
@@ -189,6 +213,11 @@ export function issueReferenceService(db: Db) {
 
   async function syncIssue(issueId: string, dbOrTx: any = db) {
     const runSync = async (tx: any) => {
+      // Lock both mutable issue fields before reading either one.  Keep this
+      // order stable for every caller so concurrent issue synchronizations
+      // cannot deadlock while obtaining their two source locks.
+      await lockSourceMentions({ sourceIssueId: issueId, sourceKind: "title" }, tx);
+      await lockSourceMentions({ sourceIssueId: issueId, sourceKind: "description" }, tx);
       const issue = await issueById(issueId, tx);
       if (!issue) throw notFound("Issue not found");
 
@@ -211,91 +240,103 @@ export function issueReferenceService(db: Db) {
       }, tx);
     };
 
-    return dbOrTx === db ? db.transaction(runSync) : runSync(dbOrTx);
+    return inTransaction(dbOrTx, runSync);
   }
 
   async function syncComment(commentId: string, dbOrTx: any = db) {
-    const comment = await dbOrTx
-      .select({
-        id: issueComments.id,
-        companyId: issueComments.companyId,
-        issueId: issueComments.issueId,
-        body: issueComments.body,
-        deletedAt: issueComments.deletedAt,
-      })
-      .from(issueComments)
-      .where(eq(issueComments.id, commentId))
-      .then((rows: Array<{ id: string; companyId: string; issueId: string; body: string }>) => rows[0] ?? null);
-    if (!comment) throw notFound("Issue comment not found");
+    return inTransaction(dbOrTx, async (tx) => {
+      await lockSourceMentions({ sourceIssueId: commentId, sourceKind: "comment", sourceRecordId: commentId }, tx);
+      const comment = await tx
+        .select({
+          id: issueComments.id,
+          companyId: issueComments.companyId,
+          issueId: issueComments.issueId,
+          body: issueComments.body,
+          deletedAt: issueComments.deletedAt,
+        })
+        .from(issueComments)
+        .where(eq(issueComments.id, commentId))
+        .then((rows: Array<{ id: string; companyId: string; issueId: string; body: string; deletedAt: Date | null }>) => rows[0] ?? null);
+      if (!comment) throw notFound("Issue comment not found");
 
-    await replaceSourceMentions({
-      companyId: comment.companyId,
-      sourceIssueId: comment.issueId,
-      sourceKind: "comment",
-      sourceRecordId: comment.id,
-      documentKey: null,
-      text: comment.deletedAt ? "" : comment.body,
-    }, dbOrTx);
+      await replaceSourceMentions({
+        companyId: comment.companyId,
+        sourceIssueId: comment.issueId,
+        sourceKind: "comment",
+        sourceRecordId: comment.id,
+        documentKey: null,
+        text: comment.deletedAt ? "" : comment.body,
+      }, tx);
+    });
   }
 
   async function syncAnnotationComment(commentId: string, dbOrTx: any = db) {
-    const comment = await dbOrTx
-      .select({
-        id: documentAnnotationComments.id,
-        companyId: documentAnnotationComments.companyId,
-        issueId: documentAnnotationComments.issueId,
-        body: documentAnnotationComments.body,
-      })
-      .from(documentAnnotationComments)
-      .where(eq(documentAnnotationComments.id, commentId))
-      .then((rows: Array<{ id: string; companyId: string; issueId: string; body: string }>) => rows[0] ?? null);
-    if (!comment) throw notFound("Document annotation comment not found");
+    return inTransaction(dbOrTx, async (tx) => {
+      await lockSourceMentions({ sourceIssueId: commentId, sourceKind: "comment", sourceRecordId: commentId }, tx);
+      const comment = await tx
+        .select({
+          id: documentAnnotationComments.id,
+          companyId: documentAnnotationComments.companyId,
+          issueId: documentAnnotationComments.issueId,
+          body: documentAnnotationComments.body,
+        })
+        .from(documentAnnotationComments)
+        .where(eq(documentAnnotationComments.id, commentId))
+        .then((rows: Array<{ id: string; companyId: string; issueId: string; body: string }>) => rows[0] ?? null);
+      if (!comment) throw notFound("Document annotation comment not found");
 
-    await replaceSourceMentions({
-      companyId: comment.companyId,
-      sourceIssueId: comment.issueId,
-      sourceKind: "comment",
-      sourceRecordId: comment.id,
-      documentKey: null,
-      text: comment.body,
-    }, dbOrTx);
+      await replaceSourceMentions({
+        companyId: comment.companyId,
+        sourceIssueId: comment.issueId,
+        sourceKind: "comment",
+        sourceRecordId: comment.id,
+        documentKey: null,
+        text: comment.body,
+      }, tx);
+    });
   }
 
   async function syncDocument(documentId: string, dbOrTx: any = db) {
-    const document = await dbOrTx
-      .select({
-        documentId: documents.id,
-        companyId: documents.companyId,
-        issueId: issueDocuments.issueId,
-        key: issueDocuments.key,
-        body: documents.latestBody,
-      })
-      .from(issueDocuments)
-      .innerJoin(documents, eq(issueDocuments.documentId, documents.id))
-      .where(eq(documents.id, documentId))
-      .then((rows: Array<{ documentId: string; companyId: string; issueId: string; key: string; body: string }>) => rows[0] ?? null);
+    return inTransaction(dbOrTx, async (tx) => {
+      await lockSourceMentions({ sourceIssueId: documentId, sourceKind: "document", sourceRecordId: documentId }, tx);
+      const document = await tx
+        .select({
+          documentId: documents.id,
+          companyId: documents.companyId,
+          issueId: issueDocuments.issueId,
+          key: issueDocuments.key,
+          body: documents.latestBody,
+        })
+        .from(issueDocuments)
+        .innerJoin(documents, eq(issueDocuments.documentId, documents.id))
+        .where(eq(documents.id, documentId))
+        .then((rows: Array<{ documentId: string; companyId: string; issueId: string; key: string; body: string }>) => rows[0] ?? null);
 
-    if (!document) {
-      await dbOrTx
-        .delete(issueReferenceMentions)
-        .where(and(eq(issueReferenceMentions.sourceKind, "document"), eq(issueReferenceMentions.sourceRecordId, documentId)));
-      return;
-    }
+      if (!document) {
+        await tx
+          .delete(issueReferenceMentions)
+          .where(and(eq(issueReferenceMentions.sourceKind, "document"), eq(issueReferenceMentions.sourceRecordId, documentId)));
+        return;
+      }
 
-    await replaceSourceMentions({
-      companyId: document.companyId,
-      sourceIssueId: document.issueId,
-      sourceKind: "document",
-      sourceRecordId: document.documentId,
-      documentKey: document.key,
-      text: document.body,
-    }, dbOrTx);
+      await replaceSourceMentions({
+        companyId: document.companyId,
+        sourceIssueId: document.issueId,
+        sourceKind: "document",
+        sourceRecordId: document.documentId,
+        documentKey: document.key,
+        text: document.body,
+      }, tx);
+    });
   }
 
   async function deleteDocumentSource(documentId: string, dbOrTx: any = db) {
-    await dbOrTx
-      .delete(issueReferenceMentions)
-      .where(and(eq(issueReferenceMentions.sourceKind, "document"), eq(issueReferenceMentions.sourceRecordId, documentId)));
+    return inTransaction(dbOrTx, async (tx) => {
+      await lockSourceMentions({ sourceIssueId: documentId, sourceKind: "document", sourceRecordId: documentId }, tx);
+      await tx
+        .delete(issueReferenceMentions)
+        .where(and(eq(issueReferenceMentions.sourceKind, "document"), eq(issueReferenceMentions.sourceRecordId, documentId)));
+    });
   }
 
   async function syncAllForIssue(issueId: string, dbOrTx: any = db) {

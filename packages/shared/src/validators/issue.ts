@@ -934,11 +934,19 @@ export const ISSUE_DOCUMENT_FORMATS = ["markdown"] as const;
 
 export const issueDocumentFormatSchema = z.enum(ISSUE_DOCUMENT_FORMATS);
 
+const containsNoNul = (value: string) => !value.includes("\0");
+
 export const upsertIssueDocumentSchema = z.object({
-  title: z.string().trim().max(200).nullable().optional(),
+  title: z.string().trim().max(200).refine(containsNoNul, {
+    message: "Document title cannot contain NUL characters",
+  }).nullable().optional(),
   format: issueDocumentFormatSchema,
-  body: multilineTextSchema.pipe(z.string().max(524288)),
-  changeSummary: z.string().trim().max(500).nullable().optional(),
+  body: multilineTextSchema.pipe(z.string().max(524288).refine(containsNoNul, {
+    message: "Document body cannot contain NUL characters",
+  })),
+  changeSummary: z.string().trim().max(500).refine(containsNoNul, {
+    message: "Document change summary cannot contain NUL characters",
+  }).nullable().optional(),
   baseRevisionId: z.string().uuid().nullable().optional(),
 });
 

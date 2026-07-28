@@ -534,6 +534,21 @@ describe("agent issue mutation checkout ownership", () => {
     );
   });
 
+  it("rejects NUL document content before persistence", async () => {
+    const app = await createApp(ownerActor());
+
+    const response = await request(app)
+      .put(`/api/issues/${issueId}/documents/plan`)
+      .send({ format: "markdown", body: `before\0after` });
+
+    expect(response.status, JSON.stringify(response.body)).toBe(400);
+    expect(response.body).toMatchObject({
+      error: "Validation error",
+      details: [expect.objectContaining({ path: ["body"] })],
+    });
+    expect(mockDocumentService.upsertIssueDocument).not.toHaveBeenCalled();
+  });
+
   it.each([
     [
       "work product create",

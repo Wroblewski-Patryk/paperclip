@@ -241,4 +241,115 @@ describeEmbeddedPostgres("issueReferenceService", () => {
     expect(summary.outbound[0]?.mentionCount).toBe(2);
     expect(summary.outbound[0]?.sources.map((source) => source.label)).toEqual(["plan", "comment"]);
   });
+
+  it("serializes concurrent document reference synchronization", async () => {
+    const companyId = randomUUID();
+    const sourceIssueId = randomUUID();
+    const targetIssueId = randomUUID();
+    const documentId = randomUUID();
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Concurrent document references",
+      issuePrefix: `C${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(issues).values([
+      {
+        id: sourceIssueId,
+        companyId,
+        title: "Source",
+        status: "todo",
+        priority: "medium",
+        identifier: "PAP-100",
+      },
+      {
+        id: targetIssueId,
+        companyId,
+        title: "Target",
+        status: "todo",
+        priority: "medium",
+        identifier: "PAP-200",
+      },
+    ]);
+    await db.insert(documents).values({
+      id: documentId,
+      companyId,
+      title: "Plan",
+      format: "markdown",
+      latestBody: "See PAP-200.",
+      latestRevisionNumber: 1,
+    });
+    await db.insert(issueDocuments).values({
+      companyId,
+      issueId: sourceIssueId,
+      documentId,
+      key: "plan",
+    });
+
+    await Promise.all(Array.from({ length: 8 }, () => refs.syncDocument(documentId)));
+
+    const mentions = await db
+      .select()
+      .from(issueReferenceMentions);
+    expect(mentions).toHaveLength(1);
+    expect(mentions[0]?.targetIssueId).toBe(targetIssueId);
+  });
+
+  it("reads a comment only after its source lock is available", async () => {
+    const companyId = randomUUID();
+    const sourceIssueId = randomUUID();
+    const oldTargetIssueId = randomUUID();
+    const newTargetIssueId = randomUUID();
+    const commentId = randomUUID();
+    const oldIdentifier = "PAP-310";
+    const newIdentifier = "PAP-320";
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Competing comment references",
+      issuePrefix: `C${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(issues).values([
+      { id: sourceIssueId, companyId, title: "Source", status: "todo", priority: "medium", identifier: "PAP-300" },
+      { id: oldTargetIssueId, companyId, title: "Old target", status: "todo", priority: "medium", identifier: oldIdentifier },
+      { id: newTargetIssueId, companyId, title: "New target", status: "todo", priority: "medium", identifier: newIdentifier },
+    ]);
+    await db.insert(issueComments).values({
+      id: commentId,
+      companyId,
+      issueId: sourceIssueId,
+      body: `See ${oldIdentifier}.`,
+    });
+
+    let releaseLock!: () => void;
+    let signalLockHeld!: () => void;
+    const lockHeld = new Promise<void>((resolve) => { signalLockHeld = resolve; });
+    const release = new Promise<void>((resolve) => { releaseLock = resolve; });
+    const holder = db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`issue-reference:comment:${commentId}`}, 0))`);
+      signalLockHeld();
+      await release;
+    });
+    await lockHeld;
+
+    const sync = refs.syncComment(commentId);
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const rows = await db.execute<{ waiting: string }>(sql`select count(*)::text as waiting from pg_locks where locktype = 'advisory' and not granted`);
+      if (rows[0]?.waiting === "1") break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+
+    const waiting = await db.execute<{ waiting: string }>(sql`select count(*)::text as waiting from pg_locks where locktype = 'advisory' and not granted`);
+    expect(waiting[0]?.waiting).toBe("1");
+    await db.update(issueComments).set({ body: `See ${newIdentifier}.` }).where(sql`${issueComments.id} = ${commentId}`);
+    releaseLock();
+    await holder;
+    await sync;
+
+    const mentions = await db.select().from(issueReferenceMentions).where(sql`${issueReferenceMentions.sourceRecordId} = ${commentId}`);
+    expect(mentions).toHaveLength(1);
+    expect(mentions[0]?.targetIssueId).toBe(newTargetIssueId);
+  });
 });

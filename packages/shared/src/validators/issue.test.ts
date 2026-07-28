@@ -340,6 +340,30 @@ describe("issue validators", () => {
     expect(document.body).toBe("# Plan\n\nShip it");
   });
 
+  it("rejects NUL characters in issue document text fields", () => {
+    for (const payload of [
+      { format: "markdown", body: `before\0after` },
+      { format: "markdown", body: "valid", title: `before\0after` },
+      { format: "markdown", body: "valid", changeSummary: `before\0after` },
+    ]) {
+      const parsed = upsertIssueDocumentSchema.safeParse(payload);
+
+      expect(parsed.success).toBe(false);
+      if (!parsed.success) {
+        expect(parsed.error.issues[0]?.message).toContain("NUL");
+      }
+    }
+  });
+
+  it("accepts issue document bodies at the documented size limit", () => {
+    const parsed = upsertIssueDocumentSchema.parse({
+      format: "markdown",
+      body: "x".repeat(524_288),
+    });
+
+    expect(parsed.body).toHaveLength(524_288);
+  });
+
   it("clamps oversized requestDepth values on create", () => {
     const parsed = createIssueSchema.parse({
       title: "Clamp request depth",
