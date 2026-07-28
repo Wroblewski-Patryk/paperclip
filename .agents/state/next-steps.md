@@ -2,6 +2,23 @@
 
 Last updated: 2026-07-28
 
+## Canonical Portfolio Execution Ladder
+
+- Use portfolio goal `b74b43a1-efeb-43b2-8da2-4a6a5c967f76` as the current
+  goal and keep persistent coordinator `LUC-1909` alive until its application
+  outcomes are deployed, observable, and owner-usable.
+- Execute `LUC-1910`: publish the authenticated Roost live project map with
+  exact state and the complete `11 Innovation` -> `02 Products & Services`
+  path.
+- Execute the `LUC-1911`/`LUC-1912` Featherly split: close risks with
+  non-destructive prevention independently of any destructive Git history
+  rewrite, which remains approval-gated.
+- Execute `LUC-1913` and `LUC-1914`: obtain independent Soar release review,
+  then prove owner/paper readiness for reliable decision support and
+  paper/sandbox trading.
+- Preserve Soar's safety boundary: no guaranteed-profit claims and no
+  real-money or live-order mutation without exact protected authorization.
+
 ## Paperclip Softwarehouse Stage 1
 
 - Keep the active mission focused on `LUC-25`: deliver Soar and Roost to usable

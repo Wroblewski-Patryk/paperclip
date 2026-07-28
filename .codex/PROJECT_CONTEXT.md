@@ -2,6 +2,24 @@
 
 Last updated: 2026-07-28
 
+## 2026-07-28 Canonical Portfolio Goal And Execution Ladder
+
+- Canonical goal: `b74b43a1-efeb-43b2-8da2-4a6a5c967f76`. Paperclip owns the
+  full path to deployed, observable, owner-usable applications; local code is
+  not the terminal outcome.
+- Persistent coordinator: `LUC-1909`. Ladder: `LUC-1910` authenticated Roost
+  live map; `LUC-1911`/`LUC-1912` separated Featherly remediation;
+  `LUC-1913` independent Soar release review; `LUC-1914` Soar owner/paper
+  readiness.
+- Roost must show exact project state and the complete `11 Innovation` ->
+  `02 Products & Services` path behind authentication.
+- Featherly must close detected risks through non-destructive prevention while
+  any Git history rewrite remains a separately approval-gated destructive
+  action.
+- Soar is a decision-support and paper/sandbox trading product. Never claim
+  guaranteed profit or perform real-money/live-order mutation without exact
+  protected authorization.
+
 ## 2026-07-28 Featherly Activation
 
 - The owner activated `C:/Personal/Projekty/Aplikacje/Featherly` as the third

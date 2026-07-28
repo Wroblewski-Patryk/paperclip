@@ -4850,3 +4850,24 @@ repository-only next action.
   terminal recovery placed `LUC-1899` in `blocked` under CINO recovery. FPM's
   adapter/model match the normal PM profile; do not create retry churn. Resume
   after quota recovery proves a working execution path.
+
+## 2026-07-28 - Conversation summary: canonical portfolio lifecycle ladder
+
+The owner established canonical portfolio goal
+`b74b43a1-efeb-43b2-8da2-4a6a5c967f76` and made Paperclip accountable for the
+full lifecycle through deployed, observable, owner-usable applications rather
+than stopping at local code. Persistent coordinator `LUC-1909` owns the
+execution ladder: `LUC-1910` for the authenticated Roost live project map,
+`LUC-1911`/`LUC-1912` for separated Featherly remediation paths, `LUC-1913`
+for independent Soar release review, and `LUC-1914` for Soar owner/paper
+readiness.
+
+Roost must expose exact state and the complete path from `11 Innovation` to
+`02 Products & Services`. Featherly must close detected security risks with
+non-destructive prevention kept separate from any destructive, approval-gated
+Git history rewrite. Soar must be a reliable decision-support and
+paper/sandbox trading tool: it may not claim guaranteed profit, and it may not
+mutate real-money accounts or live orders without exact protected
+authorization. This entry records new board direction from LUC-1908 comment
+`f9b7630d-45a0-427e-a746-4726ed78cd1f`; it does not replace newer live issue or
+board evidence.

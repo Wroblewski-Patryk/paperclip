@@ -1,5 +1,26 @@
 # Active Mission
 
+## 2026-07-28 - Portfolio Lifecycle Goal And Execution Ladder Active
+
+- Canonical portfolio goal `b74b43a1-efeb-43b2-8da2-4a6a5c967f76` now
+  governs the active application lanes. Paperclip owns the full lifecycle
+  through deployed, observable, owner-usable applications; local code alone is
+  not a completed outcome.
+- `LUC-1909` is the persistent coordinator. Its execution ladder is
+  `LUC-1910` for the authenticated live Roost project map, `LUC-1911` and
+  `LUC-1912` for the separated Featherly security remediation paths,
+  `LUC-1913` for independent Soar release review, and `LUC-1914` for Soar
+  owner/paper readiness.
+- Roost must expose authenticated exact project state and the complete path
+  from `11 Innovation` to `02 Products & Services`; repository-only or
+  `source_only` projection evidence is not the live-map outcome.
+- Featherly must close detected security risks. Non-destructive prevention is
+  separate from any Git history rewrite; history rewriting remains destructive
+  and approval-gated.
+- Soar must become a reliable decision-support and paper/sandbox trading tool.
+  It must make no guaranteed-profit claims and must not perform real-money or
+  live-order mutations without exact protected authorization.
+
 ## 2026-07-28 - Featherly Takeover And Security Hardening Active
 
 - The owner activated Featherly as the third application lane and authorized

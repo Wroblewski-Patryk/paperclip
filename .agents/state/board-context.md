@@ -2,6 +2,27 @@
 
 Last updated: 2026-07-28
 
+## 2026-07-28 Portfolio Lifecycle Outcome And Product Boundaries
+
+The owner set canonical portfolio goal
+`b74b43a1-efeb-43b2-8da2-4a6a5c967f76`. Paperclip is accountable for the
+complete application lifecycle through deployment, observability, and an
+owner-usable result. A local implementation, commit, report, or healthy
+endpoint is evidence along that path, not a substitute for the outcome.
+
+`LUC-1909` is the persistent coordinator for the active ladder:
+`LUC-1910` must deliver an authenticated Roost project map with exact state and
+the full route from `11 Innovation` to `02 Products & Services`; `LUC-1911`
+and `LUC-1912` separate Featherly's non-destructive security prevention from
+any approval-gated Git history rewrite; `LUC-1913` independently reviews the
+Soar release; and `LUC-1914` closes Soar owner/paper readiness.
+
+Soar's product boundary is decision support and paper/sandbox trading. It must
+not claim guaranteed profit. Real-money or live-order mutation requires exact
+protected authorization and must never be inferred from general delivery
+consent. These facts supersede older snapshots only where they conflict; all
+newer live board and issue evidence remains authoritative.
+
 ## 2026-07-28 Featherly Activation
 
 The owner explicitly activated Featherly and wants Paperclip to manage it like
