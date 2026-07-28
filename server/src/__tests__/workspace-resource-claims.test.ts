@@ -1,14 +1,26 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
+  activityLog,
   agents,
+  agentRuntimeState,
+  agentWakeupRequests,
   companies,
+  companySkills,
   createDb,
+  documentRevisions,
+  documents,
+  environmentLeases,
+  environments,
   executionWorkspaces,
+  heartbeatRunEvents,
   heartbeatRuns,
+  issueComments,
+  issues,
   projects,
   workspaceResourceClaims,
+  workspaceOperations,
 } from "@paperclipai/db";
 import {
   getEmbeddedPostgresTestSupport,
@@ -19,6 +31,21 @@ import {
   parseWorkspaceResourceClaimDeclarations,
   workspaceResourceClaimService,
 } from "../services/workspace-resource-claims.js";
+
+const mockAdapterExecute = vi.hoisted(() => vi.fn());
+
+vi.mock("../adapters/index.ts", async () => {
+  const actual = await vi.importActual<typeof import("../adapters/index.ts")>("../adapters/index.ts");
+  return {
+    ...actual,
+    getServerAdapter: vi.fn(() => ({
+      supportsLocalAgentJwt: false,
+      execute: mockAdapterExecute,
+    })),
+  };
+});
+
+import { heartbeatService } from "../services/heartbeat.ts";
 
 describe("workspace resource claim declarations", () => {
   it("normalizes resource identities and retains independent resources", () => {
@@ -70,8 +97,21 @@ describeEmbeddedPostgres("workspaceResourceClaimService", () => {
   }, 60_000);
 
   afterEach(async () => {
+    vi.clearAllMocks();
     await db.delete(workspaceResourceClaims);
+    await db.delete(workspaceOperations);
+    await db.delete(environmentLeases);
+    await db.delete(environments);
+    await db.delete(activityLog);
+    await db.delete(agentRuntimeState);
+    await db.delete(companySkills);
+    await db.delete(issueComments);
+    await db.delete(documentRevisions);
+    await db.delete(documents);
+    await db.delete(heartbeatRunEvents);
     await db.delete(heartbeatRuns);
+    await db.delete(agentWakeupRequests);
+    await db.delete(issues);
     await db.delete(executionWorkspaces);
     await db.delete(agents);
     await db.delete(projects);
@@ -276,4 +316,146 @@ describeEmbeddedPostgres("workspaceResourceClaimService", () => {
 
     expect(results).toEqual(results.map(() => expect.objectContaining({ acquired: true })));
   });
+
+  it("executes only the winning adapter when same-workspace normalized claims conflict", async () => {
+    const companyId = randomUUID();
+    const projectId = randomUUID();
+    const workspaceId = randomUUID();
+    const winnerAgentId = randomUUID();
+    const loserAgentId = randomUUID();
+    const winnerIssueId = randomUUID();
+    const loserIssueId = randomUUID();
+    const issuePrefix = `C${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+    let releaseWinner: (() => void) | null = null;
+    const winnerStarted = new Promise<void>((resolve) => {
+      mockAdapterExecute.mockImplementation(async () => {
+        resolve();
+        await new Promise<void>((release) => {
+          releaseWinner = release;
+        });
+        await db.update(issues).set({ status: "done", updatedAt: new Date() })
+          .where(eq(issues.id, winnerIssueId));
+        throw new Error("winner test complete");
+      });
+    });
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Heartbeat resource-claim test",
+      issuePrefix,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(projects).values({
+      id: projectId,
+      companyId,
+      name: "Heartbeat resource-claim project",
+      status: "in_progress",
+    });
+    await db.insert(executionWorkspaces).values({
+      id: workspaceId,
+      companyId,
+      projectId,
+      mode: "shared_workspace",
+      strategyType: "project_primary",
+      name: "Heartbeat resource-claim workspace",
+      status: "active",
+      cwd: process.cwd(),
+      providerType: "local_fs",
+    });
+    await db.insert(agents).values([
+      {
+        id: winnerAgentId,
+        companyId,
+        name: "Winning claimant",
+        role: "engineer",
+        status: "idle",
+        adapterType: "codex_local",
+        adapterConfig: {
+          workspaceRuntime: {
+            resourceClaims: [{ resourceKey: " Roost / CompanyCore Test Postgres : 55432 " }],
+          },
+        },
+        runtimeConfig: { heartbeat: { wakeOnDemand: true, maxConcurrentRuns: 1 } },
+        permissions: {},
+      },
+      {
+        id: loserAgentId,
+        companyId,
+        name: "Losing claimant",
+        role: "engineer",
+        status: "idle",
+        adapterType: "codex_local",
+        adapterConfig: {
+          workspaceRuntime: {
+            resourceClaims: [{ resourceKey: "roost:companycore:test:postgres:55432" }],
+          },
+        },
+        runtimeConfig: { heartbeat: { wakeOnDemand: true, maxConcurrentRuns: 1 } },
+        permissions: {},
+      },
+    ]);
+    await db.insert(issues).values([
+      {
+        id: winnerIssueId,
+        companyId,
+        projectId,
+        title: "Winner",
+        status: "in_progress",
+        priority: "medium",
+        assigneeAgentId: winnerAgentId,
+        executionWorkspaceId: workspaceId,
+        executionWorkspacePreference: "reuse_existing",
+        issueNumber: 1,
+        identifier: `${issuePrefix}-1`,
+      },
+      {
+        id: loserIssueId,
+        companyId,
+        projectId,
+        title: "Loser",
+        status: "in_progress",
+        priority: "medium",
+        assigneeAgentId: loserAgentId,
+        executionWorkspaceId: workspaceId,
+        executionWorkspacePreference: "reuse_existing",
+        issueNumber: 2,
+        identifier: `${issuePrefix}-2`,
+      },
+    ]);
+
+    const heartbeat = heartbeatService(db);
+    const winner = await heartbeat.invoke(winnerAgentId, "on_demand", { issueId: winnerIssueId });
+    expect(winner).not.toBeNull();
+    await winnerStarted;
+
+    const loser = await heartbeat.invoke(loserAgentId, "on_demand", { issueId: loserIssueId });
+    expect(loser).not.toBeNull();
+    const loserRun = await waitForTerminalRun(heartbeat, loser!.id);
+
+    expect(mockAdapterExecute).toHaveBeenCalledTimes(1);
+    expect(loserRun).toMatchObject({
+      status: "failed",
+      error: expect.stringContaining(`held by run ${winner!.id}`),
+    });
+    expect(loserRun?.error).toContain("wait for its lease to release before starting commands");
+
+    releaseWinner?.();
+    const winnerRun = await waitForTerminalRun(heartbeat, winner!.id);
+    expect(winnerRun?.status).toBe("failed");
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }, 30_000);
 });
+
+async function waitForTerminalRun(
+  heartbeat: ReturnType<typeof heartbeatService>,
+  runId: string,
+  timeoutMs = 10_000,
+) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const run = await heartbeat.getRun(runId);
+    if (run && run.status !== "queued" && run.status !== "running") return run;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return heartbeat.getRun(runId);
+}
