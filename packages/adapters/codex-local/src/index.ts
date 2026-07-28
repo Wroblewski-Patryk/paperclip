@@ -8,7 +8,7 @@ export const SANDBOX_INSTALL_COMMAND = "npm install -g @openai/codex";
 export const CODEX_LOCAL_SOL_MODEL = "gpt-5.6-sol";
 export const CODEX_LOCAL_TERRA_MODEL = "gpt-5.6-terra";
 export const CODEX_LOCAL_LUNA_MODEL = "gpt-5.6-luna";
-export const DEFAULT_CODEX_LOCAL_MODEL = "gpt-5.4";
+export const DEFAULT_CODEX_LOCAL_MODEL = CODEX_LOCAL_TERRA_MODEL;
 export const DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX = true;
 export const CODEX_LOCAL_FAST_MODE_SUPPORTED_MODELS = ["gpt-5.4", "gpt-5.4-mini"] as const;
 
@@ -41,7 +41,7 @@ export const models = [
   { id: CODEX_LOCAL_LUNA_MODEL, label: CODEX_LOCAL_LUNA_MODEL },
   { id: "gpt-5.6", label: "gpt-5.6 (alias: gpt-5.6-sol)" },
   { id: "gpt-5.5", label: "gpt-5.5" },
-  { id: DEFAULT_CODEX_LOCAL_MODEL, label: DEFAULT_CODEX_LOCAL_MODEL },
+  { id: "gpt-5.4", label: "gpt-5.4" },
   { id: "gpt-5.4-mini", label: "gpt-5.4-mini" },
   { id: "gpt-5.3-codex-spark", label: "gpt-5.3-codex-spark" },
 ];
@@ -49,10 +49,10 @@ export const models = [
 export const modelProfiles: AdapterModelProfileDefinition[] = [
   {
     key: "cheap",
-    label: "Cheap / 5.4 mini",
+    label: "Luna / Cheap",
     description: "Lowest-cost lane for recovery, status, and tiny bounded follow-up runs.",
     adapterConfig: {
-      model: "gpt-5.4-mini",
+      model: CODEX_LOCAL_LUNA_MODEL,
       modelReasoningEffort: "low",
     },
     source: "adapter_default",
@@ -69,17 +69,17 @@ export const modelProfiles: AdapterModelProfileDefinition[] = [
   },
   {
     key: "light",
-    label: "5.4 mini / Light",
+    label: "Terra / Light",
     description: "General lightweight lane for triage, coordination, and routine analysis.",
     adapterConfig: {
-      model: "gpt-5.4-mini",
+      model: CODEX_LOCAL_TERRA_MODEL,
       modelReasoningEffort: "medium",
     },
     source: "adapter_default",
   },
   {
     key: "standard",
-    label: "5.4 / Standard",
+    label: "Terra / Standard",
     description: "Default high-quality lane for normal implementation, debugging, review, and verification.",
     adapterConfig: {
       model: DEFAULT_CODEX_LOCAL_MODEL,
@@ -89,20 +89,20 @@ export const modelProfiles: AdapterModelProfileDefinition[] = [
   },
   {
     key: "reasoning",
-    label: "5.4 / Reasoning",
+    label: "Sol / Reasoning",
     description: "Stronger lane for architecture, security, deployment, and cross-module reasoning.",
     adapterConfig: {
-      model: DEFAULT_CODEX_LOCAL_MODEL,
+      model: CODEX_LOCAL_SOL_MODEL,
       modelReasoningEffort: "high",
     },
     source: "adapter_default",
   },
   {
     key: "strategic",
-    label: "5.5 / Strategic",
+    label: "Sol / Strategic",
     description: "Highest-reasoning lane for explicit strategic or multi-system decisions.",
     adapterConfig: {
-      model: "gpt-5.5",
+      model: CODEX_LOCAL_SOL_MODEL,
       modelReasoningEffort: "xhigh",
     },
     source: "adapter_default",
@@ -143,7 +143,7 @@ Notes:
 - Paperclip injects desired local skills into the effective CODEX_HOME/skills/ directory at execution time so Codex can discover "$paperclip" and related skills without polluting the project working directory. In managed-home mode (the default) this is ~/.paperclip/instances/<id>/companies/<companyId>/codex-home/skills/; when CODEX_HOME is explicitly overridden in adapter config, that override is used instead.
 - Unless explicitly overridden in adapter config, Paperclip runs Codex with a per-company managed CODEX_HOME under the active Paperclip instance and seeds auth/config from the shared Codex home (the CODEX_HOME env var, when set, or ~/.codex).
 - Some model/tool combinations reject certain effort levels (for example minimal with web search enabled).
-- GPT-5.6 IDs are listed for current Codex releases, but the committed CLI version must support them before assignment. The compatibility defaults use GPT-5.4, GPT-5.4 mini, and GPT-5.5. The unsuffixed gpt-5.6 alias points to Sol.
+- GPT-5.6 Sol, Terra, and Luna are the active defaults and require the repository-pinned Codex CLI 0.145.0 or newer. GPT-5.4, GPT-5.4 mini, GPT-5.5, and Spark remain selectable for legacy/manual configurations. The unsuffixed gpt-5.6 alias points to Sol.
 - Fast mode is supported on GPT-5.4, GPT-5.4 mini, and manual model IDs. When enabled for those models, Paperclip applies \`service_tier="fast"\` and \`features.fast_mode=true\`.
 - When Paperclip realizes a workspace/runtime for a run, it injects PAPERCLIP_WORKSPACE_* and PAPERCLIP_RUNTIME_* env vars for agent-side tooling.
 `;

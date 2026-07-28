@@ -7,16 +7,16 @@ explicit profile was requested.
 
 ## Profiles
 
-- `cheap`: GPT-5.4 mini low-effort/status-only lane. Used for recovery, liveness, and
+- `cheap`: GPT-5.6 Luna low-effort/status-only lane. Used for recovery, liveness, and
   small system follow-ups.
 - `spark`: supported by Paperclip generally, but disabled by the local
   Softwarehouse router config because Spark runs have been unreliable here.
-- `light`: GPT-5.4 mini lane for coordination, routine summaries, and low-risk
+- `light`: GPT-5.6 Terra lane for coordination, routine summaries, and low-risk
   planning.
-- `standard`: GPT-5.4 lane for normal implementation, debugging, review, and verification.
-- `reasoning`: GPT-5.4 high-effort lane for architecture, deployment, schema, and
+- `standard`: GPT-5.6 Terra lane for normal implementation, debugging, review, and verification.
+- `reasoning`: GPT-5.6 Sol high-effort lane for architecture, deployment, schema, and
   cross-module work.
-- `strategic`: GPT-5.5 xhigh compatibility lane for security, cross-system architecture, difficult
+- `strategic`: GPT-5.6 Sol xhigh lane for security, cross-system architecture, difficult
   recovery, and final high-risk review.
 
 ## Configuration
@@ -39,12 +39,14 @@ for balancing intelligence and cost, and Luna for cost-sensitive high-volume
 workloads. The unsuffixed `gpt-5.6` alias routes to Sol, so Paperclip uses
 explicit model IDs and defaults normal work to Terra.
 
-The local Codex cache can advertise models that require a newer CLI than the
-version pinned by Paperclip. Operationally this means:
+The repository pins Codex CLI 0.145.0, and Luna, Terra, and Sol passed live
+read-only probes on 2026-07-28. Operationally this means:
 
 - Use only models that pass a live `codex exec` probe with the pinned CLI.
-- Keep GPT-5.4 and GPT-5.4 mini as compatibility defaults.
-- Use GPT-5.5 for deep work until GPT-5.6 passes the same probe.
+- Use Luna for high-volume status/recovery work, Terra for normal work, and Sol
+  for high-reasoning or strategic work.
+- Keep GPT-5.4, GPT-5.4 mini, GPT-5.5, and Spark selectable only for explicit
+  legacy/manual configurations.
 - Keep deprecated model IDs in the adapter list only for legacy/manual configs.
 - Reduce prompt and AGENTS.md bloat before buying more capacity; smaller context
   is a real quota lever.

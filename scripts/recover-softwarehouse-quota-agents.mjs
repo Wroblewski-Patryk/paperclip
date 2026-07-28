@@ -11,7 +11,7 @@ const preferredCompanyNames = [
   "LuckySparrow",
   "LuckySparrow Software House",
 ].filter(Boolean);
-const fallbackModel = process.env.SOFTWAREHOUSE_QUOTA_FALLBACK_MODEL ?? "gpt-5.3-codex-spark";
+const fallbackModel = process.env.SOFTWAREHOUSE_QUOTA_FALLBACK_MODEL ?? "gpt-5.6-luna";
 const apply = process.argv.includes("--apply");
 
 async function request(method, route, body) {

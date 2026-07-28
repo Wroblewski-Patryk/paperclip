@@ -15,8 +15,8 @@ export interface ModelEconomicsConfig {
 }
 
 export const DEFAULT_MODEL_ECONOMICS_CONFIG: ModelEconomicsConfig = {
-  version: 1,
-  lastReviewed: "2026-07-06",
+  version: 2,
+  lastReviewed: "2026-07-28",
   sources: [
     {
       label: "OpenAI API model guide",
@@ -31,16 +31,16 @@ export const DEFAULT_MODEL_ECONOMICS_CONFIG: ModelEconomicsConfig = {
       url: "https://developers.openai.com/api/docs/pricing",
     },
     {
-      label: "OpenAI Codex Spark announcement",
-      url: "https://openai.com/index/introducing-gpt-5-3-codex-spark/",
+      label: "OpenAI GPT-5.6 migration guide",
+      url: "https://developers.openai.com/api/docs/guides/upgrading-to-gpt-5p6-sol",
     },
   ],
   profiles: {
     cheap: {
       profile: "cheap",
-      defaultModel: "gpt-5.3-codex-spark",
-      relativeCostWeight: 0.15,
-      quotaLane: "codex_spark_preview",
+      defaultModel: "gpt-5.6-luna",
+      relativeCostWeight: 0.3,
+      quotaLane: "codex_5_6_luna",
       intent: "Status-only recovery, liveness, tiny follow-ups, and very low-risk housekeeping.",
       successTargetPercent: 85,
       escalateBelowPercent: 70,
@@ -58,9 +58,9 @@ export const DEFAULT_MODEL_ECONOMICS_CONFIG: ModelEconomicsConfig = {
     },
     light: {
       profile: "light",
-      defaultModel: "gpt-5.4-mini",
-      relativeCostWeight: 0.3,
-      quotaLane: "codex_standard_light",
+      defaultModel: "gpt-5.6-terra",
+      relativeCostWeight: 0.7,
+      quotaLane: "codex_5_6_terra",
       intent: "Routine coordination, PM/design/doc summaries, basic analysis, and narrow subagent work.",
       successTargetPercent: 88,
       escalateBelowPercent: 75,
@@ -68,9 +68,9 @@ export const DEFAULT_MODEL_ECONOMICS_CONFIG: ModelEconomicsConfig = {
     },
     standard: {
       profile: "standard",
-      defaultModel: "gpt-5.5",
+      defaultModel: "gpt-5.6-terra",
       relativeCostWeight: 1,
-      quotaLane: "codex_standard",
+      quotaLane: "codex_5_6_terra",
       intent: "Normal implementation, debugging, review, verification, and most engineering work.",
       successTargetPercent: 90,
       escalateBelowPercent: 78,
@@ -78,9 +78,9 @@ export const DEFAULT_MODEL_ECONOMICS_CONFIG: ModelEconomicsConfig = {
     },
     reasoning: {
       profile: "reasoning",
-      defaultModel: "gpt-5.5",
+      defaultModel: "gpt-5.6-sol",
       relativeCostWeight: 1.35,
-      quotaLane: "codex_standard",
+      quotaLane: "codex_5_6_sol",
       intent: "Architecture, deployment, security, schema, production, and cross-module decisions.",
       successTargetPercent: 92,
       escalateBelowPercent: 82,
@@ -88,13 +88,13 @@ export const DEFAULT_MODEL_ECONOMICS_CONFIG: ModelEconomicsConfig = {
     },
     strategic: {
       profile: "strategic",
-      defaultModel: "gpt-5.5-pro",
-      relativeCostWeight: 3,
-      quotaLane: "codex_pro",
+      defaultModel: "gpt-5.6-sol",
+      relativeCostWeight: 2,
+      quotaLane: "codex_5_6_sol",
       intent: "Explicit owner-approved strategic decisions, multi-system design, and high-risk platform direction.",
       successTargetPercent: 95,
       escalateBelowPercent: 88,
-      notes: "Rare/manual by default until live account limits prove this lane is consistently available.",
+      notes: "Use xhigh reasoning for rare, explicit strategic work; do not route routine work here.",
     },
   },
 };

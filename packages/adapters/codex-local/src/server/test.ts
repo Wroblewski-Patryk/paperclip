@@ -25,6 +25,7 @@ import { SANDBOX_INSTALL_COMMAND } from "../index.js";
 import { codexHomeDir, readCodexAuthInfo } from "./quota.js";
 import { buildCodexExecArgs } from "./codex-args.js";
 import { prepareManagedCodexHome } from "./codex-home.js";
+import { selectOpenAiApiKey } from "./execute.js";
 
 function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
@@ -125,6 +126,24 @@ async function prepareCodexHelloProbe(input: {
       env: preparedRuntime.assetDirs.home
         ? { ...input.env, CODEX_HOME: preparedRuntime.assetDirs.home }
         : { ...input.env },
+      cleanup,
+    };
+  }
+
+  if (!input.targetIsRemote && !input.probeApiKey) {
+    const managedHome = await prepareManagedCodexHome(process.env, async () => {}, input.companyId, {
+      apiKey: null,
+    });
+    return {
+      command: input.command,
+      args: input.args,
+      env: {
+        ...input.env,
+        CODEX_HOME: managedHome,
+        // Keep the environment probe on the same ChatGPT-authenticated lane
+        // as normal execution even when the server shell has an API key.
+        OPENAI_API_KEY: "",
+      },
       cleanup,
     };
   }
@@ -249,7 +268,12 @@ export async function testEnvironment(
 
   const configOpenAiKey = env.OPENAI_API_KEY;
   const hostOpenAiKey = targetIsRemote ? undefined : process.env.OPENAI_API_KEY;
-  if (isNonEmpty(configOpenAiKey) || isNonEmpty(hostOpenAiKey)) {
+  const codexHome = isNonEmpty(env.CODEX_HOME) ? env.CODEX_HOME : undefined;
+  const codexAuth = targetIsRemote
+    ? null
+    : await readCodexAuthInfo(codexHome).catch(() => null);
+  const probeApiKey = selectOpenAiApiKey(configOpenAiKey, hostOpenAiKey, Boolean(codexAuth));
+  if (probeApiKey) {
     const source = isNonEmpty(configOpenAiKey) ? "adapter config env" : "server environment";
     checks.push({
       code: "codex_openai_api_key_present",
@@ -260,8 +284,6 @@ export async function testEnvironment(
   } else if (!targetIsRemote) {
     // Local-only auth file check. On remote targets, the probe will surface
     // any missing-auth errors directly from the remote `codex` invocation.
-    const codexHome = isNonEmpty(env.CODEX_HOME) ? env.CODEX_HOME : undefined;
-    const codexAuth = await readCodexAuthInfo(codexHome).catch(() => null);
     if (codexAuth) {
       checks.push({
         code: "codex_native_auth_present",
@@ -318,11 +340,6 @@ export async function testEnvironment(
       // wrap the probe with a shell that materializes a per-run auth.json so
       // the CLI can authenticate. The key content is passed via env (not on
       // the command line) to avoid leaking it into process listings.
-      const probeApiKey = isNonEmpty(configOpenAiKey)
-        ? configOpenAiKey
-        : isNonEmpty(hostOpenAiKey)
-          ? hostOpenAiKey
-          : null;
       const preparedProbe = await prepareCodexHelloProbe({
         runId,
         companyId: ctx.companyId,

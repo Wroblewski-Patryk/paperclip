@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "lastReviewed": "2026-07-12",
+  "version": 2,
+  "lastReviewed": "2026-07-28",
   "sources": [
     {
       "label": "OpenAI API model guide",
@@ -15,15 +15,15 @@
       "url": "https://developers.openai.com/api/docs/pricing"
     },
     {
-      "label": "OpenAI Codex Spark announcement",
-      "url": "https://openai.com/index/introducing-gpt-5-3-codex-spark/"
+      "label": "OpenAI GPT-5.6 migration guide",
+      "url": "https://developers.openai.com/api/docs/guides/upgrading-to-gpt-5p6-sol"
     }
   ],
   "profiles": {
     "cheap": {
-      "defaultModel": "gpt-5.4-mini",
+      "defaultModel": "gpt-5.6-luna",
       "relativeCostWeight": 0.3,
-      "quotaLane": "codex_standard_light",
+      "quotaLane": "codex_5_6_luna",
       "intent": "Status-only recovery, liveness, tiny follow-ups, and very low-risk housekeeping.",
       "successTargetPercent": 85,
       "escalateBelowPercent": 70,
@@ -39,40 +39,40 @@
       "notes": "Use for bounded, repeatable work. Escalate ambiguity or failed attempts to Terra."
     },
     "light": {
-      "defaultModel": "gpt-5.4-mini",
-      "relativeCostWeight": 0.3,
-      "quotaLane": "codex_standard_light",
+      "defaultModel": "gpt-5.6-terra",
+      "relativeCostWeight": 0.7,
+      "quotaLane": "codex_5_6_terra",
       "intent": "Routine coordination, PM/design/doc summaries, basic analysis, and narrow subagent work.",
       "successTargetPercent": 88,
       "escalateBelowPercent": 75,
-      "notes": "Verified against the pinned local Codex CLI for lower-cost routine work."
+      "notes": "Balanced GPT-5.6 lane for routine work; verified against the pinned local Codex CLI."
     },
     "standard": {
-      "defaultModel": "gpt-5.4",
+      "defaultModel": "gpt-5.6-terra",
       "relativeCostWeight": 1,
-      "quotaLane": "codex_standard",
+      "quotaLane": "codex_5_6_terra",
       "intent": "Normal implementation, debugging, review, verification, and most engineering work.",
       "successTargetPercent": 90,
       "escalateBelowPercent": 78,
       "notes": "Default high-quality lane; use this until evidence says a lighter lane is sufficient."
     },
     "reasoning": {
-      "defaultModel": "gpt-5.4",
+      "defaultModel": "gpt-5.6-sol",
       "relativeCostWeight": 1.15,
-      "quotaLane": "codex_standard",
+      "quotaLane": "codex_5_6_sol",
       "intent": "Architecture, deployment, security, schema, production, and cross-module decisions.",
       "successTargetPercent": 92,
       "escalateBelowPercent": 82,
       "notes": "Uses higher reasoning effort; protect this lane from routine paperwork."
     },
     "strategic": {
-      "defaultModel": "gpt-5.5",
+      "defaultModel": "gpt-5.6-sol",
       "relativeCostWeight": 2,
-      "quotaLane": "codex_standard",
+      "quotaLane": "codex_5_6_sol",
       "intent": "Explicit owner-approved strategic decisions, multi-system design, and high-risk platform direction.",
       "successTargetPercent": 95,
       "escalateBelowPercent": 88,
-      "notes": "Compatibility strategic lane until the repo-pinned Codex CLI is upgraded and GPT-5.6 passes the live probe."
+      "notes": "Highest-quality GPT-5.6 lane for rare, explicit strategic work; Sol passed the live CLI probe on 2026-07-28."
     }
   }
 }

@@ -205,7 +205,7 @@ describe("server adapter registry", () => {
     await expect(listAdapterModelProfiles("codex_local")).resolves.toEqual([
       expect.objectContaining({
         key: "cheap",
-        adapterConfig: expect.objectContaining({ model: "gpt-5.4-mini" }),
+        adapterConfig: expect.objectContaining({ model: "gpt-5.6-luna" }),
         source: "adapter_default",
       }),
       expect.objectContaining({
@@ -215,22 +215,22 @@ describe("server adapter registry", () => {
       }),
       expect.objectContaining({
         key: "light",
-        adapterConfig: expect.objectContaining({ model: "gpt-5.4-mini" }),
+        adapterConfig: expect.objectContaining({ model: "gpt-5.6-terra" }),
         source: "adapter_default",
       }),
       expect.objectContaining({
         key: "standard",
-        adapterConfig: expect.objectContaining({ model: "gpt-5.4" }),
+        adapterConfig: expect.objectContaining({ model: "gpt-5.6-terra" }),
         source: "adapter_default",
       }),
       expect.objectContaining({
         key: "reasoning",
-        adapterConfig: expect.objectContaining({ model: "gpt-5.4" }),
+        adapterConfig: expect.objectContaining({ model: "gpt-5.6-sol" }),
         source: "adapter_default",
       }),
       expect.objectContaining({
         key: "strategic",
-        adapterConfig: expect.objectContaining({ model: "gpt-5.5" }),
+        adapterConfig: expect.objectContaining({ model: "gpt-5.6-sol" }),
         source: "adapter_default",
       }),
     ]);

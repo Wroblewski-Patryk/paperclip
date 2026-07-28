@@ -18,29 +18,29 @@
   "modelPolicy": {
     "defaultAdapter": "codex_local",
     "codingStrong": {
-      "model": "gpt-5.4",
+      "model": "gpt-5.6-terra",
       "modelReasoningEffort": "high"
     },
     "codingDeep": {
-      "model": "gpt-5.5",
+      "model": "gpt-5.6-sol",
       "modelReasoningEffort": "xhigh"
     },
     "fastTriage": {
-      "model": "gpt-5.4-mini",
+      "model": "gpt-5.6-luna",
       "modelReasoningEffort": "low",
-      "note": "Use GPT-5.4 mini for bounded triage, docs, duplicate checks, monitor summaries, and status-only work. Escalate ambiguity, expanded scope, or a failed attempt to the agent's normal GPT-5.4 lane."
+      "note": "Use GPT-5.6 Luna for bounded triage, docs, duplicate checks, monitor summaries, and status-only work. Escalate ambiguity, expanded scope, or a failed attempt to the agent's normal GPT-5.6 Terra lane."
     },
     "generalReasoning": {
-      "model": "gpt-5.4",
+      "model": "gpt-5.6-terra",
       "modelReasoningEffort": "medium"
     },
     "visualAndMedia": {
-      "model": "gpt-5.4",
+      "model": "gpt-5.6-terra",
       "modelReasoningEffort": "high",
       "note": "Use this for visual direction, image/audio prompts, UX briefs, and handoff to Codex/image tools when available."
     },
     "securityDeep": {
-      "model": "gpt-5.5",
+      "model": "gpt-5.6-sol",
       "modelReasoningEffort": "xhigh"
     }
   },

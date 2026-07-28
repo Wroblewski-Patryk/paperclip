@@ -109,7 +109,7 @@ function assertSafeModelPolicy(findings, definition, roster) {
     record(findings, "error", definition.name, "modelPolicy.missingLane", { modelLane: definition.modelLane });
     return;
   }
-  const allowedModels = new Set(["gpt-5.5", "gpt-5.4", "gpt-5.4-mini"]);
+  const allowedModels = new Set(["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]);
   if (!allowedModels.has(lane.model)) {
     record(findings, "error", definition.name, "modelPolicy.model", {
       modelLane: definition.modelLane,

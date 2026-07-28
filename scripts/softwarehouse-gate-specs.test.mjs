@@ -792,7 +792,7 @@ test("softwarehouse model and cost readiness audit guards quota and future API l
   assert.match(source, /summarizeErrorAgentRuns/);
   assert.match(source, /agent_error_status_quota_retry/);
   assert.match(source, /recent_invalid_openai_api_key_failures/);
-  assert.match(roster, /"fastTriage"[\s\S]*"model": "gpt-5\.4-mini"/);
+  assert.match(roster, /"fastTriage"[\s\S]*"model": "gpt-5\.6-luna"/);
   assert.doesNotMatch(roster, /"fastMode": true/);
 });
 

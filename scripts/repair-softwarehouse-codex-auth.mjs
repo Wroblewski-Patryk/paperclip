@@ -2,9 +2,15 @@ const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const blockerTitle = "[Softwarehouse][Blocker] Configure OpenAI runtime auth for Codex agents";
-const targetModel = process.env.SOFTWAREHOUSE_CODEX_MODEL ?? "gpt-5.5";
-const targetCheapModel = process.env.SOFTWAREHOUSE_CODEX_CHEAP_MODEL ?? "gpt-5.4";
+const targetModel = process.env.SOFTWAREHOUSE_CODEX_MODEL ?? "gpt-5.6-terra";
+const targetCheapModel = process.env.SOFTWAREHOUSE_CODEX_CHEAP_MODEL ?? "gpt-5.6-luna";
 const unsupportedChatGptModels = new Set(["gpt-5", "gpt-5-mini", "gpt-5.3-codex"]);
+const legacyPrimaryModels = new Map([
+  ["gpt-5.4", "gpt-5.6-terra"],
+  ["gpt-5.4-mini", "gpt-5.6-luna"],
+  ["gpt-5.5", "gpt-5.6-sol"],
+  ["gpt-5.5-pro", "gpt-5.6-sol"],
+]);
 const args = new Set(process.argv.slice(2));
 const helpRequested = args.has("--help") || args.has("-h");
 const dryRun = args.has("--dry-run");
@@ -44,13 +50,14 @@ function findErrorCheck(result) {
 
 function supportedModel(model) {
   if (typeof model !== "string" || !model.trim()) return targetModel;
+  if (legacyPrimaryModels.has(model)) return legacyPrimaryModels.get(model);
   if (unsupportedChatGptModels.has(model) || model.includes("spark")) return targetModel;
   return model;
 }
 
 function supportedCheapModel(model) {
   if (typeof model !== "string" || !model.trim()) return targetCheapModel;
-  if (unsupportedChatGptModels.has(model) || model.includes("spark")) return targetCheapModel;
+  if (unsupportedChatGptModels.has(model) || legacyPrimaryModels.has(model) || model.includes("spark")) return targetCheapModel;
   return model;
 }
 
@@ -73,7 +80,7 @@ function normalizeAgentModelConfig(agent) {
               adapterConfig: {
                 ...(cheapProfile.adapterConfig ?? {}),
                 model: supportedCheapModel(cheapProfile.adapterConfig?.model),
-                ...(supportedCheapModel(cheapProfile.adapterConfig?.model) === "gpt-5.4" ? { fastMode: true } : {}),
+                fastMode: false,
               },
             },
           }

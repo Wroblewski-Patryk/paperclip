@@ -101,6 +101,17 @@ export function usableOpenAiApiKey(value: unknown): string | null {
   return trimmed;
 }
 
+export function selectOpenAiApiKey(
+  configuredValue: unknown,
+  inheritedValue: unknown,
+  hasLocalCodexAuth: boolean,
+): string | null {
+  const configured = usableOpenAiApiKey(configuredValue);
+  if (configured) return configured;
+  if (hasLocalCodexAuth) return null;
+  return usableOpenAiApiKey(inheritedValue);
+}
+
 function resolveCodexBillingType(env: Record<string, string>): "api" | "subscription" {
   // Codex uses API-key auth when OPENAI_API_KEY is present; otherwise rely on local login/session auth.
   return usableOpenAiApiKey(env.OPENAI_API_KEY) ? "api" : "subscription";
@@ -354,9 +365,18 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const codexSkillEntries = await readPaperclipRuntimeSkillEntries(config, __moduleDir);
   const desiredSkillNames = resolveCodexDesiredSkillNames(config, codexSkillEntries);
   await ensureAbsoluteDirectory(cwd, { createIfMissing: true });
-  const configuredOpenAiApiKey =
-    usableOpenAiApiKey(envConfig.OPENAI_API_KEY) ??
-    usableOpenAiApiKey(process.env.OPENAI_API_KEY);
+  // Prefer an agent's explicit key, then an existing Codex login, and only
+  // fall back to an inherited shell key when no local login is available.
+  // Desktop shells commonly expose an unrelated API key while Codex itself is
+  // authenticated through ChatGPT; allowing that inherited key to overwrite
+  // auth.json makes Paperclip use the wrong billing lane.
+  const authSourceHome = configuredCodexHome ?? resolveSharedCodexHomeDir(process.env);
+  const sourceCodexAuth = await readCodexAuthInfo(authSourceHome).catch(() => null);
+  const configuredOpenAiApiKey = selectOpenAiApiKey(
+    envConfig.OPENAI_API_KEY,
+    process.env.OPENAI_API_KEY,
+    Boolean(sourceCodexAuth),
+  );
   const preparedManagedCodexHome =
     configuredCodexHome
       ? null
@@ -496,7 +516,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   if (effectiveOpenAiApiKey) {
     env.OPENAI_API_KEY = effectiveOpenAiApiKey;
   } else {
-    delete env.OPENAI_API_KEY;
+    // Mask a process-level key when ChatGPT auth was selected. effectiveEnv
+    // merges process.env first, so deleting this property would expose it again.
+    env.OPENAI_API_KEY = "";
   }
   if (runtimeServiceIntents.length > 0) {
     env.PAPERCLIP_RUNTIME_SERVICE_INTENTS_JSON = JSON.stringify(runtimeServiceIntents);

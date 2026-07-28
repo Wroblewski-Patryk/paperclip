@@ -180,10 +180,18 @@
     "esbuild": "^0.27.3",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5",
-    "@openai/codex": "0.133.0"
+    "@openai/codex": "0.145.0"
   },
   "engines": {
     "node": ">=20"
+  },
+  "pnpm": {
+    "overrides": {
+      "rollup": ">=4.59.0"
+    },
+    "patchedDependencies": {
+      "embedded-postgres@18.1.0-beta.16": "patches/embedded-postgres@18.1.0-beta.16.patch"
+    }
   },
   "packageManager": "pnpm@9.15.4"
 }

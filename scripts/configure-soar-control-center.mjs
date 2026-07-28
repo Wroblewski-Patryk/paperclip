@@ -185,12 +185,19 @@ async function ensurePrimaryWorkspace(projectId, input) {
 
 async function ensureAgentCommand(agent) {
   if (!agent || agent.adapterType !== "codex_local") return agent;
-  const normalModelFallback = "gpt-5.5";
-  const cheapModelFallback = "gpt-5.4";
+  const normalModelFallback = "gpt-5.6-terra";
+  const cheapModelFallback = "gpt-5.6-luna";
+  const primaryModelReplacements = new Map([
+    ["gpt-5.4", "gpt-5.6-terra"],
+    ["gpt-5.4-mini", "gpt-5.6-luna"],
+    ["gpt-5.5", "gpt-5.6-sol"],
+    ["gpt-5.5-pro", "gpt-5.6-sol"],
+  ]);
   const currentModel = typeof agent.adapterConfig?.model === "string" ? agent.adapterConfig.model : "";
-  const normalizedModel = currentModel === "gpt-5" || currentModel === "gpt-5-mini" || currentModel === "gpt-5.3-codex" || currentModel.includes("spark")
-    ? normalModelFallback
-    : agent.adapterConfig?.model;
+  const normalizedModel = primaryModelReplacements.get(currentModel)
+    ?? (currentModel === "gpt-5" || currentModel === "gpt-5-mini" || currentModel === "gpt-5.3-codex" || currentModel.includes("spark")
+      ? normalModelFallback
+      : agent.adapterConfig?.model);
   const adapterConfig = {
     ...(agent.adapterConfig ?? {}),
     command: localCodexCommand,
@@ -213,10 +220,8 @@ async function ensureAgentCommand(agent) {
                 command: localCodexCommand,
                 model: cheapModel.includes("spark") || cheapModel === "gpt-5" || cheapModel === "gpt-5-mini" || cheapModel === "gpt-5.3-codex"
                   ? cheapModelFallback
-                  : cheapProfile.adapterConfig?.model,
-                ...((cheapModel.includes("spark") || cheapModel === "gpt-5" || cheapModel === "gpt-5-mini" || cheapModel === "gpt-5.3-codex"
-                  ? cheapModelFallback
-                  : cheapProfile.adapterConfig?.model) === "gpt-5.4" ? { fastMode: true } : {}),
+                  : (primaryModelReplacements.has(cheapModel) ? cheapModelFallback : cheapProfile.adapterConfig?.model),
+                fastMode: false,
               },
             },
           }

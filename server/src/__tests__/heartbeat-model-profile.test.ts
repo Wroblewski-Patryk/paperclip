@@ -42,7 +42,7 @@ describe("heartbeat model profile application", () => {
       configSource: "adapter_default",
       fallbackReason: null,
       adapterConfig: {
-        model: "gpt-5.4-mini",
+        model: "gpt-5.6-luna",
         modelReasoningEffort: "low",
       },
     });
@@ -377,7 +377,7 @@ describe("model economics catalog", () => {
     });
     expect(config.profiles.reasoning).toMatchObject({
       profile: "reasoning",
-      defaultModel: "gpt-5.4",
+      defaultModel: "gpt-5.6-sol",
     });
     expect(config.sources.some((source) => source.url.includes("developers.openai.com/codex/models"))).toBe(true);
   });
@@ -395,7 +395,7 @@ describe("model-aware provider quota gates", () => {
         {
           label: "Weekly limit",
           scope: "lane" as const,
-          quotaLane: "codex_standard",
+          quotaLane: "codex_5_6_terra",
           model: null,
           usedPercent: 95,
           resetsAt: "2026-07-09T19:22:48.000Z",
@@ -408,7 +408,7 @@ describe("model-aware provider quota gates", () => {
     expect(
       buildProviderQuotaStartBlock(quota, new Date("2026-07-06T12:00:00.000Z"), undefined, profiles.standard),
     ).toMatchObject({
-      quotaLane: "codex_standard",
+      quotaLane: "codex_5_6_terra",
       modelProfile: "standard",
     });
     expect(
