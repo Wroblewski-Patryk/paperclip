@@ -87,14 +87,14 @@ export interface PinnedRequest {
 }
 
 const envelopeSchema = z.object({
-  transportVersion: z.literal("v1"),
+  transportVersion: z.literal("product-map-projection-transport/v1"),
   schemaVersion: z.literal("1.0"),
   companyId: z.string().uuid(),
   observedAt: z.string().datetime(),
   publishedAt: z.string().datetime(),
   sourceSnapshotId: z.string().min(1),
-  packetDigest: z.string().regex(/^sha256:[a-f0-9]{64}$/),
-  idempotencyKey: z.string().min(1).max(200),
+  packetDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  idempotencyKey: z.string().regex(/^[a-f0-9]{64}$/),
   packet: roostBridgePortfolioProjectionSchema,
 });
 
@@ -131,6 +131,7 @@ export function validateBindings(bindings: RoostProductMapPublisherBindings) {
   if (ingest.protocol !== "https:" || ingest.port && ingest.port !== "443" || ingest.username || ingest.password || ingest.search || ingest.hash) {
     throw new Error("INVALID_INGEST_URL");
   }
+  if (ingest.pathname !== "/v1/product-map/projection/ingest") throw new Error("INVALID_INGEST_ROUTE");
   if (isLoopbackHost(ingest.hostname) || isPrivateAddress(ingest.hostname)) throw new Error("INVALID_INGEST_HOST");
   for (const token of [readKey, ingestKey]) {
     if (/^(Bearer\s+)?(?:board|session|agent|run)[_:\-]/i.test(token)) throw new Error("BROAD_CREDENTIAL_REJECTED");
@@ -163,20 +164,22 @@ function canonicalJson(value: unknown): string {
 export function semanticPacketDigest(packet: RoostBridgePortfolioProjection) {
   // The source packet itself is semantic. Delivery timestamps and idempotency
   // live only in the envelope and therefore cannot change this digest.
-  return `sha256:${createHash("sha256").update(canonicalJson(packet)).digest("hex")}`;
+  return createHash("sha256").update(canonicalJson(packet)).digest("hex");
 }
 
 export function createTransportEnvelope(packet: RoostBridgePortfolioProjection, publishedAt: string): RoostProductMapEnvelope {
   const packetDigest = semanticPacketDigest(packet);
   return envelopeSchema.parse({
-    transportVersion: "v1",
+    transportVersion: "product-map-projection-transport/v1",
     schemaVersion: packet.schemaVersion,
     companyId: packet.companyId,
     observedAt: packet.observedAt,
     publishedAt,
     sourceSnapshotId: packet.sourceSnapshotId,
     packetDigest,
-    idempotencyKey: `pmap:v1:${packet.companyId}:${packet.sourceSnapshotId}:${packetDigest}`,
+    idempotencyKey: createHash("sha256")
+      .update(`${packet.companyId}:${packet.schemaVersion}:${packet.sourceSnapshotId}:${packetDigest}`, "utf8")
+      .digest("hex"),
     packet,
   });
 }
@@ -261,7 +264,7 @@ async function publishOnce(options: RoostProductMapPublisherOptions) {
   const bytes = Buffer.from(canonicalJson(envelope));
   if (bytes.byteLength > roostProductMapPublisherService.maxPayloadBytes) throw new Error("PAYLOAD_TOO_LARGE");
   const headers: Record<string, string> = {
-    authorization: `Bearer ${options.bindings.PRODUCT_MAP_ROOST_INGEST_KEY}`,
+    "x-api-key": options.bindings.PRODUCT_MAP_ROOST_INGEST_KEY,
     "content-type": "application/json",
     "content-length": String(bytes.byteLength),
     "idempotency-key": envelope.idempotencyKey,

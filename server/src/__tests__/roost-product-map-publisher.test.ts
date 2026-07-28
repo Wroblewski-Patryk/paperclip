@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   createRoostProductMapPublisherSupervisorIdentity,
@@ -13,7 +14,7 @@ const companyId = "11111111-1111-4111-8111-111111111111";
 const bindings = {
   PRODUCT_MAP_PAPERCLIP_SOURCE_URL: `http://127.0.0.1:3200/api/companies/${companyId}/softwarehouse/portfolio-projection/v1`,
   PRODUCT_MAP_PAPERCLIP_READ_KEY: "read-key",
-  PRODUCT_MAP_ROOST_INGEST_URL: "https://roost.example.test/api/product-map/projections/v1",
+  PRODUCT_MAP_ROOST_INGEST_URL: "https://roost.example.test/v1/product-map/projection/ingest",
   PRODUCT_MAP_ROOST_INGEST_KEY: "ingest-key",
 };
 const packet = {
@@ -30,20 +31,71 @@ describe("Roost Product Map publisher", () => {
   });
 
   it("pins source and outbound URLs and rejects private destinations", () => {
-    expect(() => validateBindings({ ...bindings, PRODUCT_MAP_ROOST_INGEST_URL: "https://127.0.0.1/ingest" })).toThrow("INVALID_INGEST_HOST");
-    expect(() => validateBindings({ ...bindings, PRODUCT_MAP_ROOST_INGEST_URL: "https://roost.example.test/ingest?x=1" })).toThrow("INVALID_INGEST_URL");
+    expect(() => validateBindings({ ...bindings, PRODUCT_MAP_ROOST_INGEST_URL: "https://127.0.0.1/v1/product-map/projection/ingest" })).toThrow("INVALID_INGEST_HOST");
+    expect(() => validateBindings({ ...bindings, PRODUCT_MAP_ROOST_INGEST_URL: "https://roost.example.test/v1/product-map/projection/ingest?x=1" })).toThrow("INVALID_INGEST_URL");
+    expect(() => validateBindings({ ...bindings, PRODUCT_MAP_ROOST_INGEST_URL: "https://roost.example.test/api/product-map/projections/v1" })).toThrow("INVALID_INGEST_ROUTE");
     expect(isPrivateAddress("10.0.0.1")).toBe(true);
     expect(isPrivateAddress("fe80::1")).toBe(true);
     expect(isPrivateAddress("8.8.8.8")).toBe(false);
   });
 
-  it("uses source observation and semantic digest for replay/idempotency", () => {
+  it("creates the accepted v1 envelope with canonical digest and hashed idempotency", () => {
     const digest = semanticPacketDigest(packet);
     const envelope = createTransportEnvelope(packet, "2026-07-28T09:01:00.000Z");
     expect(envelope.observedAt).toBe(packet.observedAt);
     expect(envelope.packetDigest).toBe(digest);
-    expect(envelope.idempotencyKey).toContain(digest);
+    expect(envelope).toMatchObject({
+      transportVersion: "product-map-projection-transport/v1",
+      schemaVersion: "1.0",
+      companyId,
+      observedAt: packet.observedAt,
+      publishedAt: "2026-07-28T09:01:00.000Z",
+      sourceSnapshotId: packet.sourceSnapshotId,
+      packetDigest: digest,
+      packet,
+    });
+    expect(digest).toMatch(/^[a-f0-9]{64}$/);
+    expect(digest).not.toMatch(/^sha256:/);
+    expect(envelope.transportVersion).not.toBe("v1");
+    expect(envelope.idempotencyKey).toBe(createHash("sha256")
+      .update(`${companyId}:1.0:${packet.sourceSnapshotId}:${digest}`, "utf8")
+      .digest("hex"));
+    expect(envelope.idempotencyKey).toMatch(/^[a-f0-9]{64}$/);
+    expect(envelope.idempotencyKey).not.toContain("pmap:v1:");
+    const recursivelyReordered = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(recursivelyReordered);
+      if (value && typeof value === "object") {
+        return Object.fromEntries(Object.entries(value).reverse().map(([key, child]) => [key, recursivelyReordered(child)]));
+      }
+      return value;
+    };
+    expect(semanticPacketDigest(recursivelyReordered(packet) as typeof packet)).toBe(digest);
     expect(createTransportEnvelope(packet, "2026-07-28T09:02:00.000Z").packetDigest).toBe(digest);
+  });
+
+  it("posts the complete accepted envelope to the fixed ingress with X-API-Key only", async () => {
+    const requests: Array<{ target: URL; headers: Record<string, string>; body?: Buffer; kind: string }> = [];
+    const result = await runRoostProductMapPublisher({
+      bindings,
+      companyId,
+      now: () => new Date("2026-07-28T09:01:00.000Z"),
+      request: async (request) => {
+        requests.push(request);
+        return request.kind === "source" ? { status: 200, body: packet } : { status: 202, body: {} };
+      },
+    });
+    const outbound = requests.find((request) => request.kind === "outbound")!;
+    const emitted = JSON.parse(outbound.body!.toString("utf8"));
+    expect(outbound.target.pathname).toBe("/v1/product-map/projection/ingest");
+    expect(outbound.headers).toEqual({
+      "x-api-key": bindings.PRODUCT_MAP_ROOST_INGEST_KEY,
+      "content-type": "application/json",
+      "content-length": String(outbound.body!.byteLength),
+      "idempotency-key": emitted.idempotencyKey,
+    });
+    expect(outbound.headers).not.toHaveProperty("authorization");
+    expect(emitted).toEqual(createTransportEnvelope(packet, "2026-07-28T09:01:00.000Z"));
+    expect(result).toMatchObject({ outcome: "published", attemptCount: 1, packetDigest: emitted.packetDigest, idempotencyKey: emitted.idempotencyKey });
   });
 
   it("creates provenance through the canonical supervisor identity contract without runtime registration", () => {
