@@ -5,6 +5,7 @@ import https from "node:https";
 import net from "node:net";
 import { roostBridgePortfolioProjectionSchema, type RoostBridgePortfolioProjection } from "@paperclipai/shared";
 import { z } from "zod";
+import { createLocalServiceKey, type LocalServiceIdentityInput } from "./local-service-supervisor.js";
 
 /**
  * The source-only implementation for the Product Map transport boundary.
@@ -22,6 +23,23 @@ export const roostProductMapPublisherService = {
   maxPayloadBytes: 256 * 1024,
   sourcePort: 3200,
 } as const;
+
+/**
+ * Creates the supervisor-compatible provenance identity without registering or
+ * starting a service. PMAP-REL supplies the runtime-specific command and
+ * fingerprint only after its protected activation gate has passed.
+ */
+export function createRoostProductMapPublisherSupervisorIdentity(
+  input: Omit<LocalServiceIdentityInput, "profileKind" | "serviceName" | "port">,
+) {
+  const identity: LocalServiceIdentityInput = {
+    ...input,
+    profileKind: roostProductMapPublisherService.profileKind,
+    serviceName: roostProductMapPublisherService.serviceName,
+    port: null,
+  };
+  return { ...identity, serviceKey: createLocalServiceKey(identity) };
+}
 
 const bindingNames = [
   "PRODUCT_MAP_PAPERCLIP_SOURCE_URL",
@@ -218,12 +236,13 @@ async function pinnedRequest(input: PinnedRequest): Promise<{ status: number; bo
   });
 }
 
-async function withTotalTimeout<T>(callback: () => Promise<T>, signal?: AbortSignal) {
+async function withTotalTimeout<T>(callback: (signal: AbortSignal) => Promise<T>, signal?: AbortSignal) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), roostProductMapPublisherService.totalTimeoutMs);
   const relay = () => controller.abort();
+  if (signal?.aborted) controller.abort();
   signal?.addEventListener("abort", relay, { once: true });
-  try { return await callback(); } finally { clearTimeout(timer); signal?.removeEventListener("abort", relay); }
+  try { return await callback(controller.signal); } finally { clearTimeout(timer); signal?.removeEventListener("abort", relay); }
 }
 
 async function publishOnce(options: RoostProductMapPublisherOptions) {
@@ -257,21 +276,21 @@ async function publishOnce(options: RoostProductMapPublisherOptions) {
 
 export async function runRoostProductMapPublisher(options: RoostProductMapPublisherOptions): Promise<PublisherTelemetry> {
   if (inFlight) return { outcome: "coalesced", attemptCount: 0 };
-  const run = (async (): Promise<PublisherTelemetry> => {
+  const run = withTotalTimeout(async (totalSignal): Promise<PublisherTelemetry> => {
     let lastError: unknown;
     for (let attempt = 0; attempt < roostProductMapPublisherService.maxAttempts; attempt += 1) {
       try {
-        if (options.signal?.aborted) return { outcome: "cancelled", attemptCount: attempt };
-        if (attempt) await sleep(roostProductMapPublisherService.retryDelaysMs[attempt]!, options.signal);
-        const result = await publishOnce(options);
+        if (totalSignal.aborted) return { outcome: "cancelled", attemptCount: attempt };
+        if (attempt) await sleep(roostProductMapPublisherService.retryDelaysMs[attempt]!, totalSignal);
+        const result = await publishOnce({ ...options, signal: totalSignal });
         return { outcome: "published", attemptCount: attempt + 1, ...result };
       } catch (error) {
         lastError = error;
-        if (options.signal?.aborted || safeErrorCode(error) === "PUBLISHER_CANCELLED") return { outcome: "cancelled", attemptCount: attempt + 1 };
+        if (totalSignal.aborted || safeErrorCode(error) === "PUBLISHER_CANCELLED") return { outcome: "cancelled", attemptCount: attempt + 1 };
       }
     }
     return { outcome: "failed", attemptCount: roostProductMapPublisherService.maxAttempts, errorCode: safeErrorCode(lastError) };
-  })();
+  }, options.signal);
   inFlight = run;
   try { const telemetry = await run; options.onTelemetry?.(telemetry); return telemetry; } finally { inFlight = null; }
 }
