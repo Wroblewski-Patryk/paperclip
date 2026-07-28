@@ -305,6 +305,44 @@ test("classifyLearningGapFromIssues preserves downstream affirmative credential 
   });
 });
 
+test("classifyLearningGapFromIssues recognizes affirmative credential rotation in an operational description", () => {
+  const gap = classifyLearningGapFromIssues("LUC-1904", [
+    {
+      identifier: "LUC-1904",
+      status: "blocked",
+      title: "[Soar] Source-control closure sweep",
+      description: "Use the generated source-control packet to classify dirty groups, ownership, evidence, verification needs, and commit/no-commit decisions. No push, deploy, restart, production mutation, protected smoke, or secret access occurs in this sweep.",
+    },
+    {
+      identifier: "LUC-2109",
+      status: "blocked",
+      title: "[Security] Release blocker",
+      description: "Rotate exposed production API credentials following confirmed transcript leakage.",
+    },
+  ]);
+
+  assert.equal(gap.area, "security-credentials");
+});
+
+test("classifyLearningGapFromIssues ignores quoted credential rotation in review and acceptance descriptions", () => {
+  const gap = classifyLearningGapFromIssues("LUC-1904", [
+    {
+      identifier: "LUC-1904",
+      status: "blocked",
+      title: "[Soar] Source-control closure sweep",
+      description: "Use the generated source-control packet to classify dirty groups, ownership, evidence, verification needs, and commit/no-commit decisions. No push, deploy, restart, production mutation, protected smoke, or secret access occurs in this sweep.",
+    },
+    {
+      identifier: "LUC-2104",
+      status: "blocked",
+      title: "[CRS] Review acceptance",
+      description: "Acceptance: Rotate exposed production API credentials following confirmed transcript leakage.",
+    },
+  ]);
+
+  assert.equal(gap.area, "ops-release");
+});
+
 test("classifyLearningGapFromIssues preserves downstream account authorization failures for source-control roots", () => {
   const gap = classifyLearningGapFromIssues("LUC-1904", [
     {

@@ -153,7 +153,18 @@ export function classifyLearningGapFromIssues(key, issues) {
 function isOperationalSecurityEvidence(issue, sourceControlRoot) {
   if (issue === sourceControlRoot) return true;
   const title = String(issue?.title ?? "").toLowerCase();
-  return /\b(?:secret|credential|token|api key|password)[^.\n]{0,100}\b(?:expos(?:ed|ure)?|leak(?:ed|age)?|compromis(?:ed|e)?|rotat(?:e|ed|ion)|revoke|unauthori[sz]ed|missing|required|denied|forbidden|expired|invalid)\b|\b(?:expos(?:ed|ure)?|leak(?:ed|age)?|compromis(?:ed|e)?|rotat(?:e|ed|ion)|revoke)\b[^.\n]{0,100}\b(?:secret|credential|token|api key|password)\b|\b(?:auth(?:entication)?|authori[sz]ation|permission|account)[^.\n]{0,100}\b(?:fail(?:ed|ure)?|denied|missing|required|forbidden|expired|invalid|unauthori[sz]ed)\b|\b(?:provide|approved?|bind|authenticate|authorize)[^.\n]{0,100}\b(?:protected|production)[-\s]*smoke\b[^.\n]{0,100}\b(?:auth|credential|secret|token|principal|account|authori[sz]|permission)\b/.test(title);
+  const description = String(issue?.description ?? "").toLowerCase();
+  if (isReviewOrAcceptanceText(title, description)) return false;
+  return affirmativeSecurityEvidence(`${title}\n${description}`);
+}
+
+function isReviewOrAcceptanceText(title, description) {
+  return /\b(?:re-?review|acceptance|test(?:ing)?|regression|qa|instruction|coverage)\b/.test(title)
+    || /^\s*(?:acceptance|required repair|review(?: finding)?|test(?: case| coverage)?|regression|proof)\s*:/im.test(description);
+}
+
+function affirmativeSecurityEvidence(text) {
+  return /\b(?:secret|credential|token|api key|password)[^.\n]{0,100}\b(?:expos(?:ed|ure)?|leak(?:ed|age)?|compromis(?:ed|e)?|rotat(?:e|ed|ion)|revoke|unauthori[sz]ed|missing|required|denied|forbidden|expired|invalid)\b|\b(?:expos(?:ed|ure)?|leak(?:ed|age)?|compromis(?:ed|e)?|rotat(?:e|ed|ion)|revoke)\b[^.\n]{0,100}\b(?:secret|credential|token|api key|password)\b|\b(?:auth(?:entication)?|authori[sz]ation|permission|account)[^.\n]{0,100}\b(?:fail(?:ed|ure)?|denied|missing|required|forbidden|expired|invalid|unauthori[sz]ed)\b|\b(?:provide|approved?|bind|authenticate|authorize)[^.\n]{0,100}\b(?:protected|production)[-\s]*smoke\b[^.\n]{0,100}\b(?:auth|credential|secret|token|principal|account|authori[sz]|permission)\b/.test(text);
 }
 
 function learningField(description, label) {
