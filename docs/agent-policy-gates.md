@@ -22,9 +22,33 @@ Policy gates prevent autonomous agents from calling work done when the company c
   boundary, and applicable business gates must also be current.
 - No application lifecycle transition may proceed from `blocked`, `stale`, or
   `failed` evidence. Only `verified` and justified `not_applicable` are green.
+- No production-bound lane may open deploy, restore, governor, or protected-smoke
+  follow-on work before its protected-access prerequisite packet is complete.
 
 The complete lifecycle and gate ownership matrix is
 `docs/softwarehouse/19-autonomous-application-business-lifecycle.md`.
+
+## Protected-Access Lane-Entry Gate
+
+Contract marker: `protected-access-lane-entry:v1`.
+
+Before follow-on work opens for a production-bound lane, the parent issue or a
+linked prerequisite issue must contain all stable packet fields:
+
+- `readOnlyDeploymentStatusPath`: one read-only deployment-status path and its
+  responsible role;
+- `nonDestructiveProtectedSmokeOrTestAccountPath`: one non-destructive protected
+  smoke or test-account path and its responsible role;
+- `secretRefOrBindingAliases`: required secret-ref or binding aliases by name
+  only;
+- `responsibleRoles`: owners for access and binding confirmation;
+- `downstreamUnblockTargets`: exact deploy, restore, smoke, command, or release
+  targets unblocked by each prerequisite;
+- `blockerOwnershipIssue`: a first-class blocker or owner-scoped prerequisite
+  child for every missing item.
+
+The failure mode is fail-closed: an incomplete packet prevents downstream issue
+creation. A prose warning without blocker ownership does not satisfy this gate.
 
 ## Risky Actions
 

@@ -33,26 +33,37 @@ before agents can claim an environment is healthy.
 - `workers-market-stream` explicit readiness proof;
 - temp-stack acceptance being unavailable under accepted no-temp routing.
 
-## Protected-Gate Preflight Checklist
+## Protected-Gate Prerequisite Checklist
 
-Use this checklist before deploy-impacting release smoke work that needs
-runtime secrets or protected environment bindings. Record answers in the
-release-smoke issue before rerunning the smoke command.
+Contract marker: `protected-access-lane-entry:v1`.
 
-1. Name the required protected secret refs or environment bindings by name only,
-   never by value.
-2. Name the binding or confirmation owner who can verify that the refs are
-   attached to the smoke runner.
-3. Name the exact downstream command, smoke, deploy observation, or release gate
-   that the protected binding unblocks.
-4. State the rollback/deploy evidence required for the lane, including pushed
-   SHA or deploy status when applicable, smoke result, rollback note, and
-   residual risk.
-5. If a missing binding blocks the lane, create or link a first-class Paperclip
-   blocker relation instead of leaving only a comment.
-6. Create a protected coordination child instead of rerunning blocked smoke when
-   the missing fact is a secret binding, owner confirmation, protected account
-   availability, deploy approval, or rollback/deploy evidence gate.
+Use this checklist when opening any production-bound lane that may need
+deploy-status readback, protected smoke/test-account proof, restore proof, or
+runtime secrets/protected bindings. The complete packet must exist before
+follow-on work opens for deploy, restore, governor, or protected smoke.
+
+Record these stable packet fields on the parent issue or linked prerequisite
+issue:
+
+1. `readOnlyDeploymentStatusPath`: one least-privilege, read-only
+   deployment-status path and its responsible role.
+2. `nonDestructiveProtectedSmokeOrTestAccountPath`: one non-destructive
+   protected smoke or test-account path and its responsible role.
+3. `secretRefOrBindingAliases`: required secret refs or protected binding
+   aliases by name only, never by value.
+4. `responsibleRoles`: the role that owns each binding confirmation or access
+   path.
+5. `downstreamUnblockTargets`: each exact downstream command, deploy
+   observation, restore proof, smoke, or release gate that the prerequisite
+   unblocks.
+6. `blockerOwnershipIssue`: the first-class Paperclip blocker or prerequisite
+   child that owns every missing prerequisite.
+
+Also state the rollback/deploy evidence required for the lane, including pushed
+SHA or deploy status when applicable, smoke result, rollback note, and residual
+risk. Do not create the downstream execution lane while any packet field is
+missing; create the owner-scoped prerequisite issue instead of rerunning a
+blocked protected action.
 
 ## Rule
 

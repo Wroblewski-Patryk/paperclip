@@ -3,6 +3,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import {
+  auditProtectedAccessLaneEntryDocuments,
+  protectedAccessLaneEntryDocPaths,
+} from "./lib/protected-access-lane-entry-contract.mjs";
 
 const repoRoot = process.cwd();
 const defaultCompanyId = "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
@@ -176,6 +180,14 @@ for (const term of requiredProcessTerms) {
     findings.push({ severity: "error", type: "missing_process_term", term });
   }
 }
+
+const protectedAccessLaneEntryDocuments = Object.fromEntries(
+  protectedAccessLaneEntryDocPaths.map((relativePath) => [
+    relativePath,
+    readIfExists(path.join(repoRoot, relativePath)),
+  ]),
+);
+findings.push(...auditProtectedAccessLaneEntryDocuments(protectedAccessLaneEntryDocuments));
 
 let rosterAgentCount = 0;
 let sourceRoleFilesExpected = 0;
@@ -388,6 +400,7 @@ const result = {
   requiredDocs: requiredDocs.length,
   requiredProcessDocs: requiredProcessDocs.length,
   requiredProcessTerms: requiredProcessTerms.length,
+  protectedAccessLaneEntryDocs: protectedAccessLaneEntryDocPaths.length,
   requiredSharedFiles: sharedFiles.length,
   rosterAgentCount,
   sourceRoleFilesExpected,

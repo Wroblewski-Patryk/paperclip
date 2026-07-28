@@ -10,7 +10,7 @@ below is its compact engineering-stage projection, not a shorter alternative.
 | Stage | Required output | Gate |
 |---|---|---|
 | Discovery | indexed symptoms, impacted apps, repro notes, source files, owners | issue exists and has a clear next action |
-| Planning | implementation plan, risk notes, target verification | plan accepted or explicitly self-approved by policy |
+| Planning | implementation plan, risk notes, target verification, and protected-access prerequisite packet for production-bound lanes | plan accepted or explicitly self-approved by policy |
 | Architecture | affected contracts, data flow, migrations, API/UI/worker impact | broad changes have architecture evidence |
 | Implementation | scoped branch/worktree changes | no unrelated rewrites |
 | Automated Tests | commands, results, failures, screenshots when relevant | no deploy without passing required tests or explicit blocker |
@@ -55,6 +55,36 @@ evidence instead of a typed bundle, but cannot close a completely evidence-free 
 
 Higher-risk work still needs the stage-specific review, deployment, security, and monitoring
 evidence above as part of the broader operating flow, not just the close route.
+
+## Production-Bound Lane Entry
+
+Contract marker: `protected-access-lane-entry:v1`.
+
+A lane is production-bound when its planned work can require deploy-status or
+production readback beyond public unauthenticated health, protected smoke or
+test-account proof, restore proof against protected runtime resources, or
+secret-ref-backed runtime bindings for those checks.
+
+During Planning, the parent lane or linked prerequisite issue must record the
+complete packet before follow-on work opens for deploy, restore, governor, or
+protected smoke:
+
+- `readOnlyDeploymentStatusPath`: one read-only deployment-status access path
+  and its responsible role;
+- `nonDestructiveProtectedSmokeOrTestAccountPath`: one non-destructive protected
+  smoke or test-account access path and its responsible role;
+- `secretRefOrBindingAliases`: every required secret ref or binding alias by
+  name only, never by value;
+- `responsibleRoles`: the role that owns each binding confirmation or access
+  path;
+- `downstreamUnblockTargets`: the downstream lane or exact command/check each
+  prerequisite unblocks;
+- `blockerOwnershipIssue`: the first-class blocker or prerequisite child that
+  owns every missing prerequisite.
+
+An incomplete packet is a lane-entry defect. Do not fan out deploy, restore,
+governor, or protected-smoke execution work until the missing prerequisite has
+an owner-scoped issue and the production-bound parent is blocked on it.
 
 ## Status Vocabulary
 

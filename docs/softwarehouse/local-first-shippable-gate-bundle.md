@@ -21,6 +21,31 @@ Current reality:
   reason to treat protected production, credentials, live accounts, or secrets
   as open.
 
+## Production-Bound Prerequisite Packet
+
+Contract marker: `protected-access-lane-entry:v1`.
+
+Before follow-on work opens for deploy, restore, governor, or protected smoke,
+every production-bound lane must record this packet on the parent issue or a
+linked prerequisite issue:
+
+- `readOnlyDeploymentStatusPath`: one read-only deployment-status path and its
+  responsible role;
+- `nonDestructiveProtectedSmokeOrTestAccountPath`: one non-destructive protected
+  smoke or test-account path and its responsible role;
+- `secretRefOrBindingAliases`: the least-privilege secret refs or binding
+  aliases needed for those paths, by name only;
+- `responsibleRoles`: the role responsible for each access path and binding
+  confirmation;
+- `downstreamUnblockTargets`: the exact deploy, restore, smoke, command, or
+  release gate each prerequisite unblocks;
+- `blockerOwnershipIssue`: the first-class blocker or owner-scoped prerequisite
+  child for every missing item.
+
+An incomplete packet is `blocked`, not locally shippable, and not ready for
+production-bound fan-out. Do not wait for a downstream deploy or protected
+smoke lane to rediscover missing access.
+
 ## Required Gate States
 
 Every applicable gate must be one of:
@@ -153,6 +178,10 @@ the exact action:
 
 Local evidence can prove local behavior. It cannot prove production health,
 deploy success, live integration safety, or protected smoke readiness.
+
+When protected readiness is missing, repair the prerequisite packet at lane
+entry and preserve its first-class blocker. Do not create downstream execution
+work merely to discover the same missing access again.
 
 ## Source-Control Closure Requirement
 
