@@ -1,6 +1,7 @@
 const projectAliases = new Map([
   ["Soar", ["11 Innovation: Soar", "Soar"]],
   ["Roost", ["11 Innovation: Roost", "Roost"]],
+  ["Featherly", ["11 Innovation: Featherly", "Featherly"]],
   ["Aviary", ["Aviary", "Personality"]],
 ]);
 

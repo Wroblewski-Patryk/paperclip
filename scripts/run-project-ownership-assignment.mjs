@@ -16,7 +16,7 @@ const localCodexCommand = resolveLocalCodexCommand(root);
 const rosterPath = path.join(root, "softwarehouse", "agent-roster.json");
 const sharedDir = path.join(root, "softwarehouse", "instructions", "shared");
 const rolesDir = path.join(root, "softwarehouse", "instructions", "roles");
-const controlledProjectNames = (process.env.SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS ?? "Soar,Roost,Softwarehouse Operating System")
+const controlledProjectNames = (process.env.SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS ?? "Soar,Roost,Featherly,Softwarehouse Operating System")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
@@ -26,6 +26,7 @@ const runnableStatuses = new Set(["todo", "backlog"]);
 const projectAliases = new Map([
   ["Soar", ["Soar", "11 Innovation: Soar"]],
   ["Roost", ["Roost", "11 Innovation: Roost"]],
+  ["Featherly", ["Featherly", "11 Innovation: Featherly"]],
   ["Softwarehouse Operating System", ["Softwarehouse Operating System", "00 General: Softwarehouse"]],
   ["Aviary", ["Aviary", "Personality"]],
 ]);
@@ -33,6 +34,7 @@ const projectAliases = new Map([
 const projectManagerByProject = new Map([
   ["Soar", "Soar Project Manager"],
   ["Roost", "Roost Project Manager"],
+  ["Featherly", "Featherly Platform Manager"],
   ["Aviary", "Aviary Project Manager"],
   ["Nest", "Nest Project Manager"],
   ["Softwarehouse Operating System", "CTO Architect"],
@@ -41,6 +43,7 @@ const projectManagerByProject = new Map([
 const rosterKeyByProject = new Map([
   ["Aviary", "aviary-product-manager"],
   ["Nest", "nest-project-manager"],
+  ["Featherly", "featherly-platform-manager"],
 ]);
 
 async function request(method, route, body) {

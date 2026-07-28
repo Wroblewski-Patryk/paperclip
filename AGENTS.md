@@ -121,13 +121,14 @@ approves a different root in the current thread or Paperclip approval:
 - `C:\Personal\Projekty\Aplikacje\Paperclip_Softwarehouse`
 - `C:\Personal\Projekty\Aplikacje\Soar`
 - `C:\Personal\Projekty\Aplikacje\Roost`
+- `C:\Personal\Projekty\Aplikacje\Featherly`
 
 Do not create helper folders, generated indexes, scripts, or scratch files directly under
 `C:\Personal\Projekty\Aplikacje`. Do not delete or clean up sibling app folders such as
 Nest, Featherly, Aviary, or other experiments. If ownership is unclear, report the path as
 a boundary issue and leave it untouched. Run `pnpm run softwarehouse:workspace-boundary-audit`
 after configuration changes that affect projects, routines, workspaces, or autonomous lanes.
-The three approved roots are singleton checkouts: do not create additional clones or worktrees.
+The four approved roots are singleton checkouts: do not create additional clones or worktrees.
 Paperclip must stay on strict port `3200` with its canonical embedded PostgreSQL on strict port
 `54329`; never start a fallback instance. Run `pnpm run softwarehouse:runtime-topology-audit`
 after runtime, workspace, or service configuration changes.

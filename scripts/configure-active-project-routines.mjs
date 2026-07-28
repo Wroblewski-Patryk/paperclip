@@ -13,8 +13,14 @@ const allowActiveRuns = process.argv.includes("--allow-active-runs");
 const projectManagerByProject = new Map([
   ["Soar", "Soar Project Manager"],
   ["Roost", "Roost Project Manager"],
+  ["Featherly", "Featherly Platform Manager"],
   ["Aviary", "Aviary Project Manager"],
   ["Nest", "Nest Project Manager"],
+]);
+const projectAliases = new Map([
+  ["Soar", ["11 Innovation: Soar", "Soar"]],
+  ["Roost", ["11 Innovation: Roost", "Roost"]],
+  ["Featherly", ["11 Innovation: Featherly", "Featherly"]],
 ]);
 
 const cadenceByKind = new Map([
@@ -150,7 +156,10 @@ const configured = [];
 const skipped = [];
 
 for (const projectName of softwarehouseActiveApplicationProjectNames) {
-  const project = byName(projects, projectName);
+  const project = (projectAliases.get(projectName) ?? [projectName])
+    .map((name) => byName(projects, name))
+    .find((candidate) => candidate && !candidate.archivedAt)
+    ?? null;
   const pmName = projectManagerByProject.get(projectName);
   const pm = findAgentByNameOrAlias(agents, pmName);
   if (!project) {

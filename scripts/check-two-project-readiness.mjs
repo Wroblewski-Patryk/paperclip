@@ -14,13 +14,14 @@ const preferredCompanyNames = [
 ].filter(Boolean);
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const deliveryParentIdentifier = process.env.SOFTWAREHOUSE_DELIVERY_PARENT_IDENTIFIER ?? "LUC-25";
-const requiredProjects = (process.env.SOFTWAREHOUSE_READINESS_PROJECTS ?? "Soar,Roost")
+const requiredProjects = (process.env.SOFTWAREHOUSE_READINESS_PROJECTS ?? "Soar,Roost,Featherly")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
 const requiredProjectManagers = new Map([
   ["Soar", "Soar Project Manager"],
   ["Roost", "Roost Project Manager"],
+  ["Featherly", "Featherly Platform Manager"],
   ["Aviary", "Aviary Project Manager"],
   ["Nest", "Nest Project Manager"],
 ]);
@@ -31,6 +32,7 @@ const gateRoots = new Map();
 const projectAliases = new Map([
   ["Soar", ["Soar", "11 Innovation: Soar"]],
   ["Roost", ["Roost", "11 Innovation: Roost"]],
+  ["Featherly", ["Featherly", "11 Innovation: Featherly"]],
   ["Softwarehouse Operating System", ["Softwarehouse Operating System", "00 General: Softwarehouse"]],
   ["Aviary", ["Aviary", "Personality"]],
 ]);
@@ -165,7 +167,10 @@ const projectReports = requiredProjects.map((projectName) => {
   if (projectName === "Soar" && project && manager && project.executionWorkspacePolicy?.enabled) {
     mode = gateIssue?.status === "blocked" ? "supervision_ready_delivery_blocked" : "delivery_ready";
   }
-  if (!["Soar", "Roost"].includes(projectName) && project && manager && project.executionWorkspacePolicy?.enabled) {
+  if (!["Soar", "Roost", "Featherly"].includes(projectName) && project && manager && project.executionWorkspacePolicy?.enabled) {
+    mode = gateIssue?.status === "blocked" ? "delivery_blocked" : "takeover_ready";
+  }
+  if (projectName === "Featherly" && project && manager && project.executionWorkspacePolicy?.enabled) {
     mode = gateIssue?.status === "blocked" ? "delivery_blocked" : "takeover_ready";
   }
   if (blockers.some((blocker) =>
@@ -266,10 +271,10 @@ const supervisionReady = sharedReadinessBlockers.length === 0
     && report.workspacePolicyEnabled
     && report.staleInProgressCount === 0
   );
-const twoProjectFullDeliveryReady = supervisionReady
+const activeProjectFullDeliveryReady = supervisionReady
   && protectedDeliveryBlockers.length === 0
-  && projectReports.filter((report) => ["Soar", "Roost"].includes(report.project)).every((report) =>
-    report.mode === "delivery_ready"
+  && projectReports.every((report) =>
+    ["delivery_ready", "takeover_ready"].includes(report.mode)
     && report.blockers.length === 0
   );
 const multiProjectTakeoverReady = supervisionReady
@@ -285,8 +290,8 @@ const operatingPosture = sourceControl.dirtyOperatingRepos.length > 0
       ? "project_repo_mutation_blocked_monitoring_allowed"
     : protectedDeliveryBlockers.length > 0
       ? "supervision_ready_limited_delivery"
-    : twoProjectFullDeliveryReady
-      ? "two_project_delivery_ready"
+    : activeProjectFullDeliveryReady
+      ? "active_project_delivery_ready"
       : supervisionReady
         ? "supervision_ready_limited_delivery"
         : "supervision_not_ready";
@@ -332,7 +337,8 @@ console.log(JSON.stringify({
   },
   readiness: {
     supervisionReady,
-    twoProjectFullDeliveryReady,
+    activeProjectFullDeliveryReady,
+    twoProjectFullDeliveryReady: activeProjectFullDeliveryReady,
     operatingPosture,
     operatingConstraints,
     currentMode: supervisionReady

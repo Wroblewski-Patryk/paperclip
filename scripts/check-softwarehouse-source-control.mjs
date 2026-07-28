@@ -13,7 +13,7 @@ const parkedProjectNames = new Set(
 
 const defaultRepositoryNames = (
   process.env.SOFTWAREHOUSE_SOURCE_CONTROL_PROJECTS ??
-  "Paperclip_Softwarehouse,Soar,Roost"
+  "Paperclip_Softwarehouse,Soar,Roost,Featherly"
 )
   .split(",")
   .map((name) => name.trim())

@@ -19,7 +19,7 @@ const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_KNOWN_STATE_REQUEST_TIMEOUT_MS ?? 30_000);
-const targetProjects = (process.env.SOFTWAREHOUSE_KNOWN_STATE_PROJECTS ?? "Soar,Roost")
+const targetProjects = (process.env.SOFTWAREHOUSE_KNOWN_STATE_PROJECTS ?? "Soar,Roost,Featherly")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
@@ -34,7 +34,11 @@ const refreshableStatuses = new Set(["blocked", "in_review"]);
 const projectAliases = new Map([
   ["Soar", ["11 Innovation: Soar", "Soar"]],
   ["Roost", ["11 Innovation: Roost", "Roost"]],
+  ["Featherly", ["11 Innovation: Featherly", "Featherly"]],
   ["Aviary", ["Aviary", "Personality"]],
+]);
+const projectDisplayNames = new Map([
+  ["Featherly", "11 Innovation: Featherly"],
 ]);
 
 async function request(method, route, body) {
@@ -85,6 +89,7 @@ function projectManagerName(projectName) {
   const explicit = new Map([
     ["Soar", "Soar Project Manager"],
     ["Roost", "Roost Project Manager"],
+    ["Featherly", "Featherly Platform Manager"],
     ["Aviary", "Aviary Project Manager"],
     ["Nest", "Nest Project Manager"],
   ]);
@@ -170,7 +175,7 @@ async function ensureProject(companyId, projectsByName, agentsByName, projectNam
   }
 
   const input = {
-    name: projectName,
+    name: projectDisplayNames.get(projectName) ?? projectName,
     description: `Autonomous takeover board for ${projectName}. Local source: ${projectRoot}. First mission: collect known-state evidence before implementation.`,
     status: "planned",
     leadAgentId: lead?.id ?? null,
@@ -186,7 +191,10 @@ async function ensureProject(companyId, projectsByName, agentsByName, projectNam
       },
     },
   };
-  if (!apply) return { project: { id: null, name: projectName, archivedAt: null }, action: "would_create_project" };
+  if (!apply) return {
+    project: { id: null, name: projectDisplayNames.get(projectName) ?? projectName, archivedAt: null },
+    action: "would_create_project",
+  };
   const created = await request("POST", `/api/companies/${companyId}/projects`, input);
   projectsByName.set(created.name, created);
   return { project: created, action: "created_project" };

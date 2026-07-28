@@ -31,7 +31,7 @@ async function request(method, route, body) {
 }
 
 async function readApplications() {
-  return (process.env.SOFTWAREHOUSE_BOOTSTRAP_PROJECTS ?? "Soar,Roost")
+  return (process.env.SOFTWAREHOUSE_BOOTSTRAP_PROJECTS ?? "Soar,Roost,Featherly")
     .split(",")
     .map((name) => name.trim())
     .filter(Boolean)
@@ -278,7 +278,7 @@ async function getOrCreateTakeoverIssue(companyId, application, project, agentsB
     title,
     description,
     status: "backlog",
-    priority: application.Application === "Soar" || application.Application === "Roost" ? "critical" : "high",
+    priority: ["Soar", "Roost", "Featherly"].includes(application.Application) ? "critical" : "high",
     projectId: project.id,
   });
 }

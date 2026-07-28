@@ -405,7 +405,7 @@
       "icon": "lightbulb",
       "modelLane": "generalReasoning",
       "reportsTo": "chief-innovation-officer",
-      "capabilities": "Owns innovation portfolio coordination for LuckySparrow Softwarehouse with Soar first and Roost second. Keeps dormant app streams parked, tracks staffing/ownership gaps, converts strategic gaps into narrow Paperclip issues, and does not implement code.",
+      "capabilities": "Owns innovation portfolio coordination for LuckySparrow Softwarehouse across Soar, Roost, and the owner-activated Featherly hardening lane. Keeps remaining dormant app streams parked, tracks staffing/ownership gaps, converts strategic gaps into narrow Paperclip issues, and does not implement code.",
       "defaultWorkspace": "portfolio"
     },
     {
@@ -478,14 +478,14 @@
   "workspacePolicy": {
     "root": "C:/Personal/Projekty/Aplikacje",
     "defaultCwd": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
-    "rule": "Agents start in the narrowest useful local cwd for their standing role. Stage 1 active workspaces are only Paperclip_Softwarehouse, Soar, and Roost. Existing active applications must use their canonical local workspace under C:/Personal/Projekty/Aplikacje/<Application>; do not clone, copy, or create a second local app instance. In this local phase, Paperclip means Paperclip_Softwarehouse and the old C:/Personal/Projekty/Aplikacje/Paperclip path is not an active project. Isolated worktrees require explicit board approval for the specific issue and must be cleaned after handoff. Never use C:/Personal/Projekty/Aplikacje itself, C:/tmp, system temp folders, Downloads, Desktop, or ad hoc scratch folders as application repo/checkouts. Temp folders are only for short-lived generated artifacts that are deleted before handoff. Issue/project execution workspaces should resolve to the canonical project cwd by default. Portfolio coordination roles use the Paperclip_Softwarehouse workspace and read Paperclip-owned portfolio indexes instead of starting in the parent apps folder.",
+    "rule": "Agents start in the narrowest useful local cwd for their standing role. Active workspaces are only Paperclip_Softwarehouse, Soar, Roost, and Featherly. Existing active applications must use their canonical local workspace under C:/Personal/Projekty/Aplikacje/<Application>; do not clone, copy, or create a second local app instance. In this local phase, Paperclip means Paperclip_Softwarehouse and the old C:/Personal/Projekty/Aplikacje/Paperclip path is not an active project. Isolated worktrees require explicit board approval for the specific issue and must be cleaned after handoff. Never use C:/Personal/Projekty/Aplikacje itself, C:/tmp, system temp folders, Downloads, Desktop, or ad hoc scratch folders as application repo/checkouts. Temp folders are only for short-lived generated artifacts that are deleted before handoff. Issue/project execution workspaces should resolve to the canonical project cwd by default. Portfolio coordination roles use the Paperclip_Softwarehouse workspace and read Paperclip-owned portfolio indexes instead of starting in the parent apps folder.",
     "workspaces": {
       "softwarehouse": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
       "portfolio": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
       "soar": "C:/Personal/Projekty/Aplikacje/Soar",
       "roost": "C:/Personal/Projekty/Aplikacje/Roost",
       "aviary": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
-      "featherly": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
+      "featherly": "C:/Personal/Projekty/Aplikacje/Featherly",
       "nest": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse"
     }
   }

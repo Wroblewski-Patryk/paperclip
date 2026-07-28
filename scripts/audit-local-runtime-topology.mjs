@@ -13,6 +13,7 @@ const roots = [
   { key: "paperclip", cwd: repoRoot },
   { key: "soar", cwd: path.join(appsRoot, "Soar") },
   { key: "roost", cwd: path.join(appsRoot, "Roost") },
+  { key: "featherly", cwd: path.join(appsRoot, "Featherly") },
 ];
 const apiBase = (process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200").replace(/\/$/, "");
 

@@ -254,12 +254,13 @@ test("worker backlog decomposition stays in active products and serializes share
   const seeder = await readFile("scripts/run-worker-backlog-decomposition-seeder.mjs", "utf8");
   const instructions = await readFile("softwarehouse/instructions/shared/90-pipeline-and-supervision.md", "utf8");
 
-  assert.match(seeder, /Aviary, Nest, Featherly, and every other parked product remain out of scope/);
+  assert.match(seeder, /owner-activated Featherly security-hardening lane moving/);
+  assert.match(seeder, /Aviary, Nest, and every other parked product remain out of scope/);
   assert.match(seeder, /for a shared project workspace, resume at most one repo-mutating worker lane at a time/);
   assert.match(seeder, /docs\/status, docs\/graphs, \.agents\/state, and \.codex\/context as shared conflict sets/);
   assert.match(seeder, /noop_controlled_repo_source_control_closure_required/);
   assert.match(seeder, /check-softwarehouse-source-control\.mjs/);
-  assert.match(seeder, /a Soar\/Roost child must not inherit the Softwarehouse project\/workspace/);
+  assert.match(seeder, /a Soar\/Roost\/Featherly child must not inherit the Softwarehouse project\/workspace/);
   assert.match(seeder, /accounting, review, queue, and governance children[\s\S]*must not mutate product or Paperclip code/);
   assert.doesNotMatch(seeder, /unblock\/prepare Roost\/Aviary\/Nest/);
   assert.match(instructions, /Planned queue depth is not execution permission/);
@@ -2258,7 +2259,7 @@ test("known-state harvester defers heavy scans while active runs exist", async (
   assert.doesNotMatch(source, /issues\?limit=1000/);
 });
 
-test("softwarehouse autonomous project defaults keep future apps parked behind Soar and Roost", async () => {
+test("softwarehouse autonomous project defaults activate Featherly while keeping Aviary and Nest parked", async () => {
   const activeRoutines = await readFile("scripts/lib/softwarehouse-active-routines.mjs", "utf8");
   const activeRoutineConfigurator = await readFile("scripts/configure-active-project-routines.mjs", "utf8");
   const knownStateHarvester = await readFile("scripts/run-project-known-state-harvester.mjs", "utf8");
@@ -2267,22 +2268,23 @@ test("softwarehouse autonomous project defaults keep future apps parked behind S
   const projectStatusSync = await readFile("scripts/run-project-status-sync.mjs", "utf8");
   const blockedTriageStarter = await readFile("scripts/run-blocked-triage-lane-starter.mjs", "utf8");
 
-  assert.match(activeRoutines, /softwarehouseActiveApplicationProjectNames = \["Soar", "Roost"\]/);
+  assert.match(activeRoutines, /softwarehouseActiveApplicationProjectNames = \["Soar", "Roost", "Featherly"\]/);
   assert.match(activeRoutineConfigurator, /\["Soar", "Soar Project Manager"\]/);
   assert.match(activeRoutineConfigurator, /\["Roost", "Roost Project Manager"\]/);
+  assert.match(activeRoutineConfigurator, /\["Featherly", "Featherly Platform Manager"\]/);
 
-  assert.match(knownStateHarvester, /SOFTWAREHOUSE_KNOWN_STATE_PROJECTS \?\? "Soar,Roost"/);
+  assert.match(knownStateHarvester, /SOFTWAREHOUSE_KNOWN_STATE_PROJECTS \?\? "Soar,Roost,Featherly"/);
   assert.doesNotMatch(knownStateHarvester, /SOFTWAREHOUSE_KNOWN_STATE_PROJECTS \?\? "Soar,Roost,Aviary,Nest"/);
 
   for (const source of [localRepairStarter, projectOwnershipAssignment]) {
-    assert.match(source, /SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS \?\? "Soar,Roost,Softwarehouse Operating System"/);
+    assert.match(source, /SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS \?\? "Soar,Roost,Featherly,Softwarehouse Operating System"/);
     assert.doesNotMatch(source, /SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS \?\? "Soar,Roost,Aviary,Nest/);
   }
 
-  assert.match(projectStatusSync, /SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS \?\? "Soar,Roost"/);
+  assert.match(projectStatusSync, /SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS \?\? "Soar,Roost,Featherly"/);
   assert.doesNotMatch(projectStatusSync, /SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS \?\? "Soar,Roost,Aviary,Nest"/);
 
-  assert.match(blockedTriageStarter, /SOFTWAREHOUSE_BLOCKED_TRIAGE_PROJECTS\s+\?\? "Softwarehouse Operating System,Soar,Roost"/);
+  assert.match(blockedTriageStarter, /SOFTWAREHOUSE_BLOCKED_TRIAGE_PROJECTS\s+\?\? "Softwarehouse Operating System,Soar,Roost,Featherly"/);
   assert.doesNotMatch(blockedTriageStarter, /SOFTWAREHOUSE_BLOCKED_TRIAGE_PROJECTS\s+\?\? "Softwarehouse Operating System,Soar,Roost,Aviary,Nest"/);
 });
 

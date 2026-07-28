@@ -8,7 +8,7 @@ const force = process.argv.includes("--force");
 const maxAgeHours = Number(process.env.ARCHITECTURE_AWARENESS_MAX_AGE_HOURS ?? 24);
 const now = Date.now();
 
-const projectNames = (process.env.SOFTWAREHOUSE_ARCHITECTURE_AWARENESS_PROJECTS ?? "Paperclip,Soar,Roost")
+const projectNames = (process.env.SOFTWAREHOUSE_ARCHITECTURE_AWARENESS_PROJECTS ?? "Paperclip,Soar,Roost,Featherly")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);

@@ -12,7 +12,8 @@ improvement.
 The current company target and priority policy live in
 `docs/softwarehouse/15-autonomous-company-target.md`. This target is the tie
 breaker when routines, project managers, or specialists must choose between
-Soar, Roost, and Softwarehouse/system work.
+Soar, Roost, the owner-activated Featherly hardening lane, and
+Softwarehouse/system work.
 
 The operating rule is:
 
@@ -25,11 +26,12 @@ monitoring continuation, learning outputs, and future Roost truth adapter.
 
 Current posture:
 
-- V1 local target: Soar and Roost are both active application completion lanes.
+- V0 local target: Soar and Roost are active application completion lanes, and
+  Featherly is active as a bounded takeover/security-hardening exception.
   Paperclip must keep their indexed known-state, event-chain, runtime-error,
   operational-readiness, project-truth, source-control, verification, and docs
-  loops moving until each remaining gap is proven done, delegated, deferred, or
-  blocked with owner/action.
+  loops moving until each remaining gap is proven done, delegated, deferred,
+  or blocked with owner/action.
 - Soar is the first active sellable application lane. It owns production build
   provenance, protected smoke/auth proof, deploy/rollback evidence,
   security/QA evidence, and inspectable work products before sales claims.
@@ -39,13 +41,17 @@ Current posture:
   the work is owner-scoped and does not require protected production mutation.
   V2.1 Paperclip/Roost integration waits until Roost itself is working and the
   bridge boundary is accepted.
+- Featherly is the third active lane only for local known-state, security,
+  reliability, test, documentation, and release-readiness evidence. Its
+  production/Coolify, secret, destructive, and live-auth mutations remain
+  protected.
 - V2.2 moves Paperclip to a dedicated VPS for server-side app creation and
   Coolify-mediated production deploys. Until then, local Paperclip remains the
   controller and VPS/Coolify facts are gated deploy evidence.
 - V3 opens additional application projects after the Soar/Roost local+deploy
   loop proves it can run without silent idle, duplicate churn, or hidden
   blockers.
-- Featherly, Nest, Aviary, LuckySparrow.ch, OpenJarvis, Obiekty, Paperclip
+- Nest, Aviary, LuckySparrow.ch, OpenJarvis, Obiekty, Paperclip
   product work, and other portfolio experiments are backlog/archived unless
   the board explicitly reopens them.
 - Routines and managers must avoid churn: reuse canonical active issues,
@@ -255,6 +261,10 @@ manual/library posture, not active autonomous work.
 - `Roost CompanyCore readiness and milestone review`
 - `[Roost] Production health and authenticated acceptance evidence sweep`
 - `[Roost][DRE] Coolify deploy provenance and rollback evidence sweep`
+- `[Featherly] Daily project status refresh`
+- `[Featherly][PM] No-stall queue expeditor`
+- `[Featherly] Known-state and map drift sweep`
+- `[Featherly] Source-control closure sweep`
 
 Cadence anchors for flow-critical routines:
 
@@ -271,8 +281,8 @@ Cadence anchors for flow-critical routines:
 Pause, disable, or keep manual-only unless a project phase explicitly needs
 them:
 
-- routines for deferred apps such as Featherly, Nest, Aviary,
-  LuckySparrow.ch, OpenJarvis, and Obiekty;
+- routines for deferred apps such as Nest, Aviary, LuckySparrow.ch, OpenJarvis,
+  and Obiekty;
 - broad innovation/portfolio routines with disabled triggers;
 - legacy duplicate review routines superseded by the active Softwarehouse
   review/learning loops;
@@ -291,7 +301,8 @@ and template feedback. These lanes must not touch deploy, secrets, live data, or
 production accounts without a release/security approval path.
 
 Roost/companycore is an active V1 completion lane, not a parked readiness-only
-stream. Aviary, Nest, Featherly, LuckySparrow.ch, OpenJarvis, Obiekty,
+stream. Featherly is active as an owner-approved takeover/security-hardening
+exception. Aviary, Nest, LuckySparrow.ch, OpenJarvis, Obiekty,
 Paperclip product work, and other portfolio experiments stay paused/backlog
 until the board explicitly reopens them for V3 or a named exception. Before
 opening large Roost specialist batches, PMs must verify project-manager lanes,

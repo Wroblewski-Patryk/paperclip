@@ -9,6 +9,7 @@ const legacyAgentAliases = new Map([
   ["Security Review Lead", ["security-privacy-auditor"]],
   ["Soar Project Manager", ["soar-project-manager", "soar-product-manager"]],
   ["Roost Project Manager", ["roost-project-manager", "roost-product-manager"]],
+  ["Featherly Platform Manager", ["featherly-platform-manager"]],
   ["Aviary Project Manager", ["aviary-project-manager", "aviary-product-manager", "personality-project-manager"]],
   ["Nest Project Manager", ["nest-project-manager", "nest-product-manager"]],
 ]);

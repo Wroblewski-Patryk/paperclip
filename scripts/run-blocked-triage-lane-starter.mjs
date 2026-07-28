@@ -47,7 +47,7 @@ const blockedTriageMaxWaitMs = Number.parseInt(
   10,
 );
 const projectPriority = (process.env.SOFTWAREHOUSE_BLOCKED_TRIAGE_PROJECTS
-  ?? "Softwarehouse Operating System,Soar,Roost")
+  ?? "Softwarehouse Operating System,Soar,Roost,Featherly")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
@@ -55,6 +55,7 @@ const projectAliases = new Map([
   ["Softwarehouse Operating System", ["Softwarehouse Operating System", "00 General: Softwarehouse"]],
   ["Soar", ["Soar", "11 Innovation: Soar"]],
   ["Roost", ["Roost", "11 Innovation: Roost"]],
+  ["Featherly", ["Featherly", "11 Innovation: Featherly"]],
 ]);
 const companyNameAliases = [
   companyName,

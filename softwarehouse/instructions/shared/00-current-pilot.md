@@ -5,8 +5,9 @@
 - Current platform phase: `Softwarehouse V0`.
 - V0 is the complete local autonomous application factory: Paperclip stays on
   the canonical Windows host while agents create, finish, verify, deploy, and
-  maintain applications. Soar and Roost are the only active product lanes and
-  may run on their named VPS targets.
+  maintain applications. Soar, Roost, and the owner-activated Featherly
+  security-hardening lane are active. Soar and Roost may run on their named
+  VPS targets; Featherly production remains gated.
 - V0 is not the full autonomous business. Hosting Paperclip on VPS and
   activating broad business-plan, CRM, sales, marketing, finance, HR,
   customer-success, provider-write, or external-communication operations are
@@ -22,8 +23,9 @@
 
 - Active sellable app lane 1: `Soar`
 - Active sellable app lane 2: `Roost`
+- Active takeover and hardening lane 3: `Featherly`
 - Version roadmap: `Softwarehouse V0 local app factory (Soar + Roost) -> Softwarehouse V1 hosted Paperclip + governed Roost company plane -> Softwarehouse V2 portfolio expansion`
-- Deferred app streams: `Featherly`, `Nest`, `Aviary`, `LuckySparrow.ch`,
+- Deferred app streams: `Nest`, `Aviary`, `LuckySparrow.ch`,
   `OpenJarvis`, `Obiekty`, Paperclip product work, and other portfolio
   experiments
 - Workspace path: `C:/Personal/Projekty/Aplikacje/Soar`
@@ -36,6 +38,11 @@
   explicit board reopen.
 - Roost workspace path: `C:/Personal/Projekty/Aplikacje/Roost`
 - Roost documentation path: `C:/Personal/Projekty/Aplikacje/Roost/docs`
+- Featherly workspace path: `C:/Personal/Projekty/Aplikacje/Featherly`
+- Featherly starts in takeover/security-hardening mode. Read-only mapping,
+  dependency/security assessment, local repair, tests, and documentation are
+  active; production/Coolify mutation remains gated until deployment,
+  rollback, monitoring, and security evidence are inspectable.
 - Template path: `C:/Personal/Projekty/Aplikacje/!template`
 - Portfolio root: `C:/Personal/Projekty/Aplikacje`
 - Portfolio index: `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/softwarehouse/portfolio/APPLICATIONS_INDEX.md`

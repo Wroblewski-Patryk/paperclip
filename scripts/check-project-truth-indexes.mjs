@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
-const projectNames = (process.env.SOFTWAREHOUSE_PROJECT_TRUTH_PROJECTS ?? "Soar,Roost")
+const projectNames = (process.env.SOFTWAREHOUSE_PROJECT_TRUTH_PROJECTS ?? "Soar,Roost,Featherly")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);

@@ -1,6 +1,6 @@
 # Service Topology
 
-Last updated: 2026-07-17
+Last updated: 2026-07-28
 
 ## Purpose
 
@@ -24,6 +24,7 @@ coordinates.
 | --- | --- | --- | --- | --- |
 | Soar | primary sellable lane | `C:/Personal/Projekty/Aplikacje/Soar` | `LUC-30` deployment path, `LUC-31` readiness proof, `LUC-32` security/secrets gate | Soar Project Manager |
 | Roost | secondary thin-readiness lane | `C:/Personal/Projekty/Aplikacje/Roost` | `LUC-30` deployment path, `LUC-31` readiness proof, `LUC-32` security/secrets gate | Roost Project Manager |
+| Featherly | owner-activated takeover/security-hardening lane; production gated | `C:/Personal/Projekty/Aplikacje/Featherly` | `LUC-1899` known-state baseline and `LUC-1900` credential/history incident | Featherly Platform Manager |
 | Softwarehouse Operating System | planned | this repo | improve autonomy/process observability | Portfolio / CTO |
 
 Stage 1 file operations are limited to:
@@ -31,6 +32,7 @@ Stage 1 file operations are limited to:
 - `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse`
 - `C:/Personal/Projekty/Aplikacje/Soar`
 - `C:/Personal/Projekty/Aplikacje/Roost`
+- `C:/Personal/Projekty/Aplikacje/Featherly`
 
 Agents must not create generated files, helper scripts, indexes, or scratch
 folders directly under `C:/Personal/Projekty/Aplikacje`. Sibling app folders are
@@ -51,10 +53,11 @@ grace period, then runs the topology audit before any quota recovery or agent
 dispatch. Active, mounted, or ambiguous one-offs remain visible and fail closed
 for targeted review; broad Docker pruning is prohibited.
 
-Deferred portfolio streams: Featherly, Nest, Aviary, LuckySparrow.ch,
-OpenJarvis, Obiekty, Paperclip product work, and other experiments stay
-backlog/archived until Soar/Roost release-readiness gates are stable or the
-board explicitly reopens a stream.
+Deferred portfolio streams: Nest, Aviary, LuckySparrow.ch, OpenJarvis,
+Obiekty, Paperclip product work, and other experiments stay backlog/archived
+until Soar/Roost release-readiness gates are stable or the board explicitly
+reopens a stream. Featherly's exception is limited to local takeover and
+security hardening; production remains protected.
 
 ## External Operational Surfaces
 

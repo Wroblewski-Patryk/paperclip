@@ -46,7 +46,7 @@ const terminalTriageCooldownMs = Number.parseInt(
   10,
 );
 const controlledProjectNames = new Set(
-  (process.env.SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS ?? "Soar,Roost,Softwarehouse Operating System")
+  (process.env.SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS ?? "Soar,Roost,Featherly,Softwarehouse Operating System")
     .split(",")
     .map((name) => name.trim())
     .filter(Boolean),
@@ -54,6 +54,7 @@ const controlledProjectNames = new Set(
 const projectAliases = new Map([
   ["Soar", ["Soar", "11 Innovation: Soar"]],
   ["Roost", ["Roost", "11 Innovation: Roost"]],
+  ["Featherly", ["Featherly", "11 Innovation: Featherly"]],
   ["Softwarehouse Operating System", ["Softwarehouse Operating System", "00 General: Softwarehouse"]],
   ["Aviary", ["Aviary", "Personality"]],
 ]);

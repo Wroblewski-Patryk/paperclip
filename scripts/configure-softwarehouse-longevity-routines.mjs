@@ -131,7 +131,7 @@ const specs = [
     assignee: portfolio ?? cto,
     priority: "critical",
     description: [
-      "Keep the softwarehouse from going idle while current Soar/Roost delivery gaps still have legal non-production work.",
+      "Keep the softwarehouse from going idle while current Soar/Roost delivery or Featherly hardening gaps still have legal non-production work.",
       "Run `pnpm run softwarehouse:continuation-watchdog` and follow its output.",
       "Execute that command before inspecting the recurring issue state. The issue being locked by the current run is expected and is not a blocker; the command finalizes the cycle with the current Paperclip run identity.",
       "Run `softwarehouse:next-legal-action:apply` even when productive runs exist. The selector may start at most one additional lane, and only when the target agent and project are idle; otherwise it returns supervision-only.",

@@ -36,9 +36,10 @@ Workspace discipline:
   do not start multiple unmanaged dev servers for the same app.
 
 Soar is the first active sellable app lane. Roost is the second active app lane.
-The V1 target is local Soar + Roost completion through indexed frontend,
+Featherly is the owner-activated third lane in takeover/security-hardening mode.
+The V0 target is local active-app completion through indexed frontend,
 backend, worker, runtime, source-control, verification, and docs evidence.
-Aviary, Nest, Featherly, LuckySparrow.ch, OpenJarvis, Obiekty, Paperclip
+Aviary, Nest, LuckySparrow.ch, OpenJarvis, Obiekty, Paperclip
 product work, and other portfolio experiments stay parked until V3 or an
 explicit board activation. Project managers must keep known-state evidence
 fresh for active apps, then split implementation, QA, docs, security, and ops

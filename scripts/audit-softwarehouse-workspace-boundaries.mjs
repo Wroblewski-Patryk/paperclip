@@ -21,6 +21,7 @@ const allowedRoots = (
     path.join(appsRoot, "Paperclip_Softwarehouse"),
     path.join(appsRoot, "Soar"),
     path.join(appsRoot, "Roost"),
+    path.join(appsRoot, "Featherly"),
   ].join(path.delimiter)
 )
   .split(path.delimiter)

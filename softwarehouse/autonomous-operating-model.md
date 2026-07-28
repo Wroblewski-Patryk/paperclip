@@ -83,8 +83,9 @@ Paperclip-only unless a local repair issue explicitly grants project repo
 mutation.
 
 The known-state harvester owns the first autonomous wake for active projects:
-currently `Soar` and `Roost`. Future projects such as `Aviary`, `Nest`, and
-`Featherly` stay parked until the board activates them. For each active project
+currently `Soar`, `Roost`, and the owner-activated `Featherly` hardening lane.
+Future projects such as `Aviary` and `Nest` stay parked until the board
+activates them. For each active project
 the harvester creates one lane whose output is not code, but an executable map:
 
 - which functions/capabilities work;

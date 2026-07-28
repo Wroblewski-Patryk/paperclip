@@ -1,4 +1,4 @@
-export const softwarehouseActiveApplicationProjectNames = ["Soar", "Roost"];
+export const softwarehouseActiveApplicationProjectNames = ["Soar", "Roost", "Featherly"];
 
 export const activeApplicationRoutineSpecs = softwarehouseActiveApplicationProjectNames.flatMap((projectName) => [
   {

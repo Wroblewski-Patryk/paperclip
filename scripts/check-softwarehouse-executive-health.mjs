@@ -2,11 +2,11 @@ import { selectExecutiveProject } from "./lib/softwarehouse-executive-health.mjs
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
-const activeProjects = (process.env.SOFTWAREHOUSE_ACTIVE_PROJECTS ?? "Soar,Roost")
+const activeProjects = (process.env.SOFTWAREHOUSE_ACTIVE_PROJECTS ?? "Soar,Roost,Featherly")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
-const futureProjects = (process.env.SOFTWAREHOUSE_FUTURE_PROJECTS ?? "Aviary,Nest,Featherly")
+const futureProjects = (process.env.SOFTWAREHOUSE_FUTURE_PROJECTS ?? "Aviary,Nest")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);

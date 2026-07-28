@@ -2,7 +2,7 @@
 
 This document is the operating contract for the local Paperclip softwarehouse.
 The company exists to plan, build, verify, and improve applications such as
-Soar and Roost.
+Soar, Roost, and the owner-activated Featherly hardening lane.
 
 Brand marketing, broad finance, formal legal counsel, and unrelated business
 administration are outside this pilot unless they directly unblock app
@@ -25,12 +25,17 @@ creation.
   protected production gate, but Roost must not be parked when local
   known-state, source-control, implementation, proof, or documentation work is
   legal and owner-scoped.
+- Featherly is an explicit owner-approved V0 exception in takeover and
+  security-hardening mode. Its local repo work may proceed through known-state,
+  dependency, application-security, reliability, test, and documentation
+  evidence. Production and Coolify mutation remain protected actions until the
+  required security, deployment, rollback, and monitoring evidence exists.
 - V1 starts only after V0 acceptance. It moves Paperclip to VPS and connects
   the hosted control plane to the governed Roost company-knowledge boundary.
 - V2 opens additional application projects after the local+VPS operating loop
   proves it can run Soar and Roost without silent idle, duplicate churn, or
   hidden blockers.
-- Aviary, Nest, Featherly, and other future apps remain parked until the board
+- Aviary, Nest, and other future apps remain parked until the board
   explicitly reopens them for V2 or a named exception.
 
 ## Value Streams

@@ -18,7 +18,7 @@ const governanceChildTimeoutMs = Number(process.env.SOFTWAREHOUSE_LONGEVITY_GOVE
 const heavyGovernanceChecksEnabled = process.env.SOFTWAREHOUSE_LONGEVITY_SKIP_HEAVY_GOVERNANCE_CHECKS !== "true";
 const controlTickCheckEnabled = process.env.SOFTWAREHOUSE_LONGEVITY_RUN_CONTROL_TICK === "true";
 const activeIssueStatuses = ["backlog", "todo", "in_progress", "in_review", "blocked"];
-const targetProjects = (process.env.SOFTWAREHOUSE_LONGTERM_PROJECTS ?? "Soar,Roost")
+const targetProjects = (process.env.SOFTWAREHOUSE_LONGTERM_PROJECTS ?? "Soar,Roost,Featherly")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);

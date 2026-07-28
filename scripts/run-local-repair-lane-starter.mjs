@@ -44,6 +44,7 @@ const sourceControlClosureLaneTitleByProject = new Map([
   ["Softwarehouse Operating System", "[Softwarehouse Operating System][Source Control Closure] Classify and close local dirty state for LUC-545"],
   ["Soar", "[Soar][Source Control Closure] Classify and close local dirty state for LUC-149"],
   ["Roost", "[Roost][Source Control Closure] Classify and close local dirty state for LUC-149"],
+  ["Featherly", "[Featherly][Source Control Closure] Classify and close local dirty state"],
   ["Aviary", "[Aviary][Source Control Closure] Classify and close local dirty state for LUC-420"],
   ["Nest", "[Nest][Source Control Closure] Classify and close local dirty state for LUC-438"],
 ]);
@@ -51,6 +52,7 @@ const sourceControlClosureAssigneeByProject = new Map([
   ["Softwarehouse Operating System", "09 CTO (Chief Technology Officer)"],
   ["Soar", "Soar Project Manager"],
   ["Roost", "Roost Project Manager"],
+  ["Featherly", "Featherly Platform Manager"],
   ["Aviary", "Aviary Project Manager"],
   ["Nest", "Nest Project Manager"],
 ]);
@@ -58,10 +60,11 @@ const specialistSourceControlGroups = new Set(["product-code", "scripts", "depen
 const projectAliases = new Map([
   ["Soar", ["Soar", "11 Innovation: Soar"]],
   ["Roost", ["Roost", "11 Innovation: Roost"]],
+  ["Featherly", ["Featherly", "11 Innovation: Featherly"]],
   ["Softwarehouse Operating System", ["Softwarehouse Operating System", "00 General: Softwarehouse"]],
   ["Aviary", ["Aviary", "Personality"]],
 ]);
-const projectPriority = (process.env.SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS ?? "Soar,Roost,Softwarehouse Operating System")
+const projectPriority = (process.env.SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS ?? "Soar,Roost,Featherly,Softwarehouse Operating System")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
