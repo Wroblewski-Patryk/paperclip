@@ -15,15 +15,22 @@ function createApp(
   actor: Express.Request["actor"],
   options?: Parameters<typeof softwarehouseRoutes>[1],
 ) {
+  return createAppWithExactOptions(actor, {
+    sourceOwnerCompanyId: "company-1",
+    ...options,
+  });
+}
+
+function createAppWithExactOptions(
+  actor: Express.Request["actor"],
+  options: Parameters<typeof softwarehouseRoutes>[1] = {},
+) {
   const app = express();
   app.use((req, _res, next) => {
     req.actor = actor;
     next();
   });
-  app.use("/api", softwarehouseRoutes(undefined, {
-    sourceOwnerCompanyId: "company-1",
-    ...options,
-  }));
+  app.use("/api", softwarehouseRoutes(undefined, options));
   app.use(errorHandler);
   return app;
 }
@@ -78,6 +85,71 @@ function expectNoWorkspaceFacts(body: unknown) {
   const serialized = JSON.stringify(body);
   expect(serialized).not.toMatch(/(?:sourcePath|projectTruth|APPLICATIONS_INDEX|docs[\\/]|[A-Z]:\\)/);
 }
+
+function expectSourceUnavailable(response: request.Response, path: string) {
+  if (path.includes("portfolio-projection")) {
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      companyId: "company-1",
+      sourceState: "unavailable",
+      conflictState: "source_unavailable",
+      items: [],
+    });
+  } else {
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: "Softwarehouse source is unavailable" });
+  }
+  expectNoWorkspaceFacts(response.body);
+}
+
+async function expectAllFileBackedRoutesFailClosed(
+  app: ReturnType<typeof createAppWithExactOptions>,
+  sourceLoaders: ReturnType<typeof createRouteSourceLoaders>,
+) {
+  for (const [, path] of fileBackedRouteCases) {
+    const response = await request(app).get(path);
+    expectSourceUnavailable(response, path);
+  }
+  expectNoSourceLoaders(sourceLoaders);
+}
+
+async function withSoftwarehouseCompanyId<T>(
+  value: string | undefined,
+  run: () => Promise<T>,
+): Promise<T> {
+  const previous = process.env.SOFTWAREHOUSE_COMPANY_ID;
+  if (value === undefined) {
+    delete process.env.SOFTWAREHOUSE_COMPANY_ID;
+  } else {
+    process.env.SOFTWAREHOUSE_COMPANY_ID = value;
+  }
+  try {
+    return await run();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.SOFTWAREHOUSE_COMPANY_ID;
+    } else {
+      process.env.SOFTWAREHOUSE_COMPANY_ID = previous;
+    }
+  }
+}
+
+const malformedOptionOwnerCases = [
+  ["padded", " company-1 "],
+  ["whitespace-only", " \t\r\n"],
+  ["empty", ""],
+  ["case-altered", "Company-1"],
+  ["explicit null", null],
+  ["explicit undefined", undefined],
+  ["non-string", 123],
+] as const;
+
+const malformedEnvironmentOwnerCases = [
+  ["padded", " company-1 "],
+  ["whitespace-only", " \t\r\n"],
+  ["empty", ""],
+  ["case-altered", "Company-1"],
+] as const;
 
 describe("softwarehouse file-source owner guard", () => {
   it.each(fileBackedRouteCases)("allows owning-company %s reads", async (_name, path, loaderKey) => {
@@ -136,6 +208,51 @@ describe("softwarehouse file-source owner guard", () => {
     }
     expectNoWorkspaceFacts(response.body);
     expectNoSourceLoaders(sourceLoaders);
+  });
+
+  it.each(malformedOptionOwnerCases)(
+    "fails closed across all routes for a %s explicit owner despite a valid environment fallback",
+    async (_name, sourceOwnerCompanyId) => {
+      await withSoftwarehouseCompanyId("company-1", async () => {
+        const sourceLoaders = createRouteSourceLoaders();
+        const options = {
+          sourceOwnerCompanyId,
+          sourceLoaders: asSourceLoaders(sourceLoaders),
+        } as unknown as NonNullable<Parameters<typeof softwarehouseRoutes>[1]>;
+        const app = createAppWithExactOptions(companyOneActor, options);
+
+        await expectAllFileBackedRoutesFailClosed(app, sourceLoaders);
+      });
+    },
+  );
+
+  it.each(malformedEnvironmentOwnerCases)(
+    "fails closed across all routes for a %s environment owner when the option is absent",
+    async (_name, sourceOwnerCompanyId) => {
+      await withSoftwarehouseCompanyId(sourceOwnerCompanyId, async () => {
+        const sourceLoaders = createRouteSourceLoaders();
+        const app = createAppWithExactOptions(companyOneActor, {
+          sourceLoaders: asSourceLoaders(sourceLoaders),
+        });
+
+        await expectAllFileBackedRoutesFailClosed(app, sourceLoaders);
+      });
+    },
+  );
+
+  it("uses a canonical environment owner only when the route option is absent", async () => {
+    await withSoftwarehouseCompanyId("company-1", async () => {
+      const sourceLoaders = createRouteSourceLoaders();
+      const app = createAppWithExactOptions(companyOneActor, {
+        sourceLoaders: asSourceLoaders(sourceLoaders),
+      });
+
+      for (const [, path, loaderKey] of fileBackedRouteCases) {
+        const response = await request(app).get(path);
+        expect(response.status).toBe(200);
+        expect(sourceLoaders[loaderKey]).toHaveBeenCalledTimes(1);
+      }
+    });
   });
 
   it.each(fileBackedRouteCases)("preserves direct cross-company 403 for %s", async (_name, path) => {

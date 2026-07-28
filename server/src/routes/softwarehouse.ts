@@ -839,14 +839,23 @@ export interface SoftwarehouseRoutesOptions {
   sourceLoaders?: Partial<SoftwarehouseRouteSourceLoaders>;
 }
 
+function isCanonicalSourceOwnerCompanyId(value: unknown): value is string {
+  return typeof value === "string"
+    && value.length > 0
+    && value === value.trim()
+    && value === value.toLowerCase();
+}
+
 export function softwarehouseRoutes(db?: Db, options: SoftwarehouseRoutesOptions = {}) {
   const router = Router();
-  const configuredSourceOwnerCompanyId = Object.prototype.hasOwnProperty.call(options, "sourceOwnerCompanyId")
+  const configuredSourceOwnerCompanyId: unknown = Object.prototype.hasOwnProperty.call(options, "sourceOwnerCompanyId")
     ? options.sourceOwnerCompanyId
     : Object.prototype.hasOwnProperty.call(options, "portfolioSourceOwnerCompanyId")
       ? options.portfolioSourceOwnerCompanyId
       : process.env.SOFTWAREHOUSE_COMPANY_ID;
-  const sourceOwnerCompanyId = configuredSourceOwnerCompanyId?.trim() || null;
+  const sourceOwnerCompanyId = isCanonicalSourceOwnerCompanyId(configuredSourceOwnerCompanyId)
+    ? configuredSourceOwnerCompanyId
+    : null;
   const sourceLoaders: SoftwarehouseRouteSourceLoaders = {
     portfolioProjection: async (companyId, sourceOwnerCompanyId) => {
       if (!db) throw new HttpError(503, "Portfolio projection data source is unavailable");
