@@ -32,6 +32,8 @@ import {
   issueTreeHolds,
   issueWorkProducts,
   issues,
+  projects,
+  workspaceResourceClaims,
   workspaceOperations,
 } from "@paperclipai/db";
 import {
@@ -328,6 +330,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     await db.delete(agentRuntimeState);
     await db.delete(companySkills);
     await db.delete(costEvents);
+    await db.delete(workspaceResourceClaims);
     await db.delete(workspaceOperations);
     await db.delete(environmentLeases);
     await db.delete(environments);
@@ -548,6 +551,49 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     });
 
     return { environmentId, leaseId };
+  }
+
+  async function seedWorkspaceResourceClaimFixture(input: {
+    companyId: string;
+    runId: string;
+    issueId: string;
+  }) {
+    const projectId = randomUUID();
+    const workspaceId = randomUUID();
+    const claimId = randomUUID();
+    const now = new Date("2026-03-19T00:00:00.000Z");
+
+    await db.insert(projects).values({
+      id: projectId,
+      companyId: input.companyId,
+      name: "Workspace resource claim test project",
+      status: "in_progress",
+    });
+    await db.insert(executionWorkspaces).values({
+      id: workspaceId,
+      companyId: input.companyId,
+      projectId,
+      mode: "shared_workspace",
+      strategyType: "project_primary",
+      name: "Workspace resource claim test workspace",
+      status: "active",
+      providerType: "local_fs",
+    });
+    await db.insert(workspaceResourceClaims).values({
+      id: claimId,
+      companyId: input.companyId,
+      executionWorkspaceId: workspaceId,
+      heartbeatRunId: input.runId,
+      issueId: input.issueId,
+      resourceKey: "embedded:postgres",
+      status: "active",
+      acquiredAt: now,
+      expiresAt: new Date(now.getTime() + 60_000),
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { claimId };
   }
 
   async function seedStrandedIssueFixture(input: {
@@ -1835,6 +1881,27 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       timeoutConfigured: false,
       timeoutFired: false,
     });
+  });
+
+  it("releases workspace resource claims for direct and agent-wide cancellation", async () => {
+    const direct = await seedRunFixture({ agentStatus: "running", includeIssue: false });
+    const active = await seedRunFixture({ agentStatus: "running", includeIssue: false });
+    await seedWorkspaceResourceClaimFixture(direct);
+    await seedWorkspaceResourceClaimFixture(active);
+    const heartbeat = heartbeatService(db);
+
+    await heartbeat.cancelRun(direct.runId);
+    await heartbeat.cancelActiveForAgent(active.agentId);
+
+    const released = await db.select({
+      heartbeatRunId: workspaceResourceClaims.heartbeatRunId,
+      status: workspaceResourceClaims.status,
+      releaseReason: workspaceResourceClaims.releaseReason,
+    }).from(workspaceResourceClaims).where(inArray(workspaceResourceClaims.heartbeatRunId, [direct.runId, active.runId]));
+    expect(released).toEqual(expect.arrayContaining([
+      { heartbeatRunId: direct.runId, status: "released", releaseReason: "run_terminated" },
+      { heartbeatRunId: active.runId, status: "released", releaseReason: "run_terminated" },
+    ]));
   });
 
   it("dispatches assigned todo work with no prior run as a normal assignment wake", async () => {

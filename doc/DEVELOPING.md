@@ -539,6 +539,16 @@ on the configured port from causing a second embedded cluster to start on a
 fallback port. An already-running PostgreSQL process backed by the configured
 data directory is still reused.
 
+### Singleton verification-resource claims
+
+Before launching a verification command that uses an embedded Postgres instance,
+browser, or repository-wide validation lane, declare the corresponding singleton
+workspace resource claim in the adapter's `workspaceRuntime.resourceClaims`.
+The scheduler acquires the claim atomically and releases it when the heartbeat
+reaches any terminal state, including cancellation. Use separate normalized keys
+for resources that can safely run together; do not start the command when a
+conflicting claim is held.
+
 ## Reset Local Dev Database
 
 To wipe local dev data and start fresh:
