@@ -727,15 +727,153 @@ export async function loadSoftwarehouseControlStatus(
   return softwarehouseControlStatusResponseSchema.parse(response);
 }
 
+async function loadSoftwarehouseKnowledge(): Promise<SoftwarehouseKnowledgeResponse> {
+  const [portfolioIndex, controlDocs, graphFiles, statusDocs] = await Promise.all([
+    readDoc("portfolio-index", "softwarehouse/portfolio/APPLICATIONS_INDEX.md", "Applications Index"),
+    Promise.all([
+      readDoc("readme", "softwarehouse/README.md", "Softwarehouse README"),
+      readDoc("operating-processes", "softwarehouse/operating-processes.md", "Operating Processes"),
+      readDoc("autonomous-model", "softwarehouse/autonomous-operating-model.md", "Autonomous Operating Model"),
+      readDoc("architecture-layer", "softwarehouse/architectural-awareness-layer.md", "Architectural Awareness Layer"),
+      readDoc("service-topology", "docs/operations/service-topology.md", "Service Topology"),
+      readDoc("app-feature-backlog", "softwarehouse/paperclip-app-feature-backlog.md", "Paperclip App Feature Backlog"),
+    ]),
+    Promise.all([
+      statOptional("docs/graphs/architecture-awareness.json"),
+      statOptional("docs/graphs/architecture-awareness.csv"),
+      statOptional("docs/graphs/architecture-proof-register.csv"),
+      statOptional("docs/graphs/architecture-graph.md"),
+      statOptional("docs/graphs/architecture-health.json"),
+    ]),
+    Promise.all([
+      readDoc("architecture-awareness-report", "docs/status/architecture-awareness-report.md", "Architecture Awareness Report"),
+      readDoc("architecture-dependency-report", "docs/status/architecture-dependency-report.md", "Architecture Dependency Report"),
+      readDoc("architecture-ownership-report", "docs/status/architecture-ownership-report.md", "Architecture Ownership Report"),
+      readDoc("task-synchronization-report", "docs/status/task-synchronization-report.md", "Task Synchronization Report"),
+      readDoc("softwarehouse-unblock-packet", "docs/status/softwarehouse-unblock-packet.md", "Softwarehouse Unblock Packet"),
+    ]),
+  ]);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    portfolioIndex,
+    controlDocs,
+    graphFiles,
+    statusDocs,
+  };
+}
+
+async function loadSoftwarehouseTools(): Promise<SoftwarehouseToolsResponse> {
+  const [catalogContent, ledgerContent, toolingContract] = await Promise.all([
+    readTextOptional("docs/automation/agent-command-catalog.csv"),
+    readTextOptional("docs/operations/runtime-config-ledger.csv"),
+    readDoc("tooling-contract", "docs/automation/tooling-contract.md", "Tooling Contract"),
+  ]);
+  const catalogRows = parseCsv(catalogContent);
+  const ledgerRows = parseCsv(ledgerContent);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    commandCatalog: {
+      path: "docs/automation/agent-command-catalog.csv",
+      rows: catalogRows,
+      safetyClasses: countBy(catalogRows, "Safety class"),
+      ownerCounts: countBy(catalogRows, "Owner"),
+    },
+    runtimeLedger: {
+      path: "docs/operations/runtime-config-ledger.csv",
+      rows: ledgerRows,
+      unknownVerifications: countMatching(ledgerRows, "Last verified", (value) => value === "unknown" || value === ""),
+      secretEntries: countMatching(ledgerRows, "Secret", (value) => value === "yes" || value === "mixed"),
+    },
+    toolingContract,
+  };
+}
+
+async function loadSoftwarehouseBacklog(): Promise<SoftwarehouseBacklogResponse> {
+  const [featureBacklog, unificationPlan] = await Promise.all([
+    readDoc("feature-backlog", "softwarehouse/paperclip-app-feature-backlog.md", "Paperclip App Feature Backlog"),
+    readDoc("unification-plan", "softwarehouse/paperclip-unification-plan.md", "Paperclip Unification Plan"),
+  ]);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    featureBacklog,
+    unificationPlan,
+    appFeatureCandidates: [
+      {
+        title: "Local Knowledge / Tools cockpit",
+        status: "local_first",
+        note: "Use architecture graphs, command catalog, runtime ledger, and service topology before any external CompanyCore bridge.",
+      },
+      {
+        title: "External CompanyCore bridge",
+        status: "deferred",
+        note: "Defer until local read-only cockpit proves useful and secret/connector ownership is clear.",
+      },
+      {
+        title: "Hindsight memory plugin",
+        status: "deferred",
+        note: "Defer to avoid token-heavy memory flows; use lightweight docs and ledgers for now.",
+      },
+    ],
+  };
+}
+
+export interface SoftwarehouseRouteSourceLoaders {
+  portfolioProjection: (
+    companyId: string,
+    sourceOwnerCompanyId: string,
+  ) => ReturnType<typeof buildRoostBridgePortfolioProjection>;
+  status: () => Promise<SoftwarehouseControlStatusResponse>;
+  knowledge: () => Promise<SoftwarehouseKnowledgeResponse>;
+  tools: () => Promise<SoftwarehouseToolsResponse>;
+  backlog: () => Promise<SoftwarehouseBacklogResponse>;
+  issueTemplates: () => Promise<SoftwarehouseIssueTemplate[]>;
+}
+
 export interface SoftwarehouseRoutesOptions {
+  sourceOwnerCompanyId?: string | null;
+  /** @deprecated Use sourceOwnerCompanyId. */
   portfolioSourceOwnerCompanyId?: string | null;
+  sourceLoaders?: Partial<SoftwarehouseRouteSourceLoaders>;
 }
 
 export function softwarehouseRoutes(db?: Db, options: SoftwarehouseRoutesOptions = {}) {
   const router = Router();
-  const portfolioSourceOwnerCompanyId = options.portfolioSourceOwnerCompanyId
-    ?? process.env.SOFTWAREHOUSE_COMPANY_ID?.trim()
-    ?? null;
+  const configuredSourceOwnerCompanyId = Object.prototype.hasOwnProperty.call(options, "sourceOwnerCompanyId")
+    ? options.sourceOwnerCompanyId
+    : Object.prototype.hasOwnProperty.call(options, "portfolioSourceOwnerCompanyId")
+      ? options.portfolioSourceOwnerCompanyId
+      : process.env.SOFTWAREHOUSE_COMPANY_ID;
+  const sourceOwnerCompanyId = configuredSourceOwnerCompanyId?.trim() || null;
+  const sourceLoaders: SoftwarehouseRouteSourceLoaders = {
+    portfolioProjection: async (companyId, sourceOwnerCompanyId) => {
+      if (!db) throw new HttpError(503, "Portfolio projection data source is unavailable");
+      return buildRoostBridgePortfolioProjection({
+        companyId,
+        sourceOwnerCompanyId,
+        repository: createRoostBridgePortfolioRepository(db),
+        loadControlStatus: () => loadSoftwarehouseControlStatus(),
+      });
+    },
+    status: () => loadSoftwarehouseControlStatus(),
+    knowledge: () => loadSoftwarehouseKnowledge(),
+    tools: () => loadSoftwarehouseTools(),
+    backlog: () => loadSoftwarehouseBacklog(),
+    issueTemplates: () => readIssueTemplateCatalog(),
+    ...options.sourceLoaders,
+  };
+
+  function ownsSoftwarehouseSource(companyId: string): boolean {
+    return Boolean(sourceOwnerCompanyId && companyId === sourceOwnerCompanyId);
+  }
+
+  function requireSoftwarehouseSourceOwner(companyId: string): void {
+    if (!ownsSoftwarehouseSource(companyId)) {
+      throw new HttpError(404, "Softwarehouse source is unavailable");
+    }
+  }
 
   router.get("/companies/:companyId/softwarehouse/portfolio-projection/:version", async (req, res) => {
     const companyId = req.params.companyId as string;
@@ -747,7 +885,7 @@ export function softwarehouseRoutes(db?: Db, options: SoftwarehouseRoutesOptions
         supportedRouteVersions: [roostBridgePortfolioRouteVersion],
       });
     }
-    if (companyId !== portfolioSourceOwnerCompanyId) {
+    if (!ownsSoftwarehouseSource(companyId)) {
       res.json(createUnavailableRoostBridgePortfolioProjection(
         companyId,
         new Date().toISOString(),
@@ -755,132 +893,45 @@ export function softwarehouseRoutes(db?: Db, options: SoftwarehouseRoutesOptions
       ));
       return;
     }
-    if (!db) throw new HttpError(503, "Portfolio projection data source is unavailable");
-
-    res.json(await buildRoostBridgePortfolioProjection({
-      companyId,
-      sourceOwnerCompanyId: portfolioSourceOwnerCompanyId,
-      repository: createRoostBridgePortfolioRepository(db),
-      loadControlStatus: () => loadSoftwarehouseControlStatus(),
-    }));
+    res.json(await sourceLoaders.portfolioProjection(companyId, sourceOwnerCompanyId!));
   });
 
   router.get("/companies/:companyId/softwarehouse/status", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
-    res.json(await loadSoftwarehouseControlStatus());
+    requireSoftwarehouseSourceOwner(companyId);
+    res.json(await sourceLoaders.status());
   });
 
   router.get("/companies/:companyId/softwarehouse/knowledge", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
-
-    const [portfolioIndex, controlDocs, graphFiles, statusDocs] = await Promise.all([
-      readDoc("portfolio-index", "softwarehouse/portfolio/APPLICATIONS_INDEX.md", "Applications Index"),
-      Promise.all([
-        readDoc("readme", "softwarehouse/README.md", "Softwarehouse README"),
-        readDoc("operating-processes", "softwarehouse/operating-processes.md", "Operating Processes"),
-        readDoc("autonomous-model", "softwarehouse/autonomous-operating-model.md", "Autonomous Operating Model"),
-        readDoc("architecture-layer", "softwarehouse/architectural-awareness-layer.md", "Architectural Awareness Layer"),
-        readDoc("service-topology", "docs/operations/service-topology.md", "Service Topology"),
-        readDoc("app-feature-backlog", "softwarehouse/paperclip-app-feature-backlog.md", "Paperclip App Feature Backlog"),
-      ]),
-      Promise.all([
-        statOptional("docs/graphs/architecture-awareness.json"),
-        statOptional("docs/graphs/architecture-awareness.csv"),
-        statOptional("docs/graphs/architecture-proof-register.csv"),
-        statOptional("docs/graphs/architecture-graph.md"),
-        statOptional("docs/graphs/architecture-health.json"),
-      ]),
-      Promise.all([
-        readDoc("architecture-awareness-report", "docs/status/architecture-awareness-report.md", "Architecture Awareness Report"),
-        readDoc("architecture-dependency-report", "docs/status/architecture-dependency-report.md", "Architecture Dependency Report"),
-        readDoc("architecture-ownership-report", "docs/status/architecture-ownership-report.md", "Architecture Ownership Report"),
-        readDoc("task-synchronization-report", "docs/status/task-synchronization-report.md", "Task Synchronization Report"),
-        readDoc("softwarehouse-unblock-packet", "docs/status/softwarehouse-unblock-packet.md", "Softwarehouse Unblock Packet"),
-      ]),
-    ]);
-
-    const response: SoftwarehouseKnowledgeResponse = {
-      generatedAt: new Date().toISOString(),
-      portfolioIndex,
-      controlDocs,
-      graphFiles,
-      statusDocs,
-    };
-    res.json(response);
+    requireSoftwarehouseSourceOwner(companyId);
+    res.json(await sourceLoaders.knowledge());
   });
 
   router.get("/companies/:companyId/softwarehouse/tools", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
-
-    const [catalogContent, ledgerContent, toolingContract] = await Promise.all([
-      readTextOptional("docs/automation/agent-command-catalog.csv"),
-      readTextOptional("docs/operations/runtime-config-ledger.csv"),
-      readDoc("tooling-contract", "docs/automation/tooling-contract.md", "Tooling Contract"),
-    ]);
-    const catalogRows = parseCsv(catalogContent);
-    const ledgerRows = parseCsv(ledgerContent);
-
-    const response: SoftwarehouseToolsResponse = {
-      generatedAt: new Date().toISOString(),
-      commandCatalog: {
-        path: "docs/automation/agent-command-catalog.csv",
-        rows: catalogRows,
-        safetyClasses: countBy(catalogRows, "Safety class"),
-        ownerCounts: countBy(catalogRows, "Owner"),
-      },
-      runtimeLedger: {
-        path: "docs/operations/runtime-config-ledger.csv",
-        rows: ledgerRows,
-        unknownVerifications: countMatching(ledgerRows, "Last verified", (value) => value === "unknown" || value === ""),
-        secretEntries: countMatching(ledgerRows, "Secret", (value) => value === "yes" || value === "mixed"),
-      },
-      toolingContract,
-    };
-    res.json(response);
+    requireSoftwarehouseSourceOwner(companyId);
+    res.json(await sourceLoaders.tools());
   });
 
   router.get("/companies/:companyId/softwarehouse/backlog", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
-    const [featureBacklog, unificationPlan] = await Promise.all([
-      readDoc("feature-backlog", "softwarehouse/paperclip-app-feature-backlog.md", "Paperclip App Feature Backlog"),
-      readDoc("unification-plan", "softwarehouse/paperclip-unification-plan.md", "Paperclip Unification Plan"),
-    ]);
-    const response: SoftwarehouseBacklogResponse = {
-      generatedAt: new Date().toISOString(),
-      featureBacklog,
-      unificationPlan,
-      appFeatureCandidates: [
-        {
-          title: "Local Knowledge / Tools cockpit",
-          status: "local_first",
-          note: "Use architecture graphs, command catalog, runtime ledger, and service topology before any external CompanyCore bridge.",
-        },
-        {
-          title: "External CompanyCore bridge",
-          status: "deferred",
-          note: "Defer until local read-only cockpit proves useful and secret/connector ownership is clear.",
-        },
-        {
-          title: "Hindsight memory plugin",
-          status: "deferred",
-          note: "Defer to avoid token-heavy memory flows; use lightweight docs and ledgers for now.",
-        },
-      ],
-    };
-    res.json(response);
+    requireSoftwarehouseSourceOwner(companyId);
+    res.json(await sourceLoaders.backlog());
   });
 
   router.get("/companies/:companyId/softwarehouse/issue-templates", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
+    requireSoftwarehouseSourceOwner(companyId);
 
     const response: SoftwarehouseIssueTemplateCatalogResponse = {
       generatedAt: new Date().toISOString(),
-      templates: await readIssueTemplateCatalog(),
+      templates: await sourceLoaders.issueTemplates(),
     };
     res.json(softwarehouseIssueTemplateCatalogResponseSchema.parse(response));
   });

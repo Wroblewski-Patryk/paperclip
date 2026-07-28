@@ -20,10 +20,137 @@ function createApp(
     req.actor = actor;
     next();
   });
-  app.use("/api", softwarehouseRoutes(undefined, options));
+  app.use("/api", softwarehouseRoutes(undefined, {
+    sourceOwnerCompanyId: "company-1",
+    ...options,
+  }));
   app.use(errorHandler);
   return app;
 }
+
+const companyOneActor: Express.Request["actor"] = {
+  type: "board",
+  source: "session",
+  userId: "user-1",
+  companyIds: ["company-1"],
+  memberships: [{ companyId: "company-1", membershipRole: "operator", status: "active" }],
+};
+
+const companyTwoActor: Express.Request["actor"] = {
+  type: "board",
+  source: "session",
+  userId: "user-2",
+  companyIds: ["company-2"],
+  memberships: [{ companyId: "company-2", membershipRole: "operator", status: "active" }],
+};
+
+function createRouteSourceLoaders() {
+  return {
+    portfolioProjection: vi.fn(async () => ({ route: "portfolio-projection" })),
+    status: vi.fn(async () => ({ route: "status" })),
+    knowledge: vi.fn(async () => ({ route: "knowledge" })),
+    tools: vi.fn(async () => ({ route: "tools" })),
+    backlog: vi.fn(async () => ({ route: "backlog" })),
+    issueTemplates: vi.fn(async () => []),
+  };
+}
+
+const fileBackedRouteCases = [
+  ["portfolio projection", "/api/companies/company-1/softwarehouse/portfolio-projection/v1", "portfolioProjection"],
+  ["status", "/api/companies/company-1/softwarehouse/status", "status"],
+  ["knowledge", "/api/companies/company-1/softwarehouse/knowledge", "knowledge"],
+  ["tools", "/api/companies/company-1/softwarehouse/tools", "tools"],
+  ["backlog", "/api/companies/company-1/softwarehouse/backlog", "backlog"],
+  ["issue templates", "/api/companies/company-1/softwarehouse/issue-templates", "issueTemplates"],
+] as const;
+
+function asSourceLoaders(loaders: ReturnType<typeof createRouteSourceLoaders>) {
+  return loaders as unknown as NonNullable<Parameters<typeof softwarehouseRoutes>[1]>["sourceLoaders"];
+}
+
+function expectNoSourceLoaders(loaders: ReturnType<typeof createRouteSourceLoaders>) {
+  for (const loader of Object.values(loaders)) {
+    expect(loader).not.toHaveBeenCalled();
+  }
+}
+
+function expectNoWorkspaceFacts(body: unknown) {
+  const serialized = JSON.stringify(body);
+  expect(serialized).not.toMatch(/(?:sourcePath|projectTruth|APPLICATIONS_INDEX|docs[\\/]|[A-Z]:\\)/);
+}
+
+describe("softwarehouse file-source owner guard", () => {
+  it.each(fileBackedRouteCases)("allows owning-company %s reads", async (_name, path, loaderKey) => {
+    const sourceLoaders = createRouteSourceLoaders();
+    const response = await request(createApp(companyOneActor, {
+      sourceOwnerCompanyId: "company-1",
+      sourceLoaders: asSourceLoaders(sourceLoaders),
+    })).get(path);
+
+    expect(response.status).toBe(200);
+    expect(sourceLoaders[loaderKey]).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(fileBackedRouteCases)("fails closed for authorized non-owner %s reads", async (_name, ownerPath) => {
+    const sourceLoaders = createRouteSourceLoaders();
+    const path = ownerPath.replace("/company-1/", "/company-2/");
+    const response = await request(createApp(companyTwoActor, {
+      sourceOwnerCompanyId: "company-1",
+      sourceLoaders: asSourceLoaders(sourceLoaders),
+    })).get(path);
+
+    if (path.includes("portfolio-projection")) {
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        companyId: "company-2",
+        sourceState: "unavailable",
+        conflictState: "source_unavailable",
+        items: [],
+      });
+    } else {
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: "Softwarehouse source is unavailable" });
+    }
+    expectNoWorkspaceFacts(response.body);
+    expectNoSourceLoaders(sourceLoaders);
+  });
+
+  it.each(fileBackedRouteCases)("fails closed for missing-binding %s reads", async (_name, path) => {
+    const sourceLoaders = createRouteSourceLoaders();
+    const response = await request(createApp(companyOneActor, {
+      sourceOwnerCompanyId: null,
+      sourceLoaders: asSourceLoaders(sourceLoaders),
+    })).get(path);
+
+    if (path.includes("portfolio-projection")) {
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        companyId: "company-1",
+        sourceState: "unavailable",
+        conflictState: "source_unavailable",
+        items: [],
+      });
+    } else {
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: "Softwarehouse source is unavailable" });
+    }
+    expectNoWorkspaceFacts(response.body);
+    expectNoSourceLoaders(sourceLoaders);
+  });
+
+  it.each(fileBackedRouteCases)("preserves direct cross-company 403 for %s", async (_name, path) => {
+    const sourceLoaders = createRouteSourceLoaders();
+    const response = await request(createApp(companyTwoActor, {
+      sourceOwnerCompanyId: "company-1",
+      sourceLoaders: asSourceLoaders(sourceLoaders),
+    })).get(path);
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: "User does not have access to this company" });
+    expectNoWorkspaceFacts(response.body);
+    expectNoSourceLoaders(sourceLoaders);
+  });
+});
 
 describe("softwarehouse issue template catalog route", () => {
   it("returns the ordered issue-template catalog for an accessible company", async () => {

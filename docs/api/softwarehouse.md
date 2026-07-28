@@ -5,7 +5,18 @@ summary: Company-scoped Softwarehouse status and the versioned read-only Roost p
 
 # Softwarehouse API
 
-Softwarehouse endpoints are read-only company projections. They require normal Paperclip authentication and enforce the company boundary before reading source data.
+Softwarehouse endpoints are read-only company projections over one global, file-backed workspace source. They require normal Paperclip authentication and then require the requested company to match `SOFTWAREHOUSE_COMPANY_ID` before any file, status, or projection-repository loader runs.
+
+This owner boundary applies consistently to:
+
+- `/portfolio-projection/v1`;
+- `/status`;
+- `/knowledge`;
+- `/tools`;
+- `/backlog`;
+- `/issue-templates`.
+
+Direct access outside the caller's company remains `403`. For a caller authorized to the requested company, a missing or mismatched owner binding fails closed without workspace paths or facts: the versioned portfolio projection returns its typed unavailable packet, while the other file-backed routes return a generic `404 Softwarehouse source is unavailable` response. The routes never infer sharing from matching company/project names. Configure an owning company explicitly; there is no unbound or multi-company sharing mode.
 
 ## Roost portfolio projection v1
 
@@ -51,4 +62,4 @@ Only `v1` is compatible. Another route version returns `422` with `supportedRout
 GET /api/companies/{companyId}/softwarehouse/status
 ```
 
-This broader owner-facing status projection remains available for the local Softwarehouse UI. Roost consumers should use the dedicated versioned bridge endpoint above.
+This broader owner-facing status projection remains available only to the configured source-owning company for the local Softwarehouse UI. Roost consumers should use the dedicated versioned bridge endpoint above.
