@@ -105,7 +105,11 @@ export function classifyLearningGapFromIssues(key, issues) {
   const sourceControlSemantics = sourceControlIssues.length > 0;
   const sourceControlRoot = sourceControlIssues.find((issue) => issueMatchesKey(issue, key));
   const securityText = sourceControlRoot
-    ? `${sourceControlRoot.title}\n${sourceControlRoot.description ?? ""}`.toLowerCase()
+    ? issues
+      .filter((issue) => isOperationalSecurityEvidence(issue, sourceControlRoot))
+      .map((issue) => `${issue.title}\n${issue.description ?? ""}`)
+      .join("\n")
+      .toLowerCase()
     : sourceControlSemantics
     ? sourceControlIssues.map((issue) => `${issue.title}\n${issue.description ?? ""}`).join("\n").toLowerCase()
     : text;
@@ -144,6 +148,12 @@ export function classifyLearningGapFromIssues(key, issues) {
     title: `[Softwarehouse][Learning] Project-management blocker pattern ${key}`,
     boundary: "smaller ownership, clearer handoff, and issue disposition rules",
   };
+}
+
+function isOperationalSecurityEvidence(issue, sourceControlRoot) {
+  if (issue === sourceControlRoot) return true;
+  const title = String(issue?.title ?? "").toLowerCase();
+  return /\b(?:secret|credential|token|api key|password)[^.\n]{0,100}\b(?:expos(?:ed|ure)?|leak(?:ed|age)?|compromis(?:ed|e)?|rotat(?:e|ed|ion)|revoke|unauthori[sz]ed|missing|required|denied|forbidden|expired|invalid)\b|\b(?:expos(?:ed|ure)?|leak(?:ed|age)?|compromis(?:ed|e)?|rotat(?:e|ed|ion)|revoke)\b[^.\n]{0,100}\b(?:secret|credential|token|api key|password)\b|\b(?:auth(?:entication)?|authori[sz]ation|permission|account)[^.\n]{0,100}\b(?:fail(?:ed|ure)?|denied|missing|required|forbidden|expired|invalid|unauthori[sz]ed)\b|\b(?:provide|approved?|bind|authenticate|authorize)[^.\n]{0,100}\b(?:protected|production)[-\s]*smoke\b[^.\n]{0,100}\b(?:auth|credential|secret|token|principal|account|authori[sz]|permission)\b/.test(title);
 }
 
 function learningField(description, label) {

@@ -278,6 +278,85 @@ test("classifyLearningGapFromIssues suppresses negative secret boilerplate for s
   });
 });
 
+test("classifyLearningGapFromIssues preserves downstream affirmative credential evidence for source-control roots", () => {
+  const gap = classifyLearningGapFromIssues("LUC-1904", [
+    {
+      identifier: "LUC-1904",
+      status: "blocked",
+      title: "[Soar] Source-control closure sweep",
+      description: [
+        "Use the generated source-control packet to classify dirty groups, ownership, evidence, verification needs, and commit/no-commit decisions.",
+        "No push, deploy, restart, production mutation, protected smoke, or secret access occurs in this sweep.",
+      ].join("\n"),
+    },
+    {
+      identifier: "LUC-1905",
+      status: "blocked",
+      title: "[Security] Rotate credentials after exposure",
+      description: "Rotate exposed production account credentials before the release can continue.",
+    },
+  ]);
+
+  assert.deepEqual(gap, {
+    area: "security-credentials",
+    owner: "Security Review Lead",
+    title: "[Softwarehouse][Learning] Security/credential blocker pattern LUC-1904",
+    boundary: "credential/account proof and least-privilege unblock path",
+  });
+});
+
+test("classifyLearningGapFromIssues preserves downstream account authorization failures for source-control roots", () => {
+  const gap = classifyLearningGapFromIssues("LUC-1904", [
+    {
+      identifier: "LUC-1904",
+      status: "blocked",
+      title: "[Soar] Source-control closure sweep",
+      description: "No push, deploy, restart, production mutation, protected smoke, or secret access occurs in this sweep.",
+    },
+    {
+      identifier: "LUC-1906",
+      status: "blocked",
+      title: "[Security] Production account authorization denied",
+      description: "The release account authorization failed and needs a least-privilege correction.",
+    },
+  ]);
+
+  assert.equal(gap.area, "security-credentials");
+});
+
+test("classifyLearningGapFromIssues ignores review and acceptance references to credential rotation for source-control roots", () => {
+  const gap = classifyLearningGapFromIssues("LUC-1904", [
+    {
+      identifier: "LUC-1904",
+      status: "blocked",
+      title: "[Soar] Source-control closure sweep",
+      description: [
+        "Use the generated source-control packet to classify dirty groups, ownership, evidence, verification needs, and commit/no-commit decisions.",
+        "No push, deploy, restart, production mutation, protected smoke, or secret access occurs in this sweep.",
+      ].join("\n"),
+    },
+    {
+      identifier: "LUC-2104",
+      status: "blocked",
+      title: "[CRS] Review the source-control classifier repair",
+      description: "Acceptance: confirm that a true downstream credential rotation after exposure still routes to Security; add regression coverage.",
+    },
+    {
+      identifier: "LUC-2107",
+      status: "in_progress",
+      title: "[CBE] Narrow affirmative-security evidence",
+      description: "Required repair: preserve Security routing for a related operational credential exposure or rotation, but do not count review instructions or test descriptions.",
+    },
+  ]);
+
+  assert.deepEqual(gap, {
+    area: "ops-release",
+    owner: "Ops Release Lead",
+    title: "[Softwarehouse][Learning] Ops/release blocker pattern LUC-1904",
+    boundary: "release/deploy evidence, rollback, and protected gate contract",
+  });
+});
+
 test("classifyLearningGapFromIssues retains protected-smoke credential routing for source-control guards", () => {
   const gap = classifyLearningGapFromIssues("LUC-1904", [
     {
