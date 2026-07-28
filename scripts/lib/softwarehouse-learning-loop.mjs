@@ -104,9 +104,14 @@ export function classifyLearningGapFromIssues(key, issues) {
   );
   const sourceControlSemantics = sourceControlIssues.length > 0;
   const sourceControlRoot = sourceControlIssues.find((issue) => issueMatchesKey(issue, key));
+  const sourceControlIssueLookup = issueLookup(issues);
   const securityText = sourceControlRoot
     ? issues
-      .filter((issue) => isOperationalSecurityEvidence(issue, sourceControlRoot))
+      .filter((issue) => isOperationalSecurityEvidence(
+        issue,
+        sourceControlRoot,
+        sourceControlIssueLookup,
+      ))
       .map((issue) => `${issue.title}\n${issue.description ?? ""}`)
       .join("\n")
       .toLowerCase()
@@ -150,12 +155,51 @@ export function classifyLearningGapFromIssues(key, issues) {
   };
 }
 
-function isOperationalSecurityEvidence(issue, sourceControlRoot) {
+function isOperationalSecurityEvidence(issue, sourceControlRoot, lookup) {
   if (issue === sourceControlRoot) return true;
+  if (!firstClassBlockerPath(issue, sourceControlRoot.identifier ?? sourceControlRoot.id, lookup)) return false;
+  if (isLearningClassifierGovernanceIssue(issue)) return false;
   const title = String(issue?.title ?? "").toLowerCase();
   const description = String(issue?.description ?? "").toLowerCase();
   if (isReviewOrAcceptanceText(title, description)) return false;
   return affirmativeSecurityEvidence(`${title}\n${description}`);
+}
+
+function firstClassBlockerKeys(issue) {
+  return [
+    ...(issue?.blockedBy ?? []),
+    ...(issue?.terminalBlockers ?? []),
+    ...(issue?.blockedBy ?? []).flatMap((blocker) => blocker.terminalBlockers ?? []),
+  ]
+    .flatMap((blocker) => [blocker.identifier, blocker.id])
+    .filter(Boolean);
+}
+
+function firstClassBlockerPath(issue, targetKey, lookup, seen = new Set()) {
+  const currentKey = issue?.identifier ?? issue?.id;
+  if (!currentKey || seen.has(currentKey)) return false;
+  seen.add(currentKey);
+  for (const blockerKey of firstClassBlockerKeys(issue)) {
+    const blocker = lookup.get(blockerKey);
+    if (blocker && issueMatchesKey(blocker, targetKey)) return true;
+    if (blocker && firstClassBlockerPath(blocker, targetKey, lookup, seen)) return true;
+  }
+  return false;
+}
+
+function isLearningClassifierGovernanceIssue(issue) {
+  const title = String(issue?.title ?? "").toLowerCase();
+  const roleMetadata = [
+    issue?.assigneeRole,
+    issue?.assignee?.role,
+    issue?.assigneeAgent?.role,
+    issue?.assigneeAgent?.title,
+  ].filter(Boolean).join(" ").toLowerCase();
+  const governanceTitle = /\b(?:guardrail|classifier|acceptance|review|regression|learning)\b/.test(title);
+  const governanceRole = /\b(?:chief technology officer|cto|architect|review|qa|delivery lead|portfolio)\b/.test(roleMetadata);
+  return governanceTitle
+    || (issue?.status === "in_review" && governanceRole)
+    || (/^\s*\[(?:cto|crs|qve|edl|aia)(?:\]|\s)/.test(title) && governanceRole);
 }
 
 function isReviewOrAcceptanceText(title, description) {

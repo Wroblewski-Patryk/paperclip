@@ -292,6 +292,7 @@ test("classifyLearningGapFromIssues preserves downstream affirmative credential 
     {
       identifier: "LUC-1905",
       status: "blocked",
+      blockedBy: [{ identifier: "LUC-1904", status: "blocked" }],
       title: "[Security] Rotate credentials after exposure",
       description: "Rotate exposed production account credentials before the release can continue.",
     },
@@ -316,6 +317,7 @@ test("classifyLearningGapFromIssues recognizes affirmative credential rotation i
     {
       identifier: "LUC-2109",
       status: "blocked",
+      blockedBy: [{ identifier: "LUC-1904", status: "blocked" }],
       title: "[Security] Release blocker",
       description: "Rotate exposed production API credentials following confirmed transcript leakage.",
     },
@@ -349,11 +351,12 @@ test("classifyLearningGapFromIssues preserves downstream account authorization f
       identifier: "LUC-1904",
       status: "blocked",
       title: "[Soar] Source-control closure sweep",
-      description: "No push, deploy, restart, production mutation, protected smoke, or secret access occurs in this sweep.",
+      description: "Use the generated source-control packet to classify dirty groups and make a commit/no-commit decision. No push, deploy, restart, production mutation, protected smoke, or secret access occurs in this sweep.",
     },
     {
       identifier: "LUC-1906",
       status: "blocked",
+      blockedBy: [{ identifier: "LUC-1904", status: "blocked" }],
       title: "[Security] Production account authorization denied",
       description: "The release account authorization failed and needs a least-privilege correction.",
     },
@@ -414,6 +417,30 @@ test("classifyLearningGapFromIssues retains protected-smoke credential routing f
     title: "[Softwarehouse][Learning] Security/credential blocker pattern LUC-1904",
     boundary: "credential/account proof and least-privilege unblock path",
   });
+});
+
+test("classifyLearningGapFromIssues excludes affirmative guardrail lineage from source-control security evidence", () => {
+  const gap = classifyLearningGapFromIssues("LUC-1904", [
+    {
+      id: "source-root",
+      identifier: "LUC-1904",
+      status: "blocked",
+      title: "[Soar] Source-control closure sweep",
+      description: "Use the generated source-control packet to classify dirty groups and make a commit/no-commit decision. No push, deploy, restart, production mutation, protected smoke, or secret access occurs in this sweep.",
+    },
+    {
+      id: "guardrail-child",
+      parentId: "classifier-parent",
+      identifier: "LUC-2111",
+      status: "in_progress",
+      assigneeRole: "chief technology officer",
+      blockedBy: [{ id: "source-root", identifier: "LUC-1904", status: "blocked" }],
+      title: "[CTO][Guardrail] Preserve credential rotation security routing",
+      description: "Rotate exposed production API credentials following confirmed transcript leakage.",
+    },
+  ]);
+
+  assert.equal(gap.area, "ops-release");
 });
 
 test("classifyLearningGapFromIssues does not route superseded project-truth dispatcher gaps into security credentials", () => {

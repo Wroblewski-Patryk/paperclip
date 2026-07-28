@@ -469,7 +469,11 @@ async function enrichIssuesForBlockerChain(baseIssues, rootKey, sourceIssues) {
 }
 
 for (const [key, groupedIssues] of processedBlockedGroups) {
-  const gap = classifyLearningGapFromIssues(key, groupedIssues);
+  const sourceRoot = issues.find((issue) => issue.identifier === key || issue.id === key);
+  const classificationIssues = sourceRoot && !groupedIssues.some((issue) => issue.id === sourceRoot.id)
+    ? [sourceRoot, ...groupedIssues]
+    : groupedIssues;
+  const gap = classifyLearningGapFromIssues(key, classificationIssues);
   const owner = resolveLearningOwner(activeAgents, gap.owner, ["Portfolio Director"]);
   const sourceProjects = [...new Set(groupedIssues.map((issue) => projectByName.get(issue.projectId)?.name ?? "unknown"))];
   const sourceList = groupedIssues
