@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   roostBridgePortfolioProjectionSchema,
   softwarehouseControlStatusResponseSchema,
@@ -128,12 +128,14 @@ describe("Roost bridge portfolio projection", () => {
   it("builds a deterministic, bounded v1 packet and preserves SHA mismatch plus zero-gap NO-GO", async () => {
     const first = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: repository(),
       loadControlStatus: async () => status(),
       now: new Date("2026-07-28T02:00:00.000Z"),
     });
     const second = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: repository(),
       loadControlStatus: async () => status(),
       now: new Date("2026-07-28T03:00:00.000Z"),
@@ -222,6 +224,7 @@ describe("Roost bridge portfolio projection", () => {
 
     const result = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: repository(),
       loadControlStatus: async () => controlStatus,
     });
@@ -257,6 +260,7 @@ describe("Roost bridge portfolio projection", () => {
     });
     const result = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: repository(),
       loadControlStatus: async () => missingReadiness,
     });
@@ -275,6 +279,7 @@ describe("Roost bridge portfolio projection", () => {
     absentOwnerSurface.projectTruth.projects[0]!.portfolio!.ownerSurface = null;
     const absentOwnerResult = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: repository(),
       loadControlStatus: async () => absentOwnerSurface,
     });
@@ -289,6 +294,7 @@ describe("Roost bridge portfolio projection", () => {
 
     const mappingConflict = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: repository({ ...projectionData, projects: [] }),
       loadControlStatus: async () => {
         const newerOwnerTruth = status();
@@ -305,6 +311,7 @@ describe("Roost bridge portfolio projection", () => {
   it("reports an available empty evidence source as a valid zero aggregate", async () => {
     const result = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: repository({ ...projectionData, evidence: [] }),
       loadControlStatus: async () => status(),
     });
@@ -323,22 +330,26 @@ describe("Roost bridge portfolio projection", () => {
   it("fails read-only with explicit unavailable and bounded timeout packets", async () => {
     const unavailable = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: repository(),
       loadControlStatus: async () => status({ available: false, stale: true }),
     });
     const timedOut = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: repository(),
       loadControlStatus: () => new Promise(() => undefined),
       timeoutMs: 1,
     });
     const repositoryUnavailable = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: { load: async () => Promise.reject(new Error("repository unavailable")) },
       loadControlStatus: async () => status(),
     });
     const repositoryTimedOut = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
       repository: { load: () => new Promise(() => undefined) },
       loadControlStatus: async () => status(),
       timeoutMs: 1,
@@ -373,5 +384,44 @@ describe("Roost bridge portfolio projection", () => {
       failure: { code: "source_timeout", retryable: true },
       items: [],
     });
+  });
+
+  it("projects same-name portfolio facts only for the explicit source-owning company", async () => {
+    const loadControlStatus = vi.fn(async () => status());
+    const load = vi.fn(async (companyId: string) => ({
+      ...projectionData,
+      company: { id: companyId, issuePrefix: companyId === "company-1" ? "ONE" : "TWO" },
+      projects: [{ id: `${companyId}-project`, name: "11 Innovation: Soar" }],
+    }));
+    const sharedRepository: RoostBridgePortfolioRepository = { load };
+
+    const owner = await buildRoostBridgePortfolioProjection({
+      companyId: "company-1",
+      sourceOwnerCompanyId: "company-1",
+      repository: sharedRepository,
+      loadControlStatus,
+    });
+    const nonOwner = await buildRoostBridgePortfolioProjection({
+      companyId: "company-2",
+      sourceOwnerCompanyId: "company-1",
+      repository: sharedRepository,
+      loadControlStatus,
+    });
+
+    expect(owner.items).toHaveLength(1);
+    expect(owner.items[0]).toMatchObject({
+      companyId: "company-1",
+      paperclipProjectId: "company-1-project",
+      paperclipProjectLink: "/ONE/projects/company-1-project",
+    });
+    expect(nonOwner).toMatchObject({
+      companyId: "company-2",
+      sourceState: "unavailable",
+      conflictState: "source_unavailable",
+      items: [],
+    });
+    expect(loadControlStatus).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledWith("company-1", ["11 Innovation: Soar"]);
   });
 });

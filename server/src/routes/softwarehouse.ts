@@ -13,6 +13,7 @@ import { Router } from "express";
 import { HttpError, unprocessable } from "../errors.js";
 import {
   buildRoostBridgePortfolioProjection,
+  createUnavailableRoostBridgePortfolioProjection,
   createRoostBridgePortfolioRepository,
 } from "../services/roost-bridge-portfolio.js";
 import { assertCompanyAccess } from "./authz.js";
@@ -726,8 +727,15 @@ export async function loadSoftwarehouseControlStatus(
   return softwarehouseControlStatusResponseSchema.parse(response);
 }
 
-export function softwarehouseRoutes(db?: Db) {
+export interface SoftwarehouseRoutesOptions {
+  portfolioSourceOwnerCompanyId?: string | null;
+}
+
+export function softwarehouseRoutes(db?: Db, options: SoftwarehouseRoutesOptions = {}) {
   const router = Router();
+  const portfolioSourceOwnerCompanyId = options.portfolioSourceOwnerCompanyId
+    ?? process.env.SOFTWAREHOUSE_COMPANY_ID?.trim()
+    ?? null;
 
   router.get("/companies/:companyId/softwarehouse/portfolio-projection/:version", async (req, res) => {
     const companyId = req.params.companyId as string;
@@ -739,10 +747,19 @@ export function softwarehouseRoutes(db?: Db) {
         supportedRouteVersions: [roostBridgePortfolioRouteVersion],
       });
     }
+    if (companyId !== portfolioSourceOwnerCompanyId) {
+      res.json(createUnavailableRoostBridgePortfolioProjection(
+        companyId,
+        new Date().toISOString(),
+        "unavailable",
+      ));
+      return;
+    }
     if (!db) throw new HttpError(503, "Portfolio projection data source is unavailable");
 
     res.json(await buildRoostBridgePortfolioProjection({
       companyId,
+      sourceOwnerCompanyId: portfolioSourceOwnerCompanyId,
       repository: createRoostBridgePortfolioRepository(db),
       loadControlStatus: () => loadSoftwarehouseControlStatus(),
     }));

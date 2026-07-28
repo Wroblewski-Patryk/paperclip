@@ -236,7 +236,7 @@ function validProvenanceTimestamp(value: string | null | undefined) {
   return Number.isFinite(milliseconds) ? { value, milliseconds } : null;
 }
 
-function unavailableProjection(
+export function createUnavailableRoostBridgePortfolioProjection(
   companyId: string,
   observedAt: string,
   sourceState: "unavailable" | "timed_out",
@@ -286,6 +286,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
 
 export interface BuildRoostBridgePortfolioProjectionOptions {
   companyId: string;
+  sourceOwnerCompanyId: string | null;
   repository: RoostBridgePortfolioRepository;
   loadControlStatus: () => Promise<SoftwarehouseControlStatusResponse>;
   now?: Date;
@@ -297,6 +298,10 @@ export async function buildRoostBridgePortfolioProjection(
 ): Promise<RoostBridgePortfolioProjection> {
   const now = options.now ?? new Date();
   const observedAt = now.toISOString();
+  if (!options.sourceOwnerCompanyId || options.companyId !== options.sourceOwnerCompanyId) {
+    return createUnavailableRoostBridgePortfolioProjection(options.companyId, observedAt, "unavailable");
+  }
+
   let controlStatus: SoftwarehouseControlStatusResponse;
   try {
     controlStatus = await withTimeout(
@@ -304,7 +309,7 @@ export async function buildRoostBridgePortfolioProjection(
       options.timeoutMs ?? DEFAULT_SOURCE_TIMEOUT_MS,
     );
   } catch (error) {
-    return unavailableProjection(
+    return createUnavailableRoostBridgePortfolioProjection(
       options.companyId,
       observedAt,
       error instanceof Error && error.message === "ROOST_BRIDGE_SOURCE_TIMEOUT" ? "timed_out" : "unavailable",
@@ -312,7 +317,7 @@ export async function buildRoostBridgePortfolioProjection(
   }
 
   if (!controlStatus.available) {
-    return unavailableProjection(options.companyId, observedAt, "unavailable");
+    return createUnavailableRoostBridgePortfolioProjection(options.companyId, observedAt, "unavailable");
   }
 
   const sourceProjects = controlStatus.projectTruth.projects.filter((project) => project.portfolio);
@@ -323,14 +328,16 @@ export async function buildRoostBridgePortfolioProjection(
       options.timeoutMs ?? DEFAULT_SOURCE_TIMEOUT_MS,
     );
   } catch (error) {
-    return unavailableProjection(
+    return createUnavailableRoostBridgePortfolioProjection(
       options.companyId,
       observedAt,
       error instanceof Error && error.message === "ROOST_BRIDGE_SOURCE_TIMEOUT" ? "timed_out" : "unavailable",
     );
   }
 
-  if (!data.company) return unavailableProjection(options.companyId, observedAt, "unavailable");
+  if (!data.company) {
+    return createUnavailableRoostBridgePortfolioProjection(options.companyId, observedAt, "unavailable");
+  }
 
   const projectsByName = new Map(data.projects.map((project) => [project.name.toLowerCase(), project]));
   const runStatusById = new Map(data.runs.map((run) => [run.id, run.status]));

@@ -11,13 +11,16 @@ import {
 import { errorHandler } from "../middleware/index.js";
 import { loadSoftwarehouseControlStatus, softwarehouseRoutes } from "../routes/softwarehouse.js";
 
-function createApp(actor: Express.Request["actor"]) {
+function createApp(
+  actor: Express.Request["actor"],
+  options?: Parameters<typeof softwarehouseRoutes>[1],
+) {
   const app = express();
   app.use((req, _res, next) => {
     req.actor = actor;
     next();
   });
-  app.use("/api", softwarehouseRoutes());
+  app.use("/api", softwarehouseRoutes(undefined, options));
   app.use(errorHandler);
   return app;
 }
@@ -80,6 +83,25 @@ describe("softwarehouse issue template catalog route", () => {
 });
 
 describe("Roost bridge portfolio projection route", () => {
+  it("returns no file-backed facts for an authorized non-owning company", async () => {
+    const response = await request(createApp({
+      type: "board",
+      source: "session",
+      userId: "user-1",
+      companyIds: ["company-2"],
+      memberships: [{ companyId: "company-2", membershipRole: "operator", status: "active" }],
+    }, { portfolioSourceOwnerCompanyId: "company-1" }))
+      .get("/api/companies/company-2/softwarehouse/portfolio-projection/v1");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      companyId: "company-2",
+      sourceState: "unavailable",
+      conflictState: "source_unavailable",
+      items: [],
+    });
+  });
+
   it("denies cross-company reads before resolving projection inputs", async () => {
     const response = await request(createApp({
       type: "board",

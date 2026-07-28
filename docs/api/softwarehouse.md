@@ -28,6 +28,8 @@ The response uses:
 
 `sourceState` is `available`, `unavailable`, or `timed_out`. Source and database reads use a seven-second bound. Unavailable or timed-out inputs return a valid fail-closed packet with `stale: true`, `conflictState: "source_unavailable"`, a typed `failure`, and no speculative items.
 
+The file-backed Softwarehouse source belongs to the one company configured by `SOFTWAREHOUSE_COMPANY_ID`. The route checks that ownership before loading the control-status file or mapping database projects. An authorized request for any other company, or a deployment with no configured owning company, receives the same fail-closed unavailable packet with zero items. Matching project names in another company never authorize projection of the owning company's workspace facts.
+
 Per-item supersession is resolved only when the owner surface is available and both `ownerSurfaceUpdatedAt` and `controlStatusObservedAt` are valid timestamps. An owner timestamp strictly newer than the control observation yields `superseded`; equality or an older owner timestamp yields `current`. An unavailable owner surface or a missing/invalid timestamp yields `unknown`.
 
 Top-level supersession is fail-closed. A project-mapping conflict, unavailable owner surface, unresolved item, or empty packet yields `unknown`. Otherwise, any superseded item yields `superseded`; only a non-empty packet whose items are all current yields `current`. Project-mapping conflict takes precedence over owner-surface conflict in the top-level `conflictState`, and either conflict prevents a speculative top-level `current` or `superseded` result.
