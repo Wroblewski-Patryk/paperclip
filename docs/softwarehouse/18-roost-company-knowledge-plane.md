@@ -338,6 +338,35 @@ Acceptance evidence must cover:
 - key revocation/rotation path;
 - no raw secret in docs, logs, prompts, comments, or artifacts.
 
+### Local V0 Runtime Realization
+
+The accepted canary is realized in the canonical local Paperclip instance as a
+selective hosted-context connection. `00 AIA`, `04 COO`, `09 CTO`, `09 DRE`,
+`09 QVE`, and `11 RPM` receive the same least-privilege
+`mcp_company_os_reader` secret refs and a Codex `companycore` stdio MCP entry.
+The local bridge process is transport only: it must point to hosted Roost over
+HTTPS, must use `read_only` command mode, and must never start or query a local
+Roost data service.
+
+The configuration is maintained and proved with:
+
+```powershell
+pnpm run softwarehouse:roost-context
+pnpm run softwarehouse:roost-context:verify
+pnpm run softwarehouse:roost-context:apply
+```
+
+The apply path updates both primary and cheap-model adapter configurations so
+model routing cannot silently remove the connector. Verification initializes
+the bridge, lists its scoped tools, performs one `companycore_get_company_os`
+read, rejects any non-read-only tool exposure, and confirms an unauthenticated
+manifest request fails with `401`. It never emits the raw base URL or key.
+
+The local Roost checkout remains the product-development workspace and hosts
+the thin bridge executable; live company records remain on hosted Roost. The
+shared agent contract is
+`softwarehouse/instructions/shared/02-hosted-roost-company-context.md`.
+
 ### Later Phases
 
 1. Read-only packets for selected managers and product owners.

@@ -3026,6 +3026,26 @@ test("Roost protected key bootstrap is approval-gated and never uses placeholder
   assert.doesNotMatch(source, /REPLACE_ME_COMPANYCORE_API_KEY/);
 });
 
+test("hosted Roost context config is selective, read-only, and local-service hostile", async () => {
+  const source = await readFile("scripts/configure-roost-hosted-context.ts", "utf8");
+  const instructions = await readFile("softwarehouse/instructions/shared/02-hosted-roost-company-context.md", "utf8");
+
+  assert.match(source, /"04 COO \(Chief Operating Officer\)"/);
+  assert.match(source, /"11 RPM \(Roost Project Manager\)"/);
+  assert.match(source, /mcp_servers\.companycore\.command/);
+  assert.match(source, /COMPANYCORE_MCP_COMMAND_MODE="read_only"/);
+  assert.match(source, /profile.*mcp_company_os_reader|companycore_api_key/);
+  assert.match(source, /parsedBaseUrl\.protocol !== "https:"/);
+  assert.match(source, /\["localhost", "127\.0\.0\.1", "::1"\]/);
+  assert.match(source, /companycore_get_company_os/);
+  assert.match(source, /unauthenticatedManifestStatus/);
+  assert.match(source, /rawSecretOutput: false/);
+  assert.match(instructions, /Paperclip remains authoritative for agents/);
+  assert.match(instructions, /Never start a\s+local Roost service for company context/);
+  assert.match(instructions, /mcp_company_os_reader/);
+  assert.match(instructions, /bridge command mode is\s+`read_only`/);
+});
+
 test("runtime gate repair binds accepted LUC-372 protected input families", async () => {
   const source = await readFile("scripts/repair-runtime-gate-bindings.mjs", "utf8");
 

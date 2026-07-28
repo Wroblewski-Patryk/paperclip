@@ -60,6 +60,7 @@ board explicitly reopens a stream.
 
 | Surface | Use | Safety boundary |
 | --- | --- | --- |
+| Hosted Roost CompanyCore API/MCP | Read-only company operating context for selected Paperclip roles | HTTPS only; workspace-scoped `mcp_company_os_reader` secret refs; local Roost is code/bridge only, never the live company-data service. |
 | Coolify VPS | Soar/Roost deploy/status/recovery checks | Use configured secrets only inside Paperclip/local env; never persist values. |
 | Soar production | Public smoke and authenticated proof where approved | No LIVE mutation or account data capture without explicit gate. |
 | Git remotes | Source-control closure and optional deploy trigger | Commit locally when coherent; push only when explicitly allowed. |
@@ -78,6 +79,9 @@ operator
 
 Ops lanes:
 Paperclip -> Coolify/VPS -> Soar/Roost API/Web/workers -> smoke/readiness evidence
+
+Company context lane:
+selected local Paperclip agents -> local stdio bridge -> hosted Roost HTTPS API/MCP -> read-only Company OS context
 ```
 
 ## Maintenance Rule
