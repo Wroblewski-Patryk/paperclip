@@ -144,6 +144,11 @@ const malformedOptionOwnerCases = [
   ["non-string", 123],
 ] as const;
 
+const ownerBindingOptionCases = [
+  ["current", "sourceOwnerCompanyId", { portfolioSourceOwnerCompanyId: "company-1" }],
+  ["deprecated", "portfolioSourceOwnerCompanyId", {}],
+] as const;
+
 const malformedEnvironmentOwnerCases = [
   ["padded", " company-1 "],
   ["whitespace-only", " \t\r\n"],
@@ -210,19 +215,30 @@ describe("softwarehouse file-source owner guard", () => {
     expectNoSourceLoaders(sourceLoaders);
   });
 
-  it.each(malformedOptionOwnerCases)(
-    "fails closed across all routes for a %s explicit owner despite a valid environment fallback",
-    async (_name, sourceOwnerCompanyId) => {
-      await withSoftwarehouseCompanyId("company-1", async () => {
-        const sourceLoaders = createRouteSourceLoaders();
-        const options = {
-          sourceOwnerCompanyId,
-          sourceLoaders: asSourceLoaders(sourceLoaders),
-        } as unknown as NonNullable<Parameters<typeof softwarehouseRoutes>[1]>;
-        const app = createAppWithExactOptions(companyOneActor, options);
+  describe.each(ownerBindingOptionCases)(
+    "%s owner option",
+    (_optionName, optionKey, companionOptions) => {
+      it.each(malformedOptionOwnerCases)(
+        "fails closed across all routes for a %s value despite canonical lower-precedence fallbacks",
+        async (_name, optionValue) => {
+          await withSoftwarehouseCompanyId("company-1", async () => {
+            const sourceLoaders = createRouteSourceLoaders();
+            const options = {
+              ...companionOptions,
+              [optionKey]: optionValue,
+              sourceLoaders: asSourceLoaders(sourceLoaders),
+            } as unknown as NonNullable<Parameters<typeof softwarehouseRoutes>[1]>;
 
-        await expectAllFileBackedRoutesFailClosed(app, sourceLoaders);
-      });
+            expect(Object.prototype.hasOwnProperty.call(options, optionKey)).toBe(true);
+            if (optionKey === "portfolioSourceOwnerCompanyId") {
+              expect(Object.prototype.hasOwnProperty.call(options, "sourceOwnerCompanyId")).toBe(false);
+            }
+
+            const app = createAppWithExactOptions(companyOneActor, options);
+            await expectAllFileBackedRoutesFailClosed(app, sourceLoaders);
+          });
+        },
+      );
     },
   );
 
@@ -244,6 +260,45 @@ describe("softwarehouse file-source owner guard", () => {
     await withSoftwarehouseCompanyId("company-1", async () => {
       const sourceLoaders = createRouteSourceLoaders();
       const app = createAppWithExactOptions(companyOneActor, {
+        sourceLoaders: asSourceLoaders(sourceLoaders),
+      });
+
+      for (const [, path, loaderKey] of fileBackedRouteCases) {
+        const response = await request(app).get(path);
+        expect(response.status).toBe(200);
+        expect(sourceLoaders[loaderKey]).toHaveBeenCalledTimes(1);
+      }
+    });
+  });
+
+  it("uses a canonical deprecated owner when the current option is absent", async () => {
+    await withSoftwarehouseCompanyId("company-2", async () => {
+      const sourceLoaders = createRouteSourceLoaders();
+      const options = {
+        portfolioSourceOwnerCompanyId: "company-1",
+        sourceLoaders: asSourceLoaders(sourceLoaders),
+      };
+
+      expect(Object.prototype.hasOwnProperty.call(options, "sourceOwnerCompanyId")).toBe(false);
+      const app = createAppWithExactOptions(companyOneActor, options);
+
+      for (const [, path, loaderKey] of fileBackedRouteCases) {
+        const response = await request(app).get(path);
+        expect(response.status).toBe(200);
+        expect(sourceLoaders[loaderKey]).toHaveBeenCalledTimes(1);
+      }
+    });
+  });
+
+  it.each([
+    ["malformed deprecated owner", " company-1 "],
+    ["canonical conflicting deprecated owner", "company-2"],
+  ])("keeps a canonical current owner authoritative over a %s", async (_name, deprecatedOwner) => {
+    await withSoftwarehouseCompanyId("company-2", async () => {
+      const sourceLoaders = createRouteSourceLoaders();
+      const app = createAppWithExactOptions(companyOneActor, {
+        sourceOwnerCompanyId: "company-1",
+        portfolioSourceOwnerCompanyId: deprecatedOwner,
         sourceLoaders: asSourceLoaders(sourceLoaders),
       });
 
