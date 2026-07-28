@@ -1,7 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { and, eq } from "drizzle-orm";
+import {
+  agents,
+  companies,
+  createDb,
+  executionWorkspaces,
+  heartbeatRuns,
+  projects,
+  workspaceResourceClaims,
+} from "@paperclipai/db";
+import {
+  getEmbeddedPostgresTestSupport,
+  startEmbeddedPostgresTestDatabase,
+} from "./helpers/embedded-postgres.js";
 import {
   normalizeWorkspaceResourceKey,
   parseWorkspaceResourceClaimDeclarations,
+  workspaceResourceClaimService,
 } from "../services/workspace-resource-claims.js";
 
 describe("workspace resource claim declarations", () => {
@@ -30,5 +46,234 @@ describe("workspace resource claim declarations", () => {
       .toThrow("must be an array");
     expect(() => parseWorkspaceResourceClaimDeclarations({ resourceClaims: [{ resourceKey: "postgres", leaseMs: 1 }] }))
       .toThrow("at least 1000");
+  });
+});
+
+const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+
+if (!embeddedPostgresSupport.supported) {
+  console.warn(
+    `Skipping embedded Postgres workspace resource claim tests on this host: ${embeddedPostgresSupport.reason ?? "unsupported environment"}`,
+  );
+}
+
+describeEmbeddedPostgres("workspaceResourceClaimService", () => {
+  let db!: ReturnType<typeof createDb>;
+  let claims!: ReturnType<typeof workspaceResourceClaimService>;
+  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+
+  beforeAll(async () => {
+    tempDb = await startEmbeddedPostgresTestDatabase("paperclip-workspace-resource-claims-");
+    db = createDb(tempDb.connectionString);
+    claims = workspaceResourceClaimService(db);
+  }, 60_000);
+
+  afterEach(async () => {
+    await db.delete(workspaceResourceClaims);
+    await db.delete(heartbeatRuns);
+    await db.delete(executionWorkspaces);
+    await db.delete(agents);
+    await db.delete(projects);
+    await db.delete(companies);
+  });
+
+  afterAll(async () => {
+    await tempDb?.cleanup();
+  });
+
+  async function seedFixture(label: string) {
+    const companyId = randomUUID();
+    const projectId = randomUUID();
+    const workspaceId = randomUUID();
+    const agentId = randomUUID();
+    const runIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: `Claims ${label}`,
+      issuePrefix: `C${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(projects).values({
+      id: projectId,
+      companyId,
+      name: `Claims ${label}`,
+      status: "in_progress",
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: `Claims agent ${label}`,
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    });
+    await db.insert(executionWorkspaces).values({
+      id: workspaceId,
+      companyId,
+      projectId,
+      mode: "shared_workspace",
+      strategyType: "project_primary",
+      name: `Claims workspace ${label}`,
+      status: "active",
+      providerType: "local_fs",
+    });
+    await db.insert(heartbeatRuns).values(runIds.map((id) => ({
+      id,
+      companyId,
+      agentId,
+      invocationSource: "manual",
+      status: "running",
+    })));
+
+    return { companyId, projectId, workspaceId, runIds };
+  }
+
+  it("returns the holder evidence for normalized-identical keys before a caller starts its adapter command", async () => {
+    const fixture = await seedFixture("conflict");
+    const first = await claims.acquire({
+      companyId: fixture.companyId,
+      executionWorkspaceId: fixture.workspaceId,
+      heartbeatRunId: fixture.runIds[0],
+      resourceKey: " Roost / Verification Postgres ",
+    });
+    const second = await claims.acquire({
+      companyId: fixture.companyId,
+      executionWorkspaceId: fixture.workspaceId,
+      heartbeatRunId: fixture.runIds[1],
+      resourceKey: "roost:verification:postgres",
+    });
+
+    expect(first).toMatchObject({ acquired: true });
+    expect(second).toEqual(expect.objectContaining({
+      acquired: false,
+      holder: expect.objectContaining({
+        heartbeatRunId: fixture.runIds[0],
+        resourceKey: "roost:verification:postgres",
+        status: "active",
+      }),
+    }));
+  });
+
+  it("allows different normalized resource keys concurrently in the same workspace", async () => {
+    const fixture = await seedFixture("independent");
+    const [first, second] = await Promise.all([
+      claims.acquire({
+        companyId: fixture.companyId,
+        executionWorkspaceId: fixture.workspaceId,
+        heartbeatRunId: fixture.runIds[0],
+        resourceKey: "postgres:55432",
+      }),
+      claims.acquire({
+        companyId: fixture.companyId,
+        executionWorkspaceId: fixture.workspaceId,
+        heartbeatRunId: fixture.runIds[1],
+        resourceKey: "browser chrome",
+      }),
+    ]);
+
+    expect(first).toEqual(expect.objectContaining({ acquired: true, claim: expect.objectContaining({ resourceKey: "postgres:55432" }) }));
+    expect(second).toEqual(expect.objectContaining({ acquired: true, claim: expect.objectContaining({ resourceKey: "browser:chrome" }) }));
+  });
+
+  it("releases only the originating run's claims for success, failure, and interruption", async () => {
+    const fixture = await seedFixture("release");
+    await Promise.all(fixture.runIds.slice(0, 3).map((heartbeatRunId, index) => claims.acquire({
+      companyId: fixture.companyId,
+      executionWorkspaceId: fixture.workspaceId,
+      heartbeatRunId,
+      resourceKey: `resource-${index}`,
+    })));
+
+    expect(await claims.releaseForRun(fixture.runIds[0], "run_succeeded")).toHaveLength(1);
+    const remainingActive = await db.select({ heartbeatRunId: workspaceResourceClaims.heartbeatRunId })
+      .from(workspaceResourceClaims)
+      .where(eq(workspaceResourceClaims.status, "active"));
+    expect(remainingActive).toEqual(expect.arrayContaining([
+      { heartbeatRunId: fixture.runIds[1] },
+      { heartbeatRunId: fixture.runIds[2] },
+    ]));
+    expect(await claims.releaseForRun(fixture.runIds[1], "run_failed")).toHaveLength(1);
+    expect(await claims.releaseForRun(fixture.runIds[2], "run_interrupted")).toHaveLength(1);
+
+    const persisted = await db.select({
+      heartbeatRunId: workspaceResourceClaims.heartbeatRunId,
+      status: workspaceResourceClaims.status,
+      releaseReason: workspaceResourceClaims.releaseReason,
+    }).from(workspaceResourceClaims);
+    expect(persisted).toEqual(expect.arrayContaining([
+      { heartbeatRunId: fixture.runIds[0], status: "released", releaseReason: "run_succeeded" },
+      { heartbeatRunId: fixture.runIds[1], status: "released", releaseReason: "run_failed" },
+      { heartbeatRunId: fixture.runIds[2], status: "released", releaseReason: "run_interrupted" },
+    ]));
+  });
+
+  it("reclaims an expired claim while retaining an unexpired holder", async () => {
+    const fixture = await seedFixture("expiry");
+    const now = new Date("2026-07-28T12:00:00.000Z");
+    await claims.acquire({
+      companyId: fixture.companyId,
+      executionWorkspaceId: fixture.workspaceId,
+      heartbeatRunId: fixture.runIds[0],
+      resourceKey: "test database",
+      leaseMs: 1_000,
+      now,
+    });
+    const beforeExpiry = await claims.acquire({
+      companyId: fixture.companyId,
+      executionWorkspaceId: fixture.workspaceId,
+      heartbeatRunId: fixture.runIds[1],
+      resourceKey: "test:database",
+      now: new Date(now.getTime() + 999),
+    });
+    const afterExpiry = await claims.acquire({
+      companyId: fixture.companyId,
+      executionWorkspaceId: fixture.workspaceId,
+      heartbeatRunId: fixture.runIds[1],
+      resourceKey: "test:database",
+      now: new Date(now.getTime() + 1_000),
+    });
+
+    expect(beforeExpiry).toEqual(expect.objectContaining({
+      acquired: false,
+      holder: expect.objectContaining({ heartbeatRunId: fixture.runIds[0], status: "active" }),
+    }));
+    expect(afterExpiry).toEqual(expect.objectContaining({
+      acquired: true,
+      claim: expect.objectContaining({ heartbeatRunId: fixture.runIds[1], status: "active" }),
+    }));
+    const [expired] = await db.select().from(workspaceResourceClaims).where(and(
+      eq(workspaceResourceClaims.heartbeatRunId, fixture.runIds[0]),
+      eq(workspaceResourceClaims.status, "expired"),
+    ));
+    expect(expired.releaseReason).toBe("lease_expired");
+  });
+
+  it("keeps company and workspace in the exclusive-resource identity", async () => {
+    const first = await seedFixture("identityone");
+    const second = await seedFixture("identitytwo");
+    const otherWorkspaceId = randomUUID();
+    await db.insert(executionWorkspaces).values({
+      id: otherWorkspaceId,
+      companyId: first.companyId,
+      projectId: first.projectId,
+      mode: "shared_workspace",
+      strategyType: "project_primary",
+      name: "Other claims workspace",
+      status: "active",
+      providerType: "local_fs",
+    });
+
+    const results = [
+      await claims.acquire({ companyId: first.companyId, executionWorkspaceId: first.workspaceId, heartbeatRunId: first.runIds[0], resourceKey: "postgres" }),
+      await claims.acquire({ companyId: first.companyId, executionWorkspaceId: otherWorkspaceId, heartbeatRunId: first.runIds[1], resourceKey: "postgres" }),
+      await claims.acquire({ companyId: second.companyId, executionWorkspaceId: second.workspaceId, heartbeatRunId: second.runIds[0], resourceKey: "postgres" }),
+    ];
+
+    expect(results).toEqual(results.map(() => expect.objectContaining({ acquired: true })));
   });
 });
