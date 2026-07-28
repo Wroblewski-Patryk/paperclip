@@ -29,6 +29,7 @@ export { environments } from "./environments.js";
 export { environmentLeases } from "./environment_leases.js";
 export { workspaceOperations } from "./workspace_operations.js";
 export { workspaceRuntimeServices } from "./workspace_runtime_services.js";
+export { workspaceResourceClaims } from "./workspace_resource_claims.js";
 export { projectGoals } from "./project_goals.js";
 export { goals } from "./goals.js";
 export { organizationalRecords } from "./organizational_records.js";

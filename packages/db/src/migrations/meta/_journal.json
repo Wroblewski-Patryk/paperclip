@@ -743,6 +743,13 @@
       "when": 1784554388815,
       "tag": "0105_acoustic_moon_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1785237600000,
+      "tag": "0106_workspace_resource_claims",
+      "breakpoints": true
     }
   ]
 }

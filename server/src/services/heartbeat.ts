@@ -190,6 +190,7 @@ import { extractSkillMentionIds, isUuidLike } from "@paperclipai/shared";
 import { environmentService } from "./environments.js";
 import { environmentRuntimeService } from "./environment-runtime.js";
 import { environmentRunOrchestrator } from "./environment-run-orchestrator.js";
+import { parseWorkspaceResourceClaimDeclarations, workspaceResourceClaimService } from "./workspace-resource-claims.js";
 import { isUnsafeSessionWorkspaceCwd } from "./session-workspace-cwd.js";
 import {
   assertLowTrustRuntimeServicesAllowed,
@@ -2962,6 +2963,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     pluginWorkerManager: options.pluginWorkerManager,
     environmentRuntime,
   });
+  const workspaceResourceClaims = workspaceResourceClaimService(db);
   const workspaceOperationsSvc = workspaceOperationService(db);
   const activeRunExecutions = new Set<string>();
   const budgetHooks = {
@@ -3023,6 +3025,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         "failed to release environment lease for heartbeat run",
       );
     }
+    await workspaceResourceClaims.releaseForRun(input.runId, input.status === "succeeded" ? "run_succeeded" : "run_terminated")
+      .catch((err) => logger.warn({ err, runId: input.runId }, "failed to release workspace resource claims for heartbeat run"));
   }
 
   async function hasUnsafeTextProjectionDatabase() {
@@ -8376,6 +8380,9 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       modelProfile: modelProfileApplication,
       issueAdapterConfig: issueAssigneeOverrides?.adapterConfig ?? null,
     });
+    const declaredResourceClaims = parseWorkspaceResourceClaimDeclarations(
+      ((mergedConfig as Record<string, unknown>).workspaceRuntime as Record<string, unknown> | undefined) ?? null,
+    );
     const configSnapshot = buildExecutionWorkspaceConfigSnapshot(mergedConfig, selectedEnvironmentId);
     const executionRunConfig = stripWorkspaceRuntimeFromExecutionRunConfig(mergedConfig);
     const { resolvedConfig, secretKeys, secretManifest } = await resolveExecutionRunAdapterConfig({
@@ -8614,6 +8621,31 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           updatedAt: new Date(),
         })
         .where(eq(heartbeatRuns.id, run.id));
+    }
+    if (declaredResourceClaims.length > 0) {
+      if (!persistedExecutionWorkspace) {
+        throw new Error("Workspace resource claims require a persisted execution workspace.");
+      }
+      const acquiredClaims = [] as string[];
+      for (const declaration of declaredResourceClaims) {
+        const result = await workspaceResourceClaims.acquire({
+          companyId: agent.companyId,
+          executionWorkspaceId: persistedExecutionWorkspace.id,
+          heartbeatRunId: run.id,
+          issueId: issueId ?? null,
+          resourceKey: declaration.resourceKey,
+          leaseMs: declaration.leaseMs,
+        });
+        if (!result.acquired) {
+          await workspaceResourceClaims.releaseForRun(run.id, "conflict_before_command");
+          throw new Error(
+            `Workspace verification resource "${declaration.resourceKey}" is held by run ${result.holder.heartbeatRunId}` +
+            `${result.holder.issueId ? ` (issue ${result.holder.issueId})` : ""}; wait for its lease to release before starting commands.`,
+          );
+        }
+        acquiredClaims.push(result.claim.resourceKey);
+      }
+      context.workspaceResourceClaims = acquiredClaims;
     }
     const persistedEnvironmentId = persistedExecutionWorkspace?.config?.environmentId ?? selectedEnvironmentId;
     const acquiredEnvironment = await envOrchestrator.acquireForRun({
