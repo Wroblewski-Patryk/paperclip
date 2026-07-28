@@ -1,6 +1,18 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-26
+Last updated: 2026-07-28
+
+## 2026-07-28 Featherly Activation
+
+- The owner activated `C:/Personal/Projekty/Aplikacje/Featherly` as the third
+  application lane alongside Soar and Roost.
+- Featherly begins in takeover/security-hardening mode: map current truth,
+  close dependency and application-security risks, repair reliability gaps,
+  add tests and documentation, then produce review and release evidence.
+- Local repo mutation is authorized through normal scoped Paperclip issues.
+  Production/Coolify, secrets, destructive actions, and authentication-sensitive
+  live checks remain gated until security, deployment, rollback, and monitoring
+  evidence is inspectable.
 
 ## 2026-07-26 Paperclip Remote Ownership Boundary
 
@@ -313,16 +325,18 @@ Current active products:
 
 - Soar.
 - Roost.
+- Featherly (takeover and security hardening).
 
 Parked until owner activation:
 
-- Featherly, Aviary, Nest, and unrelated products.
+- Aviary, Nest, and unrelated products.
 
 Current allowed local workspace roots:
 
 - `C:\Personal\Projekty\Aplikacje\Paperclip_Softwarehouse`
 - `C:\Personal\Projekty\Aplikacje\Soar`
 - `C:\Personal\Projekty\Aplikacje\Roost`
+- `C:\Personal\Projekty\Aplikacje\Featherly`
 
 Do not create generated files, scripts, indexes, or scratch folders directly
 under `C:\Personal\Projekty\Aplikacje`. Do not delete or clean sibling app
@@ -360,7 +374,7 @@ Out of scope unless separately approved:
   3200. Never stop a server while a run is active unless the run has logically
   completed and the canonical cancel path is used with an audit record.
 - The canonical local topology is exactly one checkout each for
-  Paperclip_Softwarehouse, Soar, and Roost. Paperclip uses strict port 3200 and
+  Paperclip_Softwarehouse, Soar, Roost, and Featherly. Paperclip uses strict port 3200 and
   its canonical embedded PostgreSQL uses strict port 54329; collisions fail
   closed. Verify with `pnpm run softwarehouse:runtime-topology-audit`.
 - This Windows 11 / PowerShell 5.1 host is one bounded workstation. Do not

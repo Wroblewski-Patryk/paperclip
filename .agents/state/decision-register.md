@@ -1,6 +1,6 @@
 # Decision Register
 
-Last updated: 2026-07-22
+Last updated: 2026-07-28
 
 This file records durable Paperclip Softwarehouse decisions from recent owner
 coordination.
@@ -28,10 +28,11 @@ coordination.
 | DEC-PSH-019 | 2026-07-22 | ClickUp tasks are provider representations, Roost work items are normalized company records, and Paperclip issues are agent execution units; Paperclip child/run state reaches Roost only through an explicit aggregation/acceptance mapping. | accepted | Avoids three competing task masters and keeps technical execution/recovery noise out of human business queues. | Define stable external refs and status/evidence mapping before task synchronization is activated. |
 | DEC-PSH-020 | 2026-07-22 | V0 knowledge uses existing layered roots: `docs/softwarehouse` for stable company standards, `.agents/state` for operating memory, product `docs/` for product truth, and issues/work products for execution evidence; Markdown/CSV are primary projections, with generated Mermaid and optional later Turtle/BPMN/GraphML. | accepted | Preserves readable, diffable local foundations without creating a duplicate company warehouse before Roost is ready. | Keep IDs and provenance stable across future Roost imports and generated graph views. |
 | DEC-PSH-021 | 2026-07-22 | V0 is the complete local autonomous softwarehouse for application creation and completion, not the first deployment of the full autonomous business. Paperclip stays local; Soar and Roost may run on VPS. Hosting Paperclip and activating broad business departments belong to V1. | accepted | Makes the V0 acceptance boundary testable and prevents CRM, sales, business-plan, provider-sync, or external-communication work from displacing the application factory. | Execute `doc/plans/2026-07-22-local-softwarehouse-v0-implementation.md` through existing parents `LUC-1554`, `LUC-27`, `LUC-28`, and `LUC-25`. |
+| DEC-PSH-022 | 2026-07-28 | Featherly is explicitly activated as a third V0 application lane in takeover/security-hardening mode. | accepted | Supersedes the Featherly portion of DEC-PSH-001 while keeping Aviary and Nest parked; authorizes scoped local repair but not ungated production mutation. | Run FPM-led known-state, security, reliability, tests, docs, review, deployment and monitoring evidence before release claims. |
 
 ## Open Decision Queue
 
-- Decide when, if ever, to activate Aviary/Nest/Featherly as active app lanes.
+- Decide when, if ever, to activate Aviary/Nest as active app lanes.
 - Decide which consolidated watchdog recommendations should be implemented
   into Paperclip configuration, docs, skills, routines, tests, indexes, repair
   lanes, plugins, or owner approve tasks.

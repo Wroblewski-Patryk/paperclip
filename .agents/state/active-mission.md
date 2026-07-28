@@ -1,5 +1,16 @@
 # Active Mission
 
+## 2026-07-28 - Featherly Takeover And Security Hardening Active
+
+- The owner activated Featherly as the third application lane and authorized
+  normal scoped local repo work in `C:/Personal/Projekty/Aplikacje/Featherly`.
+- Featherly starts with known-state, dependency/application-security,
+  reliability, test, documentation, review, and release-readiness evidence.
+- `11 FPM (Featherly Platform Manager)` owns the lane. Production/Coolify,
+  secrets, destructive operations, and live auth mutation remain protected
+  until security, deployment, rollback, and monitoring gates are satisfied.
+- Soar and Roost remain active; this activation does not reopen Aviary or Nest.
+
 ## 2026-07-26 - Local-Only Paperclip And Hosted Retirement Active
 
 - The owner repository is `Wroblewski-Patryk/paperclip`, configured locally as

@@ -1,6 +1,16 @@
 # Board Context
 
-Last updated: 2026-07-26
+Last updated: 2026-07-28
+
+## 2026-07-28 Featherly Activation
+
+The owner explicitly activated Featherly and wants Paperclip to manage it like
+Soar and Roost, beginning with a stronger security and reliability audit than
+the prior review. Paperclip should convert findings into narrow owned work,
+implementation, tests, review, documentation, and eventually guarded Coolify
+deployment rather than spending most of its capacity on self-maintenance.
+Featherly production mutation is not implied by activation; it remains behind
+the normal security, deployment, rollback, monitoring, and owner-safety gates.
 
 ## 2026-07-26 Paperclip Repository Ownership Clarification
 

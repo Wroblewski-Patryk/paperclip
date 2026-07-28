@@ -1,6 +1,6 @@
 # Next Steps
 
-Last updated: 2026-07-04
+Last updated: 2026-07-28
 
 ## Paperclip Softwarehouse Stage 1
 
@@ -11,8 +11,10 @@ Last updated: 2026-07-04
 - If a parent/child issue becomes `done` without implementation, verification,
   deployment, or owner-usability evidence appropriate to its scope, reopen or
   create a corrective child issue.
-- Keep active app defaults focused on `Soar` and `Roost`. Parked apps remain
-  parked until the owner explicitly activates them.
+- Keep active app defaults focused on `Soar`, `Roost`, and the owner-activated
+  Featherly takeover/security-hardening lane. Aviary and Nest remain parked.
+- Have FPM turn the Featherly baseline into narrow security, reliability,
+  test, documentation, and release-readiness issues before feature expansion.
 - Preserve the app-factory core; keep marketing, sales, customer service,
   broad HR, parked app PMs, and executive proxy work paused unless separately
   approved.
@@ -23,7 +25,8 @@ Last updated: 2026-07-04
 
 - Use the current loop:
   `PM/product map -> CTO/TSA technical map -> specialist implementation -> local tests -> review/security/evidence -> DRE deploy path -> production smoke/user-flow proof -> owner-ready AIA summary -> PDCA learning`.
-- Soar and Roost work must start from each repo's `docs/architecture` and keep
+- Soar, Roost, and Featherly work must start from each repo's available
+  architecture/product truth and keep
   architecture drift visible.
 - Product-app work belongs in the product app repo, not in the Paperclip
   control-plane repo, unless the task explicitly modifies Paperclip itself.

@@ -1,6 +1,6 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-25
+Last updated: 2026-07-28
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
@@ -4700,3 +4700,153 @@ restarts, rollbacks, secrets, destructive actions, paid-resource changes, or
 live-account mutation. The release policy, shared source-control instructions,
 and generated autonomy-governor wording were aligned so agents execute this
 direction instead of repeatedly requesting the same approval.
+
+## 2026-07-26 - LUC-1566 longevity snapshot refresh
+
+- Refreshed the redacted Softwarehouse longevity snapshot with
+  `node scripts/export-softwarehouse-longevity-snapshot.mjs`.
+- Verification: `report/longevity/softwarehouse-longevity-snapshot.latest.md`
+  and `.json` were regenerated at `2026-07-26T01:06:00.306Z`; the snapshot
+  reports `2` live runs, `2` active runs, and redacted control-plane metadata
+  only.
+- Durable evidence: the latest snapshot files are present under
+  `report/longevity/` and already attached to the running issue as snapshot
+  evidence.
+- Learning disposition: `not_applicable`; this is a recurring operational
+  backup rather than a corrective change.
+
+## 2026-07-26 - AI-agent development review no-change confirmation
+
+- Reviewed the current AI-agent development review sample for LUC-1807 and
+  confirmed the same pattern as the prior review run: `LUC-1573`, `LUC-1229`,
+  and `LUC-1614` still do not justify a new durable instruction, skill, or
+  routine.
+- Outcome: no durable change was applied or proposed; the existing review
+  contract remains sufficiently narrow and evidence-backed for the current
+  sample.
+- Learning disposition: `not_applicable`; this was a repeat verification of an
+  unchanged review pattern rather than a corrective improvement.
+
+## 2026-07-26 - Conversation summary: full autonomous application and business lifecycle
+
+The owner clarified that the previously recorded autonomous release loop is
+only one part of the desired company procedure. LuckySparrow must apply a
+world-class, evidence-backed lifecycle covering business direction, validated
+user problem, business/product/UX acceptance, architecture/data/security,
+delivery planning, implementation, automated and browser verification,
+independent review, documentation/operations, meaningful commit/push,
+Coolify/VPS deployment, production acceptance, ongoing support/monitoring,
+business outcomes, incidents, and organizational learning.
+
+The active contract is `PROC-SH-APPLICATION-LIFECYCLE` version 1.0 in
+`docs/softwarehouse/19-autonomous-application-business-lifecycle.md`. It is
+linked from architecture, SDLC, policy gates, and the procedure registry. A
+new shared instruction module was synchronized into all 39 local Paperclip
+agent bundles; the lifecycle test passed 3/3 and instruction,
+operating-standard, and runtime-topology audits passed.
+
+The system boundary remains complementary: Paperclip owns live execution and
+evidence gates; Roost owns the company-facing offering/procedure/KPI
+projection; product repositories own product, architecture, source, tests, and
+release truth. Roost now has a repository-side projection contract, but it is
+explicitly `source_only` until a governed authenticated owner surface or API
+publishes it on the VPS. Promotion: owner direction became active procedure,
+agent instructions, Roost projection source, tests, and durable memory; hosted
+Roost procedure publication remains a separately tracked implementation lane.
+
+## 2026-07-26 - Conversation summary: Paperclip remote ownership corrected
+
+The owner clarified that the local Paperclip checkout comes from an external
+public repository. `HenkDz/paperclip` is not an owner-controlled publication
+target, so the earlier HTTP 403 push attempt was a target-selection error, not
+a delivery blocker to retry. The configured `upstream` remote also points to
+the external `paperclipai/paperclip` project.
+
+No owner-controlled Paperclip publication remote is currently present in
+`git remote -v`. Future agents must treat Paperclip push as `not configured`,
+must never probe either public upstream with a write, and must identify the
+owner's separate repository and intended branch before configuring or using a
+push remote. Existing standing autonomous push consent continues to apply to
+verified owner-controlled application repositories only.
+
+## 2026-07-26 - Conversation summary: owner repo and VPS lineage identified
+
+The owner identified `Wroblewski-Patryk/paperclip` as the correct Paperclip
+repository and explained that the application from it is running on the VPS.
+Read-only Git verification found `main` at `52209941` and configured it as
+remote `owner`. Public `paperclip.luckysparrow.ch` health is HTTP 200 in
+authenticated/ready mode, and its root last-modified timestamp matches the
+remote commit time; this is strong but not exact-SHA deployment evidence.
+
+The local and owner/VPS histories have no merge base. The owner lineage has 39
+unique commits and the local lineage has 2938. Therefore no direct merge,
+force-push, or overwrite of `owner/main` is allowed. The VPS lineage contains
+historical knowledge/tool behavior, agent-scoped access, recovery-cost
+guardrails, and Docker/Coolify work that may inform current Roost contracts.
+The owner explicitly excluded Hindsight Memory because existing memory
+mechanisms are authoritative and Hindsight adds token cost plus external
+registration. Roost is the sole current name; older labels remain historical
+evidence only. The governed path is recorded in
+`doc/plans/2026-07-26-paperclip-owner-repository-convergence.md`: confirm exact
+Coolify source and backups, preserve both histories, publish the clean local
+lineage later to a non-deployment branch, selectively port valuable features,
+rehearse state migration, then stage/cut over with rollback and browser proof.
+
+## 2026-07-26 - Conversation summary: Paperclip is local-only; hosted copy is disposable
+
+The owner superseded the earlier hosted-convergence assumption. Paperclip is
+the local Softwarehouse control plane used to develop Soar, Roost, and other
+applications on the workstation. It should remain on strict local ports
+`3200`/`54329` and must not consume scarce VPS capacity as a second copy.
+
+The owner authorized removal of only the obsolete first-attempt Paperclip at
+`paperclip.luckysparrow.ch`. The scope explicitly excludes Soar, Roost, and
+every other existing or started VPS application, project, domain, database,
+volume, network, and repository; those are preserved for future Paperclip-led
+development. `LUC-1897` performs the independent read-only Coolify boundary
+proof, and blocked `LUC-1898` may decommission only the exact verified resource
+after PASS, with before/after health, capacity, and deletion evidence.
+
+`Wroblewski-Patryk/paperclip` remains the owner repository for the local
+lineage. The hosted legacy Git history stays recoverable, while the local
+history is to be scanned and published on a separate branch before becoming
+canonical. No future Coolify binding for Paperclip is intended.
+
+The decommission completed in the same session. The exact target was Coolify
+application `tcf6zwrsz3x5cjtyx9in8aj2` with exclusive volume
+`7cff7696bb5136cb1e0025ac`. Coolify removed both through the owner-authenticated
+single-resource workflow with Docker cleanup and connected-network deletion
+disabled. Application count changed from 13 to 12; the one service, two
+databases, and every other application UUID remained. Hosted Paperclip now
+returns HTTP 503, while local Paperclip, Soar web/API, and Roost web/API return
+HTTP 200. `LUC-1897` and `LUC-1898` are done with preflight/postflight work
+products. Exact reclaimed bytes were not claimed because the available server
+API exposed no usable disk metric.
+
+The repository publication preflight then measured about 73.6 MiB of packed
+objects, with a largest reachable blob of about 19.4 MiB and no blob above 50
+MiB. Gitleaks `8.30.1` reported 37 redacted historical candidates, limited in
+the report to documentation, tests, a smoke script, and sandbox-provider code.
+Because those findings were not yet classified as fixtures versus real leaked
+material, no local-history push was attempted. `LUC-1896` retains that narrow
+repository-only next action.
+
+## 2026-07-28 - Conversation summary: Featherly activated
+
+- The owner activated `C:/Personal/Projekty/Aplikacje/Featherly` as a third
+  Paperclip-managed application lane alongside Soar and Roost.
+- The first objective is a security and reliability takeover: establish known
+  state, verify prior audit findings, create narrow owned remediation work,
+  add tests/review/docs evidence, and only then prepare guarded deployment.
+- The owner removed the legacy `!oldCode` tree. That exact deletion was
+  committed and pushed in Featherly as `29c98e1` on `main`.
+- Local Featherly work is authorized. Production/Coolify, secrets, destructive
+  changes, and live authentication mutation remain behind existing evidence
+  and approval gates. Aviary and Nest remain parked.
+- Live Paperclip state now contains project `11 Innovation: Featherly`, its
+  canonical workspace policy, goal `Featherly autonomous delivery and
+  takeover`, four active PM routines, and critical baseline issue `LUC-1899`.
+- FPM accepted the first run, but the provider returned `Quota exceeded` and
+  terminal recovery placed `LUC-1899` in `blocked` under CINO recovery. FPM's
+  adapter/model match the normal PM profile; do not create retry churn. Resume
+  after quota recovery proves a working execution path.
