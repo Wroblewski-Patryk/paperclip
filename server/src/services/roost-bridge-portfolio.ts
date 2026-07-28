@@ -19,6 +19,7 @@ import {
   type SoftwarehouseControlStatusResponse,
 } from "@paperclipai/shared";
 import { and, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 
 const MAX_PROJECTS = 100;
 const MAX_AGGREGATE_ROWS = 2_000;
@@ -227,6 +228,14 @@ function sourceSnapshotId(value: unknown) {
   return `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
 }
 
+const provenanceTimestampSchema = z.string().datetime();
+
+function validProvenanceTimestamp(value: string | null | undefined) {
+  if (!value || !provenanceTimestampSchema.safeParse(value).success) return null;
+  const milliseconds = Date.parse(value);
+  return Number.isFinite(milliseconds) ? { value, milliseconds } : null;
+}
+
 function unavailableProjection(
   companyId: string,
   observedAt: string,
@@ -345,8 +354,19 @@ export async function buildRoostBridgePortfolioProjection(
     const projectEvidence = data.evidence.filter((evidence) => evidence.projectId === project.id);
     const readiness = portfolio.commercialReadiness;
     const readinessStatus = normalizedReadinessStatus(readiness?.status ?? null, readiness?.decision ?? null);
-    const ownerSurfaceUnavailable = portfolio.ownerSurface?.publicationStatus === "unavailable";
+    const ownerSurfaceAvailable = portfolio.ownerSurface != null
+      && portfolio.ownerSurface.publicationStatus !== "unavailable";
+    const controlStatusObservedAt = validProvenanceTimestamp(controlStatus.observedAt);
+    const ownerSurfaceUpdatedAt = validProvenanceTimestamp(portfolio.ownerSurface?.sourceUpdatedAt);
+    const ownerSurfaceUnavailable = !ownerSurfaceAvailable;
     const conflictState = ownerSurfaceUnavailable ? "owner_surface_unavailable" as const : "none" as const;
+    const supersessionState = !ownerSurfaceAvailable
+      || !controlStatusObservedAt
+      || !ownerSurfaceUpdatedAt
+      ? "unknown" as const
+      : ownerSurfaceUpdatedAt.milliseconds > controlStatusObservedAt.milliseconds
+        ? "superseded" as const
+        : "current" as const;
 
     return [{
       offeringId: stableOfferingId(options.companyId, project.id),
@@ -358,7 +378,7 @@ export async function buildRoostBridgePortfolioProjection(
       offeringType: portfolio.offeringType,
       mappingState: "mapped",
       conflictState,
-      supersessionState: !ownerSurfaceUnavailable ? "current" : "unknown",
+      supersessionState,
       sourceControl: {
         branch: portfolio.sourceControl.branch,
         sourceSha: portfolio.sourceControl.headSha,
@@ -391,11 +411,11 @@ export async function buildRoostBridgePortfolioProjection(
       },
       provenance: {
         controlStatusPath: controlStatus.sourcePath,
-        controlStatusObservedAt: controlStatus.observedAt,
+        controlStatusObservedAt: controlStatusObservedAt?.value ?? null,
         readinessSourcePath: readiness?.sourcePath ?? null,
         readinessSourceUpdatedAt: readiness?.sourceUpdatedAt ?? null,
         ownerSurfacePath: portfolio.ownerSurface?.sourcePath ?? null,
-        ownerSurfaceUpdatedAt: portfolio.ownerSurface?.sourceUpdatedAt ?? null,
+        ownerSurfaceUpdatedAt: ownerSurfaceUpdatedAt?.value ?? null,
       },
     }];
   }).sort((left, right) => left.offeringId.localeCompare(right.offeringId));
@@ -405,9 +425,13 @@ export async function buildRoostBridgePortfolioProjection(
     : items.some((item) => item.conflictState === "owner_surface_unavailable")
       ? "owner_surface_unavailable" as const
       : "none" as const;
-  const supersessionState = items.every((item) => item.supersessionState === "current")
-    ? "current" as const
-    : "unknown" as const;
+  const supersessionState = conflictState !== "none"
+    || items.length === 0
+    || items.some((item) => item.supersessionState === "unknown")
+    ? "unknown" as const
+    : items.some((item) => item.supersessionState === "superseded")
+      ? "superseded" as const
+      : "current" as const;
   const snapshotBasis = {
     schemaVersion: roostBridgePortfolioSchemaVersion,
     sourceVersion: roostBridgePortfolioSourceVersion,

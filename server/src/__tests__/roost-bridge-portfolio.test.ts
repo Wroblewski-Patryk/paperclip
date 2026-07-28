@@ -168,6 +168,74 @@ describe("Roost bridge portfolio projection", () => {
     expect(JSON.stringify(first)).not.toMatch(/prompt|transcript|tool.?call|secret/i);
   });
 
+  it.each([
+    {
+      label: "newer owner truth",
+      ownerSurfaceUpdatedAt: "2026-07-28T02:00:00.000Z",
+      controlStatusObservedAt: "2026-07-28T01:59:00.000Z",
+      expected: "superseded",
+    },
+    {
+      label: "equal timestamps",
+      ownerSurfaceUpdatedAt: "2026-07-28T01:59:00.000Z",
+      controlStatusObservedAt: "2026-07-28T01:59:00.000Z",
+      expected: "current",
+    },
+    {
+      label: "older owner truth",
+      ownerSurfaceUpdatedAt: "2026-07-28T01:58:00.000Z",
+      controlStatusObservedAt: "2026-07-28T01:59:00.000Z",
+      expected: "current",
+    },
+    {
+      label: "missing owner timestamp",
+      ownerSurfaceUpdatedAt: null,
+      controlStatusObservedAt: "2026-07-28T01:59:00.000Z",
+      expected: "unknown",
+    },
+    {
+      label: "missing control timestamp",
+      ownerSurfaceUpdatedAt: "2026-07-28T02:00:00.000Z",
+      controlStatusObservedAt: null,
+      expected: "unknown",
+    },
+    {
+      label: "invalid owner timestamp",
+      ownerSurfaceUpdatedAt: "2026-07-28",
+      controlStatusObservedAt: "2026-07-28T01:59:00.000Z",
+      expected: "unknown",
+    },
+    {
+      label: "invalid control timestamp",
+      ownerSurfaceUpdatedAt: "2026-07-28T02:00:00.000Z",
+      controlStatusObservedAt: "2026-07-28",
+      expected: "unknown",
+    },
+  ])("resolves supersession deterministically for $label", async ({
+    ownerSurfaceUpdatedAt,
+    controlStatusObservedAt,
+    expected,
+  }) => {
+    const controlStatus = status();
+    controlStatus.observedAt = controlStatusObservedAt;
+    controlStatus.projectTruth.projects[0]!.portfolio!.ownerSurface!.sourceUpdatedAt = ownerSurfaceUpdatedAt;
+
+    const result = await buildRoostBridgePortfolioProjection({
+      companyId: "company-1",
+      repository: repository(),
+      loadControlStatus: async () => controlStatus,
+    });
+
+    expect(result.supersessionState).toBe(expected);
+    expect(result.items[0]?.supersessionState).toBe(expected);
+    expect(result.items[0]?.provenance.ownerSurfaceUpdatedAt).toBe(
+      ownerSurfaceUpdatedAt === "2026-07-28" ? null : ownerSurfaceUpdatedAt,
+    );
+    expect(result.items[0]?.provenance.controlStatusObservedAt).toBe(
+      controlStatusObservedAt === "2026-07-28" ? null : controlStatusObservedAt,
+    );
+  });
+
   it("marks stale, missing-evidence, mapping, owner-surface, and supersession states explicitly", async () => {
     const missingReadiness = status({
       stale: true,
@@ -203,13 +271,53 @@ describe("Roost bridge portfolio projection", () => {
       readiness: { status: "UNKNOWN", evidenceState: "missing", zeroGapButNoGo: false },
     });
 
+    const absentOwnerSurface = status();
+    absentOwnerSurface.projectTruth.projects[0]!.portfolio!.ownerSurface = null;
+    const absentOwnerResult = await buildRoostBridgePortfolioProjection({
+      companyId: "company-1",
+      repository: repository(),
+      loadControlStatus: async () => absentOwnerSurface,
+    });
+    expect(absentOwnerResult).toMatchObject({
+      conflictState: "owner_surface_unavailable",
+      supersessionState: "unknown",
+      items: [{
+        conflictState: "owner_surface_unavailable",
+        supersessionState: "unknown",
+      }],
+    });
+
     const mappingConflict = await buildRoostBridgePortfolioProjection({
       companyId: "company-1",
       repository: repository({ ...projectionData, projects: [] }),
-      loadControlStatus: async () => missingReadiness,
+      loadControlStatus: async () => {
+        const newerOwnerTruth = status();
+        newerOwnerTruth.projectTruth.projects[0]!.portfolio!.ownerSurface!.sourceUpdatedAt =
+          "2026-07-28T02:00:00.000Z";
+        return newerOwnerTruth;
+      },
     });
     expect(mappingConflict.conflictState).toBe("project_mapping_conflict");
+    expect(mappingConflict.supersessionState).toBe("unknown");
     expect(mappingConflict.items).toEqual([]);
+  });
+
+  it("reports an available empty evidence source as a valid zero aggregate", async () => {
+    const result = await buildRoostBridgePortfolioProjection({
+      companyId: "company-1",
+      repository: repository({ ...projectionData, evidence: [] }),
+      loadControlStatus: async () => status(),
+    });
+
+    expect(result.sourceState).toBe("available");
+    expect(result.items[0]?.aggregates.evidence).toEqual({
+      total: 0,
+      byStatus: {},
+      limit: 2_000,
+      truncated: false,
+      healthy: 0,
+      reviewed: 0,
+    });
   });
 
   it("fails read-only with explicit unavailable and bounded timeout packets", async () => {
@@ -224,6 +332,17 @@ describe("Roost bridge portfolio projection", () => {
       loadControlStatus: () => new Promise(() => undefined),
       timeoutMs: 1,
     });
+    const repositoryUnavailable = await buildRoostBridgePortfolioProjection({
+      companyId: "company-1",
+      repository: { load: async () => Promise.reject(new Error("repository unavailable")) },
+      loadControlStatus: async () => status(),
+    });
+    const repositoryTimedOut = await buildRoostBridgePortfolioProjection({
+      companyId: "company-1",
+      repository: { load: () => new Promise(() => undefined) },
+      loadControlStatus: async () => status(),
+      timeoutMs: 1,
+    });
 
     expect(unavailable).toMatchObject({
       sourceState: "unavailable",
@@ -235,6 +354,22 @@ describe("Roost bridge portfolio projection", () => {
     expect(timedOut).toMatchObject({
       sourceState: "timed_out",
       stale: true,
+      failure: { code: "source_timeout", retryable: true },
+      items: [],
+    });
+    expect(repositoryUnavailable).toMatchObject({
+      sourceState: "unavailable",
+      stale: true,
+      conflictState: "source_unavailable",
+      supersessionState: "unknown",
+      failure: { code: "source_unavailable", retryable: true },
+      items: [],
+    });
+    expect(repositoryTimedOut).toMatchObject({
+      sourceState: "timed_out",
+      stale: true,
+      conflictState: "source_unavailable",
+      supersessionState: "unknown",
       failure: { code: "source_timeout", retryable: true },
       items: [],
     });

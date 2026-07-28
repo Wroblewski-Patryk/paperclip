@@ -28,6 +28,12 @@ The response uses:
 
 `sourceState` is `available`, `unavailable`, or `timed_out`. Source and database reads use a seven-second bound. Unavailable or timed-out inputs return a valid fail-closed packet with `stale: true`, `conflictState: "source_unavailable"`, a typed `failure`, and no speculative items.
 
+Per-item supersession is resolved only when the owner surface is available and both `ownerSurfaceUpdatedAt` and `controlStatusObservedAt` are valid timestamps. An owner timestamp strictly newer than the control observation yields `superseded`; equality or an older owner timestamp yields `current`. An unavailable owner surface or a missing/invalid timestamp yields `unknown`.
+
+Top-level supersession is fail-closed. A project-mapping conflict, unavailable owner surface, unresolved item, or empty packet yields `unknown`. Otherwise, any superseded item yields `superseded`; only a non-empty packet whose items are all current yields `current`. Project-mapping conflict takes precedence over owner-surface conflict in the top-level `conflictState`, and either conflict prevents a speculative top-level `current` or `superseded` result.
+
+Aggregate zero is evidence only when its source read succeeded. An available evidence source with no rows reports `total: 0`, empty `byStatus`, `healthy: 0`, `reviewed: 0`, and `truncated: false`. Repository rejection or timeout returns the typed unavailable/timed-out packet above; it is never converted into a zero aggregate.
+
 Only `v1` is compatible. Another route version returns `422` with `supportedRouteVersions: ["v1"]`; consumers must not coerce an incompatible packet.
 
 ### Safety and authority
