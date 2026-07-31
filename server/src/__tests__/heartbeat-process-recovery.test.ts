@@ -1957,7 +1957,6 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(terminateRunProcess).toHaveBeenCalledWith({
       pid: 424_242,
       processGroupId: null,
-      graceMs: expect.any(Number),
     });
     expect(claimAfterTermination).toMatchObject({
       status: "released",
