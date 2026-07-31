@@ -1903,15 +1903,28 @@ async function waitForReadiness(input: {
   const intervalMs = Math.max(100, asNumber(readiness.intervalMs, 500));
   const deadline = Date.now() + timeoutSec * 1000;
   let lastError = "service did not become ready";
-  while (Date.now() < deadline) {
+  while (true) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) break;
+    const requestTimeoutMs = Math.max(1, Math.floor(Math.min(intervalMs, remainingMs)));
     try {
-      const response = await fetch(input.url);
+      const response = await fetch(input.url, {
+        signal: AbortSignal.timeout(requestTimeoutMs),
+      });
       if (response.ok) return;
       lastError = `received HTTP ${response.status}`;
     } catch (err) {
-      lastError = err instanceof Error ? err.message : String(err);
+      lastError =
+        err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")
+          ? "request timed out"
+          : err instanceof Error
+            ? err.message
+            : String(err);
     }
-    await delay(intervalMs);
+    const delayMs = Math.min(intervalMs, deadline - Date.now());
+    if (delayMs > 0) {
+      await delay(delayMs);
+    }
   }
   throw new Error(`Readiness check failed for ${input.url}: ${lastError}`);
 }
@@ -2290,7 +2303,14 @@ async function startLocalRuntimeService(input: {
       spawnErrorPromise,
     ]);
   } catch (err) {
-    terminateChildProcess(child);
+    if (child.pid) {
+      await terminateLocalService({
+        pid: child.pid,
+        processGroupId: child.pid,
+      });
+    } else {
+      terminateChildProcess(child);
+    }
     throw new Error(
       `Failed to start runtime service "${serviceName}": ${err instanceof Error ? err.message : String(err)}${stderrExcerpt ? ` | stderr: ${stderrExcerpt.trim()}` : ""}`,
     );

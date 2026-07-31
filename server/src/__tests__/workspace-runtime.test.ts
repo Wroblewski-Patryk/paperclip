@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -66,6 +67,25 @@ async function runGit(cwd: string, args: string[]) {
 
 async function readGit(cwd: string, args: string[]) {
   return (await execFileAsync("git", args, { cwd })).stdout.trim();
+}
+
+async function canConnectToPort(port: number) {
+  return await new Promise<boolean>((resolve) => {
+    const socket = net.createConnection({
+      host: "127.0.0.1",
+      port,
+    });
+    let settled = false;
+    const finish = (reachable: boolean) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve(reachable);
+    };
+    socket.once("connect", () => finish(true));
+    socket.once("error", () => finish(false));
+    socket.setTimeout(250, () => finish(false));
+  });
 }
 
 async function runPnpm(cwd: string, args: string[]) {
@@ -2940,6 +2960,81 @@ describeEmbeddedPostgres("workspace runtime startup reconciliation", () => {
     await db.delete(heartbeatRuns);
     await db.delete(agents);
     await db.delete(companies);
+  });
+
+  it("aborts a hanging HTTP readiness probe at the deadline and leaves no running service", async () => {
+    const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-runtime-hanging-http-"));
+    const workspace = buildWorkspace(workspaceRoot);
+    const portCapturePath = path.join(workspaceRoot, "hanging-http-port.txt");
+    const serviceName = `hanging-http-${randomUUID()}`;
+    const serviceCommand = [
+      "node -e",
+      JSON.stringify(
+        [
+          "const fs = require('node:fs');",
+          "const http = require('node:http');",
+          "http.createServer(() => {}).listen(Number(process.env.PORT), '127.0.0.1', () =>",
+          `fs.writeFileSync(${JSON.stringify(portCapturePath)}, process.env.PORT));`,
+        ].join(" "),
+      ),
+    ].join(" ");
+
+    const startedAt = Date.now();
+    await expect(
+      ensureRuntimeServicesForRun({
+        db,
+        runId: randomUUID(),
+        agent: {
+          id: randomUUID(),
+          name: "Codex Coder",
+          companyId: randomUUID(),
+        },
+        issue: null,
+        workspace,
+        config: {
+          workspaceRuntime: {
+            services: [
+              {
+                name: serviceName,
+                command: serviceCommand,
+                port: { type: "auto" },
+                readiness: {
+                  type: "http",
+                  urlTemplate: "http://127.0.0.1:{{port}}",
+                  timeoutSec: 1,
+                  intervalMs: 200,
+                },
+                lifecycle: "ephemeral",
+              },
+            ],
+          },
+        },
+        adapterEnv: {},
+      }),
+    ).rejects.toThrow(
+      new RegExp(
+        `Failed to start runtime service "${serviceName}": Readiness check failed for http://127\\.0\\.0\\.1:\\d+: request timed out`,
+      ),
+    );
+    expect(Date.now() - startedAt).toBeLessThan(2_500);
+
+    const port = Number.parseInt(await fs.readFile(portCapturePath, "utf8"), 10);
+    expect(port).toBeGreaterThan(0);
+    await vi.waitFor(
+      async () => {
+        expect(await canConnectToPort(port)).toBe(false);
+      },
+      { timeout: 2_000, interval: 50 },
+    );
+
+    const persistedRows = await db
+      .select({
+        serviceName: workspaceRuntimeServices.serviceName,
+        status: workspaceRuntimeServices.status,
+      })
+      .from(workspaceRuntimeServices)
+      .where(eq(workspaceRuntimeServices.serviceName, serviceName));
+    expect(persistedRows).toEqual([]);
   });
 
   it("adopts a live auto-port shared service after runtime state is reset", async () => {
