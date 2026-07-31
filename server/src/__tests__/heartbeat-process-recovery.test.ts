@@ -386,6 +386,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       await db.delete(companySkills);
       await db.delete(workspaceOperations);
       await db.delete(executionWorkspaces);
+      await db.delete(projects);
       await db.delete(issuePlanDecompositions);
       await db.delete(issueThreadInteractions);
       await db.delete(documentAnnotationComments);
@@ -556,7 +557,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
   async function seedWorkspaceResourceClaimFixture(input: {
     companyId: string;
     runId: string;
-    issueId: string;
+    issueId: string | null;
   }) {
     const projectId = randomUUID();
     const workspaceId = randomUUID();
@@ -1886,8 +1887,8 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
   it("releases workspace resource claims for direct and agent-wide cancellation", async () => {
     const direct = await seedRunFixture({ agentStatus: "running", includeIssue: false });
     const active = await seedRunFixture({ agentStatus: "running", includeIssue: false });
-    await seedWorkspaceResourceClaimFixture(direct);
-    await seedWorkspaceResourceClaimFixture(active);
+    await seedWorkspaceResourceClaimFixture({ ...direct, issueId: null });
+    await seedWorkspaceResourceClaimFixture({ ...active, issueId: null });
     const heartbeat = heartbeatService(db);
 
     await heartbeat.cancelRun(direct.runId);
@@ -1902,6 +1903,65 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       { heartbeatRunId: direct.runId, status: "released", releaseReason: "run_terminated" },
       { heartbeatRunId: active.runId, status: "released", releaseReason: "run_terminated" },
     ]));
+  });
+
+  it("preserves an agent-wide cancellation claim until exact process termination completes", async () => {
+    const active = await seedRunFixture({
+      agentStatus: "running",
+      includeIssue: false,
+      processPid: 424_242,
+    });
+    await seedWorkspaceResourceClaimFixture({ ...active, issueId: null });
+
+    let resolveTermination!: () => void;
+    const terminationFinished = new Promise<void>((resolve) => {
+      resolveTermination = resolve;
+    });
+    let signalTerminationStarted!: () => void;
+    const terminationStarted = new Promise<void>((resolve) => {
+      signalTerminationStarted = resolve;
+    });
+    const terminateRunProcess = vi.fn(async () => {
+      signalTerminationStarted();
+      await terminationFinished;
+    });
+    const heartbeat = heartbeatService(db, { terminateRunProcess });
+
+    const cancellation = heartbeat.cancelActiveForAgent(active.agentId);
+    await terminationStarted;
+
+    const claimDuringTermination = await db
+      .select({
+        status: workspaceResourceClaims.status,
+        releaseReason: workspaceResourceClaims.releaseReason,
+      })
+      .from(workspaceResourceClaims)
+      .where(eq(workspaceResourceClaims.heartbeatRunId, active.runId))
+      .then((rows) => rows[0] ?? null);
+    expect(claimDuringTermination).toMatchObject({
+      status: "active",
+      releaseReason: null,
+    });
+
+    resolveTermination();
+    await cancellation;
+
+    const claimAfterTermination = await db
+      .select({
+        status: workspaceResourceClaims.status,
+        releaseReason: workspaceResourceClaims.releaseReason,
+      })
+      .from(workspaceResourceClaims)
+      .where(eq(workspaceResourceClaims.heartbeatRunId, active.runId))
+      .then((rows) => rows[0] ?? null);
+    expect(terminateRunProcess).toHaveBeenCalledWith({
+      pid: 424_242,
+      processGroupId: null,
+    });
+    expect(claimAfterTermination).toMatchObject({
+      status: "released",
+      releaseReason: "run_terminated",
+    });
   });
 
   it("dispatches assigned todo work with no prior run as a normal assignment wake", async () => {

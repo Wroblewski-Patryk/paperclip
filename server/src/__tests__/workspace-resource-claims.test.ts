@@ -73,6 +73,8 @@ describe("workspace resource claim declarations", () => {
       .toThrow("must be an array");
     expect(() => parseWorkspaceResourceClaimDeclarations({ resourceClaims: [{ resourceKey: "postgres", leaseMs: 1 }] }))
       .toThrow("at least 1000");
+    expect(() => parseWorkspaceResourceClaimDeclarations({ resourceClaims: [{ resourceKey: "postgres", leaseMs: null }] }))
+      .toThrow("at least 1000");
   });
 });
 

@@ -2941,9 +2941,12 @@ export type HeartbeatEnvironmentRuntime = ReturnType<typeof environmentRuntimeSe
 export interface HeartbeatServiceOptions {
   pluginWorkerManager?: PluginWorkerManager;
   environmentRuntime?: HeartbeatEnvironmentRuntime;
+  /** @internal Test seam for proving cancellation/claim-release ordering. */
+  terminateRunProcess?: typeof terminateHeartbeatRunProcess;
 }
 
 export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) {
+  const terminateRunProcess = options.terminateRunProcess ?? terminateHeartbeatRunProcess;
   const instanceSettings = instanceSettingsService(db);
   const getCurrentUserRedactionOptions = async () => ({
     enabled: (await instanceSettings.getGeneral()).censorUsernameInLogs,
@@ -10966,6 +10969,21 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         error: reason,
       });
 
+      const running = runningProcesses.get(run.id);
+      if (running) {
+        await terminateRunProcess({
+          pid: running.child.pid ?? run.processPid,
+          processGroupId: running.processGroupId ?? run.processGroupId,
+          graceMs: Math.max(1, running.graceSec) * 1000,
+        });
+        runningProcesses.delete(run.id);
+      } else if (run.processPid || run.processGroupId) {
+        await terminateRunProcess({
+          pid: run.processPid,
+          processGroupId: run.processGroupId,
+        });
+      }
+
       if (cancelled) {
         await releaseEnvironmentLeasesForRun({
           runId: cancelled.id,
@@ -10973,21 +10991,6 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           agentId: cancelled.agentId,
           status: cancelled.status,
           failureReason: cancelled.error ?? reason,
-        });
-      }
-
-      const running = runningProcesses.get(run.id);
-      if (running) {
-        await terminateHeartbeatRunProcess({
-          pid: running.child.pid ?? run.processPid,
-          processGroupId: running.processGroupId ?? run.processGroupId,
-          graceMs: Math.max(1, running.graceSec) * 1000,
-        });
-        runningProcesses.delete(run.id);
-      } else if (run.processPid || run.processGroupId) {
-        await terminateHeartbeatRunProcess({
-          pid: run.processPid,
-          processGroupId: run.processGroupId,
         });
       }
       await releaseIssueExecutionAndPromote(run);

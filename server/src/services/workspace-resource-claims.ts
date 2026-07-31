@@ -24,10 +24,15 @@ export function parseWorkspaceResourceClaimDeclarations(value: unknown): Workspa
     const resourceKey = normalizeWorkspaceResourceKey(record.resourceKey);
     if (seen.has(resourceKey)) throw new Error(`Duplicate workspace resource claim: ${resourceKey}.`);
     seen.add(resourceKey);
-    if (record.leaseMs !== undefined && (!Number.isSafeInteger(record.leaseMs) || record.leaseMs < 1_000)) {
+    const leaseMs = record.leaseMs;
+    if (leaseMs !== undefined && (
+      typeof leaseMs !== "number"
+      || !Number.isSafeInteger(leaseMs)
+      || leaseMs < 1_000
+    )) {
       throw new Error(`workspaceRuntime.resourceClaims[${index}].leaseMs must be an integer of at least 1000.`);
     }
-    return { resourceKey, ...(record.leaseMs === undefined ? {} : { leaseMs: record.leaseMs as number }) };
+    return { resourceKey, ...(leaseMs === undefined ? {} : { leaseMs }) };
   });
 }
 
