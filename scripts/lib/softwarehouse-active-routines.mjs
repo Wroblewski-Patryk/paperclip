@@ -19,6 +19,18 @@ export const activeApplicationRoutineSpecs = softwarehouseActiveApplicationProje
   },
 ]);
 
+export const softwarehouseRoutineTitleRenames = new Map([
+  ["[Softwarehouse] Autonomy governor", "11 Innovation: Autonomy Governor"],
+  ["[Softwarehouse] Continuation watchdog", "11 Innovation: Continuation Watchdog"],
+  ["[Softwarehouse] Longevity doctor and watchdog", "09 Technology: Longevity Doctor and Watchdog"],
+  ["[Softwarehouse] Gate freshness watcher", "04 Operations: Gate Freshness Watcher"],
+  ["[Softwarehouse] Stale board janitor", "09 Technology: Stale Board Janitor"],
+  ["[Softwarehouse] Agent health and model governance", "09 Technology: Agent Health and Model Governance"],
+  ["[Softwarehouse] AI-agent development review", "06 People: AI-Agent Development Review"],
+  ["[Softwarehouse] Organizational learning loop", "04 Operations: Organizational Learning Loop"],
+  ["[Softwarehouse] Longevity snapshot backup", "04 Operations: Longevity Snapshot Backup"],
+]);
+
 export const softwarehousePilotActiveRoutineTitles = new Set([
   "[Softwarehouse] Autonomy governor",
   "[Softwarehouse] Continuation watchdog",
@@ -46,6 +58,11 @@ export const softwarehousePilotActiveRoutineTitles = new Set([
   "[Softwarehouse] AI-agent development review",
   "[Softwarehouse] Organizational learning and agent improvement review",
   ...activeApplicationRoutineSpecs.map((routine) => routine.title),
+]);
+
+export const softwarehousePilotActiveRuntimeRoutineTitles = new Set([
+  ...softwarehousePilotActiveRoutineTitles,
+  ...softwarehouseRoutineTitleRenames.values(),
 ]);
 
 export const softwarehousePilotRoutineScheduleLabels = new Map([

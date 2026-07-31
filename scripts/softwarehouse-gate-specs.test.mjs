@@ -25,6 +25,10 @@ import {
   knownGateRootIdentifiers,
   mergeProtectedDeliveryGates,
 } from "./lib/delivery-blocker-graph.mjs";
+import {
+  softwarehousePilotActiveRuntimeRoutineTitles,
+  softwarehouseRoutineTitleRenames,
+} from "./lib/softwarehouse-active-routines.mjs";
 
 const requiredFields = [
   "project",
@@ -691,6 +695,31 @@ test("longevity doctor recognizes the current team-adoption routine titles", asy
     "06 People: AI-Agent Development Review",
   ]) {
     assert.equal(doctor.includes(title), true, `missing current routine title: ${title}`);
+  }
+});
+
+test("softwarehouse doctor and team adoption share the canonical routine title registry", async () => {
+  const doctor = await readFile("scripts/doctor-luckysparrow-softwarehouse.mjs", "utf8");
+  const teamAdoption = await readFile("scripts/configure-softwarehouse-team-adoption.mjs", "utf8");
+
+  assert.match(doctor, /softwarehousePilotActiveRuntimeRoutineTitles/);
+  assert.match(teamAdoption, /softwarehouseRoutineTitleRenames/);
+  assert.equal(
+    softwarehouseRoutineTitleRenames.get("[Softwarehouse] Agent health and model governance"),
+    "09 Technology: Agent Health and Model Governance",
+  );
+  for (const title of [
+    "09 Technology: Agent Health and Model Governance",
+    "11 Innovation: Continuation Watchdog",
+    "[Soar] Source-control closure sweep",
+    "[Roost] Known-state and map drift sweep",
+    "[Featherly][PM] No-stall queue expeditor",
+  ]) {
+    assert.equal(
+      softwarehousePilotActiveRuntimeRoutineTitles.has(title),
+      true,
+      `missing canonical runtime routine title: ${title}`,
+    );
   }
 });
 

@@ -1,3 +1,5 @@
+import { softwarehouseRoutineTitleRenames } from "./lib/softwarehouse-active-routines.mjs";
+
 const apiBase = (process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200").replace(/\/$/, "");
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const apply = process.argv.includes("--apply");
@@ -13,17 +15,7 @@ async function request(path, init = {}) {
   return body;
 }
 
-const routineRenames = new Map([
-  ["[Softwarehouse] Autonomy governor", "11 Innovation: Autonomy Governor"],
-  ["[Softwarehouse] Continuation watchdog", "11 Innovation: Continuation Watchdog"],
-  ["[Softwarehouse] Longevity doctor and watchdog", "09 Technology: Longevity Doctor and Watchdog"],
-  ["[Softwarehouse] Gate freshness watcher", "04 Operations: Gate Freshness Watcher"],
-  ["[Softwarehouse] Stale board janitor", "09 Technology: Stale Board Janitor"],
-  ["[Softwarehouse] Agent health and model governance", "09 Technology: Agent Health and Model Governance"],
-  ["[Softwarehouse] AI-agent development review", "06 People: AI-Agent Development Review"],
-  ["[Softwarehouse] Organizational learning loop", "04 Operations: Organizational Learning Loop"],
-  ["[Softwarehouse] Longevity snapshot backup", "04 Operations: Longevity Snapshot Backup"],
-]);
+const routineRenames = softwarehouseRoutineTitleRenames;
 
 const archiveRoutineTitles = new Set([
   "00 General: Softwarehouse Liveness and Active Work Review",

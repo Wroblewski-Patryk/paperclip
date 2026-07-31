@@ -1,13 +1,9 @@
+import { softwarehousePilotActiveRuntimeRoutineTitles } from "./lib/softwarehouse-active-routines.mjs";
+
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
-const expectedActiveRoutineTitles = new Set([
-  "[Softwarehouse] Gate freshness watcher",
-  "[Softwarehouse] Autonomy governor",
-  "[Softwarehouse] Docs and memory loop",
-  "[Softwarehouse] Agent health and model governance",
-  "[Softwarehouse] Stale board janitor",
-]);
+const expectedActiveRoutineTitles = softwarehousePilotActiveRuntimeRoutineTitles;
 
 async function request(method, route, body) {
   const response = await fetch(`${apiBase}${route}`, {
