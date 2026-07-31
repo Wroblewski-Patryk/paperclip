@@ -103,14 +103,24 @@ function runNodeScript(script, args = [], { timeoutMs = childScriptTimeoutMs } =
 }
 
 function runPackageScript(scriptName, { timeoutMs = governanceChildTimeoutMs } = {}) {
-  const result = spawnSync("pnpm", [scriptName], {
+  const pnpmEntrypoint = process.env.npm_execpath;
+  if (!pnpmEntrypoint) {
+    return {
+      ok: false,
+      exitCode: null,
+      timedOut: false,
+      stdout: "",
+      stderr: "Cannot run pnpm script safely: npm_execpath is unavailable.",
+    };
+  }
+
+  const result = spawnSync(process.execPath, [pnpmEntrypoint, scriptName], {
     cwd: process.cwd(),
     env: { ...process.env },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     timeout: timeoutMs,
     killSignal: "SIGTERM",
-    shell: process.platform === "win32",
   });
   const timedOut = result.error?.code === "ETIMEDOUT";
   return {

@@ -629,6 +629,16 @@ test("longevity doctor gives snapshot export enough time for large local instanc
   assert.match(doctor, /SOFTWAREHOUSE_LONGEVITY_CHILD_TIMEOUT_MS \?\? 300_000/);
 });
 
+test("longevity doctor invokes pnpm through the current Node runtime on Windows", async () => {
+  const doctor = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
+
+  assert.match(doctor, /const pnpmEntrypoint = process\.env\.npm_execpath/);
+  assert.match(doctor, /spawnSync\(process\.execPath, \[pnpmEntrypoint, scriptName\]/);
+  assert.match(doctor, /Cannot run pnpm script safely: npm_execpath is unavailable/);
+  assert.doesNotMatch(doctor, /spawnSync\("pnpm", \[scriptName\]/);
+  assert.doesNotMatch(doctor, /shell: process\.platform === "win32"/);
+});
+
 test("longevity watchdog covers autonomous softwarehouse contract checks", async () => {
   const doctor = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
   const configurator = await readFile("scripts/configure-softwarehouse-longevity-routines.mjs", "utf8");
@@ -3516,7 +3526,7 @@ test("control tick recovers quota-stalled agents before dispatch", async () => {
   assert.ok(dispatcherPosition > recoveryPosition);
   assert.match(tickSource, /recover-softwarehouse-quota-agents\.mjs", "--apply"/);
   const recoverySource = await readFile("scripts/recover-softwarehouse-quota-agents.mjs", "utf8");
-  assert.match(recoverySource, /gpt-5\.3-codex-spark/);
+  assert.match(recoverySource, /gpt-5\.6-luna/);
   assert.match(recoverySource, /agent\.status === "error"/);
   assert.match(recoverySource, /!liveAgentIds\.has\(agent\.id\)/);
   assert.match(recoverySource, /\{ status: "idle" \}/);
