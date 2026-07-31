@@ -564,6 +564,59 @@ describeEmbeddedPostgres("productivity review service", () => {
     expect(reviews).toHaveLength(1);
   });
 
+  it("does not recreate a review that resolves after evidence collection", async () => {
+    const now = new Date("2026-04-28T12:00:00.000Z");
+    const seeded = await seedAssignedIssue();
+    await insertRuns({
+      companyId: seeded.companyId,
+      agentId: seeded.coderId,
+      issueId: seeded.issueId,
+      count: DEFAULT_PRODUCTIVITY_REVIEW_NO_COMMENT_STREAK_RUNS,
+      now,
+    });
+
+    const reviewId = randomUUID();
+    await db.insert(issues).values({
+      id: reviewId,
+      companyId: seeded.companyId,
+      title: "Open productivity review",
+      status: "in_progress",
+      priority: "high",
+      assigneeAgentId: seeded.managerId,
+      originKind: PRODUCTIVITY_REVIEW_ORIGIN_KIND,
+      originId: seeded.issueId,
+      originFingerprint: `productivity-review:${seeded.issueId}`,
+      parentId: seeded.issueId,
+      issueNumber: 2,
+      identifier: `${seeded.issuePrefix}-2`,
+      createdAt: new Date(now.getTime() - 60_000),
+      updatedAt: new Date(now.getTime() - 60_000),
+    });
+
+    let dispositionHookCalls = 0;
+    const service = productivityReviewService(db, {
+      beforeReviewDisposition: async () => {
+        dispositionHookCalls += 1;
+        await db
+          .update(issues)
+          .set({ status: "done", completedAt: now, updatedAt: now })
+          .where(eq(issues.id, reviewId));
+      },
+    });
+
+    const result = await service.reconcileProductivityReviews({
+      now,
+      companyId: seeded.companyId,
+    });
+    const reviews = await listProductivityReviews(seeded.companyId);
+
+    expect(dispositionHookCalls).toBe(1);
+    expect(result.created).toBe(0);
+    expect(result.snoozed).toBe(1);
+    expect(reviews).toHaveLength(1);
+    expect(reviews[0]?.status).toBe("done");
+  });
+
   it("reports and logs soft-stop holds for open no-comment reviews", async () => {
     const now = new Date("2026-04-28T12:00:00.000Z");
     const seeded = await seedAssignedIssue();

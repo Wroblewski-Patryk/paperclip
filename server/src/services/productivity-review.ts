@@ -93,6 +93,15 @@ type EnqueueWakeup = (
   },
 ) => Promise<unknown | null>;
 
+type ProductivityReviewServiceDeps = {
+  enqueueWakeup?: EnqueueWakeup;
+  /**
+   * Test seam for reproducing a review state change after evidence collection.
+   * Production callers leave this unset.
+   */
+  beforeReviewDisposition?: () => Promise<void>;
+};
+
 function productivityReviewFingerprint(sourceIssueId: string) {
   return `productivity-review:${sourceIssueId}`;
 }
@@ -201,7 +210,7 @@ function formatTrigger(trigger: ProductivityReviewTrigger) {
   return "Long active duration";
 }
 
-export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: EnqueueWakeup }) {
+export function productivityReviewService(db: Db, deps?: ProductivityReviewServiceDeps) {
   const issuesSvc = issueService(db);
   const budgets = budgetService(db);
 
@@ -693,6 +702,16 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
       return { kind: "updated" as const, reviewIssueId: existing.id };
     }
 
+    const recentlyResolved = await findRecentResolvedProductivityReview(
+      evidence.sourceIssue.companyId,
+      evidence.sourceIssue.id,
+      opts.thresholds,
+      evidence.generatedAt,
+    );
+    if (recentlyResolved) {
+      return { kind: "resolved_snoozed" as const, reviewIssueId: null };
+    }
+
     const recentlyCancelled = await findRecentCancelledProductivityReview(
       evidence.sourceIssue.companyId,
       evidence.sourceIssue.id,
@@ -841,10 +860,6 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
         result.skipped += 1;
         continue;
       }
-      if (await findRecentResolvedProductivityReview(candidate.companyId, candidate.id, thresholds, now)) {
-        result.snoozed += 1;
-        continue;
-      }
       const sourceAgent = await getAgent(candidate.assigneeAgentId);
       if (!sourceAgent || sourceAgent.companyId !== candidate.companyId) {
         result.skipped += 1;
@@ -855,6 +870,7 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
         result.skipped += 1;
         continue;
       }
+      await deps?.beforeReviewDisposition?.();
       let prefix = prefixCache.get(candidate.companyId);
       if (!prefix) {
         prefix = await getCompanyIssuePrefix(candidate.companyId);
@@ -864,6 +880,7 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
         const outcome = await createOrUpdateReview(evidence, { prefix, thresholds });
         if (outcome.kind === "created") result.created += 1;
         else if (outcome.kind === "updated") result.updated += 1;
+        else if (outcome.kind === "resolved_snoozed") result.snoozed += 1;
         else if (outcome.kind === "creation_capped") result.creationCapped += 1;
         else if (outcome.kind === "cancelled_snoozed") result.cancelledSnoozed += 1;
         else result.existing += 1;
