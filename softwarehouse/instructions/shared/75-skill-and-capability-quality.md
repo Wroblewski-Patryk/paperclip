@@ -37,6 +37,21 @@ If a skill expands browser access, external systems, filesystem scope, secrets,
 production reach, or deployment authority, route it through Security/Ops/CTO
 review before assignment.
 
+A skill attachment is instruction metadata, not proof that its underlying tool
+is callable. Before opening a runtime-capability recovery chain, distinguish:
+
+- an attached skill or environment hint;
+- an executable available through the shell;
+- an MCP/tool interface actually listed by the current agent heartbeat.
+
+For the governed DRE browser surface, use
+`pnpm softwarehouse:controlled-browser-runtime` for a read-only direct MCP
+smoke and `pnpm softwarehouse:controlled-browser-runtime:apply` only while the
+DRE has no active heartbeat. The smoke must prove both `browser_navigate` and
+`browser_close`, open and close an isolated context, and leave no persistent
+browser profile. Do not create reciprocal source/recovery blocker links when a
+fresh heartbeat merely needs to verify an already repaired capability.
+
 ## Continuous Improvement
 
 When repeated work reveals reusable knowledge, decide in this order:

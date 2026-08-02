@@ -167,6 +167,8 @@
     "softwarehouse:roost-context": "pnpm run preflight:workspace-links && tsx scripts/configure-roost-hosted-context.ts",
     "softwarehouse:roost-context:verify": "pnpm run preflight:workspace-links && tsx scripts/configure-roost-hosted-context.ts --verify",
     "softwarehouse:roost-context:apply": "pnpm run preflight:workspace-links && tsx scripts/configure-roost-hosted-context.ts --apply",
+    "softwarehouse:controlled-browser-runtime": "node scripts/configure-controlled-browser-runtime.mjs",
+    "softwarehouse:controlled-browser-runtime:apply": "node scripts/configure-controlled-browser-runtime.mjs --apply",
     "softwarehouse:workspace-boundary-audit": "node scripts/audit-softwarehouse-workspace-boundaries.mjs",
     "softwarehouse:runtime-topology-audit": "node scripts/audit-local-runtime-topology.mjs",
     "softwarehouse:team-adoption": "node scripts/configure-softwarehouse-team-adoption.mjs",
@@ -175,12 +177,13 @@
     "softwarehouse:portfolio-index": "node scripts/update-softwarehouse-portfolio-index.mjs"
   },
   "devDependencies": {
+    "@openai/codex": "0.145.0",
+    "@playwright/mcp": "0.0.78",
     "@playwright/test": "^1.58.2",
     "cross-env": "^10.1.0",
     "esbuild": "^0.27.3",
     "typescript": "^5.7.3",
-    "vitest": "^3.0.5",
-    "@openai/codex": "0.145.0"
+    "vitest": "^3.0.5"
   },
   "engines": {
     "node": ">=20"
