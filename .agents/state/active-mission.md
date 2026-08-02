@@ -1202,5 +1202,10 @@ or the relevant owners explicitly classify them as not required with evidence.
   company paused with zero live/queued runs.
 - Follow-up review found the repair still signalled `unverified` persisted
   identities. Cancellation now permits detached-process termination only for
-  a positive start-time match, with a new regression awaiting the workstation
-  test slot. Do not reopen or commit the packet before that regression passes.
+  a positive start-time match. The focused suite passes 54 tests with one
+  platform-specific skip; topology passes and live readback remains paused at
+  zero. Do not reopen before source-control closure and final review/readback.
+- A concurrent closure process created commit `fa57ce75` during the focused
+  test. It contains the verified fail-closed fix, but three evidence-memory
+  files remain dirty. Treat closure as incomplete until one owner reviews the
+  committed diff and closes those files; keep the company paused.

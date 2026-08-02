@@ -919,5 +919,9 @@ Current evidence:
   final live readback is zero and no cancellation recovery was recreated.
 - The focused recovery suite passes 53 tests with one platform-specific skip.
 - A follow-up review found and corrected the unverified-identity cancellation
-  gap. Its focused regression remains pending until the already-running broad
-  UI test releases the single workstation test slot.
+  gap. The focused recovery suite now passes 54 tests with one
+  platform-specific skip, including both reused and unverified live-PID proof.
+- Source-control closure also needs a writer lease: commit `fa57ce75` captured
+  the shared packet while Teachar was still reviewing/editing it. Future
+  maintenance closure must reserve the repository writer before staging and
+  read back the exact committed diff before reopening.

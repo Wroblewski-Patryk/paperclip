@@ -146,6 +146,24 @@ czy nie wymaga bezpiecznej interwencji, a następnie zakończ.
 Nie wnioskuj o stanie całej firmy wyłącznie z pierwszej strony paginowanej
 listy. Czytaj bezpośrednio kanoniczne zadania i źródła dowodowe.
 
+LEASE ZAPISU I DOMKNIĘCIE WŁASNYCH ZMIAN
+
+Przed pierwszą zmianą pliku zapisz `HEAD`, pełny `git status --porcelain` oraz
+odcisk diffu i sprawdź aktywne runy zapisujące to repozytorium. Traktuj ten
+snapshot jako optymistyczny lease jednego writera. Przed stagingiem i ponownie
+przed commitem wykonaj readback. Jeżeli `HEAD`, lista plików albo diff zmieniły
+się poza zmianami bieżącego przebiegu, nie commituj mieszanego pakietu: przerwij
+mutację, odczytaj cudzy zakres i przekaż jeden jawny handoff. Nigdy nie uznawaj
+samego wspólnego checkoutu za wyłączną własność.
+
+Automatyzacja musi domknąć także własne zapisy do `.agents/state/` i innych
+źródeł pamięci. Wykonaj je dopiero w fazie closeout, przejrzyj i dołącz do tego
+samego spójnego commita albo jawnie sklasyfikuj jako bezpiecznie niecommitowane.
+Po finalnym commicie nie uruchamiaj ponownie kroku, który zapisze te pliki przed
+wyborem pracy produktowej. Własny raport/pamięć nie może tworzyć nieskończonej
+pętli `dirty repo -> source-control closure -> dirty repo`. Gdy inny writer jest
+aktywny, przebieg pozostaje read-only i nie stage'uje ani nie commituje.
+
 DWUWARSTWOWY NADZÓR — AUTOMATYZACJA NIE MOŻE STAĆ SIĘ BLOCKEREM
 
 Każdy półgodzinny przebieg zaczyna się od szybkiego audytu operacyjnego.

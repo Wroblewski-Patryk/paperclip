@@ -5023,3 +5023,20 @@ intentionally deferred within the same maintenance packet because a broad
 single-worker UI Vitest suite already occupies the workstation; no second
 embedded-Postgres suite was started in parallel. Reopen and source-control
 closure remain blocked until the focused regression result is captured.
+
+The workstation test slot later became free and the exact focused command
+completed with exit 0: 54 tests passed and one platform-specific test skipped.
+The new unverified-PID fixture emitted the expected fail-closed warning and
+left the child process alive. Runtime topology then passed on strict ports,
+and a fresh board readback confirmed LuckySparrow still paused with zero
+running, queued, or scheduled-retry runs. The maintenance repair is therefore
+regression-verified; source-control closure and final review remain before
+reopening.
+
+During that focused test, a previously running external closure process
+created commit `fa57ce75` from the shared checkout. Readback proves the commit
+contains the positive-match-only cancellation rule and the new unverified-PID
+test, but it was created while Teachar was still editing the same packet. This
+is a repository-writer isolation defect, not a clean independent review. Three
+evidence-memory files remain dirty; LuckySparrow stays paused until one owner
+reviews the exact commit and closes the remaining evidence state.
