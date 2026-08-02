@@ -1,4 +1,5 @@
-export const softwarehouseActiveApplicationProjectNames = ["Soar", "Roost", "Featherly"];
+export { softwarehouseActiveApplicationProjectNames } from "./softwarehouse-project-registry.mjs";
+import { softwarehouseActiveApplicationProjectNames } from "./softwarehouse-project-registry.mjs";
 
 export const activeApplicationRoutineSpecs = softwarehouseActiveApplicationProjectNames.flatMap((projectName) => [
   {

@@ -9,6 +9,7 @@ const defaultTerminalStatuses = new Set(["done", "cancelled"]);
 export const persistentCompletionParentIdentifierByProject = Object.freeze({
   Soar: "LUC-27",
   Roost: "LUC-28",
+  Featherly: "LUC-1899",
 });
 
 function identifierNumber(identifier) {

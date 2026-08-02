@@ -10,11 +10,14 @@ const companyNameAliases = [
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const apply = process.argv.includes("--apply");
 
-const coolifyEnv = {
+const baseCoolifyEnv = {
   COOLIFY_BASE_URL: "coolify_base_url",
   COOLIFY_API_TOKEN: "coolify_api_token",
   COOLIFY_TOKEN: "coolify_api_token",
   COOLIFY_TEAM_ID: "coolify_team_id",
+};
+
+const soarCoolifyEnv = {
   COOLIFY_SOAR_TEAM_ID: "coolify_soar_team_id",
   COOLIFY_SOAR_PROJECT_ID: "coolify_soar_project_id",
   COOLIFY_SOAR_PROJECT_UUID: "coolify_soar_project_uuid",
@@ -28,8 +31,13 @@ const coolifyEnv = {
   COOLIFY_SOAR_WORKER_MARKET_STREAM_APP_ID: "coolify_soar_worker_market_stream_app_id",
   COOLIFY_SOAR_POSTGRES_RESOURCE_ID: "coolify_soar_postgres_resource_id",
   COOLIFY_SOAR_REDIS_RESOURCE_ID: "coolify_soar_redis_resource_id",
+};
+
+const roostCoolifyEnv = {
   COOLIFY_ROOST_APP_ID: "coolify_roost_app_id",
 };
+
+const coolifyEnv = { ...baseCoolifyEnv, ...soarCoolifyEnv, ...roostCoolifyEnv };
 
 const coolifyLoginEnv = {
   COOLIFY_LOGIN_EMAIL: "coolify_login_email",
@@ -80,15 +88,40 @@ const agentPlans = [
   },
   {
     names: ["11 SPM (Soar Product Manager)"],
-    env: { ...coolifyEnv, ...soarSmokeEnv },
+    env: { ...baseCoolifyEnv, ...soarCoolifyEnv, ...soarSmokeEnv },
+    removeEnvPrefixes: ["ROOST_", "COOLIFY_ROOST_", "FEATHERLY_", "COOLIFY_FEATHERLY_"],
   },
   {
     names: ["11 RPM (Roost Project Manager)"],
-    env: { ...coolifyEnv, ...roostSmokeEnv },
+    env: { ...baseCoolifyEnv, ...roostCoolifyEnv, ...roostSmokeEnv },
+    removeEnvPrefixes: ["SOAR_", "COOLIFY_SOAR_", "FEATHERLY_", "COOLIFY_FEATHERLY_"],
+  },
+  {
+    names: ["11 FPM (Featherly Platform Manager)"],
+    env: {},
+    removeEnvPrefixes: ["SOAR_", "COOLIFY_SOAR_", "ROOST_", "COOLIFY_ROOST_"],
   },
 ];
 
 const routinePlans = [
+  {
+    projectPrefix: "[Soar]",
+    titleIncludes: ["Coolify", "production deploy", "deploy health", "production health", "Release and deploy governance"],
+    env: { ...baseCoolifyEnv, ...soarCoolifyEnv },
+    removeEnvPrefixes: ["ROOST_", "COOLIFY_ROOST_", "FEATHERLY_", "COOLIFY_FEATHERLY_"],
+  },
+  {
+    projectPrefix: "[Roost]",
+    titleIncludes: ["Coolify", "production deploy", "deploy health", "production health", "Release and deploy governance"],
+    env: { ...baseCoolifyEnv, ...roostCoolifyEnv },
+    removeEnvPrefixes: ["SOAR_", "COOLIFY_SOAR_", "FEATHERLY_", "COOLIFY_FEATHERLY_"],
+  },
+  {
+    projectPrefix: "[Featherly]",
+    titleIncludes: ["Coolify", "production deploy", "deploy health", "production health", "Release and deploy governance"],
+    env: baseCoolifyEnv,
+    removeEnvPrefixes: ["SOAR_", "COOLIFY_SOAR_", "ROOST_", "COOLIFY_ROOST_"],
+  },
   {
     titleIncludes: [
       "Coolify",
@@ -132,12 +165,19 @@ function envEntryMatches(entry, secret) {
     && (entry.version === "latest" || entry.version === undefined);
 }
 
-function buildEnvPatch(existingEnv, secretByKey, envPlan) {
+function buildEnvPatch(existingEnv, secretByKey, envPlan, removeEnvPrefixes = []) {
   const env = existingEnv && typeof existingEnv === "object" && !Array.isArray(existingEnv)
     ? { ...existingEnv }
     : {};
   const changed = [];
+  const removed = [];
   const missingSecrets = [];
+
+  for (const envKey of Object.keys(env)) {
+    if (!removeEnvPrefixes.some((prefix) => envKey.startsWith(prefix))) continue;
+    delete env[envKey];
+    removed.push(envKey);
+  }
 
   for (const [envKey, sourceKey] of Object.entries(envPlan)) {
     const secret = secretForKey(secretByKey, sourceKey);
@@ -150,11 +190,14 @@ function buildEnvPatch(existingEnv, secretByKey, envPlan) {
     changed.push({ envKey, sourceSecretKey: normalizeKey(secret.key) });
   }
 
-  return { env, changed, missingSecrets };
+  return { env, changed, removed, missingSecrets };
 }
 
 function routineMatchesPlan(routine, plan) {
-  const haystack = `${routine.title ?? ""}\n${routine.description ?? ""}`.toLowerCase();
+  const title = String(routine.title ?? "");
+  if (plan.projectPrefix && !title.startsWith(plan.projectPrefix)) return false;
+  if (!plan.projectPrefix && /^\[(Soar|Roost|Featherly)\]/i.test(title)) return false;
+  const haystack = title.toLowerCase();
   return plan.titleIncludes.some((needle) => haystack.includes(needle.toLowerCase()));
 }
 
@@ -180,12 +223,12 @@ for (const plan of agentPlans) {
     const adapterConfig = agent.adapterConfig && typeof agent.adapterConfig === "object"
       ? agent.adapterConfig
       : {};
-    const patch = buildEnvPatch(adapterConfig.env, secretByKey, plan.env);
-    if (patch.missingSecrets.length > 0) {
+    const patch = buildEnvPatch(adapterConfig.env, secretByKey, plan.env, plan.removeEnvPrefixes);
+    if (patch.missingSecrets.length > 0 && patch.removed.length === 0) {
       skipped.push({ targetType: "agent", name, reason: "missing_secrets", missingSecrets: patch.missingSecrets });
       continue;
     }
-    if (patch.changed.length === 0) {
+    if (patch.changed.length === 0 && patch.removed.length === 0) {
       skipped.push({ targetType: "agent", name, reason: "already_current" });
       continue;
     }
@@ -194,7 +237,9 @@ for (const plan of agentPlans) {
       id: agent.id,
       name,
       changedEnvKeys: patch.changed.map((item) => item.envKey).sort(),
+      removedEnvKeys: patch.removed.sort(),
       sourceSecretKeys: [...new Set(patch.changed.map((item) => item.sourceSecretKey))].sort(),
+      missingSecrets: patch.missingSecrets,
       payload: { adapterConfig: { ...adapterConfig, env: patch.env } },
     });
   }
@@ -204,12 +249,12 @@ for (const routine of routines.filter((entry) => entry.status !== "paused")) {
   for (const plan of routinePlans) {
     if (!routineMatchesPlan(routine, plan)) continue;
     const detail = await request("GET", `/api/routines/${routine.id}`);
-    const patch = buildEnvPatch(detail.env, secretByKey, plan.env);
+    const patch = buildEnvPatch(detail.env, secretByKey, plan.env, plan.removeEnvPrefixes);
     if (patch.missingSecrets.length > 0) {
       skipped.push({ targetType: "routine", title: routine.title, reason: "missing_secrets", missingSecrets: patch.missingSecrets });
       continue;
     }
-    if (patch.changed.length === 0) {
+    if (patch.changed.length === 0 && patch.removed.length === 0) {
       skipped.push({ targetType: "routine", title: routine.title, reason: "already_current" });
       continue;
     }
@@ -218,6 +263,7 @@ for (const routine of routines.filter((entry) => entry.status !== "paused")) {
       id: routine.id,
       title: routine.title,
       changedEnvKeys: patch.changed.map((item) => item.envKey).sort(),
+      removedEnvKeys: patch.removed.sort(),
       sourceSecretKeys: [...new Set(patch.changed.map((item) => item.sourceSecretKey))].sort(),
       payload: { env: patch.env },
     });
@@ -234,6 +280,7 @@ if (apply) {
         targetType: action.targetType,
         name: action.name,
         changedEnvKeys: action.changedEnvKeys,
+        removedEnvKeys: action.removedEnvKeys ?? [],
       });
     } else {
       await request("PATCH", `/api/routines/${action.id}`, action.payload);
@@ -256,7 +303,9 @@ console.log(JSON.stringify({
     targetType: action.targetType,
     name: action.name ?? action.title,
     changedEnvKeys: action.changedEnvKeys,
+    removedEnvKeys: action.removedEnvKeys ?? [],
     sourceSecretKeys: action.sourceSecretKeys,
+    missingSecrets: action.missingSecrets ?? [],
   })),
   skipped,
   applied,

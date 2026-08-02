@@ -1114,3 +1114,17 @@ or the relevant owners explicitly classify them as not required with evidence.
 - This standing consent does not authorize force-push, manual deploy/restart/
   rollback, secret mutation or disclosure, destructive operations, paid
   resource changes, or live-account mutation.
+
+## 2026-08-02 - Project identity is fail-closed and project-specific
+
+- Active product identity is canonicalized in
+  `scripts/lib/softwarehouse-project-registry.mjs`: Soar, Roost, Featherly.
+- Run `pnpm softwarehouse:cross-project-isolation-audit` in supervisory cycles.
+  A missing live readback or active mismatch is a blocker, not a healthy result.
+- Never substitute acceptance, readiness, deployed SHA, Coolify resource,
+  secret namespace, PM, workspace, routine, issue, or evidence across projects.
+  Missing evidence blocks only the affected project.
+- The current strict audit has zero active blockers and 22 preserved historical
+  Soar warnings. Do not rewrite completed history merely to make the count zero.
+- The Teachar heartbeat must produce a concise Polish report every run, even
+  when detected/repaired counts are zero.

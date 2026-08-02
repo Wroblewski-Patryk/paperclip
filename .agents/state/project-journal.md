@@ -4880,3 +4880,30 @@ mutate real-money accounts or live orders without exact protected
 authorization. This entry records new board direction from LUC-1908 comment
 `f9b7630d-45a0-427e-a746-4726ed78cd1f`; it does not replace newer live issue or
 board evidence.
+
+## 2026-08-02 - Cross-project isolation and automation reporting repair
+
+The owner reported that Roost, Soar, and Featherly state could be confused and
+asked for a systemic repair plus visible per-run automation reporting. The
+audit confirmed multiple drift mechanisms: duplicated active-project lists,
+Soar-only acceptance input in a generic selector, a source-control janitor that
+still targeted parked Aviary/Nest while omitting Featherly, Featherly omissions
+in portfolio/project-truth paths, and foreign project secret-reference names
+on Soar/Roost PMs.
+
+A canonical project registry now defines active project identity, roots, PMs,
+secret namespaces, release priority, and project-specific acceptance sources.
+The selector treats the Soar ledger as Soar-only, project-truth dispatch now
+covers Featherly under `LUC-1899`, and active scripts consume the shared
+registry. A strict cross-project isolation audit checks source and live state
+and writes JSON/Markdown evidence. Live repair removed Roost bindings from SPM,
+Soar bindings from RPM, and correctly bound open `LUC-2260`/`LUC-1827` to
+their canonical projects/workspaces. Closed historical mismatches remain as 22
+warnings rather than rewritten history; active blockers are zero.
+
+The `paperclip-teachar` heartbeat remains every 30 minutes. Its full prompt is
+exported at `report/paperclip-teachar-prompt.updated.txt` and now requires the
+strict isolation audit plus a short Polish report on every run, including zero-
+change runs. The report separates checked, detected, repaired, unresolved, and
+per-project Soar/Roost/Featherly status. Updated isolation instructions were
+read back in all 39 managed agent bundles.

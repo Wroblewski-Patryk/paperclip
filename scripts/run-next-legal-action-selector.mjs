@@ -2,6 +2,7 @@ import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { classifyLiveRuns } from "./lib/softwarehouse-live-run-classifier.mjs";
+import { projectSpecificReleasePriority } from "./lib/softwarehouse-project-registry.mjs";
 
 const apply = process.argv.includes("--apply");
 const outputPathJson = "report/softwarehouse-next-legal-action.latest.json";
@@ -270,12 +271,18 @@ export function pickAction(
   readiness,
   appHealth = { checked: false, ok: true },
   liveRunProbe = { checked: false },
-  acceptanceLedger = null,
+  acceptanceLedgers = null,
   governorProbe = { checked: false },
   sourceControlProbe = { checked: false },
   coolifyRecoveryProbe = { checked: false },
   releaseProbe = { checked: false },
 ) {
+  // Acceptance evidence is project-scoped. A Soar ledger must never be used as
+  // evidence for Roost or Featherly; the legacy direct-ledger form remains
+  // accepted for callers/tests, but it is treated explicitly as Soar-only.
+  const soarAcceptanceLedger = acceptanceLedgers?.Soar
+    ?? acceptanceLedgers?.soar
+    ?? (Array.isArray(acceptanceLedgers?.checks) ? acceptanceLedgers : null);
   const reportedActiveRunCount = Number(control?.activeRunCount ?? readiness?.activeRunCount ?? 0);
   const liveApiReadbackSucceeded = Boolean(liveRunProbe?.checked && liveRunProbe.ok);
   const effectiveAppHealthOk = appHealth.ok || liveApiReadbackSucceeded;
@@ -348,7 +355,7 @@ export function pickAction(
     };
   }
   const ledgerReportsDirtySoar =
-    !freshGovernorSourceControlClean && acceptanceCheckBlocks(acceptanceLedger, "soar_source_control_clean");
+    !freshGovernorSourceControlClean && acceptanceCheckBlocks(soarAcceptanceLedger, "soar_source_control_clean");
   const staleDirtyProject = control?.controlBrief?.dirtyProjects?.[0]
     ?? readiness?.dirtyProjects?.[0]
     ?? (ledgerReportsDirtySoar ? { project: "Soar", source: "soar_acceptance_ledger" } : null);
@@ -375,10 +382,9 @@ export function pickAction(
       forbidden: ["push", "deploy", "restart", "protected smoke", "secret disclosure"],
     };
   }
-  const releasePriority = new Map([["Roost", 0], ["Soar", 1], ["Featherly", 2]]);
   const releaseProjects = releaseProbe?.checked && releaseProbe.ok
     ? [...(releaseProbe.projects ?? [])].sort((left, right) =>
-      (releasePriority.get(left.name) ?? 99) - (releasePriority.get(right.name) ?? 99)
+      projectSpecificReleasePriority(left.name) - projectSpecificReleasePriority(right.name)
     )
     : [];
   const releaseCandidate = releaseProjects.find((project) =>
@@ -417,15 +423,16 @@ export function pickAction(
     };
   }
   if (
-    acceptanceCheckBlocks(acceptanceLedger, "coolify_resources_reconciled")
+    acceptanceCheckBlocks(soarAcceptanceLedger, "coolify_resources_reconciled")
     && !coolifyRecoveryAlreadyRouted(coolifyRecoveryProbe)
   ) {
     return {
       decision: "repair_coolify_acceptance_gate",
-      reason: acceptanceCheck(acceptanceLedger, "coolify_resources_reconciled")?.reason
+      reason: acceptanceCheck(soarAcceptanceLedger, "coolify_resources_reconciled")?.reason
         ?? "The Soar acceptance ledger reports an unresolved Coolify resource blocker.",
       command: "pnpm softwarehouse:coolify-resource-recovery:apply",
-      target: coolifyAcceptanceTarget(acceptanceLedger),
+      project: "Soar",
+      target: coolifyAcceptanceTarget(soarAcceptanceLedger),
       allowed: ["create or reuse one resource-scoped DRE recovery gate", "record read-only status evidence", "route the smallest governed recovery"],
       forbidden: ["push", "deploy", "restart", "secret disclosure", "mark production ready without Coolify evidence"],
     };
@@ -586,7 +593,7 @@ export function runApplyCommand(action) {
 }
 
 async function main() {
-  const [control, readiness, acceptanceLedger, appHealth] = await Promise.all([
+  const [control, readiness, soarAcceptanceLedger, appHealth] = await Promise.all([
     readJson("report/softwarehouse-control-tick.latest.json"),
     readJson("report/softwarehouse-readiness-snapshot.latest.json"),
     readJson("report/soar-delivery-acceptance.latest.json"),
@@ -619,7 +626,7 @@ async function main() {
       readiness,
       appHealth,
       liveRunProbeResult,
-      acceptanceLedger,
+      { Soar: soarAcceptanceLedger },
       governorProbe,
       sourceControlProbe,
       coolifyRecoveryProbe,

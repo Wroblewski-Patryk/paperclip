@@ -8,7 +8,7 @@ This instance is separate from the broader Paperclip/company instance and is foc
 - Active delivery projects: `Soar` and `Roost`
 - Workspace path: `C:/Personal/Projekty/Aplikacje/Soar`
 - Soar documentation path: `C:/Personal/Projekty/Aplikacje/Soar/docs`
-- 11 Innovations active application projects: `Soar` and `Roost`
+- 11 Innovations active application projects: `Soar`, `Roost`, and the owner-activated `Featherly` security-hardening lane
 - Roost workspace path: `C:/Personal/Projekty/Aplikacje/Roost`
 - Roost documentation path: `C:/Personal/Projekty/Aplikacje/Roost/docs`
 - Template path: `C:/Personal/Projekty/Aplikacje/!template`
@@ -35,7 +35,7 @@ Workspace discipline:
   services, but default execution cwd must remain the canonical project folder;
   do not start multiple unmanaged dev servers for the same app.
 
-Soar is the first active sellable app lane. Roost is the second active app lane.
+Soar and Roost are active sellable app lanes. Featherly is an active, separately scoped security-hardening lane.
 Featherly is the owner-activated third lane in takeover/security-hardening mode.
 The V0 target is local active-app completion through indexed frontend,
 backend, worker, runtime, source-control, verification, and docs evidence.

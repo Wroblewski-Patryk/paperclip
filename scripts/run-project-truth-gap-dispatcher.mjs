@@ -13,6 +13,10 @@ import {
 } from "./lib/project-truth-gap-dispatcher.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
+import {
+  canonicalSoftwarehouseProject,
+  softwarehouseActiveApplicationProjectNames,
+} from "./lib/softwarehouse-project-registry.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -31,7 +35,7 @@ const marker = "softwarehouse-project-truth-gap-dispatcher:v1";
 const supersededMarker = `${marker}:superseded`;
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const appCompletionCandidatePolicy = "product_boundaries_v2";
-const projectTruthProjects = ["Soar", "Roost"];
+const projectTruthProjects = softwarehouseActiveApplicationProjectNames;
 
 async function request(method, route, body) {
   return requestJson({
@@ -208,6 +212,7 @@ function issueTitleForGap(gap) {
 }
 
 function ownerNamesForGap(gap) {
+  const projectManagerName = canonicalSoftwarehouseProject(gap.project)?.managerName ?? `${gap.project} Project Manager`;
   const indexedOwner = String(gap.nextOwner ?? "").trim();
   const indexedOwnerCandidates = indexedOwner
     ? indexedOwner
@@ -219,25 +224,25 @@ function ownerNamesForGap(gap) {
     return [...indexedOwnerCandidates, "Deployment & Reliability Engineer", "Deployment and Reliability Engineer", "Ops Release Lead", "CTO Architect"];
   }
   if (gap.kind === "event_chain_gap") {
-    return [...indexedOwnerCandidates, "Technical Solution Architect", "Engineering Delivery Lead", "Soar Project Manager", "Roost Project Manager"];
+    return [...indexedOwnerCandidates, projectManagerName, "Technical Solution Architect", "Engineering Delivery Lead"];
   }
   if (gap.kind === "app_completion_gap") {
     const risk = String(gap.risk ?? "");
     if (risk === "needs_browser_review") {
-      return [...indexedOwnerCandidates, "QA Regression Lead", "Frontend Experience Lead", "UX Designer", `${gap.project} Project Manager`];
+      return [...indexedOwnerCandidates, "QA Regression Lead", "Frontend Experience Lead", "UX Designer", projectManagerName];
     }
     if (risk === "missing_test_link" || risk === "implemented_needs_proof") {
-      return [...indexedOwnerCandidates, "Test Automation Engineer", "QA Regression Lead", `${gap.project} Project Manager`];
+      return [...indexedOwnerCandidates, "Test Automation Engineer", "QA Regression Lead", projectManagerName];
     }
     if (risk === "missing_doc_link") {
       return [...indexedOwnerCandidates, "Docs Memory Lead", `${gap.project} Project Manager`];
     }
-    return [...indexedOwnerCandidates, `${gap.project} Project Manager`, "Engineering Delivery Lead", "QA Regression Lead"];
+    return [...indexedOwnerCandidates, projectManagerName, "Engineering Delivery Lead", "QA Regression Lead"];
   }
   if (/docs|documentation/i.test(gap.kind ?? "")) {
     return [...indexedOwnerCandidates, "Docs Memory Lead", "Documentation Steward"];
   }
-  return [...indexedOwnerCandidates, `${gap.project} Project Manager`, "Engineering Delivery Lead", "CTO Architect"];
+  return [...indexedOwnerCandidates, projectManagerName, "Engineering Delivery Lead", "CTO Architect"];
 }
 
 function projectGoalTitles(project) {
@@ -347,11 +352,8 @@ async function fetchPersistentCompletionParent(identifier) {
 }
 
 function findProject(projects, name) {
-  const aliases = {
-    Soar: ["Soar", "11 Innovation: Soar"],
-    Roost: ["Roost", "11 Innovation: Roost"],
-    "Softwarehouse Operating System": ["Softwarehouse Operating System", "00 General: Softwarehouse"],
-  }[name] ?? [name];
+  const aliases = canonicalSoftwarehouseProject(name)?.aliases
+    ?? ({ "Softwarehouse Operating System": ["Softwarehouse Operating System", "00 General: Softwarehouse"] }[name] ?? [name]);
   return projects.find((project) => aliases.includes(project.name) && !project.archivedAt) ?? null;
 }
 
@@ -649,7 +651,7 @@ const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean))
 const dirtyDispatchProjects = new Map(
   (sourceControl.repos ?? [])
     .filter((repo) => repo.parked !== true && repo.clean === false)
-    .filter((repo) => ["Soar", "Roost"].includes(repo.name))
+    .filter((repo) => softwarehouseActiveApplicationProjectNames.includes(repo.name))
     .map((repo) => [repo.name, repo]),
 );
 const retainedDispatchTitles = new Set();

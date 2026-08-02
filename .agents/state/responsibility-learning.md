@@ -774,3 +774,34 @@ Current evidence:
 - Agent-settings audit reports zero findings.
 - AIA and CTO completed post-fix runs with the quoted CompanyCore MCP
   configuration and explicit stdin `-` argument.
+
+## 2026-08-02 - Duplicated project registries cause cross-project contamination
+
+Observed pattern: generic orchestrators independently hardcoded active project
+lists, aliases, PMs, priorities, and acceptance inputs. The copies drifted:
+Featherly disappeared from some paths, parked Aviary/Nest remained active in a
+janitor, and Soar-specific evidence/bindings leaked into generic or Roost PM
+contexts. Existing health checks could still report success because they
+verified availability, not semantic project provenance.
+
+Standing rule:
+
+- Resolve application identity from one canonical registry and exact active
+  Paperclip project id.
+- Every acceptance/readiness/deployment fact carries project identity and
+  provenance; no aggregate or other-project fallback is allowed.
+- Project PMs may hold only their own project-prefixed secret references plus
+  explicitly shared base references. Cross-project QA/DRE access must be an
+  explicit role plan, never accidental inheritance.
+- Audit both source configuration and live Paperclip state. An unavailable or
+  partial live readback fails closed.
+- Repair active mismatches and add regression coverage; preserve closed history
+  as warnings unless a separate migration is justified.
+
+Current evidence:
+
+- The strict isolation audit reports zero active blockers after repairing two
+  PM binding sets and two open issue bindings.
+- 22 closed historical Soar mismatches remain visible as warnings.
+- Targeted isolation/selector/dispatcher tests and the 192-test canonical gate
+  suite pass; all 39 managed instruction bundles contain the new guard.

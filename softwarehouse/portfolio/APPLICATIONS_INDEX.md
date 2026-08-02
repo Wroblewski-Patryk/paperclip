@@ -1,6 +1,6 @@
 # Applications Index
 
-Generated: 2026-07-13T04:41:47.986Z
+Generated: 2026-08-02T01:52:38.119Z
 
 Canonical Stage 1 location: `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse/softwarehouse/portfolio/`.
 
@@ -9,9 +9,10 @@ The script reads the portfolio root but writes only inside `Paperclip_Softwareho
 
 | Application | Status | Workspace | Updated At |
 | --- | --- | --- | --- |
-| Aviary | deferred | `C:/Personal/Projekty/Aplikacje/Aviary` | 2026-07-03T18:18:14.624Z |
-| Paperclip | inactive_alias | `C:/Personal/Projekty/Aplikacje/Paperclip` | 2026-07-03T18:21:20.493Z |
-| Paperclip_Softwarehouse | stage1_active | `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse` | 2026-07-13T03:22:43.546Z |
-| Roost | stage1_active | `C:/Personal/Projekty/Aplikacje/Roost` | 2026-07-12T14:37:05.967Z |
-| Soar | stage1_active | `C:/Personal/Projekty/Aplikacje/Soar` | 2026-07-11T14:15:21.175Z |
+| Aviary | deferred | `C:/Personal/Projekty/Aplikacje/Aviary` | 2026-08-01T15:48:31.138Z |
+| Featherly | stage1_active | `C:/Personal/Projekty/Aplikacje/Featherly` | 2026-07-30T14:17:29.805Z |
+| Paperclip_Softwarehouse | stage1_active | `C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse` | 2026-08-02T01:09:17.434Z |
+| Roost | stage1_active | `C:/Personal/Projekty/Aplikacje/Roost` | 2026-07-25T17:50:33.322Z |
+| Soar | stage1_active | `C:/Personal/Projekty/Aplikacje/Soar` | 2026-07-23T04:53:02.340Z |
 | WroblewskiPatryk | parked_or_external | `C:/Personal/Projekty/Aplikacje/WroblewskiPatryk` | 2026-05-25T14:55:06.803Z |
+| wroblewskipatryk.pl | parked_or_external | `C:/Personal/Projekty/Aplikacje/wroblewskipatryk.pl` | 2026-07-31T19:37:22.850Z |

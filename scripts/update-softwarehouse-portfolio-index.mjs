@@ -1,6 +1,7 @@
 import { mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { softwarehouseActiveApplicationProjectNames } from "./lib/softwarehouse-project-registry.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -10,10 +11,9 @@ const appsRoot = path.resolve(
 );
 const outputDir = path.join(repoRoot, "softwarehouse", "portfolio");
 
-const activeRoots = new Set(["Paperclip_Softwarehouse", "Soar", "Roost"]);
+const activeRoots = new Set(["Paperclip_Softwarehouse", ...softwarehouseActiveApplicationProjectNames]);
 const knownDeferred = new Set([
   "Aviary",
-  "Featherly",
   "Nest",
   "OpenJarvis",
   "Obiekty",

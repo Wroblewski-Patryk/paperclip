@@ -270,7 +270,8 @@ test("worker backlog decomposition stays in active products and serializes share
   assert.match(instructions, /Planned queue depth is not execution permission/);
   assert.match(instructions, /start at most one repo-mutating lane at a time/);
   assert.match(instructions, /Source-control closure outranks fan-out/);
-  assert.match(instructions, /A Soar or Roost issue must not inherit the Softwarehouse project/);
+  assert.match(instructions, /A Soar, Roost, or Featherly issue must not inherit the Softwarehouse project/);
+  assert.match(instructions, /Never substitute another project's acceptance/);
   assert.match(instructions, /Accounting, queue, review, and governance lanes[\s\S]*must not mutate product or Paperclip code/);
   assert.match(instructions, /Keep parked products parked/);
 });
@@ -726,6 +727,9 @@ test("softwarehouse doctor and team adoption share the canonical routine title r
 test("delivery runtime access restores role-scoped Soar and Roost smoke bindings", async () => {
   const source = await readFile("scripts/configure-coolify-runtime-access.mjs", "utf8");
 
+  assert.match(source, /const baseCoolifyEnv/);
+  assert.match(source, /const soarCoolifyEnv/);
+  assert.match(source, /const roostCoolifyEnv/);
   assert.match(source, /const soarSmokeEnv/);
   assert.match(source, /SOAR_PROD_TEST_EMAIL: "soar_prod_test_email"/);
   assert.match(source, /const roostSmokeEnv/);
@@ -733,7 +737,22 @@ test("delivery runtime access restores role-scoped Soar and Roost smoke bindings
   assert.match(source, /ROOST_PROD_TEST_EMAIL: "roost_prod_test_email"/);
   assert.match(source, /09 DRE \(Deployment & Reliability Engineer\)/);
   assert.match(source, /\.\.\.coolifyEnv, \.\.\.coolifyLoginEnv, \.\.\.soarSmokeEnv, \.\.\.roostSmokeEnv/);
+  assert.match(source, /11 SPM \(Soar Product Manager\)[\s\S]*?\.\.\.baseCoolifyEnv, \.\.\.soarCoolifyEnv, \.\.\.soarSmokeEnv/);
+  assert.match(source, /11 RPM \(Roost Project Manager\)[\s\S]*?\.\.\.baseCoolifyEnv, \.\.\.roostCoolifyEnv, \.\.\.roostSmokeEnv/);
+  assert.match(source, /removeEnvPrefixes: \["ROOST_", "COOLIFY_ROOST_", "FEATHERLY_", "COOLIFY_FEATHERLY_"\]/);
+  assert.match(source, /removeEnvPrefixes: \["SOAR_", "COOLIFY_SOAR_", "FEATHERLY_", "COOLIFY_FEATHERLY_"\]/);
+  assert.match(source, /function routineMatchesPlan\(routine, plan\)[\s\S]*?const title = String\(routine\.title \?\? ""\)[\s\S]*?const haystack = title\.toLowerCase\(\)/);
+  assert.doesNotMatch(source, /routine\.description/);
   assert.doesNotMatch(source, /COMPANYCORE_API_KEY/);
+});
+
+test("cross-project isolation audit reads the bounded active issue set", async () => {
+  const source = await readFile("scripts/audit-cross-project-isolation.mjs", "utf8");
+
+  assert.match(source, /const activeIssueStatuses = "backlog,todo,in_progress,in_review,blocked"/);
+  assert.match(source, /issues\?limit=1000&status=\$\{activeIssueStatuses\}/);
+  assert.match(source, /GET \$\{route\} exceeded \$\{requestTimeoutMs\}ms/);
+  assert.doesNotMatch(source, /issues\?limit=2000/);
 });
 
 test("heartbeat scheduler gates codex_local starts on provider quota pressure", async () => {
@@ -2300,6 +2319,7 @@ test("known-state harvester defers heavy scans while active runs exist", async (
 
 test("softwarehouse autonomous project defaults activate Featherly while keeping Aviary and Nest parked", async () => {
   const activeRoutines = await readFile("scripts/lib/softwarehouse-active-routines.mjs", "utf8");
+  const projectRegistry = await readFile("scripts/lib/softwarehouse-project-registry.mjs", "utf8");
   const activeRoutineConfigurator = await readFile("scripts/configure-active-project-routines.mjs", "utf8");
   const knownStateHarvester = await readFile("scripts/run-project-known-state-harvester.mjs", "utf8");
   const localRepairStarter = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
@@ -2307,7 +2327,10 @@ test("softwarehouse autonomous project defaults activate Featherly while keeping
   const projectStatusSync = await readFile("scripts/run-project-status-sync.mjs", "utf8");
   const blockedTriageStarter = await readFile("scripts/run-blocked-triage-lane-starter.mjs", "utf8");
 
-  assert.match(activeRoutines, /softwarehouseActiveApplicationProjectNames = \["Soar", "Roost", "Featherly"\]/);
+  assert.match(activeRoutines, /softwarehouse-project-registry\.mjs/);
+  for (const projectName of ["Soar", "Roost", "Featherly"]) {
+    assert.match(projectRegistry, new RegExp(`name: "${projectName}"`));
+  }
   assert.match(activeRoutineConfigurator, /\["Soar", "Soar Project Manager"\]/);
   assert.match(activeRoutineConfigurator, /\["Roost", "Roost Project Manager"\]/);
   assert.match(activeRoutineConfigurator, /\["Featherly", "Featherly Platform Manager"\]/);
@@ -2393,7 +2416,8 @@ test("control tick surfaces project truth gaps as routing work", async () => {
   assert.match(dispatcher, /Required autonomous chain:/);
   assert.match(dispatcher, /Deployment & Reliability Engineer/);
   assert.match(dispatcher, /indexedOwnerCandidates/);
-  assert.match(dispatcher, /\.\.\.indexedOwnerCandidates, `\$\{gap\.project\} Project Manager`/);
+  assert.match(dispatcher, /const projectManagerName = canonicalSoftwarehouseProject\(gap\.project\)\?\.managerName/);
+  assert.match(dispatcher, /\.\.\.indexedOwnerCandidates, projectManagerName/);
   assert.match(dispatcher, /heartbeat\/invoke/);
   assert.match(dispatcher, /const actorAgentId = process\.env\.PAPERCLIP_AGENT_ID \?\? null/);
   assert.match(dispatcher, /function directWakeBoundaryForAgent/);

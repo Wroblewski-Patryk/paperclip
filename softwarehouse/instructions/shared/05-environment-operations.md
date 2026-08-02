@@ -179,7 +179,7 @@ bounded workstation, not as an elastic build cluster.
 
 ## Stage 1 Boundaries
 
-- Active roots remain `Paperclip_Softwarehouse`, `Soar`, and `Roost`.
+- Active roots remain `Paperclip_Softwarehouse`, `Soar`, `Roost`, and `Featherly`.
 - These roots are allowed company scope, not interchangeable write targets. The
   assigned execution workspace (`cwd`) is the run's write boundary. Reading a
   shared tool from another allowed root is permitted; modifying another repo

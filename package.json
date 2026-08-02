@@ -171,6 +171,8 @@
     "softwarehouse:controlled-browser-runtime:apply": "node scripts/configure-controlled-browser-runtime.mjs --apply",
     "softwarehouse:workspace-boundary-audit": "node scripts/audit-softwarehouse-workspace-boundaries.mjs",
     "softwarehouse:runtime-topology-audit": "node scripts/audit-local-runtime-topology.mjs",
+    "softwarehouse:cross-project-isolation-audit": "node scripts/audit-cross-project-isolation.mjs --strict",
+    "softwarehouse:cross-project-isolation-audit:report": "node scripts/audit-cross-project-isolation.mjs",
     "softwarehouse:team-adoption": "node scripts/configure-softwarehouse-team-adoption.mjs",
     "softwarehouse:team-adoption:apply": "node scripts/configure-softwarehouse-team-adoption.mjs --apply",
     "softwarehouse:restore-drill": "node scripts/run-softwarehouse-restore-drill.mjs",

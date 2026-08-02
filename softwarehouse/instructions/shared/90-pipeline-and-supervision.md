@@ -128,24 +128,30 @@ comment or parent decision is enough.
   the project, scope, affected files/entities, acceptance criteria, local proof,
   blocker policy, and expected handoff owner.
 - A specialist must not implement two unrelated requests in one run, and must
-  not mix project contexts such as Soar and Roost in one execution.
+  not mix project contexts such as Soar, Roost, and Featherly in one execution.
 - If two Project Managers need the same specialist, the second request waits as
   `todo/backlog/blocked` with dependency notes until the specialist's current
   lane has a durable disposition.
 - Parallel work is allowed only across different agents on independent lanes,
   with no shared file, release, secret, or acceptance conflict.
-- One active run is not a company-wide lock. Independent Soar, Roost, and
-  Paperclip operating-system lanes may run concurrently when they use different
+- One active run is not a company-wide lock. Independent Soar, Roost, Featherly,
+  and Paperclip operating-system lanes may run concurrently when they use different
   agents and repositories; same-project writers remain serialized.
 - Planned queue depth is not execution permission. In a shared project
   workspace, start at most one repo-mutating lane at a time unless the lanes
   use isolated worktrees and their file sets are proven disjoint.
 - Source-control closure outranks fan-out. Do not create or resume a
-  repo-mutating lane while Paperclip, Soar, or Roost has an unresolved dirty
+  repo-mutating lane while Paperclip, Soar, Roost, or Featherly has an unresolved dirty
   packet. Classify and close the existing packet first.
 - Bind every product issue to that product's active project and primary
-  workspace. A Soar or Roost issue must not inherit the Softwarehouse project
+  workspace. A Soar, Roost, or Featherly issue must not inherit the Softwarehouse project
   or workspace merely because a controller created it.
+- Resolve product identity from the exact active Paperclip project id and the
+  canonical project registry. Never substitute another project's acceptance
+  ledger, Coolify resource id, deployed SHA, secret namespace, PM, repository,
+  workspace, routine, or evidence packet. Missing project-specific evidence is
+  `unknown` or `blocked` for that project only; an aggregate may summarize
+  typed project rows but must never become evidence for one of them.
 - Accounting, queue, review, and governance lanes may inspect board/API
   evidence, but they must not mutate product or Paperclip code unless the issue
   names the exact module, behavior change, and verification contract.
@@ -154,8 +160,8 @@ comment or parent decision is enough.
   sets. Any lanes that write these surfaces must execute serially even when
   their primary implementation files differ.
 - Keep parked products parked. Stage 1 fan-out may create work only for Soar,
-  Roost, or the Paperclip control plane unless the owner explicitly activates
-  another product.
+  Roost, the owner-activated Featherly security-hardening lane, or the Paperclip
+  control plane unless the owner explicitly activates another product.
 - Before promoting Roost or any second project from preparation into full
   delivery, run `node scripts/check-two-project-readiness.mjs`. Shared
   supervision readiness is not full two-project delivery readiness.

@@ -5,6 +5,7 @@ import { secretFreshnessTimestamp, stableSecretMetadata } from "./lib/gate-fresh
 import { rootBlockerIdentifierFor, terminalBlockersFor } from "./lib/issue-blockers.mjs";
 import { normalizeKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
+import { softwarehouseActiveApplicationProjectNames } from "./lib/softwarehouse-project-registry.mjs";
 import {
   approvalRows,
   hasPendingIssueApproval,
@@ -311,7 +312,7 @@ const isSupervisorAgent = (agent) => supervisorRosterKeys.has(agentRosterKey(age
 const activeProjects = projects.filter((project) => !project.archivedAt);
 const activeProjectIds = new Set(activeProjects.map((project) => project.id));
 const projectById = new Map(projects.map((project) => [project.id, project]));
-const activeDeliveryPilotProjectNames = new Set(["Soar", "Roost"]);
+const activeDeliveryPilotProjectNames = new Set(softwarehouseActiveApplicationProjectNames);
 const activeDeliveryPilotsInPreparationOnly = activeProjects.filter((project) =>
   activeDeliveryPilotProjectNames.has(project.name)
   && project.executionWorkspacePolicy?.runtimePolicy?.preparationOnly

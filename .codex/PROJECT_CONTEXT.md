@@ -414,6 +414,13 @@ Out of scope unless separately approved:
   scripts should launch pnpm through `process.execPath` plus `npm_execpath`.
 - Product app repos are separate from this control-plane repo. Product changes
   should be made in the relevant product repo.
+- Canonical active-app identity lives in
+  `scripts/lib/softwarehouse-project-registry.mjs`. Do not recreate local
+  Soar/Roost/Featherly maps in generic orchestration code.
+- `pnpm softwarehouse:cross-project-isolation-audit` is the fail-closed source
+  and live-state guard for project ids, workspaces, PM cwd/lead, routine and
+  issue bindings, and PM secret namespaces. Aggregate evidence may summarize
+  typed project rows but may not substitute for project-specific facts.
 
 ## Historical Baseline
 

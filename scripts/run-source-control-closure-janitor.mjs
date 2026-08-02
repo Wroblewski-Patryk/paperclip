@@ -4,6 +4,7 @@ import {
   dirtyStateCouldInvalidateClosure,
   latestDirtyMutationMs,
 } from "./lib/source-control-dirty-state.mjs";
+import { softwarehouseActiveApplicationProjectNames } from "./lib/softwarehouse-project-registry.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -17,7 +18,7 @@ const openStatuses = new Set(["backlog", "todo", "in_progress", "in_review", "bl
 const titlePattern = /^\[(?<project>.+?)\]\[Source Control Closure\] Classify and close local dirty state/;
 const markerPrefix = "softwarehouse-source-control-closure-janitor:close_completed:";
 const invalidMarkerPrefix = "softwarehouse-source-control-closure-janitor:reopen_invalid_completion:";
-const sourceControlProjects = ["Soar", "Roost", "Aviary", "Nest"];
+const sourceControlProjects = softwarehouseActiveApplicationProjectNames;
 const invalidCompletionMaxAgeMs = Number(process.env.SOURCE_CONTROL_INVALID_COMPLETION_MAX_AGE_MS ?? 48 * 60 * 60 * 1000);
 
 async function request(method, route, body) {
