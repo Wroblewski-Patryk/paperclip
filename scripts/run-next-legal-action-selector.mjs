@@ -277,11 +277,13 @@ export function pickAction(
   releaseProbe = { checked: false },
 ) {
   const reportedActiveRunCount = Number(control?.activeRunCount ?? readiness?.activeRunCount ?? 0);
+  const liveApiReadbackSucceeded = Boolean(liveRunProbe?.checked && liveRunProbe.ok);
+  const effectiveAppHealthOk = appHealth.ok || liveApiReadbackSucceeded;
   const activeRunCount =
-    appHealth.ok && liveRunProbe?.checked && liveRunProbe.ok && liveRunProbe.liveRunCount != null
+    effectiveAppHealthOk && liveApiReadbackSucceeded && liveRunProbe.liveRunCount != null
       ? Number(liveRunProbe.liveRunCount)
       : reportedActiveRunCount;
-  if (appHealth.checked && !appHealth.ok) {
+  if (appHealth.checked && !appHealth.ok && !liveApiReadbackSucceeded) {
     return {
       decision: "repair_local_paperclip_liveness",
       reason: "The local Paperclip API is unreachable, so cached active-run reports are not enough to justify supervision.",
@@ -584,14 +586,17 @@ export function runApplyCommand(action) {
 }
 
 async function main() {
-  const [control, readiness, acceptanceLedger, appHealth, sourceControlProbe, coolifyRecoveryProbe] = await Promise.all([
+  const [control, readiness, acceptanceLedger, appHealth] = await Promise.all([
     readJson("report/softwarehouse-control-tick.latest.json"),
     readJson("report/softwarehouse-readiness-snapshot.latest.json"),
     readJson("report/soar-delivery-acceptance.latest.json"),
     probeAppHealth(),
-    Promise.resolve(probeSourceControl()),
-    Promise.resolve(probeCoolifyResourceRecovery()),
   ]);
+  // Do not start synchronous child-process probes until the health fetch has
+  // settled. Blocking the event loop here previously manufactured a timeout
+  // against a healthy local API and incorrectly routed liveness repair.
+  const sourceControlProbe = probeSourceControl();
+  const coolifyRecoveryProbe = probeCoolifyResourceRecovery();
   // The governor reads the source-control report written by the probe above.
   // Keep these probes serialized so one clean commit does not require a second
   // watchdog cycle to clear a stale dirty-repository decision.

@@ -58,3 +58,31 @@ test("exact release blocker outranks new docs-only work", () => {
   assert.equal(action.target, "Roost");
   assert.match(action.reason, /before creating documentation/);
 });
+
+test("a successful live API readback suppresses a stale health timeout", () => {
+  const action = pickAction(
+    { activeRunCount: 0 },
+    { activeRunCount: 0 },
+    { checked: true, ok: false, error: "timeout" },
+    { checked: true, ok: true, liveRunCount: 0 },
+    null,
+    { checked: true, ok: true, decision: "runnable_work_assignment_needed", counts: {} },
+    { checked: true, ok: true, clean: true, repos: [] },
+    { checked: true, ok: true, actions: [{ action: "noop_no_unhealthy_resource" }] },
+    {
+      checked: true,
+      ok: true,
+      projects: [{
+        name: "Roost",
+        ahead: 111,
+        behind: 0,
+        dirtyCount: 0,
+        pushAllowed: true,
+        decision: "push_candidate_requires_ops_verification",
+      }],
+    },
+  );
+
+  assert.equal(action.decision, "start_release_delivery");
+  assert.equal(action.target, "Roost");
+});
