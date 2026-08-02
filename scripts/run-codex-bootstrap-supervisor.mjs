@@ -2,18 +2,22 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { softwarehouseActiveApplicationProjects } from "./lib/softwarehouse-project-registry.mjs";
 
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const paperclipApiUrl = (process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200").replace(/\/$/, "");
 const skipControlTick = process.env.CODEX_BOOTSTRAP_SKIP_CONTROL_TICK === "1"
   || process.argv.includes("--skip-control-tick");
 const generatedAt = new Date().toISOString();
+const freshnessLimitMs = Number(process.env.CODEX_BOOTSTRAP_FRESHNESS_LIMIT_MS ?? 90 * 60 * 1000);
 
 const requiredRetirementChecks = new Set([
   "controlTickHealthy",
   "paperclipOsClean",
   "autonomousCycleEntrypointExists",
   "cycleLedgerExists",
+  "cycleLedgerFresh",
+  "controlTickFresh",
   "cycleRoutineDocumented",
   "selfImprovementLoopAvailable",
 ]);
@@ -117,10 +121,15 @@ function summarizeControlTick(controlTick) {
   };
 }
 
-function buildRetirementChecks({ controlTick, controlTickRun, packageScripts, paperclipStatus, files }) {
+function evidenceAgeMs(value) {
+  const timestamp = Date.parse(value ?? "");
+  return Number.isFinite(timestamp) ? Math.max(0, Date.now() - timestamp) : null;
+}
+
+function buildRetirementChecks({ controlTick, controlTickRun, cycleLedger, packageScripts, paperclipStatus, files }) {
   const paperclipRepo = statusLinesForRepo(process.cwd());
   const cycleScript = "scripts/run-autonomous-development-cycle.mjs";
-  const cycleLedger = "report/autonomous-cycles/latest.json";
+  const cycleLedgerPath = "report/autonomous-cycles/latest.json";
   const cycleDoc = "softwarehouse/autonomous-development-loop.md";
 
   return [
@@ -161,10 +170,28 @@ function buildRetirementChecks({ controlTick, controlTickRun, packageScripts, pa
     {
       id: "cycleLedgerExists",
       required: true,
-      passed: existsSync(cycleLedger),
-      evidence: existsSync(cycleLedger)
-        ? cycleLedger
+      passed: existsSync(cycleLedgerPath),
+      evidence: existsSync(cycleLedgerPath)
+        ? cycleLedgerPath
         : "No latest autonomous cycle ledger exists.",
+    },
+    {
+      id: "cycleLedgerFresh",
+      required: true,
+      passed: evidenceAgeMs(cycleLedger?.generatedAt) != null
+        && evidenceAgeMs(cycleLedger?.generatedAt) <= freshnessLimitMs,
+      evidence: evidenceAgeMs(cycleLedger?.generatedAt) == null
+        ? "Autonomous cycle ledger has no parseable generatedAt."
+        : `Autonomous cycle ledger age is ${Math.round(evidenceAgeMs(cycleLedger.generatedAt) / 60_000)} minute(s); limit is ${Math.round(freshnessLimitMs / 60_000)}.`,
+    },
+    {
+      id: "controlTickFresh",
+      required: true,
+      passed: evidenceAgeMs(controlTick?.generatedAt) != null
+        && evidenceAgeMs(controlTick?.generatedAt) <= freshnessLimitMs,
+      evidence: evidenceAgeMs(controlTick?.generatedAt) == null
+        ? "Control tick has no parseable generatedAt."
+        : `Control tick age is ${Math.round(evidenceAgeMs(controlTick.generatedAt) / 60_000)} minute(s); limit is ${Math.round(freshnessLimitMs / 60_000)}.`,
     },
     {
       id: "cycleRoutineDocumented",
@@ -200,6 +227,12 @@ function nextBootstrapActionsFor({ checks, controlTickSummary, paperclipRepo }) 
   if (failed.has("cycleLedgerExists")) {
     actions.push("Add the autonomous cycle ledger under `report/autonomous-cycles/` and write one durable JSON/Markdown record per cycle.");
   }
+  if (failed.has("cycleLedgerFresh")) {
+    actions.push("Restore a genuinely Paperclip-owned autonomous cycle and fresh cycle ledger; file existence or a historical cycle is not autonomy proof.");
+  }
+  if (failed.has("controlTickFresh")) {
+    actions.push("Restore fresh Paperclip control-tick evidence; a stale healthy report cannot qualify the supervisor for retirement.");
+  }
   if (failed.has("cycleRoutineDocumented")) {
     actions.push("Document the scheduled Paperclip-owned cycle routine and its retirement handoff from local Codex bootstrap supervision.");
   }
@@ -211,7 +244,7 @@ function nextBootstrapActionsFor({ checks, controlTickSummary, paperclipRepo }) 
   }
 
   if (actions.length === 0) {
-    actions.push("Retire the local Codex bootstrap automation after one more clean autonomous cycle confirms Paperclip can supervise itself without external intervention.");
+    actions.push("Begin or continue the 14-day graduation window; do not retire Teachar from a single clean cycle.");
   }
 
   return actions;
@@ -249,7 +282,7 @@ function renderMarkdown(report) {
     "",
     "## Retirement Rule",
     "",
-    "The local Codex automation can be removed only after every required retirement check passes and one subsequent Paperclip-owned autonomous cycle produces a clean cycle ledger without external Codex intervention.",
+    "The local Codex automation may pause itself only after every required retirement check remains green for 14 consecutive days, every active application has a project-specific terminal outcome or accepted pause/no-go, and no material Teachar repair was required during the window.",
     "",
   ].join("\n");
 }
@@ -263,6 +296,7 @@ if (!skipControlTick) {
 
 const packageJson = await readJsonIfExists("package.json");
 const controlTick = await readJsonIfExists("report/softwarehouse-control-tick.latest.json");
+const cycleLedger = await readJsonIfExists("report/autonomous-cycles/latest.json");
 const paperclipStatus = await fetchStatus("/api/health");
 const autonomousDevelopmentLoop = existsSync("softwarehouse/autonomous-development-loop.md")
   ? await readFile("softwarehouse/autonomous-development-loop.md", "utf8")
@@ -272,6 +306,7 @@ const controlTickSummary = summarizeControlTick(controlTick);
 const retirementChecks = buildRetirementChecks({
   controlTick: controlTickSummary,
   controlTickRun,
+  cycleLedger,
   packageScripts: packageScriptsFor(packageJson),
   paperclipStatus,
   files: {
@@ -281,7 +316,7 @@ const retirementChecks = buildRetirementChecks({
 const requiredPassed = retirementChecks
   .filter((check) => requiredRetirementChecks.has(check.id))
   .every((check) => check.passed);
-const bootstrapStatus = requiredPassed ? "ready_for_retirement_confirmation" : "bootstrap_required";
+const bootstrapStatus = requiredPassed ? "ready_for_graduation_observation" : "bootstrap_required";
 
 const report = {
   generatedAt,
@@ -300,13 +335,15 @@ const report = {
       skipped: true,
     },
   controlTick: controlTickSummary,
-  repositories: {
-    Paperclip_Softwarehouse: statusLinesForRepo(process.cwd()),
-    Soar: statusLinesForRepo(path.join(appsRoot, "Soar")),
-    Roost: statusLinesForRepo(path.join(appsRoot, "Roost")),
-    Aviary: statusLinesForRepo(path.join(appsRoot, "Aviary")),
-    Nest: statusLinesForRepo(path.join(appsRoot, "Nest")),
+  freshnessLimitMs,
+  cycleLedger: {
+    generatedAt: cycleLedger?.generatedAt ?? null,
+    ageMs: evidenceAgeMs(cycleLedger?.generatedAt),
   },
+  repositories: Object.fromEntries([
+    ["Paperclip_Softwarehouse", statusLinesForRepo(process.cwd())],
+    ...softwarehouseActiveApplicationProjects.map((project) => [project.name, statusLinesForRepo(project.root)]),
+  ]),
   retirementChecks,
   nextBootstrapActions: nextBootstrapActionsFor({
     checks: retirementChecks,

@@ -20,6 +20,18 @@ complete, unblock, or substitute for another. Future applications must be
 activated through the canonical project registry and the same data-driven
 contracts, not by copying project names into individual orchestrators.
 
+## 2026-08-02 Teachar Is A Temporary Guardian With Automatic Retirement
+
+The owner wants `paperclip-teachar` to remain active while Paperclip is still
+learning to supervise the application portfolio, then pause itself once
+Paperclip is demonstrably self-governing. Operational graduation requires a
+continuous 14-day evidence window, fresh Paperclip-owned cycle/control
+ledgers, project-specific terminal or accepted pause/no-go outcomes, healthy
+cross-project isolation, and no material Teachar repair during the window.
+Any critical regression or external corrective intervention resets the window.
+Use `operationally_graduated`, not an unverifiable absolute claim of 100%
+autonomy.
+
 ## 2026-07-28 Portfolio Lifecycle Outcome And Product Boundaries
 
 The owner set canonical portfolio goal

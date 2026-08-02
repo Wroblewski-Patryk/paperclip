@@ -45,7 +45,7 @@ const safeBulkActionKinds = new Set([
 
 function isDatabaseConnectionUnavailable(error) {
   const text = `${error?.message ?? ""}\n${error?.code ?? ""}\n${error?.cause?.message ?? ""}\n${error?.cause?.code ?? ""}`;
-  return /ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|Connection terminated|connect\s+ECONN/i.test(text);
+  return /ECONNREFUSED|ECONNRESET|ETIMEDOUT|CONNECT_TIMEOUT|ENOTFOUND|Connection terminated|connect\s+ECONN/i.test(text);
 }
 
 function isRetryableRequestError(error) {
@@ -513,9 +513,21 @@ const actions = [];
 const liveIssueIdsWithIssues = [...new Set(liveRuns
   .map((run) => issueById.get(run.issueId)?.id)
   .filter(Boolean))];
-const commentsByIssueId = readMode === "direct_db"
-  ? await readRecentCommentsFromSql(company, liveIssueIdsWithIssues)
-  : await readRecentCommentsFromApi(liveIssueIdsWithIssues);
+let effectiveReadMode = readMode;
+let effectiveReadWarning = readWarning;
+let commentsByIssueId;
+if (readMode === "direct_db") {
+  try {
+    commentsByIssueId = await readRecentCommentsFromSql(company, liveIssueIdsWithIssues);
+  } catch (error) {
+    if (!isDatabaseConnectionUnavailable(error)) throw error;
+    commentsByIssueId = await readRecentCommentsFromApi(liveIssueIdsWithIssues);
+    effectiveReadMode = "direct_db_with_api_comment_fallback";
+    effectiveReadWarning = `Direct database comment read unavailable; used bounded API comment fallback. Cause: ${error?.message ?? error}`;
+  }
+} else {
+  commentsByIssueId = await readRecentCommentsFromApi(liveIssueIdsWithIssues);
+}
 const commentsByRunId = new Map(liveRuns.map((run) => [
   run.id,
   commentsByIssueId.get(issueById.get(run.issueId)?.id) ?? [],
@@ -959,8 +971,8 @@ console.log(JSON.stringify({
   apiBase,
   company: { id: company.id, name: company.name },
   mode: apply ? "apply" : "dry-run",
-  readMode,
-  readWarning,
+  readMode: effectiveReadMode,
+  readWarning: effectiveReadWarning,
   fullIssueScanAvailable,
   minTailAgeMs,
   gateHoldMinTailAgeMs,

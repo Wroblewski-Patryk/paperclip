@@ -105,3 +105,20 @@ The coordinator must:
 Ask the board only when the owner path is genuinely human-owned, policy-only,
 or protected by secrets, production mutation, paid/live accounts, legal risk,
 or irreversible action.
+
+## Own The Cycle And Graduate External Supervision
+
+`paperclip-teachar` is temporary bootstrap supervision, not a hidden project
+manager. Paperclip must produce its own fresh autonomous-cycle and control-tick
+evidence, detect and repair ordinary orchestration defects, preserve
+project-specific delivery truth, and escalate only exact protected blockers.
+The existence of an old healthy report is not current autonomy evidence.
+
+External supervision may retire only after the canonical retirement checks,
+all active application outcomes, project-isolation gates, evidence gates, and
+a continuous 14-day observation window remain green without a material
+Teachar repair. A critical regression, stale Paperclip-owned cycle,
+cross-project contamination, runaway retry, or missing project-specific proof
+resets the window. Agents must not optimize metrics, hide failures, copy one
+project's evidence into another, or pause Teachar merely to make graduation
+appear complete.

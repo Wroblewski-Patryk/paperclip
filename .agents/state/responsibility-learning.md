@@ -834,3 +834,33 @@ Current evidence:
 - Live instruction audit passes for 39/39 managed bundles with zero warnings.
 - Teachar readback confirms the project model, two-layer supervision, release
   starvation check, and concise Polish run report are active every 30 minutes.
+
+## 2026-08-02 - Historical ledgers can create false autonomy graduation
+
+Observed pattern: the bootstrap retirement check accepted the existence of
+`report/autonomous-cycles/latest.json` even though the latest cycle was one
+month old. It also hardcoded parked Aviary/Nest while omitting the canonical
+Featherly project. A superficially green run could therefore recommend
+retiring external supervision without current Paperclip-owned execution proof.
+
+Standing rule:
+
+- Existence is not freshness. Retirement evidence needs a parseable timestamp
+  within the bounded cycle freshness window.
+- Retirement and portfolio checks consume the canonical active-project
+  registry and project-specific outcomes.
+- One clean snapshot is not adulthood. Require a continuous 14-day window and
+  reset it after every critical regression or material external repair.
+- Self-retirement is complete only after the automation status is read back as
+  `PAUSED`; a requested pause is not evidence of a successful pause.
+
+Current evidence:
+
+- Bootstrap supervisor reports `bootstrap_required` and explicitly fails the
+  stale July 2 autonomous-cycle ledger.
+- Regression tests cover freshness, canonical projects, the observation
+  status, and Teachar's self-pause contract.
+- The same final readback caught postgres driver code `CONNECT_TIMEOUT`, which
+  the janitor's database-unavailable classifier omitted. It now uses bounded
+  API fallbacks for both control data and comments instead of failing the whole
+  control tick or restarting the canonical database.

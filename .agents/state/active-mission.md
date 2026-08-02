@@ -2,6 +2,19 @@
 
 ## 2026-08-02 - Owner-Visible Delivery Debt Is The Primary Control Signal
 
+- Teachar retirement is not yet legal. The canonical Paperclip-owned cycle
+  ledger exists but is stale at `2026-07-02T13:55:10.612Z`; the bootstrap
+  supervisor now fails this as `cycleLedgerFresh=false` instead of treating
+  file existence as autonomy. Restore genuinely Paperclip-owned fresh cycles,
+  then complete the continuous 14-day graduation window.
+- The retirement supervisor now consumes the canonical Soar/Roost/Featherly
+  registry and no longer treats parked Aviary/Nest as active proof targets.
+  Teachar may self-pause only after a final decision packet and confirmed
+  automation status readback.
+- A fresh control tick exposed a `CONNECT_TIMEOUT` in the final live-run
+  janitor. The database-unavailable classifier now recognizes the postgres
+  driver's exact code and falls back to bounded API reads; comment reads have
+  the same fallback. A direct post-fix janitor dry-run completed successfully.
 - The selector defect that treated any live company run as a global release
   lock is repaired. A release-ready Roost, Soar, or Featherly lane may proceed
   while another application is busy when the target project, repository

@@ -4,6 +4,21 @@ Last updated: 2026-08-02
 
 ## 2026-08-02 Delivery-Orchestration Repair
 
+- `paperclip-teachar` is a temporary bootstrap guardian. It may self-pause only
+  after 14 continuous green days, fresh Paperclip-owned cycle/control evidence,
+  project-specific accepted outcomes for every active application, no material
+  Teachar repair during the window, a final decision packet, and confirmed
+  `PAUSED` readback. Any critical regression resets the window.
+- Current retirement state is `bootstrap_required`: the canonical autonomous
+  cycle ledger is stale at 2026-07-02. The supervisor now checks freshness and
+  uses the canonical Soar/Roost/Featherly registry instead of parked
+  Aviary/Nest.
+- The canonical versioned Teachar prompt is
+  `softwarehouse/paperclip-teachar-prompt.md`; the live automation and report
+  export must remain equivalent to it.
+- Live-run janitor treats postgres `CONNECT_TIMEOUT` as a transient direct-read
+  outage and uses bounded API fallbacks for control data/comments. Never
+  restart or broad-kill the canonical database for this condition.
 - Soar, Roost, and Featherly are independent application projects. Each owns
   its project id, App PM chain, issues, repository documentation, status truth,
   release/deployment evidence, and Innovation-to-Products promotion decision.

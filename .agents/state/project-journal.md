@@ -4932,3 +4932,33 @@ contract. Teachar remains active every 30 minutes and now separates a quick
 operational cycle from signaled/stale deep audits, detects supervision cost as
 a failure mode, and always returns a concise Polish checked/detected/repaired/
 unresolved/per-project report.
+
+## 2026-08-02 - Conversation summary: Teachar graduation and retirement audit
+
+The owner requested a final completeness review and wants Teachar to switch
+itself off after Paperclip becomes reliably autonomous. The review found two
+contradictions: the prompt prohibited self-disable and still mentioned a
+15-minute option despite the live 30-minute cadence. It also found a deeper
+false-readiness defect: the bootstrap supervisor accepted an autonomous-cycle
+ledger last generated on 2026-07-02 and hardcoded parked Aviary/Nest rather
+than the canonical Soar/Roost/Featherly portfolio.
+
+The supervisor now requires fresh cycle and control-tick evidence, reads active
+applications from the canonical registry, and reports
+`ready_for_graduation_observation` only after all bootstrap checks pass. The
+live audit correctly remains `bootstrap_required` because the autonomous-cycle
+ledger is stale. Teachar now maintains a durable graduation window, resets it
+after critical regression or material external repair, and may pause itself
+only after 14 continuous green days, project-specific accepted outcomes, a
+final Polish decision packet, and confirmed `PAUSED` readback. The full prompt
+remains attached to the active 30-minute heartbeat and is now versioned at
+`softwarehouse/paperclip-teachar-prompt.md`; the `report/` copy is only an
+owner-facing export.
+
+The final bootstrap readback then exposed a fresh control-tick failure in
+`finalLiveRunJanitor`: postgres reported `CONNECT_TIMEOUT` on strict port
+54329, but the fallback classifier recognized only `ETIMEDOUT` and related
+codes. The classifier and comment-read path now degrade to bounded Paperclip
+API reads for this transient condition. Regression coverage passes and a
+post-fix dry-run read the live board successfully without restart or broad
+process termination.

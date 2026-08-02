@@ -1,6 +1,6 @@
 # Codex Bootstrap Supervisor
 
-Last updated: 2026-06-01
+Last updated: 2026-08-02
 
 ## Purpose
 
@@ -43,6 +43,10 @@ pnpm codex:bootstrap-supervisor
 
 The command runs `scripts/run-codex-bootstrap-supervisor.mjs`.
 
+The versioned automation contract is
+`softwarehouse/paperclip-teachar-prompt.md`. The live Codex automation and any
+owner-facing export under `report/` must be content-equivalent to that source.
+
 Outputs:
 
 - `report/codex-bootstrap-supervisor.latest.json`
@@ -63,6 +67,9 @@ The local supervisor checks:
 - Paperclip OS worktree cleanliness,
 - existence of the Paperclip-owned autonomous cycle entrypoint,
 - existence of the cycle ledger,
+- freshness of the cycle ledger and control tick (historical files do not
+  prove current autonomy),
+- the canonical active application registry: Soar, Roost, and Featherly,
 - whether the 30-minute cycle is documented,
 - whether the self-improvement loop is available.
 
@@ -74,27 +81,39 @@ The local Codex automation can be removed only when all required checks pass:
 - `paperclipOsClean`
 - `autonomousCycleEntrypointExists`
 - `cycleLedgerExists`
+- `cycleLedgerFresh`
+- `controlTickFresh`
 - `cycleRoutineDocumented`
 - `selfImprovementLoopAvailable`
 
 After those pass, the local Codex bootstrap automation should keep running
-every 30 minutes until Paperclip proves it can operate as a softwarehouse.
+every 30 minutes through a 14-day graduation window. Any material Teachar
+repair, critical regression, cross-project contamination, stale Paperclip-owned
+cycle, unsafe retry loop, or missing evidence resets that window.
 
-The first practical proof is Soar:
+Graduation is portfolio-wide, not Soar-only:
 
-- Paperclip must drive Soar to a usable state.
-- Soar must pass a login/app smoke or equivalent owner-visible verification.
+- Paperclip must drive Soar, Roost, and Featherly to project-specific terminal
+  outcomes or an explicitly accepted pause/no-go decision.
+- Each released application must pass its owner journey and deployed-SHA
+  readback with project-specific evidence.
 - Paperclip must record what it improved in its own operating loop while
-  delivering Soar.
-- Patryk must accept that Soar is delivered enough to count as the first
-  autonomous softwarehouse proof.
+  delivering the portfolio.
+- Shared specialists must remain separated through project-scoped tasks and
+  WIP limits throughout the observation window.
 
 Only then should the local Codex automation be retired.
 
-The proof contract is `report/soar-delivery-acceptance.latest.json`. It is a
-local runtime artifact and should include `paperclipDelivered=true`,
-`paperclipAutonomyImproved=true`, `productionLoginSmoke="pass"`, and
-`ownerAccepted=true`.
+The Soar acceptance ledger remains Soar-only. Roost and Featherly require their
+own acceptance/deployment evidence; no project's ledger may qualify another.
+The graduation packet must also prove fresh autonomous-cycle and control-tick
+ledgers, zero critical isolation findings, zero material Teachar repairs during
+the window, and a fresh owner-visible Roost portfolio projection.
+
+When every criterion remains satisfied for the complete window, Teachar writes
+its final Polish decision packet and pauses automation `paperclip-teachar`.
+If the automation-management tool is unavailable or pause readback fails, it
+must remain active and report the exact blocker rather than claiming retirement.
 
 Codex-visible automation command:
 
@@ -109,14 +128,16 @@ pause, edit, or retire it from Codex.
 
 ## Current Expected Status
 
-As of 2026-06-01, the expected status is `bootstrap_required`.
+As of 2026-08-02, the expected status is `bootstrap_required`.
 
 Known blockers:
 
 - Paperclip OS source-control closure is still required when local changes are
   present.
-- `scripts/run-autonomous-development-cycle.mjs` is not yet implemented.
-- `report/autonomous-cycles/latest.json` is not yet produced.
+- `report/autonomous-cycles/latest.json` exists but its latest verified cycle
+  is stale (2026-07-02), so it is not current autonomy evidence.
+- Roost still carries undelivered release debt, Soar has source-control work,
+  and Featherly lacks complete project-truth/upstream evidence.
 
 This is correct behavior. The local Codex supervisor should stay active until
 Paperclip can prove the closed autonomous loop itself.

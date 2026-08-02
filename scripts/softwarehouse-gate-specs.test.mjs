@@ -436,6 +436,26 @@ test("runtime topology audit does not invent missing projects after a catalog ti
   assert.doesNotMatch(source, /paperclip_api_unhealthy/);
 });
 
+test("bootstrap retirement requires fresh Paperclip-owned evidence and canonical active projects", async () => {
+  const [source, contract, teachar] = await Promise.all([
+    readFile("scripts/run-codex-bootstrap-supervisor.mjs", "utf8"),
+    readFile("softwarehouse/codex-bootstrap-supervisor.md", "utf8"),
+    readFile("softwarehouse/paperclip-teachar-prompt.md", "utf8"),
+  ]);
+
+  assert.match(source, /softwarehouseActiveApplicationProjects/);
+  assert.match(source, /"cycleLedgerFresh"/);
+  assert.match(source, /"controlTickFresh"/);
+  assert.match(source, /ready_for_graduation_observation/);
+  assert.doesNotMatch(source, /statusLinesForRepo\(path\.join\(appsRoot, "Aviary"\)\)/);
+  assert.doesNotMatch(source, /statusLinesForRepo\(path\.join\(appsRoot, "Nest"\)\)/);
+  assert.match(contract, /14-day graduation window/);
+  assert.match(contract, /Soar, Roost, and Featherly/);
+  assert.match(teachar, /paperclip-teachar-graduation\.latest\.json/);
+  assert.match(teachar, /`paperclip-teachar` na `PAUSED`/);
+  assert.match(teachar, /czternastodniowe ciągłe okno/);
+});
+
 test("agent instruction sync supports bounded incremental file updates", async () => {
   const source = await readFile("scripts/sync-luckysparrow-agent-instructions.mjs", "utf8");
 
@@ -2295,6 +2315,9 @@ test("live-run janitor falls back to API reads when direct database is unavailab
   assert.match(source, /async function readControlDataFromApi\(company, cause\)/);
   assert.match(source, /\/api\/companies\/\$\{company\.id\}\/live-runs\?limit=50&minCount=0/);
   assert.match(source, /readMode: "api_fallback"/);
+  assert.match(source, /CONNECT_TIMEOUT/);
+  assert.match(source, /direct_db_with_api_comment_fallback/);
+  assert.match(source, /readRecentCommentsFromApi\(liveIssueIdsWithIssues\)/);
   assert.match(source, /fullIssueScanAvailable: false/);
   assert.match(source, /if \(liveRuns\.length === 0 && fullIssueScanAvailable\)/);
 });
