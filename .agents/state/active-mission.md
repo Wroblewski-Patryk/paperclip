@@ -1,5 +1,13 @@
 # Active Mission
 
+## 2026-08-02 - Owner-Visible Delivery Debt Is The Primary Control Signal
+
+- The live next-legal-action selector now consumes project-specific release-governor evidence. Current readback chooses `start_release_delivery` for Roost at `2ef9fdc3`, clean and 111 commits ahead of `origin/main`; Soar is clean and 34 ahead; Featherly still lacks a verified upstream.
+- Documentation, map refresh, planning, generic recovery, and backlog work must not outrank a clean, verified, deployment-bound application batch. A growing source branch with no deployed owner-visible milestone for seven days is an orchestration defect.
+- Roost Product Map remains the priority owner surface. Local proof is green (`5/5` web projection tests, `6/6` server contract tests, production build), but LUC-1910 remains behind the canonical protected QA/deployment chain. Do not push merely to hide that gate; resume and close the exact chain, then use standing-consent push, observe Coolify auto-redeploy, and prove deployed SHA plus owner journey.
+- DRE now has a real governed Playwright MCP surface in primary and cheap profiles. Fresh heartbeat proof found 24 callable tools, opened and closed an isolated headless Edge context, and left no persistent browser. LUC-2349/LUC-2350 are done and LUC-2340 resumed. A skill attachment or environment hint alone is never capability proof.
+- Runtime configuration was synchronized for all active project routines and all 39 managed agent instruction bundles. Project-specific Coolify readback is ready for both Soar and Roost.
+
 ## 2026-07-28 - Portfolio Lifecycle Goal And Execution Ladder Active
 
 - Canonical portfolio goal `b74b43a1-efeb-43b2-8da2-4a6a5c967f76` now

@@ -1,6 +1,15 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-07-28
+Last updated: 2026-08-02
+
+## 2026-08-02 Delivery-Orchestration Repair
+
+- Release delivery is now an input to the next-legal-action selector. Clean, non-divergent, meaningful application batches with project-specific deployment readiness outrank docs, map refresh, planning, generic recovery, and backlog work. Live readback selects Roost release delivery at `2ef9fdc3` / 111 commits ahead.
+- The recurring false Paperclip liveness alarm was caused by synchronous probes blocking the selector's own health request. Health probing is now sequenced first and successful live API readback defeats a stale timeout.
+- Coolify readiness is project-specific. Legacy aggregate readiness is Soar-only; Roost requires its own `COOLIFY_ROOST_APP_ID` readback.
+- DRE has a pinned, governed Playwright MCP runtime with 24 callable tools and verified isolated open/close cleanup. LUC-2349/LUC-2350 are closed and LUC-2340 resumed. Never equate a skill attachment with a callable tool, and never create reciprocal source/recovery blocker links.
+- Roost Product Map local evidence is green (`5/5` web, `6/6` server, production build), but LUC-1910 remains protected by the canonical isolated-QA/deployment chain. Standing consent authorizes a verified clean application push and normal auto-redeploy, not bypassing a hard gate or performing manual protected infrastructure actions.
+- The `paperclip-teachar` automation prompt now includes delivery-debt, source/deployed-SHA, runtime drift, capability reality, and owner-visible Roost projection audits. The configured schedule is hourly.
 
 ## 2026-07-28 Canonical Portfolio Goal And Execution Ladder
 

@@ -1,10 +1,19 @@
 # Paperclip Project Journal
 
-Last updated: 2026-07-28
+Last updated: 2026-08-02
 
 This is a durable diary for project-level context that should survive across Codex chats. It is not a replacement for Paperclip issue comments, work products, product specs, or release evidence.
 
 ## Entries
+
+- 2026-08-02 / delivery-debt and controlled-browser orchestration repair:
+  - Root cause: the release governor classified only dirty paths, reused Soar-only Coolify readiness for Roost, and the next-legal-action selector ignored release-governor output. Clean application repositories could accumulate 34/111 unpublished commits while orchestration selected documentation, recovery, or generic backlog work.
+  - Repair: added committed-delta classification, project-specific Coolify readiness, Roost-first release selection, standing-consent delivery language, seven-day owner-visible milestone detection, and regression tests. Live selector readback now returns `start_release_delivery` for Roost at `2ef9fdc3` rather than documentation/backlog work.
+  - False alarm repair: synchronous probes previously blocked the selector's own health fetch and manufactured recurring `repair_local_paperclip_liveness` timeouts. Health now settles before blocking probes, and a successful live-runs readback suppresses a stale health timeout.
+  - Recovery repair: recovery-run evidence is now bounded to the active recovery action and attempt timestamp. The reciprocal LUC-2349/LUC-2350 blocker cycle was removed.
+  - Capability repair: pinned `@playwright/mcp@0.0.78`, bound an isolated headless Edge MCP server to both DRE profiles, and verified 24 callable tools plus open/close cleanup directly and in a fresh DRE heartbeat. LUC-2349 and LUC-2350 are done; LUC-2340 resumed.
+  - Release truth: Roost remains clean and 111 commits ahead. Product Map web `5/5`, server `6/6`, and production build pass, but no push occurred because LUC-1910 still has a real protected QA/deployment chain. Standing consent covers a verified clean push and normal auto-redeploy, not bypassing a hard release gate or manually creating/deploying protected infrastructure.
+  - Automation: `paperclip-teachar` now audits source/deployed SHA, delivery debt, live/source config drift, release signal consumption, callable tool reality, reciprocal blocker cycles, and owner-visible Roost projection. Its existing hourly schedule remains unchanged.
 
 - 2026-07-20 / LUC-1560 security/credential blocker pattern LUC-1374 disposition:
   - Failure signal: Redis recovery and related mutation work remained blocked behind an unapproved least-privilege owner path, so repeated retries without the named owner action are fail-closed rather than actionable.
