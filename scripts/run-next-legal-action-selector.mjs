@@ -201,6 +201,26 @@ function probeCoolifyResourceRecovery() {
   };
 }
 
+function probeReleaseGovernor() {
+  const result = spawnSync(process.execPath, ["scripts/run-release-push-deploy-governor.mjs"], {
+    cwd: process.cwd(),
+    env: { ...process.env },
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_RELEASE_TIMEOUT_MS ?? 60_000),
+  });
+  const parsed = result.status === 0 && !result.error ? parseJsonOutput(result.stdout) : null;
+  return {
+    checked: true,
+    ok: result.status === 0 && !result.error && Boolean(parsed),
+    status: result.status,
+    signal: result.signal,
+    error: result.error ? String(result.error.message ?? result.error) : null,
+    stderr: String(result.stderr ?? "").slice(0, 2_000),
+    projects: Array.isArray(parsed?.projects) ? parsed.projects : [],
+  };
+}
+
 function coolifyRecoveryAlreadyRouted(probe) {
   return Boolean(
     probe?.checked
@@ -254,6 +274,7 @@ export function pickAction(
   governorProbe = { checked: false },
   sourceControlProbe = { checked: false },
   coolifyRecoveryProbe = { checked: false },
+  releaseProbe = { checked: false },
 ) {
   const reportedActiveRunCount = Number(control?.activeRunCount ?? readiness?.activeRunCount ?? 0);
   const activeRunCount =
@@ -350,6 +371,47 @@ export function pickAction(
       target: dirtyProject?.project ?? runnableSourceControlGate?.identifier ?? null,
       allowed: ["local diff classification", "local validation", "commit/no-commit decision"],
       forbidden: ["push", "deploy", "restart", "protected smoke", "secret disclosure"],
+    };
+  }
+  const releasePriority = new Map([["Roost", 0], ["Soar", 1], ["Featherly", 2]]);
+  const releaseProjects = releaseProbe?.checked && releaseProbe.ok
+    ? [...(releaseProbe.projects ?? [])].sort((left, right) =>
+      (releasePriority.get(left.name) ?? 99) - (releasePriority.get(right.name) ?? 99)
+    )
+    : [];
+  const releaseCandidate = releaseProjects.find((project) =>
+    project.pushAllowed === true
+      && project.ahead > 0
+      && project.behind === 0
+      && project.dirtyCount === 0
+  );
+  if (releaseCandidate) {
+    return {
+      decision: "start_release_delivery",
+      reason: `${releaseCandidate.name} has ${releaseCandidate.ahead} committed changes ahead of its deployment branch and the project-specific release governor now marks the coherent batch pushable. Delivery debt outranks new documentation, map refresh, planning, and generic backlog work.`,
+      command: `Resume the existing ${releaseCandidate.name} release chain; push the verified batch under standing consent, observe normal Coolify auto-redeploy, and prove deployed SHA plus owner journey.`,
+      target: releaseCandidate.name,
+      releaseHead: releaseCandidate.head ?? null,
+      allowed: ["reuse the canonical release issue and existing blockers", "verify candidate evidence", "push under standing consent", "observe auto-redeploy", "run targeted production smoke and owner journey"],
+      forbidden: ["create a parallel release tree", "substitute docs/status refresh for delivery", "force push", "manual deploy or restart without its separate gate", "secret disclosure"],
+    };
+  }
+  const releaseBlocked = releaseProjects.find((project) =>
+    project.ahead > 0
+      && project.behind === 0
+      && project.dirtyCount === 0
+      && project.decision !== "no_push_needed"
+      && project.decision !== "hold_for_batch"
+  );
+  if (releaseBlocked) {
+    return {
+      decision: "resolve_release_delivery_blocker",
+      reason: `${releaseBlocked.name} has ${releaseBlocked.ahead} committed changes ahead of production, but delivery is blocked by ${releaseBlocked.decision}. Resolve this exact release blocker before creating documentation, planning, map-refresh, or generic recovery work.`,
+      command: `Resume the existing ${releaseBlocked.name} release blocker chain and satisfy ${releaseBlocked.decision}.`,
+      target: releaseBlocked.name,
+      releaseHead: releaseBlocked.head ?? null,
+      allowed: ["reuse one canonical release blocker", "collect the missing project-specific release fact", "repair delivery tooling", "record an owner decision only when genuinely required"],
+      forbidden: ["create a parallel release tree", "create docs-only busywork", "start unrelated backlog while delivery debt is actionable", "push while the named release fact is unresolved"],
     };
   }
   if (
@@ -534,6 +596,7 @@ async function main() {
   // Keep these probes serialized so one clean commit does not require a second
   // watchdog cycle to clear a stale dirty-repository decision.
   const governorProbe = probeAutonomyGovernor();
+  const releaseProbe = probeReleaseGovernor();
   const resolvedCompanyId = resolveCompanyId(control, readiness);
   const liveRunProbeResult = await probeLiveRuns(resolvedCompanyId);
 
@@ -545,6 +608,7 @@ async function main() {
     governorProbe,
     sourceControlProbe,
     coolifyRecoveryProbe,
+    releaseProbe,
     action: pickAction(
       control,
       readiness,
@@ -554,6 +618,7 @@ async function main() {
       governorProbe,
       sourceControlProbe,
       coolifyRecoveryProbe,
+      releaseProbe,
     ),
   };
   if (apply) {

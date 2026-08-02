@@ -19,6 +19,7 @@ const coolifyEnvKeys = [
   "COOLIFY_SOAR_WORKER_MARKET_STREAM_APP_ID",
   "COOLIFY_SOAR_POSTGRES_RESOURCE_ID",
   "COOLIFY_SOAR_REDIS_RESOURCE_ID",
+  "COOLIFY_ROOST_APP_ID",
 ];
 
 const compatibilityEnvAliases = {
@@ -38,6 +39,7 @@ const compatibilityEnvAliases = {
   COOLIFY_SOAR_WORKER_MARKET_STREAM_APP_ID: ["COOLIFY_RESOURCE_UUID_SOAR_WORKER_MARKET_STREAM"],
   COOLIFY_SOAR_POSTGRES_RESOURCE_ID: ["COOLIFY_DATABASE_UUID_SOAR_POSTGRESQL"],
   COOLIFY_SOAR_REDIS_RESOURCE_ID: ["COOLIFY_DATABASE_UUID_SOAR_REDIS"],
+  COOLIFY_ROOST_APP_ID: ["COOLIFY_RESOURCE_UUID_ROOST_APP"],
 };
 
 function applyCoolifyEnvCompatibilityAliases() {
@@ -101,18 +103,16 @@ if (routine?.env) {
   resolved = result.env;
 }
 
-if (!resolved || !resolved.COOLIFY_BASE_URL) {
-  const agentRows = await db.select().from(agents).where(eq(agents.companyId, company.id));
-  const dre = agentRows.find((row) => row.name === "09 DRE (Deployment & Reliability Engineer)");
-  if (!dre) throw new Error("DRE agent not found");
-  const result = await svc.resolveEnvBindings(company.id, dre.adapterConfig?.env ?? {}, {
-    consumerType: "agent",
-    consumerId: dre.id,
-    actorType: "system",
-    actorId: "coolify-reconciler-env-loader",
-  });
-  resolved = result.env;
-}
+const agentRows = await db.select().from(agents).where(eq(agents.companyId, company.id));
+const dre = agentRows.find((row) => row.name === "09 DRE (Deployment & Reliability Engineer)");
+if (!dre) throw new Error("DRE agent not found");
+const agentResult = await svc.resolveEnvBindings(company.id, dre.adapterConfig?.env ?? {}, {
+  consumerType: "agent",
+  consumerId: dre.id,
+  actorType: "system",
+  actorId: "coolify-reconciler-env-loader",
+});
+resolved = { ...agentResult.env, ...(resolved ?? {}) };
 
 const keys = ${JSON.stringify(coolifyEnvKeys)};
 const output = Object.fromEntries(keys.filter((key) => resolved?.[key]).map((key) => [key, resolved[key]]));
@@ -293,15 +293,20 @@ function uniqueResources(resources) {
 const configuredResourceIds = Object.fromEntries(
   knownResourceKeys.map((key) => [key, process.env[key] ? "configured" : "missing"]),
 );
-const routes = projectId ? [
+const roostAppId = process.env.COOLIFY_ROOST_APP_ID;
+const roostAppRoute = roostAppId ? `/api/v1/applications/${encodeURIComponent(roostAppId)}` : null;
+const routes = [
   ...(teamId ? [`/api/v1/teams/${teamId}`] : []),
-  `/api/v1/projects/${projectId}`,
-  `/api/v1/projects/${projectId}/${encodeURIComponent(productionEnvironment)}`,
-  "/api/v1/applications",
-  "/api/v1/services",
-  "/api/v1/databases",
+  ...(projectId ? [
+    `/api/v1/projects/${projectId}`,
+    `/api/v1/projects/${projectId}/${encodeURIComponent(productionEnvironment)}`,
+    "/api/v1/applications",
+    "/api/v1/services",
+    "/api/v1/databases",
+  ] : []),
   ...directResourceRoutes.map((item) => item.route),
-] : [];
+  ...(roostAppRoute ? [roostAppRoute] : []),
+];
 const responses = [];
 for (const route of routes) responses.push(await coolifyGet(route));
 
@@ -349,6 +354,25 @@ const checks = [
   },
 ];
 
+const soarOverall = checks.some((check) => check.status === "missing")
+  ? "not_ready"
+  : checks.some((check) => check.status === "partial")
+    ? "partial"
+    : "ready";
+const roostResponse = roostAppRoute
+  ? responses.find((response) => response.route === roostAppRoute)
+  : null;
+const roostResources = roostResponse
+  ? summarizeDirectResource(roostResponse, "application", "COOLIFY_ROOST_APP_ID")
+  : [];
+const roostOverall = !baseUrl || !token || !roostAppId
+  ? "not_ready"
+  : roostResponse?.ok && roostResources.length === 1
+    ? "ready"
+    : roostResponse?.status === 403
+      ? "access_blocked"
+      : "partial";
+
 const output = {
   generatedAt: new Date().toISOString(),
   baseUrlConfigured: Boolean(baseUrl),
@@ -373,11 +397,23 @@ const output = {
   resourceCount: resources.length,
   resources,
   checks,
-  overall: checks.some((check) => check.status === "missing")
-    ? "not_ready"
-    : checks.some((check) => check.status === "partial")
-      ? "partial"
-      : "ready",
+  projects: {
+    Soar: {
+      overall: soarOverall,
+      resourceCount: resources.length,
+      expectedResourceCount,
+      source: "coolify_project_inventory",
+    },
+    Roost: {
+      overall: roostOverall,
+      resourceCount: roostResources.length,
+      expectedResourceCount: 1,
+      source: "coolify_direct_application_readback",
+      resource: roostResources[0] ?? null,
+      responseStatus: roostResponse?.status ?? null,
+    },
+  },
+  overall: soarOverall,
 };
 
 await mkdir("report", { recursive: true });
@@ -392,6 +428,10 @@ await writeFile("report/coolify-production-reconciler.latest.md", [
   `Resource count: ${output.resourceCount}`,
   "",
   `Expected resource count: ${output.expectedResourceCount}`,
+  "",
+  "Project readiness:",
+  `- Soar: ${output.projects.Soar.overall} (${output.projects.Soar.resourceCount}/${output.projects.Soar.expectedResourceCount} resources)`,
+  `- Roost: ${output.projects.Roost.overall} (${output.projects.Roost.resourceCount}/${output.projects.Roost.expectedResourceCount} resources)`,
   "",
   "Checks:",
   ...checks.map((check) => `- ${check.id}: ${check.status} - ${check.reason}`),

@@ -28,6 +28,7 @@ const coolifyEnv = {
   COOLIFY_SOAR_WORKER_MARKET_STREAM_APP_ID: "coolify_soar_worker_market_stream_app_id",
   COOLIFY_SOAR_POSTGRES_RESOURCE_ID: "coolify_soar_postgres_resource_id",
   COOLIFY_SOAR_REDIS_RESOURCE_ID: "coolify_soar_redis_resource_id",
+  COOLIFY_ROOST_APP_ID: "coolify_roost_app_id",
 };
 
 const coolifyLoginEnv = {

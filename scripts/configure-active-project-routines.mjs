@@ -57,16 +57,17 @@ function descriptionFor(projectName, kind) {
   if (kind === "no-stall") {
     return [
       `Strict ${projectName} project-manager no-stall loop.`,
-      "Inspect open project issues, live-run state, blockers, stale ownership, and missing worker-ready decomposition.",
-      "Produce one clear action: wake a safe owner, split smaller, reassign, defer, block with owner/action/evidence, or create the next narrow Paperclip issue.",
-      "Do not implement code, push, deploy, restart, touch secrets, or mutate live accounts from this routine.",
+      "Inspect the owner-visible milestone, source/deployed SHA debt, open project issues, live-run state, blockers, stale ownership, and missing worker-ready decomposition.",
+      "Prefer the next real product transition in this order: verified implementation, coherent commit, standing-consent push, normal Coolify auto-redeploy, deployed-SHA readback, owner journey, monitoring. Plans, status refreshes, maps, and new child issues are not progress unless they are the exact missing input to that transition.",
+      "When a clean non-divergent branch is materially ahead of its deployment branch, reuse the canonical release chain and resolve its first executable blocker before creating any documentation, planning, map-refresh, generic recovery, or parallel release issue.",
+      "The PM routine routes one accountable executor; it does not itself edit product code. A qualifying evidence-backed push under standing consent is not an operator gate. Manual deploy/restart/rollback, force-push, secrets, destructive actions, and live-account mutation remain separately gated.",
     ].join(" ");
   }
   if (kind === "known-state") {
     return [
       `${projectName} known-state and architecture/map drift guard.`,
       "Refresh what works, fails, is unknown, or is blocked; compare docs, repository shape, architecture exports, tests, and current target.",
-      "Create narrow follow-up issues for missing proof, stale docs, and safe architecture planning.",
+      "Create a follow-up only for a new material fact that changes the next executable product or release action. If source is materially ahead of deployment, do not create docs/map work; update the canonical release chain with the exact blocker instead.",
       "Protected production actions remain gated.",
     ].join(" ");
   }
@@ -74,8 +75,8 @@ function descriptionFor(projectName, kind) {
     return [
       `${projectName} source-control closure sweep.`,
       "Use the generated source-control packet to classify dirty groups, ownership, evidence, verification needs, commit/no-commit decision, and push/deploy impact.",
-      "This routine may record Paperclip issue comments and route owner-scoped follow-ups.",
-      "It must not push, deploy, restart, or overwrite project work without explicit approval and a clean evidence contract.",
+      "This routine must distinguish local closure from delivery debt. A clean non-divergent meaningful batch on an owner-controlled deployment branch is routed through the canonical release issue and pushed under standing owner consent without asking again, followed by Coolify/deployed-SHA/owner-journey verification.",
+      "It must not create a parallel release tree, force-push, manually deploy/restart/rollback, touch secrets, or overwrite unrelated work. If the standing-consent contract is not satisfied, record exactly one blocker and its new-fact condition.",
     ].join(" ");
   }
   return [
@@ -176,7 +177,7 @@ for (const projectName of softwarehouseActiveApplicationProjectNames) {
     description: [
       `${projectName} is an active LuckySparrow Software House application lane.`,
       "Paperclip owns project-manager control, known-state refresh, source-control closure, and safe specialist routing.",
-      "Production, secrets, paid/live accounts, push, deploy, restart, and irreversible mutation stay behind explicit gates.",
+      "Normal evidence-backed pushes to verified owner-controlled deployment branches and their expected Coolify auto-redeploy use the standing release consent. Manual deploy/restart/rollback, secrets, paid/live accounts, destructive actions, and irreversible mutation stay behind explicit gates.",
     ].join("\n"),
     level: "team",
     status: "active",

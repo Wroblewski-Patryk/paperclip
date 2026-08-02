@@ -1,11 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { changedPathKind, projectDeploymentReadiness, releaseDecision } from "./lib/release-delivery-policy.mjs";
 
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const outputJson = "report/softwarehouse-release-push-deploy-governor.latest.json";
 const outputMd = "report/softwarehouse-release-push-deploy-governor.latest.md";
-const defaultProjects = ["Soar", "Roost"];
+const defaultProjects = ["Soar", "Roost", "Featherly"];
 
 async function readJson(filePath, fallback = null) {
   try {
@@ -54,6 +55,9 @@ function statusFor(name) {
     ? run(cwd, ["git", "rev-list", "--left-right", "--count", `${upstream.stdout}...HEAD`])
     : { ok: false, stdout: "", stderr: "missing upstream" };
   const [behindRaw, aheadRaw] = aheadBehind.stdout.split(/\s+/);
+  const committedPaths = upstream.ok
+    ? run(cwd, ["git", "diff", "--name-only", `${upstream.stdout}...HEAD`]).stdout.split("\n").filter(Boolean)
+    : [];
   return {
     name,
     exists: status.ok,
@@ -62,19 +66,10 @@ function statusFor(name) {
     upstream: upstream.ok ? upstream.stdout : null,
     ahead: Number(aheadRaw ?? 0),
     behind: Number(behindRaw ?? 0),
+    committedPaths,
     dirtyLines: status.ok ? status.stdout.split("\n").filter(Boolean) : [],
     statusError: status.ok ? null : status.stderr,
   };
-}
-
-function changedPathKind(filePath) {
-  const normalized = filePath.replaceAll("\\", "/");
-  if (normalized.startsWith(".codex/") || normalized.startsWith(".agents/")) return "context";
-  if (normalized.startsWith("docs/") || normalized.startsWith("history/") || normalized.endsWith(".md")) return "docs";
-  if (normalized.includes("package.json") || normalized.includes("pnpm-lock.yaml") || normalized.includes("migrations/")) return "release-risk";
-  if (/\.(test|spec)\.[tj]sx?$/.test(normalized) || normalized.includes("/tests/")) return "tests";
-  if (/\.(ts|tsx|js|jsx|mjs|cjs|css|scss|json|yaml|yml)$/.test(normalized)) return "code";
-  return "other";
 }
 
 function pathFromStatusLine(line) {
@@ -84,85 +79,6 @@ function pathFromStatusLine(line) {
 
 function dirtyKinds(repo) {
   return new Set(repo.dirtyLines.map((line) => changedPathKind(pathFromStatusLine(line))));
-}
-
-function releaseDecision(repo, sourceControlRepo, coolifyReport) {
-  const kinds = dirtyKinds(repo);
-  const dirty = repo.dirtyLines.length > 0;
-  const hasCode = ["code", "tests", "release-risk"].some((kind) => kinds.has(kind));
-  const docsOnly = dirty && [...kinds].every((kind) => ["docs", "context"].includes(kind));
-  const sourceControlBlocked = (sourceControlRepo?.dirtyGroups ?? []).some((group) =>
-    ["product-code", "dependencies", "scripts", "other"].includes(group.group)
-  );
-  const deployAutoExpected = repo.name === "Soar" || hasCode;
-  const coolifyReady = coolifyReport?.overall === "ready";
-  const coolifyPartial = coolifyReport?.overall === "partial";
-  const serverUnknown = deployAutoExpected && !coolifyReady;
-
-  if (!repo.exists) {
-    return {
-      decision: "repo_unavailable",
-      pushAllowed: false,
-      reason: "Repository status could not be read.",
-      deployImpact: "unknown",
-    };
-  }
-  if (repo.behind > 0) {
-    return {
-      decision: "pull_or_reconcile_before_push",
-      pushAllowed: false,
-      reason: "Local branch is behind upstream; do not push until it is reconciled without force.",
-      deployImpact: "blocked",
-    };
-  }
-  if (dirty) {
-    return {
-      decision: "commit_or_classify_before_push",
-      pushAllowed: false,
-      reason: docsOnly
-        ? "Docs/context changes should be committed or batched locally before push."
-        : "Dirty worktree must be classified, validated, and committed before push.",
-      deployImpact: hasCode ? "auto-redeploy unknown until committed" : "none_or_batch",
-    };
-  }
-  if (repo.ahead === 0) {
-    return {
-      decision: "no_push_needed",
-      pushAllowed: false,
-      reason: "Local branch has no commits ahead of upstream.",
-      deployImpact: "none",
-    };
-  }
-  if (serverUnknown) {
-    return {
-      decision: coolifyPartial ? "push_blocked_until_resource_inventory_complete" : "push_blocked_until_coolify_ready",
-      pushAllowed: false,
-      reason: "Push may trigger redeploy, but Coolify team/project/resource/server posture is not ready.",
-      deployImpact: "auto-redeploy expected but unsafe to trust",
-    };
-  }
-  if (sourceControlBlocked) {
-    return {
-      decision: "push_blocked_by_unclosed_source_control_lane",
-      pushAllowed: false,
-      reason: "Source-control report still contains behavior/risk lanes requiring specialist review.",
-      deployImpact: "blocked",
-    };
-  }
-  if (!hasCode && repo.ahead < 3) {
-    return {
-      decision: "hold_for_batch",
-      pushAllowed: false,
-      reason: "Ahead commits look low-risk; hold until a meaningful release batch or blocker exists.",
-      deployImpact: "none_or_batch",
-    };
-  }
-  return {
-    decision: "push_candidate_requires_ops_verification",
-    pushAllowed: true,
-    reason: "Local branch is clean, ahead of upstream, and has a meaningful batch. Ops must verify post-push Coolify redeploy where applicable.",
-    deployImpact: deployAutoExpected ? "auto-redeploy expected" : "none_or_batch",
-  };
 }
 
 function renderMarkdown(output) {
@@ -192,11 +108,21 @@ const sourceControlByName = new Map((sourceControl.repos ?? []).map((repo) => [r
 const projects = await resolveProjects();
 const projectReports = projects.map((name) => {
   const repo = statusFor(name);
-  const decision = releaseDecision(repo, sourceControlByName.get(name), coolifyReport);
+  const batchKinds = new Set([
+    ...dirtyKinds(repo),
+    ...repo.committedPaths.map(changedPathKind),
+  ]);
+  const deploymentReadiness = projectDeploymentReadiness(coolifyReport, name);
+  const decision = releaseDecision({ ...repo, batchKinds: [...batchKinds] }, sourceControlByName.get(name), deploymentReadiness);
+  const { committedPaths, ...boundedRepo } = repo;
   return {
-    ...repo,
+    ...boundedRepo,
     dirtyCount: repo.dirtyLines.length,
     dirtyKinds: [...dirtyKinds(repo)],
+    committedPathCount: repo.committedPaths.length,
+    committedPathSample: repo.committedPaths.slice(0, 20),
+    batchKinds: [...batchKinds],
+    deploymentReadiness: deploymentReadiness?.overall ?? "unknown",
     ...decision,
   };
 });

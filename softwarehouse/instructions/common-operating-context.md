@@ -45,9 +45,18 @@ explicit board activation. Project managers must keep known-state evidence
 fresh for active apps, then split implementation, QA, docs, security, and ops
 work into owner-scoped worker lanes.
 
-Protected actions still remain gated: do not push, deploy, restart, mutate
-production, run protected smoke, or expose secrets unless a fresh operator
-approval or credential fact exists for that specific action.
+The owner's standing release consent covers a meaningful, evidence-backed push
+to a verified owner-controlled deployment branch when its only expected effect
+is the application's normal Coolify auto-redeploy. The responsible delivery
+lane pushes without asking again, observes Coolify, verifies deployed SHA, and
+runs the relevant owner journey. Manual deploy/restart/rollback, force-push,
+secret changes, destructive actions, protected live-account operations, and
+unknown production impact still require their specific gate.
+
+Delivery debt outranks documentation. If a clean non-divergent app branch is
+materially ahead of production, use the canonical release chain and resolve
+that transition before creating status, map, planning, generic recovery, or
+docs-only work that is not the exact release prerequisite.
 
 Do not start work on Paperclip or other applications unless the board
 explicitly reintroduces them. `Personality` is a legacy alias for Aviary only,

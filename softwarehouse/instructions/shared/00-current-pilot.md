@@ -111,9 +111,20 @@ Anti-token-waste rules:
 - Protected production gates are valid blocked outcomes. Retry only after a
   fresh operator/credential fact or explicit board approval.
 
-Protected actions still remain gated: do not push, deploy, restart, mutate
-production, run protected smoke, or expose secrets unless a fresh operator
-approval or credential fact exists for that specific action.
+The owner's standing release consent covers a meaningful, evidence-backed push
+to a verified owner-controlled deployment branch when its only expected effect
+is the application's normal Coolify auto-redeploy. Do not ask again for that
+qualifying push; observe the redeploy and verify deployed SHA plus the relevant
+owner journey. Manual deploy/restart/rollback, force-push, secret changes,
+destructive actions, protected live-account operations, and unknown production
+impact still require their specific gate.
+
+Delivery debt outranks documentation. When an active app has a clean,
+non-divergent, meaningful batch materially ahead of production, reuse its
+canonical release chain and execute the release or resolve its first exact
+blocker before opening status, map, architecture, planning, generic recovery,
+or docs-only work. A plan, report, issue tree, local test, and local commit are
+not owner-visible milestones.
 
 Current deployment model, until staging exists:
 
