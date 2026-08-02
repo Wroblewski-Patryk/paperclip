@@ -2601,7 +2601,14 @@ test("recovery janitor only restores reusable routines after their own fresh suc
   assert.match(source, /deferred_serial_repair/);
   assert.match(source, /\["\[Softwarehouse\] Continuation watchdog", 0\]/);
   assert.match(source, /const reusableRoutineRestoreCandidate = canReuseIssueRunsForRecurringRestore\(detail, blockers\);/);
-  assert.match(source, /const issueRuns = clearBlockedResolution \|\| !reusableRoutineRestoreCandidate\s+\? \[\]\s+: await request\("GET", `\/api\/issues\/\$\{detail\.id\}\/runs`\);/);
+  assert.match(source, /const recoveryAttemptAt = detail\.activeRecoveryAction\.lastAttemptAt;/);
+  assert.match(source, /!reusableRoutineRestoreCandidate \|\| !recoveryAttemptAt/);
+  assert.match(source, /\/api\/issues\/\$\{detail\.id\}\/recovery-run-evidence\?recoveryActionId=\$\{encodeURIComponent\(detail\.activeRecoveryAction\.id\)\}&finishedAfter=\$\{encodeURIComponent\(recoveryAttemptAt\)\}/);
+  assert.doesNotMatch(source, /await request\("GET", `\/api\/issues\/\$\{detail\.id\}\/runs`\)/);
+  assert.match(source, /const controller = new AbortController\(\);/);
+  assert.match(source, /reason: "candidate_scan_timeout"/);
+  assert.match(source, /if \(apply && activeRunCount > 0\)/);
+  assert.match(source, /Refusing to resolve recovery actions while \$\{activeRunCount\} run\(s\) are active\./);
 
   const issue = {
     id: "issue-id",

@@ -123,9 +123,13 @@ for (const issue of issues.filter((candidate) => candidate.activeRecoveryAction?
   const sourceAlreadyBlocked = detail.status === "blocked";
   const clearBlockedResolution = sourceAlreadyBlocked && blockers.length > 0;
   const reusableRoutineRestoreCandidate = canReuseIssueRunsForRecurringRestore(detail, blockers);
-  const issueRuns = clearBlockedResolution || !reusableRoutineRestoreCandidate
+  const recoveryAttemptAt = detail.activeRecoveryAction.lastAttemptAt;
+  const issueRuns = clearBlockedResolution || !reusableRoutineRestoreCandidate || !recoveryAttemptAt
     ? []
-    : await request("GET", `/api/issues/${detail.id}/runs`);
+    : await request(
+        "GET",
+        `/api/issues/${detail.id}/recovery-run-evidence?recoveryActionId=${encodeURIComponent(detail.activeRecoveryAction.id)}&finishedAfter=${encodeURIComponent(recoveryAttemptAt)}`,
+      );
   const recurringRestore = planReusableRoutineRecoveryRestore({
     issue: detail,
     activeBlockers: blockers,

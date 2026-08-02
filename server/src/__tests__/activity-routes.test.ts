@@ -6,6 +6,7 @@ const mockActivityService = vi.hoisted(() => ({
   list: vi.fn(),
   forIssue: vi.fn(),
   runsForIssue: vi.fn(),
+  successfulRecoveryRunEvidenceForIssue: vi.fn(),
   issuesForRun: vi.fn(),
   create: vi.fn(),
 }));
@@ -155,6 +156,112 @@ describe.sequential("activity routes", () => {
     expect(mockIssueService.getById).not.toHaveBeenCalled();
     expect(mockActivityService.runsForIssue).toHaveBeenCalledWith("company-1", "issue-uuid-1");
     expect(res.body).toEqual([{ runId: "run-1", adapterType: "codex_local" }]);
+  });
+
+  it("loads bounded recovery-run evidence without hydrating the full issue run ledger", async () => {
+    const recoveryActionId = "11111111-1111-4111-8111-111111111111";
+    const finishedAfter = new Date("2026-07-14T21:09:05.100Z");
+    mockIssueService.getByIdentifier.mockResolvedValue({
+      id: "issue-uuid-1",
+      companyId: "company-1",
+      projectId: "project-1",
+      parentId: null,
+      assigneeAgentId: "agent-1",
+      assigneeUserId: null,
+      status: "blocked",
+    });
+    mockActivityService.successfulRecoveryRunEvidenceForIssue.mockResolvedValue([
+      {
+        runId: "run-1",
+        status: "succeeded",
+        finishedAt: "2026-07-14T21:09:18.073Z",
+        contextSnapshot: {
+          issueId: "issue-uuid-1",
+          source: "issue_recovery_action",
+          recoveryActionId,
+        },
+      },
+    ]);
+
+    const app = await createApp();
+    const res = await requestApp(app, (baseUrl) => request(baseUrl)
+      .get("/api/issues/LUC-1902/recovery-run-evidence")
+      .query({ recoveryActionId, finishedAfter: finishedAfter.toISOString() }));
+
+    expect(res.status).toBe(200);
+    expect(mockAccessService.decide).toHaveBeenCalledWith({
+      actor: expect.objectContaining({ type: "board", companyIds: ["company-1"] }),
+      action: "issue:read",
+      resource: {
+        type: "issue",
+        companyId: "company-1",
+        issueId: "issue-uuid-1",
+        projectId: "project-1",
+        parentIssueId: null,
+        assigneeAgentId: "agent-1",
+        assigneeUserId: null,
+        status: "blocked",
+      },
+    });
+    expect(mockActivityService.successfulRecoveryRunEvidenceForIssue).toHaveBeenCalledWith(
+      "company-1",
+      "issue-uuid-1",
+      recoveryActionId,
+      finishedAfter,
+    );
+    expect(mockActivityService.runsForIssue).not.toHaveBeenCalled();
+    expect(res.body).toEqual([
+      expect.objectContaining({ runId: "run-1", status: "succeeded" }),
+    ]);
+  });
+
+  it("rejects cross-company recovery-run evidence lookups before querying runs", async () => {
+    const recoveryActionId = "22222222-2222-4222-8222-222222222222";
+    mockIssueService.getById.mockResolvedValue({
+      id: "issue-uuid-2",
+      companyId: "company-2",
+      projectId: null,
+      parentId: null,
+      assigneeAgentId: "agent-2",
+      assigneeUserId: null,
+      status: "blocked",
+    });
+
+    const app = await createApp();
+    const res = await requestApp(app, (baseUrl) => request(baseUrl)
+      .get("/api/issues/issue-uuid-2/recovery-run-evidence")
+      .query({ recoveryActionId, finishedAfter: "2026-07-14T21:09:05.100Z" }));
+
+    expect(res.status).toBe(403);
+    expect(mockAccessService.decide).not.toHaveBeenCalled();
+    expect(mockActivityService.successfulRecoveryRunEvidenceForIssue).not.toHaveBeenCalled();
+    expect(mockActivityService.runsForIssue).not.toHaveBeenCalled();
+  });
+
+  it("enforces issue-read authorization for recovery-run evidence lookups", async () => {
+    const recoveryActionId = "33333333-3333-4333-8333-333333333333";
+    mockIssueService.getById.mockResolvedValue({
+      id: "issue-uuid-3",
+      companyId: "company-1",
+      projectId: null,
+      parentId: null,
+      assigneeAgentId: "agent-3",
+      assigneeUserId: null,
+      status: "blocked",
+    });
+    mockAccessService.decide.mockResolvedValue({ allowed: false });
+
+    const app = await createApp();
+    const res = await requestApp(app, (baseUrl) => request(baseUrl)
+      .get("/api/issues/issue-uuid-3/recovery-run-evidence")
+      .query({ recoveryActionId, finishedAfter: "2026-07-14T21:09:05.100Z" }));
+
+    expect(res.status).toBe(403);
+    expect(mockAccessService.decide).toHaveBeenCalledWith(expect.objectContaining({
+      action: "issue:read",
+    }));
+    expect(mockActivityService.successfulRecoveryRunEvidenceForIssue).not.toHaveBeenCalled();
+    expect(mockActivityService.runsForIssue).not.toHaveBeenCalled();
   });
 
   it("requires company access before creating activity events", async () => {

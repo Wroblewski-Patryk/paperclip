@@ -214,6 +214,161 @@ describeEmbeddedPostgres("activity service", () => {
     });
   });
 
+  it("returns only the newest qualifying recovery run from a high-history issue", async () => {
+    const companyId = randomUUID();
+    const otherCompanyId = randomUUID();
+    const agentId = randomUUID();
+    const otherAgentId = randomUUID();
+    const issueId = randomUUID();
+    const recoveryActionId = randomUUID();
+    const finishedAfter = new Date("2026-07-14T21:09:05.100Z");
+    const newestQualifyingRunId = randomUUID();
+
+    await db.insert(companies).values([
+      {
+        id: companyId,
+        name: "Paperclip",
+        issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+        requireBoardApprovalForNewAgents: false,
+      },
+      {
+        id: otherCompanyId,
+        name: "Other company",
+        issuePrefix: `T${otherCompanyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+        requireBoardApprovalForNewAgents: false,
+      },
+    ]);
+
+    await db.insert(agents).values([
+      {
+        id: agentId,
+        companyId,
+        name: "Recovery worker",
+        role: "engineer",
+        status: "idle",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      },
+      {
+        id: otherAgentId,
+        companyId: otherCompanyId,
+        name: "Other recovery worker",
+        role: "engineer",
+        status: "idle",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      },
+    ]);
+
+    const historicalRuns = Array.from({ length: 740 }, (_, index) => ({
+      id: randomUUID(),
+      companyId,
+      agentId,
+      invocationSource: "assignment" as const,
+      status: "succeeded" as const,
+      startedAt: new Date(finishedAfter.getTime() - ((index + 2) * 60_000)),
+      finishedAt: new Date(finishedAfter.getTime() - ((index + 1) * 60_000)),
+      contextSnapshot: {
+        issueId,
+        source: "issue_recovery_action",
+        recoveryActionId,
+      },
+    }));
+    await db.insert(heartbeatRuns).values(historicalRuns);
+
+    await db.insert(heartbeatRuns).values([
+      {
+        id: randomUUID(),
+        companyId,
+        agentId,
+        invocationSource: "assignment",
+        status: "succeeded",
+        finishedAt: new Date("2026-07-14T21:09:10.000Z"),
+        contextSnapshot: {
+          issueId,
+          source: "issue_recovery_action",
+          recoveryActionId,
+        },
+      },
+      {
+        id: newestQualifyingRunId,
+        companyId,
+        agentId,
+        invocationSource: "assignment",
+        status: "succeeded",
+        finishedAt: new Date("2026-07-14T21:09:18.073Z"),
+        contextSnapshot: {
+          issueId,
+          source: "issue_recovery_action",
+          recoveryActionId,
+        },
+      },
+      {
+        id: randomUUID(),
+        companyId,
+        agentId,
+        invocationSource: "assignment",
+        status: "failed",
+        finishedAt: new Date("2026-07-14T21:09:20.000Z"),
+        contextSnapshot: {
+          issueId,
+          source: "issue_recovery_action",
+          recoveryActionId,
+        },
+      },
+      {
+        id: randomUUID(),
+        companyId,
+        agentId,
+        invocationSource: "assignment",
+        status: "succeeded",
+        finishedAt: new Date("2026-07-14T21:09:21.000Z"),
+        contextSnapshot: {
+          issueId,
+          source: "issue_recovery_action",
+          recoveryActionId: randomUUID(),
+        },
+      },
+      {
+        id: randomUUID(),
+        companyId: otherCompanyId,
+        agentId: otherAgentId,
+        invocationSource: "assignment",
+        status: "succeeded",
+        finishedAt: new Date("2026-07-14T21:09:22.000Z"),
+        contextSnapshot: {
+          issueId,
+          source: "issue_recovery_action",
+          recoveryActionId,
+        },
+      },
+    ]);
+
+    const runs = await activityService(db).successfulRecoveryRunEvidenceForIssue(
+      companyId,
+      issueId,
+      recoveryActionId,
+      finishedAfter,
+    );
+
+    expect(runs).toEqual([
+      {
+        runId: newestQualifyingRunId,
+        status: "succeeded",
+        finishedAt: new Date("2026-07-14T21:09:18.073Z"),
+        contextSnapshot: {
+          issueId,
+          source: "issue_recovery_action",
+          recoveryActionId,
+        },
+      },
+    ]);
+  });
+
   it("backfills missing liveness for completed issue runs before returning the ledger", async () => {
     const companyId = randomUUID();
     const agentId = randomUUID();

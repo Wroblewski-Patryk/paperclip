@@ -18,6 +18,11 @@ const createActivitySchema = z.object({
   details: z.record(z.unknown()).optional().nullable(),
 });
 
+const recoveryRunEvidenceQuerySchema = z.object({
+  recoveryActionId: z.string().uuid(),
+  finishedAfter: z.string().datetime({ offset: true }).transform((value) => new Date(value)),
+});
+
 export function activityRoutes(db: Db) {
   const router = Router();
   const svc = activityService(db);
@@ -123,6 +128,25 @@ export function activityRoutes(db: Db) {
     assertCompanyAccess(req, issue.companyId);
     if (!(await assertIssueReadAllowed(req, res, issue))) return;
     const result = await svc.runsForIssue(issue.companyId, issue.id);
+    res.json(result);
+  });
+
+  router.get("/issues/:id/recovery-run-evidence", async (req, res) => {
+    const rawId = req.params.id as string;
+    const issue = await resolveIssueByRef(rawId);
+    if (!issue) {
+      res.status(404).json({ error: "Issue not found" });
+      return;
+    }
+    assertCompanyAccess(req, issue.companyId);
+    if (!(await assertIssueReadAllowed(req, res, issue))) return;
+    const query = recoveryRunEvidenceQuerySchema.parse(req.query);
+    const result = await svc.successfulRecoveryRunEvidenceForIssue(
+      issue.companyId,
+      issue.id,
+      query.recoveryActionId,
+      query.finishedAfter,
+    );
     res.json(result);
   });
 

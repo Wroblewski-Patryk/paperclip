@@ -2806,6 +2806,21 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
+  path: "/api/issues/{id}/recovery-run-evidence",
+  tags: ["activity"],
+  summary: "Find bounded successful recovery-run evidence for an issue",
+  request: {
+    params: z.object({ id: z.string() }),
+    query: z.object({
+      recoveryActionId: z.string().uuid(),
+      finishedAfter: z.string().datetime({ offset: true }),
+    }),
+  },
+  responses: { 200: r.ok(), 400: r.badRequest, 401: r.unauthorized, 403: r.forbidden, 404: r.notFound },
+});
+
+registry.registerPath({
+  method: "get",
   path: "/api/companies/{companyId}/situation",
   tags: ["dashboard"],
   summary: "Get deterministic company situation data",

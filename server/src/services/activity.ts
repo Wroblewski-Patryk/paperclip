@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   activityLog,
@@ -515,6 +515,33 @@ export function activityService(db: Db) {
         };
       });
     },
+
+    successfulRecoveryRunEvidenceForIssue: (
+      companyId: string,
+      issueId: string,
+      recoveryActionId: string,
+      finishedAfter: Date,
+    ) =>
+      db
+        .select({
+          runId: heartbeatRuns.id,
+          status: heartbeatRuns.status,
+          finishedAt: heartbeatRuns.finishedAt,
+          contextSnapshot: heartbeatRuns.contextSnapshot,
+        })
+        .from(heartbeatRuns)
+        .where(
+          and(
+            eq(heartbeatRuns.companyId, companyId),
+            eq(heartbeatRuns.status, "succeeded"),
+            gte(heartbeatRuns.finishedAt, finishedAfter),
+            sql`${heartbeatRuns.contextSnapshot} ->> 'issueId' = ${issueId}`,
+            sql`${heartbeatRuns.contextSnapshot} ->> 'source' = 'issue_recovery_action'`,
+            sql`${heartbeatRuns.contextSnapshot} ->> 'recoveryActionId' = ${recoveryActionId}`,
+          ),
+        )
+        .orderBy(desc(heartbeatRuns.finishedAt), desc(heartbeatRuns.createdAt))
+        .limit(1),
 
     issuesForRun: async (runId: string) => {
       const run = await db
