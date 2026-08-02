@@ -73,6 +73,17 @@ export interface AgentChainOfCommandEntry {
   title: string | null;
 }
 
+export type AgentConfigurationView =
+  | {
+      classification: "authoritative";
+      authoritative: true;
+    }
+  | {
+      classification: "restricted";
+      authoritative: false;
+      reason: "agent_config_read_denied";
+    };
+
 export interface Agent {
   id: string;
   companyId: string;
@@ -103,6 +114,21 @@ export interface AgentDetail extends Agent {
   chainOfCommand: AgentChainOfCommandEntry[];
   access: AgentAccessState;
 }
+
+export interface AuthoritativeAgentRead extends Agent {
+  configurationView: Extract<AgentConfigurationView, { classification: "authoritative" }>;
+}
+
+export interface RestrictedAgentRead extends Omit<Agent, "adapterConfig" | "runtimeConfig"> {
+  configurationView: Extract<AgentConfigurationView, { classification: "restricted" }>;
+}
+
+export type AgentRead = AuthoritativeAgentRead | RestrictedAgentRead;
+
+export type AgentDetailRead = AgentRead & {
+  chainOfCommand: AgentChainOfCommandEntry[];
+  access: AgentAccessState;
+};
 
 export interface AgentKeyCreated {
   id: string;

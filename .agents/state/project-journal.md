@@ -4970,3 +4970,56 @@ codes. The classifier and comment-read path now degrade to bounded Paperclip
 API reads for this transient condition. Regression coverage passes and a
 post-fix dry-run read the live board successfully without restart or broad
 process termination.
+
+## 2026-08-03 - Compatibility drain reached maintenance after recovery leakage
+
+The company-level compatibility freeze was confirmed as `paused`, but it did
+not make the drain monotonic: assignment recovery recreated queued runs for
+LUC-2390, LUC-2397, and LUC-2398. This is live evidence for canonical
+admission-controller issue LUC-2399; native draining must durably defer and
+deduplicate wakeups rather than cancel and later recreate them.
+
+The first scoped pause-hold request returned an unknown outcome when the API
+connection reset. Readback after registered service recovery proved that only
+the LUC-2390 hold committed (`da2632f4-4b9c-4915-afca-8c750bd91618`); LUC-2397
+and LUC-2398 received no hold. No blind retry was made. The three recreated
+runs later became cancelled, and detached LUC-2384 run
+`00c2281a-15b1-48bb-90b4-94adbf702d67` became failed without signalling its
+persisted PID 19980. The bounded company run readback then showed zero running
+and zero queued runs, so the maintenance packet moved from `draining` to
+`maintenance` while the company remained paused.
+
+Runtime recovery exposed a second identity defect: one automatic server start
+trusted stale PostgreSQL PID 4120 and failed with `ECONNREFUSED` on 54329. The
+registered service tree subsequently recovered strict listeners as Paperclip
+PID 25900 and PostgreSQL PID 37336; health returned HTTP 200. Existing dirty
+work now contains process-start identity checks, cancellation/recovery
+suppression, and targeted regressions. A separate single-worker Vitest process
+was already validating `heartbeat-process-recovery.test.ts`; Teachar did not
+overlap or terminate it. Canonical evidence is
+`report/paperclip-maintenance-window.latest.json`; fresh verification remains
+required before reopening.
+
+Targeted verification subsequently completed: process recovery passed 53 tests
+with one platform-specific skip; agent permission and OpenAPI routes passed 49
+tests; server typecheck, janitor source contracts, runtime topology, workspace
+boundary, and cross-project isolation all passed. The live Teachar automation
+prompt was read back and proved equivalent to the canonical prompt. Source
+control closure is the remaining gate before a controlled one-action reopen.
+
+## 2026-08-03 - Follow-up PID review fails unverified identity closed
+
+A maintenance review found that the first PID-reuse repair protected only the
+explicit `mismatched` state. Detached cancellation still called the termination
+primitive when the start-time probe returned `unverified`, which contradicts
+the fail-closed operating contract and could signal an unrelated process when
+launch evidence is missing or unreadable.
+
+The scoped correction changes detached cancellation to signal only a
+positively `matched` PID identity and adds a child-process regression proving
+that an unverified PID remains alive after cancellation. LuckySparrow remains
+paused with zero running, queued, and scheduled-retry runs. Verification is
+intentionally deferred within the same maintenance packet because a broad
+single-worker UI Vitest suite already occupies the workstation; no second
+embedded-Postgres suite was started in parallel. Reopen and source-control
+closure remain blocked until the focused regression result is captured.

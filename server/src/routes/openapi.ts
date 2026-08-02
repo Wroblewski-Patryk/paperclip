@@ -401,8 +401,38 @@ const ErrorSchema = registry.register(
   z.object({ error: z.string() }),
 );
 
+const AgentConfigurationViewZodSchema = z.discriminatedUnion("classification", [
+    z.object({
+      classification: z.literal("authoritative"),
+      authoritative: z.literal(true),
+    }),
+    z.object({
+      classification: z.literal("restricted"),
+      authoritative: z.literal(false),
+      reason: z.literal("agent_config_read_denied"),
+    }),
+  ]);
+
+const AgentConfigurationViewSchema = registry.register(
+  "AgentConfigurationView",
+  AgentConfigurationViewZodSchema,
+);
+
+const AgentReadZodSchema = z.object({
+    id: z.string(),
+    companyId: z.string(),
+    adapterConfig: z.record(z.unknown()).optional(),
+    runtimeConfig: z.record(z.unknown()).optional(),
+    configurationView: AgentConfigurationViewZodSchema,
+  }).passthrough();
+
+const AgentReadSchema = registry.register(
+  "AgentRead",
+  AgentReadZodSchema,
+);
+
 const responses = {
-  ok: (schema: z.ZodTypeAny = z.record(z.unknown())) => ({
+  ok: (schema: unknown = z.record(z.unknown())) => ({
     description: "Success",
     content: { "application/json": { schema } },
   }),
@@ -941,8 +971,9 @@ registry.registerPath({
   path: "/api/companies/{companyId}/agents",
   tags: ["agents"],
   summary: "List agents in a company",
+  description: "Authorized responses include authoritative adapter/runtime configuration. Restricted responses omit both configuration fields and classify configurationView as non-authoritative.",
   request: { params: z.object({ companyId: z.string() }) },
-  responses: { 200: r.ok(), 401: r.unauthorized },
+  responses: { 200: r.ok({ type: "array", items: AgentReadSchema }), 401: r.unauthorized },
 });
 
 registry.registerPath({
@@ -1016,8 +1047,9 @@ registry.registerPath({
   path: "/api/agents/{id}",
   tags: ["agents"],
   summary: "Get an agent",
+  description: "Authorized responses include authoritative adapter/runtime configuration. Restricted responses omit both configuration fields and classify configurationView as non-authoritative.",
   request: { params: z.object({ id: z.string() }) },
-  responses: { 200: r.ok(), 401: r.unauthorized, 404: r.notFound },
+  responses: { 200: r.ok(AgentReadSchema), 401: r.unauthorized, 404: r.notFound },
 });
 
 registry.registerPath({
@@ -1122,7 +1154,7 @@ registry.registerPath({
   tags: ["agents"],
   summary: "Get agent configuration",
   request: { params: z.object({ id: z.string() }) },
-  responses: { 200: r.ok(), 401: r.unauthorized, 404: r.notFound },
+  responses: { 200: r.ok(), 401: r.unauthorized, 403: r.forbidden, 404: r.notFound },
 });
 
 registry.registerPath({

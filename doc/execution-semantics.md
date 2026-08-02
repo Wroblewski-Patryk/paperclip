@@ -504,6 +504,24 @@ Cheap model profiles are only for status-only operational recovery overhead. Pap
 
 Automatic retries that can continue source work must use the original/normal model lane. This includes failed source-work retries, process-loss retries, transient/scheduled retries, max-turn continuations, source-assignee continuations, assigned-todo dispatch recovery, and any run that can update repo files, issue documents, plans, work products, or attachments. When a cheap status-only recovery determines that actual work remains, it must hand back to a normal-model worker run before source work or persistent deliverable updates resume. Cheap recovery hints must be scrubbed from copied retry, resume, child, and downstream source-work contexts.
 
+### 9.4 Detached process identity and maintenance cancellation
+
+A persisted PID is only a lookup key. PID existence does not prove that the
+original adapter child still owns it. When Paperclip no longer has the
+in-memory process handle, it compares the persisted process launch timestamp
+with the observed operating-system process start timestamp. A mismatch means
+the PID belongs to a different process identity: the run is reaped as process
+loss, and Paperclip must not signal or terminate the process currently using
+that PID. If identity cannot be verified, cleanup fails conservatively rather
+than treating the PID as authority to kill.
+
+Janitor and maintenance cancellation are distinct from ordinary user
+cancellation. They release the stale execution lock while suppressing
+automatic assignment/continuation recovery and next-run promotion. This keeps
+cleanup monotonic: cancelling an obsolete tail cannot recreate an equivalent
+queued tail behind the same agent. The issue and run ledger remain inspectable
+so a later selector can choose one fresh, deduplicated execution path.
+
 ## 10. Startup and Periodic Reconciliation
 
 Startup recovery and periodic recovery are different from normal wakeup delivery.

@@ -428,6 +428,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     runStatus?: "running" | "queued" | "failed";
     processPid?: number | null;
     processGroupId?: number | null;
+    processStartedAt?: Date | null;
     processLossRetryCount?: number;
     includeIssue?: boolean;
     runErrorCode?: string | null;
@@ -487,6 +488,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
         : { ...(input?.contextSnapshot ?? {}), issueId },
       processPid: input?.processPid ?? null,
       processGroupId: input?.processGroupId ?? null,
+      processStartedAt: input?.processStartedAt ?? null,
       processLossRetryCount: input?.processLossRetryCount ?? 0,
       errorCode: input?.runErrorCode ?? null,
       error: input?.runError ?? null,
@@ -1012,6 +1014,28 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       .where(eq(agentWakeupRequests.id, wakeupRequestId))
       .then((rows) => rows[0] ?? null);
     expect(wakeup?.status).toBe("claimed");
+  });
+
+  it("reaps a detached run when the pid was reused by a different process identity", async () => {
+    const child = spawnAliveProcess();
+    childProcesses.add(child);
+    expect(child.pid).toBeTypeOf("number");
+
+    const { runId } = await seedRunFixture({
+      processPid: child.pid ?? null,
+      processStartedAt: new Date("2020-01-01T00:00:00.000Z"),
+      includeIssue: false,
+    });
+    const heartbeat = heartbeatService(db);
+
+    const result = await heartbeat.reapOrphanedRuns();
+    expect(result).toMatchObject({ reaped: 1, runIds: [runId] });
+    expect(isPidAlive(child.pid)).toBe(true);
+
+    const run = await heartbeat.getRun(runId);
+    expect(run?.status).toBe("failed");
+    expect(run?.errorCode).toBe("process_lost");
+    expect(run?.error).toContain("different process identity");
   });
 
   it("queues exactly one retry when the recorded local pid is dead", async () => {
@@ -1882,6 +1906,53 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       timeoutConfigured: false,
       timeoutFired: false,
     });
+  });
+
+  it("suppresses automatic issue recovery during janitor-style cancellation", async () => {
+    const { agentId, runId, issueId } = await seedRunFixture({ agentStatus: "idle" });
+    const heartbeat = heartbeatService(db);
+
+    const cancelled = await heartbeat.cancelRun(runId, { suppressAutomaticRecovery: true });
+    expect(cancelled?.status).toBe("cancelled");
+
+    const runs = await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.agentId, agentId));
+    expect(runs).toHaveLength(1);
+
+    const issue = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0] ?? null);
+    expect(issue?.status).toBe("in_progress");
+    expect(issue?.executionRunId).toBeNull();
+  });
+
+  it("does not terminate a reused pid while cancelling a detached run", async () => {
+    const child = spawnAliveProcess();
+    childProcesses.add(child);
+    expect(child.pid).toBeTypeOf("number");
+    const { runId } = await seedRunFixture({
+      processPid: child.pid ?? null,
+      processStartedAt: new Date("2020-01-01T00:00:00.000Z"),
+      includeIssue: false,
+    });
+    const heartbeat = heartbeatService(db);
+
+    const cancelled = await heartbeat.cancelRun(runId, { suppressAutomaticRecovery: true });
+    expect(cancelled?.status).toBe("cancelled");
+    expect(isPidAlive(child.pid)).toBe(true);
+  });
+
+  it("does not terminate an unverified pid while cancelling a detached run", async () => {
+    const child = spawnAliveProcess();
+    childProcesses.add(child);
+    expect(child.pid).toBeTypeOf("number");
+    const { runId } = await seedRunFixture({
+      processPid: child.pid ?? null,
+      processStartedAt: null,
+      includeIssue: false,
+    });
+    const heartbeat = heartbeatService(db);
+
+    const cancelled = await heartbeat.cancelRun(runId, { suppressAutomaticRecovery: true });
+    expect(cancelled?.status).toBe("cancelled");
+    expect(isPidAlive(child.pid)).toBe(true);
   });
 
   it("releases workspace resource claims for direct and agent-wide cancellation", async () => {

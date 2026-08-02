@@ -890,3 +890,34 @@ Current evidence:
   the janitor's database-unavailable classifier omitted. It now uses bounded
   API fallbacks for both control data and comments instead of failing the whole
   control tick or restarting the canonical database.
+
+## 2026-08-03 - PID existence and recovery fan-out can deadlock one agent
+
+Observed pattern: a detached CTO run remained `running` for roughly 19 hours
+because its persisted PID had been reused by a PostgreSQL background worker.
+Twelve never-started runs accumulated behind the same WIP=1 agent, including
+the issue intended to evaluate the stale head. Cancelling queued tails through
+the old endpoint created three replacement recovery runs.
+
+Standing rule:
+
+- PID existence is not process ownership. Compare the persisted process start
+  timestamp to the observed process start timestamp before retaining or
+  signalling a detached process. Only a positive identity match permits a
+  persisted-process signal; both `mismatched` and `unverified` fail closed.
+- Recovery for a blocked executor cannot be queued behind that executor.
+- Janitor cleanup is monotonic and suppresses automatic issue recovery. Always
+  prove that live/queued counts decreased and did not rebound.
+- A paused company freezes admission but does not drain queued work. Reconcile
+  stale/detached heads and deduplicate wakeups before reopening.
+
+Current evidence:
+
+- Live startup reaped run `00c2281a-15b1-48bb-90b4-94adbf702d67` without
+  signalling the canonical PostgreSQL process.
+- Twelve historical queued runs and four replacement/retry runs were cancelled;
+  final live readback is zero and no cancellation recovery was recreated.
+- The focused recovery suite passes 53 tests with one platform-specific skip.
+- A follow-up review found and corrected the unverified-identity cancellation
+  gap. Its focused regression remains pending until the already-running broad
+  UI test releases the single workstation test slot.

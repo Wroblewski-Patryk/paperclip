@@ -396,10 +396,21 @@ describe.sequential("agent permission routes", () => {
 
   it("redacts agent detail for authenticated company members without agent admin permission", async () => {
     mockAccessService.canUser.mockResolvedValue(false);
-    mockAccessService.decide.mockResolvedValue({
-      allowed: true,
-      reason: "allow_company_membership",
-      explanation: "Company members may read redacted agent details",
+    mockAccessService.decide.mockImplementation(async (input: { action?: string }) => ({
+      allowed: input.action !== "agent_config:read",
+      reason: input.action === "agent_config:read" ? "deny_missing_grant" : "allow_company_membership",
+      explanation: input.action === "agent_config:read"
+        ? "Company member lacks configuration-read permission"
+        : "Company members may read redacted agent details",
+    }));
+    mockAgentService.getById.mockResolvedValue({
+      ...baseAgent,
+      adapterConfig: {
+        env: {
+          COOLIFY_TOKEN: { type: "secret_ref", secretId: "opaque-secret-id" },
+        },
+      },
+      runtimeConfig: { modelProfiles: { cheap: { enabled: true } } },
     });
 
     const app = await createApp({
@@ -413,17 +424,34 @@ describe.sequential("agent permission routes", () => {
     const res = await requestApp(app, (baseUrl) => request(baseUrl).get(`/api/agents/${agentId}`));
 
     expect(res.status).toBe(200);
-    expect(res.body.adapterConfig).toEqual({});
-    expect(res.body.runtimeConfig).toEqual({});
+    expect(res.body).not.toHaveProperty("adapterConfig");
+    expect(res.body).not.toHaveProperty("runtimeConfig");
+    expect(res.body.configurationView).toEqual({
+      classification: "restricted",
+      authoritative: false,
+      reason: "agent_config_read_denied",
+    });
+    expect(JSON.stringify(res.body)).not.toContain("opaque-secret-id");
   }, 20_000);
 
   it("redacts company agent list for authenticated company members without agent admin permission", async () => {
     mockAccessService.canUser.mockResolvedValue(false);
-    mockAccessService.decide.mockResolvedValue({
-      allowed: true,
-      reason: "allow_company_membership",
-      explanation: "Company members may read the redacted agent list",
-    });
+    mockAccessService.decide.mockImplementation(async (input: { action?: string }) => ({
+      allowed: input.action !== "agent_config:read",
+      reason: input.action === "agent_config:read" ? "deny_missing_grant" : "allow_company_membership",
+      explanation: input.action === "agent_config:read"
+        ? "Company member lacks configuration-read permission"
+        : "Company members may read the redacted agent list",
+    }));
+    mockAgentService.list.mockResolvedValue([{
+      ...baseAgent,
+      adapterConfig: {
+        env: {
+          COOLIFY_TOKEN: { type: "secret_ref", secretId: "opaque-secret-id" },
+        },
+      },
+      runtimeConfig: { modelProfiles: { cheap: { enabled: true } } },
+    }]);
 
     const app = await createApp({
       type: "board",
@@ -439,11 +467,54 @@ describe.sequential("agent permission routes", () => {
     expect(res.body).toEqual([
       expect.objectContaining({
         id: agentId,
-        adapterConfig: {},
-        runtimeConfig: {},
+        configurationView: {
+          classification: "restricted",
+          authoritative: false,
+          reason: "agent_config_read_denied",
+        },
       }),
     ]);
+    expect(res.body[0]).not.toHaveProperty("adapterConfig");
+    expect(res.body[0]).not.toHaveProperty("runtimeConfig");
+    expect(JSON.stringify(res.body)).not.toContain("opaque-secret-id");
   });
+
+  it("marks authorized agent reads as authoritative", async () => {
+    const app = await createApp({
+      type: "board",
+      userId: "board-user",
+      source: "local_implicit",
+      isInstanceAdmin: true,
+      companyIds: [companyId],
+    });
+
+    const res = await requestApp(app, (baseUrl) => request(baseUrl).get(`/api/agents/${agentId}`));
+
+    expect(res.status).toBe(200);
+    expect(res.body.adapterConfig).toEqual({});
+    expect(res.body.runtimeConfig).toEqual({});
+    expect(res.body.configurationView).toEqual({
+      classification: "authoritative",
+      authoritative: true,
+    });
+  }, 20_000);
+
+  it("denies the dedicated configuration endpoint without config-read permission", async () => {
+    mockAccessService.canUser.mockResolvedValue(false);
+
+    const app = await createApp({
+      type: "board",
+      userId: "member-user",
+      source: "session",
+      isInstanceAdmin: false,
+      companyIds: [companyId],
+    });
+
+    const res = await requestApp(app, (baseUrl) => request(baseUrl).get(`/api/agents/${agentId}/configuration`));
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toContain("Missing test grant for agents:create");
+  }, 20_000);
 
   it("blocks agent updates for authenticated company members without agent admin permission", async () => {
     mockAccessService.canUser.mockResolvedValue(false);
@@ -1470,5 +1541,36 @@ describe.sequential("agent permission routes", () => {
 
     expect(res.status).toBe(403);
     expect(mockHeartbeatService.cancelRun).not.toHaveBeenCalled();
+  });
+
+  it("passes maintenance recovery suppression through heartbeat cancellation", async () => {
+    const run = {
+      id: "run-1",
+      companyId,
+      agentId,
+      status: "cancelled",
+    };
+    mockHeartbeatService.getRun.mockResolvedValue({ ...run, status: "queued" });
+    mockHeartbeatService.cancelRun.mockResolvedValue(run);
+
+    const app = await createApp({
+      type: "board",
+      userId: "board-user",
+      source: "session",
+      isInstanceAdmin: true,
+      companyIds: [companyId],
+    });
+
+    const res = await requestApp(app, (baseUrl) => request(baseUrl)
+      .post("/api/heartbeat-runs/run-1/cancel")
+      .send({ suppressAutomaticRecovery: true }));
+
+    expect(res.status).toBe(200);
+    expect(mockHeartbeatService.cancelRun).toHaveBeenCalledWith("run-1", {
+      suppressAutomaticRecovery: true,
+    });
+    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      details: { agentId, suppressAutomaticRecovery: true },
+    }));
   });
 });

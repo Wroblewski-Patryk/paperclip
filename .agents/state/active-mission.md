@@ -1,5 +1,19 @@
 # Active Mission
 
+## 2026-08-03 - Detached-run deadlock repaired; verification before reopen
+
+- The 19-hour CTO queue deadlock is cleared. Live run count is zero while the
+  LuckySparrow company remains paused for the maintenance gate.
+- Paperclip now validates persisted PID identity with process start time,
+  refuses to signal a mismatched PID, and reaps a mismatched detached run.
+- Janitor cancellation now suppresses automatic issue recovery and does not
+  start the next queued run; cleanup readback proved no regenerated queue.
+- Focused `heartbeat-process-recovery` evidence is green: 53 passed, 1 skipped.
+- Teachar is synchronized byte-for-byte with the canonical prompt. Targeted
+  recovery, API, OpenAPI, janitor, typecheck, topology, boundary, and isolation
+  evidence is green. Close the verified operating-system diff in source
+  control, then reopen and choose exactly one deduplicated next legal action.
+
 ## 2026-08-02 - Owner-Visible Delivery Debt Is The Primary Control Signal
 
 - Repair debt is now a first-class control signal. Active runs may not become
@@ -1170,3 +1184,23 @@ or the relevant owners explicitly classify them as not required with evidence.
   Soar warnings. Do not rewrite completed history merely to make the count zero.
 - The Teachar heartbeat must produce a concise Polish report every run, even
   when detected/repaired counts are zero.
+
+## 2026-08-03 - Paperclip maintenance window active
+
+- LuckySparrow remains company-paused under the compatibility maintenance
+  drain for LUC-2399; do not reopen until targeted validation, health,
+  topology, isolation, and one deduplicated selector/recovery pass succeed.
+- The drain currently has zero live and zero queued runs. Detached LUC-2384 is
+  terminal without signalling reused PID 19980, and the strict runtime has
+  recovered on Paperclip PID 25900 / PostgreSQL PID 37336.
+- Company pause alone is insufficient: assignment recovery recreated three
+  queued runs during draining. The native admission controller must persist
+  `deferred_by_maintenance` wakeups and replay each current wake at most once.
+- Focused process-recovery evidence is captured: 53 passed and one
+  platform-specific test skipped. API/OpenAPI evidence also passes 49 tests,
+  the server typecheck is green, and final bounded readback still confirms the
+  company paused with zero live/queued runs.
+- Follow-up review found the repair still signalled `unverified` persisted
+  identities. Cancellation now permits detached-process termination only for
+  a positive start-time match, with a new regression awaiting the workstation
+  test slot. Do not reopen or commit the packet before that regression passes.

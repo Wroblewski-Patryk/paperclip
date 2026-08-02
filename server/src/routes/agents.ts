@@ -569,7 +569,7 @@ export function agentRoutes(
     ]);
 
     return {
-      ...(options?.restricted ? redactForRestrictedAgentView(agent) : agent),
+      ...(options?.restricted ? redactForRestrictedAgentView(agent) : markAgentConfigurationAuthoritative(agent)),
       chainOfCommand,
       access: accessState,
     };
@@ -635,6 +635,11 @@ export function agentRoutes(
       title: agent.title,
       status: agent.status,
       trustPreset: LOW_TRUST_REVIEW_PRESET,
+      configurationView: {
+        classification: "restricted" as const,
+        authoritative: false as const,
+        reason: "agent_config_read_denied" as const,
+      },
     };
   }
 
@@ -1394,12 +1399,31 @@ export function agentRoutes(
     };
   }
 
-  function redactForRestrictedAgentView(agent: Awaited<ReturnType<typeof svc.getById>>) {
+  function markAgentConfigurationAuthoritative(agent: Awaited<ReturnType<typeof svc.getById>>) {
     if (!agent) return null;
     return {
       ...agent,
-      adapterConfig: {},
-      runtimeConfig: {},
+      configurationView: {
+        classification: "authoritative" as const,
+        authoritative: true as const,
+      },
+    };
+  }
+
+  function redactForRestrictedAgentView(agent: Awaited<ReturnType<typeof svc.getById>>) {
+    if (!agent) return null;
+    const {
+      adapterConfig: _adapterConfig,
+      runtimeConfig: _runtimeConfig,
+      ...identity
+    } = agent;
+    return {
+      ...identity,
+      configurationView: {
+        classification: "restricted" as const,
+        authoritative: false as const,
+        reason: "agent_config_read_denied" as const,
+      },
     };
   }
 
@@ -1739,7 +1763,7 @@ export function agentRoutes(
     const result = await filterAgentsForActor(req, await svc.list(companyId));
     const canReadConfigs = await actorCanReadConfigurationsForCompany(req, companyId);
     if (canReadConfigs) {
-      res.json(result);
+      res.json(result.map((agent) => markAgentConfigurationAuthoritative(agent)));
       return;
     }
     res.json(result.map((agent) => redactForRestrictedAgentView(agent)));
@@ -3374,7 +3398,8 @@ export function agentRoutes(
     if (existing) {
       assertCompanyAccess(req, existing.companyId);
     }
-    const run = await heartbeat.cancelRun(runId);
+    const suppressAutomaticRecovery = req.body?.suppressAutomaticRecovery === true;
+    const run = await heartbeat.cancelRun(runId, { suppressAutomaticRecovery });
 
     if (run) {
       await logActivity(db, {
@@ -3384,7 +3409,7 @@ export function agentRoutes(
         action: "heartbeat.cancelled",
         entityType: "heartbeat_run",
         entityId: run.id,
-        details: { agentId: run.agentId },
+        details: { agentId: run.agentId, suppressAutomaticRecovery },
       });
     }
 

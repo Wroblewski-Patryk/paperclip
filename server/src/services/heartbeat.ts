@@ -2801,6 +2801,60 @@ function isProcessAlive(pid: number | null | undefined) {
   }
 }
 
+// PID existence is not ownership proof: compare the persisted launch time too.
+const PROCESS_START_IDENTITY_TOLERANCE_MS = 5_000;
+
+async function readObservedProcessStartedAt(pid: number): Promise<Date | null> {
+  try {
+    if (process.platform === "win32") {
+      const { stdout } = await execFile(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `(Get-Process -Id ${pid} -ErrorAction Stop).StartTime.ToUniversalTime().ToString('o')`,
+        ],
+        { timeout: 5_000, windowsHide: true },
+      );
+      const observed = new Date(stdout.trim());
+      return Number.isNaN(observed.getTime()) ? null : observed;
+    }
+
+    const { stdout } = await execFile("ps", ["-o", "lstart=", "-p", String(pid)], { timeout: 5_000 });
+    const observed = new Date(stdout.trim());
+    return Number.isNaN(observed.getTime()) ? null : observed;
+  } catch {
+    // A failed identity probe must not turn into permission to kill or reap a process.
+    return null;
+  }
+}
+
+async function observeRecordedRunProcess(run: {
+  processPid: number | null;
+  processStartedAt: Date | null;
+}) {
+  if (!isProcessAlive(run.processPid)) {
+    return { alive: false, identity: "not_running" as const, observedStartedAt: null };
+  }
+  if (!run.processPid || !run.processStartedAt) {
+    return { alive: true, identity: "unverified" as const, observedStartedAt: null };
+  }
+
+  const observedStartedAt = await readObservedProcessStartedAt(run.processPid);
+  if (!observedStartedAt) {
+    return { alive: true, identity: "unverified" as const, observedStartedAt: null };
+  }
+
+  const matches = Math.abs(observedStartedAt.getTime() - run.processStartedAt.getTime())
+    <= PROCESS_START_IDENTITY_TOLERANCE_MS;
+  return {
+    alive: true,
+    identity: matches ? "matched" as const : "mismatched" as const,
+    observedStartedAt,
+  };
+}
+
 async function terminateHeartbeatRunProcess(input: {
   pid: number | null | undefined;
   processGroupId: number | null | undefined;
@@ -2828,7 +2882,10 @@ async function terminateHeartbeatRunProcess(input: {
 function buildProcessLossMessage(run: {
   processPid: number | null;
   processGroupId: number | null;
-}, options?: { descendantOnly?: boolean }) {
+}, options?: { descendantOnly?: boolean; identityMismatch?: boolean }) {
+  if (options?.identityMismatch && run.processPid) {
+    return `Process lost -- pid ${run.processPid} now belongs to a different process identity`;
+  }
   if (options?.descendantOnly && run.processGroupId) {
     return `Process lost -- parent pid ${run.processPid ?? "unknown"} exited, but descendant process group ${run.processGroupId} was still alive and was terminated`;
   }
@@ -7595,8 +7652,15 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       }
 
       const tracksLocalChild = isTrackedLocalChildProcessAdapter(adapterType);
-      const processPidAlive = tracksLocalChild && run.processPid && isProcessAlive(run.processPid);
-      const processGroupAlive = tracksLocalChild && run.processGroupId && isProcessGroupAlive(run.processGroupId);
+      const processObservation = tracksLocalChild
+        ? await observeRecordedRunProcess(run)
+        : { alive: false, identity: "not_running" as const, observedStartedAt: null };
+      const processPidAlive = processObservation.alive && processObservation.identity !== "mismatched";
+      const processIdentityMismatch = processObservation.identity === "mismatched";
+      const processGroupAlive = !processIdentityMismatch
+        && tracksLocalChild
+        && run.processGroupId
+        && isProcessGroupAlive(run.processGroupId);
       if (processPidAlive) {
         if (run.errorCode !== DETACHED_PROCESS_ERROR_CODE) {
           const detachedMessage = `Lost in-memory process handle, but child pid ${run.processPid} is still alive`;
@@ -7629,7 +7693,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       }
 
       const shouldRetry = tracksLocalChild && (!!run.processPid || !!run.processGroupId) && (run.processLossRetryCount ?? 0) < 1;
-      const baseMessage = buildProcessLossMessage(run, descendantOnlyCleanup ? { descendantOnly: true } : undefined);
+      const baseMessage = buildProcessLossMessage(run, {
+        ...(descendantOnlyCleanup ? { descendantOnly: true } : {}),
+        ...(processIdentityMismatch ? { identityMismatch: true } : {}),
+      });
 
       let finalizedRun = await setRunStatus(run.id, "failed", {
         error: shouldRetry ? `${baseMessage}; retrying once` : baseMessage,
@@ -7681,6 +7748,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           ...(run.processPid ? { processPid: run.processPid } : {}),
           ...(run.processGroupId ? { processGroupId: run.processGroupId } : {}),
           ...(descendantOnlyCleanup ? { descendantOnlyCleanup: true } : {}),
+          ...(processIdentityMismatch ? {
+            processIdentityMismatch: true,
+            recordedProcessStartedAt: run.processStartedAt?.toISOString() ?? null,
+            observedProcessStartedAt: processObservation.observedStartedAt?.toISOString() ?? null,
+          } : {}),
           ...(retriedRun ? { retryRunId: retriedRun.id } : {}),
         },
       });
@@ -9601,7 +9673,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     );
   }
 
-  async function releaseIssueExecutionAndPromote(run: typeof heartbeatRuns.$inferSelect) {
+  async function releaseIssueExecutionAndPromote(
+    run: typeof heartbeatRuns.$inferSelect,
+    options: { suppressAutomaticRecovery?: boolean } = {},
+  ) {
     const runContext = parseObject(run.contextSnapshot);
     const contextIssueId = readNonEmptyString(runContext.issueId);
     const taskKey = deriveTaskKeyWithHeartbeatFallback(runContext, null);
@@ -9651,6 +9726,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             updatedAt: new Date(),
           })
           .where(eq(issues.id, issue.id));
+      }
+
+      if (options.suppressAutomaticRecovery) {
+        return { kind: "released" as const };
       }
 
       while (true) {
@@ -10879,7 +10958,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
   async function cancelRunInternal(
     runId: string,
     reason = "Cancelled by control plane",
-    options: { startNextQueuedRun?: boolean } = {},
+    options: { startNextQueuedRun?: boolean; suppressAutomaticRecovery?: boolean } = {},
   ) {
     const run = await getRun(runId);
     if (!run) throw notFound("Heartbeat run not found");
@@ -10894,10 +10973,23 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         graceMs: Math.max(1, running.graceSec) * 1000,
       });
     } else if (run.processPid || run.processGroupId) {
-      await terminateHeartbeatRunProcess({
-        pid: run.processPid,
-        processGroupId: run.processGroupId,
-      });
+      const processObservation = await observeRecordedRunProcess(run);
+      if (processObservation.identity === "matched") {
+        await terminateHeartbeatRunProcess({
+          pid: run.processPid,
+          processGroupId: run.processGroupId,
+        });
+      } else {
+        logger.warn(
+          {
+            runId: run.id,
+            processPid: run.processPid,
+            recordedProcessStartedAt: run.processStartedAt?.toISOString() ?? null,
+            observedProcessStartedAt: processObservation.observedStartedAt?.toISOString() ?? null,
+          },
+          "skipped heartbeat-run process termination because the recorded pid identity is not verified",
+        );
+      }
     }
 
     const cancelled = await setRunStatus(run.id, "cancelled", {
@@ -10932,7 +11024,9 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         level: "warn",
         message: "run cancelled",
       });
-      await releaseIssueExecutionAndPromote(cancelled);
+      await releaseIssueExecutionAndPromote(cancelled, {
+        suppressAutomaticRecovery: options.suppressAutomaticRecovery,
+      });
     }
 
     runningProcesses.delete(run.id);
@@ -11370,7 +11464,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       };
     },
 
-    cancelRun: (runId: string) => cancelRunInternal(runId),
+    cancelRun: (runId: string, options?: { suppressAutomaticRecovery?: boolean }) =>
+      cancelRunInternal(runId, "Cancelled by control plane", {
+        suppressAutomaticRecovery: options?.suppressAutomaticRecovery,
+        startNextQueuedRun: options?.suppressAutomaticRecovery ? false : undefined,
+      }),
 
     cancelActiveForAgent: (agentId: string) => cancelActiveForAgentInternal(agentId),
 

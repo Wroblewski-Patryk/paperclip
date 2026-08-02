@@ -88,6 +88,28 @@ unavailable, use the live validation error and the smallest direct API request.
 
 ## Kanban Board Standard
 
+## Structured In-Review Handoff Contract
+
+An issue may rest in `in_review` only when its handoff records all of the
+following fields in the issue, its review interaction, or the attached work
+report:
+
+- `reviewer`: the named person, role, or typed execution participant who can
+  make the decision.
+- `decisionOptions`: the allowed choices, including the disposition each choice
+  produces.
+- `evidence`: the exact links, checks, artifacts, or findings to inspect.
+- `decisionTiming`: a decision deadline, or a next-check time with a cooldown.
+- `nextOwner`: the named owner for the action after the decision.
+
+When the review decision controls follow-up work, create a typed interaction or
+execution-policy participant for it; a prose-only “please review” comment is
+not a sufficient waiting path. The reviewer may approve to `done`, request
+changes back to the return assignee, preserve a real blocker with its unblock
+owner, or delegate a linked one-owner follow-up. Keep
+`run-in-review-decision-path.mjs` as the runtime safety repair; do not use
+janitor behavior as a substitute for a complete handoff.
+
 Paperclip issues are the shared Kanban board for Stage 1 delivery. Goals define
 why a lane matters, routines/procedures create or inspect repeatable work, and
 issues/tasks carry the actual visible flow.

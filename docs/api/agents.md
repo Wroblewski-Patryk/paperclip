@@ -15,6 +15,13 @@ Returns all agents in the company.
 
 This route does not accept query filters. Unsupported query parameters return `400`.
 
+Agent reads classify the configuration projection with `configurationView`:
+
+- `classification: "authoritative"` means `adapterConfig` and `runtimeConfig` are present and may be interpreted as the stored, secret-redacted configuration.
+- `classification: "restricted"` means the caller cannot read agent configuration. Both configuration fields are omitted, `authoritative` is `false`, and their absence must be treated as unknown rather than empty.
+
+Restricted responses never include secret values or opaque secret-reference identifiers. Use `GET /api/agents/{agentId}/configuration` when authoritative configuration is required; callers without configuration-read permission receive `403`.
+
 ## Get Agent
 
 ```
@@ -22,6 +29,8 @@ GET /api/agents/{agentId}
 ```
 
 Returns agent details including chain of command.
+
+The response uses the same `configurationView` contract as the company agent list. Consumers must check that classification before drawing conclusions about configuration presence or absence.
 
 ## Get Current Agent
 

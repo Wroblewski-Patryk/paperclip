@@ -40,6 +40,15 @@
 
 ## Receiver / reviewer
 
+## In-review handoff (required when status is `in_review`)
+
+- reviewer:
+- decisionOptions:
+- evidence:
+- decisionTiming: deadline or next-check/cooldown
+- nextOwner:
+- typed interaction / execution participant: required when this decision controls follow-up work
+
 ## Work report
 
 Use `docs/softwarehouse/templates/work-report-template.md` before closing the

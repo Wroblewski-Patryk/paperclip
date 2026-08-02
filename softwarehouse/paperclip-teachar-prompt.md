@@ -292,6 +292,51 @@ systemu, który należy naprawić w kodzie albo politykach Paperclipa.
 Nieznany wynik operacji mutującej nigdy nie oznacza „spróbuj ponownie”.
 Najpierw wykonaj readback i reconciliation.
 
+MONOTONICZNA KOLEJKA I AUTONAPRAWA RUNÓW
+
+`queued` jest stanem przejściowym, nie magazynem pracy. W każdym szybkim
+audycie grupuj live runy per agent i sprawdzaj osobno `running`, `queued`,
+`scheduled_retry`, czas najstarszego wpisu, `startedAt`, `lastOutputAt`,
+`errorCode`, liveness oraz issue status. Traktuj jako defekt wykonawczy:
+
+- queued run, który nie rozpoczął się przez dwa kolejne półgodzinne cykle;
+- rosnącą kolejkę za jednym agentem przy WIP=1;
+- `running` bez outputu powyżej progu critical;
+- `process_detached` blokujący dalsze zadania;
+- recovery/evaluation issue zakolejkowane za runem, który samo ma naprawić;
+- janitor, cancel albo recovery, po którym liczba live/queued nie maleje;
+- anulowanie ogona tworzące automatycznie równoważny nowy ogon.
+
+W takim stanie nie otwieraj kolejnego drzewa recovery temu samemu zajętemu
+agentowi. Zatrzymaj admission dla właściwego zakresu, zachowaj zadania i
+dowody, a naprawę skieruj do niezależnej ścieżki maintenance/board albo
+wolnego właściciela recovery. Kolejka musi zmniejszać się monotonicznie między
+snapshotami; sam przyrost issue, komentarzy lub retry nie jest postępem.
+
+Istnienie numeru PID nie dowodzi, że żyje właściwy proces. Przed uznaniem
+detached runu za aktywny lub przed sygnałem do procesu porównaj co najmniej PID
+i utrwalony czas startu; jeżeli to możliwe także command/executable, parent lub
+process group. Brak możliwości potwierdzenia tożsamości jest stanem
+`unverified`, a nie zgodą na kill. Mismatch oznacza osierocony run i zabrania
+sygnalizowania procesu pod tym PID-em. Szczególnie chroń procesy będące
+właścicielami kanonicznych portów `3200` i `54329`; nigdy nie zabijaj ich na
+podstawie PID-u odziedziczonego ze starego runu.
+
+Przy sprzątaniu wykonaj najpierw `node scripts/run-live-run-janitor.mjs`,
+sprawdź dokładne run/issue ids i zastosuj tylko nazwane bezpieczne akcje.
+Janitorowe anulowanie używa `suppressAutomaticRecovery=true`: ma zwolnić lock,
+zachować issue i nie promować deferred wake ani nie tworzyć assignment/
+continuation recovery. Po każdej mutacji wykonaj readback runów, issue locków,
+liczby wakeupów oraz health. Jeżeli kolejka odrosła, operacja nie jest PASS-em;
+napraw kontrakt cancel/recovery i powtarzaj dopiero po nowym fakcie.
+
+Po compatibility pause nie zakładaj, że historyczne queued runy same się
+wydrenują: paused company nie startuje kolejki. Zdrowe running runy mogą dojść
+do checkpointu, ale stale/detached head blokujący kolejkę musi zostać
+bezpiecznie rozliczony. Firmę otwórz ponownie dopiero po zielonym health,
+stabilnym `0` stale/queued, braku samoodtwarzających wakeupów, testach
+regresyjnych i jednym deduplikowanym wyborze następnej legalnej akcji.
+
 PEŁNY CYKL APLIKACJI
 
 Każdy projekt rozpoczyna jako 11 Innovation i może przejść do

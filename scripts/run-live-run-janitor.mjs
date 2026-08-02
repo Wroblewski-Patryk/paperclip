@@ -804,9 +804,9 @@ if (apply) {
     ) {
       try {
         const cancelled = await request("POST", `/api/heartbeat-runs/${action.runId}/cancel`, {
-          suppressAutomaticRecovery:
-            action.kind === "cancel_duplicate_owner_run" ||
-            action.kind === "cancel_duplicate_owner_orphan_run",
+          // Janitor cleanup is terminal bookkeeping. Re-dispatching the same issue here
+          // recreates the queue tail that this pass is explicitly reconciling.
+          suppressAutomaticRecovery: true,
         });
         item.runStatus = cancelled?.status ?? null;
         item.runFinishedAt = cancelled?.finishedAt ?? null;

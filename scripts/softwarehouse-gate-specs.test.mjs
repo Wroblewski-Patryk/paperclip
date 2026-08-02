@@ -164,6 +164,16 @@ test("live-run janitor does not let orphan direct wakes outrank issue-bound reco
   assert.match(source, /if \(issue\.status === "blocked"\) return 80;/);
 });
 
+test("live-run janitor cleanup cannot recreate automatic recovery tails", async () => {
+  const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
+
+  assert.match(source, /suppressAutomaticRecovery: true/);
+  assert.doesNotMatch(
+    source,
+    /suppressAutomaticRecovery:\s*action\.kind === "cancel_duplicate_owner_run"/,
+  );
+});
+
 test("live-run janitor skips cross-boundary closed-tail status comments without retrying", async () => {
   const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
 
@@ -3711,4 +3721,22 @@ test("softwarehouse learning loop writes bounded deduplicated learning observati
   assert.match(instructions, /Create an organizational \*\*observation\*\* only for/);
   assert.match(instructions, /stable, non-secret dedupe key/);
   assert.match(sync, /paperclip-organizational-memory\.mjs/);
+});
+
+test("in-review handoff contract keeps all five decision fields in instructions and templates", async () => {
+  const [instructions, taskTemplate, workReportTemplate] = await Promise.all([
+    readFile("softwarehouse/instructions/shared/90-pipeline-and-supervision.md", "utf8"),
+    readFile("docs/softwarehouse/templates/task-template.md", "utf8"),
+    readFile("docs/softwarehouse/templates/work-report-template.md", "utf8"),
+  ]);
+  const requiredHandoffFields = ["reviewer", "decisionOptions", "evidence", "decisionTiming", "nextOwner"];
+
+  for (const source of [instructions, taskTemplate, workReportTemplate]) {
+    for (const field of requiredHandoffFields) {
+      assert.match(source, new RegExp(`\\b${field}\\b`), `missing in-review field: ${field}`);
+    }
+  }
+  assert.match(instructions, /typed interaction or\s+execution-policy participant/i);
+  assert.match(taskTemplate, /typed interaction \/ execution participant/i);
+  assert.match(workReportTemplate, /typed interaction \/ execution participant/i);
 });

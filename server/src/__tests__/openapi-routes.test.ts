@@ -133,6 +133,14 @@ describe("openapi routes", () => {
     expect(res.body.info.title).toBe("Paperclip API");
     expect(res.body.paths["/api/openapi.json"].get.summary).toBe("Get the generated OpenAPI document");
     expect(res.body.paths["/api/companies/{companyId}/agents"].get.summary).toBe("List agents in a company");
+    expect(res.body.paths["/api/companies/{companyId}/agents"].get.responses["200"].content["application/json"].schema).toMatchObject({
+      type: "array",
+      items: { $ref: "#/components/schemas/AgentRead" },
+    });
+    expect(res.body.paths["/api/agents/{id}"].get.responses["200"].content["application/json"].schema).toEqual({
+      $ref: "#/components/schemas/AgentRead",
+    });
+    expect(res.body.paths["/api/agents/{id}/configuration"].get.responses["403"].description).toBe("Forbidden");
     expect(res.body.paths["/api/agents/{id}/keys"].post.summary).toBe("Create an agent API key");
     expect(res.body.components.securitySchemes).toMatchObject({
       BoardSessionAuth: { type: "apiKey", in: "cookie" },

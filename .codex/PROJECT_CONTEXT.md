@@ -4,6 +4,13 @@ Last updated: 2026-08-02
 
 ## 2026-08-02 Delivery-Orchestration Repair
 
+- 2026-08-03: a 19-hour CTO starvation deadlock exposed PID reuse and
+  cancellation feedback. Detached-run recovery now compares the persisted and
+  observed process start times, never signals a mismatched PID, and janitor
+  cancellation suppresses automatic recovery. Live readback reached zero;
+  keep the company paused until final maintenance verification and one
+  deduplicated reopen action.
+
 - Repair debt cannot remain report-only because active work keeps replenishing
   itself. Teachar now classifies every defect as `repair_now`,
   `drain_then_repair`, `owner_gate`, or bounded `accepted_defer`; two unchanged
