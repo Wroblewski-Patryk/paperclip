@@ -137,6 +137,10 @@ comment or parent decision is enough.
 - One active run is not a company-wide lock. Independent Soar, Roost, Featherly,
   and Paperclip operating-system lanes may run concurrently when they use different
   agents and repositories; same-project writers remain serialized.
+- A ready release in one project must not be downgraded to generic
+  `supervise_active_runs` only because another project has live work. Confirm
+  that the release project, repository writer, and release owner are idle, then
+  preserve the project-specific release priority.
 - Planned queue depth is not execution permission. In a shared project
   workspace, start at most one repo-mutating lane at a time unless the lanes
   use isolated worktrees and their file sets are proven disjoint.
@@ -146,12 +150,22 @@ comment or parent decision is enough.
 - Bind every product issue to that product's active project and primary
   workspace. A Soar, Roost, or Featherly issue must not inherit the Softwarehouse project
   or workspace merely because a controller created it.
+- Every active product issue uses the canonical project marker and keeps its
+  execution parent in the same project. Shared specialists may serve several
+  applications sequentially, but they receive separate project-scoped issues
+  from the relevant App PM/lead or an authorized manager inside that project's
+  explicit parent chain; they never hold cross-project `in_progress` WIP.
 - Resolve product identity from the exact active Paperclip project id and the
   canonical project registry. Never substitute another project's acceptance
   ledger, Coolify resource id, deployed SHA, secret namespace, PM, repository,
   workspace, routine, or evidence packet. Missing project-specific evidence is
   `unknown` or `blocked` for that project only; an aggregate may summarize
   typed project rows but must never become evidence for one of them.
+- Product intent, architecture, status indexes, runbooks, and release truth stay
+  in the corresponding product repository. Paperclip stores execution state,
+  evidence, ownership, and links; Roost renders an owner-facing projection.
+  Neither surface may copy another application's documentation or replace its
+  project-local source of truth.
 - Accounting, queue, review, and governance lanes may inspect board/API
   evidence, but they must not mutate product or Paperclip code unless the issue
   names the exact module, behavior change, and verification contract.
@@ -195,6 +209,9 @@ not just a completion comment. Include:
 
 - Project Manager owns one application project, version target, queue, blockers,
   routine posture, and project-level status integration.
+- The App PM/lead owns the top-level lifecycle and release chain for exactly one
+  application. A functional manager may delegate a specialist task, but it must
+  remain a child or explicitly linked lane of that application's PM-owned chain.
 - Project Manager enforces no-stall flow: every open lane needs an owner,
   expected output, evidence requirement, and next integration point.
 - Project Manager delegates in stages: map current state, request best-practice

@@ -427,6 +427,15 @@ test("runtime topology audit detects retained Compose one-off containers", async
   assert.match(completion, /cannot substitute for a canonical\s+service/i);
 });
 
+test("runtime topology audit does not invent missing projects after a catalog timeout", async () => {
+  const source = await readFile("scripts/audit-local-runtime-topology.mjs", "utf8");
+
+  assert.match(source, /projectCatalogChecked: projectsChecked/);
+  assert.match(source, /if \(projectsChecked\) \{/);
+  assert.match(source, /paperclip_project_catalog_unavailable/);
+  assert.doesNotMatch(source, /paperclip_api_unhealthy/);
+});
+
 test("agent instruction sync supports bounded incremental file updates", async () => {
   const source = await readFile("scripts/sync-luckysparrow-agent-instructions.mjs", "utf8");
 
@@ -1515,6 +1524,8 @@ test("controller-only routine runs do not block an independent product lane", as
       ok: true,
       json: async () => ({
         originKind: url.endsWith("issue-governor") ? "routine_execution" : "manual",
+        projectId: url.endsWith("issue-governor") ? "project-os" : "project-roost",
+        title: url.endsWith("issue-governor") ? "[Softwarehouse] Governor" : "[Roost] Release work",
       }),
     }),
   });
@@ -1523,6 +1534,8 @@ test("controller-only routine runs do not block an independent product lane", as
   assert.equal(classification.ignoredControllerRunCount, 1);
   assert.equal(classification.liveRunCount, 1);
   assert.equal(classification.liveRuns[0].id, "run-product");
+  assert.equal(classification.liveRuns[0].issueProjectId, "project-roost");
+  assert.equal(classification.liveRuns[0].issueTitle, "[Roost] Release work");
 });
 
 test("one productive run does not globally lock independent runnable work", async () => {
@@ -1558,6 +1571,56 @@ test("live-run classification fails closed when issue provenance cannot be read"
   assert.equal(classification.liveRunCount, 1);
   assert.equal(classification.ignoredControllerRunCount, 0);
   assert.equal(classification.classificationErrors.length, 1);
+});
+
+test("live-run classification uses one active issue catalog without N+1 reads", async () => {
+  let fetchCount = 0;
+  const classification = await classifyLiveRuns({
+    apiBase: "http://paperclip.test",
+    liveRuns: [{ id: "run-roost", issueId: "issue-roost" }],
+    issues: [{
+      id: "issue-roost",
+      title: "[Roost] Release",
+      projectId: "project-roost",
+      originKind: "manual",
+    }],
+    fetchImpl: async () => {
+      fetchCount += 1;
+      throw new Error("unexpected_fetch");
+    },
+  });
+
+  assert.equal(fetchCount, 0);
+  assert.equal(classification.classificationErrors.length, 0);
+  assert.equal(classification.liveRuns[0].issueProjectId, "project-roost");
+  assert.equal(classification.liveRuns[0].issueTitle, "[Roost] Release");
+});
+
+test("live-run classification performs one bounded fallback for a terminal issue missing from the active catalog", async () => {
+  let fetchCount = 0;
+  const classification = await classifyLiveRuns({
+    apiBase: "http://paperclip.test",
+    liveRuns: [{ id: "run-tail", issueId: "issue-done" }],
+    issues: [],
+    fetchImpl: async () => {
+      fetchCount += 1;
+      return {
+        ok: true,
+        json: async () => ({
+          id: "issue-done",
+          title: "[Roost] Finished security evidence",
+          projectId: "project-roost",
+          status: "done",
+          originKind: "manual",
+        }),
+      };
+    },
+  });
+
+  assert.equal(fetchCount, 1);
+  assert.equal(classification.classificationErrors.length, 0);
+  assert.equal(classification.liveRuns[0].issueProjectId, "project-roost");
+  assert.equal(classification.liveRuns[0].issueTitle, "[Roost] Finished security evidence");
 });
 
 test("next legal action selector routes Soar acceptance source-control blockers", async () => {

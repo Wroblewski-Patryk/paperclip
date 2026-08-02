@@ -36,6 +36,11 @@ export function auditCrossProjectIsolation({ projects = [], projectDetails = [],
     const project = activeByCanonicalName.get(spec.name);
     if (!project) continue;
     const detail = detailsById.get(project.id) ?? project;
+    if (!String(project.name ?? "").startsWith(`${spec.lifecycleDepartment}:`)) {
+      findings.push(finding("blocker", "project_lifecycle_department_mismatch", spec.name,
+        `${spec.name} is active outside its canonical ${spec.lifecycleDepartment} lifecycle stage.`,
+        { projectName: project.name, expectedDepartment: spec.lifecycleDepartment }));
+    }
     const defaultWorkspaceId = project.executionWorkspacePolicy?.defaultProjectWorkspaceId ?? null;
     const workspace = (detail.workspaces ?? []).find((entry) => entry.id === defaultWorkspaceId)
       ?? (detail.workspaces ?? []).find((entry) => entry.isPrimary)
@@ -94,12 +99,61 @@ export function auditCrossProjectIsolation({ projects = [], projectDetails = [],
 
   for (const issue of issues) {
     const marker = projectMarker(issue.title);
-    if (!marker) continue;
-    const expected = activeByCanonicalName.get(marker.name);
-    if (!expected || issue.projectId === expected.id) continue;
-    findings.push(finding(openStatuses.has(issue.status) ? "blocker" : "warn", "issue_project_mismatch", marker.name,
-      `${issue.identifier ?? issue.id} is titled for ${marker.name} but bound to another project.`,
-      { issueId: issue.id, status: issue.status, actualProjectId: issue.projectId, expectedProjectId: expected.id }));
+    const actualSpec = softwarehouseActiveApplicationProjects.find((spec) =>
+      activeByCanonicalName.get(spec.name)?.id === issue.projectId,
+    );
+    if (actualSpec && !marker) {
+      findings.push(finding(openStatuses.has(issue.status) ? "blocker" : "warn", "issue_project_marker_missing", actualSpec.name,
+        `${issue.identifier ?? issue.id} belongs to ${actualSpec.name} but has no canonical project marker.`,
+        { issueId: issue.id, status: issue.status, projectId: issue.projectId, title: issue.title }));
+      continue;
+    }
+    if (marker) {
+      const expected = activeByCanonicalName.get(marker.name);
+      if (expected && issue.projectId !== expected.id) {
+        findings.push(finding(openStatuses.has(issue.status) ? "blocker" : "warn", "issue_project_mismatch", marker.name,
+          `${issue.identifier ?? issue.id} is titled for ${marker.name} but bound to another project.`,
+          { issueId: issue.id, status: issue.status, actualProjectId: issue.projectId, expectedProjectId: expected.id }));
+      }
+    }
+  }
+
+  const issueById = new Map(issues.map((issue) => [issue.id, issue]));
+  for (const issue of issues.filter((item) => openStatuses.has(item.status) && item.parentId)) {
+    const parent = issueById.get(issue.parentId);
+    if (!parent || parent.projectId === issue.projectId) continue;
+    const spec = softwarehouseActiveApplicationProjects.find((candidate) =>
+      activeByCanonicalName.get(candidate.name)?.id === issue.projectId,
+    );
+    if (!spec) continue;
+    findings.push(finding("blocker", "cross_project_parent", spec.name,
+      `${issue.identifier ?? issue.id} has a parent in another project.`,
+      { issueId: issue.id, parentId: parent.id, projectId: issue.projectId, parentProjectId: parent.projectId }));
+  }
+
+  const inProgressByAssignee = new Map();
+  for (const issue of issues.filter((item) => item.status === "in_progress" && item.assigneeAgentId)) {
+    const current = inProgressByAssignee.get(issue.assigneeAgentId) ?? [];
+    current.push(issue);
+    inProgressByAssignee.set(issue.assigneeAgentId, current);
+  }
+  for (const [agentId, assignedIssues] of inProgressByAssignee) {
+    const projectIds = new Set(assignedIssues.map((issue) => issue.projectId).filter(Boolean));
+    if (assignedIssues.length <= 1 || projectIds.size <= 1) continue;
+    findings.push(finding("blocker", "agent_cross_project_wip", null,
+      `One shared specialist has concurrent in-progress work in multiple projects.`,
+      { agentId, issues: assignedIssues.map((issue) => issue.identifier ?? issue.id), projectIds: [...projectIds] }));
+  }
+
+  for (const spec of softwarehouseActiveApplicationProjects) {
+    const project = activeByCanonicalName.get(spec.name);
+    if (!project) continue;
+    const activeIssues = issues.filter((issue) => issue.projectId === project.id && openStatuses.has(issue.status));
+    if (["completed", "cancelled"].includes(project.status) && activeIssues.length > 0) {
+      findings.push(finding("blocker", "project_status_conflicts_with_active_work", spec.name,
+        `${spec.name} is ${project.status} but still has active work.`,
+        { projectId: project.id, activeIssueCount: activeIssues.length }));
+    }
   }
 
   return findings;

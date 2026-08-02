@@ -1,6 +1,24 @@
 # Board Context
 
-Last updated: 2026-07-28
+Last updated: 2026-08-02
+
+## 2026-08-02 Separate Application Projects And Shared Specialists
+
+Soar, Roost, and Featherly are three independent application projects, not
+three labels on one delivery stream. Each keeps its own Paperclip project id,
+App PM/lead, issue tree, status, repository documentation, architecture truth,
+release evidence, deployed SHA, Coolify resource, and owner-acceptance result.
+One backend, frontend, QA, review, security, or deployment specialist may work
+for several applications, but only through separate project-bound issues in
+the corresponding App PM chain and never as concurrent cross-project
+`in_progress` work.
+
+Applications remain in `11 Innovation` until their own evidence proves an
+owner-usable, deployed, observable result and supports promotion to `02
+Products & Services`. The state or documentation of one application may not
+complete, unblock, or substitute for another. Future applications must be
+activated through the canonical project registry and the same data-driven
+contracts, not by copying project names into individual orchestrators.
 
 ## 2026-07-28 Portfolio Lifecycle Outcome And Product Boundaries
 

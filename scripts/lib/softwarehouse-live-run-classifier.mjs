@@ -25,11 +25,15 @@ async function readRunIssue(apiBase, run, fetchImpl, issueLookupTimeoutMs) {
 export async function classifyLiveRuns({
   apiBase,
   liveRuns,
+  issues = null,
   currentRunId = null,
   currentIssueId = null,
   fetchImpl = fetch,
-  issueLookupTimeoutMs = Number(process.env.SOFTWAREHOUSE_LIVE_RUN_ISSUE_TIMEOUT_MS ?? 5_000),
+  issueLookupTimeoutMs = Number(process.env.SOFTWAREHOUSE_LIVE_RUN_ISSUE_TIMEOUT_MS ?? 30_000),
 }) {
+  const issueById = Array.isArray(issues)
+    ? new Map(issues.map((issue) => [issue.id, issue]))
+    : null;
   const normalizedLiveRuns = Array.isArray(liveRuns)
     ? liveRuns.map((run) => ({
         id: run.id,
@@ -49,9 +53,16 @@ export async function classifyLiveRuns({
 
   const classified = await Promise.all(externalRuns.map(async (run) => {
     try {
-      const issue = await readRunIssue(apiBase, run, fetchImpl, issueLookupTimeoutMs);
+      const issueRef = run.issueId ?? run.issueIdentifier ?? null;
+      const catalogIssue = issueById?.get(issueRef) ?? null;
+      const issue = catalogIssue
+        ?? await readRunIssue(apiBase, run, fetchImpl, issueLookupTimeoutMs);
       return {
-        run,
+        run: {
+          ...run,
+          issueProjectId: issue?.projectId ?? null,
+          issueTitle: issue?.title ?? null,
+        },
         issueOriginKind: issue?.originKind ?? null,
         isControllerRun: issue?.originKind === routineExecutionOrigin,
         classificationError: null,

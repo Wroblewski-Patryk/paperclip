@@ -86,3 +86,71 @@ test("a successful live API readback suppresses a stale health timeout", () => {
   assert.equal(action.decision, "start_release_delivery");
   assert.equal(action.target, "Roost");
 });
+
+test("a release-ready project is not globally blocked by work in another project", () => {
+  const action = pickAction(
+    { activeRunCount: 1 },
+    { activeRunCount: 1 },
+    healthy,
+    {
+      checked: true,
+      ok: true,
+      liveRunCount: 1,
+      liveRuns: [{ issueTitle: "[Featherly] Independent implementation" }],
+      classificationErrors: [],
+    },
+    null,
+    quietGovernor,
+    cleanSource,
+    { checked: true, ok: true, actions: [] },
+    {
+      checked: true,
+      ok: true,
+      projects: [{
+        name: "Roost",
+        ahead: 111,
+        behind: 0,
+        dirtyCount: 0,
+        pushAllowed: true,
+        decision: "push_candidate_requires_ops_verification",
+      }],
+    },
+  );
+
+  assert.equal(action.decision, "start_release_delivery");
+  assert.equal(action.project, "Roost");
+  assert.match(action.reason, /unrelated work in other projects/);
+});
+
+test("a release-ready project remains serialized while that same project is busy", () => {
+  const action = pickAction(
+    { activeRunCount: 1 },
+    { activeRunCount: 1 },
+    healthy,
+    {
+      checked: true,
+      ok: true,
+      liveRunCount: 1,
+      liveRuns: [{ issueTitle: "[Roost] Active implementation" }],
+      classificationErrors: [],
+    },
+    null,
+    quietGovernor,
+    cleanSource,
+    { checked: true, ok: true, actions: [] },
+    {
+      checked: true,
+      ok: true,
+      projects: [{
+        name: "Roost",
+        ahead: 111,
+        behind: 0,
+        dirtyCount: 0,
+        pushAllowed: true,
+        decision: "push_candidate_requires_ops_verification",
+      }],
+    },
+  );
+
+  assert.equal(action.decision, "supervise_active_runs");
+});

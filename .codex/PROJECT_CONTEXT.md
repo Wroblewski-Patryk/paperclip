@@ -4,6 +4,21 @@ Last updated: 2026-08-02
 
 ## 2026-08-02 Delivery-Orchestration Repair
 
+- Soar, Roost, and Featherly are independent application projects. Each owns
+  its project id, App PM chain, issues, repository documentation, status truth,
+  release/deployment evidence, and Innovation-to-Products promotion decision.
+  Shared specialists work through separate project issues and may not hold
+  concurrent cross-project `in_progress` work.
+- A company-level live run is no longer a global release lock. The selector
+  may deliver a ready project while a different project is active when the
+  target project, writer, and release owner are idle. Same-project writes stay
+  serialized, and live run identity comes from one bounded issue catalog.
+- Teachar uses a fast half-hour operational loop plus rotating deep audits
+  after staleness or a concrete signal. Supervision timeout/cost is itself a
+  reported defect; a heavyweight audit may not silently consume every cycle.
+- The strict live isolation readback currently covers 107 active issues with
+  zero blockers. Featherly alone has one explicit missing project-truth warning;
+  no other application may supply that evidence.
 - Release delivery is now an input to the next-legal-action selector. Clean, non-divergent, meaningful application batches with project-specific deployment readiness outrank docs, map refresh, planning, generic recovery, and backlog work. Live readback selects Roost release delivery at `2ef9fdc3` / 111 commits ahead.
 - The recurring false Paperclip liveness alarm was caused by synchronous probes blocking the selector's own health request. Health probing is now sequenced first and successful live API readback defeats a stale timeout.
 - Coolify readiness is project-specific. Legacy aggregate readiness is Soar-only; Roost requires its own `COOLIFY_ROOST_APP_ID` readback.

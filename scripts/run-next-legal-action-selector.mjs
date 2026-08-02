@@ -2,7 +2,7 @@ import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { classifyLiveRuns } from "./lib/softwarehouse-live-run-classifier.mjs";
-import { projectSpecificReleasePriority } from "./lib/softwarehouse-project-registry.mjs";
+import { projectMarker, projectSpecificReleasePriority } from "./lib/softwarehouse-project-registry.mjs";
 
 const apply = process.argv.includes("--apply");
 const outputPathJson = "report/softwarehouse-next-legal-action.latest.json";
@@ -101,9 +101,19 @@ async function probeLiveRuns(companyId) {
     }
     const data = await response.json();
     const liveRuns = Array.isArray(data) ? data : data.runs ?? data.liveRuns ?? [];
+    const issueResponse = await fetch(
+      `${apiBase}/api/companies/${companyId}/issues?limit=1000&status=backlog,todo,in_progress,in_review,blocked`,
+      {
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(Number(process.env.SOFTWAREHOUSE_NEXT_LEGAL_ACTION_ISSUE_CATALOG_TIMEOUT_MS ?? 60_000)),
+      },
+    );
+    if (!issueResponse.ok) throw new Error(`active_issue_catalog_failed:${issueResponse.status}`);
+    const issues = await issueResponse.json();
     const classification = await classifyLiveRuns({
       apiBase,
       liveRuns,
+      issues: Array.isArray(issues) ? issues : [],
       currentRunId,
       currentIssueId,
     });
@@ -266,6 +276,19 @@ function isSafeOperatingSourceControlClosure(repo) {
   );
 }
 
+function releaseDeliveryAction(releaseCandidate) {
+  return {
+    decision: "start_release_delivery",
+    reason: `${releaseCandidate.name} has ${releaseCandidate.ahead} committed changes ahead of its deployment branch and the project-specific release governor now marks the coherent batch pushable. Delivery debt outranks new documentation, map refresh, planning, generic backlog, and unrelated work in other projects.`,
+    command: `Resume the existing ${releaseCandidate.name} release chain; verify that its release owner is idle, push the verified batch under standing consent, observe normal Coolify auto-redeploy, and prove deployed SHA plus owner journey.`,
+    project: releaseCandidate.name,
+    target: releaseCandidate.name,
+    releaseHead: releaseCandidate.head ?? null,
+    allowed: ["reuse the canonical release issue and existing blockers", "require the target project and release owner to be idle", "verify candidate evidence", "push under standing consent", "observe auto-redeploy", "run targeted production smoke and owner journey"],
+    forbidden: ["create a parallel release tree", "interrupt a busy target project or release owner", "substitute docs/status refresh for delivery", "force push", "manual deploy or restart without its separate gate", "secret disclosure"],
+  };
+}
+
 export function pickAction(
   control,
   readiness,
@@ -305,6 +328,41 @@ export function pickAction(
     && governorProbe.decision === "runnable_work_available"
     && Number(governorProbe?.counts?.eligibleRunnableIssues ?? 0) > 0
   );
+  const releaseProjects = releaseProbe?.checked && releaseProbe.ok
+    ? [...(releaseProbe.projects ?? [])].sort((left, right) =>
+      projectSpecificReleasePriority(left.name) - projectSpecificReleasePriority(right.name)
+    )
+    : [];
+  const releaseCandidate = releaseProjects.find((project) =>
+    project.pushAllowed === true
+      && project.ahead > 0
+      && project.behind === 0
+      && project.dirtyCount === 0
+  );
+  const liveProjectOccupancyKnown = Boolean(
+    liveRunProbe?.checked
+      && liveRunProbe.ok
+      && Array.isArray(liveRunProbe.liveRuns)
+      && (liveRunProbe.classificationErrors?.length ?? 0) === 0
+  );
+  const releaseProjectBusy = Boolean(
+    releaseCandidate
+      && liveRunProbe.liveRuns?.some((run) => projectMarker(run.issueTitle)?.name === releaseCandidate.name)
+  );
+  const operatingRepoDirty = Boolean(
+    sourceControlProbe?.checked
+      && sourceControlProbe.ok
+      && sourceControlProbe.repos?.some((repo) => repo.required && !repo.clean)
+  );
+  if (
+    activeRunCount > 0
+      && releaseCandidate
+      && liveProjectOccupancyKnown
+      && !releaseProjectBusy
+      && !operatingRepoDirty
+  ) {
+    return releaseDeliveryAction(releaseCandidate);
+  }
   if (activeRunCount > 0 && governorHasRunnableWork) {
     return {
       decision: "start_runnable_work",
@@ -382,27 +440,8 @@ export function pickAction(
       forbidden: ["push", "deploy", "restart", "protected smoke", "secret disclosure"],
     };
   }
-  const releaseProjects = releaseProbe?.checked && releaseProbe.ok
-    ? [...(releaseProbe.projects ?? [])].sort((left, right) =>
-      projectSpecificReleasePriority(left.name) - projectSpecificReleasePriority(right.name)
-    )
-    : [];
-  const releaseCandidate = releaseProjects.find((project) =>
-    project.pushAllowed === true
-      && project.ahead > 0
-      && project.behind === 0
-      && project.dirtyCount === 0
-  );
   if (releaseCandidate) {
-    return {
-      decision: "start_release_delivery",
-      reason: `${releaseCandidate.name} has ${releaseCandidate.ahead} committed changes ahead of its deployment branch and the project-specific release governor now marks the coherent batch pushable. Delivery debt outranks new documentation, map refresh, planning, and generic backlog work.`,
-      command: `Resume the existing ${releaseCandidate.name} release chain; push the verified batch under standing consent, observe normal Coolify auto-redeploy, and prove deployed SHA plus owner journey.`,
-      target: releaseCandidate.name,
-      releaseHead: releaseCandidate.head ?? null,
-      allowed: ["reuse the canonical release issue and existing blockers", "verify candidate evidence", "push under standing consent", "observe auto-redeploy", "run targeted production smoke and owner journey"],
-      forbidden: ["create a parallel release tree", "substitute docs/status refresh for delivery", "force push", "manual deploy or restart without its separate gate", "secret disclosure"],
-    };
+    return releaseDeliveryAction(releaseCandidate);
   }
   const releaseBlocked = releaseProjects.find((project) =>
     project.ahead > 0

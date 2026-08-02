@@ -13,6 +13,13 @@ export const softwarehouseActiveApplicationProjects = Object.freeze([
     managerRosterKey: "soar-product-manager",
     managerName: "11 SPM (Soar Product Manager)",
     secretPrefixes: Object.freeze(["SOAR_", "COOLIFY_SOAR_"]),
+    lifecycleDepartment: "11 Innovation",
+    promotionDepartment: "02 Products & Services",
+    requiredDocumentationPaths: Object.freeze([
+      "docs/README.md",
+      "docs/architecture/architecture-source-of-truth.md",
+    ]),
+    projectTruthPath: "docs/status/project-truth-index.json",
     releasePriority: 1,
     acceptanceLedgerPath: "report/soar-delivery-acceptance.latest.json",
   }),
@@ -25,6 +32,13 @@ export const softwarehouseActiveApplicationProjects = Object.freeze([
     managerRosterKey: "roost-product-manager",
     managerName: "11 RPM (Roost Project Manager)",
     secretPrefixes: Object.freeze(["ROOST_", "COOLIFY_ROOST_"]),
+    lifecycleDepartment: "11 Innovation",
+    promotionDepartment: "02 Products & Services",
+    requiredDocumentationPaths: Object.freeze([
+      "docs/README.md",
+      "docs/architecture/architecture-source-of-truth.md",
+    ]),
+    projectTruthPath: "docs/status/project-truth-index.json",
     releasePriority: 0,
     acceptanceLedgerPath: null,
   }),
@@ -37,6 +51,13 @@ export const softwarehouseActiveApplicationProjects = Object.freeze([
     managerRosterKey: "featherly-platform-manager",
     managerName: "11 FPM (Featherly Platform Manager)",
     secretPrefixes: Object.freeze(["FEATHERLY_", "COOLIFY_FEATHERLY_"]),
+    lifecycleDepartment: "11 Innovation",
+    promotionDepartment: "02 Products & Services",
+    requiredDocumentationPaths: Object.freeze([
+      "docs/README.md",
+      "docs/architecture/architecture-source-of-truth.md",
+    ]),
+    projectTruthPath: "docs/status/project-truth-index.json",
     releasePriority: 2,
     acceptanceLedgerPath: null,
   }),
@@ -59,7 +80,7 @@ export function canonicalSoftwarehouseProject(value) {
 
 export function projectMarker(value) {
   if (typeof value !== "string") return null;
-  const match = value.match(/^\[(Soar|Roost|Featherly)\]/i);
+  const match = value.match(/^\[(Soar|Roost|Featherly)(?:\]|\s[^\]]*\])/i);
   return match ? canonicalSoftwarehouseProject(match[1]) : null;
 }
 

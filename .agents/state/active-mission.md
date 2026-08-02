@@ -2,6 +2,22 @@
 
 ## 2026-08-02 - Owner-Visible Delivery Debt Is The Primary Control Signal
 
+- The selector defect that treated any live company run as a global release
+  lock is repaired. A release-ready Roost, Soar, or Featherly lane may proceed
+  while another application is busy when the target project, repository
+  writer, and release owner are idle and the operating repository is clean.
+  Same-project writers remain serialized.
+- Active product issues require a canonical project marker, same-project
+  parents, and project-owned documentation/status truth. Shared specialists
+  use separate issues per application and cannot hold cross-project
+  `in_progress` WIP.
+- Teachar now uses a fast every-30-minute operational cycle and rotates deep
+  audits only after a relevant signal or staleness threshold. A slow audit is
+  diagnosed and bounded; supervision must not become the blocker it monitors.
+- Fresh strict isolation readback covers 107 active issues with zero blockers.
+  Featherly remains incomplete with one explicit warning because
+  `docs/status/project-truth-index.json` is not yet present; that gap belongs
+  to Featherly only and cannot contaminate Soar or Roost.
 - The live next-legal-action selector now consumes project-specific release-governor evidence. Current readback chooses `start_release_delivery` for Roost at `2ef9fdc3`, clean and 111 commits ahead of `origin/main`; Soar is clean and 34 ahead; Featherly still lacks a verified upstream.
 - Documentation, map refresh, planning, generic recovery, and backlog work must not outrank a clean, verified, deployment-bound application batch. A growing source branch with no deployed owner-visible milestone for seven days is an orchestration defect.
 - Roost Product Map remains the priority owner surface. Local proof is green (`5/5` web projection tests, `6/6` server contract tests, production build), but LUC-1910 remains behind the canonical protected QA/deployment chain. Do not push merely to hide that gate; resume and close the exact chain, then use standing-consent push, observe Coolify auto-redeploy, and prove deployed SHA plus owner journey.

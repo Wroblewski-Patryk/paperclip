@@ -805,3 +805,32 @@ Current evidence:
 - 22 closed historical Soar mismatches remain visible as warnings.
 - Targeted isolation/selector/dispatcher tests and the 192-test canonical gate
   suite pass; all 39 managed instruction bundles contain the new guard.
+
+## 2026-08-02 - Global run locks and exhaustive heartbeats starve delivery
+
+Observed pattern: the next-action selector returned `supervise_active_runs`
+before considering release candidates, so unrelated work in Featherly could
+indefinitely prevent a clean Roost or Soar release. At the same time, large
+aggregated audits could exceed the heartbeat window and make the supervisor
+look unhealthy even when the underlying application lanes were progressing.
+
+Standing rule:
+
+- Live work is a project/agent/repository occupancy signal, not a company-wide
+  mutex. Permit a ready application release when its own project and release
+  owner are idle; keep same-project mutation serialized.
+- Fetch active issue identity as one bounded catalog when classifying live
+  runs. Do not perform an unbounded N+1 issue lookup per run.
+- Every half-hour heartbeat runs a small operational control loop. Expensive
+  longevity, topology, full-history, and deep semantic audits rotate only when
+  stale, changed, or triggered by a concrete failure signal.
+- A timed-out audit is an explicit supervision defect with an exact owner and
+  next action. It is never reported as a pass and never retried concurrently.
+
+Current evidence:
+
+- Regression tests prove unrelated-project work does not suppress a ready
+  release and same-project work still blocks it safely.
+- Live instruction audit passes for 39/39 managed bundles with zero warnings.
+- Teachar readback confirms the project model, two-layer supervision, release
+  starvation check, and concise Polish run report are active every 30 minutes.

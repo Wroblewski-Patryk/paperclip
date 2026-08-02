@@ -4907,3 +4907,28 @@ strict isolation audit plus a short Polish report on every run, including zero-
 change runs. The report separates checked, detected, repaired, unresolved, and
 per-project Soar/Roost/Featherly status. Updated isolation instructions were
 read back in all 39 managed agent bundles.
+
+## 2026-08-02 - Model portfolio and non-blocking supervision closure
+
+The owner clarified the durable softwarehouse model: Roost, Soar, Featherly,
+and future applications are separate projects with independent status,
+documentation, App PM chains, release evidence, and promotion decisions. A
+shared specialist may serve all of them only through separate project-scoped
+tasks; cross-project parents and concurrent cross-project WIP are defects.
+
+The audit found a delivery-starvation bug: the selector supervised all live
+runs before considering a ready release, allowing unrelated project work to
+hold Roost's 111 committed changes indefinitely. The selector now evaluates
+project-specific release readiness first, obtains live issue/project identity
+from one bounded catalog, permits independent-project delivery, and preserves
+same-project serialization. New isolation checks cover missing project
+markers, cross-project parents, cross-project specialist WIP, lifecycle/status
+conflicts, project-owned documentation, and local project-truth sources.
+
+Targeted tests pass 205/205. The strict live isolation audit covers 107 active
+issues with zero blockers and one Featherly-only warning for its missing local
+project-truth index. All 39 agent bundles contain the updated supervision
+contract. Teachar remains active every 30 minutes and now separates a quick
+operational cycle from signaled/stale deep audits, detects supervision cost as
+a failure mode, and always returns a concise Polish checked/detected/repaired/
+unresolved/per-project report.

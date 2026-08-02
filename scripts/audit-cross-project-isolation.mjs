@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { auditCrossProjectIsolation, summarizeIsolationFindings } from "./lib/cross-project-isolation-audit.mjs";
 import { softwarehouseActiveApplicationProjects } from "./lib/softwarehouse-project-registry.mjs";
 
@@ -48,6 +49,34 @@ async function staticFindings() {
       message: `${file} is missing the canonical cross-project isolation guard.`,
       details: { expected: needle },
     });
+  }
+  for (const project of softwarehouseActiveApplicationProjects) {
+    for (const relativePath of project.requiredDocumentationPaths) {
+      const absolutePath = path.join(project.root, relativePath);
+      try {
+        await access(absolutePath);
+      } catch {
+        findings.push({
+          severity: "blocker",
+          code: "project_documentation_boundary_missing",
+          project: project.name,
+          message: `${project.name} is missing its project-owned documentation entrypoint.`,
+          details: { path: absolutePath },
+        });
+      }
+    }
+    const projectTruthPath = path.join(project.root, project.projectTruthPath);
+    try {
+      await access(projectTruthPath);
+    } catch {
+      findings.push({
+        severity: "warn",
+        code: "project_truth_source_missing",
+        project: project.name,
+        message: `${project.name} has no current project-local truth index; status must remain incomplete until regenerated.`,
+        details: { path: projectTruthPath },
+      });
+    }
   }
   return findings;
 }

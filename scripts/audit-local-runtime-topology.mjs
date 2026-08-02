@@ -42,7 +42,9 @@ function gitWorktrees(cwd) {
     .map((line) => path.resolve(line.slice("worktree ".length)));
 }
 
-async function requestJson(route, timeoutMs = 5_000) {
+const apiReadTimeoutMs = Number(process.env.SOFTWAREHOUSE_RUNTIME_TOPOLOGY_API_TIMEOUT_MS ?? 30_000);
+
+async function requestJson(route, timeoutMs = apiReadTimeoutMs) {
   const response = await fetch(`${apiBase}${route}`, { signal: AbortSignal.timeout(timeoutMs) });
   if (!response.ok) throw new Error(`${route} returned ${response.status}`);
   return response.json();
@@ -108,13 +110,21 @@ for (const root of roots) {
 
 let health = null;
 let projects = [];
+let projectsChecked = false;
 try {
   health = await requestJson("/api/health");
+} catch (error) {
+  failures.push({ code: "paperclip_health_unavailable", message: error instanceof Error ? error.message : String(error) });
+}
+try {
   const companies = await requestJson("/api/companies");
   if (companies.length !== 1) warnings.push({ code: "company_count_not_one", count: companies.length });
-  if (companies[0]) projects = await requestJson(`/api/companies/${companies[0].id}/projects`);
+  if (companies[0]) {
+    projects = await requestJson(`/api/companies/${companies[0].id}/projects`);
+    projectsChecked = true;
+  }
 } catch (error) {
-  failures.push({ code: "paperclip_api_unhealthy", message: error instanceof Error ? error.message : String(error) });
+  failures.push({ code: "paperclip_project_catalog_unavailable", message: error instanceof Error ? error.message : String(error) });
 }
 
 const activeProjects = projects.filter((project) => !project.archivedAt);
@@ -124,10 +134,12 @@ function activeProjectMatches(root) {
     return typeof cwd === "string" && normalized(cwd) === normalized(root.cwd);
   });
 }
-for (const root of roots) {
-  const matches = activeProjectMatches(root);
-  if (matches.length !== 1) {
-    failures.push({ code: "canonical_active_project_count", root: root.key, count: matches.length, projectIds: matches.map((p) => p.id) });
+if (projectsChecked) {
+  for (const root of roots) {
+    const matches = activeProjectMatches(root);
+    if (matches.length !== 1) {
+      failures.push({ code: "canonical_active_project_count", root: root.key, count: matches.length, projectIds: matches.map((p) => p.id) });
+    }
   }
 }
 
@@ -188,7 +200,10 @@ const result = {
   },
   canonicalRoots: roots.map((root) => root.cwd),
   worktrees,
-  activeProjectCountByRoot: Object.fromEntries(roots.map((root) => [root.key, activeProjectMatches(root).length])),
+  projectCatalogChecked: projectsChecked,
+  activeProjectCountByRoot: projectsChecked
+    ? Object.fromEntries(roots.map((root) => [root.key, activeProjectMatches(root).length]))
+    : null,
   livePaperclipDevServices: liveDevServices.map((record) => ({ pid: record.pid, port: record.port, cwd: record.cwd })),
   composeOneoffs,
   warnings,

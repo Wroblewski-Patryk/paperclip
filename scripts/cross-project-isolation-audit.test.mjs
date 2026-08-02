@@ -30,6 +30,19 @@ test("canonical project fixture passes isolation audit", () => {
   assert.deepEqual(auditCrossProjectIsolation(fixture()), []);
 });
 
+test("accepts a project-scoped marker family when project id agrees", () => {
+  const input = fixture();
+  input.issues.push({
+    id: "roost-map",
+    identifier: "LUC-ROOST-MAP",
+    title: "[Roost Product Map][QA] Verify owner journey",
+    status: "todo",
+    projectId: input.projects[1].id,
+  });
+
+  assert.deepEqual(auditCrossProjectIsolation(input), []);
+});
+
 test("detects issue, workspace, and secret namespace contamination", () => {
   const input = fixture();
   input.projectDetails[1].workspaces[0].cwd = path.join(softwarehouseActiveApplicationProjects[0].root, "wrong");
@@ -39,4 +52,32 @@ test("detects issue, workspace, and secret namespace contamination", () => {
   assert.ok(codes.includes("workspace_root_mismatch"));
   assert.ok(codes.includes("foreign_project_secret_binding"));
   assert.ok(codes.includes("issue_project_mismatch"));
+});
+
+test("detects unmarked project work, cross-project parents, and shared-agent WIP", () => {
+  const input = fixture();
+  input.issues.push(
+    {
+      id: "soar-parent",
+      identifier: "LUC-SOAR-PARENT",
+      title: "[Soar] Parent",
+      status: "in_progress",
+      projectId: input.projects[0].id,
+      assigneeAgentId: "shared-specialist",
+    },
+    {
+      id: "roost-child",
+      identifier: "LUC-ROOST-CHILD",
+      title: "Roost child without marker",
+      status: "in_progress",
+      projectId: input.projects[1].id,
+      parentId: "soar-parent",
+      assigneeAgentId: "shared-specialist",
+    },
+  );
+
+  const codes = auditCrossProjectIsolation(input).map((item) => item.code);
+  assert.ok(codes.includes("issue_project_marker_missing"));
+  assert.ok(codes.includes("cross_project_parent"));
+  assert.ok(codes.includes("agent_cross_project_wip"));
 });
