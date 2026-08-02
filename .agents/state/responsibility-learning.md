@@ -1,5 +1,31 @@
 # Responsibility Learning
 
+## 2026-08-02 - Active work must drain for systemic repair, not block it forever
+
+Observed failure mode: Teachar could correctly identify control-plane defects
+while a continuously replenished run tree made runtime repair permanently
+illegal. Reporting more findings increased repair debt while new runs continued
+under known-bad orchestration.
+
+Standing rule:
+
+- Classify every defect as immediate isolated repair, drain-required repair,
+  genuine owner gate, or bounded accepted deferral.
+- Never use `active runs present` as an unbounded disposition. Cut admission
+  before waiting, so the run count can actually converge to zero.
+- Preserve healthy in-flight runs; block only new admission. Request a durable
+  checkpoint before interrupting one evidence-proven stale/runaway run.
+- Drain at the smallest boundary: project writer for product repair, global
+  company/runtime only for Paperclip runtime or shared contracts.
+- Reopen only after tests, health/readback, and a deduplicated recovery plan.
+- The current company pause is a compatibility barrier because it skips new
+  wakeups. The native controller must defer them durably through
+  `open/draining/maintenance/reopening` states.
+
+Retirement condition: the native admission controller is implemented and
+tested end to end, and Teachar demonstrates that detected systemic repair debt
+is deployed rather than repeatedly reported.
+
 ## 2026-07-21 - Protected readback must stay in the authorized lane
 
 Observed failure mode: SPA was the right role to notice the protected readback

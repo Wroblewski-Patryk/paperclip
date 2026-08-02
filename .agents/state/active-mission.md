@@ -2,6 +2,19 @@
 
 ## 2026-08-02 - Owner-Visible Delivery Debt Is The Primary Control Signal
 
+- Repair debt is now a first-class control signal. Active runs may not become
+  an indefinite excuse to collect orchestration defects. Teachar assigns every
+  active defect `repair_now`, `drain_then_repair`, `owner_gate`, or a bounded
+  `accepted_defer`; a repeated unresolved material fingerprint that affects
+  new runs escalates to a drain, while valid low-priority deferral does not.
+- The compatibility drain uses company `paused` only as an admission freeze:
+  it snapshots live/queued work, does not stop the Paperclip server, does not
+  call agent pause/cancel on healthy runs, lets current runs reach durable
+  disposition, repairs at zero live/queued runs, verifies, then reopens and
+  deduplicates recovery. No drain was activated during this audit.
+- Paperclip must replace that compatibility path with a native company/project
+  admission controller: `open -> draining -> maintenance -> reopening -> open`.
+  New wakeups in `draining` must be durable and deduplicated, not skipped.
 - Teachar retirement is not yet legal. The canonical Paperclip-owned cycle
   ledger exists but is stale at `2026-07-02T13:55:10.612Z`; the bootstrap
   supervisor now fails this as `cycleLedgerFresh=false` instead of treating

@@ -4,6 +4,19 @@ Last updated: 2026-08-02
 
 ## 2026-08-02 Delivery-Orchestration Repair
 
+- Repair debt cannot remain report-only because active work keeps replenishing
+  itself. Teachar now classifies every defect as `repair_now`,
+  `drain_then_repair`, `owner_gate`, or bounded `accepted_defer`; two unchanged
+  cycles escalate a material P0/P1 or run-affecting P2 defect to controlled
+  drain, not a valid low-priority deferral.
+- Until native support exists, company `paused` is used only as a compatibility
+  admission freeze after a complete snapshot. Existing healthy runs are not
+  cancelled; repair/restart waits for zero live/queued runs, then health and
+  deduplicated recovery are proven before reopening. Do not mistake this for a
+  native queue-preserving drain: current paused-company wakeups are skipped.
+- Required native Paperclip mechanism is company/project-scoped
+  `open -> draining -> maintenance -> reopening -> open`, with durable
+  `deferred_by_maintenance` wakeups and visible activity/readback evidence.
 - `paperclip-teachar` is a temporary bootstrap guardian. It may self-pause only
   after 14 continuous green days, fresh Paperclip-owned cycle/control evidence,
   project-specific accepted outcomes for every active application, no material

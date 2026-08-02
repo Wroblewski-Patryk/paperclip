@@ -784,13 +784,95 @@ Historyczne odstępstwa zachowaj jako ostrzeżenia i użyj ich jako zbioru
 regresyjnego. Nie raportuj PASS, jeżeli audyt live był niedostępny lub objął
 tylko część aktywnych projektów.
 
+PROTOKÓŁ DŁUGU NAPRAWCZEGO I OKNA SERWISOWEGO
+
+Wykryty defekt nie może pozostać wyłącznie wpisem w raporcie. Każda aktywna
+nieścisłość otrzymuje w tym samym przebiegu dokładnie jedną dyspozycję:
+
+- `repair_now` — poprawka jest izolowana od aktywnych writerów i nie przeładuje
+  runtime'u Paperclipa;
+- `drain_then_repair` — poprawka dotyka runtime'u, wspólnego checkoutu albo
+  kontraktu używanego przez aktywne runy;
+- `owner_gate` — potrzebna jest rzeczywista zgoda lub chroniony fakt;
+- `accepted_defer` — wyłącznie niski priorytet, z właścicielem, terminem i
+  warunkiem ponownej oceny.
+
+Nie wolno używać `active runs present`, `supervise_active_runs`, drzewa zadań
+ani brudnego repo jako bezterminowej dyspozycji. Raport bez repair issue,
+terminu i następnej legalnej akcji nie jest postępem. Ten sam fingerprint
+materialnego defektu P0/P1 albo P2 wpływającego na nowe runy, wykryty w dwóch
+kolejnych przebiegach bez zmniejszenia ekspozycji, eskaluje co najmniej do
+`drain_then_repair`. Niski priorytet z ważnym `accepted_defer` nie uruchamia
+drainu tylko z powodu upływu dwóch cykli. Krytyczny defekt izolacji
+projektów, bezpieczeństwa, dispatchu, source-control albo delivery przechodzi
+do `drain_then_repair` od razu, jeżeli kolejne runy mogłyby powiększać szkodę.
+
+Rozróżniaj trzy zakresy naprawy:
+
+1. plik, skrypt lub dokument niewczytywany przez live runtime — naprawiaj od
+   razu, jeżeli nie ma aktywnego writera tego samego repo/pliku;
+2. repozytorium produktu — czekaj tylko na writera tego produktu, nie na runy
+   innych aplikacji;
+3. runtime Paperclipa albo jego współdzielony checkout — użyj kontrolowanego
+   drainu, ponieważ restart control plane może dotknąć wszystkie runy.
+
+Do czasu wdrożenia natywnego admission controllera Paperclipa stosuj
+przejściowe, jawne okno serwisowe:
+
+1. Zapisz do `report/paperclip-maintenance-window.latest.json` fingerprinty
+   defektów, severity, dotknięte pliki/kontrakty, bieżący status firmy, aktywne
+   routine, live/queued run ids, issue ids, repozytoria i `detectedAt`.
+2. Zamknij dopływ nowej pracy przez board-authenticated
+   `PATCH /api/companies/{companyId}` z `status: paused`; wykonaj readback.
+   To jest admission freeze, nie zatrzymanie serwera. Nie używaj
+   `POST /api/agents/:id/pause`, nie anuluj zdrowych runów i nie wyłączaj
+   procesu Paperclipa.
+3. Pozwól już działającym runom dojść do trwałej dyspozycji. Obserwuj je bez
+   wznawiania i bez tworzenia nowych drzew. Wake pominięty przez przejściowy
+   company pause zapisz jako pracę do jednokrotnego odzyskania po otwarciu.
+4. Gdy liczba live i queued runów wynosi zero, zastosuj najmniejszą poprawkę,
+   regresję i readback. Dopiero wtedy wolno wykonać kontrolowany restart przez
+   zarejestrowane drzewo usługi, jeżeli zmiana runtime'u tego wymaga.
+5. Po zielonym health, testach i smoke przywróć poprzedni status firmy,
+   wykonaj readback, uruchom selektor następnej legalnej akcji dokładnie raz i
+   odzyskaj tylko zdeduplikowane, nadal aktualne zadania.
+6. Jeżeli walidacja lub restart zawiedzie, pozostaw admission freeze, zachowaj
+   rollback/diagnostic packet i zgłoś jeden dokładny blocker. Nie otwieraj
+   dopływu pracy do znanego wadliwego runtime'u.
+
+Drain nie może czekać wiecznie na samopowielające się drzewo. Jeżeli zdrowy run
+nie kończy się lub liczba runów nie maleje przez dwa kolejne snapshoty, najpierw
+poproś go o checkpoint i trwałą dyspozycję. Dopiero po dowodzie runaway/stale,
+zapisanym checkpointcie i potwierdzeniu, że dalsze działanie powiększa szkodę,
+możesz użyć zakresowego interruptu tego jednego runu. Nigdy nie zabijaj całego
+drzewa procesów po nazwie.
+
+Utwórz albo wykorzystaj dokładnie jedno kanoniczne, wysokopriorytetowe zadanie
+Paperclip OS implementujące natywny company-scoped admission controller:
+
+`open -> draining -> maintenance -> reopening -> open`.
+
+Tryb `draining` ma pozwalać aktywnym runom kończyć pracę, a nowe wake'i
+utrwalać jako deduplikowane `deferred_by_maintenance`, zamiast je pomijać lub
+anulować. `maintenance` ma dopuszczać wyłącznie board/maintenance-owner repair,
+walidację i kontrolowany restart. `reopening` ma odtworzyć każdy nadal aktualny
+wake najwyżej raz. API, UI i activity log muszą pokazywać powód, inicjatora,
+czas rozpoczęcia, liczbę live/deferred runów, wymagane dowody, poprzedni stan i
+wynik reopen. Projektowy drain powinien blokować tylko dany produkt; globalny
+drain jest zarezerwowany dla runtime'u Paperclipa i wspólnych kontraktów.
+
+Do czasu wdrożenia i przetestowania tego kontrolera nie ogłaszaj, że problem
+okien naprawczych jest rozwiązany — raportuj użycie powyższego compatibility
+drainu oraz czas od wykrycia defektu do wdrożonej i zweryfikowanej poprawki.
+
 GRANICE WYKONANIA
 
 - Zachowaj WIP=1 na agenta.
 - Maksymalnie jeden agent może zapisywać do danego repozytorium.
 - Nie przełączaj brancha współdzielonego checkoutu pod aktywnym agentem.
-- Nie edytuj Paperclipa, jeśli dev-watch mógłby wykonać restart przy
-  aktywnych lub zakolejkowanych runach.
+- Nie edytuj plików runtime'u Paperclipa, jeśli dev-watch mógłby wykonać
+  restart przy aktywnych lub zakolejkowanych runach. Zamiast bezterminowo
+  kolekcjonować poprawki, uruchom powyższy `drain_then_repair`.
 - Nie restartuj Paperclipa przy aktywnych lub zakolejkowanych runach.
 - Nie uruchamiaj równolegle repo-wide buildów, typechecków,
   browser suites ani embedded-Postgres suites na tej stacji Windows.

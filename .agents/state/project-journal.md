@@ -6,6 +6,14 @@ This is a durable diary for project-level context that should survive across Cod
 
 ## Entries
 
+- 2026-08-02 / repair-debt and graceful-maintenance decision (conversation summary):
+  - The owner observed that a continuously active process tree prevented Teachar from applying defects it had already found, creating a reinforcing loop of known-bad new work and growing repair debt.
+  - Verified contradiction: shared operating rules say one active run is not a company-wide lock, while the Teachar prompt broadly prohibited Paperclip runtime edits whenever any active/queued run existed.
+  - Decision: every finding now requires `repair_now`, `drain_then_repair`, `owner_gate`, or bounded `accepted_defer`; the same unresolved material P0/P1 or run-affecting P2 fingerprint for two cycles escalates to drain and cannot remain a report-only item. Valid low-priority deferral does not trigger a drain merely because two cycles elapsed.
+  - Compatibility path: snapshot state, set company `paused` as an admission freeze without stopping Paperclip or cancelling healthy runs, let existing runs settle, repair/test/restart at zero live/queued runs, read back health, restore status, and recover only deduplicated current work. This audit did not activate the freeze or interrupt the 15 observed live runs.
+  - Target architecture: one canonical Paperclip OS issue must implement `open -> draining -> maintenance -> reopening -> open`, with durable `deferred_by_maintenance` wakeups, project-scoped drains where possible, global drain only for runtime/shared contracts, activity evidence, UI visibility, and idempotent reopening.
+  - Evidence: live automation readback contains the new protocol; canonical source is `softwarehouse/paperclip-teachar-prompt.md`.
+
 - 2026-08-02 / delivery-debt and controlled-browser orchestration repair:
   - Root cause: the release governor classified only dirty paths, reused Soar-only Coolify readiness for Roost, and the next-legal-action selector ignored release-governor output. Clean application repositories could accumulate 34/111 unpublished commits while orchestration selected documentation, recovery, or generic backlog work.
   - Repair: added committed-delta classification, project-specific Coolify readiness, Roost-first release selection, standing-consent delivery language, seven-day owner-visible milestone detection, and regression tests. Live selector readback now returns `start_release_delivery` for Roost at `2ef9fdc3` rather than documentation/backlog work.
