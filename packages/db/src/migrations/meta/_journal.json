@@ -750,6 +750,13 @@
       "when": 1785237600000,
       "tag": "0106_workspace_resource_claims",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1785720923480,
+      "tag": "0107_admission_control",
+      "breakpoints": true
     }
   ]
 }

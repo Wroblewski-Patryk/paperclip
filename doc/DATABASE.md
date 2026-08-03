@@ -268,3 +268,25 @@ provenance, observation time, freshness, typed links, supersession, measurement,
 and promotion targets. Migration 0104 adds the table. Service rules enforce
 same-company references, kind-specific lifecycle transitions, atomic supersession,
 and the `proposed -> validated -> promoted` learning gate.
+
+## Admission control persistence
+
+Native maintenance and work-admission state is persisted in:
+
+- `admission_controls`: one versioned current-state row for a company or project
+  scope, including drain/replay evidence snapshots and maintenance ownership;
+- `admission_control_transitions`: the append-only, idempotent transition ledger;
+- `agent_wakeup_requests`: the existing durable wake ledger, extended with project,
+  admission, dedupe, deferral, replay, and replay-result fields.
+
+Migration `0107_admission_control` maps legacy non-budget company pauses to a
+company-scoped `maintenance` control. Active, archived, and budget-paused companies
+receive an `open` admission control; archive and budget rules remain separate gates.
+The migration does not enqueue work.
+
+Deferred maintenance wakes are unique by `(company_id, dedupe_key)` while they remain
+`deferred_by_maintenance`. Transition retries are unique by control and idempotency
+key. `heartbeat_runs.wakeup_request_id` is unique when present so one durable wake
+cannot create more than one run. The migration fails before adding that last index if
+legacy duplicate wake-to-run rows exist; operators must reconcile the duplicates
+instead of silently discarding execution history.
