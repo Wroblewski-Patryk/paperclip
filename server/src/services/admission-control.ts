@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   admissionControls,
@@ -262,6 +262,10 @@ export function admissionControlService(db: Db) {
           "rejected_as_duplicate",
           "not_worth_doing",
         ]),
+        // evidence.unchanged is a derived restatement of an earlier stop, not
+        // the root decision. Selecting it hides whether the root was transient
+        // WIP and can keep a queue poisoned forever after capacity is free.
+        ne(admissionDecisions.reasonCode, "evidence.unchanged"),
       ))
       .orderBy(desc(admissionDecisions.createdAt))
       .limit(1)
@@ -292,6 +296,11 @@ export function admissionControlService(db: Db) {
     } else if (
       limits.requireNewEvidenceAfterStop &&
       previousStop &&
+      // WIP is a transient capacity observation, not a deterministic decision
+      // about the value or validity of the work. Requiring a new evidence hash
+      // after a WIP stop permanently poisons a queued run: once another agent
+      // frees the slot, the unchanged wake signal can never be reconsidered.
+      !previousStop.reasonCode.startsWith("wip.") &&
       previousStop.evidenceHash === (input.evidenceHash ?? null)
     ) {
       disposition = "waiting_for_signal";

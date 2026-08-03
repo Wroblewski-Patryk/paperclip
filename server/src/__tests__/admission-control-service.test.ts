@@ -11,6 +11,7 @@ import {
   createDb,
   heartbeatRunEvents,
   heartbeatRuns,
+  projects,
 } from "@paperclipai/db";
 import {
   getEmbeddedPostgresTestSupport,
@@ -301,6 +302,74 @@ describeEmbeddedPostgres("native admission control", () => {
     expect(unchanged.disposition).toBe("waiting_for_signal");
     const changed = await admission.evaluateWork({ ...base, evidenceHash: "evidence-v2", expectedValue: 10 });
     expect(changed.disposition).toBe("admitted");
+  });
+
+  it("reconsiders a queued signal after transient project WIP is released", async () => {
+    const { companyId, agentId } = await seed("active");
+    const admission = admissionControlService(db);
+    const projectId = randomUUID();
+    await db.insert(projects).values({
+      id: projectId,
+      companyId,
+      name: "Transient WIP project",
+      status: "active",
+    });
+    const [wakeup] = await db.insert(agentWakeupRequests).values({
+      companyId,
+      agentId,
+      projectId,
+      source: "assignment",
+      status: "claimed",
+    }).returning();
+    const [occupyingRun] = await db.insert(heartbeatRuns).values({
+      companyId,
+      agentId,
+      invocationSource: "assignment",
+      status: "running",
+      wakeupRequestId: wakeup!.id,
+      contextSnapshot: { projectId },
+    }).returning();
+    const signal = {
+      companyId,
+      projectId,
+      agentId,
+      source: "test",
+      fingerprint: "queued-after-project-wip",
+      evidenceHash: "same-wake-signal",
+    };
+
+    const blocked = await admission.evaluateWork(signal);
+    expect(blocked).toMatchObject({ admitted: false, reasonCode: "wip.project_limit" });
+
+    // Reproduce the legacy poisoned chain: older builds persisted a derived
+    // evidence.unchanged row after the WIP decision, which then shadowed the
+    // transient root decision on every later scheduler tick.
+    await db.insert(admissionDecisions).values({
+      companyId,
+      projectId,
+      agentId,
+      admissionControlId: blocked.controlId,
+      controlVersion: blocked.controlVersion,
+      fingerprint: signal.fingerprint,
+      source: signal.source,
+      disposition: "waiting_for_signal",
+      admitted: false,
+      reasonCode: "evidence.unchanged",
+      reason: "legacy derived stop",
+      evidenceHash: signal.evidenceHash,
+      retryCount: 0,
+      observed: blocked.observed,
+      limits: blocked.limits,
+      cooldownUntil: blocked.cooldownUntil,
+      createdAt: new Date(Date.now() + 1_000),
+    });
+
+    await db.update(heartbeatRuns)
+      .set({ status: "succeeded", finishedAt: new Date(), updatedAt: new Date() })
+      .where(eq(heartbeatRuns.id, occupyingRun!.id));
+
+    const reconsidered = await admission.evaluateWork(signal);
+    expect(reconsidered).toMatchObject({ admitted: true, reasonCode: "policy.admitted" });
   });
 
   it("records budget holds and explicit governed risk acceptance", async () => {
