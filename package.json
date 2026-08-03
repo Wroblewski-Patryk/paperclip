@@ -63,6 +63,8 @@
     "softwarehouse:documentation-hygiene:strict": "node scripts/run-documentation-hygiene-audit.mjs --strict",
     "softwarehouse:outcome-integrity": "node scripts/run-outcome-integrity-audit.mjs",
     "softwarehouse:outcome-integrity:strict": "node scripts/run-outcome-integrity-audit.mjs --strict",
+    "softwarehouse:supervision-registry": "node scripts/softwarehouse-supervision-registry.mjs",
+    "softwarehouse:supervision-registry:test": "node --test scripts/softwarehouse-supervision-registry.test.mjs",
     "softwarehouse:organizational-evals": "node --test scripts/organizational-behavior-evals.test.mjs scripts/outcome-integrity.test.mjs",
     "softwarehouse:architecture-lifecycle": "node scripts/check-architecture-awareness-lifecycle.mjs",
     "softwarehouse:architecture-lifecycle:apply": "node scripts/check-architecture-awareness-lifecycle.mjs --apply",
