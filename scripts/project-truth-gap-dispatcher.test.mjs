@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   activeProjectTruthTrackIssues,
+  blockingAdmissionControl,
   isReusableProjectTruthGapIssue,
   parseProjectTruthSourceItemId,
   persistentCompletionParentForProject,
@@ -99,6 +100,12 @@ test("parseProjectTruthSourceItemId extracts the indexed source item id", () => 
   assert.equal(parseProjectTruthSourceItemId({
     description: `${marker}\n\nGap:\n- source item: function:mergegoogledriveconfig:814153a3bb`,
   }), "function:mergegoogledriveconfig:814153a3bb");
+});
+
+test("blockingAdmissionControl recognizes native no-start states", () => {
+  assert.equal(blockingAdmissionControl([{ state: "open" }]), null);
+  assert.equal(blockingAdmissionControl([{ state: "maintenance", version: 1 }])?.state, "maintenance");
+  assert.equal(blockingAdmissionControl([{ state: "reopening" }])?.state, "reopening");
 });
 
 test("persistentCompletionParentForProject selects only the live canonical parent", () => {

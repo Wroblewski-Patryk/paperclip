@@ -5,6 +5,7 @@ import {
 
 const activeDispatchStatuses = new Set(["todo", "in_progress", "in_review"]);
 const defaultTerminalStatuses = new Set(["done", "cancelled"]);
+const admissionBlockingStates = new Set(["draining", "maintenance", "reopening"]);
 
 export const persistentCompletionParentIdentifierByProject = Object.freeze({
   Soar: "LUC-27",
@@ -26,6 +27,10 @@ export function isDispatcherProjectTruthIssue(issue, marker) {
 export function parseProjectTruthSourceItemId(issue) {
   const match = String(issue?.description ?? "").match(/^- source item: (.+)$/im);
   return match?.[1]?.trim() ?? null;
+}
+
+export function blockingAdmissionControl(controls) {
+  return (controls ?? []).find((control) => admissionBlockingStates.has(control?.state)) ?? null;
 }
 
 export function persistentCompletionParentForProject({ projectName, issues }) {

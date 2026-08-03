@@ -5,6 +5,7 @@ import path from "node:path";
 import { agentWipBlockerFor, fetchAgentWipState } from "./lib/agent-wip-guard.mjs";
 import {
   activeProjectTruthTrackIssues,
+  blockingAdmissionControl,
   isReusableProjectTruthGapIssue,
   parseProjectTruthSourceItemId,
   persistentCompletionParentForProject,
@@ -615,9 +616,10 @@ let issues;
 let projectTruthIssues;
 let liveRuns;
 let completionParents;
+let admissionControls;
 try {
   company = await resolveCompany();
-  [health, projects, agents, goals, labels, issues, projectTruthIssues, liveRuns, completionParents] = await Promise.all([
+  [health, projects, agents, goals, labels, issues, projectTruthIssues, liveRuns, completionParents, admissionControls] = await Promise.all([
     request("GET", "/api/health"),
     request("GET", `/api/companies/${company.id}/projects`),
     request("GET", `/api/companies/${company.id}/agents`),
@@ -628,6 +630,7 @@ try {
     request("GET", `/api/companies/${company.id}/live-runs`),
     Promise.all(Object.values(persistentCompletionParentIdentifierByProject)
       .map((identifier) => fetchPersistentCompletionParent(identifier))),
+    request("GET", `/api/companies/${company.id}/admission-controls`),
   ]);
 } catch (error) {
   console.log(JSON.stringify({
@@ -640,6 +643,28 @@ try {
       action: isRequestTimeoutError(error) ? "noop_api_timeout" : "noop_api_error",
       error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
       ownerAction: "Restore Paperclip API responsiveness, then rerun project truth gap dispatch.",
+    }],
+  }, null, 2));
+  process.exit(0);
+}
+
+const admissionBlocker = blockingAdmissionControl(admissionControls);
+if (apply && admissionBlocker) {
+  console.log(JSON.stringify({
+    apiBase,
+    mode: "apply",
+    ok: true,
+    contractRefresh,
+    projectTruth: audit.summary ?? {},
+    admissionControl: {
+      state: admissionBlocker.state,
+      scopeType: admissionBlocker.scopeType ?? null,
+      scopeId: admissionBlocker.scopeId ?? null,
+      version: admissionBlocker.version ?? null,
+    },
+    actions: [{
+      action: "noop_admission_control_blocks_project_truth_dispatch",
+      ownerAction: "Preserve maintenance; do not create or wake project-truth work until native admission is reopened with required evidence.",
     }],
   }, null, 2));
   process.exit(0);
