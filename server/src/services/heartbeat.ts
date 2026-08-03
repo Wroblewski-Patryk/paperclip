@@ -79,6 +79,7 @@ import { trackAgentFirstHeartbeat } from "@paperclipai/shared/telemetry";
 import { getTelemetryClient } from "../telemetry.js";
 import { companySkillService } from "./company-skills.js";
 import { budgetService, type BudgetEnforcementScope } from "./budgets.js";
+import { admissionControlService } from "./admission-control.js";
 import { secretService } from "./secrets.js";
 import { resolveDefaultAgentWorkspaceDir, resolveManagedProjectWorkspaceDir } from "../home-paths.js";
 import {
@@ -3030,6 +3031,25 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     cancelWorkForScope: cancelBudgetScopeWork,
   };
   const budgets = budgetService(db, budgetHooks);
+  const admission = admissionControlService(db);
+
+  async function resolveAdmissionProjectId(
+    companyId: string,
+    contextSnapshot: Record<string, unknown>,
+  ) {
+    const explicitProjectId = readNonEmptyString(contextSnapshot.projectId);
+    if (explicitProjectId) return explicitProjectId;
+    const issueId = readNonEmptyString(contextSnapshot.issueId);
+    if (!issueId) return null;
+    const idMatch = isUuidLike(issueId)
+      ? or(eq(issues.id, issueId), eq(issues.identifier, issueId.toUpperCase()))
+      : eq(issues.identifier, issueId.toUpperCase());
+    return db
+      .select({ projectId: issues.projectId })
+      .from(issues)
+      .where(and(eq(issues.companyId, companyId), idMatch))
+      .then((rows) => rows[0]?.projectId ?? null);
+  }
   const recovery = recoveryService(db, { enqueueWakeup });
   const productivityReviews = productivityReviewService(db, { enqueueWakeup });
   let unsafeTextProjectionPromise: Promise<boolean> | null = null;
@@ -5278,6 +5298,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     issueId: string,
   ) {
     const contextSnapshot = parseObject(run.contextSnapshot);
+    const admissionDecision = await admission.evaluate(
+      run.companyId,
+      await resolveAdmissionProjectId(run.companyId, contextSnapshot),
+    );
+    if (!admissionDecision.admitted) return null;
     const taskKey = deriveTaskKeyWithHeartbeatFallback(contextSnapshot, null);
     const sessionBefore = await resolveSessionBeforeForWakeup(agent, taskKey);
     const retryContextSnapshot = withRecoveryModelProfileHint({
@@ -5498,6 +5523,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     now: Date,
   ) {
     const contextSnapshot = parseObject(run.contextSnapshot);
+    const admissionDecision = await admission.evaluate(
+      run.companyId,
+      await resolveAdmissionProjectId(run.companyId, contextSnapshot),
+    );
+    if (!admissionDecision.admitted) return null;
     const issueId = readNonEmptyString(contextSnapshot.issueId);
     const taskKey = deriveTaskKeyWithHeartbeatFallback(contextSnapshot, null);
     const sessionBefore = await resolveSessionBeforeForWakeup(agent, taskKey);
@@ -5602,6 +5632,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         reason: string;
         errorCode:
           | "agent_not_invokable"
+          | "admission_deferred"
           | "budget_blocked"
           | "issue_not_found"
           | "issue_reassigned"
@@ -5629,6 +5660,25 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       input.retryReason ?? readNonEmptyString(contextSnapshot.retryReason) ?? run.scheduledRetryReason ?? null;
     const issueId = readNonEmptyString(contextSnapshot.issueId);
     const projectId = readNonEmptyString(contextSnapshot.projectId);
+
+    const admissionDecision = await admission.evaluate(
+      run.companyId,
+      projectId ?? await resolveAdmissionProjectId(run.companyId, contextSnapshot),
+    );
+    if (!admissionDecision.admitted) {
+      return {
+        allowed: false,
+        reason: "Scheduled retry deferred by admission control",
+        errorCode: "admission_deferred",
+        issueId,
+        details: {
+          state: admissionDecision.state,
+          scopeType: admissionDecision.scopeType,
+          scopeId: admissionDecision.scopeId,
+          controlVersion: admissionDecision.controlVersion,
+        },
+      };
+    }
 
     const budgetBlock = await budgets.getInvocationBlock(run.companyId, run.agentId, {
       issueId,
@@ -6953,6 +7003,12 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       return null;
     }
     const companyStatus = await getCompanyStatus(run.companyId);
+    const context = parseObject(run.contextSnapshot);
+    const admissionDecision = await admission.evaluate(
+      run.companyId,
+      await resolveAdmissionProjectId(run.companyId, context),
+    );
+    if (!admissionDecision.admitted) return null;
     if (companyStatus !== "active") return null;
     const invokability = await evaluateAgentInvokabilityFromDb(db, agent);
     if (!invokability.invokable) {
@@ -6962,7 +7018,6 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       return null;
     }
 
-    const context = parseObject(run.contextSnapshot);
     const budgetBlock = await budgets.getInvocationBlock(run.companyId, run.agentId, {
       issueId: readNonEmptyString(context.issueId),
       projectId: readNonEmptyString(context.projectId),
@@ -9678,6 +9733,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     options: { suppressAutomaticRecovery?: boolean } = {},
   ) {
     const runContext = parseObject(run.contextSnapshot);
+    const admissionDecision = await admission.evaluate(
+      run.companyId,
+      await resolveAdmissionProjectId(run.companyId, runContext),
+    );
     const contextIssueId = readNonEmptyString(runContext.issueId);
     const taskKey = deriveTaskKeyWithHeartbeatFallback(runContext, null);
     const recoveryAgent = await getAgent(run.agentId);
@@ -9729,6 +9788,13 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       }
 
       if (options.suppressAutomaticRecovery) {
+        return { kind: "released" as const };
+      }
+
+      // Draining and maintenance release the completed execution lock but never
+      // promote deferred work or manufacture a recovery run. The durable wake
+      // remains available for an explicit, evidence-gated reopen.
+      if (!admissionDecision.admitted) {
         return { kind: "released" as const };
       }
 
@@ -10130,7 +10196,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     if (!agent) throw notFound("Agent not found");
     const companyStatus = await getCompanyStatus(agent.companyId);
     const explicitInvoke = source === "on_demand" && opts.requestedByActorType === "user";
-    if (companyStatus !== "active") {
+    if (!companyStatus || companyStatus === "archived") {
       if (explicitInvoke) {
         throw conflict("Company is not active", { status: companyStatus });
       }
@@ -10232,6 +10298,53 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     // project workspace even when context.projectId wasn't set by the caller.
     if (projectId && !readNonEmptyString(enrichedContextSnapshot.projectId)) {
       enrichedContextSnapshot.projectId = projectId;
+    }
+
+    const admissionDecision = await admission.evaluate(agent.companyId, projectId);
+    if (!admissionDecision.admitted) {
+      const dedupeKey = opts.idempotencyKey
+        ?? [agentId, projectId ?? "company", issueId ?? effectiveTaskKey ?? "general", source, reason ?? "wake"]
+          .join(":");
+      await db
+        .insert(agentWakeupRequests)
+        .values({
+          companyId: agent.companyId,
+          agentId,
+          projectId,
+          source,
+          triggerDetail,
+          reason: reason ?? "admission.deferred",
+          payload: {
+            ...(payload ?? {}),
+            ...(issueId ? { issueId } : {}),
+            ...(projectId ? { projectId } : {}),
+            [DEFERRED_WAKE_CONTEXT_KEY]: enrichedContextSnapshot,
+          },
+          status: "deferred_by_maintenance",
+          requestedByActorType: opts.requestedByActorType ?? null,
+          requestedByActorId: opts.requestedByActorId ?? null,
+          idempotencyKey: opts.idempotencyKey ?? null,
+          admissionControlId: admissionDecision.controlId,
+          admissionVersion: admissionDecision.controlVersion,
+          dedupeKey,
+          deferredAt: new Date(),
+        })
+        .onConflictDoNothing();
+      if (explicitInvoke) {
+        throw conflict("Work was deferred by admission control", {
+          state: admissionDecision.state,
+          scopeType: admissionDecision.scopeType,
+          scopeId: admissionDecision.scopeId,
+          controlVersion: admissionDecision.controlVersion,
+        });
+      }
+      return null;
+    }
+
+    if (companyStatus !== "active") {
+      await writeSkippedRequest("company.inactive_without_admission_hold");
+      if (explicitInvoke) throw conflict("Company is not active", { status: companyStatus });
+      return null;
     }
 
     const budgetBlock = await budgets.getInvocationBlock(agent.companyId, agentId, {
@@ -10674,6 +10787,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           .values({
             companyId: agent.companyId,
             agentId,
+            projectId,
             source,
             triggerDetail,
             reason,
@@ -10682,6 +10796,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             requestedByActorType: opts.requestedByActorType ?? null,
             requestedByActorId: opts.requestedByActorId ?? null,
             idempotencyKey: opts.idempotencyKey ?? null,
+            admissionControlId: admissionDecision.controlId,
+            admissionVersion: admissionDecision.controlVersion,
           })
           .returning()
           .then((rows) => rows[0]);
@@ -10803,6 +10919,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       .values({
         companyId: agent.companyId,
         agentId,
+        projectId,
         source,
         triggerDetail,
         reason,
@@ -10811,6 +10928,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         requestedByActorType: opts.requestedByActorType ?? null,
         requestedByActorId: opts.requestedByActorId ?? null,
         idempotencyKey: opts.idempotencyKey ?? null,
+        admissionControlId: admissionDecision.controlId,
+        admissionVersion: admissionDecision.controlVersion,
       })
       .returning()
       .then((rows) => rows[0]);

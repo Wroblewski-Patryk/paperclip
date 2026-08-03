@@ -33,6 +33,12 @@ export { organizationalObservationService, observationFreshUntil } from "./organ
 export { activityService, type ActivityFilters } from "./activity.js";
 export { approvalService } from "./approvals.js";
 export { budgetService } from "./budgets.js";
+export {
+  admissionControlService,
+  ADMISSION_CONTROL_STATES,
+  type AdmissionControlState,
+  type AdmissionDecision,
+} from "./admission-control.js";
 export { secretService } from "./secrets.js";
 export { routineService } from "./routines.js";
 export { costService } from "./costs.js";

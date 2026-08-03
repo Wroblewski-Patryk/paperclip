@@ -290,3 +290,17 @@ key. `heartbeat_runs.wakeup_request_id` is unique when present so one durable wa
 cannot create more than one run. The migration fails before adding that last index if
 legacy duplicate wake-to-run rows exist; operators must reconcile the duplicates
 instead of silently discarding execution history.
+
+The server now mediates wakeups through this state before run creation and checks the
+state again before claim, scheduled retry, process-loss retry, missing-comment retry,
+deferred-work promotion, and automatic recovery. `draining`, `maintenance`, and
+`reopening` therefore block new execution. Maintenance wakeups are retained as
+deduplicated `deferred_by_maintenance` rows with the deciding control id/version and
+do not create heartbeat runs.
+
+Board operators can inspect controls with
+`GET /api/companies/{companyId}/admission-controls` and request an idempotent staged
+transition with `POST /api/companies/{companyId}/admission-controls/transition`.
+The legal company path is `open -> draining -> maintenance -> reopening -> open`;
+reopening and opening require an evidence array. Returning to `open` synchronizes the
+legacy company status, but should only be requested after the safety suite passes.
