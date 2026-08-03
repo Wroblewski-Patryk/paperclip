@@ -1,8 +1,9 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   admissionControls,
   admissionControlTransitions,
+  admissionDecisions,
   companies,
 } from "@paperclipai/db";
 import { conflict, notFound, unprocessable } from "../errors.js";
@@ -29,6 +30,83 @@ export type AdmissionDecision = {
   scopeId: string;
   reason: string | null;
 };
+
+export const ADMISSION_DISPOSITIONS = [
+  "admitted",
+  "deferred_by_maintenance",
+  "needs_decision",
+  "waiting_for_signal",
+  "paused_by_budget",
+  "rejected_as_duplicate",
+  "accepted_risk",
+  "not_worth_doing",
+] as const;
+export type AdmissionDisposition = (typeof ADMISSION_DISPOSITIONS)[number];
+
+export type AdmissionPolicy = {
+  maxRetries: number;
+  maxIssueWip: number;
+  maxProjectWip: number;
+  maxOrganizationWip: number;
+  cooldownSeconds: number;
+  observationWindowSeconds: number;
+  requireNewEvidenceAfterStop: boolean;
+};
+
+export const DEFAULT_ADMISSION_POLICY: AdmissionPolicy = Object.freeze({
+  maxRetries: 2,
+  maxIssueWip: 1,
+  maxProjectWip: 1,
+  maxOrganizationWip: 3,
+  cooldownSeconds: 30 * 60,
+  observationWindowSeconds: 60 * 60,
+  requireNewEvidenceAfterStop: true,
+});
+
+type WorkAdmissionInput = {
+  companyId: string;
+  projectId?: string | null;
+  issueId?: string | null;
+  agentId?: string | null;
+  source: string;
+  fingerprint: string;
+  evidenceHash?: string | null;
+  retryCount?: number;
+  expectedValue?: number | null;
+  acceptedRisk?: boolean;
+  budgetBlocked?: boolean;
+  budgetReason?: string | null;
+  now?: Date;
+};
+
+export type WorkAdmissionDecision = Omit<AdmissionDecision, "disposition"> & {
+  disposition: AdmissionDisposition;
+  reasonCode: string;
+  retryCount: number;
+  observed: Record<string, number>;
+  limits: AdmissionPolicy;
+  cooldownUntil: Date | null;
+  observationUntil: Date | null;
+};
+
+function boundedInteger(value: unknown, fallback: number, min: number, max: number) {
+  return typeof value === "number" && Number.isInteger(value)
+    ? Math.min(max, Math.max(min, value))
+    : fallback;
+}
+
+function resolvePolicy(raw: unknown): AdmissionPolicy {
+  const value = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+  return {
+    maxRetries: boundedInteger(value.maxRetries, DEFAULT_ADMISSION_POLICY.maxRetries, 0, 20),
+    maxIssueWip: boundedInteger(value.maxIssueWip, DEFAULT_ADMISSION_POLICY.maxIssueWip, 1, 10),
+    maxProjectWip: boundedInteger(value.maxProjectWip, DEFAULT_ADMISSION_POLICY.maxProjectWip, 1, 50),
+    maxOrganizationWip: boundedInteger(value.maxOrganizationWip, DEFAULT_ADMISSION_POLICY.maxOrganizationWip, 1, 200),
+    cooldownSeconds: boundedInteger(value.cooldownSeconds, DEFAULT_ADMISSION_POLICY.cooldownSeconds, 0, 7 * 24 * 60 * 60),
+    observationWindowSeconds: boundedInteger(value.observationWindowSeconds, DEFAULT_ADMISSION_POLICY.observationWindowSeconds, 0, 30 * 24 * 60 * 60),
+    requireNewEvidenceAfterStop: value.requireNewEvidenceAfterStop !== false,
+  };
+}
 
 export function admissionControlService(db: Db) {
   async function ensureCompanyControl(companyId: string) {
@@ -128,6 +206,162 @@ export function admissionControlService(db: Db) {
       scopeId: selected.scopeId,
       reason: selected.reason,
     };
+  }
+
+  async function evaluateWork(input: WorkAdmissionInput): Promise<WorkAdmissionDecision> {
+    const stateDecision = await evaluate(input.companyId, input.projectId);
+    const control = await db
+      .select({ policy: admissionControls.policy })
+      .from(admissionControls)
+      .where(eq(admissionControls.id, stateDecision.controlId))
+      .then((rows) => rows[0] ?? null);
+    const limits = resolvePolicy(control?.policy);
+    const now = input.now ?? new Date();
+    const retryCount = Math.max(0, Math.trunc(input.retryCount ?? 0));
+
+    const [running] = await db.execute<{
+      organization_wip: number | string;
+      project_wip: number | string;
+      issue_wip: number | string;
+    }>(sql`
+      select
+        count(*) filter (where hr.status = 'running') as organization_wip,
+        count(*) filter (
+          where hr.status = 'running'
+            and ${input.projectId ?? null}::uuid is not null
+            and coalesce(hr.context_snapshot ->> 'projectId', i.project_id::text) = ${input.projectId ?? null}
+        ) as project_wip,
+        count(*) filter (
+          where hr.status = 'running'
+            and ${input.issueId ?? null}::uuid is not null
+            and hr.context_snapshot ->> 'issueId' = ${input.issueId ?? null}
+        ) as issue_wip
+      from heartbeat_runs hr
+      left join issues i
+        on i.company_id = hr.company_id
+       and i.id::text = hr.context_snapshot ->> 'issueId'
+      where hr.company_id = ${input.companyId}
+    `);
+    const observed = {
+      organizationWip: Number(running?.organization_wip ?? 0),
+      projectWip: Number(running?.project_wip ?? 0),
+      issueWip: Number(running?.issue_wip ?? 0),
+    };
+
+    const previousStop = await db
+      .select()
+      .from(admissionDecisions)
+      .where(and(
+        eq(admissionDecisions.companyId, input.companyId),
+        eq(admissionDecisions.fingerprint, input.fingerprint),
+        inArray(admissionDecisions.disposition, [
+          "needs_decision",
+          "waiting_for_signal",
+          "paused_by_budget",
+          "rejected_as_duplicate",
+          "not_worth_doing",
+        ]),
+      ))
+      .orderBy(desc(admissionDecisions.createdAt))
+      .limit(1)
+      .then((rows) => rows[0] ?? null);
+
+    let disposition: AdmissionDisposition = "admitted";
+    let reasonCode = "policy.admitted";
+    let reason = "Work is within deterministic admission limits";
+    let admitted = true;
+    let cooldownUntil: Date | null = null;
+    let observationUntil: Date | null = null;
+
+    if (!stateDecision.admitted) {
+      disposition = "deferred_by_maintenance";
+      reasonCode = `control.${stateDecision.state}`;
+      reason = stateDecision.reason ?? `Admission control is ${stateDecision.state}`;
+      admitted = false;
+    } else if (input.budgetBlocked) {
+      disposition = "paused_by_budget";
+      reasonCode = "budget.exhausted";
+      reason = input.budgetReason ?? "Invocation budget is exhausted";
+      admitted = false;
+    } else if (retryCount > limits.maxRetries) {
+      disposition = "needs_decision";
+      reasonCode = "retry_budget.exhausted";
+      reason = `Retry count ${retryCount} exceeds limit ${limits.maxRetries}`;
+      admitted = false;
+    } else if (
+      limits.requireNewEvidenceAfterStop &&
+      previousStop &&
+      previousStop.evidenceHash === (input.evidenceHash ?? null)
+    ) {
+      disposition = "waiting_for_signal";
+      reasonCode = "evidence.unchanged";
+      reason = "A previous stop decision remains active and no new evidence was supplied";
+      admitted = false;
+      observationUntil = previousStop.observationUntil ?? null;
+      cooldownUntil = previousStop.cooldownUntil ?? null;
+    } else if (input.issueId && observed.issueWip >= limits.maxIssueWip) {
+      disposition = "rejected_as_duplicate";
+      reasonCode = "wip.issue_limit";
+      reason = `Issue WIP ${observed.issueWip} reached limit ${limits.maxIssueWip}`;
+      admitted = false;
+    } else if (input.projectId && observed.projectWip >= limits.maxProjectWip) {
+      disposition = "waiting_for_signal";
+      reasonCode = "wip.project_limit";
+      reason = `Project WIP ${observed.projectWip} reached limit ${limits.maxProjectWip}`;
+      admitted = false;
+      cooldownUntil = new Date(now.getTime() + limits.cooldownSeconds * 1000);
+    } else if (observed.organizationWip >= limits.maxOrganizationWip) {
+      disposition = "waiting_for_signal";
+      reasonCode = "wip.organization_limit";
+      reason = `Organization WIP ${observed.organizationWip} reached limit ${limits.maxOrganizationWip}`;
+      admitted = false;
+      cooldownUntil = new Date(now.getTime() + limits.cooldownSeconds * 1000);
+    } else if (input.expectedValue !== undefined && input.expectedValue !== null && input.expectedValue < 0) {
+      disposition = "not_worth_doing";
+      reasonCode = "expected_value.negative";
+      reason = `Expected value ${input.expectedValue} is below zero`;
+      admitted = false;
+      observationUntil = new Date(now.getTime() + limits.observationWindowSeconds * 1000);
+    } else if (input.acceptedRisk) {
+      disposition = "accepted_risk";
+      reasonCode = "risk.explicitly_accepted";
+      reason = "Risk was explicitly accepted by the governed caller";
+    }
+
+    const decision: WorkAdmissionDecision = {
+      ...stateDecision,
+      admitted,
+      disposition,
+      reasonCode,
+      reason,
+      retryCount,
+      observed,
+      limits,
+      cooldownUntil,
+      observationUntil,
+    };
+    await db.insert(admissionDecisions).values({
+      companyId: input.companyId,
+      projectId: input.projectId ?? null,
+      issueId: input.issueId ?? null,
+      agentId: input.agentId ?? null,
+      admissionControlId: decision.controlId,
+      controlVersion: decision.controlVersion,
+      fingerprint: input.fingerprint,
+      source: input.source,
+      disposition,
+      admitted,
+      reasonCode,
+      reason,
+      evidenceHash: input.evidenceHash ?? null,
+      retryCount,
+      expectedValue: input.expectedValue ?? null,
+      observed,
+      limits,
+      cooldownUntil,
+      observationUntil,
+    });
+    return decision;
   }
 
   async function transition(input: {
@@ -243,5 +477,5 @@ export function admissionControlService(db: Db) {
     });
   }
 
-  return { ensureCompanyControl, list, evaluate, transition };
+  return { ensureCompanyControl, list, evaluate, evaluateWork, transition };
 }

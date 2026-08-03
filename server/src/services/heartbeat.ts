@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { and, asc, desc, eq, getTableColumns, gt, inArray, isNull, lt, lte, notInArray, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
@@ -7004,11 +7004,46 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     }
     const companyStatus = await getCompanyStatus(run.companyId);
     const context = parseObject(run.contextSnapshot);
-    const admissionDecision = await admission.evaluate(
-      run.companyId,
-      await resolveAdmissionProjectId(run.companyId, context),
+    const issueId = readNonEmptyString(context.issueId);
+    const projectId = await resolveAdmissionProjectId(run.companyId, context);
+    const budgetBlock = await budgets.getInvocationBlock(run.companyId, run.agentId, {
+      issueId,
+      projectId,
+    });
+    const retryCount = Math.max(
+      run.processLossRetryCount ?? 0,
+      run.scheduledRetryAttempt ?? 0,
+      run.continuationAttempt ?? 0,
+      Number(context.livenessContinuationAttempt ?? 0) || 0,
     );
-    if (!admissionDecision.admitted) return null;
+    const workFingerprint = [
+      issueId ?? readNonEmptyString(context.taskKey) ?? projectId ?? run.agentId,
+      run.invocationSource,
+      readNonEmptyString(context.wakeReason) ?? run.triggerDetail ?? "wake",
+    ].join(":");
+    const evidenceHash = readNonEmptyString(context.evidenceHash)
+      ?? readNonEmptyString(context.signalVersion)
+      ?? null;
+    const admissionDecision = await admission.evaluateWork({
+      companyId: run.companyId,
+      projectId,
+      issueId,
+      agentId: run.agentId,
+      source: `heartbeat.claim:${run.invocationSource}`,
+      fingerprint: workFingerprint,
+      evidenceHash,
+      retryCount,
+      budgetBlocked: Boolean(budgetBlock),
+      budgetReason: budgetBlock?.reason ?? null,
+    });
+    if (!admissionDecision.admitted) {
+      if (["needs_decision", "paused_by_budget", "rejected_as_duplicate", "not_worth_doing"].includes(admissionDecision.disposition)) {
+        await cancelRunInternal(run.id, admissionDecision.reason ?? admissionDecision.reasonCode, {
+          startNextQueuedRun: false,
+        });
+      }
+      return null;
+    }
     if (companyStatus !== "active") return null;
     const invokability = await evaluateAgentInvokabilityFromDb(db, agent);
     if (!invokability.invokable) {
@@ -7018,22 +7053,12 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       return null;
     }
 
-    const budgetBlock = await budgets.getInvocationBlock(run.companyId, run.agentId, {
-      issueId: readNonEmptyString(context.issueId),
-      projectId: readNonEmptyString(context.projectId),
-    });
-    if (budgetBlock) {
-      await cancelRunInternal(run.id, budgetBlock.reason, { startNextQueuedRun: false });
-      return null;
-    }
-
     const providerQuotaBlock = await getProviderQuotaStartBlockForRun(agent, run);
     if (providerQuotaBlock) {
       await deferQueuedRunsForProviderQuota(agent, [run], providerQuotaBlock);
       return null;
     }
 
-    const issueId = readNonEmptyString(context.issueId);
     if (issueId) {
       const activePauseHold = await treeControlSvc.getActivePauseHoldGate(run.companyId, issueId);
       const treeHoldInteractionWake = activePauseHold && await isVerifiedIssueTreeControlInteractionWake(db, {
@@ -10300,7 +10325,35 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       enrichedContextSnapshot.projectId = projectId;
     }
 
-    const admissionDecision = await admission.evaluate(agent.companyId, projectId);
+    const budgetBlock = await budgets.getInvocationBlock(agent.companyId, agentId, {
+      issueId,
+      projectId,
+    });
+    const retryCount = Math.max(
+      Number(enrichedContextSnapshot.scheduledRetryAttempt ?? 0) || 0,
+      Number(enrichedContextSnapshot.livenessContinuationAttempt ?? 0) || 0,
+      Number(enrichedContextSnapshot.processLossRetryCount ?? 0) || 0,
+    );
+    const workFingerprint = [
+      issueId ?? effectiveTaskKey ?? projectId ?? agentId,
+      source,
+      reason ?? triggerDetail ?? "wake",
+    ].join(":");
+    const evidenceHash = readNonEmptyString(enrichedContextSnapshot.evidenceHash)
+      ?? readNonEmptyString(enrichedContextSnapshot.signalVersion)
+      ?? (wakeCommentId ? createHash("sha256").update(wakeCommentId).digest("hex") : null);
+    const admissionDecision = await admission.evaluateWork({
+      companyId: agent.companyId,
+      projectId,
+      issueId,
+      agentId,
+      source: `heartbeat.enqueue:${source}`,
+      fingerprint: workFingerprint,
+      evidenceHash,
+      retryCount,
+      budgetBlocked: Boolean(budgetBlock),
+      budgetReason: budgetBlock?.reason ?? null,
+    });
     if (!admissionDecision.admitted) {
       const dedupeKey = opts.idempotencyKey
         ?? [agentId, projectId ?? "company", issueId ?? effectiveTaskKey ?? "general", source, reason ?? "wake"]
@@ -10313,14 +10366,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           projectId,
           source,
           triggerDetail,
-          reason: reason ?? "admission.deferred",
+          reason: reason ?? admissionDecision.reasonCode,
           payload: {
             ...(payload ?? {}),
             ...(issueId ? { issueId } : {}),
             ...(projectId ? { projectId } : {}),
             [DEFERRED_WAKE_CONTEXT_KEY]: enrichedContextSnapshot,
           },
-          status: "deferred_by_maintenance",
+          status: admissionDecision.disposition,
           requestedByActorType: opts.requestedByActorType ?? null,
           requestedByActorId: opts.requestedByActorId ?? null,
           idempotencyKey: opts.idempotencyKey ?? null,
@@ -10328,10 +10381,13 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           admissionVersion: admissionDecision.controlVersion,
           dedupeKey,
           deferredAt: new Date(),
+          replayResult: admissionDecision.reasonCode,
         })
         .onConflictDoNothing();
       if (explicitInvoke) {
-        throw conflict("Work was deferred by admission control", {
+        throw conflict("Work was not admitted", {
+          disposition: admissionDecision.disposition,
+          reasonCode: admissionDecision.reasonCode,
           state: admissionDecision.state,
           scopeType: admissionDecision.scopeType,
           scopeId: admissionDecision.scopeId,
@@ -10345,18 +10401,6 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       await writeSkippedRequest("company.inactive_without_admission_hold");
       if (explicitInvoke) throw conflict("Company is not active", { status: companyStatus });
       return null;
-    }
-
-    const budgetBlock = await budgets.getInvocationBlock(agent.companyId, agentId, {
-      issueId,
-      projectId,
-    });
-    if (budgetBlock) {
-      await writeSkippedRequest("budget.blocked");
-      throw conflict(budgetBlock.reason, {
-        scopeType: budgetBlock.scopeType,
-        scopeId: budgetBlock.scopeId,
-      });
     }
 
     if (
@@ -11000,6 +11044,74 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     return rows.map((row) => row.id);
   }
 
+  async function replayDeferredAdmissionWakeups(companyId: string) {
+    const deferred = await db
+      .select()
+      .from(agentWakeupRequests)
+      .where(and(
+        eq(agentWakeupRequests.companyId, companyId),
+        eq(agentWakeupRequests.status, "deferred_by_maintenance"),
+      ))
+      .orderBy(asc(agentWakeupRequests.requestedAt));
+    const summary = { inspected: deferred.length, queued: 0, notAdmitted: 0, failed: 0 };
+
+    for (const request of deferred) {
+      const claimed = await db
+        .update(agentWakeupRequests)
+        .set({ status: "replaying", replayedAt: new Date(), updatedAt: new Date() })
+        .where(and(
+          eq(agentWakeupRequests.id, request.id),
+          eq(agentWakeupRequests.status, "deferred_by_maintenance"),
+        ))
+        .returning({ id: agentWakeupRequests.id })
+        .then((rows) => rows[0] ?? null);
+      if (!claimed) continue;
+
+      const replayPayload = parseObject(request.payload);
+      const contextSnapshot = parseObject(replayPayload[DEFERRED_WAKE_CONTEXT_KEY]);
+      delete replayPayload[DEFERRED_WAKE_CONTEXT_KEY];
+      try {
+        const run = await enqueueWakeup(request.agentId, {
+          source: (request.source as WakeupOptions["source"]) ?? "automation",
+          triggerDetail: (request.triggerDetail as WakeupOptions["triggerDetail"]) ?? undefined,
+          reason: request.reason ?? "admission.replay",
+          payload: replayPayload,
+          contextSnapshot,
+          requestedByActorType: "system",
+          requestedByActorId: "admission-controller",
+          idempotencyKey: request.idempotencyKey
+            ? `${request.idempotencyKey}:replay:${request.admissionVersion ?? 0}`
+            : `admission-replay:${request.id}`,
+        });
+        const replayResult = run ? "queued" : "not_admitted";
+        await db
+          .update(agentWakeupRequests)
+          .set({
+            status: "replayed",
+            replayResult,
+            finishedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(agentWakeupRequests.id, request.id));
+        if (run) summary.queued += 1;
+        else summary.notAdmitted += 1;
+      } catch (error) {
+        summary.failed += 1;
+        await db
+          .update(agentWakeupRequests)
+          .set({
+            status: "replay_failed",
+            replayResult: "failed",
+            error: error instanceof Error ? error.message : String(error),
+            finishedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(agentWakeupRequests.id, request.id));
+      }
+    }
+    return summary;
+  }
+
   async function listProjectScopedWakeupIds(companyId: string, projectId: string) {
     const wakeIssueId = sql<string | null>`${agentWakeupRequests.payload} ->> 'issueId'`;
     const effectiveProjectId = sql<string | null>`coalesce(${agentWakeupRequests.payload} ->> 'projectId', ${issues.projectId}::text)`;
@@ -11495,6 +11607,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       }),
 
     wakeup: enqueueWakeup,
+    replayDeferredAdmissionWakeups,
     triggerIssueMonitor,
 
     reportRunActivity: clearDetachedRunWarning,

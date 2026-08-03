@@ -213,7 +213,7 @@ export async function createApp(
     }),
   );
   api.use("/companies", companyRoutes(db, opts.storageService));
-  api.use(admissionControlRoutes(db));
+  api.use(admissionControlRoutes(db, { pluginWorkerManager: workerManager }));
   api.use(companySkillRoutes(db));
   api.use(agentRoutes(db, { pluginWorkerManager: workerManager }));
   api.use(assetRoutes(db, opts.storageService));

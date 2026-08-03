@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   admissionControlTransitions,
   admissionControls,
+  admissionDecisions,
   agentWakeupRequests,
   heartbeatRuns,
 } from "./schema/index.js";
@@ -30,6 +31,7 @@ describe("admission-control persistence contract", () => {
         "replay_snapshot",
         "reopen_attempt_id",
         "reopen_result",
+        "policy",
       ]),
     );
     expect(indexNames(admissionControls)).toContain("admission_controls_company_scope_unique");
@@ -41,6 +43,24 @@ describe("admission-control persistence contract", () => {
         "admission_controls_company_scope_check",
       ]),
     );
+  });
+
+  it("persists inspectable deterministic work-admission decisions", () => {
+    const config = getTableConfig(admissionDecisions);
+    expect(config.columns.map((column) => column.name)).toEqual(expect.arrayContaining([
+      "fingerprint",
+      "disposition",
+      "reason_code",
+      "evidence_hash",
+      "retry_count",
+      "expected_value",
+      "observed",
+      "limits",
+      "cooldown_until",
+      "observation_until",
+    ]));
+    expect(indexNames(admissionDecisions)).toContain("admission_decisions_fingerprint_created_idx");
+    expect(config.checks.map((entry) => entry.name)).toContain("admission_decisions_disposition_check");
   });
 
   it("makes transition and deferred-wakeup retries idempotent", () => {

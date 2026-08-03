@@ -37,6 +37,7 @@ export const admissionControls = pgTable(
       onDelete: "set null",
     }),
     requiredEvidence: jsonb("required_evidence").$type<Array<Record<string, unknown>>>(),
+    policy: jsonb("policy").$type<Record<string, unknown>>(),
     drainStartedAt: timestamp("drain_started_at", { withTimezone: true }),
     maintenanceStartedAt: timestamp("maintenance_started_at", { withTimezone: true }),
     reopenStartedAt: timestamp("reopen_started_at", { withTimezone: true }),

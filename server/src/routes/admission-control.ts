@@ -4,6 +4,7 @@ import { badRequest } from "../errors.js";
 import {
   ADMISSION_CONTROL_STATES,
   admissionControlService,
+  heartbeatService,
   logActivity,
   type AdmissionControlState,
 } from "../services/index.js";
@@ -13,9 +14,10 @@ function isState(value: unknown): value is AdmissionControlState {
   return typeof value === "string" && ADMISSION_CONTROL_STATES.includes(value as AdmissionControlState);
 }
 
-export function admissionControlRoutes(db: Db) {
+export function admissionControlRoutes(db: Db, deps?: Parameters<typeof heartbeatService>[1]) {
   const router = Router();
   const svc = admissionControlService(db);
+  const heartbeat = heartbeatService(db, deps);
 
   router.get("/companies/:companyId/admission-controls", async (req, res) => {
     const companyId = req.params.companyId as string;
@@ -53,6 +55,9 @@ export function admissionControlRoutes(db: Db) {
       reason: typeof body.reason === "string" ? body.reason : null,
       evidence: body.evidence as Array<Record<string, unknown>> | undefined,
     });
+    const replay = body.toState === "open" && !result.idempotent
+      ? await heartbeat.replayDeferredAdmissionWakeups(companyId)
+      : null;
     await logActivity(db, {
       companyId,
       actorType: actor.actorType,
@@ -66,9 +71,10 @@ export function admissionControlRoutes(db: Db) {
         idempotent: result.idempotent,
         scopeType,
         scopeId: result.control.scopeId,
+        replay,
       },
     });
-    res.json(result);
+    res.json({ ...result, replay });
   });
 
   return router;

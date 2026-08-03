@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { eq, sql } from "drizzle-orm";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   admissionControls,
   admissionControlTransitions,
+  admissionDecisions,
   agentWakeupRequests,
   agents,
   companies,
@@ -17,6 +19,24 @@ import {
 import { admissionControlService } from "../services/admission-control.js";
 import { heartbeatService } from "../services/heartbeat.js";
 
+const mockAdapterExecute = vi.hoisted(() => vi.fn(async () => ({
+  exitCode: 0,
+  signal: null,
+  timedOut: false,
+  errorMessage: null,
+  summary: "Admission replay test run.",
+  provider: "test",
+  model: "test-model",
+})));
+
+vi.mock("../adapters/index.ts", async () => {
+  const actual = await vi.importActual<typeof import("../adapters/index.ts")>("../adapters/index.ts");
+  return {
+    ...actual,
+    getServerAdapter: vi.fn(() => ({ supportsLocalAgentJwt: false, execute: mockAdapterExecute })),
+  };
+});
+
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
 
@@ -30,13 +50,7 @@ describeEmbeddedPostgres("native admission control", () => {
   }, 60_000);
 
   afterEach(async () => {
-    await db.delete(heartbeatRunEvents);
-    await db.delete(heartbeatRuns);
-    await db.delete(agentWakeupRequests);
-    await db.delete(admissionControlTransitions);
-    await db.delete(admissionControls);
-    await db.delete(agents);
-    await db.delete(companies);
+    await db.execute(sql.raw(`TRUNCATE TABLE "companies" CASCADE`));
   });
 
   afterAll(async () => {
@@ -152,5 +166,119 @@ describeEmbeddedPostgres("native admission control", () => {
     });
     expect(opened.control.state).toBe("open");
     expect((await db.select().from(companies))[0].status).toBe("active");
+  });
+
+  it("stops runaway retry work with a durable needs_decision and no run", async () => {
+    const { agentId } = await seed("active");
+    const heartbeat = heartbeatService(db);
+
+    const result = await heartbeat.wakeup(agentId, {
+      source: "automation",
+      reason: "blocked_issue_watcher",
+      contextSnapshot: {
+        taskKey: "runaway-blocked-issue",
+        scheduledRetryAttempt: 3,
+      },
+      requestedByActorType: "system",
+    });
+
+    expect(result).toBeNull();
+    expect(await db.select().from(heartbeatRuns)).toHaveLength(0);
+    expect(await db.select().from(agentWakeupRequests)).toMatchObject([{
+      status: "needs_decision",
+      replayResult: "retry_budget.exhausted",
+    }]);
+    expect(await db.select().from(admissionDecisions)).toMatchObject([{
+      admitted: false,
+      disposition: "needs_decision",
+      reasonCode: "retry_budget.exhausted",
+      retryCount: 3,
+    }]);
+  });
+
+  it("replays only persisted maintenance wakeups after evidence-gated reopen", async () => {
+    const { companyId, agentId } = await seed("paused");
+    const heartbeat = heartbeatService(db);
+    const admission = admissionControlService(db);
+    await heartbeat.wakeup(agentId, {
+      source: "automation",
+      reason: "canary-replay",
+      idempotencyKey: "canary-replay",
+      requestedByActorType: "system",
+    });
+    await admission.transition({
+      companyId,
+      toState: "reopening",
+      idempotencyKey: "replay-reopening",
+      actorType: "system",
+      evidence: [{ kind: "safety_suite", result: "pass" }],
+    });
+    await admission.transition({
+      companyId,
+      toState: "open",
+      idempotencyKey: "replay-open",
+      actorType: "system",
+      evidence: [{ kind: "reopen_gate", result: "pass" }],
+    });
+
+    const replay = await heartbeat.replayDeferredAdmissionWakeups(companyId);
+    expect(replay).toMatchObject({ inspected: 1, queued: 1, notAdmitted: 0, failed: 0 });
+    const requests = await db.select().from(agentWakeupRequests);
+    expect(requests.find((row) => row.idempotencyKey === "canary-replay")).toMatchObject({
+      status: "replayed",
+      replayResult: "queued",
+    });
+    expect(await db.select().from(heartbeatRuns)).toHaveLength(1);
+    const runId = (await db.select({ id: heartbeatRuns.id }).from(heartbeatRuns))[0]!.id;
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const status = await db.select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, runId))
+        .then((rows) => rows[0]?.status);
+      if (status && !["queued", "running"].includes(status)) break;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  });
+
+  it("requires a new signal after a deterministic stop decision", async () => {
+    const { companyId, agentId } = await seed("active");
+    const admission = admissionControlService(db);
+    const base = {
+      companyId,
+      agentId,
+      source: "test",
+      fingerprint: "same-problem",
+      evidenceHash: "evidence-v1",
+    };
+
+    const stopped = await admission.evaluateWork({ ...base, expectedValue: -1 });
+    expect(stopped.disposition).toBe("not_worth_doing");
+    const unchanged = await admission.evaluateWork({ ...base, expectedValue: 10 });
+    expect(unchanged.disposition).toBe("waiting_for_signal");
+    const changed = await admission.evaluateWork({ ...base, evidenceHash: "evidence-v2", expectedValue: 10 });
+    expect(changed.disposition).toBe("admitted");
+  });
+
+  it("records budget holds and explicit governed risk acceptance", async () => {
+    const { companyId, agentId } = await seed("active");
+    const admission = admissionControlService(db);
+    const held = await admission.evaluateWork({
+      companyId,
+      agentId,
+      source: "test",
+      fingerprint: "budgeted-work",
+      budgetBlocked: true,
+      budgetReason: "weekly provider budget exhausted",
+    });
+    expect(held.disposition).toBe("paused_by_budget");
+
+    const accepted = await admission.evaluateWork({
+      companyId,
+      agentId,
+      source: "test",
+      fingerprint: "accepted-risk-work",
+      acceptedRisk: true,
+    });
+    expect(accepted).toMatchObject({ admitted: true, disposition: "accepted_risk" });
   });
 });
