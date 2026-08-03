@@ -32,6 +32,7 @@ export { organizationalRecordService } from "./organizational-records.js";
 export { organizationalObservationService, observationFreshUntil } from "./organizational-observations.js";
 export { deliveryService } from "./deliveries.js";
 export { assignmentProposalService } from "./assignment-proposals.js";
+export { roostProductMapOutboxService, startRoostProductMapOutboxRuntime } from "./roost-product-map-outbox.js";
 export { activityService, type ActivityFilters } from "./activity.js";
 export { approvalService } from "./approvals.js";
 export { budgetService } from "./budgets.js";

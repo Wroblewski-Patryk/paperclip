@@ -38,6 +38,7 @@ import {
   reconcileCloudUpstreamRunsOnStartup,
   reconcilePersistedRuntimeServicesOnStartup,
   routineService,
+  startRoostProductMapOutboxRuntime,
 } from "./services/index.js";
 import { createFeedbackTraceShareClientFromConfig } from "./services/feedback-share-client.js";
 import { buildRuntimeApiCandidateUrls, choosePrimaryRuntimeApiUrl } from "./runtime-api.js";
@@ -963,6 +964,35 @@ export async function startServer(): Promise<StartedServer> {
       resolveListen();
     });
   });
+
+  const productMapCompanyId = process.env.PRODUCT_MAP_COMPANY_ID?.trim();
+  let productMapRuntime: ReturnType<typeof startRoostProductMapOutboxRuntime> | null = null;
+  if (process.env.PRODUCT_MAP_PUBLISHER_ENABLED === "true" && productMapCompanyId) {
+    const required = [
+      "PRODUCT_MAP_PAPERCLIP_SOURCE_URL",
+      "PRODUCT_MAP_PAPERCLIP_READ_KEY",
+      "PRODUCT_MAP_ROOST_INGEST_URL",
+      "PRODUCT_MAP_ROOST_INGEST_KEY",
+    ] as const;
+    const missing = required.filter((name) => !process.env[name]?.trim());
+    if (missing.length > 0) {
+      logger.error({ missingBindings: missing }, "Roost Product Map publisher held: bindings incomplete");
+    } else {
+      productMapRuntime = startRoostProductMapOutboxRuntime({
+        db,
+        companyId: productMapCompanyId,
+        bindings: {
+          PRODUCT_MAP_PAPERCLIP_SOURCE_URL: process.env.PRODUCT_MAP_PAPERCLIP_SOURCE_URL!,
+          PRODUCT_MAP_PAPERCLIP_READ_KEY: process.env.PRODUCT_MAP_PAPERCLIP_READ_KEY!,
+          PRODUCT_MAP_ROOST_INGEST_URL: process.env.PRODUCT_MAP_ROOST_INGEST_URL!,
+          PRODUCT_MAP_ROOST_INGEST_KEY: process.env.PRODUCT_MAP_ROOST_INGEST_KEY!,
+          PRODUCT_MAP_ROOST_INGEST_SIGNING_KEY: process.env.PRODUCT_MAP_ROOST_INGEST_SIGNING_KEY,
+        },
+        onEvent: (event) => logger.info(event, "Roost Product Map outbox cycle"),
+      });
+      logger.info({ companyId: productMapCompanyId }, "Roost Product Map outbox runtime enabled");
+    }
+  }
   
   {
     const shutdown = async (signal: "SIGINT" | "SIGTERM") => {
@@ -974,6 +1004,7 @@ export async function startServer(): Promise<StartedServer> {
 
       const appShutdown = (app as { locals?: { paperclipShutdown?: () => void } }).locals?.paperclipShutdown;
       appShutdown?.();
+      productMapRuntime?.stop();
 
       if (embeddedPostgres && embeddedPostgresStartedByThisProcess) {
         logger.info({ signal }, "Stopping embedded PostgreSQL");

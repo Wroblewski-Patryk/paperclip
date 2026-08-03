@@ -5,6 +5,12 @@ plane. The company is not a loose collection of agents: it is a governed deliver
 agent, task, run, event, artifact, policy decision, deployment, and retrospective remains company
 scoped and inspectable.
 
+## Paperclip to Roost projection runtime
+
+Paperclip remains the execution source of truth; Roost receives a read-only owner projection. When `PRODUCT_MAP_PUBLISHER_ENABLED=true` and all scoped bindings plus `PRODUCT_MAP_COMPANY_ID` are present, the server starts one publisher cycle after the API listener is ready. Each source snapshot is inserted into `roost_product_map_outbox` before the oldest pending envelope is delivered to the fixed HTTPS Roost ingest. Company/idempotency uniqueness, source-observed ordering, bounded durable backoff and stale-event refusal prevent dual-write and restart loss. Roost cannot mutate Paperclip delivery truth.
+
+The projection carries source/deployed identity plus latest delivery stage, independently recorded outcome, owner, blocker, decision flag, update time, freshness/lag and quota state. Missing delivery or quota evidence stays explicitly `unknown`; task completion or a commit cannot manufacture it.
+
 ## Canonical Runtime Primitives
 
 | Softwarehouse concept | Paperclip V1 primitive | Evidence path |

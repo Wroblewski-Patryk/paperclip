@@ -29,6 +29,7 @@ export { deliveryTasks } from "./delivery_tasks.js";
 export { productOutcomes } from "./product_outcomes.js";
 export { deliveryTransitions } from "./delivery_transitions.js";
 export { assignmentProposals } from "./assignment_proposals.js";
+export { roostProductMapOutbox } from "./roost_product_map_outbox.js";
 export { projects } from "./projects.js";
 export { projectMemberships } from "./project_memberships.js";
 export { projectWorkspaces } from "./project_workspaces.js";

@@ -248,7 +248,7 @@ async function withTotalTimeout<T>(callback: (signal: AbortSignal) => Promise<T>
   try { return await callback(controller.signal); } finally { clearTimeout(timer); signal?.removeEventListener("abort", relay); }
 }
 
-async function publishOnce(options: RoostProductMapPublisherOptions) {
+export async function loadRoostProductMapEnvelope(options: RoostProductMapPublisherOptions) {
   if (options.signal?.aborted) throw abortError();
   const { source, ingest } = validateBindings(options.bindings);
   if (source.pathname.split("/")[3] !== options.companyId) throw new Error("SOURCE_COMPANY_MISMATCH");
@@ -260,7 +260,15 @@ async function publishOnce(options: RoostProductMapPublisherOptions) {
   if (sourceResponse.status !== 200) throw new Error("SOURCE_AUTH_OR_LOAD_REJECTED");
   const packet = roostBridgePortfolioProjectionSchema.parse(sourceResponse.body);
   if (packet.companyId !== options.companyId) throw new Error("SOURCE_COMPANY_MISMATCH");
-  const envelope = createTransportEnvelope(packet, (options.now ?? (() => new Date()))().toISOString());
+  return createTransportEnvelope(packet, (options.now ?? (() => new Date()))().toISOString());
+}
+
+export async function deliverRoostProductMapEnvelope(
+  envelope: RoostProductMapEnvelope,
+  options: Pick<RoostProductMapPublisherOptions, "bindings" | "request" | "signal">,
+) {
+  const { ingest } = validateBindings(options.bindings);
+  const request = options.request ?? pinnedRequest;
   const bytes = Buffer.from(canonicalJson(envelope));
   if (bytes.byteLength > roostProductMapPublisherService.maxPayloadBytes) throw new Error("PAYLOAD_TOO_LARGE");
   const headers: Record<string, string> = {
@@ -275,6 +283,11 @@ async function publishOnce(options: RoostProductMapPublisherOptions) {
   const outbound = await withTotalTimeout(() => request({ target: ingest, method: "POST", kind: "outbound", headers, body: bytes, signal: options.signal }), options.signal);
   if (outbound.status < 200 || outbound.status >= 300) throw new Error("INGEST_REJECTED");
   return { packetDigest: envelope.packetDigest, idempotencyKey: envelope.idempotencyKey };
+}
+
+async function publishOnce(options: RoostProductMapPublisherOptions) {
+  const envelope = await loadRoostProductMapEnvelope(options);
+  return deliverRoostProductMapEnvelope(envelope, options);
 }
 
 export async function runRoostProductMapPublisher(options: RoostProductMapPublisherOptions): Promise<PublisherTelemetry> {

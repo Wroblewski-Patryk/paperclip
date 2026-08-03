@@ -7,6 +7,8 @@ import {
   issueApprovals,
   issues,
   issueWorkProducts,
+  productDeliveries,
+  productOutcomes,
   projects,
 } from "@paperclipai/db";
 import {
@@ -63,6 +65,17 @@ interface PortfolioEvidenceRow {
   healthStatus: string;
 }
 
+interface PortfolioDeliveryRow {
+  id: string;
+  projectId: string;
+  stage: string;
+  ownerAgentId: string | null;
+  blocker: string | null;
+  needsDecision: boolean;
+  outcome: string | null;
+  updatedAt: Date;
+}
+
 export interface RoostBridgePortfolioData {
   company: PortfolioCompanyRow | null;
   projects: PortfolioProjectRow[];
@@ -70,6 +83,7 @@ export interface RoostBridgePortfolioData {
   runs: PortfolioRunRow[];
   approvals: PortfolioApprovalRow[];
   evidence: PortfolioEvidenceRow[];
+  deliveries: PortfolioDeliveryRow[];
   truncated: boolean;
 }
 
@@ -101,6 +115,7 @@ export function createRoostBridgePortfolioRepository(db: Db): RoostBridgePortfol
           runs: [],
           approvals: [],
           evidence: [],
+          deliveries: [],
           truncated: false,
         };
       }
@@ -123,6 +138,7 @@ export function createRoostBridgePortfolioRepository(db: Db): RoostBridgePortfol
           runs: [],
           approvals: [],
           evidence: [],
+          deliveries: [],
           truncated: projectResult.truncated,
         };
       }
@@ -178,6 +194,22 @@ export function createRoostBridgePortfolioRepository(db: Db): RoostBridgePortfol
         ))
         .limit(MAX_AGGREGATE_ROWS + 1));
 
+      const deliveryResult = takeBounded(await db
+        .select({
+          id: productDeliveries.id,
+          projectId: productDeliveries.projectId,
+          stage: productDeliveries.stage,
+          ownerAgentId: productDeliveries.ownerAgentId,
+          blocker: productDeliveries.blocker,
+          needsDecision: productDeliveries.needsDecision,
+          outcome: productOutcomes.status,
+          updatedAt: productDeliveries.updatedAt,
+        })
+        .from(productDeliveries)
+        .leftJoin(productOutcomes, eq(productOutcomes.deliveryId, productDeliveries.id))
+        .where(and(eq(productDeliveries.companyId, companyId), inArray(productDeliveries.projectId, projectIds)))
+        .limit(MAX_AGGREGATE_ROWS + 1));
+
       return {
         company,
         projects: projectResult.rows,
@@ -185,11 +217,13 @@ export function createRoostBridgePortfolioRepository(db: Db): RoostBridgePortfol
         runs: runResult.rows,
         approvals: approvalResult.rows,
         evidence: evidenceResult.rows,
+        deliveries: deliveryResult.rows,
         truncated: projectResult.truncated
           || issueResult.truncated
           || runResult.truncated
           || approvalResult.truncated
-          || evidenceResult.truncated,
+          || evidenceResult.truncated
+          || deliveryResult.truncated,
       };
     },
   };
@@ -359,6 +393,10 @@ export async function buildRoostBridgePortfolioProjection(
       .filter((run): run is { id: string; status: string } => Boolean(run.status));
     const projectApprovals = data.approvals.filter((approval) => approval.projectId === project.id);
     const projectEvidence = data.evidence.filter((evidence) => evidence.projectId === project.id);
+    const delivery = (data.deliveries ?? [])
+      .filter((candidate) => candidate.projectId === project.id)
+      .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())[0] ?? null;
+    const deliveryLagMs = delivery ? Math.max(0, now.getTime() - delivery.updatedAt.getTime()) : null;
     const readiness = portfolio.commercialReadiness;
     const readinessStatus = normalizedReadinessStatus(readiness?.status ?? null, readiness?.decision ?? null);
     const ownerSurfaceAvailable = portfolio.ownerSurface != null
@@ -391,6 +429,17 @@ export async function buildRoostBridgePortfolioProjection(
         sourceSha: portfolio.sourceControl.headSha,
         deployedSha: portfolio.deployment.deployedSha,
         versionAlignment: portfolio.versionAlignment,
+      },
+      execution: {
+        deliveryStage: delivery?.stage ?? null,
+        outcome: delivery?.outcome ?? null,
+        ownerAgentId: delivery?.ownerAgentId ?? null,
+        blocker: delivery?.blocker ?? null,
+        needsDecision: delivery?.needsDecision ?? false,
+        lastUpdated: delivery?.updatedAt.toISOString() ?? null,
+        freshness: deliveryLagMs == null ? "unknown" : deliveryLagMs <= 24 * 60 * 60_000 ? "fresh" : "stale",
+        lagMs: deliveryLagMs,
+        quotaStatus: "unknown",
       },
       readiness: {
         status: readinessStatus,

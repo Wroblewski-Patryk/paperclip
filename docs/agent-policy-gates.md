@@ -2,6 +2,10 @@
 
 Policy gates prevent autonomous agents from calling work done when the company cannot verify it.
 
+## Roost projection activation gate
+
+The Product Map publisher is disabled unless explicitly enabled with company-scoped source and ingest credentials. Credentials must pass pinned loopback-source/public-HTTPS-ingest validation and are never persisted in the outbox or telemetry. Enabling or changing protected ingest, pushing a product candidate, and triggering production redeploy remain deployment/security gates. Pending/dead outbox rows and stale feed lag are evidence, not authority to retry outside the bounded scheduler.
+
 ## Minimum Gates
 
 - No deployment without relevant test evidence.

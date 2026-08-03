@@ -778,6 +778,13 @@
       "when": 1785767388065,
       "tag": "0110_hard_leper_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1785768761110,
+      "tag": "0111_tiny_typhoid_mary",
+      "breakpoints": true
     }
   ]
 }
