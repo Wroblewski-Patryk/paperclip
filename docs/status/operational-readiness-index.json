@@ -2,8 +2,44 @@
   "generatedAt": "2026-07-23T01:19:08.800Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
+  "repository": {
+    "headSha": "a964aeac710f03fbf23a015177fb1fe90c7d4bcc",
+    "upstreamSha": null,
+    "behind": null,
+    "ahead": null
+  },
+  "deployment": {
+    "deployedSha": null,
+    "matchesSource": false
+  },
   "status": "truth_incomplete",
   "gates": [
+    {
+      "gate": "source_freshness",
+      "status": "stale",
+      "evidence": "2026-07-23T01:19:08.800Z",
+      "requiredFor": "current project truth rather than historical evidence"
+    },
+    {
+      "gate": "release_branch_alignment",
+      "status": "unknown",
+      "evidence": {
+        "headSha": "a964aeac710f03fbf23a015177fb1fe90c7d4bcc",
+        "upstreamSha": null,
+        "behind": null,
+        "ahead": null
+      },
+      "requiredFor": "an exact source release candidate"
+    },
+    {
+      "gate": "deployment_identity",
+      "status": "unknown",
+      "evidence": {
+        "sourceSha": "a964aeac710f03fbf23a015177fb1fe90c7d4bcc",
+        "deployedSha": null
+      },
+      "requiredFor": "proof that the owner-visible runtime matches source"
+    },
     {
       "gate": "architecture_exports",
       "status": "present",

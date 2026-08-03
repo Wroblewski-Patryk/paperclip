@@ -6,6 +6,9 @@ Status: truth_incomplete
 
 | Gate | Status | Required for |
 | --- | --- | --- |
+| source_freshness | stale | current project truth rather than historical evidence |
+| release_branch_alignment | unknown | an exact source release candidate |
+| deployment_identity | unknown | proof that the owner-visible runtime matches source |
 | architecture_exports | present | cross-layer ownership and dependency tracing |
 | app_completion_index | present | user-flow works/fails/unknown classification |
 | event_chain_index | incomplete | backend/frontend/worker impact analysis |

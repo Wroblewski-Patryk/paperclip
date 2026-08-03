@@ -2,6 +2,17 @@
   "generatedAt": "2026-07-23T01:19:08.800Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
+  "repository": {
+    "headSha": "a964aeac710f03fbf23a015177fb1fe90c7d4bcc",
+    "upstreamSha": null,
+    "behind": null,
+    "ahead": null
+  },
+  "deployment": {
+    "deployedSha": null,
+    "matchesSource": false,
+    "probeStatus": "unknown"
+  },
   "status": "gaps_require_routing",
   "counts": {
     "appCompletionItems": 481,
@@ -14,9 +25,9 @@
     "knownAppCompletionRiskItems": 450,
     "appCompletionPriorityReviewItems": 200,
     "appCompletionPriorityReviewTruncated": true,
-    "operationalGateGaps": 2,
-    "indexedGaps": 203,
-    "totalGaps": 453
+    "operationalGateGaps": 5,
+    "indexedGaps": 206,
+    "totalGaps": 456
   },
   "firstGap": {
     "kind": "event_chain_gap",
@@ -2634,6 +2645,30 @@
       ],
       "sourceItemId": "api_endpoint:get-attachments-attachmentid-content:fe4ebfa19c",
       "risk": "missing_test_link"
+    },
+    {
+      "kind": "operational_gate_gap",
+      "severity": "high",
+      "userFlow": null,
+      "summary": "source_freshness: stale",
+      "nextOwner": "Project Manager",
+      "nextAction": "Restore current project truth rather than historical evidence."
+    },
+    {
+      "kind": "operational_gate_gap",
+      "severity": "high",
+      "userFlow": null,
+      "summary": "release_branch_alignment: unknown",
+      "nextOwner": "Project Manager",
+      "nextAction": "Restore an exact source release candidate."
+    },
+    {
+      "kind": "operational_gate_gap",
+      "severity": "high",
+      "userFlow": null,
+      "summary": "deployment_identity: unknown",
+      "nextOwner": "Project Manager",
+      "nextAction": "Restore proof that the owner-visible runtime matches source."
     },
     {
       "kind": "operational_gate_gap",

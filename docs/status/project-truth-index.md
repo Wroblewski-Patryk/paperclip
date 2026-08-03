@@ -3,6 +3,9 @@
 Generated: 2026-07-23T01:19:08.800Z
 Project: Paperclip
 Status: gaps_require_routing
+Source HEAD: a964aeac710f03fbf23a015177fb1fe90c7d4bcc
+Source ahead/behind: unknown/unknown
+Deployed SHA: unknown
 
 This is the routing surface agents should use before guessing whether an app works.
 
@@ -18,9 +21,9 @@ This is the routing surface agents should use before guessing whether an app wor
 | knownAppCompletionRiskItems | 450 |
 | appCompletionPriorityReviewItems | 200 |
 | appCompletionPriorityReviewTruncated | true |
-| operationalGateGaps | 2 |
-| indexedGaps | 203 |
-| totalGaps | 453 |
+| operationalGateGaps | 5 |
+| indexedGaps | 206 |
+| totalGaps | 456 |
 
 ## First Gap
 
