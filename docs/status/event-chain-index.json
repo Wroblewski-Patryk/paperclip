@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T01:19:08.800Z",
+  "generatedAt": "2026-08-03T14:48:09.744Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "sourceGraph": "docs/graphs/architecture-awareness.json",
@@ -10,8 +10,8 @@
   "chains": [
     {
       "userFlow": "Account access",
-      "entityCount": 1006,
-      "linkedRelationCount": 1480,
+      "entityCount": 1013,
+      "linkedRelationCount": 1488,
       "layers": {
         "frontend": {
           "count": 131,
@@ -660,7 +660,7 @@
           "truncated": true
         },
         "backend": {
-          "count": 548,
+          "count": 549,
           "sample": [
             {
               "id": "api_endpoint:use-api-auth:5aa7e1cef0",
@@ -1306,32 +1306,8 @@
           "truncated": true
         },
         "worker": {
-          "count": 106,
+          "count": 112,
           "sample": [
-            {
-              "id": "agent:decision-register:805bff7c8b",
-              "type": "agent",
-              "name": "Decision Register",
-              "path": ".agents/state/decision-register.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "module:agents:8519609e36",
-              "type": "module",
-              "name": ".agents",
-              "path": ".agents",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:risk-register:5d5a3d43f8",
-              "type": "agent",
-              "name": "Risk Register",
-              "path": ".agents/state/risk-register.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
             {
               "id": "module:src:38f6004eb2",
               "type": "module",
@@ -1917,6 +1893,22 @@
               "status": "implemented"
             },
             {
+              "id": "function:filesfromauthority:00eb8e2d14",
+              "type": "function",
+              "name": "filesFromAuthority",
+              "path": "scripts/lib/documentation-hygiene.mjs#filesFromAuthority",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "feature:documentation-hygiene-mjs:a82d071a8f",
+              "type": "feature",
+              "name": "documentation-hygiene.mjs",
+              "path": "scripts/lib/documentation-hygiene.mjs",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
               "id": "function:findboardauthorizationwaitchain:97bf38ac36",
               "type": "function",
               "name": "findBoardAuthorizationWaitChain",
@@ -1941,10 +1933,18 @@
               "status": "implemented"
             },
             {
-              "id": "function:authheaders:f1ff729f98",
+              "id": "function:parsegapregister:b08dd60100",
               "type": "function",
-              "name": "authHeaders",
-              "path": "scripts/lib/timed-json-request.mjs#authHeaders",
+              "name": "parseGapRegister",
+              "path": "scripts/lib/softwarehouse-track-truth.mjs#parseGapRegister",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "feature:softwarehouse-track-truth-mjs:9b75149c70",
+              "type": "feature",
+              "name": "softwarehouse-track-truth.mjs",
+              "path": "scripts/lib/softwarehouse-track-truth.mjs",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             }
@@ -2643,7 +2643,7 @@
       "linkedRelationCount": 425,
       "layers": {
         "frontend": {
-          "count": 61,
+          "count": 60,
           "sample": [
             {
               "id": "component:liverunwidget-tsx:fe7d6333e2",
@@ -3070,10 +3070,10 @@
               "status": "implemented"
             },
             {
-              "id": "component:metriccard-tsx:9b43023304",
+              "id": "component:innovationcommandcenter-tsx:4b14293746",
               "type": "component",
-              "name": "MetricCard.tsx",
-              "path": "ui/src/components/MetricCard.tsx",
+              "name": "InnovationCommandCenter.tsx",
+              "path": "ui/src/components/InnovationCommandCenter.tsx",
               "owner": "Frontend Experience Lead",
               "status": "implemented"
             },
@@ -3082,14 +3082,6 @@
               "type": "component",
               "name": "PageSkeleton.tsx",
               "path": "ui/src/components/PageSkeleton.tsx",
-              "owner": "Frontend Experience Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "component:softwarehousecontrolpanel-tsx:eee84cb929",
-              "type": "component",
-              "name": "SoftwarehouseControlPanel.tsx",
-              "path": "ui/src/components/SoftwarehouseControlPanel.tsx",
               "owner": "Frontend Experience Lead",
               "status": "implemented"
             },
@@ -3783,7 +3775,7 @@
           "truncated": true
         },
         "worker": {
-          "count": 17,
+          "count": 18,
           "sample": [
             {
               "id": "module:ui:c8aab00812",
@@ -3794,26 +3786,34 @@
               "status": "implemented"
             },
             {
+              "id": "document:audyt-dashboardu-deduplikacja-i-styl-paperclip:66b91c6d49",
+              "type": "document",
+              "name": "Audyt dashboardu: deduplikacja i styl Paperclip",
+              "path": "dashboard-dedup-audit.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:item:4a28b5745a",
+              "type": "module",
+              "name": ".",
+              "path": ".",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:dashboard-redesign-design-qa:c060ed6283",
+              "type": "document",
+              "name": "Dashboard redesign design QA",
+              "path": "design-qa.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
               "id": "module:docs:fae674dcd3",
               "type": "module",
               "name": "docs",
               "path": "docs",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "document:history-overview:33c98d3daf",
-              "type": "document",
-              "name": "History Overview",
-              "path": "history/history-overview.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "module:history:7e02a63c35",
-              "type": "module",
-              "name": "history",
-              "path": "history",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             },
@@ -4093,20 +4093,12 @@
     },
     {
       "userFlow": "Exchange connection and configuration",
-      "entityCount": 512,
-      "linkedRelationCount": 706,
+      "entityCount": 544,
+      "linkedRelationCount": 738,
       "layers": {
         "frontend": {
-          "count": 139,
+          "count": 138,
           "sample": [
-            {
-              "id": "test:metadata-test-ts:6eb32c0547",
-              "type": "test",
-              "name": "metadata.test.ts",
-              "path": "ui/src/adapters/metadata.test.ts",
-              "owner": "Frontend Experience Lead",
-              "status": "tested"
-            },
             {
               "id": "component:secretbindingpicker-tsx:0b5ff4c2ae",
               "type": "component",
@@ -4736,6 +4728,14 @@
               "type": "function",
               "name": "SecretUsageTab",
               "path": "ui/src/pages/Secrets.tsx#SecretUsageTab",
+              "owner": "Frontend Experience Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:setfield:fba74dc9e6",
+              "type": "function",
+              "name": "setField",
+              "path": "ui/src/pages/Secrets.tsx#setField",
               "owner": "Frontend Experience Lead",
               "status": "implemented"
             }
@@ -5389,24 +5389,8 @@
           "truncated": true
         },
         "worker": {
-          "count": 80,
+          "count": 112,
           "sample": [
-            {
-              "id": "agent:softwarehouse-secret-requirements:d263e80e0b",
-              "type": "agent",
-              "name": "Softwarehouse Secret Requirements",
-              "path": ".agents/state/softwarehouse-secret-requirements.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "module:agents:8519609e36",
-              "type": "module",
-              "name": ".agents",
-              "path": ".agents",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
             {
               "id": "module:ui:c8aab00812",
               "type": "module",
@@ -5816,223 +5800,239 @@
               "status": "implemented"
             },
             {
+              "id": "feature:rotate-luc-972-credentials-ts:7583acc87b",
+              "type": "feature",
+              "name": "rotate-luc-972-credentials.ts",
+              "path": "scripts/rotate-luc-972-credentials.ts",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:apirequest:30a7274051",
+              "type": "function",
+              "name": "apiRequest",
+              "path": "scripts/rotate-luc-972-credentials.ts#apiRequest",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:asrecord:988c169232",
+              "type": "function",
+              "name": "asRecord",
+              "path": "scripts/rotate-luc-972-credentials.ts#asRecord",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:assertloginstate:fbfdca335f",
+              "type": "function",
+              "name": "assertLoginState",
+              "path": "scripts/rotate-luc-972-credentials.ts#assertLoginState",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:bindingsecretid:a943988fab",
+              "type": "function",
+              "name": "bindingSecretId",
+              "path": "scripts/rotate-luc-972-credentials.ts#bindingSecretId",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:changesoarpassword:c82f64fad9",
+              "type": "function",
+              "name": "changeSoarPassword",
+              "path": "scripts/rotate-luc-972-credentials.ts#changeSoarPassword",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:client:2d82aa4fc8",
+              "type": "function",
+              "name": "client",
+              "path": "scripts/rotate-luc-972-credentials.ts#client",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:closedb:2ddf32c9ac",
+              "type": "function",
+              "name": "closeDb",
+              "path": "scripts/rotate-luc-972-credentials.ts#closeDb",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:coolifyoldreadinvalidated:690a21bd57",
+              "type": "function",
+              "name": "coolifyOldReadInvalidated",
+              "path": "scripts/rotate-luc-972-credentials.ts#coolifyOldReadInvalidated",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:coolifyphp:3ed2b98d58",
+              "type": "function",
+              "name": "coolifyPhp",
+              "path": "scripts/rotate-luc-972-credentials.ts#coolifyPhp",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:coolifyreadsmoke:c3629cf8ff",
+              "type": "function",
+              "name": "coolifyReadSmoke",
+              "path": "scripts/rotate-luc-972-credentials.ts#coolifyReadSmoke",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:envrecord:8143722f5e",
+              "type": "function",
+              "name": "envRecord",
+              "path": "scripts/rotate-luc-972-credentials.ts#envRecord",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:findroostcontainer:de57d448d7",
+              "type": "function",
+              "name": "findRoostContainer",
+              "path": "scripts/rotate-luc-972-credentials.ts#findRoostContainer",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:findsecretmetadatabykey:282de9b51f",
+              "type": "function",
+              "name": "findSecretMetadataByKey",
+              "path": "scripts/rotate-luc-972-credentials.ts#findSecretMetadataByKey",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:generatepassword:4ae7fff4ac",
+              "type": "function",
+              "name": "generatePassword",
+              "path": "scripts/rotate-luc-972-credentials.ts#generatePassword",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:groupworkingaccounts:c746111493",
+              "type": "function",
+              "name": "groupWorkingAccounts",
+              "path": "scripts/rotate-luc-972-credentials.ts#groupWorkingAccounts",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:loadruntimeconfig:aa68b4c9fc",
+              "type": "function",
+              "name": "loadRuntimeConfig",
+              "path": "scripts/rotate-luc-972-credentials.ts#loadRuntimeConfig",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:loginjson:bace7762ff",
+              "type": "function",
+              "name": "loginJson",
+              "path": "scripts/rotate-luc-972-credentials.ts#loginJson",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:main:d9bfef34af",
+              "type": "function",
+              "name": "main",
+              "path": "scripts/rotate-luc-972-credentials.ts#main",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:normalizedbaseurl:c8bb7ccd5b",
+              "type": "function",
+              "name": "normalizedBaseUrl",
+              "path": "scripts/rotate-luc-972-credentials.ts#normalizedBaseUrl",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:parseremotejson:ea493eb642",
+              "type": "function",
+              "name": "parseRemoteJson",
+              "path": "scripts/rotate-luc-972-credentials.ts#parseRemoteJson",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:resolvedirect:564afc09ad",
+              "type": "function",
+              "name": "resolveDirect",
+              "path": "scripts/rotate-luc-972-credentials.ts#resolveDirect",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:roostscript:21a4be1141",
+              "type": "function",
+              "name": "roostScript",
+              "path": "scripts/rotate-luc-972-credentials.ts#roostScript",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:runcoolify:b86638be46",
+              "type": "function",
+              "name": "runCoolify",
+              "path": "scripts/rotate-luc-972-credentials.ts#runCoolify",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:runprocess:cd48e64cea",
+              "type": "function",
+              "name": "runProcess",
+              "path": "scripts/rotate-luc-972-credentials.ts#runProcess",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:safediagnostic:fab65883ae",
+              "type": "function",
+              "name": "safeDiagnostic",
+              "path": "scripts/rotate-luc-972-credentials.ts#safeDiagnostic",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:ssh:c686f961a6",
+              "type": "function",
+              "name": "ssh",
+              "path": "scripts/rotate-luc-972-credentials.ts#ssh",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:updateroostpassword:8a7eabc1ca",
+              "type": "function",
+              "name": "updateRoostPassword",
+              "path": "scripts/rotate-luc-972-credentials.ts#updateRoostPassword",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
               "id": "module:src-secrets:236bd1ae5a",
               "type": "module",
               "name": "src/secrets",
               "path": "src/secrets",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
-            },
-            {
-              "id": "module:src-services:12b41f5362",
-              "type": "module",
-              "name": "src/services",
-              "path": "src/services",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:scansecrets:03f8c10a55",
-              "type": "function",
-              "name": "scanSecrets",
-              "path": ".github/scripts/check-pr-security.mjs#scanSecrets",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:check-pr-security-mjs:6e88e7c672",
-              "type": "feature",
-              "name": "check-pr-security.mjs",
-              "path": ".github/scripts/check-pr-security.mjs",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "test:check-pr-security-test-mjs:430d6a76d4",
-              "type": "test",
-              "name": "check-pr-security.test.mjs",
-              "path": ".github/scripts/tests/check-pr-security.test.mjs",
-              "owner": "Engineering Delivery Lead",
-              "status": "tested"
-            },
-            {
-              "id": "function:maybecontainssecrettext:7d93f913d6",
-              "type": "function",
-              "name": "maybeContainsSecretText",
-              "path": "packages/adapter-utils/src/command-redaction.ts#maybeContainsSecretText",
-              "owner": "Adapters Runtime Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:command-redaction-ts:b22c61ad7f",
-              "type": "feature",
-              "name": "command-redaction.ts",
-              "path": "packages/adapter-utils/src/command-redaction.ts",
-              "owner": "Adapters Runtime Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:secretkeysforgateroot:fd542a8735",
-              "type": "function",
-              "name": "secretKeysForGateRoot",
-              "path": "scripts/audit-luckysparrow-softwarehouse.mjs#secretKeysForGateRoot",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:collectplaceholdersecretkeys:48d243499d",
-              "type": "function",
-              "name": "collectPlaceholderSecretKeys",
-              "path": "scripts/audit-softwarehouse-runtime-file-state.mjs#collectPlaceholderSecretKeys",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:audit-softwarehouse-runtime-file-state-mjs:17c93b6b41",
-              "type": "feature",
-              "name": "audit-softwarehouse-runtime-file-state.mjs",
-              "path": "scripts/audit-softwarehouse-runtime-file-state.mjs",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:textlookslikeplaceholdersecret:b60762440a",
-              "type": "function",
-              "name": "textLooksLikePlaceholderSecret",
-              "path": "scripts/audit-softwarehouse-runtime-file-state.mjs#textLooksLikePlaceholderSecret",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:secretref:2f3d85416f",
-              "type": "function",
-              "name": "secretRef",
-              "path": "scripts/bootstrap-roost-protected-api-key.ts#secretRef",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:bootstrap-roost-protected-api-key-ts:2b491e4c32",
-              "type": "feature",
-              "name": "bootstrap-roost-protected-api-key.ts",
-              "path": "scripts/bootstrap-roost-protected-api-key.ts",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:redactedsecretstate:d4fb938eef",
-              "type": "function",
-              "name": "redactedSecretState",
-              "path": "scripts/export-softwarehouse-unblock-packet.mjs#redactedSecretState",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:secretfreshnesstimestamp:64e61b7ff8",
-              "type": "function",
-              "name": "secretFreshnessTimestamp",
-              "path": "scripts/lib/gate-freshness.mjs#secretFreshnessTimestamp",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:stablesecretmetadata:43f6258eae",
-              "type": "function",
-              "name": "stableSecretMetadata",
-              "path": "scripts/lib/gate-freshness.mjs#stableSecretMetadata",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:findcoveredprotectedcapabilitycredentialchain:f05d3811a3",
-              "type": "function",
-              "name": "findCoveredProtectedCapabilityCredentialChain",
-              "path": "scripts/lib/softwarehouse-learning-loop.mjs#findCoveredProtectedCapabilityCredentialChain",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:softwarehouse-learning-loop-mjs:3be6a9ce5f",
-              "type": "feature",
-              "name": "softwarehouse-learning-loop.mjs",
-              "path": "scripts/lib/softwarehouse-learning-loop.mjs",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:hasprotectedcapabilitycredentialmismatch:464c03f92a",
-              "type": "function",
-              "name": "hasProtectedCapabilityCredentialMismatch",
-              "path": "scripts/lib/softwarehouse-learning-loop.mjs#hasProtectedCapabilityCredentialMismatch",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:requestsecretsmetadata:cbc0a33b8e",
-              "type": "function",
-              "name": "requestSecretsMetadata",
-              "path": "scripts/run-autonomy-governor.mjs#requestSecretsMetadata",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:capturesecretsmetadata:61ec6e2657",
-              "type": "function",
-              "name": "captureSecretsMetadata",
-              "path": "scripts/run-gate-freshness-watcher.mjs#captureSecretsMetadata",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:capturesecretsmetadata:749d529583",
-              "type": "function",
-              "name": "captureSecretsMetadata",
-              "path": "scripts/softwarehouse-gate-specs.test.mjs#captureSecretsMetadata",
-              "owner": "Engineering Delivery Lead",
-              "status": "tested"
-            },
-            {
-              "id": "function:requestsecretsmetadata:ae6dd1b7da",
-              "type": "function",
-              "name": "requestSecretsMetadata",
-              "path": "scripts/softwarehouse-gate-specs.test.mjs#requestSecretsMetadata",
-              "owner": "Engineering Delivery Lead",
-              "status": "tested"
-            },
-            {
-              "id": "function:protectedcapabilitycredentialfixture:ae04af42c0",
-              "type": "function",
-              "name": "protectedCapabilityCredentialFixture",
-              "path": "scripts/softwarehouse-learning-loop.test.mjs#protectedCapabilityCredentialFixture",
-              "owner": "Engineering Delivery Lead",
-              "status": "tested"
-            },
-            {
-              "id": "test:softwarehouse-learning-loop-test-mjs:9c5c56b22e",
-              "type": "test",
-              "name": "softwarehouse-learning-loop.test.mjs",
-              "path": "scripts/softwarehouse-learning-loop.test.mjs",
-              "owner": "Engineering Delivery Lead",
-              "status": "tested"
-            },
-            {
-              "id": "module:src-api:2a8b82ec45",
-              "type": "module",
-              "name": "src/api",
-              "path": "src/api",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "module:src-tests:e9ed28a1a9",
-              "type": "module",
-              "name": "src/__tests__",
-              "path": "src/__tests__",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
             }
           ],
-          "truncated": false
+          "truncated": true
         },
         "data": {
           "count": 8,
@@ -6151,7 +6151,7 @@
           "truncated": false
         },
         "docs": {
-          "count": 12,
+          "count": 13,
           "sample": [
             {
               "id": "document:aws-secrets-manager-provider:793255a184",
@@ -6198,6 +6198,14 @@
               "type": "document",
               "name": "LUC-1624 Security/Credential Blocker Pattern",
               "path": "docs/status/2026-07-22-luc-1624-security-credential-blocker-pattern.md",
+              "owner": "Docs Memory Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:luc-1873-security-credential-blocker-pattern:931080f755",
+              "type": "document",
+              "name": "LUC-1873 Security/Credential Blocker Pattern",
+              "path": "docs/status/2026-07-25-luc-1873-security-credential-blocker-pattern.md",
               "owner": "Docs Memory Lead",
               "status": "implemented"
             },
@@ -6260,8 +6268,8 @@
     },
     {
       "userFlow": "Subscription and entitlement",
-      "entityCount": 294,
-      "linkedRelationCount": 400,
+      "entityCount": 298,
+      "linkedRelationCount": 409,
       "layers": {
         "frontend": {
           "count": 46,
@@ -7284,7 +7292,7 @@
           "truncated": true
         },
         "worker": {
-          "count": 63,
+          "count": 65,
           "sample": [
             {
               "id": "module:ui:c8aab00812",
@@ -7759,6 +7767,22 @@
               "status": "implemented"
             },
             {
+              "id": "function:routinematchesplan:2528d8db70",
+              "type": "function",
+              "name": "routineMatchesPlan",
+              "path": "scripts/softwarehouse-gate-specs.test.mjs#routineMatchesPlan",
+              "owner": "Engineering Delivery Lead",
+              "status": "tested"
+            },
+            {
+              "id": "test:softwarehouse-gate-specs-test-mjs:1c5330865b",
+              "type": "test",
+              "name": "softwarehouse-gate-specs.test.mjs",
+              "path": "scripts/softwarehouse-gate-specs.test.mjs",
+              "owner": "Engineering Delivery Lead",
+              "status": "tested"
+            },
+            {
               "id": "function:controlplanewriteboundaryrecoveryfixture:7384a88622",
               "type": "function",
               "name": "controlPlaneWriteBoundaryRecoveryFixture",
@@ -7816,7 +7840,7 @@
           "truncated": false
         },
         "tests": {
-          "count": 10,
+          "count": 11,
           "sample": [
             {
               "id": "test:work-product-test-ts:37f61dbb9e",
@@ -7839,6 +7863,14 @@
               "type": "test",
               "name": "secret.test.ts",
               "path": "packages/shared/src/validators/secret.test.ts",
+              "owner": "Shared Contracts Lead",
+              "status": "tested"
+            },
+            {
+              "id": "test:softwarehouse-test-ts:9209135a59",
+              "type": "test",
+              "name": "softwarehouse.test.ts",
+              "path": "packages/shared/src/validators/softwarehouse.test.ts",
               "owner": "Shared Contracts Lead",
               "status": "tested"
             },
@@ -7902,7 +7934,7 @@
           "truncated": false
         },
         "docs": {
-          "count": 58,
+          "count": 59,
           "sample": [
             {
               "id": "document:paperclip-module-system:d2435ba2a7",
@@ -8289,6 +8321,14 @@
               "status": "implemented"
             },
             {
+              "id": "document:paperclip-local-control-plane-owner-repository-and-vps-retirement-plan:655596be67",
+              "type": "document",
+              "name": "Paperclip Local Control Plane, Owner Repository, And VPS Retirement Plan",
+              "path": "doc/plans/2026-07-26-paperclip-owner-repository-convergence.md",
+              "owner": "Docs Memory Lead",
+              "status": "implemented"
+            },
+            {
               "id": "document:workspace-product-model-work-product-and-pr-flow:843b76a460",
               "type": "document",
               "name": "Workspace Product Model, Work Product, and PR Flow",
@@ -8379,11 +8419,11 @@
     },
     {
       "userFlow": "Trading operation",
-      "entityCount": 2351,
-      "linkedRelationCount": 3039,
+      "entityCount": 2377,
+      "linkedRelationCount": 3073,
       "layers": {
         "frontend": {
-          "count": 230,
+          "count": 231,
           "sample": [
             {
               "id": "component:local-workspace-runtime-fields-tsx:7455544c02",
@@ -9029,7 +9069,7 @@
           "truncated": true
         },
         "backend": {
-          "count": 1180,
+          "count": 1185,
           "sample": [
             {
               "id": "api_endpoint:get-agents-id-runtime-state:901571eae9",
@@ -9675,13 +9715,21 @@
           "truncated": true
         },
         "worker": {
-          "count": 876,
+          "count": 895,
           "sample": [
             {
               "id": "module:src-adapters:016a8b194b",
               "type": "module",
               "name": "src/adapters",
               "path": "src/adapters",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:doc:97bf06278b",
+              "type": "module",
+              "name": "doc",
+              "path": "doc",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             },
@@ -10308,14 +10356,6 @@
               "path": "packages/adapter-utils/src/execution-target.ts#preferredSandboxShell",
               "owner": "Adapters Runtime Lead",
               "status": "implemented"
-            },
-            {
-              "id": "function:prepareadapterexecutiontargetruntime:dd7c3eca3d",
-              "type": "function",
-              "name": "prepareAdapterExecutionTargetRuntime",
-              "path": "packages/adapter-utils/src/execution-target.ts#prepareAdapterExecutionTargetRuntime",
-              "owner": "Adapters Runtime Lead",
-              "status": "implemented"
             }
           ],
           "truncated": true
@@ -10421,8 +10461,16 @@
           "truncated": false
         },
         "docs": {
-          "count": 4,
+          "count": 5,
           "sample": [
+            {
+              "id": "document:paperclip-ui-composition-rules:283532cfd4",
+              "type": "document",
+              "name": "Paperclip UI composition rules",
+              "path": "doc/UI-DESIGN-SYSTEM.md",
+              "owner": "Docs Memory Lead",
+              "status": "implemented"
+            },
             {
               "id": "document:metrics-and-pdca:af5c7cdcc9",
               "type": "document",
@@ -10466,20 +10514,12 @@
     },
     {
       "userFlow": "Unclassified user workflow",
-      "entityCount": 13518,
-      "linkedRelationCount": 19438,
+      "entityCount": 13802,
+      "linkedRelationCount": 19818,
       "layers": {
         "frontend": {
-          "count": 4003,
+          "count": 4027,
           "sample": [
-            {
-              "id": "test:routines-test-tsx:221e21c2da",
-              "type": "test",
-              "name": "Routines.test.tsx",
-              "path": "ui/src/pages/Routines.test.tsx",
-              "owner": "Frontend Experience Lead",
-              "status": "tested"
-            },
             {
               "id": "test:issues-test-tsx:20b390de9e",
               "type": "test",
@@ -11111,29 +11151,21 @@
               "path": "ui/src/components/ActivityRow.tsx",
               "owner": "Frontend Experience Lead",
               "status": "implemented"
+            },
+            {
+              "id": "function:activityrow:f130dcc609",
+              "type": "function",
+              "name": "ActivityRow",
+              "path": "ui/src/components/ActivityRow.tsx#ActivityRow",
+              "owner": "Frontend Experience Lead",
+              "status": "implemented"
             }
           ],
           "truncated": true
         },
         "backend": {
-          "count": 4481,
+          "count": 4614,
           "sample": [
-            {
-              "id": "test:readme-md:5cc9dee256",
-              "type": "test",
-              "name": "README.md",
-              "path": "server/src/__tests__/README.md",
-              "owner": "Backend Platform Lead",
-              "status": "tested"
-            },
-            {
-              "id": "test:health-test-ts:0b0bfe7895",
-              "type": "test",
-              "name": "health.test.ts",
-              "path": "server/src/__tests__/health.test.ts",
-              "owner": "Backend Platform Lead",
-              "status": "tested"
-            },
             {
               "id": "api_endpoint:use-api:b4836ba90f",
               "type": "api_endpoint",
@@ -11575,6 +11607,14 @@
               "status": "implemented"
             },
             {
+              "id": "api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d",
+              "type": "api_endpoint",
+              "name": "GET /issues/:id/recovery-run-evidence",
+              "path": "server/src/routes/activity.ts#/issues/:id/recovery-run-evidence",
+              "owner": "Backend Platform Lead",
+              "status": "implemented"
+            },
+            {
               "id": "api_endpoint:get-issues-id-runs:99852dc332",
               "type": "api_endpoint",
               "name": "GET /issues/:id/runs",
@@ -11651,6 +11691,30 @@
               "type": "api_endpoint",
               "name": "POST /adapters/install",
               "path": "server/src/routes/adapters.ts#/adapters/install",
+              "owner": "Backend Platform Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
+              "type": "api_endpoint",
+              "name": "GET /companies/:companyId/admission-controls",
+              "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls",
+              "owner": "Backend Platform Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "route:admission-control-ts:18801fb10b",
+              "type": "route",
+              "name": "admission-control.ts",
+              "path": "server/src/routes/admission-control.ts",
+              "owner": "Backend Platform Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
+              "type": "api_endpoint",
+              "name": "POST /companies/:companyId/admission-controls/transition",
+              "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition",
               "owner": "Backend Platform Lead",
               "status": "implemented"
             },
@@ -11741,493 +11805,13 @@
               "path": "server/src/routes/agents.ts#/agents/:id/instructions-bundle/file",
               "owner": "Backend Platform Lead",
               "status": "implemented"
-            },
-            {
-              "id": "api_endpoint:put-agents-id-instructions-bundle-file:5c60f0be4d",
-              "type": "api_endpoint",
-              "name": "PUT /agents/:id/instructions-bundle/file",
-              "path": "server/src/routes/agents.ts#/agents/:id/instructions-bundle/file",
-              "owner": "Backend Platform Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "api_endpoint:patch-agents-id-instructions-path:6a9884631e",
-              "type": "api_endpoint",
-              "name": "PATCH /agents/:id/instructions-path",
-              "path": "server/src/routes/agents.ts#/agents/:id/instructions-path",
-              "owner": "Backend Platform Lead",
-              "status": "implemented"
             }
           ],
           "truncated": true
         },
         "worker": {
-          "count": 2201,
+          "count": 2288,
           "sample": [
-            {
-              "id": "agent:agent-companies-specification-reference:9a51d26ed7",
-              "type": "agent",
-              "name": "Agent Companies Specification Reference",
-              "path": ".agents/skills/company-creator/references/companies-spec.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "module:agents:8519609e36",
-              "type": "module",
-              "name": ".agents",
-              "path": ".agents",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:example-company-package:780fc4acea",
-              "type": "agent",
-              "name": "Example Company Package",
-              "path": ".agents/skills/company-creator/references/example-company.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:creating-a-company-from-an-existing-repository:d6aa4503da",
-              "type": "agent",
-              "name": "Creating a Company From an Existing Repository",
-              "path": ".agents/skills/company-creator/references/from-repo-guide.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:company-creator:632d83c772",
-              "type": "agent",
-              "name": "Company Creator",
-              "path": ".agents/skills/company-creator/SKILL.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:creating-a-paperclip-agent-adapter:a7997467b5",
-              "type": "agent",
-              "name": "Creating a Paperclip Agent Adapter",
-              "path": ".agents/skills/create-agent-adapter/SKILL.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:security-vulnerability-response-instructions:8e6e1b2bfe",
-              "type": "agent",
-              "name": "Security Vulnerability Response Instructions",
-              "path": ".agents/skills/deal-with-security-advisory/SKILL.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:doc-maintenance-audit-checklist:67b2730f7f",
-              "type": "agent",
-              "name": "Doc Maintenance Audit Checklist",
-              "path": ".agents/skills/doc-maintenance/references/audit-checklist.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:section-map:228b362133",
-              "type": "agent",
-              "name": "Section Map",
-              "path": ".agents/skills/doc-maintenance/references/section-map.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:doc-maintenance-skill:959f5e76a3",
-              "type": "agent",
-              "name": "Doc Maintenance Skill",
-              "path": ".agents/skills/doc-maintenance/SKILL.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:paperclip-project-memory-map:d3c8732f5c",
-              "type": "agent",
-              "name": "Paperclip Project Memory Map",
-              "path": ".agents/skills/paperclip-project-memory/references/memory-map.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:paperclip-project-memory:38e98a220e",
-              "type": "agent",
-              "name": "Paperclip Project Memory",
-              "path": ".agents/skills/paperclip-project-memory/SKILL.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:pr-report-style-guide:59da2c5e3c",
-              "type": "agent",
-              "name": "PR Report Style Guide",
-              "path": ".agents/skills/pr-report/references/style-guide.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:pr-report-skill:fb2d926951",
-              "type": "agent",
-              "name": "PR Report Skill",
-              "path": ".agents/skills/pr-report/SKILL.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:prcheckloop:c75ac8fba3",
-              "type": "agent",
-              "name": "PRCheckloop",
-              "path": ".agents/skills/prcheckloop/SKILL.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:release-discord-announcement-skill:c1f1c758b8",
-              "type": "agent",
-              "name": "Release Discord Announcement Skill",
-              "path": ".agents/skills/release-changelog-discord-message/SKILL.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:release-changelog-skill:68ee856b41",
-              "type": "agent",
-              "name": "Release Changelog Skill",
-              "path": ".agents/skills/release-changelog/SKILL.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:release-coordination-skill:4f53f436a4",
-              "type": "agent",
-              "name": "Release Coordination Skill",
-              "path": ".agents/skills/release/SKILL.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:active-mission:4f1a86e0a2",
-              "type": "agent",
-              "name": "Active Mission",
-              "path": ".agents/state/active-mission.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:agent-evals:0aa2c0b667",
-              "type": "agent",
-              "name": "Agent Evals",
-              "path": ".agents/state/agent-evals.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:board-context:ed61eea66b",
-              "type": "agent",
-              "name": "Board Context",
-              "path": ".agents/state/board-context.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:current-focus:8aff660c16",
-              "type": "agent",
-              "name": "Current Focus",
-              "path": ".agents/state/current-focus.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:luc-33-roost-docker-backed-local-api-harness-proof:bda7c3be60",
-              "type": "agent",
-              "name": "LUC-33 Roost Docker-backed local API harness proof",
-              "path": ".agents/state/evidence/LUC-33/roost-docker-local-api-harness-proof.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:luc-659-local-readiness-probe-evidence:8dfdde2d55",
-              "type": "agent",
-              "name": "LUC-659 local readiness probe evidence",
-              "path": ".agents/state/evidence/LUC-659/2026-07-12-local-readiness-probe.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:luc-712-local-readiness-restart-evidence:b4d0f836c4",
-              "type": "agent",
-              "name": "LUC-712 local readiness restart evidence",
-              "path": ".agents/state/evidence/LUC-712/2026-07-12-local-readiness-restart.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:next-steps:5c20d2ed8c",
-              "type": "agent",
-              "name": "Next Steps",
-              "path": ".agents/state/next-steps.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:paperclip-project-journal:d3d08874d2",
-              "type": "agent",
-              "name": "Paperclip Project Journal",
-              "path": ".agents/state/project-journal.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:paperclip-softwarehouse-project-memory:902050bd11",
-              "type": "agent",
-              "name": "Paperclip Softwarehouse Project Memory",
-              "path": ".agents/state/project-memory.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:paperclip-softwarehouse-project-memory:f15bcb8566",
-              "type": "agent",
-              "name": "Paperclip Softwarehouse Project Memory",
-              "path": ".agents/state/README.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:responsibility-learning:0e6ca585af",
-              "type": "agent",
-              "name": "Responsibility Learning",
-              "path": ".agents/state/responsibility-learning.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-agent-activation-governance:658262e12d",
-              "type": "agent",
-              "name": "Softwarehouse Agent Activation Governance",
-              "path": ".agents/state/softwarehouse-agent-activation-governance.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-agent-role-readiness-audit:022b2f6402",
-              "type": "agent",
-              "name": "Softwarehouse Agent Role Readiness Audit",
-              "path": ".agents/state/softwarehouse-agent-role-readiness-audit.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-architecture-gap-analysis:d2f295ccca",
-              "type": "agent",
-              "name": "Softwarehouse Architecture Gap Analysis",
-              "path": ".agents/state/softwarehouse-architecture-gap-analysis.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-autonomous-delivery-architecture:15b59f8a88",
-              "type": "agent",
-              "name": "Softwarehouse Autonomous Delivery Architecture",
-              "path": ".agents/state/softwarehouse-autonomous-delivery-architecture.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-complementarity-audit:baa6078a16",
-              "type": "agent",
-              "name": "Softwarehouse Complementarity Audit",
-              "path": ".agents/state/softwarehouse-complementarity-audit.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-cost-token-and-context-policy:a513fe298f",
-              "type": "agent",
-              "name": "Softwarehouse Cost, Token, And Context Policy",
-              "path": ".agents/state/softwarehouse-cost-token-policy.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-departments:68d80350b5",
-              "type": "agent",
-              "name": "Softwarehouse Departments",
-              "path": ".agents/state/softwarehouse-departments.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-feature-slice-traceability-audit:36ec36456a",
-              "type": "agent",
-              "name": "Softwarehouse Feature Slice Traceability Audit",
-              "path": ".agents/state/softwarehouse-feature-slice-traceability-audit.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-goal-and-routine-governance:14ccfabdea",
-              "type": "agent",
-              "name": "Softwarehouse Goal And Routine Governance",
-              "path": ".agents/state/softwarehouse-goal-routine-governance.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-innovation-to-product-lifecycle:ccdf35996f",
-              "type": "agent",
-              "name": "Softwarehouse Innovation To Product Lifecycle",
-              "path": ".agents/state/softwarehouse-innovation-to-product-lifecycle.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-owner-direction-and-proposal-loop:7a3744f27f",
-              "type": "agent",
-              "name": "Softwarehouse Owner Direction And Proposal Loop",
-              "path": ".agents/state/softwarehouse-owner-direction-proposal-loop.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-owner-interface-contract:c74810a53e",
-              "type": "agent",
-              "name": "Softwarehouse Owner Interface Contract",
-              "path": ".agents/state/softwarehouse-owner-interface-contract.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-paperclip-operating-mechanics:6a00e283e6",
-              "type": "agent",
-              "name": "Softwarehouse Paperclip Operating Mechanics",
-              "path": ".agents/state/softwarehouse-paperclip-operating-mechanics.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-procedure-system:62e371edae",
-              "type": "agent",
-              "name": "Softwarehouse Procedure System",
-              "path": ".agents/state/softwarehouse-procedure-system.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-product-architecture-index:6f1a75f501",
-              "type": "agent",
-              "name": "Softwarehouse Product Architecture Index",
-              "path": ".agents/state/softwarehouse-product-architecture-index.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-resource-access-matrix:90a084f14a",
-              "type": "agent",
-              "name": "Softwarehouse Resource Access Matrix",
-              "path": ".agents/state/softwarehouse-resource-access-matrix.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-resource-policy:2de075cbb4",
-              "type": "agent",
-              "name": "Softwarehouse Resource Policy",
-              "path": ".agents/state/softwarehouse-resource-policy.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-stage0-foundation:5b127a0e6c",
-              "type": "agent",
-              "name": "softwarehouse-stage0-foundation",
-              "path": ".agents/state/softwarehouse-stage0-foundation.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-stage-1-delivery-foundation:3d86286ee3",
-              "type": "agent",
-              "name": "Softwarehouse Stage 1 Delivery Foundation",
-              "path": ".agents/state/softwarehouse-stage1-delivery-foundation.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-stage-1-recommended-first-action:8101a54119",
-              "type": "agent",
-              "name": "Softwarehouse Stage 1 Recommended First Action",
-              "path": ".agents/state/softwarehouse-stage1-recommended-first-action.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-standard-stack:3125bdc01b",
-              "type": "agent",
-              "name": "Softwarehouse Standard Stack",
-              "path": ".agents/state/softwarehouse-standard-stack.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-task-lifecycle-contract:4b365cc441",
-              "type": "agent",
-              "name": "Softwarehouse Task Lifecycle Contract",
-              "path": ".agents/state/softwarehouse-task-lifecycle-contract.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-v0-readiness-audit:973797723f",
-              "type": "agent",
-              "name": "Softwarehouse V0 Readiness Audit",
-              "path": ".agents/state/softwarehouse-v0-readiness-audit.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:softwarehouse-v1-goals-and-routines-audit:d268a8c14f",
-              "type": "agent",
-              "name": "Softwarehouse V1 Goals And Routines Audit",
-              "path": ".agents/state/softwarehouse-v1-goals-routines-audit.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:stage-1-activation-packet-roost:6451969250",
-              "type": "agent",
-              "name": "Stage 1 Activation Packet: Roost",
-              "path": ".agents/state/stage1-activation-roost.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:stage-1-activation-packet-soar:92098fdc37",
-              "type": "agent",
-              "name": "Stage 1 Activation Packet: Soar",
-              "path": ".agents/state/stage1-activation-soar.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:system-health:b1620d63a5",
-              "type": "agent",
-              "name": "System Health",
-              "path": ".agents/state/system-health.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "agent:context-capture-workflow:02fabb1dc3",
-              "type": "agent",
-              "name": "Context Capture Workflow",
-              "path": ".agents/workflows/context-capture.md",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
             {
               "id": "agent:agents:b19d1471f6",
               "type": "agent",
@@ -12403,12 +11987,476 @@
               "path": ".github/PULL_REQUEST_TEMPLATE.md",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
+            },
+            {
+              "id": "module:github:0466982a13",
+              "type": "module",
+              "name": ".github",
+              "path": ".github",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:adapter-plugin-md:ddeffe3e26",
+              "type": "document",
+              "name": "adapter-plugin.md",
+              "path": "adapter-plugin.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:item:4a28b5745a",
+              "type": "module",
+              "name": ".",
+              "path": ".",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:agents-md:aee709b439",
+              "type": "document",
+              "name": "AGENTS.md",
+              "path": "AGENTS.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:luc-1358-closeout-2026-07-18-heartbeat-4-md:a74b0a2576",
+              "type": "document",
+              "name": "luc-1358-closeout-2026-07-18-heartbeat-4.md",
+              "path": "artifacts/luc-1358-closeout-2026-07-18-heartbeat-4.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:artifacts:0848e6c03a",
+              "type": "module",
+              "name": "artifacts",
+              "path": "artifacts",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:luc-1358-gate-freshness-watcher-evidence:06d75099b1",
+              "type": "document",
+              "name": "LUC-1358 Gate Freshness Watcher Evidence",
+              "path": "artifacts/luc-1358-gate-freshness-watcher-2026-07-17.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:luc-1358-gate-freshness-watcher-evidence:9658576abd",
+              "type": "document",
+              "name": "LUC-1358 gate freshness watcher evidence",
+              "path": "artifacts/luc-1358-gate-freshness-watcher-2026-07-18-heartbeat-4.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:luc-7136-governor-closure-evidence:357e9bb6c2",
+              "type": "document",
+              "name": "LUC-7136 Governor Closure Evidence",
+              "path": "artifacts/LUC-7136/governor-closure-evidence.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:luc-7235-autonomy-governor-api-degraded-evidence:3c3aa1b6c1",
+              "type": "document",
+              "name": "LUC-7235 Autonomy Governor API Degraded Evidence",
+              "path": "artifacts/LUC-7235/governor-api-degraded-evidence.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:luc-833-evidence-gate-and-definition-of-done-review:77a3d681c6",
+              "type": "document",
+              "name": "LUC-833 Evidence Gate And Definition Of Done Review",
+              "path": "artifacts/luc-833-evidence-gate-review-2026-07-13.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:cli:319e976eec",
+              "type": "module",
+              "name": "cli",
+              "path": "cli",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:contributing-guide:cfedf682ba",
+              "type": "document",
+              "name": "Contributing Guide",
+              "path": "CONTRIBUTING.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:doc:97bf06278b",
+              "type": "module",
+              "name": "doc",
+              "path": "doc",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:docs:fae674dcd3",
+              "type": "module",
+              "name": "docs",
+              "path": "docs",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:luc-7244-company-value-stream-governance:01392547aa",
+              "type": "document",
+              "name": "LUC-7244 Company Value-Stream Governance",
+              "path": "docs/status/2026-07-03-luc-7244-company-value-stream-governance.md",
+              "owner": "Docs Memory Lead",
+              "status": "blocked"
+            },
+            {
+              "id": "document:paperclip-evals:3af9d18454",
+              "type": "document",
+              "name": "Paperclip Evals",
+              "path": "evals/README.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:evals:0287f75976",
+              "type": "module",
+              "name": "evals",
+              "path": "evals",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:packages-db:970a73dfb6",
+              "type": "module",
+              "name": "packages/db",
+              "path": "packages/db",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:packages-shared:0cd82556fe",
+              "type": "module",
+              "name": "packages/shared",
+              "path": "packages/shared",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:doc-maintenance:64b464a366",
+              "type": "document",
+              "name": "Doc Maintenance",
+              "path": "packages/skills-catalog/catalog/bundled/docs/doc-maintenance/SKILL.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:packages-skills-catalog-catalog:e86044ba4c",
+              "type": "module",
+              "name": "packages/skills-catalog/catalog",
+              "path": "packages/skills-catalog/catalog",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:agent-development-review:ec891056d0",
+              "type": "document",
+              "name": "Agent Development Review",
+              "path": "packages/skills-catalog/catalog/bundled/paperclip-operations/agent-development-review/SKILL.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:issue-triage:f4e7c6f8f4",
+              "type": "document",
+              "name": "Issue Triage",
+              "path": "packages/skills-catalog/catalog/bundled/paperclip-operations/issue-triage/SKILL.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:worked-examples:3a4e5b30ae",
+              "type": "document",
+              "name": "Worked examples",
+              "path": "packages/skills-catalog/catalog/bundled/product/wireframe/references/examples.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:grid-palette-and-type-scale:4c8d84f52c",
+              "type": "document",
+              "name": "Grid, palette, and type scale",
+              "path": "packages/skills-catalog/catalog/bundled/product/wireframe/references/grid-system.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:wireframe:2428a311bd",
+              "type": "document",
+              "name": "Wireframe",
+              "path": "packages/skills-catalog/catalog/bundled/product/wireframe/SKILL.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:qa-acceptance:a46ce175b6",
+              "type": "document",
+              "name": "QA Acceptance",
+              "path": "packages/skills-catalog/catalog/bundled/quality/qa-acceptance/SKILL.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:github-pull-request-workflow:ea2c6ded6e",
+              "type": "document",
+              "name": "GitHub Pull Request Workflow",
+              "path": "packages/skills-catalog/catalog/bundled/software-development/github-pr-workflow/SKILL.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:agent-browser:edfc6f9155",
+              "type": "document",
+              "name": "Agent Browser",
+              "path": "packages/skills-catalog/catalog/optional/browser/agent-browser/SKILL.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:release-announcement:06679df43b",
+              "type": "document",
+              "name": "Release Announcement",
+              "path": "packages/skills-catalog/catalog/optional/content/release-announcement/SKILL.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:product-design-critique:36f279b22c",
+              "type": "document",
+              "name": "Product Design Critique",
+              "path": "packages/skills-catalog/catalog/optional/product/design-critique/SKILL.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:project-md:b2d9eb97f9",
+              "type": "document",
+              "name": "PROJECT.md",
+              "path": "packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/projects/first-project/PROJECT.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:task-md:da68f02611",
+              "type": "document",
+              "name": "TASK.md",
+              "path": "packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/projects/first-project/tasks/first-heartbeat/TASK.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:core-exec-team:b067b3f0c5",
+              "type": "document",
+              "name": "Core Exec Team",
+              "path": "packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/TEAM.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:project-md:b3b29d3d5e",
+              "type": "document",
+              "name": "PROJECT.md",
+              "path": "packages/teams-catalog/catalog/bundled/product/product-design/projects/product-design/PROJECT.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:task-md:6fd8455592",
+              "type": "document",
+              "name": "TASK.md",
+              "path": "packages/teams-catalog/catalog/bundled/product/product-design/projects/product-design/tasks/weekly-design-review/TASK.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:product-design:a0f306d7fb",
+              "type": "document",
+              "name": "Product Design",
+              "path": "packages/teams-catalog/catalog/bundled/product/product-design/TEAM.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:project-md:167a05669d",
+              "type": "document",
+              "name": "PROJECT.md",
+              "path": "packages/teams-catalog/catalog/bundled/software-development/product-engineering/projects/product-engineering/PROJECT.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:task-md:ed95bb79fe",
+              "type": "document",
+              "name": "TASK.md",
+              "path": "packages/teams-catalog/catalog/bundled/software-development/product-engineering/projects/product-engineering/tasks/weekly-engineering-sync/TASK.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:product-engineering:1fd3f40b5d",
+              "type": "document",
+              "name": "Product Engineering",
+              "path": "packages/teams-catalog/catalog/bundled/software-development/product-engineering/TEAM.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:project-md:9c573ab95a",
+              "type": "document",
+              "name": "PROJECT.md",
+              "path": "packages/teams-catalog/catalog/optional/content/content-machine/projects/content-operations/PROJECT.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:task-md:421ad4f399",
+              "type": "document",
+              "name": "TASK.md",
+              "path": "packages/teams-catalog/catalog/optional/content/content-machine/projects/content-operations/tasks/weekly-content-review/TASK.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:content-calendar:7226a93aa8",
+              "type": "document",
+              "name": "Content Calendar",
+              "path": "packages/teams-catalog/catalog/optional/content/content-machine/skills/content-calendar/SKILL.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:content-machine:8b59cefc3e",
+              "type": "document",
+              "name": "Content Machine",
+              "path": "packages/teams-catalog/catalog/optional/content/content-machine/TEAM.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:project-md:c846df396e",
+              "type": "document",
+              "name": "PROJECT.md",
+              "path": "packages/teams-catalog/catalog/optional/operations/agent-enablement/projects/agent-enablement/PROJECT.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:task-md:96b6b50c19",
+              "type": "document",
+              "name": "TASK.md",
+              "path": "packages/teams-catalog/catalog/optional/operations/agent-enablement/projects/agent-enablement/tasks/daily-agent-development-review/TASK.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:agent-enablement:d609bc160a",
+              "type": "document",
+              "name": "Agent Enablement",
+              "path": "packages/teams-catalog/catalog/optional/operations/agent-enablement/TEAM.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:teams-catalog-migration-notes:07d7c74dc4",
+              "type": "document",
+              "name": "Teams Catalog Migration Notes",
+              "path": "packages/teams-catalog/MIGRATION.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:packages-teams-catalog:d9463c4731",
+              "type": "module",
+              "name": "packages/teams-catalog",
+              "path": "packages/teams-catalog",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:paperclip-is-the-app-people-use-to-manage-ai-agents-for-work:1b0f8a857f",
+              "type": "document",
+              "name": "Paperclip is the app people use to manage AI agents for work.",
+              "path": "README.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:v0-2-7:7c69bb96d3",
+              "type": "document",
+              "name": "v0.2.7",
+              "path": "releases/v0.2.7.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "module:releases:7ed8016124",
+              "type": "module",
+              "name": "releases",
+              "path": "releases",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:v0-3-0:e8add549af",
+              "type": "document",
+              "name": "v0.3.0",
+              "path": "releases/v0.3.0.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:v0-3-1:0fc551241a",
+              "type": "document",
+              "name": "v0.3.1",
+              "path": "releases/v0.3.1.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:v2026-318-0:27e979f342",
+              "type": "document",
+              "name": "v2026.318.0",
+              "path": "releases/v2026.318.0.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:v2026-325-0:deaca0c25f",
+              "type": "document",
+              "name": "v2026.325.0",
+              "path": "releases/v2026.325.0.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "document:v2026-403-0:a9fb9d73c7",
+              "type": "document",
+              "name": "v2026.403.0",
+              "path": "releases/v2026.403.0.md",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
             }
           ],
           "truncated": true
         },
         "data": {
-          "count": 342,
+          "count": 360,
           "sample": [
             {
               "id": "model:company:ad330fae48",
@@ -12843,6 +12891,30 @@
               "status": "implemented"
             },
             {
+              "id": "feature:admission-control-transitions-ts:26cbda5dbe",
+              "type": "feature",
+              "name": "admission_control_transitions.ts",
+              "path": "packages/db/src/schema/admission_control_transitions.ts",
+              "owner": "Data Platform Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "feature:admission-controls-ts:79728491ec",
+              "type": "feature",
+              "name": "admission_controls.ts",
+              "path": "packages/db/src/schema/admission_controls.ts",
+              "owner": "Data Platform Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "feature:admission-decisions-ts:35a6a6f7a5",
+              "type": "feature",
+              "name": "admission_decisions.ts",
+              "path": "packages/db/src/schema/admission_decisions.ts",
+              "owner": "Data Platform Lead",
+              "status": "implemented"
+            },
+            {
               "id": "feature:agent-api-keys-ts:b3e54b065a",
               "type": "feature",
               "name": "agent_api_keys.ts",
@@ -12895,6 +12967,14 @@
               "type": "feature",
               "name": "assets.ts",
               "path": "packages/db/src/schema/assets.ts",
+              "owner": "Data Platform Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "feature:assignment-proposals-ts:914840d395",
+              "type": "feature",
+              "name": "assignment_proposals.ts",
+              "path": "packages/db/src/schema/assignment_proposals.ts",
               "owner": "Data Platform Lead",
               "status": "implemented"
             },
@@ -12971,6 +13051,22 @@
               "status": "implemented"
             },
             {
+              "id": "feature:delivery-tasks-ts:a1f8e65612",
+              "type": "feature",
+              "name": "delivery_tasks.ts",
+              "path": "packages/db/src/schema/delivery_tasks.ts",
+              "owner": "Data Platform Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "feature:delivery-transitions-ts:ae88bdc242",
+              "type": "feature",
+              "name": "delivery_transitions.ts",
+              "path": "packages/db/src/schema/delivery_transitions.ts",
+              "owner": "Data Platform Lead",
+              "status": "implemented"
+            },
+            {
               "id": "feature:document-annotation-anchor-snapshots-ts:2acf8fed6a",
               "type": "feature",
               "name": "document_annotation_anchor_snapshots.ts",
@@ -13001,101 +13097,13 @@
               "path": "packages/db/src/schema/document_revisions.ts",
               "owner": "Data Platform Lead",
               "status": "implemented"
-            },
-            {
-              "id": "feature:documents-ts:99603bad3d",
-              "type": "feature",
-              "name": "documents.ts",
-              "path": "packages/db/src/schema/documents.ts",
-              "owner": "Data Platform Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:environment-leases-ts:fda9b305ea",
-              "type": "feature",
-              "name": "environment_leases.ts",
-              "path": "packages/db/src/schema/environment_leases.ts",
-              "owner": "Data Platform Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:environments-ts:0889463ef1",
-              "type": "feature",
-              "name": "environments.ts",
-              "path": "packages/db/src/schema/environments.ts",
-              "owner": "Data Platform Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:execution-workspaces-ts:8781b9f713",
-              "type": "feature",
-              "name": "execution_workspaces.ts",
-              "path": "packages/db/src/schema/execution_workspaces.ts",
-              "owner": "Data Platform Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:feedback-exports-ts:5d30975224",
-              "type": "feature",
-              "name": "feedback_exports.ts",
-              "path": "packages/db/src/schema/feedback_exports.ts",
-              "owner": "Data Platform Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:feedback-votes-ts:0d3884f17b",
-              "type": "feature",
-              "name": "feedback_votes.ts",
-              "path": "packages/db/src/schema/feedback_votes.ts",
-              "owner": "Data Platform Lead",
-              "status": "implemented"
             }
           ],
           "truncated": true
         },
         "tests": {
-          "count": 249,
+          "count": 256,
           "sample": [
-            {
-              "id": "test:company-test-ts:5005ea4189",
-              "type": "test",
-              "name": "company.test.ts",
-              "path": "cli/src/__tests__/company.test.ts",
-              "owner": "Developer Experience Lead",
-              "status": "tested"
-            },
-            {
-              "id": "test:context-test-ts:8fc78afffa",
-              "type": "test",
-              "name": "context.test.ts",
-              "path": "cli/src/__tests__/context.test.ts",
-              "owner": "Developer Experience Lead",
-              "status": "tested"
-            },
-            {
-              "id": "test:token-test-ts:4262d0ff66",
-              "type": "test",
-              "name": "token.test.ts",
-              "path": "cli/src/__tests__/token.test.ts",
-              "owner": "Developer Experience Lead",
-              "status": "tested"
-            },
-            {
-              "id": "test:routine-test-ts:f1f0dd44d3",
-              "type": "test",
-              "name": "routine.test.ts",
-              "path": "packages/shared/src/validators/routine.test.ts",
-              "owner": "Shared Contracts Lead",
-              "status": "tested"
-            },
-            {
-              "id": "test:routines-test-ts:0f34c265af",
-              "type": "test",
-              "name": "routines.test.ts",
-              "path": "cli/src/__tests__/routines.test.ts",
-              "owner": "Developer Experience Lead",
-              "status": "tested"
-            },
             {
               "id": "test:onboarding-spec-ts:b22037fca8",
               "type": "test",
@@ -13209,6 +13217,14 @@
               "status": "tested"
             },
             {
+              "id": "test:context-test-ts:8fc78afffa",
+              "type": "test",
+              "name": "context.test.ts",
+              "path": "cli/src/__tests__/context.test.ts",
+              "owner": "Developer Experience Lead",
+              "status": "tested"
+            },
+            {
               "id": "test:http-test-ts:1a25099793",
               "type": "test",
               "name": "http.test.ts",
@@ -13265,6 +13281,14 @@
               "status": "tested"
             },
             {
+              "id": "test:company-test-ts:5005ea4189",
+              "type": "test",
+              "name": "company.test.ts",
+              "path": "cli/src/__tests__/company.test.ts",
+              "owner": "Developer Experience Lead",
+              "status": "tested"
+            },
+            {
               "id": "test:connect-test-ts:572133f87a",
               "type": "test",
               "name": "connect.test.ts",
@@ -13286,6 +13310,14 @@
               "name": "prompt.test.ts",
               "path": "cli/src/__tests__/prompt.test.ts",
               "owner": "Developer Experience Lead",
+              "status": "tested"
+            },
+            {
+              "id": "test:routine-test-ts:f1f0dd44d3",
+              "type": "test",
+              "name": "routine.test.ts",
+              "path": "packages/shared/src/validators/routine.test.ts",
+              "owner": "Shared Contracts Lead",
               "status": "tested"
             },
             {
@@ -13341,6 +13373,14 @@
               "type": "test",
               "name": "onboard.test.ts",
               "path": "cli/src/__tests__/onboard.test.ts",
+              "owner": "Developer Experience Lead",
+              "status": "tested"
+            },
+            {
+              "id": "test:routines-test-ts:0f34c265af",
+              "type": "test",
+              "name": "routines.test.ts",
+              "path": "cli/src/__tests__/routines.test.ts",
               "owner": "Developer Experience Lead",
               "status": "tested"
             },
@@ -13695,12 +13735,20 @@
               "path": "cli/src/__tests__/company-delete.test.ts",
               "owner": "Developer Experience Lead",
               "status": "tested"
+            },
+            {
+              "id": "function:api:3486cdb021",
+              "type": "function",
+              "name": "api",
+              "path": "cli/src/__tests__/company-import-export-e2e.test.ts#api",
+              "owner": "Developer Experience Lead",
+              "status": "tested"
             }
           ],
           "truncated": true
         },
         "docs": {
-          "count": 427,
+          "count": 436,
           "sample": [
             {
               "id": "document:paperclip-v1-implementation-spec:8fc73fd21b",
@@ -14353,11 +14401,11 @@
     },
     {
       "userFlow": "User configuration",
-      "entityCount": 993,
-      "linkedRelationCount": 1646,
+      "entityCount": 1010,
+      "linkedRelationCount": 1679,
       "layers": {
         "frontend": {
-          "count": 351,
+          "count": 352,
           "sample": [
             {
               "id": "component:config-fields-tsx:db418f3a7b",
@@ -15649,7 +15697,7 @@
           "truncated": true
         },
         "worker": {
-          "count": 202,
+          "count": 216,
           "sample": [
             {
               "id": "module:src-adapters-claude-local:8b9102a3fd",
@@ -15940,6 +15988,14 @@
               "status": "implemented"
             },
             {
+              "id": "feature:local-codex-command-mjs:04e9217f55",
+              "type": "feature",
+              "name": "local-codex-command.mjs",
+              "path": "scripts/lib/local-codex-command.mjs",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
               "id": "module:scripts:6273493354",
               "type": "module",
               "name": "scripts",
@@ -16220,74 +16276,66 @@
               "status": "implemented"
             },
             {
-              "id": "feature:configure-roost-prep-mjs:65cddadd76",
+              "id": "feature:configure-roost-hosted-context-ts:f2ca55c5ef",
               "type": "feature",
-              "name": "configure-roost-prep.mjs",
-              "path": "scripts/configure-roost-prep.mjs",
+              "name": "configure-roost-hosted-context.ts",
+              "path": "scripts/configure-roost-hosted-context.ts",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             },
             {
-              "id": "function:adapterconfigforlane:b992860a76",
+              "id": "function:adapteriscurrent:e28a6d49a1",
               "type": "function",
-              "name": "adapterConfigForLane",
-              "path": "scripts/configure-roost-prep.mjs#adapterConfigForLane",
+              "name": "adapterIsCurrent",
+              "path": "scripts/configure-roost-hosted-context.ts#adapterIsCurrent",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             },
             {
-              "id": "function:buildinstructions:32319beae4",
+              "id": "function:asrecord:b41d094813",
               "type": "function",
-              "name": "buildInstructions",
-              "path": "scripts/configure-roost-prep.mjs#buildInstructions",
+              "name": "asRecord",
+              "path": "scripts/configure-roost-hosted-context.ts#asRecord",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             },
             {
-              "id": "function:byname:5fc867cb68",
+              "id": "function:asstringarray:d5d31bf0f0",
               "type": "function",
-              "name": "byName",
-              "path": "scripts/configure-roost-prep.mjs#byName",
+              "name": "asStringArray",
+              "path": "scripts/configure-roost-hosted-context.ts#asStringArray",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             },
             {
-              "id": "function:bytitle:86c7ecaddb",
+              "id": "function:client:215176d6ca",
               "type": "function",
-              "name": "byTitle",
-              "path": "scripts/configure-roost-prep.mjs#byTitle",
+              "name": "client",
+              "path": "scripts/configure-roost-hosted-context.ts#client",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             },
             {
-              "id": "function:ensureagent:df8cb08607",
+              "id": "function:companycoreextraargs:fcba9dae85",
               "type": "function",
-              "name": "ensureAgent",
-              "path": "scripts/configure-roost-prep.mjs#ensureAgent",
+              "name": "companycoreExtraArgs",
+              "path": "scripts/configure-roost-hosted-context.ts#companycoreExtraArgs",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             },
             {
-              "id": "function:ensuregoal:accbd14366",
+              "id": "function:configuredadapter:ad919ace1b",
               "type": "function",
-              "name": "ensureGoal",
-              "path": "scripts/configure-roost-prep.mjs#ensureGoal",
+              "name": "configuredAdapter",
+              "path": "scripts/configure-roost-hosted-context.ts#configuredAdapter",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             },
             {
-              "id": "function:ensureissue:c3a99be2f7",
+              "id": "function:loadruntimeconfig:3a966f0cab",
               "type": "function",
-              "name": "ensureIssue",
-              "path": "scripts/configure-roost-prep.mjs#ensureIssue",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:ensurelabel:23beb2b34d",
-              "type": "function",
-              "name": "ensureLabel",
-              "path": "scripts/configure-roost-prep.mjs#ensureLabel",
+              "name": "loadRuntimeConfig",
+              "path": "scripts/configure-roost-hosted-context.ts#loadRuntimeConfig",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             }
@@ -16357,7 +16405,7 @@
           "truncated": false
         },
         "tests": {
-          "count": 42,
+          "count": 44,
           "sample": [
             {
               "id": "test:config-schema-test-ts:50eae4f39e",
@@ -16669,6 +16717,22 @@
               "name": "worktree.test.ts",
               "path": "cli/src/__tests__/worktree.test.ts",
               "owner": "Developer Experience Lead",
+              "status": "tested"
+            },
+            {
+              "id": "function:config:1a01d66e77",
+              "type": "function",
+              "name": "config",
+              "path": "packages/db/src/delivery-schema.test.ts#config",
+              "owner": "Data Platform Lead",
+              "status": "tested"
+            },
+            {
+              "id": "test:delivery-schema-test-ts:b46bcc7547",
+              "type": "test",
+              "name": "delivery-schema.test.ts",
+              "path": "packages/db/src/delivery-schema.test.ts",
+              "owner": "Data Platform Lead",
               "status": "tested"
             },
             {

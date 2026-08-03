@@ -1,6 +1,6 @@
 # Task Synchronization Report
 
-Generated: 2026-07-23T01:19:08.800Z
+Generated: 2026-08-03T14:48:09.744Z
 
 ## Contract
 
@@ -10,8 +10,8 @@ Every task should identify the feature/module it changes, dependency expectation
 
 - Actionable tasks without architecture links: 0
 - Raw tasks without architecture links: 0
-- Actionable implementation entities without task links: 1938
-- Raw implementation entities without task links: 2070
+- Actionable implementation entities without task links: 1993
+- Raw implementation entities without task links: 2125
 - Classified task-linkage noise: 132
 - Verified entities without proof evidence: 0
 
@@ -70,6 +70,7 @@ Every task should identify the feature/module it changes, dependency expectation
 - api_endpoint: POST /companies/:companyId/activity (server/src/routes/activity.ts#/companies/:companyId/activity)
 - api_endpoint: GET /heartbeat-runs/:runId/issues (server/src/routes/activity.ts#/heartbeat-runs/:runId/issues)
 - api_endpoint: GET /issues/:id/activity (server/src/routes/activity.ts#/issues/:id/activity)
+- api_endpoint: GET /issues/:id/recovery-run-evidence (server/src/routes/activity.ts#/issues/:id/recovery-run-evidence)
 - api_endpoint: GET /issues/:id/runs (server/src/routes/activity.ts#/issues/:id/runs)
 - api_endpoint: GET /adapters (server/src/routes/adapters.ts#/adapters)
 - api_endpoint: DELETE /adapters/:type (server/src/routes/adapters.ts#/adapters/:type)
@@ -80,6 +81,8 @@ Every task should identify the feature/module it changes, dependency expectation
 - api_endpoint: POST /adapters/:type/reload (server/src/routes/adapters.ts#/adapters/:type/reload)
 - api_endpoint: GET /adapters/:type/ui-parser.js (server/src/routes/adapters.ts#/adapters/:type/ui-parser.js)
 - api_endpoint: POST /adapters/install (server/src/routes/adapters.ts#/adapters/install)
+- api_endpoint: GET /companies/:companyId/admission-controls (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls)
+- api_endpoint: POST /companies/:companyId/admission-controls/transition (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition)
 - api_endpoint: DELETE /agents/:id (server/src/routes/agents.ts#/agents/:id)
 - api_endpoint: GET /agents/:id (server/src/routes/agents.ts#/agents/:id)
 - api_endpoint: PATCH /agents/:id (server/src/routes/agents.ts#/agents/:id)
@@ -101,9 +104,6 @@ Every task should identify the feature/module it changes, dependency expectation
 - api_endpoint: DELETE /agents/:id/keys/:keyId (server/src/routes/agents.ts#/agents/:id/keys/:keyId)
 - api_endpoint: POST /agents/:id/pause (server/src/routes/agents.ts#/agents/:id/pause)
 - api_endpoint: PATCH /agents/:id/permissions (server/src/routes/agents.ts#/agents/:id/permissions)
-- api_endpoint: POST /agents/:id/resume (server/src/routes/agents.ts#/agents/:id/resume)
-- api_endpoint: GET /agents/:id/runtime-state (server/src/routes/agents.ts#/agents/:id/runtime-state)
-- api_endpoint: POST /agents/:id/runtime-state/reset-session (server/src/routes/agents.ts#/agents/:id/runtime-state/reset-session)
 
 ## Raw Task-Linkage Samples
 

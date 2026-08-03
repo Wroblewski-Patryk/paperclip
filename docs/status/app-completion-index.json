@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-07-23T01:19:08.800Z",
+  "generatedAt": "2026-08-03T14:48:09.744Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "sourceGraph": "docs/graphs/architecture-awareness.json",
   "candidatePolicy": "product_boundaries_v2",
   "counts": {
-    "items": 481,
+    "items": 492,
     "flows": 7,
     "needsBrowserReview": 72,
-    "missingTestLink": 352,
-    "missingDocLink": 25,
+    "missingTestLink": 364,
+    "missingDocLink": 24,
     "implementedNeedsProof": 1,
     "blocked": 0,
-    "riskItems": 450,
-    "appCompletionRiskItems": 450,
+    "riskItems": 461,
+    "appCompletionRiskItems": 461,
     "priorityReviewItems": 200,
     "priorityReviewLimit": 200,
     "priorityReviewTruncated": true
@@ -72,11 +72,11 @@
     },
     {
       "userFlow": "Unclassified user workflow",
-      "total": 413,
+      "total": 424,
       "risks": {
         "ok": 19,
-        "missing_test_link": 314,
-        "missing_doc_link": 20,
+        "missing_test_link": 326,
+        "missing_doc_link": 19,
         "implemented_needs_proof": 1,
         "needs_browser_review": 59
       },
@@ -398,7 +398,7 @@
         "needsBrowserProof": true,
         "needsScreenshotReview": true
       },
-      "relatedEntityCount": 66,
+      "relatedEntityCount": 64,
       "risk": "needs_browser_review"
     },
     {
@@ -765,6 +765,25 @@
       "risk": "missing_test_link"
     },
     {
+      "id": "api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /issues/:id/recovery-run-evidence",
+      "path": "server/src/routes/activity.ts#/issues/:id/recovery-run-evidence",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
       "id": "api_endpoint:get-issues-id-runs:99852dc332",
       "type": "api_endpoint",
       "kind": "api_endpoint",
@@ -922,6 +941,44 @@
       "kind": "api_endpoint",
       "name": "POST /adapters/install",
       "path": "server/src/routes/adapters.ts#/adapters/install",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /companies/:companyId/admission-controls",
+      "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /companies/:companyId/admission-controls/transition",
+      "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition",
       "owner": "Backend Platform Lead",
       "status": "implemented_needs_proof",
       "userFlow": "Unclassified user workflow",
@@ -3216,6 +3273,101 @@
       "risk": "missing_test_link"
     },
     {
+      "id": "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /companies/:companyId/deliveries",
+      "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:post-companies-companyid-deliveries:295187fbac",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /companies/:companyId/deliveries",
+      "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:get-deliveries-id:14cdad6d18",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /deliveries/:id",
+      "path": "server/src/routes/deliveries.ts#/deliveries/:id",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /deliveries/:id/outcome",
+      "path": "server/src/routes/deliveries.ts#/deliveries/:id/outcome",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:post-deliveries-id-transition:d97a50341f",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /deliveries/:id/transition",
+      "path": "server/src/routes/deliveries.ts#/deliveries/:id/transition",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
       "id": "api_endpoint:get-companies-companyid-environments:ac6e4c8a72",
       "type": "api_endpoint",
       "kind": "api_endpoint",
@@ -3753,158 +3905,6 @@
       "kind": "api_endpoint",
       "name": "POST /instance/database-backups",
       "path": "server/src/routes/instance-database-backups.ts#/instance/database-backups",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:post-issues-id-tree-control-preview:01977dd182",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "POST /issues/:id/tree-control/preview",
-      "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-control/preview",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-issues-id-tree-control-state:a918474983",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /issues/:id/tree-control/state",
-      "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-control/state",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-issues-id-tree-holds:029658b474",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /issues/:id/tree-holds",
-      "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-holds",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:post-issues-id-tree-holds:3ee6e39036",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "POST /issues/:id/tree-holds",
-      "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-holds",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-issues-id-tree-holds-holdid:eb5b8cee5e",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /issues/:id/tree-holds/:holdId",
-      "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-holds/:holdId",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:post-issues-id-tree-holds-holdid-release:d8154836be",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "POST /issues/:id/tree-holds/:holdId/release",
-      "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-holds/:holdId/release",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:delete-attachments-attachmentid:cb78eb2436",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "DELETE /attachments/:attachmentId",
-      "path": "server/src/routes/issues.ts#/attachments/:attachmentId",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-attachments-attachmentid-content:fe4ebfa19c",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /attachments/:attachmentId/content",
-      "path": "server/src/routes/issues.ts#/attachments/:attachmentId/content",
       "owner": "Backend Platform Lead",
       "status": "implemented_needs_proof",
       "userFlow": "Unclassified user workflow",

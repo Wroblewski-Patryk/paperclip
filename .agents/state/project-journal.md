@@ -5040,3 +5040,10 @@ test, but it was created while Teachar was still editing the same packet. This
 is a repository-writer isolation defect, not a clean independent review. Three
 evidence-memory files remain dirty; LuckySparrow stays paused until one owner
 reviews the exact commit and closes the remaining evidence state.
+# 2026-08-03 - Recovery program moved from containment to bounded execution
+
+The owner explicitly required completion rather than another staged hand-off. The native admission controller, governed assignment proposals, task/delivery/outcome separation, strict runtime topology and reduced default context are now the recovery foundation. Live `tasks:assign` was removed from 37 ordinary agents; only the CEO role and explicit AIA grant retain authority, and assignment proposals still require admission. LuckySparrow remains paused in maintenance with no active routines.
+
+Routine review classified every live definition. Eighteen duplicated or recurrence-risk routines (no-stall, source-control closure, continuation, longevity doctor, stale-board janitor and duplicate Softwarehouse controllers) were archived. The full durable decision and one-routine Soar canary posture are recorded in `.agents/state/routine-recovery-classification.md`.
+
+The Paperclip-to-Roost publisher is being upgraded from a source-only transport to an environment-gated runtime with a PostgreSQL transactional outbox. Activation still requires protected Roost ingest bindings and a deployment decision; no credential or production mutation was performed in this checkpoint.

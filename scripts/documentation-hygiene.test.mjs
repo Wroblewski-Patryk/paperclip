@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -48,4 +48,24 @@ test("rejects contradictory GUI identity in canonical context", async () => {
   await writeFile(path.join(root, "docs/README.md"), "Use the owner web console.\n");
   const result = await auditDocumentationProject({ name: "Test", root, requireDeploymentIdentity: false });
   assert(result.findings.some((item) => item.code === "gui_identity_contradiction"));
+});
+
+test("counts only planning and state paths declared active by the documentation contract", async () => {
+  const root = await fixture();
+  await mkdir(path.join(root, "docs/planning/archive"), { recursive: true });
+  await mkdir(path.join(root, ".agents/state"), { recursive: true });
+  await writeFile(path.join(root, "docs/planning/current.md"), "current\n");
+  await writeFile(path.join(root, "docs/planning/archive/old.md"), "x".repeat(300_000));
+  await writeFile(path.join(root, ".agents/state/history.md"), "x".repeat(300_000));
+  const contractPath = path.join(root, "docs/documentation-contract.json");
+  const contract = JSON.parse(await readFile(contractPath, "utf8"));
+  contract.authority = { activePlanning: ["docs/planning/current.md"], activeState: [] };
+  contract.budgets = { ...contract.budgets, maxActivePlanningFileBytes: 100, maxActiveStateFileBytes: 100 };
+  await writeFile(contractPath, JSON.stringify(contract));
+
+  const result = await auditDocumentationProject({ name: "Test", root, requireDeploymentIdentity: false });
+  assert.equal(result.metrics.planningFiles, 1);
+  assert.equal(result.metrics.activeStateFiles, 0);
+  assert(!result.findings.some((item) => item.code === "planning_file_oversized"));
+  assert(!result.findings.some((item) => item.code === "state_file_oversized"));
 });

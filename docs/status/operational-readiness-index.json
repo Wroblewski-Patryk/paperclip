@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-07-23T01:19:08.800Z",
+  "generatedAt": "2026-08-03T14:48:09.744Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "repository": {
-    "headSha": "3ad94f7e99f5d149e8a59cdff1c541a46fe761a1",
+    "headSha": "7a3b4c941342079ed651212df3944aecd86e1b91",
     "upstreamSha": null,
     "behind": null,
     "ahead": null
@@ -16,15 +16,15 @@
   "gates": [
     {
       "gate": "source_freshness",
-      "status": "stale",
-      "evidence": "2026-07-23T01:19:08.800Z",
+      "status": "fresh",
+      "evidence": "2026-08-03T14:48:09.744Z",
       "requiredFor": "current project truth rather than historical evidence"
     },
     {
       "gate": "release_branch_alignment",
       "status": "unknown",
       "evidence": {
-        "headSha": "3ad94f7e99f5d149e8a59cdff1c541a46fe761a1",
+        "headSha": "7a3b4c941342079ed651212df3944aecd86e1b91",
         "upstreamSha": null,
         "behind": null,
         "ahead": null
@@ -35,7 +35,7 @@
       "gate": "deployment_identity",
       "status": "unknown",
       "evidence": {
-        "sourceSha": "3ad94f7e99f5d149e8a59cdff1c541a46fe761a1",
+        "sourceSha": "7a3b4c941342079ed651212df3944aecd86e1b91",
         "deployedSha": null
       },
       "requiredFor": "proof that the owner-visible runtime matches source"

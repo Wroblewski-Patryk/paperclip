@@ -1,37 +1,37 @@
 {
-  "generated_at": "2026-07-23T01:19:08.800Z",
+  "generated_at": "2026-08-03T14:48:09.744Z",
   "project": {
     "name": "Paperclip",
     "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse"
   },
   "counts": {
-    "entities": 16358,
-    "relations": 22747,
+    "entities": 16692,
+    "relations": 23180,
     "by_type": {
-      "agent": 74,
-      "api_endpoint": 408,
-      "component": 271,
-      "document": 672,
-      "feature": 1110,
-      "function": 12498,
-      "migration": 183,
+      "agent": 14,
+      "api_endpoint": 419,
+      "component": 273,
+      "document": 683,
+      "feature": 1149,
+      "function": 12794,
+      "migration": 192,
       "model": 113,
-      "module": 111,
+      "module": 108,
       "project": 1,
-      "route": 168,
-      "test": 749
+      "route": 171,
+      "test": 775
     },
     "by_status": {
       "blocked": 3,
       "deprecated": 7,
-      "implemented": 14313,
+      "implemented": 14582,
       "in_progress": 1,
-      "tested": 2034
+      "tested": 2099
     }
   },
   "signals": {
     "implementation_without_tests": {
-      "count": 12007,
+      "count": 12260,
       "items": [
         {
           "id": "api_endpoint:use-assets:c2ba42d242",
@@ -154,6 +154,14 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d",
+          "type": "api_endpoint",
+          "name": "GET /issues/:id/recovery-run-evidence",
+          "path": "server/src/routes/activity.ts#/issues/:id/recovery-run-evidence",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-issues-id-runs:99852dc332",
           "type": "api_endpoint",
           "name": "GET /issues/:id/runs",
@@ -222,6 +230,22 @@
           "type": "api_endpoint",
           "name": "POST /adapters/install",
           "path": "server/src/routes/adapters.ts#/adapters/install",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/admission-controls",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/admission-controls/transition",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -1210,6 +1234,46 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-deliveries:295187fbac",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-deliveries-id:14cdad6d18",
+          "type": "api_endpoint",
+          "name": "GET /deliveries/:id",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
+          "type": "api_endpoint",
+          "name": "POST /deliveries/:id/outcome",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/outcome",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-deliveries-id-transition:d97a50341f",
+          "type": "api_endpoint",
+          "name": "POST /deliveries/:id/transition",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/transition",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-companies-companyid-environments:ac6e4c8a72",
           "type": "api_endpoint",
           "name": "GET /companies/:companyId/environments",
@@ -1568,81 +1632,25 @@
           "path": "server/src/routes/issues.ts#/companies/:companyId/issues/count",
           "status": "implemented",
           "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-companies-companyid-labels:7a4294dc35",
-          "type": "api_endpoint",
-          "name": "GET /companies/:companyId/labels",
-          "path": "server/src/routes/issues.ts#/companies/:companyId/labels",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:post-companies-companyid-labels:7ed3dff442",
-          "type": "api_endpoint",
-          "name": "POST /companies/:companyId/labels",
-          "path": "server/src/routes/issues.ts#/companies/:companyId/labels",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-companies-companyid-search:c483ad4e92",
-          "type": "api_endpoint",
-          "name": "GET /companies/:companyId/search",
-          "path": "server/src/routes/issues.ts#/companies/:companyId/search",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-feedback-traces-traceid:451ffb476b",
-          "type": "api_endpoint",
-          "name": "GET /feedback-traces/:traceId",
-          "path": "server/src/routes/issues.ts#/feedback-traces/:traceId",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-feedback-traces-traceid-bundle:ce915e36a3",
-          "type": "api_endpoint",
-          "name": "GET /feedback-traces/:traceId/bundle",
-          "path": "server/src/routes/issues.ts#/feedback-traces/:traceId/bundle",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-issues:65cf881d3e",
-          "type": "api_endpoint",
-          "name": "GET /issues",
-          "path": "server/src/routes/issues.ts#/issues",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:delete-issues-id:25bc792ec0",
-          "type": "api_endpoint",
-          "name": "DELETE /issues/:id",
-          "path": "server/src/routes/issues.ts#/issues/:id",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-issues-id:6e711795d8",
-          "type": "api_endpoint",
-          "name": "GET /issues/:id",
-          "path": "server/src/routes/issues.ts#/issues/:id",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
         }
       ]
     },
     "implementation_without_docs": {
-      "count": 1806,
+      "count": 1861,
       "items": [
         {
           "id": "api_endpoint:post-bootstrap-claim:8055e4b75b",
           "type": "api_endpoint",
           "name": "POST /bootstrap/claim",
           "path": "server/src/routes/access.ts#/bootstrap/claim",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d",
+          "type": "api_endpoint",
+          "name": "GET /issues/:id/recovery-run-evidence",
+          "path": "server/src/routes/activity.ts#/issues/:id/recovery-run-evidence",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -1715,6 +1723,22 @@
           "type": "api_endpoint",
           "name": "POST /adapters/install",
           "path": "server/src/routes/adapters.ts#/adapters/install",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/admission-controls",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/admission-controls/transition",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -1955,6 +1979,46 @@
           "type": "api_endpoint",
           "name": "GET /companies/:companyId/situation",
           "path": "server/src/routes/dashboard.ts#/companies/:companyId/situation",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-deliveries:295187fbac",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-deliveries-id:14cdad6d18",
+          "type": "api_endpoint",
+          "name": "GET /deliveries/:id",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
+          "type": "api_endpoint",
+          "name": "POST /deliveries/:id/outcome",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/outcome",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-deliveries-id-transition:d97a50341f",
+          "type": "api_endpoint",
+          "name": "POST /deliveries/:id/transition",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/transition",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -2267,6 +2331,22 @@
           "type": "api_endpoint",
           "name": "POST /issues/:id/accepted-plan-decompositions",
           "path": "server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-issues-id-assignment-proposals:bd21034acf",
+          "type": "api_endpoint",
+          "name": "GET /issues/:id/assignment-proposals",
+          "path": "server/src/routes/issues.ts#/issues/:id/assignment-proposals",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-issues-id-assignment-proposals:a8bd95bbbc",
+          "type": "api_endpoint",
+          "name": "POST /issues/:id/assignment-proposals",
+          "path": "server/src/routes/issues.ts#/issues/:id/assignment-proposals",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -2763,6 +2843,14 @@
           "type": "api_endpoint",
           "name": "GET /companies/:companyId/softwarehouse/knowledge",
           "path": "server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/knowledge",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-softwarehouse-portfolio-projection-version:350f91c1c6",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/softwarehouse/portfolio-projection/:version",
+          "path": "server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/portfolio-projection/:version",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -3149,99 +3237,11 @@
           "path": "ui/src/components/artifacts/ArtifactCard.tsx",
           "status": "implemented",
           "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:artifactgroupcard-tsx:ba0b359577",
-          "type": "component",
-          "name": "ArtifactGroupCard.tsx",
-          "path": "ui/src/components/artifacts/ArtifactGroupCard.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:asciiartanimation-tsx:5a0f3bec00",
-          "type": "component",
-          "name": "AsciiArtAnimation.tsx",
-          "path": "ui/src/components/AsciiArtAnimation.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:billerspendcard-tsx:9630c2e48b",
-          "type": "component",
-          "name": "BillerSpendCard.tsx",
-          "path": "ui/src/components/BillerSpendCard.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:blockedinboxview-tsx:60834d0c66",
-          "type": "component",
-          "name": "BlockedInboxView.tsx",
-          "path": "ui/src/components/BlockedInboxView.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:blockedreasonchip-tsx:81d69bddae",
-          "type": "component",
-          "name": "BlockedReasonChip.tsx",
-          "path": "ui/src/components/BlockedReasonChip.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:bootstrappendingpage-tsx:78bf6a6408",
-          "type": "component",
-          "name": "BootstrapPendingPage.tsx",
-          "path": "ui/src/components/BootstrapPendingPage.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:breadcrumbbar-tsx:a9b60d3c5b",
-          "type": "component",
-          "name": "BreadcrumbBar.tsx",
-          "path": "ui/src/components/BreadcrumbBar.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:budgetincidentcard-tsx:c1901d07f1",
-          "type": "component",
-          "name": "BudgetIncidentCard.tsx",
-          "path": "ui/src/components/BudgetIncidentCard.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:budgetpolicycard-tsx:5b4d0cbcbb",
-          "type": "component",
-          "name": "BudgetPolicyCard.tsx",
-          "path": "ui/src/components/BudgetPolicyCard.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:budgetsidebarmarker-tsx:e765db23cf",
-          "type": "component",
-          "name": "BudgetSidebarMarker.tsx",
-          "path": "ui/src/components/BudgetSidebarMarker.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:claudesubscriptionpanel-tsx:3af40c3274",
-          "type": "component",
-          "name": "ClaudeSubscriptionPanel.tsx",
-          "path": "ui/src/components/ClaudeSubscriptionPanel.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
         }
       ]
     },
     "actionable_implementation_without_tests": {
-      "count": 11262,
+      "count": 11494,
       "items": [
         {
           "id": "api_endpoint:use-assets:c2ba42d242",
@@ -3364,6 +3364,14 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d",
+          "type": "api_endpoint",
+          "name": "GET /issues/:id/recovery-run-evidence",
+          "path": "server/src/routes/activity.ts#/issues/:id/recovery-run-evidence",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-issues-id-runs:99852dc332",
           "type": "api_endpoint",
           "name": "GET /issues/:id/runs",
@@ -3432,6 +3440,22 @@
           "type": "api_endpoint",
           "name": "POST /adapters/install",
           "path": "server/src/routes/adapters.ts#/adapters/install",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/admission-controls",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/admission-controls/transition",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -4420,6 +4444,46 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-deliveries:295187fbac",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-deliveries-id:14cdad6d18",
+          "type": "api_endpoint",
+          "name": "GET /deliveries/:id",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
+          "type": "api_endpoint",
+          "name": "POST /deliveries/:id/outcome",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/outcome",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-deliveries-id-transition:d97a50341f",
+          "type": "api_endpoint",
+          "name": "POST /deliveries/:id/transition",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/transition",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-companies-companyid-environments:ac6e4c8a72",
           "type": "api_endpoint",
           "name": "GET /companies/:companyId/environments",
@@ -4778,81 +4842,25 @@
           "path": "server/src/routes/issues.ts#/companies/:companyId/issues/count",
           "status": "implemented",
           "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-companies-companyid-labels:7a4294dc35",
-          "type": "api_endpoint",
-          "name": "GET /companies/:companyId/labels",
-          "path": "server/src/routes/issues.ts#/companies/:companyId/labels",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:post-companies-companyid-labels:7ed3dff442",
-          "type": "api_endpoint",
-          "name": "POST /companies/:companyId/labels",
-          "path": "server/src/routes/issues.ts#/companies/:companyId/labels",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-companies-companyid-search:c483ad4e92",
-          "type": "api_endpoint",
-          "name": "GET /companies/:companyId/search",
-          "path": "server/src/routes/issues.ts#/companies/:companyId/search",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-feedback-traces-traceid:451ffb476b",
-          "type": "api_endpoint",
-          "name": "GET /feedback-traces/:traceId",
-          "path": "server/src/routes/issues.ts#/feedback-traces/:traceId",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-feedback-traces-traceid-bundle:ce915e36a3",
-          "type": "api_endpoint",
-          "name": "GET /feedback-traces/:traceId/bundle",
-          "path": "server/src/routes/issues.ts#/feedback-traces/:traceId/bundle",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-issues:65cf881d3e",
-          "type": "api_endpoint",
-          "name": "GET /issues",
-          "path": "server/src/routes/issues.ts#/issues",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:delete-issues-id:25bc792ec0",
-          "type": "api_endpoint",
-          "name": "DELETE /issues/:id",
-          "path": "server/src/routes/issues.ts#/issues/:id",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-issues-id:6e711795d8",
-          "type": "api_endpoint",
-          "name": "GET /issues/:id",
-          "path": "server/src/routes/issues.ts#/issues/:id",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
         }
       ]
     },
     "actionable_implementation_without_docs": {
-      "count": 1674,
+      "count": 1729,
       "items": [
         {
           "id": "api_endpoint:post-bootstrap-claim:8055e4b75b",
           "type": "api_endpoint",
           "name": "POST /bootstrap/claim",
           "path": "server/src/routes/access.ts#/bootstrap/claim",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d",
+          "type": "api_endpoint",
+          "name": "GET /issues/:id/recovery-run-evidence",
+          "path": "server/src/routes/activity.ts#/issues/:id/recovery-run-evidence",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -4925,6 +4933,22 @@
           "type": "api_endpoint",
           "name": "POST /adapters/install",
           "path": "server/src/routes/adapters.ts#/adapters/install",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/admission-controls",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/admission-controls/transition",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -5165,6 +5189,46 @@
           "type": "api_endpoint",
           "name": "GET /companies/:companyId/situation",
           "path": "server/src/routes/dashboard.ts#/companies/:companyId/situation",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-deliveries:295187fbac",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-deliveries-id:14cdad6d18",
+          "type": "api_endpoint",
+          "name": "GET /deliveries/:id",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
+          "type": "api_endpoint",
+          "name": "POST /deliveries/:id/outcome",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/outcome",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-deliveries-id-transition:d97a50341f",
+          "type": "api_endpoint",
+          "name": "POST /deliveries/:id/transition",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/transition",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -5477,6 +5541,22 @@
           "type": "api_endpoint",
           "name": "POST /issues/:id/accepted-plan-decompositions",
           "path": "server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-issues-id-assignment-proposals:bd21034acf",
+          "type": "api_endpoint",
+          "name": "GET /issues/:id/assignment-proposals",
+          "path": "server/src/routes/issues.ts#/issues/:id/assignment-proposals",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-issues-id-assignment-proposals:a8bd95bbbc",
+          "type": "api_endpoint",
+          "name": "POST /issues/:id/assignment-proposals",
+          "path": "server/src/routes/issues.ts#/issues/:id/assignment-proposals",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -5977,6 +6057,14 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-companies-companyid-softwarehouse-portfolio-projection-version:350f91c1c6",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/softwarehouse/portfolio-projection/:version",
+          "path": "server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/portfolio-projection/:version",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-companies-companyid-softwarehouse-status:d4ad9a23e7",
           "type": "api_endpoint",
           "name": "GET /companies/:companyId/softwarehouse/status",
@@ -6359,102 +6447,14 @@
           "path": "ui/src/components/BreadcrumbBar.tsx",
           "status": "implemented",
           "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:budgetincidentcard-tsx:c1901d07f1",
-          "type": "component",
-          "name": "BudgetIncidentCard.tsx",
-          "path": "ui/src/components/BudgetIncidentCard.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:budgetpolicycard-tsx:5b4d0cbcbb",
-          "type": "component",
-          "name": "BudgetPolicyCard.tsx",
-          "path": "ui/src/components/BudgetPolicyCard.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:budgetsidebarmarker-tsx:e765db23cf",
-          "type": "component",
-          "name": "BudgetSidebarMarker.tsx",
-          "path": "ui/src/components/BudgetSidebarMarker.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:claudesubscriptionpanel-tsx:3af40c3274",
-          "type": "component",
-          "name": "ClaudeSubscriptionPanel.tsx",
-          "path": "ui/src/components/ClaudeSubscriptionPanel.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:cloudaccessgate-tsx:b5d0994983",
-          "type": "component",
-          "name": "CloudAccessGate.tsx",
-          "path": "ui/src/components/CloudAccessGate.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:codexsubscriptionpanel-tsx:367c2208a9",
-          "type": "component",
-          "name": "CodexSubscriptionPanel.tsx",
-          "path": "ui/src/components/CodexSubscriptionPanel.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:commandpalette-tsx:3acd63902c",
-          "type": "component",
-          "name": "CommandPalette.tsx",
-          "path": "ui/src/components/CommandPalette.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:commentthread-tsx:f95ab17e4a",
-          "type": "component",
-          "name": "CommentThread.tsx",
-          "path": "ui/src/components/CommentThread.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:companypatternicon-tsx:330288b4db",
-          "type": "component",
-          "name": "CompanyPatternIcon.tsx",
-          "path": "ui/src/components/CompanyPatternIcon.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:companysettingssidebar-tsx:c52133fdff",
-          "type": "component",
-          "name": "CompanySettingsSidebar.tsx",
-          "path": "ui/src/components/CompanySettingsSidebar.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
-        },
-        {
-          "id": "component:companysituationpanel-tsx:92dce84a3e",
-          "type": "component",
-          "name": "CompanySituationPanel.tsx",
-          "path": "ui/src/components/CompanySituationPanel.tsx",
-          "status": "implemented",
-          "owner": "Frontend Experience Lead"
         }
       ]
     },
     "classified_inferred_link_noise": {
-      "count": 748,
+      "count": 769,
       "by_reason": {
         "config_only_file": 294,
-        "test_fixture_function": 454
+        "test_fixture_function": 475
       },
       "items": [
         {
@@ -8276,7 +8276,7 @@
       "items": []
     },
     "implementation_without_task": {
-      "count": 1938,
+      "count": 1993,
       "items": [
         {
           "id": "api_endpoint:use-api:b4836ba90f",
@@ -8647,6 +8647,14 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d",
+          "type": "api_endpoint",
+          "name": "GET /issues/:id/recovery-run-evidence",
+          "path": "server/src/routes/activity.ts#/issues/:id/recovery-run-evidence",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-issues-id-runs:99852dc332",
           "type": "api_endpoint",
           "name": "GET /issues/:id/runs",
@@ -8723,6 +8731,22 @@
           "type": "api_endpoint",
           "name": "POST /adapters/install",
           "path": "server/src/routes/adapters.ts#/adapters/install",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/admission-controls",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/admission-controls/transition",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -9815,73 +9839,49 @@
           "owner": "Backend Platform Lead"
         },
         {
-          "id": "api_endpoint:get-companies-companyid-environments:ac6e4c8a72",
+          "id": "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
           "type": "api_endpoint",
-          "name": "GET /companies/:companyId/environments",
-          "path": "server/src/routes/environments.ts#/companies/:companyId/environments",
+          "name": "GET /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
         {
-          "id": "api_endpoint:post-companies-companyid-environments:641573a90a",
+          "id": "api_endpoint:post-companies-companyid-deliveries:295187fbac",
           "type": "api_endpoint",
-          "name": "POST /companies/:companyId/environments",
-          "path": "server/src/routes/environments.ts#/companies/:companyId/environments",
+          "name": "POST /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
         {
-          "id": "api_endpoint:get-companies-companyid-environments-capabilities:3cf50e822b",
+          "id": "api_endpoint:get-deliveries-id:14cdad6d18",
           "type": "api_endpoint",
-          "name": "GET /companies/:companyId/environments/capabilities",
-          "path": "server/src/routes/environments.ts#/companies/:companyId/environments/capabilities",
+          "name": "GET /deliveries/:id",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
         {
-          "id": "api_endpoint:post-companies-companyid-environments-probe-config:79f7ee336e",
+          "id": "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
           "type": "api_endpoint",
-          "name": "POST /companies/:companyId/environments/probe-config",
-          "path": "server/src/routes/environments.ts#/companies/:companyId/environments/probe-config",
+          "name": "POST /deliveries/:id/outcome",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/outcome",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
         {
-          "id": "api_endpoint:get-environment-leases-leaseid:581bf1fb7c",
+          "id": "api_endpoint:post-deliveries-id-transition:d97a50341f",
           "type": "api_endpoint",
-          "name": "GET /environment-leases/:leaseId",
-          "path": "server/src/routes/environments.ts#/environment-leases/:leaseId",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:delete-environments-id:3083c8cd96",
-          "type": "api_endpoint",
-          "name": "DELETE /environments/:id",
-          "path": "server/src/routes/environments.ts#/environments/:id",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-environments-id:d85fd35295",
-          "type": "api_endpoint",
-          "name": "GET /environments/:id",
-          "path": "server/src/routes/environments.ts#/environments/:id",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:patch-environments-id:7fdc1ee34d",
-          "type": "api_endpoint",
-          "name": "PATCH /environments/:id",
-          "path": "server/src/routes/environments.ts#/environments/:id",
+          "name": "POST /deliveries/:id/transition",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/transition",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         }
       ]
     },
     "raw_implementation_without_task": {
-      "count": 2070,
+      "count": 2125,
       "items": [
         {
           "id": "api_endpoint:use-api:b4836ba90f",
@@ -10252,6 +10252,14 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d",
+          "type": "api_endpoint",
+          "name": "GET /issues/:id/recovery-run-evidence",
+          "path": "server/src/routes/activity.ts#/issues/:id/recovery-run-evidence",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-issues-id-runs:99852dc332",
           "type": "api_endpoint",
           "name": "GET /issues/:id/runs",
@@ -10328,6 +10336,22 @@
           "type": "api_endpoint",
           "name": "POST /adapters/install",
           "path": "server/src/routes/adapters.ts#/adapters/install",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/admission-controls",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/admission-controls/transition",
+          "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -11420,66 +11444,42 @@
           "owner": "Backend Platform Lead"
         },
         {
-          "id": "api_endpoint:get-companies-companyid-environments:ac6e4c8a72",
+          "id": "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
           "type": "api_endpoint",
-          "name": "GET /companies/:companyId/environments",
-          "path": "server/src/routes/environments.ts#/companies/:companyId/environments",
+          "name": "GET /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
         {
-          "id": "api_endpoint:post-companies-companyid-environments:641573a90a",
+          "id": "api_endpoint:post-companies-companyid-deliveries:295187fbac",
           "type": "api_endpoint",
-          "name": "POST /companies/:companyId/environments",
-          "path": "server/src/routes/environments.ts#/companies/:companyId/environments",
+          "name": "POST /companies/:companyId/deliveries",
+          "path": "server/src/routes/deliveries.ts#/companies/:companyId/deliveries",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
         {
-          "id": "api_endpoint:get-companies-companyid-environments-capabilities:3cf50e822b",
+          "id": "api_endpoint:get-deliveries-id:14cdad6d18",
           "type": "api_endpoint",
-          "name": "GET /companies/:companyId/environments/capabilities",
-          "path": "server/src/routes/environments.ts#/companies/:companyId/environments/capabilities",
+          "name": "GET /deliveries/:id",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
         {
-          "id": "api_endpoint:post-companies-companyid-environments-probe-config:79f7ee336e",
+          "id": "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
           "type": "api_endpoint",
-          "name": "POST /companies/:companyId/environments/probe-config",
-          "path": "server/src/routes/environments.ts#/companies/:companyId/environments/probe-config",
+          "name": "POST /deliveries/:id/outcome",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/outcome",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
         {
-          "id": "api_endpoint:get-environment-leases-leaseid:581bf1fb7c",
+          "id": "api_endpoint:post-deliveries-id-transition:d97a50341f",
           "type": "api_endpoint",
-          "name": "GET /environment-leases/:leaseId",
-          "path": "server/src/routes/environments.ts#/environment-leases/:leaseId",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:delete-environments-id:3083c8cd96",
-          "type": "api_endpoint",
-          "name": "DELETE /environments/:id",
-          "path": "server/src/routes/environments.ts#/environments/:id",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-environments-id:d85fd35295",
-          "type": "api_endpoint",
-          "name": "GET /environments/:id",
-          "path": "server/src/routes/environments.ts#/environments/:id",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:patch-environments-id:7fdc1ee34d",
-          "type": "api_endpoint",
-          "name": "PATCH /environments/:id",
-          "path": "server/src/routes/environments.ts#/environments/:id",
+          "name": "POST /deliveries/:id/transition",
+          "path": "server/src/routes/deliveries.ts#/deliveries/:id/transition",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         }

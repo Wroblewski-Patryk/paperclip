@@ -1,11 +1,11 @@
 # Dependency Report
 
-Generated: 2026-07-23T01:19:08.800Z
+Generated: 2026-08-03T14:48:09.744Z
 
 ## Summary
 
-- Dependency relations: 2241
-- Entities with dependencies: 707
+- Dependency relations: 2287
+- Entities with dependencies: 736
 
 ## Dependency Edges
 
@@ -158,6 +158,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | BudgetIncidentCard.tsx | uses | utils.ts | ui/src/lib/utils |
 | BudgetPolicyCard.tsx | uses | utils.ts | ui/src/lib/utils |
 | chat-comments.stories.tsx | uses | paperclipData.ts | ui/storybook/fixtures/paperclipData |
+| CommandPalette.tsx | uses | AgentIconPicker.tsx | ui/src/components/AgentIconPicker |
 | CommandPalette.tsx | uses | CompanyContext.tsx | ui/src/context/CompanyContext |
 | CommandPalette.tsx | uses | DialogContext.tsx | ui/src/context/DialogContext |
 | CommandPalette.tsx | uses | SidebarContext.tsx | ui/src/context/SidebarContext |
@@ -749,6 +750,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | ScrollToBottom.tsx | uses | PanelContext.tsx | ui/src/context/PanelContext |
 | ScrollToBottom.tsx | uses | utils.ts | ui/src/lib/utils |
 | search.stories.tsx | uses | paperclipData.ts | ui/storybook/fixtures/paperclipData |
+| SearchResultRow.tsx | uses | AgentIconPicker.tsx | ui/src/components/AgentIconPicker |
 | SearchResultRow.tsx | uses | HighlightedText.tsx | ui/src/components/search/HighlightedText |
 | SearchResultRow.tsx | uses | StatusIcon.tsx | ui/src/components/StatusIcon |
 | SearchResultRow.tsx | uses | Identity.tsx | ui/src/components/Identity |
@@ -809,5 +811,3 @@ Generated: 2026-07-23T01:19:08.800Z
 | SidebarSection.tsx | uses | SidebarContext.tsx | ui/src/context/SidebarContext |
 | slots.tsx | uses | bridge.ts | ui/src/plugins/bridge |
 | source-issue-recovery.stories.tsx | uses | paperclipData.ts | ui/storybook/fixtures/paperclipData |
-| SourceTrustBadge.tsx | uses | trust-policy-ui.ts | ui/src/lib/trust-policy-ui |
-| SourceTrustBadge.tsx | uses | utils.ts | ui/src/lib/utils |

@@ -29,6 +29,24 @@ async function filesBelow(root, relativeDir) {
   return output;
 }
 
+async function filesFromAuthority(root, entries, fallback = []) {
+  const selected = Array.isArray(entries) ? entries : fallback;
+  const output = new Map();
+  for (const relative of selected) {
+    if (typeof relative !== "string" || !relative.trim()) continue;
+    const absolute = path.resolve(root, relative);
+    if (absolute !== root && !absolute.startsWith(`${root}${path.sep}`)) continue;
+    if (!await exists(absolute)) continue;
+    const info = await stat(absolute);
+    if (info.isDirectory()) {
+      for (const file of await filesBelow(root, relative)) output.set(file.relative, file);
+    } else {
+      output.set(posix(path.relative(root, absolute)), { absolute, relative: posix(path.relative(root, absolute)), size: info.size });
+    }
+  }
+  return [...output.values()];
+}
+
 function git(root, args) {
   const result = spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
   return result.status === 0 ? result.stdout.trim() : null;
@@ -111,8 +129,9 @@ export async function auditDocumentationProject({ name, root, requireDeploymentI
     }
   }
 
-  const planning = (await filesBelow(root, "docs/planning")).filter((item) => DOC_EXTENSIONS.has(path.extname(item.relative).toLowerCase()));
-  const state = [...await filesBelow(root, ".agents/state"), ...await filesBelow(root, ".codex/context")]
+  const planning = (await filesFromAuthority(root, manifest.authority?.activePlanning, ["docs/planning"]))
+    .filter((item) => DOC_EXTENSIONS.has(path.extname(item.relative).toLowerCase()));
+  const state = (await filesFromAuthority(root, manifest.authority?.activeState, []))
     .filter((item) => DOC_EXTENSIONS.has(path.extname(item.relative).toLowerCase()));
   const maxPlanningSize = Number(manifest.budgets?.maxActivePlanningFileBytes ?? 256000);
   const maxPlanningFiles = Number(manifest.budgets?.maxActivePlanningFiles ?? 60);

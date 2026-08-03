@@ -1,6 +1,6 @@
 # Architecture Graph
 
-Generated: 2026-07-23T01:19:08.800Z
+Generated: 2026-08-03T14:48:09.744Z
 
 ## Canonical Exports
 
@@ -13,66 +13,6 @@ Generated: 2026-07-23T01:19:08.800Z
 
 | Type | Status | Name | Path | Owner |
 | --- | --- | --- | --- | --- |
-| agent | implemented | Agent Companies Specification Reference | .agents/skills/company-creator/references/companies-spec.md | Engineering Delivery Lead |
-| agent | implemented | Example Company Package | .agents/skills/company-creator/references/example-company.md | Engineering Delivery Lead |
-| agent | implemented | Creating a Company From an Existing Repository | .agents/skills/company-creator/references/from-repo-guide.md | Engineering Delivery Lead |
-| agent | implemented | Company Creator | .agents/skills/company-creator/SKILL.md | Engineering Delivery Lead |
-| agent | implemented | Creating a Paperclip Agent Adapter | .agents/skills/create-agent-adapter/SKILL.md | Engineering Delivery Lead |
-| agent | implemented | Security Vulnerability Response Instructions | .agents/skills/deal-with-security-advisory/SKILL.md | Engineering Delivery Lead |
-| agent | implemented | Doc Maintenance Audit Checklist | .agents/skills/doc-maintenance/references/audit-checklist.md | Engineering Delivery Lead |
-| agent | implemented | Section Map | .agents/skills/doc-maintenance/references/section-map.md | Engineering Delivery Lead |
-| agent | implemented | Doc Maintenance Skill | .agents/skills/doc-maintenance/SKILL.md | Engineering Delivery Lead |
-| agent | implemented | Paperclip Project Memory Map | .agents/skills/paperclip-project-memory/references/memory-map.md | Engineering Delivery Lead |
-| agent | implemented | Paperclip Project Memory | .agents/skills/paperclip-project-memory/SKILL.md | Engineering Delivery Lead |
-| agent | implemented | PR Report Style Guide | .agents/skills/pr-report/references/style-guide.md | Engineering Delivery Lead |
-| agent | implemented | PR Report Skill | .agents/skills/pr-report/SKILL.md | Engineering Delivery Lead |
-| agent | implemented | PRCheckloop | .agents/skills/prcheckloop/SKILL.md | Engineering Delivery Lead |
-| agent | implemented | Release Discord Announcement Skill | .agents/skills/release-changelog-discord-message/SKILL.md | Engineering Delivery Lead |
-| agent | implemented | Release Changelog Skill | .agents/skills/release-changelog/SKILL.md | Engineering Delivery Lead |
-| agent | implemented | Release Coordination Skill | .agents/skills/release/SKILL.md | Engineering Delivery Lead |
-| agent | implemented | Active Mission | .agents/state/active-mission.md | Engineering Delivery Lead |
-| agent | implemented | Agent Evals | .agents/state/agent-evals.md | Engineering Delivery Lead |
-| agent | implemented | Board Context | .agents/state/board-context.md | Engineering Delivery Lead |
-| agent | implemented | Current Focus | .agents/state/current-focus.md | Engineering Delivery Lead |
-| agent | implemented | Decision Register | .agents/state/decision-register.md | Engineering Delivery Lead |
-| agent | implemented | LUC-33 Roost Docker-backed local API harness proof | .agents/state/evidence/LUC-33/roost-docker-local-api-harness-proof.md | Engineering Delivery Lead |
-| agent | implemented | LUC-659 local readiness probe evidence | .agents/state/evidence/LUC-659/2026-07-12-local-readiness-probe.md | Engineering Delivery Lead |
-| agent | implemented | LUC-712 local readiness restart evidence | .agents/state/evidence/LUC-712/2026-07-12-local-readiness-restart.md | Engineering Delivery Lead |
-| agent | implemented | Next Steps | .agents/state/next-steps.md | Engineering Delivery Lead |
-| agent | implemented | Paperclip Project Journal | .agents/state/project-journal.md | Engineering Delivery Lead |
-| agent | implemented | Paperclip Softwarehouse Project Memory | .agents/state/project-memory.md | Engineering Delivery Lead |
-| agent | implemented | Paperclip Softwarehouse Project Memory | .agents/state/README.md | Engineering Delivery Lead |
-| agent | implemented | Responsibility Learning | .agents/state/responsibility-learning.md | Engineering Delivery Lead |
-| agent | implemented | Risk Register | .agents/state/risk-register.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Agent Activation Governance | .agents/state/softwarehouse-agent-activation-governance.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Agent Role Readiness Audit | .agents/state/softwarehouse-agent-role-readiness-audit.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Architecture Gap Analysis | .agents/state/softwarehouse-architecture-gap-analysis.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Autonomous Delivery Architecture | .agents/state/softwarehouse-autonomous-delivery-architecture.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Complementarity Audit | .agents/state/softwarehouse-complementarity-audit.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Cost, Token, And Context Policy | .agents/state/softwarehouse-cost-token-policy.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Departments | .agents/state/softwarehouse-departments.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Feature Slice Traceability Audit | .agents/state/softwarehouse-feature-slice-traceability-audit.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Goal And Routine Governance | .agents/state/softwarehouse-goal-routine-governance.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Innovation To Product Lifecycle | .agents/state/softwarehouse-innovation-to-product-lifecycle.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Owner Direction And Proposal Loop | .agents/state/softwarehouse-owner-direction-proposal-loop.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Owner Interface Contract | .agents/state/softwarehouse-owner-interface-contract.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Paperclip Operating Mechanics | .agents/state/softwarehouse-paperclip-operating-mechanics.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Procedure System | .agents/state/softwarehouse-procedure-system.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Product Architecture Index | .agents/state/softwarehouse-product-architecture-index.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Resource Access Matrix | .agents/state/softwarehouse-resource-access-matrix.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Resource Policy | .agents/state/softwarehouse-resource-policy.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Secret Requirements | .agents/state/softwarehouse-secret-requirements.md | Engineering Delivery Lead |
-| agent | implemented | softwarehouse-stage0-foundation | .agents/state/softwarehouse-stage0-foundation.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Stage 1 Delivery Foundation | .agents/state/softwarehouse-stage1-delivery-foundation.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Stage 1 Recommended First Action | .agents/state/softwarehouse-stage1-recommended-first-action.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Standard Stack | .agents/state/softwarehouse-standard-stack.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse Task Lifecycle Contract | .agents/state/softwarehouse-task-lifecycle-contract.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse V0 Readiness Audit | .agents/state/softwarehouse-v0-readiness-audit.md | Engineering Delivery Lead |
-| agent | implemented | Softwarehouse V1 Goals And Routines Audit | .agents/state/softwarehouse-v1-goals-routines-audit.md | Engineering Delivery Lead |
-| agent | implemented | Stage 1 Activation Packet: Roost | .agents/state/stage1-activation-roost.md | Engineering Delivery Lead |
-| agent | implemented | Stage 1 Activation Packet: Soar | .agents/state/stage1-activation-soar.md | Engineering Delivery Lead |
-| agent | implemented | System Health | .agents/state/system-health.md | Engineering Delivery Lead |
-| agent | implemented | Context Capture Workflow | .agents/workflows/context-capture.md | Engineering Delivery Lead |
 | agent | implemented | LLM Wiki Maintainer | packages/plugins/plugin-llm-wiki/agents/wiki-maintainer/AGENTS.md | Plugin Platform Lead |
 | agent | implemented | AGENTS | packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/agents/ceo/AGENTS.md | Engineering Delivery Lead |
 | agent | implemented | AGENTS | packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/agents/cto/AGENTS.md | Engineering Delivery Lead |
@@ -133,6 +73,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | api_endpoint | implemented | POST /companies/:companyId/activity | server/src/routes/activity.ts#/companies/:companyId/activity | Backend Platform Lead |
 | api_endpoint | implemented | GET /heartbeat-runs/:runId/issues | server/src/routes/activity.ts#/heartbeat-runs/:runId/issues | Backend Platform Lead |
 | api_endpoint | implemented | GET /issues/:id/activity | server/src/routes/activity.ts#/issues/:id/activity | Backend Platform Lead |
+| api_endpoint | implemented | GET /issues/:id/recovery-run-evidence | server/src/routes/activity.ts#/issues/:id/recovery-run-evidence | Backend Platform Lead |
 | api_endpoint | implemented | GET /issues/:id/runs | server/src/routes/activity.ts#/issues/:id/runs | Backend Platform Lead |
 | api_endpoint | implemented | GET /adapters | server/src/routes/adapters.ts#/adapters | Backend Platform Lead |
 | api_endpoint | implemented | DELETE /adapters/:type | server/src/routes/adapters.ts#/adapters/:type | Backend Platform Lead |
@@ -143,6 +84,8 @@ Generated: 2026-07-23T01:19:08.800Z
 | api_endpoint | implemented | POST /adapters/:type/reload | server/src/routes/adapters.ts#/adapters/:type/reload | Backend Platform Lead |
 | api_endpoint | implemented | GET /adapters/:type/ui-parser.js | server/src/routes/adapters.ts#/adapters/:type/ui-parser.js | Backend Platform Lead |
 | api_endpoint | implemented | POST /adapters/install | server/src/routes/adapters.ts#/adapters/install | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/admission-controls | server/src/routes/admission-control.ts#/companies/:companyId/admission-controls | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/admission-controls/transition | server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition | Backend Platform Lead |
 | api_endpoint | implemented | DELETE /agents/:id | server/src/routes/agents.ts#/agents/:id | Backend Platform Lead |
 | api_endpoint | implemented | GET /agents/:id | server/src/routes/agents.ts#/agents/:id | Backend Platform Lead |
 | api_endpoint | implemented | PATCH /agents/:id | server/src/routes/agents.ts#/agents/:id | Backend Platform Lead |
@@ -279,6 +222,11 @@ Generated: 2026-07-23T01:19:08.800Z
 | api_endpoint | implemented | GET /issues/:id/cost-summary | server/src/routes/costs.ts#/issues/:id/cost-summary | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/dashboard | server/src/routes/dashboard.ts#/companies/:companyId/dashboard | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/situation | server/src/routes/dashboard.ts#/companies/:companyId/situation | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/deliveries | server/src/routes/deliveries.ts#/companies/:companyId/deliveries | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/deliveries | server/src/routes/deliveries.ts#/companies/:companyId/deliveries | Backend Platform Lead |
+| api_endpoint | implemented | GET /deliveries/:id | server/src/routes/deliveries.ts#/deliveries/:id | Backend Platform Lead |
+| api_endpoint | implemented | POST /deliveries/:id/outcome | server/src/routes/deliveries.ts#/deliveries/:id/outcome | Backend Platform Lead |
+| api_endpoint | implemented | POST /deliveries/:id/transition | server/src/routes/deliveries.ts#/deliveries/:id/transition | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/environments | server/src/routes/environments.ts#/companies/:companyId/environments | Backend Platform Lead |
 | api_endpoint | implemented | POST /companies/:companyId/environments | server/src/routes/environments.ts#/companies/:companyId/environments | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/environments/capabilities | server/src/routes/environments.ts#/companies/:companyId/environments/capabilities | Backend Platform Lead |
@@ -342,6 +290,8 @@ Generated: 2026-07-23T01:19:08.800Z
 | api_endpoint | implemented | GET /issues/:id/approvals | server/src/routes/issues.ts#/issues/:id/approvals | Backend Platform Lead |
 | api_endpoint | implemented | POST /issues/:id/approvals | server/src/routes/issues.ts#/issues/:id/approvals | Backend Platform Lead |
 | api_endpoint | implemented | DELETE /issues/:id/approvals/:approvalId | server/src/routes/issues.ts#/issues/:id/approvals/:approvalId | Backend Platform Lead |
+| api_endpoint | implemented | GET /issues/:id/assignment-proposals | server/src/routes/issues.ts#/issues/:id/assignment-proposals | Backend Platform Lead |
+| api_endpoint | implemented | POST /issues/:id/assignment-proposals | server/src/routes/issues.ts#/issues/:id/assignment-proposals | Backend Platform Lead |
 | api_endpoint | implemented | GET /issues/:id/attachments | server/src/routes/issues.ts#/issues/:id/attachments | Backend Platform Lead |
 | api_endpoint | implemented | POST /issues/:id/checkout | server/src/routes/issues.ts#/issues/:id/checkout | Backend Platform Lead |
 | api_endpoint | implemented | POST /issues/:id/children | server/src/routes/issues.ts#/issues/:id/children | Backend Platform Lead |
@@ -486,6 +436,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/backlog | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/backlog | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/issue-templates | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/issue-templates | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/knowledge | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/knowledge | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/softwarehouse/portfolio-projection/:version | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/portfolio-projection/:version | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/status | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/status | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/tools | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/tools | Backend Platform Lead |
 | api_endpoint | implemented | POST /companies/:companyId/teams/catalog/:catalogId/install | server/src/routes/teams-catalog.ts#/companies/:companyId/teams/catalog/:catalogId/install | Backend Platform Lead |
@@ -513,6 +464,55 @@ Generated: 2026-07-23T01:19:08.800Z
 | component | implemented | config-fields.tsx | ui/src/adapters/http/config-fields.tsx | Frontend Experience Lead |
 | component | implemented | local-workspace-runtime-fields.tsx | ui/src/adapters/local-workspace-runtime-fields.tsx | Frontend Experience Lead |
 | component | implemented | config-fields.tsx | ui/src/adapters/openclaw-gateway/config-fields.tsx | Frontend Experience Lead |
+| component | implemented | config-fields.tsx | ui/src/adapters/opencode-local/config-fields.tsx | Frontend Experience Lead |
+| component | implemented | config-fields.tsx | ui/src/adapters/pi-local/config-fields.tsx | Frontend Experience Lead |
+| component | implemented | config-fields.tsx | ui/src/adapters/process/config-fields.tsx | Frontend Experience Lead |
+| component | implemented | runtime-json-fields.tsx | ui/src/adapters/runtime-json-fields.tsx | Frontend Experience Lead |
+| component | implemented | schema-config-fields.tsx | ui/src/adapters/schema-config-fields.tsx | Frontend Experience Lead |
+| component | implemented | App.tsx | ui/src/App.tsx | Frontend Experience Lead |
+| component | implemented | CompanySettingsNav.tsx | ui/src/components/access/CompanySettingsNav.tsx | Frontend Experience Lead |
+| component | implemented | ModeBadge.tsx | ui/src/components/access/ModeBadge.tsx | Frontend Experience Lead |
+| component | implemented | AccountingModelCard.tsx | ui/src/components/AccountingModelCard.tsx | Frontend Experience Lead |
+| component | implemented | ActiveAgentsPanel.tsx | ui/src/components/ActiveAgentsPanel.tsx | Frontend Experience Lead |
+| component | implemented | ActivityCharts.tsx | ui/src/components/ActivityCharts.tsx | Frontend Experience Lead |
+| component | implemented | ActivityRow.tsx | ui/src/components/ActivityRow.tsx | Frontend Experience Lead |
+| component | implemented | agent-config-primitives.tsx | ui/src/components/agent-config-primitives.tsx | Frontend Experience Lead |
+| component | implemented | AgentActionButtons.tsx | ui/src/components/AgentActionButtons.tsx | Frontend Experience Lead |
+| component | implemented | AgentConfigForm.tsx | ui/src/components/AgentConfigForm.tsx | Frontend Experience Lead |
+| component | implemented | AgentIconPicker.tsx | ui/src/components/AgentIconPicker.tsx | Frontend Experience Lead |
+| component | implemented | AgentProperties.tsx | ui/src/components/AgentProperties.tsx | Frontend Experience Lead |
+| component | implemented | ApprovalCard.tsx | ui/src/components/ApprovalCard.tsx | Frontend Experience Lead |
+| component | implemented | ApprovalPayload.tsx | ui/src/components/ApprovalPayload.tsx | Frontend Experience Lead |
+| component | implemented | ArtifactFileChip.tsx | ui/src/components/ArtifactFileChip.tsx | Frontend Experience Lead |
+| component | implemented | ArtifactCard.tsx | ui/src/components/artifacts/ArtifactCard.tsx | Frontend Experience Lead |
+| component | implemented | ArtifactGroupCard.tsx | ui/src/components/artifacts/ArtifactGroupCard.tsx | Frontend Experience Lead |
+| component | implemented | AsciiArtAnimation.tsx | ui/src/components/AsciiArtAnimation.tsx | Frontend Experience Lead |
+| component | implemented | BillerSpendCard.tsx | ui/src/components/BillerSpendCard.tsx | Frontend Experience Lead |
+| component | implemented | BlockedInboxView.tsx | ui/src/components/BlockedInboxView.tsx | Frontend Experience Lead |
+| component | implemented | BlockedReasonChip.tsx | ui/src/components/BlockedReasonChip.tsx | Frontend Experience Lead |
+| component | implemented | BootstrapPendingPage.tsx | ui/src/components/BootstrapPendingPage.tsx | Frontend Experience Lead |
+| component | implemented | BreadcrumbBar.tsx | ui/src/components/BreadcrumbBar.tsx | Frontend Experience Lead |
+| component | implemented | BudgetIncidentCard.tsx | ui/src/components/BudgetIncidentCard.tsx | Frontend Experience Lead |
+| component | implemented | BudgetPolicyCard.tsx | ui/src/components/BudgetPolicyCard.tsx | Frontend Experience Lead |
+| component | implemented | BudgetSidebarMarker.tsx | ui/src/components/BudgetSidebarMarker.tsx | Frontend Experience Lead |
+| component | implemented | ClaudeSubscriptionPanel.tsx | ui/src/components/ClaudeSubscriptionPanel.tsx | Frontend Experience Lead |
+| component | implemented | CloudAccessGate.tsx | ui/src/components/CloudAccessGate.tsx | Frontend Experience Lead |
+| component | implemented | CodexSubscriptionPanel.tsx | ui/src/components/CodexSubscriptionPanel.tsx | Frontend Experience Lead |
+| component | implemented | CommandPalette.tsx | ui/src/components/CommandPalette.tsx | Frontend Experience Lead |
+| component | implemented | CommentThread.tsx | ui/src/components/CommentThread.tsx | Frontend Experience Lead |
+| component | implemented | CompanyPatternIcon.tsx | ui/src/components/CompanyPatternIcon.tsx | Frontend Experience Lead |
+| component | implemented | CompanySettingsSidebar.tsx | ui/src/components/CompanySettingsSidebar.tsx | Frontend Experience Lead |
+| component | implemented | CompanySituationPanel.tsx | ui/src/components/CompanySituationPanel.tsx | Frontend Experience Lead |
+| component | implemented | CompanySwitcher.tsx | ui/src/components/CompanySwitcher.tsx | Frontend Experience Lead |
+| component | implemented | CopyText.tsx | ui/src/components/CopyText.tsx | Frontend Experience Lead |
+| component | implemented | DevRestartBanner.tsx | ui/src/components/DevRestartBanner.tsx | Frontend Experience Lead |
+| component | implemented | DocumentAnnotationLayer.tsx | ui/src/components/DocumentAnnotationLayer.tsx | Frontend Experience Lead |
+| component | implemented | DocumentAnnotationPanel.tsx | ui/src/components/DocumentAnnotationPanel.tsx | Frontend Experience Lead |
+| component | implemented | DocumentDiffModal.tsx | ui/src/components/DocumentDiffModal.tsx | Frontend Experience Lead |
+| component | implemented | EmptyState.tsx | ui/src/components/EmptyState.tsx | Frontend Experience Lead |
+| component | implemented | EntityRow.tsx | ui/src/components/EntityRow.tsx | Frontend Experience Lead |
+| component | implemented | EnvVarEditor.tsx | ui/src/components/EnvVarEditor.tsx | Frontend Experience Lead |
+| component | implemented | ExecutionParticipantPicker.tsx | ui/src/components/ExecutionParticipantPicker.tsx | Frontend Experience Lead |
 
 ## Relation Index
 
@@ -573,6 +573,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:get-companies-companyid-adapters-type-detect-model:ce6f62715c | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-adapters-type-model-profiles:ae29579111 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-adapters-type-models:a19b916b35 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
+| connected_to | api_endpoint:get-companies-companyid-admission-controls:764bca8826 | module:src-routes:b474eba4ee | server/src/routes/admission-control.ts |
 | connected_to | api_endpoint:get-companies-companyid-agent-configurations:ed14af9e8e | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-agents:d019714997 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-approvals:c48c0d67dc | module:src-routes:b474eba4ee | server/src/routes/approvals.ts |
@@ -591,6 +592,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:get-companies-companyid-costs-summary:86652e5a51 | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:get-companies-companyid-costs-window-spend:d19c064103 | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:get-companies-companyid-dashboard:a3b85af771 | module:src-routes:b474eba4ee | server/src/routes/dashboard.ts |
+| connected_to | api_endpoint:get-companies-companyid-deliveries:df67bf764e | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:get-companies-companyid-environments-capabilities:3cf50e822b | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:get-companies-companyid-environments:ac6e4c8a72 | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:get-companies-companyid-execution-workspaces:e228eb46e6 | module:src-routes:b474eba4ee | server/src/routes/execution-workspaces.ts |
@@ -628,6 +630,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-backlog:1f9fdb29d0 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-issue-templates:c959b5150c | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-knowledge:4e9c016808 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
+| connected_to | api_endpoint:get-companies-companyid-softwarehouse-portfolio-projection-version:350f91c1c6 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-status:d4ad9a23e7 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-tools:f7d8321117 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-teams-catalog-installed:24f6dfb582 | module:src-routes:b474eba4ee | server/src/routes/teams-catalog.ts |
@@ -636,6 +639,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:get-companyid-artifacts:05894db53f | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
 | connected_to | api_endpoint:get-companyid-feedback-traces:022db1d66e | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
 | connected_to | api_endpoint:get-companyid:6575a2d654 | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
+| connected_to | api_endpoint:get-deliveries-id:14cdad6d18 | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:get-environment-leases-leaseid:581bf1fb7c | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:get-environments-id-leases:aa82420d24 | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:get-environments-id:d85fd35295 | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
@@ -665,6 +669,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:get-issues-id-accepted-plan-decompositions:e68952a4d0 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-activity:392a36c1ad | module:src-routes:b474eba4ee | server/src/routes/activity.ts |
 | connected_to | api_endpoint:get-issues-id-approvals:e90953f7e0 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
+| connected_to | api_endpoint:get-issues-id-assignment-proposals:bd21034acf | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-attachments:8491afc869 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-comments-commentid:bcfbaf1adb | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-comments:fd09b4b3e0 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
@@ -679,6 +684,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:get-issues-id-heartbeat-context:7b3b447f00 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-interactions:a2186ba971 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-recovery-actions:c8cf660fb2 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
+| connected_to | api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d | module:src-routes:b474eba4ee | server/src/routes/activity.ts |
 | connected_to | api_endpoint:get-issues-id-runs:99852dc332 | module:src-routes:b474eba4ee | server/src/routes/activity.ts |
 | connected_to | api_endpoint:get-issues-id-tree-control-state:a918474983 | module:src-routes:b474eba4ee | server/src/routes/issue-tree-control.ts |
 | connected_to | api_endpoint:get-issues-id-tree-holds-holdid:eb5b8cee5e | module:src-routes:b474eba4ee | server/src/routes/issue-tree-control.ts |
@@ -802,6 +808,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:post-cloud-upstreams-connectionid-push-runs:70a106dae3 | module:src-routes:b474eba4ee | server/src/routes/cloud-upstreams.ts |
 | connected_to | api_endpoint:post-companies-companyid-activity:553426d5a8 | module:src-routes:b474eba4ee | server/src/routes/activity.ts |
 | connected_to | api_endpoint:post-companies-companyid-adapters-type-test-environment:aab9a34e43 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
+| connected_to | api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3 | module:src-routes:b474eba4ee | server/src/routes/admission-control.ts |
 | connected_to | api_endpoint:post-companies-companyid-agent-hires:cea9f95e37 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:post-companies-companyid-agents:2957bd6d18 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:post-companies-companyid-approvals:c2dfa7d6a7 | module:src-routes:b474eba4ee | server/src/routes/approvals.ts |
@@ -809,6 +816,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:post-companies-companyid-budget-incidents-incidentid-resolve:69ac426dd0 | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:post-companies-companyid-budgets-policies:1a5497206f | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:post-companies-companyid-cost-events:0b7985783b | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
+| connected_to | api_endpoint:post-companies-companyid-deliveries:295187fbac | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:post-companies-companyid-environments-probe-config:79f7ee336e | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:post-companies-companyid-environments:641573a90a | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:post-companies-companyid-finance-events:b2a9880193 | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
@@ -847,6 +855,8 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:post-companyid-exports:de19679713 | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
 | connected_to | api_endpoint:post-companyid-imports-apply:e32f3b7b86 | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
 | connected_to | api_endpoint:post-companyid-imports-preview:bf845be5d5 | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
+| connected_to | api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6 | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
+| connected_to | api_endpoint:post-deliveries-id-transition:d97a50341f | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:post-dev-server-restart:8ce723f667 | module:src-routes:b474eba4ee | server/src/routes/health.ts |
 | connected_to | api_endpoint:post-environments-id-probe:a240da1ea8 | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:post-execution-workspaces-id-runtime-commands-action:29e6f890b7 | module:src-routes:b474eba4ee | server/src/routes/execution-workspaces.ts |
@@ -862,6 +872,7 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:post-issues-id-accepted-plan-decompositions:91e9e43603 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-issues-id-admin-force-release:af6e61c341 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-issues-id-approvals:667129c0e0 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
+| connected_to | api_endpoint:post-issues-id-assignment-proposals:a8bd95bbbc | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-issues-id-checkout:cbb5f7ff93 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-issues-id-children:df8794e00c | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-issues-id-comments:306ccfa063 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
@@ -926,9 +937,6 @@ Generated: 2026-07-23T01:19:08.800Z
 | connected_to | api_endpoint:use-api:b4836ba90f | module:src:38f6004eb2 | server/src/app.ts |
 | connected_to | api_endpoint:use-assets:c2ba42d242 | module:src:38f6004eb2 | server/src/app.ts |
 | connected_to | api_endpoint:use-plugins-pluginid-api:75182b5a52 | module:src-routes:b474eba4ee | server/src/routes/plugins.ts |
-| documents | agent:active-mission:4f1a86e0a2 | module:agents:8519609e36 | .agents/state/active-mission.md |
-| documents | agent:agent-companies-specification-reference:9a51d26ed7 | module:agents:8519609e36 | .agents/skills/company-creator/references/companies-spec.md |
-| documents | agent:agent-evals:0aa2c0b667 | module:agents:8519609e36 | .agents/state/agent-evals.md |
 | documents | agent:agents:2a990c2a1b | module:packages-teams-catalog-catalog:c60d3dd99e | packages/teams-catalog/catalog/bundled/software-development/product-engineering/agents/cto/AGENTS.md |
 | documents | agent:agents:35daf04255 | module:packages-teams-catalog-catalog:c60d3dd99e | packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/agents/qa/AGENTS.md |
 | documents | agent:agents:4e1e52d165 | module:packages-teams-catalog-catalog:c60d3dd99e | packages/teams-catalog/catalog/bundled/product/product-design/agents/ux-designer/AGENTS.md |
@@ -938,67 +946,10 @@ Generated: 2026-07-23T01:19:08.800Z
 | documents | agent:agents:b96874dde7 | module:packages-teams-catalog-catalog:c60d3dd99e | packages/teams-catalog/catalog/bundled/software-development/product-engineering/agents/senior-coder/AGENTS.md |
 | documents | agent:agents:e399283d23 | module:packages-teams-catalog-catalog:c60d3dd99e | packages/teams-catalog/catalog/optional/content/content-machine/agents/content-lead/AGENTS.md |
 | documents | agent:agents:e3d542a2ff | module:packages-teams-catalog-catalog:c60d3dd99e | packages/teams-catalog/catalog/optional/operations/agent-enablement/agents/ai-agent-development-partner/AGENTS.md |
-| documents | agent:board-context:ed61eea66b | module:agents:8519609e36 | .agents/state/board-context.md |
 | documents | agent:coder-agent-template:f64c59489d | module:skills:3e2f7cddae | skills/paperclip-create-agent/references/agents/coder.md |
-| documents | agent:company-creator:632d83c772 | module:agents:8519609e36 | .agents/skills/company-creator/SKILL.md |
-| documents | agent:context-capture-workflow:02fabb1dc3 | module:agents:8519609e36 | .agents/workflows/context-capture.md |
-| documents | agent:creating-a-company-from-an-existing-repository:d6aa4503da | module:agents:8519609e36 | .agents/skills/company-creator/references/from-repo-guide.md |
-| documents | agent:creating-a-paperclip-agent-adapter:a7997467b5 | module:agents:8519609e36 | .agents/skills/create-agent-adapter/SKILL.md |
-| documents | agent:current-focus:8aff660c16 | module:agents:8519609e36 | .agents/state/current-focus.md |
-| documents | agent:decision-register:805bff7c8b | module:agents:8519609e36 | .agents/state/decision-register.md |
-| documents | agent:doc-maintenance-audit-checklist:67b2730f7f | module:agents:8519609e36 | .agents/skills/doc-maintenance/references/audit-checklist.md |
-| documents | agent:doc-maintenance-skill:959f5e76a3 | module:agents:8519609e36 | .agents/skills/doc-maintenance/SKILL.md |
-| documents | agent:example-company-package:780fc4acea | module:agents:8519609e36 | .agents/skills/company-creator/references/example-company.md |
 | documents | agent:llm-wiki-maintainer:a18b9a3e5b | module:packages-plugins-plugin-llm-wiki:e31e3d114a | packages/plugins/plugin-llm-wiki/agents/wiki-maintainer/AGENTS.md |
-| documents | agent:luc-33-roost-docker-backed-local-api-harness-proof:bda7c3be60 | module:agents:8519609e36 | .agents/state/evidence/LUC-33/roost-docker-local-api-harness-proof.md |
-| documents | agent:luc-659-local-readiness-probe-evidence:8dfdde2d55 | module:agents:8519609e36 | .agents/state/evidence/LUC-659/2026-07-12-local-readiness-probe.md |
-| documents | agent:luc-712-local-readiness-restart-evidence:b4d0f836c4 | module:agents:8519609e36 | .agents/state/evidence/LUC-712/2026-07-12-local-readiness-restart.md |
-| documents | agent:next-steps:5c20d2ed8c | module:agents:8519609e36 | .agents/state/next-steps.md |
-| documents | agent:paperclip-project-journal:d3d08874d2 | module:agents:8519609e36 | .agents/state/project-journal.md |
-| documents | agent:paperclip-project-memory-map:d3c8732f5c | module:agents:8519609e36 | .agents/skills/paperclip-project-memory/references/memory-map.md |
-| documents | agent:paperclip-project-memory:38e98a220e | module:agents:8519609e36 | .agents/skills/paperclip-project-memory/SKILL.md |
-| documents | agent:paperclip-softwarehouse-project-memory:902050bd11 | module:agents:8519609e36 | .agents/state/project-memory.md |
-| documents | agent:paperclip-softwarehouse-project-memory:f15bcb8566 | module:agents:8519609e36 | .agents/state/README.md |
-| documents | agent:pr-report-skill:fb2d926951 | module:agents:8519609e36 | .agents/skills/pr-report/SKILL.md |
-| documents | agent:pr-report-style-guide:59da2c5e3c | module:agents:8519609e36 | .agents/skills/pr-report/references/style-guide.md |
-| documents | agent:prcheckloop:c75ac8fba3 | module:agents:8519609e36 | .agents/skills/prcheckloop/SKILL.md |
 | documents | agent:qa-agent-template:f91ba6ff0d | module:skills:3e2f7cddae | skills/paperclip-create-agent/references/agents/qa.md |
-| documents | agent:release-changelog-skill:68ee856b41 | module:agents:8519609e36 | .agents/skills/release-changelog/SKILL.md |
-| documents | agent:release-coordination-skill:4f53f436a4 | module:agents:8519609e36 | .agents/skills/release/SKILL.md |
-| documents | agent:release-discord-announcement-skill:c1f1c758b8 | module:agents:8519609e36 | .agents/skills/release-changelog-discord-message/SKILL.md |
-| documents | agent:responsibility-learning:0e6ca585af | module:agents:8519609e36 | .agents/state/responsibility-learning.md |
-| documents | agent:risk-register:5d5a3d43f8 | module:agents:8519609e36 | .agents/state/risk-register.md |
-| documents | agent:section-map:228b362133 | module:agents:8519609e36 | .agents/skills/doc-maintenance/references/section-map.md |
-| documents | agent:security-vulnerability-response-instructions:8e6e1b2bfe | module:agents:8519609e36 | .agents/skills/deal-with-security-advisory/SKILL.md |
 | documents | agent:securityengineer-agent-template:055079bdf9 | module:skills:3e2f7cddae | skills/paperclip-create-agent/references/agents/securityengineer.md |
-| documents | agent:softwarehouse-agent-activation-governance:658262e12d | module:agents:8519609e36 | .agents/state/softwarehouse-agent-activation-governance.md |
-| documents | agent:softwarehouse-agent-role-readiness-audit:022b2f6402 | module:agents:8519609e36 | .agents/state/softwarehouse-agent-role-readiness-audit.md |
-| documents | agent:softwarehouse-architecture-gap-analysis:d2f295ccca | module:agents:8519609e36 | .agents/state/softwarehouse-architecture-gap-analysis.md |
-| documents | agent:softwarehouse-autonomous-delivery-architecture:15b59f8a88 | module:agents:8519609e36 | .agents/state/softwarehouse-autonomous-delivery-architecture.md |
-| documents | agent:softwarehouse-complementarity-audit:baa6078a16 | module:agents:8519609e36 | .agents/state/softwarehouse-complementarity-audit.md |
-| documents | agent:softwarehouse-cost-token-and-context-policy:a513fe298f | module:agents:8519609e36 | .agents/state/softwarehouse-cost-token-policy.md |
-| documents | agent:softwarehouse-departments:68d80350b5 | module:agents:8519609e36 | .agents/state/softwarehouse-departments.md |
-| documents | agent:softwarehouse-feature-slice-traceability-audit:36ec36456a | module:agents:8519609e36 | .agents/state/softwarehouse-feature-slice-traceability-audit.md |
-| documents | agent:softwarehouse-goal-and-routine-governance:14ccfabdea | module:agents:8519609e36 | .agents/state/softwarehouse-goal-routine-governance.md |
-| documents | agent:softwarehouse-innovation-to-product-lifecycle:ccdf35996f | module:agents:8519609e36 | .agents/state/softwarehouse-innovation-to-product-lifecycle.md |
-| documents | agent:softwarehouse-owner-direction-and-proposal-loop:7a3744f27f | module:agents:8519609e36 | .agents/state/softwarehouse-owner-direction-proposal-loop.md |
-| documents | agent:softwarehouse-owner-interface-contract:c74810a53e | module:agents:8519609e36 | .agents/state/softwarehouse-owner-interface-contract.md |
-| documents | agent:softwarehouse-paperclip-operating-mechanics:6a00e283e6 | module:agents:8519609e36 | .agents/state/softwarehouse-paperclip-operating-mechanics.md |
-| documents | agent:softwarehouse-procedure-system:62e371edae | module:agents:8519609e36 | .agents/state/softwarehouse-procedure-system.md |
-| documents | agent:softwarehouse-product-architecture-index:6f1a75f501 | module:agents:8519609e36 | .agents/state/softwarehouse-product-architecture-index.md |
-| documents | agent:softwarehouse-resource-access-matrix:90a084f14a | module:agents:8519609e36 | .agents/state/softwarehouse-resource-access-matrix.md |
-| documents | agent:softwarehouse-resource-policy:2de075cbb4 | module:agents:8519609e36 | .agents/state/softwarehouse-resource-policy.md |
-| documents | agent:softwarehouse-secret-requirements:d263e80e0b | module:agents:8519609e36 | .agents/state/softwarehouse-secret-requirements.md |
-| documents | agent:softwarehouse-stage-1-delivery-foundation:3d86286ee3 | module:agents:8519609e36 | .agents/state/softwarehouse-stage1-delivery-foundation.md |
-| documents | agent:softwarehouse-stage-1-recommended-first-action:8101a54119 | module:agents:8519609e36 | .agents/state/softwarehouse-stage1-recommended-first-action.md |
-| documents | agent:softwarehouse-stage0-foundation:5b127a0e6c | module:agents:8519609e36 | .agents/state/softwarehouse-stage0-foundation.md |
-| documents | agent:softwarehouse-standard-stack:3125bdc01b | module:agents:8519609e36 | .agents/state/softwarehouse-standard-stack.md |
-| documents | agent:softwarehouse-task-lifecycle-contract:4b365cc441 | module:agents:8519609e36 | .agents/state/softwarehouse-task-lifecycle-contract.md |
-| documents | agent:softwarehouse-v0-readiness-audit:973797723f | module:agents:8519609e36 | .agents/state/softwarehouse-v0-readiness-audit.md |
-| documents | agent:softwarehouse-v1-goals-and-routines-audit:d268a8c14f | module:agents:8519609e36 | .agents/state/softwarehouse-v1-goals-routines-audit.md |
-| documents | agent:stage-1-activation-packet-roost:6451969250 | module:agents:8519609e36 | .agents/state/stage1-activation-roost.md |
-| documents | agent:stage-1-activation-packet-soar:92098fdc37 | module:agents:8519609e36 | .agents/state/stage1-activation-soar.md |
-| documents | agent:system-health:b1620d63a5 | module:agents:8519609e36 | .agents/state/system-health.md |
 | documents | agent:ux-designer-agent-template:a4a9e030dc | module:skills:3e2f7cddae | skills/paperclip-create-agent/references/agents/uxdesigner.md |
 | documents | document:00-aia-ai-assistant:b4f2809125 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles/ai-assistant.md |
 | documents | document:01-cso-chief-strategy-officer:d0778ca0a9 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles/chief-strategy-officer.md |
@@ -1114,7 +1065,10 @@ Generated: 2026-07-23T01:19:08.800Z
 | documents | document:architecture-owner-attribution-rules:f159630e7f | module:docs:fae674dcd3 | docs/architecture/owner-attribution-rules.md |
 | documents | document:audit-to-completion-loop:919f777d2a | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/60-audit-to-completion.md |
 | documents | document:audit-to-completion-loop:a4f4f30e80 | module:shared:4bb1b95607 | shared/60-audit-to-completion.md |
+| documents | document:audyt-dashboardu-deduplikacja-i-styl-paperclip:66b91c6d49 | module:item:4a28b5745a | dashboard-dedup-audit.md |
 | documents | document:authenticate-docker-to-ecr:59b2b70ef0 | module:docs:fae674dcd3 | docs/deploy/aws-ecs.md |
+| documents | document:autonomous-application-and-business-lifecycle:1325a47c69 | module:docs:fae674dcd3 | docs/softwarehouse/19-autonomous-application-business-lifecycle.md |
+| documents | document:autonomous-application-and-business-lifecycle:ffa3f506ac | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/21-autonomous-application-lifecycle.md |
 | documents | document:autonomous-company-target:d28b8855d0 | module:docs:fae674dcd3 | docs/softwarehouse/15-autonomous-company-target.md |
 | documents | document:autonomous-development-cycle:285f3b874d | module:report:4137e9e012 | report/autonomous-cycles/2026-07-02/cycle-2026-07-02T13-53-28-653Z.md |
 | documents | document:autonomous-development-cycle:2a14327209 | module:report:4137e9e012 | report/autonomous-cycles/2026-06-01/cycle-2026-06-01T21-35-19-456Z.md |
@@ -1182,11 +1136,13 @@ Generated: 2026-07-23T01:19:08.800Z
 | documents | document:creating-an-adapter-md:2bd86c8364 | module:docs:fae674dcd3 | docs/adapters/creating-an-adapter.md |
 | documents | document:credentials-and-test-accounts:1040ca2070 | module:shared:4bb1b95607 | shared/30-credentials-and-accounts.md |
 | documents | document:credentials-and-test-accounts:1828aff4a7 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/30-credentials-and-accounts.md |
+| documents | document:cross-project-isolation-audit:021aa7082f | module:report:4137e9e012 | report/softwarehouse-cross-project-isolation.latest.md |
 | documents | document:cto-architect:f8777b3647 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/cto.md |
 | documents | document:current-pilot-and-intake:2083203c35 | module:shared:4bb1b95607 | shared/00-current-pilot.md |
 | documents | document:current-pilot-and-intake:905ef2c9d4 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/00-current-pilot.md |
 | documents | document:cursor-cloud-agent-adapter-technical-plan:cbec5e2032 | module:doc:97bf06278b | doc/plans/2026-02-23-cursor-cloud-adapter.md |
 | documents | document:dashboard-md:f4e44ba323 | module:docs:fae674dcd3 | docs/guides/board-operator/dashboard.md |
+| documents | document:dashboard-redesign-design-qa:c060ed6283 | module:item:4a28b5745a | design-qa.md |
 | documents | document:data-ownership-map:99621bb7d5 | module:docs:fae674dcd3 | docs/architecture/data-ownership-map.md |
 | documents | document:database-url-postgres-paperclip-paperclip-localhost-5432-paperclip:6b071ebbc5 | module:docs:fae674dcd3 | docs/deploy/database.md |
 | documents | document:database:115ddb21c9 | module:doc:97bf06278b | doc/DATABASE.md |
@@ -1218,3 +1174,47 @@ Generated: 2026-07-23T01:19:08.800Z
 | documents | document:evals-and-regression-gates:38ae5689eb | module:docs:fae674dcd3 | docs/evals-and-regression-gates.md |
 | documents | document:evidence-and-project-memory:001802f7b8 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/70-evidence-and-memory.md |
 | documents | document:evidence-and-project-memory:9b3188cd32 | module:shared:4bb1b95607 | shared/70-evidence-and-memory.md |
+| documents | document:execution-policy-review-approval-workflows:0ae2169a07 | module:docs:fae674dcd3 | docs/guides/execution-policy.md |
+| documents | document:execution-semantics:527b63bd47 | module:doc:97bf06278b | doc/execution-semantics.md |
+| documents | document:execution-workspaces-and-runtime-services-md:c407a3e866 | module:docs:fae674dcd3 | docs/guides/board-operator/execution-workspaces-and-runtime-services.md |
+| documents | document:export-company-with-agents-and-projects:d56e00e619 | module:docs:fae674dcd3 | docs/guides/board-operator/importing-and-exporting.md |
+| documents | document:feature-spec-template:0fbf4a8449 | module:docs:fae674dcd3 | docs/softwarehouse/templates/feature-spec-template.md |
+| documents | document:feature-specs:253b740f1c | module:doc:97bf06278b | doc/plans/2026-03-13-features.md |
+| documents | document:feedback-voting-local-data-guide:b08bb5fc79 | module:docs:fae674dcd3 | docs/feedback-voting.md |
+| documents | document:file-browser-example-plugin:f7ed96163c | module:packages-plugins-examples:82ce9eb6d5 | packages/plugins/examples/plugin-file-browser-example/README.md |
+| documents | document:frontend-engineer:e7c9ce59f9 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/frontend-engineer.md |
+| documents | document:frontend-style-audit:dda266ba24 | module:item:4a28b5745a | frontend-style-audit.md |
+| documents | document:gemini-local-md:2bd266a25c | module:docs:fae674dcd3 | docs/adapters/gemini-local.md |
+| documents | document:generated-artifacts-and-work-products:8c7bd78c96 | module:skills:3e2f7cddae | skills/paperclip/references/artifacts.md |
+| documents | document:git-push-deploy-and-production-safety:423d528d6c | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/20-release-and-deploy-safety.md |
+| documents | document:git-push-deploy-and-production-safety:ff3cbab2bc | module:shared:4bb1b95607 | shared/20-release-and-deploy-safety.md |
+| documents | document:github-pull-request-workflow:ea2c6ded6e | module:packages-skills-catalog-catalog:e86044ba4c | packages/skills-catalog/catalog/bundled/software-development/github-pr-workflow/SKILL.md |
+| documents | document:grid-palette-and-type-scale:4c8d84f52c | module:packages-skills-catalog-catalog:e86044ba4c | packages/skills-catalog/catalog/bundled/product/wireframe/references/grid-system.md |
+| documents | document:guardrail-commands:222e31d01f | module:docs:fae674dcd3 | docs/automation/guardrail-commands.md |
+| documents | document:handling-approvals-md:973aaf9d3b | module:docs:fae674dcd3 | docs/guides/agent-developer/handling-approvals.md |
+| documents | document:heartbeat-md-ceo-heartbeat-checklist:57393192fe | module:src-onboarding-assets-ceo:8c520eecee | server/src/onboarding-assets/ceo/HEARTBEAT.md |
+| documents | document:heartbeat-protocol-md:1fb8714d84 | module:docs:fae674dcd3 | docs/guides/agent-developer/heartbeat-protocol.md |
+| documents | document:hosted-roost-company-context:9db0023931 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/02-hosted-roost-company-context.md |
+| documents | document:how-agents-work-md:ba64633968 | module:docs:fae674dcd3 | docs/guides/agent-developer/how-agents-work.md |
+| documents | document:http-md:5668a20d84 | module:docs:fae674dcd3 | docs/adapters/http.md |
+| documents | document:humans-and-permissions-implementation-v1:4b756598ca | module:doc:97bf06278b | doc/plans/2026-02-21-humans-and-permissions-implementation.md |
+| documents | document:humans-and-permissions-plan:f7a12c70a7 | module:doc:97bf06278b | doc/plans/2026-02-21-humans-and-permissions.md |
+| documents | document:id-issue-101-status-in-progress-id-issue-100-status-in-review-id-issue-99-status-todo:6b4c21bb02 | module:docs:fae674dcd3 | docs/guides/agent-developer/task-workflow.md |
+| documents | document:idea-to-function-chain-playbook:c77f4fd377 | module:docs:fae674dcd3 | docs/planning/idea-to-function-chain-playbook.md |
+| documents | document:incident-and-bugfix-process:995e5b6de5 | module:docs:fae674dcd3 | docs/softwarehouse/12-incident-and-bugfix-process.md |
+| documents | document:index-refresh:3177759d45 | module:packages-plugins-plugin-llm-wiki:e31e3d114a | packages/plugins/plugin-llm-wiki/skills/index-refresh/SKILL.md |
+| documents | document:index:008a854f79 | module:packages-plugins-plugin-llm-wiki:e31e3d114a | packages/plugins/plugin-llm-wiki/fixtures/basic-root/wiki/index.md |
+| documents | document:index:5110c8f428 | module:packages-plugins-plugin-llm-wiki:e31e3d114a | packages/plugins/plugin-llm-wiki/templates/wiki/index.md |
+| documents | document:install-from-npm-via-api:6afad38923 | module:docs:fae674dcd3 | docs/adapters/overview.md |
+| documents | document:instructions-for-writing-the-readme-md:fb51d1a7b9 | module:doc:97bf06278b | doc/README-draft.md |
+| documents | document:integration-trading-engineer:4d1252ba0f | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/integration-trading-engineer.md |
+| documents | document:issue-documents-plan:cc22b8b35f | module:docs:fae674dcd3 | docs/plans/2026-03-13-issue-documents-plan.md |
+| documents | document:issue-run-orchestration-plan:41a500d64d | module:doc:97bf06278b | doc/plans/2026-02-20-issue-run-orchestration-plan.md |
+| documents | document:issue-triage:f4e7c6f8f4 | module:packages-skills-catalog-catalog:e86044ba4c | packages/skills-catalog/catalog/bundled/paperclip-operations/issue-triage/SKILL.md |
+| documents | document:issue-workspace-runtime-controls:6bc6508ee7 | module:skills:3e2f7cddae | skills/paperclip/references/issue-workspaces.md |
+| documents | document:issue-worktree-support:895f2a952e | module:doc:97bf06278b | doc/experimental/issue-worktree-support.md |
+| documents | document:kitchen-sink-plugin-plan:051a65beef | module:doc:97bf06278b | doc/plans/2026-03-13-plugin-kitchen-sink-example.md |
+| documents | document:knowledge-governance:2dc01e3f41 | module:docs:fae674dcd3 | docs/softwarehouse/17-knowledge-governance.md |
+| documents | document:knowledge:762b200b63 | module:packages-plugins-plugin-llm-wiki:e31e3d114a | packages/plugins/plugin-llm-wiki/fixtures/basic-root/wiki/areas/knowledge.md |
+| documents | document:legacy-role-files-archive:dd76a6ff95 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/README.md |
+| documents | document:list-issues:55b16e65a4 | module:docs:fae674dcd3 | docs/cli/control-plane-commands.md |

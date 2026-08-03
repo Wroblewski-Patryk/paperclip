@@ -95,6 +95,7 @@ const ignoredDirs = new Set([
   ".codex",
   ".claude",
   ".cursor",
+  ".agents",
   ".agents-cache",
   ".git",
   ".obsidian",
@@ -108,6 +109,7 @@ const ignoredDirs = new Set([
   "playwright-report",
   "test-results",
   "vendor",
+  "history",
 ]);
 
 const codeExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py"]);
@@ -382,16 +384,11 @@ async function collectMarkdownFiles(dir) {
 }
 
 async function collectTaskFiles() {
-  const roots = [
-    path.join(repoRoot, ".codex", "tasks"),
-    path.join(repoRoot, ".codex", "context"),
-    path.join(repoRoot, "history", "tasks"),
-  ];
-  const files = [];
-  for (const root of roots) {
-    files.push(...await collectMarkdownFiles(root));
-  }
-  return uniq(files.map((file) => path.resolve(file)));
+  // Repo-local task/state files are ephemeral or historical context. Current
+  // execution ownership comes from Paperclip issues, loaded separately below.
+  // Keeping them out prevents completed local task archives from becoming
+  // current architecture entities and apparent delivery work.
+  return [];
 }
 
 function isPaperclipProjectScan() {

@@ -1,9 +1,9 @@
 # Project Truth Index
 
-Generated: 2026-07-23T01:19:08.800Z
+Generated: 2026-08-03T14:48:09.744Z
 Project: Paperclip
 Status: gaps_require_routing
-Source HEAD: 3ad94f7e99f5d149e8a59cdff1c541a46fe761a1
+Source HEAD: 7a3b4c941342079ed651212df3944aecd86e1b91
 Source ahead/behind: unknown/unknown
 Deployed SHA: unknown
 
@@ -11,19 +11,19 @@ This is the routing surface agents should use before guessing whether an app wor
 
 | Metric | Count |
 | --- | ---: |
-| appCompletionItems | 481 |
+| appCompletionItems | 492 |
 | eventChains | 8 |
 | incompleteEventChains | 1 |
 | runtimeFindings | 0 |
 | criticalRuntimeFindings | 0 |
-| appCompletionGaps | 450 |
+| appCompletionGaps | 461 |
 | indexedAppCompletionGaps | 200 |
-| knownAppCompletionRiskItems | 450 |
+| knownAppCompletionRiskItems | 461 |
 | appCompletionPriorityReviewItems | 200 |
 | appCompletionPriorityReviewTruncated | true |
-| operationalGateGaps | 5 |
-| indexedGaps | 206 |
-| totalGaps | 456 |
+| operationalGateGaps | 4 |
+| indexedGaps | 205 |
+| totalGaps | 466 |
 
 ## First Gap
 
@@ -70,6 +70,7 @@ This is the routing surface agents should use before guessing whether an app wor
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/activity has app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /heartbeat-runs/:runId/issues has app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /issues/:id/activity has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /issues/:id/recovery-run-evidence has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /issues/:id/runs has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /adapters has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: DELETE /adapters/:type has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
@@ -79,6 +80,8 @@ This is the routing surface agents should use before guessing whether an app wor
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /adapters/:type/reload has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /adapters/:type/ui-parser.js has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /adapters/install has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/admission-controls has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/admission-controls/transition has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: DELETE /agents/:id has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /agents/:id has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: PATCH /agents/:id has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
@@ -112,6 +115,3 @@ This is the routing surface agents should use before guessing whether an app wor
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/agents has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/heartbeat-runs has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/live-runs has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/org has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/org.png has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/org.svg has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |

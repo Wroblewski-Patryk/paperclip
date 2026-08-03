@@ -1,12 +1,12 @@
 # Operational Readiness Index
 
-Generated: 2026-07-23T01:19:08.800Z
+Generated: 2026-08-03T14:48:09.744Z
 Project: Paperclip
 Status: truth_incomplete
 
 | Gate | Status | Required for |
 | --- | --- | --- |
-| source_freshness | stale | current project truth rather than historical evidence |
+| source_freshness | fresh | current project truth rather than historical evidence |
 | release_branch_alignment | unknown | an exact source release candidate |
 | deployment_identity | unknown | proof that the owner-visible runtime matches source |
 | architecture_exports | present | cross-layer ownership and dependency tracing |

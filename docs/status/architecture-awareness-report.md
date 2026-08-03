@@ -1,6 +1,6 @@
 # Architecture Awareness Report
 
-Generated: 2026-07-23T01:19:08.800Z
+Generated: 2026-08-03T14:48:09.744Z
 Project: Paperclip
 Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 
@@ -8,18 +8,18 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 
 | Type | Count |
 | --- | ---: |
-| agent | 74 |
-| api_endpoint | 408 |
-| component | 271 |
-| document | 672 |
-| feature | 1110 |
-| function | 12498 |
-| migration | 183 |
+| agent | 14 |
+| api_endpoint | 419 |
+| component | 273 |
+| document | 683 |
+| feature | 1149 |
+| function | 12794 |
+| migration | 192 |
 | model | 113 |
-| module | 111 |
+| module | 108 |
 | project | 1 |
-| route | 168 |
-| test | 749 |
+| route | 171 |
+| test | 775 |
 
 ## Counts By Status
 
@@ -27,21 +27,21 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 | --- | ---: |
 | blocked | 3 |
 | deprecated | 7 |
-| implemented | 14313 |
+| implemented | 14582 |
 | in_progress | 1 |
-| tested | 2034 |
+| tested | 2099 |
 
 ## Health Signals
 
-- Raw implementation entities without inferred tests: 12007
-- Actionable implementation entities without inferred tests: 11262
-- Raw implementation entities without inferred docs: 1806
-- Actionable implementation entities without inferred docs: 1674
-- Classified inferred-link noise: 748
+- Raw implementation entities without inferred tests: 12260
+- Actionable implementation entities without inferred tests: 11494
+- Raw implementation entities without inferred docs: 1861
+- Actionable implementation entities without inferred docs: 1729
+- Classified inferred-link noise: 769
 - Raw tasks without architecture links: 0
 - Actionable tasks without architecture links: 0
-- Raw implementation entities without task links: 2070
-- Actionable implementation entities without task links: 1938
+- Raw implementation entities without task links: 2125
+- Actionable implementation entities without task links: 1993
 - Classified task-linkage noise: 132
 - Entities without owner attribution: 0
 - Disconnected entities: 0
@@ -63,6 +63,7 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - api_endpoint: GET /skills/available (server/src/routes/access.ts#/skills/available)
 - api_endpoint: GET /companies/:companyId/activity (server/src/routes/activity.ts#/companies/:companyId/activity)
 - api_endpoint: GET /issues/:id/activity (server/src/routes/activity.ts#/issues/:id/activity)
+- api_endpoint: GET /issues/:id/recovery-run-evidence (server/src/routes/activity.ts#/issues/:id/recovery-run-evidence)
 - api_endpoint: GET /issues/:id/runs (server/src/routes/activity.ts#/issues/:id/runs)
 - api_endpoint: GET /adapters (server/src/routes/adapters.ts#/adapters)
 - api_endpoint: DELETE /adapters/:type (server/src/routes/adapters.ts#/adapters/:type)
@@ -72,6 +73,8 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - api_endpoint: POST /adapters/:type/reload (server/src/routes/adapters.ts#/adapters/:type/reload)
 - api_endpoint: GET /adapters/:type/ui-parser.js (server/src/routes/adapters.ts#/adapters/:type/ui-parser.js)
 - api_endpoint: POST /adapters/install (server/src/routes/adapters.ts#/adapters/install)
+- api_endpoint: GET /companies/:companyId/admission-controls (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls)
+- api_endpoint: POST /companies/:companyId/admission-controls/transition (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition)
 - api_endpoint: DELETE /agents/:id (server/src/routes/agents.ts#/agents/:id)
 - api_endpoint: GET /agents/:id (server/src/routes/agents.ts#/agents/:id)
 - api_endpoint: PATCH /agents/:id (server/src/routes/agents.ts#/agents/:id)
@@ -85,13 +88,11 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - api_endpoint: PATCH /agents/:id/instructions-bundle (server/src/routes/agents.ts#/agents/:id/instructions-bundle)
 - api_endpoint: DELETE /agents/:id/instructions-bundle/file (server/src/routes/agents.ts#/agents/:id/instructions-bundle/file)
 - api_endpoint: GET /agents/:id/instructions-bundle/file (server/src/routes/agents.ts#/agents/:id/instructions-bundle/file)
-- api_endpoint: PUT /agents/:id/instructions-bundle/file (server/src/routes/agents.ts#/agents/:id/instructions-bundle/file)
-- api_endpoint: PATCH /agents/:id/instructions-path (server/src/routes/agents.ts#/agents/:id/instructions-path)
-- api_endpoint: GET /agents/:id/keys (server/src/routes/agents.ts#/agents/:id/keys)
 
 ## Top Actionable Missing Doc Links
 
 - api_endpoint: POST /bootstrap/claim (server/src/routes/access.ts#/bootstrap/claim)
+- api_endpoint: GET /issues/:id/recovery-run-evidence (server/src/routes/activity.ts#/issues/:id/recovery-run-evidence)
 - api_endpoint: GET /adapters (server/src/routes/adapters.ts#/adapters)
 - api_endpoint: DELETE /adapters/:type (server/src/routes/adapters.ts#/adapters/:type)
 - api_endpoint: PATCH /adapters/:type (server/src/routes/adapters.ts#/adapters/:type)
@@ -101,6 +102,8 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - api_endpoint: POST /adapters/:type/reload (server/src/routes/adapters.ts#/adapters/:type/reload)
 - api_endpoint: GET /adapters/:type/ui-parser.js (server/src/routes/adapters.ts#/adapters/:type/ui-parser.js)
 - api_endpoint: POST /adapters/install (server/src/routes/adapters.ts#/adapters/install)
+- api_endpoint: GET /companies/:companyId/admission-controls (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls)
+- api_endpoint: POST /companies/:companyId/admission-controls/transition (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition)
 - api_endpoint: GET /assets/:assetId/content (server/src/routes/assets.ts#/assets/:assetId/content)
 - api_endpoint: POST /companies/:companyId/assets/images (server/src/routes/assets.ts#/companies/:companyId/assets/images)
 - api_endpoint: POST /companies/:companyId/logo (server/src/routes/assets.ts#/companies/:companyId/logo)
@@ -128,14 +131,11 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - api_endpoint: POST /companies/:companyId/skills/scan-projects (server/src/routes/company-skills.ts#/companies/:companyId/skills/scan-projects)
 - api_endpoint: GET /skills/catalog (server/src/routes/company-skills.ts#/skills/catalog)
 - api_endpoint: GET /skills/catalog/:catalogId (server/src/routes/company-skills.ts#/skills/catalog/:catalogId)
-- api_endpoint: GET /skills/catalog/:catalogId/files (server/src/routes/company-skills.ts#/skills/catalog/:catalogId/files)
-- api_endpoint: GET /companies/:companyId/costs/model-profiles (server/src/routes/costs.ts#/companies/:companyId/costs/model-profiles)
-- api_endpoint: GET /companies/:companyId/situation (server/src/routes/dashboard.ts#/companies/:companyId/situation)
 
 ## Classified Inferred-Link Noise
 
 - config_only_file: 294
-- test_fixture_function: 454
+- test_fixture_function: 475
 
 ## Top Classified Noise Samples
 

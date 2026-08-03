@@ -1,6 +1,6 @@
 # App Completion Index
 
-Generated: 2026-07-23T01:19:08.800Z
+Generated: 2026-08-03T14:48:09.744Z
 Project: Paperclip
 Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 Source graph: docs/graphs/architecture-awareness.json
@@ -13,20 +13,20 @@ Internal functions and modules are implementation details: they receive proof th
 
 ## Counts
 
-- Items: 481
+- Items: 492
 - User flows: 7
 - Needs browser/screenshot review: 72
-- Missing test link: 352
-- Missing doc link: 25
+- Missing test link: 364
+- Missing doc link: 24
 - Implemented, needs proof: 1
 - Blocked: 0
-- Known non-ok risk items: 450
-- Priority review items indexed: 200/450
+- Known non-ok risk items: 461
+- Priority review items indexed: 200/461
 - Priority review truncated: true
 
 ## Flow Summary
 
-- Unclassified user workflow: 413 entities; risks {"ok":19,"missing_test_link":314,"missing_doc_link":20,"implemented_needs_proof":1,"needs_browser_review":59}; gates {"auth":1,"configuration":15}
+- Unclassified user workflow: 424 entities; risks {"ok":19,"missing_test_link":326,"missing_doc_link":19,"implemented_needs_proof":1,"needs_browser_review":59}; gates {"auth":1,"configuration":15}
 - User configuration: 37 entities; risks {"missing_doc_link":2,"missing_test_link":27,"needs_browser_review":8}; gates {"configuration":33,"auth":2}
 - Account access: 15 entities; risks {"ok":9,"missing_doc_link":3,"missing_test_link":1,"needs_browser_review":2}; gates {"auth":15}
 - Dashboard overview: 7 entities; risks {"missing_test_link":4,"needs_browser_review":3}; gates {}
@@ -72,6 +72,7 @@ Internal functions and modules are implementation details: they receive proof th
 | Unclassified user workflow | missing_doc_link | api_endpoint | POST /companies/:companyId/activity | Backend Platform Lead | server/src/routes/activity.ts#/companies/:companyId/activity | - |
 | Unclassified user workflow | missing_doc_link | api_endpoint | GET /heartbeat-runs/:runId/issues | Backend Platform Lead | server/src/routes/activity.ts#/heartbeat-runs/:runId/issues | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /issues/:id/activity | Backend Platform Lead | server/src/routes/activity.ts#/issues/:id/activity | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /issues/:id/recovery-run-evidence | Backend Platform Lead | server/src/routes/activity.ts#/issues/:id/recovery-run-evidence | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /issues/:id/runs | Backend Platform Lead | server/src/routes/activity.ts#/issues/:id/runs | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /adapters | Backend Platform Lead | server/src/routes/adapters.ts#/adapters | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | DELETE /adapters/:type | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/:type | - |
@@ -81,6 +82,8 @@ Internal functions and modules are implementation details: they receive proof th
 | Unclassified user workflow | missing_test_link | api_endpoint | POST /adapters/:type/reload | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/:type/reload | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /adapters/:type/ui-parser.js | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/:type/ui-parser.js | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | POST /adapters/install | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/install | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/admission-controls | Backend Platform Lead | server/src/routes/admission-control.ts#/companies/:companyId/admission-controls | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/admission-controls/transition | Backend Platform Lead | server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | DELETE /agents/:id | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/:id | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | PATCH /agents/:id | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id | - |
@@ -115,9 +118,6 @@ Internal functions and modules are implementation details: they receive proof th
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/heartbeat-runs | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/heartbeat-runs | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/live-runs | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/live-runs | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/org | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/org | - |
-| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/org.png | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/org.png | - |
-| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/org.svg | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/org.svg | - |
-| Unclassified user workflow | missing_test_link | api_endpoint | GET /heartbeat-runs/:runId | Backend Platform Lead | server/src/routes/agents.ts#/heartbeat-runs/:runId | - |
 
 ## Agent Rule
 
