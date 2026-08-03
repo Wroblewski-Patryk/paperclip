@@ -90,6 +90,12 @@ export function buildSnapshot(packet, options = {}) {
     forbiddenWhileBlocked: packet.forbiddenWhileBlocked ?? [],
     requiredBeforeFullDelivery: packet.requiredBeforeFullDelivery ?? [],
     nextControlActions: packet.nextControlActions ?? [],
+    // These fields are consumed by the versioned Softwarehouse status and
+    // Paperclip -> Roost projection routes. A summary export must preserve
+    // their structured data rather than silently turning a healthy portfolio
+    // into an empty owner map.
+    controlBrief: packet.controlBrief ?? null,
+    projectTruthAudit: packet.projectTruthAudit ?? null,
   };
 }
 

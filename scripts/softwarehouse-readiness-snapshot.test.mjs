@@ -57,3 +57,21 @@ test("missing or invalid source timestamp is stale", () => {
     assert.equal(freshness.sourceAgeMs, null);
   }
 });
+
+test("preserves control brief and project truth for the Roost projection", () => {
+  const projectTruthAudit = {
+    projectCount: 1,
+    projectsWithGaps: 1,
+    totalGaps: 2,
+    projects: [{ name: "Soar", totalGaps: 2 }],
+  };
+  const controlBrief = { headline: "Canary held", primaryNextAction: "Approve deployment" };
+  const snapshot = buildSnapshot({
+    generatedAt: "2026-07-23T01:20:00.000Z",
+    ok: false,
+    projectTruthAudit,
+    controlBrief,
+  }, { now, maxSourceAgeMs: 15 * 60 * 1_000 });
+  assert.deepEqual(snapshot.projectTruthAudit, projectTruthAudit);
+  assert.deepEqual(snapshot.controlBrief, controlBrief);
+});

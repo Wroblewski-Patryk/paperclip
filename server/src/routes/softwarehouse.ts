@@ -355,6 +355,7 @@ function resolveAllowedPortfolioWorkspace(entry: PortfolioEntry, workspaceRoot: 
     path.resolve(workspaceRoot),
     path.resolve(workspaceRoot, "../Soar"),
     path.resolve(workspaceRoot, "../Roost"),
+    path.resolve(workspaceRoot, "../Featherly"),
   ];
   return allowedWorkspaceRoots.includes(workspacePath) ? workspacePath : null;
 }
