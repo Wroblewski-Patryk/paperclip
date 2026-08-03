@@ -3,7 +3,7 @@
 Generated: 2026-07-23T01:19:08.800Z
 Project: Paperclip
 Status: gaps_require_routing
-Source HEAD: ed17f188629add20288e283a129b0b8f6f26f6de
+Source HEAD: 3ad94f7e99f5d149e8a59cdff1c541a46fe761a1
 Source ahead/behind: unknown/unknown
 Deployed SHA: unknown
 

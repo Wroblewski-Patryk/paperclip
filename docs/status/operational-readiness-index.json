@@ -3,7 +3,7 @@
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "repository": {
-    "headSha": "ed17f188629add20288e283a129b0b8f6f26f6de",
+    "headSha": "3ad94f7e99f5d149e8a59cdff1c541a46fe761a1",
     "upstreamSha": null,
     "behind": null,
     "ahead": null
@@ -24,7 +24,7 @@
       "gate": "release_branch_alignment",
       "status": "unknown",
       "evidence": {
-        "headSha": "ed17f188629add20288e283a129b0b8f6f26f6de",
+        "headSha": "3ad94f7e99f5d149e8a59cdff1c541a46fe761a1",
         "upstreamSha": null,
         "behind": null,
         "ahead": null
@@ -35,7 +35,7 @@
       "gate": "deployment_identity",
       "status": "unknown",
       "evidence": {
-        "sourceSha": "ed17f188629add20288e283a129b0b8f6f26f6de",
+        "sourceSha": "3ad94f7e99f5d149e8a59cdff1c541a46fe761a1",
         "deployedSha": null
       },
       "requiredFor": "proof that the owner-visible runtime matches source"
