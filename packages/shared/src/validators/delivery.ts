@@ -28,6 +28,12 @@ export const transitionDeliverySchema = z.object({
   needsDecision: z.boolean().optional(),
 }).strict();
 
+export const updateDeliveryStatusSchema = z.object({
+  blocker: z.string().trim().max(5000).nullable().optional(),
+  needsDecision: z.boolean().optional(),
+  localSha: z.string().trim().min(7).max(64).nullable().optional(),
+}).strict().refine((value) => Object.keys(value).length > 0, "At least one status field is required");
+
 export const updateProductOutcomeSchema = z.object({
   status: z.enum(PRODUCT_OUTCOME_STATUSES),
   evidence: evidenceSchema.optional().default([]),
@@ -41,5 +47,6 @@ export const listDeliveriesQuerySchema = z.object({
 
 export type CreateDelivery = z.infer<typeof createDeliverySchema>;
 export type TransitionDelivery = z.infer<typeof transitionDeliverySchema>;
+export type UpdateDeliveryStatus = z.infer<typeof updateDeliveryStatusSchema>;
 export type UpdateProductOutcome = z.infer<typeof updateProductOutcomeSchema>;
 export type ListDeliveriesQuery = z.infer<typeof listDeliveriesQuerySchema>;

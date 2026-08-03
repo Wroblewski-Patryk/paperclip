@@ -6,10 +6,12 @@ export {
 export {
   createDeliverySchema,
   transitionDeliverySchema,
+  updateDeliveryStatusSchema,
   updateProductOutcomeSchema,
   listDeliveriesQuerySchema,
   type CreateDelivery,
   type TransitionDelivery,
+  type UpdateDeliveryStatus,
   type UpdateProductOutcome,
   type ListDeliveriesQuery,
 } from "./delivery.js";

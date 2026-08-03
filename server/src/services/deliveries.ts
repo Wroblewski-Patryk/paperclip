@@ -15,6 +15,7 @@ import type {
   ListDeliveriesQuery,
   ProductOutcomeStatus,
   TransitionDelivery,
+  UpdateDeliveryStatus,
   UpdateProductOutcome,
 } from "@paperclipai/shared";
 import { badRequest, conflict, notFound, unprocessable } from "../errors.js";
@@ -192,6 +193,17 @@ export function deliveryService(db: Db) {
           .where(eq(productOutcomes.id, outcome.id));
         return { delivery, transition, idempotent: false };
       });
+    },
+
+    async updateStatus(id: string, data: UpdateDeliveryStatus) {
+      const existing = await getById(id);
+      if (!existing) throw notFound("Delivery not found");
+      return db.update(productDeliveries).set({
+        blocker: data.blocker === undefined ? existing.blocker : data.blocker,
+        needsDecision: data.needsDecision ?? existing.needsDecision,
+        localSha: data.localSha === undefined ? existing.localSha : data.localSha,
+        updatedAt: new Date(),
+      }).where(eq(productDeliveries.id, id)).returning().then((rows) => rows[0]);
     },
 
     async updateOutcome(deliveryId: string, data: UpdateProductOutcome, actor: { agentId?: string | null; userId?: string | null }) {

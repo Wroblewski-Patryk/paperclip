@@ -4,6 +4,7 @@ import {
   createDeliverySchema,
   listDeliveriesQuerySchema,
   transitionDeliverySchema,
+  updateDeliveryStatusSchema,
   updateProductOutcomeSchema,
 } from "@paperclipai/shared";
 import { validate } from "../middleware/validate.js";
@@ -52,6 +53,20 @@ export function deliveryRoutes(db: Db) {
       details: { fromStage: existing.stage, toStage: result.delivery.stage, idempotent: result.idempotent },
     });
     res.json(result);
+  });
+
+  router.patch("/deliveries/:id/status", validate(updateDeliveryStatusSchema), async (req, res) => {
+    const existing = await svc.getById(req.params.id as string);
+    if (!existing) { res.status(404).json({ error: "Delivery not found" }); return; }
+    assertCompanyAccess(req, existing.companyId);
+    const actor = getActorInfo(req);
+    const delivery = await svc.updateStatus(existing.id, req.body);
+    await logActivity(db, {
+      companyId: existing.companyId, actorType: actor.actorType, actorId: actor.actorId, agentId: actor.agentId, runId: actor.runId,
+      action: "delivery.status_updated", entityType: "delivery", entityId: existing.id,
+      details: { blocker: delivery.blocker, needsDecision: delivery.needsDecision, localSha: delivery.localSha },
+    });
+    res.json(delivery);
   });
 
   router.post("/deliveries/:id/outcome", validate(updateProductOutcomeSchema), async (req, res) => {
