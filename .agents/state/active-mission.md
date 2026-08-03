@@ -23,11 +23,16 @@
   non-deployed Coolify QA application step.
 - Coolify rejected the old two-character environment contract `qa` without
   creating a resource. LUC-2336 and LUC-2154 now explicitly authorize
-  `roost-qa`; DRE resumed with all original isolation and no-deploy boundaries.
+  `roost-qa`; DRE completed the corrected provisioning with all original
+  isolation and no-deploy boundaries. The QA app is Exited, auto-deploy is off,
+  deployments are zero, and its database volume namespace differs from
+  production. LUC-2154 is now `todo` and queued for candidate-secret rotation
+  plus the controlled first deploy.
 - Agent-authored `request_confirmation` returned HTTP 500 twice while a
   bounded board-authored create/reject diagnostic passed 201/200. Treat this as
   an agent/run-auth-path defect, not a failure of the interaction table or the
-  board route; it is non-blocking for the corrected QA step.
+  board route. LUC-2452 owns the focused diagnosis and repair and is running;
+  it is non-blocking for the corrected QA step.
 - Production Roost and the Product Map publisher remain protected. Do not
   activate delivery credentials, DNS, production traffic, or a production
   deployment until the QA, owner-journey, security, deployment, and monitoring

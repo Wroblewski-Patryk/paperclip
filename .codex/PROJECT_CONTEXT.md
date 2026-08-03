@@ -551,5 +551,8 @@ the active Stage 1 delivery mission.
   LUC-2373/LUC-2375/LUC-2376 and LUC-2340/LUC-2338/LUC-2337. LUC-2336 has
   resumed the approved isolated QA-resource creation step. The Coolify-valid
   environment name is `roost-qa`, not the rejected two-character name `qa`.
+  LUC-2336 is done: application `Roost QA LUC-2153` exists at the pinned
+  candidate SHA, Exited, with auto-deploy off, zero deployments, and a distinct
+  database volume namespace. LUC-2154 owns secrets and controlled deployment.
 - Keep production Product Map delivery fail-closed until the remaining
   LUC-1910 QA/release gates and protected ingestion bindings are satisfied.

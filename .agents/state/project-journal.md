@@ -5097,3 +5097,14 @@ diagnostic with a source-run reference, so the database, generic route, and
 source-run foreign key are healthy. The unresolved fault is therefore scoped
 to agent/run authorization or agent-authored request handling and does not
 block the already owner-corrected `roost-qa` operation.
+
+LUC-2336 then completed with attached, non-secret evidence. Coolify environment
+`roost-qa` and Compose application `Roost QA LUC-2153` exist under the approved
+Roost project at exact source SHA `372955cc18aff1d940754f4eb2f3ce229f3638a4`.
+Automatic deployment is disabled, the application is Exited, deployment count
+is zero, and the QA PostgreSQL volume namespace is distinct from production.
+No DNS, publisher, production, manual-secret, start, or deploy action occurred.
+The reconciler removed the completed LUC-2336 dependency and returned LUC-2154
+to `todo`; its queued continuation owns candidate-secret overwrite/rotation and
+the controlled first deployment. LUC-2452 was created and started for the
+agent-authored interaction HTTP 500 defect.
