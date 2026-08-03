@@ -1433,7 +1433,7 @@ describe.sequential("agent permission routes", () => {
     expect(res.body.access.taskAssignSource).toBe("explicit_grant");
   }, 15_000);
 
-  it("reports simple-mode task assignment as enabled for active company agent members", async () => {
+  it("does not grant task assignment merely from active company membership", async () => {
     mockAccessService.listPrincipalGrants.mockResolvedValue([]);
 
     const app = await createApp({
@@ -1447,8 +1447,8 @@ describe.sequential("agent permission routes", () => {
     const res = await requestApp(app, (baseUrl) => request(baseUrl).get(`/api/agents/${agentId}`));
 
     expect(res.status).toBe(200);
-    expect(res.body.access.canAssignTasks).toBe(true);
-    expect(res.body.access.taskAssignSource).toBe("simple_default");
+    expect(res.body.access.canAssignTasks).toBe(false);
+    expect(res.body.access.taskAssignSource).toBe("none");
   }, 15_000);
 
   it("keeps task assignment enabled when agent creation privilege is enabled", async () => {

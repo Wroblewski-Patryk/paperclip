@@ -544,8 +544,8 @@ export function agentRoutes(
 
     if (membership?.status === "active") {
       return {
-        canAssignTasks: true,
-        taskAssignSource: "simple_default" as const,
+        canAssignTasks: false,
+        taskAssignSource: "none" as const,
         membership,
         grants,
       };
@@ -643,20 +643,12 @@ export function agentRoutes(
     };
   }
 
-  async function applyDefaultAgentTaskAssignGrant(
+  async function ensureDefaultAgentMembership(
     companyId: string,
     agentId: string,
-    grantedByUserId: string | null,
+    _grantedByUserId: string | null,
   ) {
     await access.ensureMembership(companyId, "agent", agentId, "member", "active");
-    await access.setPrincipalPermission(
-      companyId,
-      "agent",
-      agentId,
-      "tasks:assign",
-      true,
-      grantedByUserId,
-    );
   }
 
   async function assertCanCreateAgentsForCompany(req: Request, companyId: string) {
@@ -2279,7 +2271,7 @@ export function agentRoutes(
       trackAgentCreated(telemetryClient, { agentRole: agent.role, agentId: agent.id });
     }
 
-    await applyDefaultAgentTaskAssignGrant(
+    await ensureDefaultAgentMembership(
       companyId,
       agent.id,
       actor.actorType === "user" ? actor.actorId : null,
@@ -2400,7 +2392,7 @@ export function agentRoutes(
       trackAgentCreated(telemetryClient, { agentRole: agent.role, agentId: agent.id });
     }
 
-    await applyDefaultAgentTaskAssignGrant(
+    await ensureDefaultAgentMembership(
       companyId,
       agent.id,
       req.actor.type === "board" ? (req.actor.userId ?? null) : null,
