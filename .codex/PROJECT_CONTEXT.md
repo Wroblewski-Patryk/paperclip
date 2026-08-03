@@ -534,3 +534,18 @@ the active Stage 1 delivery mission.
 - Treat "zapisz do dziennika", "przeanalizuj i zapisz", and similar Polish
   phrases as requests to update durable memory.
 - Keep notes concise and inspectable; avoid secrets and unverified claims.
+
+## 2026-08-03 - Current autonomy checkpoint
+
+- Native admission control is open at version 7 after a bounded maintenance
+  replay. Replay state is persisted on the control row; supervisory automation
+  must compare only events inside the current drain/reopen window.
+- Orphaned blocker repair is executable, not documentary: when all linked
+  blockers are done the target returns to `todo` and its assigned agent is
+  woken with current comment evidence. Regression coverage is in commit
+  `7115b032`.
+- The Roost protected browser/session capability chain is complete through
+  LUC-2373/LUC-2375/LUC-2376 and LUC-2340/LUC-2338/LUC-2337. LUC-2336 has
+  resumed the approved isolated QA-resource creation step.
+- Keep production Product Map delivery fail-closed until the remaining
+  LUC-1910 QA/release gates and protected ingestion bindings are satisfied.

@@ -5047,3 +5047,30 @@ The owner explicitly required completion rather than another staged hand-off. Th
 Routine review classified every live definition. Eighteen duplicated or recurrence-risk routines (no-stall, source-control closure, continuation, longevity doctor, stale-board janitor and duplicate Softwarehouse controllers) were archived. The full durable decision and one-routine Soar canary posture are recorded in `.agents/state/routine-recovery-classification.md`.
 
 The Paperclip-to-Roost publisher is being upgraded from a source-only transport to an environment-gated runtime with a PostgreSQL transactional outbox. Activation still requires protected Roost ingest bindings and a deployment decision; no credential or production mutation was performed in this checkpoint.
+
+## 2026-08-03 - Executable blocker recovery and bounded reopen completed
+
+The interrupted recovery was completed through the live control plane. The
+queue reconciler previously removed finished blockers but could retain a
+`blocked` target forever, and its reconciliation comment could make the
+resulting `todo` look recently active without waking its owner. Commit
+`7115b032` makes zero-unresolved-blocker targets actionable, performs an actual
+owner wake, carries current comment evidence, and regression-protects both
+behaviors.
+
+The watchdog also entered a false-positive drain after comparing historical
+admission decisions with current persisted wakeups. Admission reopen metadata
+(`replaySnapshot`, `reopenAttemptId`, and `reopenResult`) is now written by the
+transition service itself, and all four supervisory automations were updated
+to use the current drain/reopen boundary. LuckySparrow reopened at admission
+version 7 after a stable 19-item deferred set; replay inspected 19, queued 4,
+rejected 15 as no longer admissible, and failed 0. Targeted specifications
+passed 201/201, admission tests 9/9, server typecheck passed, and strict
+runtime topology passed on ports 3200/54329.
+
+Accepted protected-session evidence from LUC-2373, LUC-2375, and LUC-2376 was
+used to close the obsolete LUC-2340 -> LUC-2338 -> LUC-2337 capability chain.
+Paperclip then automatically checked out and started LUC-2336 for the
+explicitly approved isolated, non-deployed Roost QA application. Production,
+DNS, publisher activation, secret values, and live traffic remain outside this
+checkpoint and protected by the remaining LUC-1910 QA/release chain.

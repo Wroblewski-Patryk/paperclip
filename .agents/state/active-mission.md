@@ -1,5 +1,28 @@
 # Active Mission
 
+## 2026-08-03 - Admission reopened; Roost QA execution resumed
+
+- LuckySparrow is open on native admission-control version 7. The bounded
+  maintenance replay inspected 19 semantic wakeups, queued 4, rejected 15 as
+  no longer admissible, failed 0, and persisted its replay snapshot plus the
+  completed reopen attempt id. Deferred maintenance work returned to zero.
+- Commit `7115b032` closes two orchestration gaps: a blocked issue with no live
+  blocker now returns to `todo`, and the reconciler wakes its assigned owner
+  with current evidence instead of recording a paper-only status change.
+- The watchdog false-positive drain is repaired: replay evidence is persisted
+  by the admission transition itself, and supervisory comparisons are scoped
+  to the current drain/reopen window rather than mixed historical decisions.
+- Targeted evidence is green: queue/controller specifications `201/201`,
+  admission service `9/9`, server typecheck, and strict runtime topology.
+- The stale Roost capability chain is now evidence-closed: LUC-2340, LUC-2338,
+  and LUC-2337 are done from accepted LUC-2373/2375/2376 proof. LUC-2336 was
+  automatically resumed and is executing the explicitly approved isolated,
+  non-deployed Coolify QA application step.
+- Production Roost and the Product Map publisher remain protected. Do not
+  activate delivery credentials, DNS, production traffic, or a production
+  deployment until the QA, owner-journey, security, deployment, and monitoring
+  gates in the LUC-1910 chain return inspectable evidence.
+
 ## 2026-08-03 - Detached-run deadlock repaired; verification before reopen
 
 - The 19-hour CTO queue deadlock is cleared. Live run count is zero while the
