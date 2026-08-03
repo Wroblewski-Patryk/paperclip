@@ -2250,7 +2250,11 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       source: "assignment",
       triggerDetail: "system",
       reason: "source_scoped_recovery_action",
-      idempotencyKey: `source_scoped_recovery_action:${input.action.id}:${input.action.attemptCount}`,
+      // A recovery action is one semantic wake while it remains active. The
+      // attempt counter is diagnostic state, not a new signal. Keeping it out
+      // of the key prevents maintenance mode from accumulating one deferred
+      // wake every time the reconciler rearms the same action.
+      idempotencyKey: `source_scoped_recovery_action:${input.action.id}`,
       payload: withRecoveryModelProfileHint({
         issueId: input.issue.id,
         sourceIssueId: input.issue.id,
@@ -2320,6 +2324,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         action: issueRecoveryActions,
         issue: issues,
         owner: agents,
+        companyStatus: companies.status,
       })
       .from(issueRecoveryActions)
       .innerJoin(
@@ -2336,6 +2341,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
           eq(agents.id, issueRecoveryActions.ownerAgentId),
         ),
       )
+      .innerJoin(companies, eq(companies.id, issueRecoveryActions.companyId))
       .where(
         and(
           inArray(issueRecoveryActions.status, ["active", "escalated"]),
@@ -2353,6 +2359,13 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
 
     const now = Date.now();
     for (const row of rows) {
+      // Admission maintenance is a genuine stop condition. Do not mutate the
+      // recovery attempt counter or manufacture deferred work while the whole
+      // company is paused; reopening will replay the one durable signal.
+      if (row.companyStatus !== "active") {
+        result.skipped += 1;
+        continue;
+      }
       if (!row.action.ownerAgentId || !isAgentInvokable(row.owner)) {
         result.skipped += 1;
         continue;

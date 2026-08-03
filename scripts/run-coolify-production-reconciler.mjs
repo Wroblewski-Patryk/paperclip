@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
+import { coolifyResponseItems } from "./lib/coolify-response.mjs";
 
 const coolifyEnvKeys = [
   "COOLIFY_BASE_URL",
@@ -222,11 +223,7 @@ async function coolifyGet(route) {
 }
 
 function responseItems(raw) {
-  const data = raw?.data;
-  return Array.isArray(data) ? data
-    : Array.isArray(data?.data) ? data.data
-      : Array.isArray(data?.resources) ? data.resources
-        : data ? [data] : [];
+  return coolifyResponseItems(raw);
 }
 
 function environmentIds(projectResponse) {

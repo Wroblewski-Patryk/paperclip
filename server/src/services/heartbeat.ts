@@ -11076,9 +11076,50 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         eq(agentWakeupRequests.status, "deferred_by_maintenance"),
       ))
       .orderBy(asc(agentWakeupRequests.requestedAt));
-    const summary = { inspected: deferred.length, queued: 0, notAdmitted: 0, failed: 0 };
-
+    const replayBySemanticKey = new Map<string, (typeof deferred)[number]>();
+    const coalescedIds: string[] = [];
     for (const request of deferred) {
+      const payload = parseObject(request.payload);
+      const recoveryActionId = request.reason === "source_scoped_recovery_action"
+        ? readNonEmptyString(payload.recoveryActionId)
+        : null;
+      const semanticKey = recoveryActionId
+        ? `source_scoped_recovery_action:${recoveryActionId}`
+        : request.dedupeKey ?? request.id;
+      const previous = replayBySemanticKey.get(semanticKey);
+      if (previous) coalescedIds.push(previous.id);
+      replayBySemanticKey.set(semanticKey, request);
+    }
+
+    if (coalescedIds.length > 0) {
+      const now = new Date();
+      await db
+        .update(agentWakeupRequests)
+        .set({
+          status: "replayed",
+          replayedAt: now,
+          replayResult: "coalesced_on_reopen",
+          finishedAt: now,
+          updatedAt: now,
+        })
+        .where(and(
+          eq(agentWakeupRequests.companyId, companyId),
+          eq(agentWakeupRequests.status, "deferred_by_maintenance"),
+          inArray(agentWakeupRequests.id, coalescedIds),
+        ));
+    }
+
+    const replayable = [...replayBySemanticKey.values()]
+      .sort((left, right) => new Date(left.requestedAt).getTime() - new Date(right.requestedAt).getTime());
+    const summary = {
+      inspected: deferred.length,
+      coalesced: coalescedIds.length,
+      queued: 0,
+      notAdmitted: 0,
+      failed: 0,
+    };
+
+    for (const request of replayable) {
       const claimed = await db
         .update(agentWakeupRequests)
         .set({ status: "replaying", replayedAt: new Date(), updatedAt: new Date() })

@@ -240,6 +240,50 @@ describeEmbeddedPostgres("native admission control", () => {
     }
   });
 
+  it("coalesces legacy recovery rearm wakeups before reopening replay", async () => {
+    const { companyId, agentId } = await seed("paused");
+    const heartbeat = heartbeatService(db);
+    const admission = admissionControlService(db);
+    const recoveryActionId = randomUUID();
+
+    for (const attempt of [1, 2, 3]) {
+      await heartbeat.wakeup(agentId, {
+        source: "assignment",
+        reason: "source_scoped_recovery_action",
+        idempotencyKey: `source_scoped_recovery_action:${recoveryActionId}:${attempt}`,
+        payload: { recoveryActionId },
+        requestedByActorType: "system",
+      });
+    }
+
+    await admission.transition({
+      companyId,
+      toState: "reopening",
+      idempotencyKey: "legacy-replay-reopening",
+      actorType: "system",
+      evidence: [{ kind: "safety_suite", result: "pass" }],
+    });
+    await admission.transition({
+      companyId,
+      toState: "open",
+      idempotencyKey: "legacy-replay-open",
+      actorType: "system",
+      evidence: [{ kind: "reopen_gate", result: "pass" }],
+    });
+
+    const replay = await heartbeat.replayDeferredAdmissionWakeups(companyId);
+    expect(replay).toMatchObject({
+      inspected: 3,
+      coalesced: 2,
+      queued: 1,
+      notAdmitted: 0,
+      failed: 0,
+    });
+    const requests = await db.select().from(agentWakeupRequests);
+    expect(requests.filter((row) => row.replayResult === "coalesced_on_reopen")).toHaveLength(2);
+    expect(await db.select().from(heartbeatRuns)).toHaveLength(1);
+  });
+
   it("requires a new signal after a deterministic stop decision", async () => {
     const { companyId, agentId } = await seed("active");
     const admission = admissionControlService(db);
