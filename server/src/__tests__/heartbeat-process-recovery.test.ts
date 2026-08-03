@@ -1221,6 +1221,31 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(comments[0]?.body).toContain("retried continuation");
     expect(comments[0]?.body).toContain(`Recovery action: \`${recoveryAction.id}\``);
     expect(comments[0]?.body).toContain("Recovery owner: [CodexCoder]");
+
+    await db
+      .update(issueRecoveryActions)
+      .set({ lastAttemptAt: new Date("2000-01-01T00:00:00.000Z") })
+      .where(eq(issueRecoveryActions.id, recoveryAction.id));
+    await db
+      .update(heartbeatRuns)
+      .set({ status: "cancelled", finishedAt: new Date() })
+      .where(and(
+        eq(heartbeatRuns.companyId, companyId),
+        eq(heartbeatRuns.agentId, agentId),
+      ));
+    const wakeupsBeforeBlockedReconcile = await db
+      .select({ id: agentWakeupRequests.id })
+      .from(agentWakeupRequests)
+      .where(eq(agentWakeupRequests.agentId, agentId));
+
+    const blockedResult = await heartbeat.reconcileStrandedAssignedIssues();
+
+    expect(blockedResult.recoveryActionWakesRequeued).toBe(0);
+    const wakeupsAfterBlockedReconcile = await db
+      .select({ id: agentWakeupRequests.id })
+      .from(agentWakeupRequests)
+      .where(eq(agentWakeupRequests.agentId, agentId));
+    expect(wakeupsAfterBlockedReconcile).toHaveLength(wakeupsBeforeBlockedReconcile.length);
   });
 
   it("blocks failed recovery work in place during immediate terminal-run cleanup", async () => {

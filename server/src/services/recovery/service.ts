@@ -2370,6 +2370,14 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         result.skipped += 1;
         continue;
       }
+      // The issue dependency graph is authoritative. A source-scoped recovery
+      // action created while work was actionable must not keep waking its
+      // owner after the source issue becomes blocked; completion of the real
+      // blocker will emit the next legal signal.
+      if (row.issue.status === "blocked") {
+        result.skipped += 1;
+        continue;
+      }
 
       const lastAttemptAt = row.action.lastAttemptAt ? new Date(row.action.lastAttemptAt).getTime() : 0;
       if (Number.isFinite(lastAttemptAt) && now - lastAttemptAt < SOURCE_SCOPED_RECOVERY_WAKE_REARM_MS) {

@@ -543,6 +543,9 @@ the active Stage 1 delivery mission.
 - Deferred wake replay must re-read issue state. Never enqueue historical work
   for an issue that is currently blocked, terminal, or missing; preserve the
   current dependency graph as the authority for whether work is actionable.
+- Periodic source-scoped recovery is subject to the same dependency authority.
+  It must not rearm an old recovery action while its source issue is `blocked`;
+  completion of the actual blocker supplies the next admissible signal.
 - Orphaned blocker repair is executable, not documentary: when all linked
   blockers are done the target returns to `todo` and its assigned agent is
   woken with current comment evidence. Regression coverage is in commit

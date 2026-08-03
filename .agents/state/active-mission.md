@@ -15,8 +15,12 @@
 - Maintenance replay now revalidates the referenced issue immediately before
   enqueue. A wake whose issue is currently `blocked`, `done`, `cancelled`, or
   missing is closed as not admitted instead of consuming live WIP.
+- Periodic source-scoped recovery now follows the same rule: once its source
+  issue is `blocked`, it cannot rearm an old recovery wake. The real blocker
+  completion is the only legal next signal.
 - Targeted evidence is green: queue/controller specifications `201/201`,
-  admission service `10/10`, server typecheck, and strict runtime topology.
+  admission service `10/10`, focused blocked-source recovery `1/1`, server
+  typecheck, and strict runtime topology.
 - The stale Roost capability chain is now evidence-closed: LUC-2340, LUC-2338,
   and LUC-2337 are done from accepted LUC-2373/2375/2376 proof. LUC-2336 was
   automatically resumed and is executing the explicitly approved isolated,

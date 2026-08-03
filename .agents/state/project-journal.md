@@ -5108,3 +5108,12 @@ The reconciler removed the completed LUC-2336 dependency and returned LUC-2154
 to `todo`; its queued continuation owns candidate-secret overwrite/rotation and
 the controlled first deployment. LUC-2452 was created and started for the
 agent-authored interaction HTTP 500 defect.
+
+Final live observation exposed the same stale-state pattern outside maintenance
+replay: periodic source-scoped recovery could rearm a historical recovery
+action after its source issue had become `blocked`. The recovery reconciler now
+treats the current dependency graph as authoritative and skips such actions;
+only completion of the real blocker may provide the next legal wake. A focused
+embedded-Postgres regression passed (`1/1`) and proves repeated reconciliation
+creates no additional wakeup for the blocked source issue. Server typecheck
+also passed after the correction.
