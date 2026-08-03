@@ -29,6 +29,20 @@
 
 Open-source orchestration for teams of AI agents.
 
+## Documentation Authority
+
+This README is the human front door. `docs/documentation-contract.json` is the
+machine-readable authority map. Agents begin with its bounded
+`defaultAgentContext`, then load only sources required by the active issue.
+Generated graphs, run evidence, materialized agent instructions, task packets,
+and append-only operating journals are not default context and cannot override
+the product or implementation contract.
+
+When documentation conflicts, repair the higher-authority source instead of
+adding another summary. Current delivery status must remain non-green when its
+inputs are stale, release identity is unknown, or source is ahead of the
+release branch.
+
 **If OpenClaw is an _employee_, Paperclip is the _company_.**
 
 Paperclip is a Node.js server and React UI that orchestrates a team of AI agents to run a business. Bring your own agents, assign goals, and track work and costs from one dashboard.

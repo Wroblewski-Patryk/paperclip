@@ -9,7 +9,9 @@ The current implementation target is V1 and is defined in `doc/SPEC-implementati
 
 ## 2. Read This First
 
-Before making changes, read in this order:
+Start with `docs/documentation-contract.json`. Read its bounded
+`defaultAgentContext`, then add only task-relevant sources. Before making
+changes, the core contract order is:
 
 1. `doc/GOAL.md`
 2. `doc/PRODUCT.md`
@@ -19,6 +21,9 @@ Before making changes, read in this order:
 
 `doc/SPEC.md` is long-horizon product context.
 `doc/SPEC-implementation.md` is the concrete V1 build contract.
+Generated graphs, `docs/status/`, `.agents/state/`, `.paperclip/agent-instructions/`,
+task packets, and historical evidence are investigation inputs, not a mandatory
+startup payload and not higher-authority truth.
 
 ## 3. Repo Map
 

@@ -188,6 +188,16 @@ comment or parent decision is enough.
   evidence, ownership, and links; Roost renders an owner-facing projection.
   Neither surface may copy another application's documentation or replace its
   project-local source of truth.
+- Begin with the application's `docs/documentation-contract.json` and its
+  bounded `defaultAgentContext`. Load generated graphs, history, planning,
+  evidence, and operating memory only when the active issue needs them. A plan,
+  report, map, or documentation-only commit is not product progress unless that
+  artifact is the requested deliverable.
+- If documentation conflicts, update the highest-authority canonical source or
+  its generator. Do not resolve drift by adding another summary. Run
+  `pnpm softwarehouse:documentation-hygiene` from the Paperclip root when the
+  context boundary, freshness, release identity, or project separation is in
+  doubt.
 - Accounting, queue, review, and governance lanes may inspect board/API
   evidence, but they must not mutate product or Paperclip code unless the issue
   names the exact module, behavior change, and verification contract.

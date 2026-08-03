@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "project": "Paperclip",
+  "entrypoint": "README.md",
+  "defaultAgentContext": [
+    "README.md",
+    "doc/GOAL.md",
+    "doc/PRODUCT.md",
+    "doc/SPEC-implementation.md"
+  ],
+  "authority": {
+    "product": ["doc/GOAL.md", "doc/PRODUCT.md", "doc/SPEC-implementation.md"],
+    "architecture": ["docs/architecture/", "doc/execution-semantics.md"],
+    "operations": ["docs/softwarehouse/", "doc/DEVELOPING.md"],
+    "activePlanning": ["doc/plans/"],
+    "derivedStatus": ["docs/status/", "docs/graphs/"],
+    "historical": ["history/"],
+    "ephemeral": [".paperclip/agent-instructions/"]
+  },
+  "excludedFromDefaultContext": [
+    "history/",
+    "docs/status/",
+    "docs/graphs/",
+    "docs/obsidian/",
+    ".agents/state/",
+    ".paperclip/agent-instructions/"
+  ],
+  "budgets": {
+    "maxDefaultContextBytes": 180000,
+    "maxActiveStateFileBytes": 256000,
+    "maxActivePlanningFileBytes": 256000,
+    "maxActivePlanningFiles": 60,
+    "maxTruthAgeHours": 24
+  }
+}

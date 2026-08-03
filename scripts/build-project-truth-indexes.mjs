@@ -1,4 +1,5 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 function argValue(name, fallback = null) {
@@ -54,6 +55,31 @@ async function fileExists(filePath) {
 
 function lower(value) {
   return String(value ?? "").toLowerCase();
+}
+
+function git(args) {
+  const result = spawnSync("git", ["-C", repoRoot, ...args], { encoding: "utf8" });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
+function repositorySnapshot() {
+  const headSha = git(["rev-parse", "HEAD"]);
+  const upstreamSha = git(["rev-parse", "@{upstream}"]);
+  const divergence = upstreamSha ? git(["rev-list", "--left-right", "--count", "@{upstream}...HEAD"]) : null;
+  const [behind, ahead] = divergence?.split(/\s+/).map(Number) ?? [null, null];
+  return { headSha, upstreamSha, behind, ahead };
+}
+
+function deploymentShaFrom(value) {
+  if (!value || typeof value !== "object") return null;
+  for (const key of ["sha", "commit", "commitSha", "gitSha", "buildSha", "revision"]) {
+    if (typeof value[key] === "string" && /^[0-9a-f]{7,40}$/i.test(value[key])) return value[key];
+  }
+  for (const nested of Object.values(value)) {
+    const found = deploymentShaFrom(nested);
+    if (found) return found;
+  }
+  return null;
 }
 
 function entityText(entity) {
@@ -303,8 +329,34 @@ function buildAppCompletionGapIndex(appCompletion) {
   };
 }
 
-function buildOperationalReadinessIndex({ eventChainIndex, runtimeErrorIndex, appCompletionGapIndex, appCompletion, publicProbe, missingInputs }) {
+function buildOperationalReadinessIndex({ eventChainIndex, runtimeErrorIndex, appCompletionGapIndex, appCompletion, publicProbe, missingInputs, repository }) {
+  const sourceTimestamp = Date.parse(generatedAt);
+  const sourceFresh = Number.isFinite(sourceTimestamp) && (Date.now() - sourceTimestamp) <= 24 * 3_600_000;
+  const releaseAligned = Boolean(repository.upstreamSha)
+    && Number(repository.ahead) === 0
+    && Number(repository.behind) === 0;
+  const deployedSha = publicProbe?.deployedSha ?? null;
+  const deploymentAligned = Boolean(deployedSha && repository.headSha
+    && (repository.headSha.startsWith(deployedSha) || deployedSha.startsWith(repository.headSha)));
   const gates = [
+    {
+      gate: "source_freshness",
+      status: sourceFresh ? "fresh" : "stale",
+      evidence: generatedAt,
+      requiredFor: "current project truth rather than historical evidence",
+    },
+    {
+      gate: "release_branch_alignment",
+      status: releaseAligned ? "aligned" : repository.upstreamSha ? "diverged" : "unknown",
+      evidence: repository,
+      requiredFor: "an exact source release candidate",
+    },
+    {
+      gate: "deployment_identity",
+      status: deploymentAligned ? "aligned" : deployedSha ? "mismatch" : "unknown",
+      evidence: { sourceSha: repository.headSha, deployedSha },
+      requiredFor: "proof that the owner-visible runtime matches source",
+    },
     {
       gate: "architecture_exports",
       status: missingInputs.includes(toPosix(path.relative(repoRoot, graphPath))) ? "missing" : "present",
@@ -346,7 +398,9 @@ function buildOperationalReadinessIndex({ eventChainIndex, runtimeErrorIndex, ap
     generatedAt,
     project: projectName,
     root: toPosix(repoRoot),
-    status: gates.every((gate) => ["present", "covered", "gaps_indexed", "pass"].includes(gate.status))
+    repository,
+    deployment: { deployedSha, matchesSource: deploymentAligned },
+    status: gates.every((gate) => ["present", "covered", "gaps_indexed", "pass", "fresh", "aligned"].includes(gate.status))
       ? "ready_for_repair_flow"
       : "truth_incomplete",
     gates,
@@ -354,9 +408,9 @@ function buildOperationalReadinessIndex({ eventChainIndex, runtimeErrorIndex, ap
   };
 }
 
-function buildProjectTruthIndex({ eventChainIndex, runtimeErrorIndex, appCompletionGapIndex, operationalReadinessIndex, appCompletion }) {
+function buildProjectTruthIndex({ eventChainIndex, runtimeErrorIndex, appCompletionGapIndex, operationalReadinessIndex, appCompletion, repository, publicProbe }) {
   const eventChainGaps = eventChainIndex.chains.filter((chain) => chain.status !== "chain_indexed");
-  const operationalGateGaps = operationalReadinessIndex.gates.filter((gate) => !["present", "covered", "gaps_indexed", "pass"].includes(gate.status));
+  const operationalGateGaps = operationalReadinessIndex.gates.filter((gate) => !["present", "covered", "gaps_indexed", "pass", "fresh", "aligned"].includes(gate.status));
   const gaps = [
     ...eventChainGaps
       .map((chain) => ({
@@ -395,6 +449,12 @@ function buildProjectTruthIndex({ eventChainIndex, runtimeErrorIndex, appComplet
     generatedAt,
     project: projectName,
     root: toPosix(repoRoot),
+    repository,
+    deployment: {
+      deployedSha: publicProbe?.deployedSha ?? null,
+      matchesSource: operationalReadinessIndex.deployment.matchesSource,
+      probeStatus: publicProbe?.status ?? "unknown",
+    },
     status: totalKnownGaps === 0 ? "known_and_routable" : "gaps_require_routing",
     counts: {
       appCompletionItems: appCompletion.counts?.items ?? 0,
@@ -482,6 +542,9 @@ function renderTruthMarkdown(index) {
     `Generated: ${index.generatedAt}`,
     `Project: ${index.project}`,
     `Status: ${index.status}`,
+    `Source HEAD: ${index.repository?.headSha ?? "unknown"}`,
+    `Source ahead/behind: ${index.repository?.ahead ?? "unknown"}/${index.repository?.behind ?? "unknown"}`,
+    `Deployed SHA: ${index.deployment?.deployedSha ?? "unknown"}`,
     "",
     "This is the routing surface agents should use before guessing whether an app works.",
     "",
@@ -540,15 +603,18 @@ async function publicProbeForProject() {
         signal: AbortSignal.timeout(15_000),
         headers: { "Cache-Control": "no-cache" },
       });
-      let bodyPrefix = "";
-      if (!response.ok) {
-        bodyPrefix = (await response.text()).slice(0, 120);
+      const body = await response.text();
+      const bodyPrefix = response.ok ? "" : body.slice(0, 120);
+      let responseData = null;
+      if (check.name === "web_build_info" && response.ok) {
+        try { responseData = JSON.parse(body); } catch { responseData = null; }
       }
       results.push({
         ...check,
         status: response.ok ? "pass" : "failed",
         httpStatus: response.status,
         summary: `${check.name} ${check.url} returned ${response.status}${bodyPrefix ? `: ${bodyPrefix}` : ""}`,
+        deployedSha: deploymentShaFrom(responseData),
       });
     } catch (error) {
       results.push({
@@ -560,6 +626,7 @@ async function publicProbeForProject() {
   }
 
   const failed = results.filter((result) => result.required && result.status !== "pass");
+  const deployedSha = results.find((result) => result.name === "web_build_info")?.deployedSha ?? null;
   return {
     status: failed.length === 0 ? "pass" : "failed",
     summary: failed.length === 0
@@ -567,6 +634,7 @@ async function publicProbeForProject() {
       : failed.map((result) => result.summary).join("; "),
     evidence: results.map((result) => result.url),
     checks: results,
+    deployedSha,
   };
 }
 
@@ -589,6 +657,7 @@ generatedAt = [
 const missingInputs = [];
 if (!await fileExists(graphPath)) missingInputs.push(toPosix(path.relative(repoRoot, graphPath)));
 if (!await fileExists(appCompletionPath)) missingInputs.push(toPosix(path.relative(repoRoot, appCompletionPath)));
+const repository = repositorySnapshot();
 
 const eventChainIndex = buildEventChainIndex({ graph, appCompletion });
 const runtimeErrorIndex = buildRuntimeErrorIndex({ appCompletion, publicProbe });
@@ -600,6 +669,7 @@ const operationalReadinessIndex = buildOperationalReadinessIndex({
   appCompletion,
   publicProbe,
   missingInputs,
+  repository,
 });
 const projectTruthIndex = buildProjectTruthIndex({
   eventChainIndex,
@@ -607,6 +677,8 @@ const projectTruthIndex = buildProjectTruthIndex({
   appCompletionGapIndex,
   operationalReadinessIndex,
   appCompletion,
+  repository,
+  publicProbe,
 });
 
 if (apply) {
@@ -626,6 +698,7 @@ if (apply) {
 console.log(JSON.stringify({
   mode: apply ? "apply" : "dry-run",
   generatedAt,
+  repository,
   project: projectName,
   root: toPosix(repoRoot),
   missingInputs,

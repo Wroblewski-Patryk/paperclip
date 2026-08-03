@@ -419,15 +419,15 @@ Paperclip manages task-linked work artifacts: issue documents (rich-text plans, 
 - Real-time updates to the UI — WebSocket? SSE? Polling?
 - Agent API key scoping — what exactly can an Agent access? Only their own tasks? Their team's? The whole Company?
 
-### Crash Recovery: Manual, Not Automatic
+### Crash Recovery: Visible and Ownership-Preserving
 
-When an agent crashes or disappears mid-task, Paperclip does **not** auto-reassign or auto-release the task. Instead:
+When an agent crashes or disappears mid-task, Paperclip does **not** silently reassign ownership. Safe, bounded reconciliation may cancel an orphaned run, restore an evidence-backed issue state, or wake a named recovery owner when the action is visible, auditable, and reversible. In particular:
 
 - Paperclip surfaces stale tasks (tasks in `in_progress` with no recent activity) through dashboards and reporting
 - Paperclip does not fail silently — the auditing and visibility tools make problems obvious
-- Recovery is handled by humans or by emergent processes (e.g. a project manager agent whose job is to monitor for stale work and surface it)
+- Recovery is handled by humans, accountable supervisor agents, or explicit automation whose policy, evidence, and resulting state are inspectable
 
-**Principle: Paperclip reports problems, it doesn't silently fix them.** Automatic recovery hides failures. Good visibility lets the right entity (human or agent) decide what to do.
+**Principle: Paperclip never hides recovery or changes semantic ownership by accident.** Mechanical self-repair is allowed for classified failure modes; product decisions, destructive actions, and ownership changes remain governed.
 
 ### Plugin / Extension Architecture
 
@@ -513,9 +513,9 @@ Things Paperclip explicitly does **not** do:
 - **Not a knowledge base** — core has no wiki/docs/vector-DB (plugin territory)
 - **Not a SaaS** — single-tenant, self-hosted
 - **Not opinionated about Agent implementation** — any language, any framework, any runtime
-- **Not automatically self-healing** — surfaces problems, doesn't silently fix them
+- **Not silently self-healing** — bounded mechanical recovery is visible and audited; semantic or risky changes remain governed
 - **Does not manage delivery infrastructure** — no repo management, no deployment, no file systems (but does manage task-linked documents and attachments)
-- **Does not auto-reassign work** — stale tasks are surfaced, not silently redistributed
+- **Does not silently auto-reassign work** — stale work may be routed only by an explicit, auditable ownership policy
 - **Does not track external revenue/expenses** — that's a future plugin. Token/LLM cost budgeting is core.
 
 ---
