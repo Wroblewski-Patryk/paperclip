@@ -27,13 +27,20 @@ describeEmbedded("admission-control migration", () => {
           SELECT table_name
           FROM information_schema.tables
           WHERE table_schema = 'public'
-            AND table_name IN ('admission_controls', 'admission_control_transitions', 'admission_decisions')
+            AND table_name IN (
+              'admission_controls', 'admission_control_transitions', 'admission_decisions',
+              'product_deliveries', 'product_outcomes', 'delivery_tasks', 'delivery_transitions'
+            )
           ORDER BY table_name
         `;
         expect(tables.map((row) => row.table_name)).toEqual([
           "admission_control_transitions",
           "admission_controls",
           "admission_decisions",
+          "delivery_tasks",
+          "delivery_transitions",
+          "product_deliveries",
+          "product_outcomes",
         ]);
 
         const indexes = await sql<{ indexname: string }[]>`
@@ -45,11 +52,13 @@ describeEmbedded("admission-control migration", () => {
               'admission_control_transitions_control_key_unique',
               'agent_wakeup_requests_deferred_dedupe_unique',
               'admission_decisions_fingerprint_created_idx',
+              'delivery_tasks_delivery_issue_unique',
+              'delivery_transitions_delivery_key_unique',
               'heartbeat_runs_wakeup_request_unique_idx'
             )
           ORDER BY indexname
         `;
-        expect(indexes.map((row) => row.indexname)).toHaveLength(5);
+        expect(indexes.map((row) => row.indexname)).toHaveLength(7);
       } finally {
         await sql.end();
       }

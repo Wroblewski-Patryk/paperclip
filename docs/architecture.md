@@ -11,6 +11,8 @@ scoped and inspectable.
 |---|---|---|
 | AgentOperatingRecord | `agents`, runtime config, permissions, budget fields, metadata, recent runs and activity | `packages/db/src/schema/agents.ts` |
 | AgentTask | `issues`, issue hierarchy, labels, approvals, comments, documents, work products | `packages/db/src/schema/issues.ts` |
+| ProductDelivery | Independent product-change state, typed evidence, immutable transition history, source/deployed SHA alignment, and deployment observation | `packages/db/src/schema/product_deliveries.ts` |
+| ProductOutcome | Independent real-world result and owner acceptance; never inferred from task or delivery completion | `packages/db/src/schema/product_outcomes.ts` |
 | AgentRun | `heartbeat_runs` | `packages/db/src/schema/heartbeat_runs.ts` |
 | AgentRunEvent / trajectory log | `heartbeat_run_events`, `activity_log` | `packages/db/src/schema/heartbeat_run_events.ts` |
 | AgentEvidence | `issue_work_products`, issue docs, attachments, approvals, deployment/monitoring artifacts | `packages/db/src/schema/issue_work_products.ts` |
@@ -59,6 +61,13 @@ engine. Useful graph-workflow semantics are expressed through existing, inspecta
 | Memory and learning | Organizational records, observations, issue history, work products, project docs, and governed learning promotion |
 | Observability | Heartbeat runs/events, activity log, Softwarehouse cockpit, project truth, costs, gates, and artifacts |
 | External tools | Roost-hosted capabilities exposed to Paperclip agents through governed MCP-first interfaces |
+
+Task, delivery, and outcome are deliberately separate state machines. Closing an issue records only
+the executor's task state. It cannot advance a delivery, and neither a commit, local SHA, review,
+nor local test can mark an outcome achieved. The delivery API enforces the sequence `proposed ->
+admitted -> implementing -> evidence_complete -> review_accepted/review_rejected -> integrated ->
+push_ready -> deployed -> observed_healthy -> outcome_accepted`; rollback remains explicit. Outcome
+acceptance is a separate transition requiring evidence and an already observed-healthy delivery.
 
 These are behavioral contracts, not a requirement to copy another framework's API. Add a plugin only
 when the capability cannot be expressed update-safely through Paperclip configuration and native

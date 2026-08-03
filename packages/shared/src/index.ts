@@ -1,5 +1,22 @@
 export { agentAdapterTypeSchema, optionalAgentAdapterTypeSchema } from "./adapter-type.js";
 export {
+  DELIVERY_STAGES,
+  PRODUCT_OUTCOME_STATUSES,
+  type ProductDelivery,
+  type DeliveryStage,
+  type ProductOutcomeStatus,
+} from "./types/delivery.js";
+export {
+  createDeliverySchema,
+  transitionDeliverySchema,
+  updateProductOutcomeSchema,
+  listDeliveriesQuerySchema,
+  type CreateDelivery,
+  type TransitionDelivery,
+  type UpdateProductOutcome,
+  type ListDeliveriesQuery,
+} from "./validators/delivery.js";
+export {
   COMPANY_STATUSES,
   DEFAULT_COMPANY_ATTACHMENT_MAX_BYTES,
   MAX_COMPANY_ATTACHMENT_MAX_BYTES,

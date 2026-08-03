@@ -30,6 +30,16 @@ an operating/support path, outcome metrics, incident handling, commercial-use
 boundary, and a governed improve/maintain/pause/retire decision. Deployment is
 therefore neither product acceptance nor commercial readiness by itself.
 
+The runtime represents these concerns with three independent records:
+
+- `issues` are executor tasks and may be `done` after their task evidence gate;
+- `product_deliveries` are product changes and advance only through the delivery transition API;
+- `product_outcomes` are real-world results and require independent evidence and acceptance.
+
+A completed task, review document, commit, local test, or SHA never advances delivery or outcome
+implicitly. Historical issues are not backfilled into delivery or outcome states unless the evidence
+supports a deterministic inference; otherwise their delivery/outcome truth remains unknown.
+
 Every stage transition records an accountable owner, current source, entry
 fact, required output, gate state (`verified`, justified `not_applicable`,
 `blocked`, `stale`, or `failed`), evidence reference, and next owner. Only the

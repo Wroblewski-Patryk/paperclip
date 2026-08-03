@@ -1,4 +1,6 @@
 export type { Company } from "./company.js";
+export { DELIVERY_STAGES, PRODUCT_OUTCOME_STATUSES } from "./delivery.js";
+export type { ProductDelivery, DeliveryStage, ProductOutcomeStatus } from "./delivery.js";
 export {
   ORGANIZATIONAL_OBSERVATION_KINDS,
   ORGANIZATIONAL_OBSERVATION_STATUSES,

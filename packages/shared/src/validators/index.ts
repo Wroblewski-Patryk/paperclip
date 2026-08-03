@@ -1,4 +1,15 @@
 export {
+  createDeliverySchema,
+  transitionDeliverySchema,
+  updateProductOutcomeSchema,
+  listDeliveriesQuerySchema,
+  type CreateDelivery,
+  type TransitionDelivery,
+  type UpdateProductOutcome,
+  type ListDeliveriesQuery,
+} from "./delivery.js";
+
+export {
   createOrganizationalObservationSchema,
   updateOrganizationalObservationSchema,
   listOrganizationalObservationsQuerySchema,

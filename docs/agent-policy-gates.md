@@ -24,6 +24,9 @@ Policy gates prevent autonomous agents from calling work done when the company c
   `failed` evidence. Only `verified` and justified `not_applicable` are green.
 - No production-bound lane may open deploy, restore, governor, or protected-smoke
   follow-on work before its protected-access prerequisite packet is complete.
+- No issue status, commit, review, document, local test, or local SHA may implicitly advance a
+  `product_delivery` or `product_outcome`. Delivery transitions require their own evidence, and
+  outcome acceptance requires an independently accepted outcome after observed production health.
 
 The complete lifecycle and gate ownership matrix is
 `docs/softwarehouse/19-autonomous-application-business-lifecycle.md`.

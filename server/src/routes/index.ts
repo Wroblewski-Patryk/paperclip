@@ -9,6 +9,7 @@ export { routineRoutes } from "./routines.js";
 export { goalRoutes } from "./goals.js";
 export { organizationalRecordRoutes } from "./organizational-records.js";
 export { organizationalObservationRoutes } from "./organizational-observations.js";
+export { deliveryRoutes } from "./deliveries.js";
 export { approvalRoutes } from "./approvals.js";
 export { secretRoutes } from "./secrets.js";
 export { costRoutes } from "./costs.js";
