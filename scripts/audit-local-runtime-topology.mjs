@@ -84,6 +84,50 @@ async function readDevServiceRecords() {
   return records;
 }
 
+function readWindowsPaperclipWatchers() {
+  if (process.platform !== "win32") return [];
+  const escapedRoot = repoRoot.replaceAll("'", "''");
+  const source = `
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+$root = '${escapedRoot}'
+$rows = @()
+$candidates = Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" |
+  Where-Object {
+    $_.CommandLine -like "*$root*" -and
+    ($_.CommandLine -match 'dev-watch\\.ts' -or $_.CommandLine -match 'tsx.*watch.*src[\\\\/]index\\.ts')
+  }
+foreach ($candidate in $candidates) {
+  $ancestorPids = @()
+  $parentId = [int]$candidate.ParentProcessId
+  $guard = 0
+  while ($parentId -gt 0 -and $guard -lt 64) {
+    $ancestorPids += $parentId
+    $parent = Get-CimInstance Win32_Process -Filter "ProcessId = $parentId" -ErrorAction SilentlyContinue
+    if (-not $parent) { break }
+    $parentId = [int]$parent.ParentProcessId
+    $guard += 1
+  }
+  $rows += [pscustomobject]@{
+    pid = [int]$candidate.ProcessId
+    parentPid = [int]$candidate.ParentProcessId
+    createdAt = if ($candidate.CreationDate) { $candidate.CreationDate.ToString('o') } else { $null }
+    ancestorPids = $ancestorPids
+  }
+}
+ConvertTo-Json -InputObject @($rows) -Compress
+`;
+  const encoded = Buffer.from(source, "utf16le").toString("base64");
+  const output = execFileSync(
+    "powershell.exe",
+    ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
+    { encoding: "utf8", windowsHide: true, maxBuffer: 1024 * 1024 },
+  ).trim();
+  if (!output) return [];
+  const parsed = JSON.parse(output);
+  return Array.isArray(parsed) ? parsed : [parsed];
+}
+
 const failures = [];
 const warnings = [];
 const config = JSON.parse(await readFile(path.join(repoRoot, ".paperclip", "config.json"), "utf8"));
@@ -160,6 +204,28 @@ if (liveDevServices.length !== 1) {
   failures.push({ code: "paperclip_dev_service_count", count: liveDevServices.length, pids: liveDevServices.map((record) => record.pid) });
 }
 
+let paperclipWatchers = [];
+try {
+  paperclipWatchers = readWindowsPaperclipWatchers();
+  const registeredServicePids = new Set(liveDevServices.map((record) => Number(record.pid)));
+  const unregisteredWatchers = paperclipWatchers.filter((watcher) => {
+    const treePids = [Number(watcher.pid), ...(watcher.ancestorPids ?? []).map(Number)];
+    return !treePids.some((pid) => registeredServicePids.has(pid));
+  });
+  if (unregisteredWatchers.length > 0) {
+    failures.push({
+      code: "unregistered_paperclip_watchers",
+      count: unregisteredWatchers.length,
+      watchers: unregisteredWatchers.map(({ pid, parentPid, createdAt }) => ({ pid, parentPid, createdAt })),
+    });
+  }
+} catch (error) {
+  warnings.push({
+    code: "paperclip_watcher_inventory_unavailable",
+    message: error instanceof Error ? error.message : String(error),
+  });
+}
+
 let composeOneoffs = [];
 try {
   composeOneoffs = listCanonicalComposeOneoffs(roots);
@@ -205,6 +271,7 @@ const result = {
     ? Object.fromEntries(roots.map((root) => [root.key, activeProjectMatches(root).length]))
     : null,
   livePaperclipDevServices: liveDevServices.map((record) => ({ pid: record.pid, port: record.port, cwd: record.cwd })),
+  paperclipWatchers,
   composeOneoffs,
   warnings,
   failures,
