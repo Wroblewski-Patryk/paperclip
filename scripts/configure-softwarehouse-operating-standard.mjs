@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
+const companyName = process.env.PAPERCLIP_COMPANY_NAME ?? "LuckySparrow";
+const legacyCompanyNames = new Set([companyName, "LuckySparrow", "LuckySparrow Software House"]);
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 
 async function request(method, route, body) {
@@ -26,7 +27,10 @@ function byNameOrUrlKey(items, names, urlKeys = []) {
 async function ensureGoal(companyId, goalsByTitle, input) {
   const existing = goalsByTitle.get(input.title);
   if (existing) {
-    const updated = await request("PATCH", `/api/goals/${existing.id}`, input);
+    const patch = ["achieved", "cancelled"].includes(existing.status)
+      ? { ...input, status: existing.status }
+      : input;
+    const updated = await request("PATCH", `/api/goals/${existing.id}`, patch);
     goalsByTitle.set(input.title, updated);
     return updated;
   }
@@ -92,7 +96,7 @@ async function resolveCompany() {
   if (companyId) return { id: companyId, source: "PAPERCLIP_COMPANY_ID" };
 
   const companies = await request("GET", "/api/companies");
-  const company = companies.find((candidate) => candidate.name === companyName);
+  const company = companies.find((candidate) => legacyCompanyNames.has(candidate.name));
   if (!company) throw new Error(`Company not found: ${companyName}`);
   return { id: company.id, source: "company_name" };
 }
@@ -106,23 +110,32 @@ const [agents, projects, goals, issues] = await Promise.all([
   request("GET", `/api/companies/${company.id}/issues?limit=2000`),
 ]);
 
-const operatingProject = byNameOrUrlKey(projects, ["Softwarehouse Operating System", "Softwarehouse"], ["softwarehouse"]);
+const operatingProject = byNameOrUrlKey(
+  projects,
+  ["00 General: Softwarehouse", "Softwarehouse Operating System", "Softwarehouse"],
+  ["00-general-softwarehouse", "softwarehouse"],
+);
 if (!operatingProject) throw new Error("Softwarehouse Operating System project not found.");
 
 const agent = {
-  portfolio: byName(agents, "Portfolio Director"),
-  product: byName(agents, "Product Lead"),
-  cto: byName(agents, "CTO Architect"),
-  delivery: byName(agents, "Engineering Delivery Lead"),
-  backend: byName(agents, "Backend API Engineer"),
-  frontend: byName(agents, "Frontend Engineer"),
-  runtime: byName(agents, "AI Agent Runtime Engineer"),
-  qa: byName(agents, "QA Regression Lead"),
-  security: byName(agents, "Security Review Lead"),
-  ops: byName(agents, "Ops Release Lead"),
-  docs: byName(agents, "Docs Memory Lead"),
-  roostPm: byName(agents, "Roost Project Manager"),
+  portfolio: byNameOrUrlKey(agents, ["11 IPM (Innovation Portfolio Manager)", "Portfolio Director"]),
+  product: byNameOrUrlKey(agents, ["02 CPO (Chief Product Officer)", "Product Lead"]),
+  cto: byNameOrUrlKey(agents, ["09 CTO (Chief Technology Officer)", "CTO Architect"]),
+  delivery: byNameOrUrlKey(agents, ["09 EDL (Engineering Delivery Lead)", "Engineering Delivery Lead"]),
+  backend: byNameOrUrlKey(agents, ["09 CBE (Core Backend Engineer)", "Backend API Engineer"]),
+  frontend: byNameOrUrlKey(agents, ["09 FEW (Frontend Web Engineer)", "Frontend Engineer"]),
+  runtime: byNameOrUrlKey(agents, ["09 RTE (Runtime & Adapter Engineer)", "AI Agent Runtime Engineer"]),
+  qa: byNameOrUrlKey(agents, ["09 QVE (QA & Verification Engineer)", "QA Regression Lead"]),
+  security: byNameOrUrlKey(agents, ["10 SPA (Security & Privacy Auditor)", "Security Review Lead"]),
+  ops: byNameOrUrlKey(agents, ["09 DRE (Deployment & Reliability Engineer)", "Ops Release Lead"]),
+  docs: byNameOrUrlKey(agents, ["04 DSM (Documentation Steward)", "Docs Memory Lead"]),
+  roostPm: byNameOrUrlKey(agents, ["11 RPM (Roost Project Manager)", "Roost Project Manager"]),
 };
+
+const missingAgentRoles = Object.entries(agent).filter(([, value]) => !value).map(([role]) => role);
+if (missingAgentRoles.length > 0) {
+  throw new Error(`Operating-standard configuration aborted before mutation; missing agent roles: ${missingAgentRoles.join(", ")}`);
+}
 
 const goalsByTitle = new Map(goals.map((goal) => [goal.title, goal]));
 const goal = await ensureGoal(company.id, goalsByTitle, {
