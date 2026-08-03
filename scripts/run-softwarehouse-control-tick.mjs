@@ -128,6 +128,20 @@ const steps = [
     }),
   },
   {
+    name: "outcomeIntegrity",
+    command: ["scripts/run-outcome-integrity-audit.mjs"],
+    summary: (data) => ({
+      status: data.status ?? null,
+      openIssues: data.summary?.openIssues ?? null,
+      recentDone: data.summary?.recentDone ?? null,
+      evidenceBackedRecentDone: data.summary?.evidenceBackedRecentDone ?? null,
+      findingCount: data.summary?.findingCount ?? null,
+      errorCount: data.summary?.errorCount ?? null,
+      warningCount: data.summary?.warningCount ?? null,
+      findingCodes: data.findings?.map((finding) => finding.code) ?? [],
+    }),
+  },
+  {
     name: "quotaAgentRecovery",
     command: ["scripts/recover-softwarehouse-quota-agents.mjs", "--apply"],
     summary: (data) => ({

@@ -975,7 +975,7 @@ const workerQueueHealth = {
   })),
 };
 const weakWorkerQueue = runnableIssues.length > 0
-  && workerQueueHealth.plannedWorkerIssueCount < Math.min(3, runnableIssues.length)
+  && workerQueueHealth.plannedWorkerIssueCount === 0
   && workerQueueHealth.activeWorkerRunCount === 0
   && workerQueueHealth.plannedSupervisorIssueCount > workerQueueHealth.plannedWorkerIssueCount;
 const reviewIssuesWithoutPendingDecision = openIssues.filter((issue) =>

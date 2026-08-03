@@ -132,17 +132,17 @@ comment or parent decision is enough.
 ## Single-Lane Execution
 
 - One agent can actively execute only one lane at a time.
-- Keep a rolling queue for every active product track: at least one worker-owned
-  `todo` lane that Paperclip can actually wake, plus at least three planned
-  worker lanes across `todo` and `backlog` while the current target remains
-  unfinished. `backlog` is reserve inventory and must never be counted as
-  runnable work.
-- After completion or a durable blocker, the responsible PM/Lead promotes the
-  next existing backlog lane before creating a duplicate, replenishes the
-  planned reserve, and records the next integration point.
-- One active lane is not one planned lane. Leaf/specialist agents may and
-  should have many queued `todo/backlog` tasks when a project is not yet
-  verified; WIP=1 applies only to live `in_progress` execution.
+- Keep one justified next worker-owned `todo` lane for every active product
+  track when a legal next action exists. Queue depth is a flow signal and a
+  ceiling, never a target or proof of progress.
+- After completion or a durable blocker, the responsible PM/Lead promotes an
+  existing valid backlog lane before creating a duplicate. Create another
+  child only just in time when it has an independent outcome, owner, evidence
+  contract, and named dependency reason. Never replenish backlog merely
+  because a lane count fell.
+- One active lane is not one planned lane. WIP=1 applies to live execution, but
+  speculative queues are also waste: planned work must be traceable to a
+  current product gap and may be cancelled when the gap disappears.
 - A manager may coordinate many open lanes, but each manager run must make one
   clear decision or handoff before moving to the next lane.
 - Managers, heads, and team leads must turn parent goals into worker-ready
@@ -201,6 +201,22 @@ comment or parent decision is enough.
 - Accounting, queue, review, and governance lanes may inspect board/API
   evidence, but they must not mutate product or Paperclip code unless the issue
   names the exact module, behavior change, and verification contract.
+- Activity metrics such as task, comment, document, commit, agent, or run count
+  are diagnostic signals only. They must never become success targets. Product
+  progress means an observable change in owner-usable behavior or a necessary
+  risk/dependency reduction, backed by evidence independent of the implementer
+  when review is required.
+- Treat repeated issue creation, shallow evidence, self-review, documentation-
+  only technical closure, recurring normalized titles, growing request depth,
+  and retries without new facts as possible reward hacking or specification
+  gaming. Investigate the cause; do not reward the indicator.
+- One control cycle may create at most one new child for a product track unless
+  an issue explicitly proves independent scopes and disjoint writers. A parent
+  with more than three non-terminal direct children requires a written fan-out
+  justification and named integration owner.
+- After three failed attempts without materially new evidence, stop retrying,
+  preserve the evidence, classify the systemic cause, and escalate or redesign
+  the loop. A reworded comment or regenerated report is not new evidence.
 - Treat `docs/status`, `docs/graphs`, `.agents/state`, `.codex/context`, generated
   indexes, lockfiles, and source-control closure packets as shared conflict
   sets. Any lanes that write these surfaces must execute serially even when
@@ -267,10 +283,10 @@ not just a completion comment. Include:
 - Engineering Delivery Lead coordinates specialist lanes and parent issue state.
 - Engineering Delivery Lead keeps the gap register alive and converts every
   failed proof into one-owner repair work.
-- Engineering Delivery Lead is accountable for worker backlog depth: when a
-  target is not verified, specialists should have an ordered queue of narrow
-  `todo/backlog` implementation, proof, or repair lanes, while only one lane per
-  specialist is actively running.
+- Engineering Delivery Lead is accountable for worker flow and outcome
+  integrity: when a target is not verified, keep the smallest justified next
+  lane ready, limit speculative fan-out, and ensure every lane changes an
+  observable state or removes a named dependency with inspectable proof.
 - QA, Security, and Ops can block completion when evidence, safety, or release
   readiness is insufficient.
 - CTO/Product/Portfolio make broad decisions after specialist evidence is known.

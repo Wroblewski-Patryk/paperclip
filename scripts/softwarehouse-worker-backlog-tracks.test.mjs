@@ -75,7 +75,7 @@ test("workerBacklogTrackForIssue prefers title tag when the issue sits in the So
   assert.equal(track, "Roost");
 });
 
-test("summarizeWorkerBacklogTracks flags a weak Roost track even when company-wide worker counts are non-zero", () => {
+test("summarizeWorkerBacklogTracks treats one justified runnable next action as sufficient per track", () => {
   const projects = [
     { id: "softwarehouse", name: "00 General: Softwarehouse", status: "in_progress" },
     { id: "roost", name: "11 Innovation: Roost", status: "in_progress" },
@@ -123,7 +123,7 @@ test("summarizeWorkerBacklogTracks flags a weak Roost track even when company-wi
     plannedStatuses: new Set(["todo", "backlog"]),
   });
 
-  assert.deepEqual(summary.weakTracks.map((track) => track.track), ["Roost", "Soar"]);
+  assert.deepEqual(summary.weakTracks.map((track) => track.track), ["Roost"]);
   assert.equal(summary.trackDispositions.find((track) => track.track === "Roost")?.disposition, "needs-another-child");
   assert.equal(
     formatWeakTrackSummary(summary.weakTracks[0]),
@@ -131,7 +131,7 @@ test("summarizeWorkerBacklogTracks flags a weak Roost track even when company-wi
   );
 });
 
-test("planned backlog reserve does not masquerade as runnable worker work", () => {
+test("planned backlog inventory does not masquerade as the runnable next action", () => {
   const projects = [{ id: "roost", name: "11 Innovation: Roost", status: "in_progress" }];
   const agentById = new Map([
     ["worker", { id: "worker", name: "09 TAE", metadata: { rosterKey: "test-automation-engineer" } }],
@@ -195,7 +195,7 @@ test("an active leaf worker is a healthy closure path when it owns the entire tr
   assert.equal(summary.trackDispositions[0].dispositionReason, "active_worker_owns_entire_track_backlog");
 });
 
-test("track dispositions report ready, blocked, and needs-another-child per controlled project", () => {
+test("track dispositions do not manufacture queue deficits when one runnable next action exists", () => {
   const projects = [
     { id: "roost", name: "11 Innovation: Roost", status: "in_progress" },
     { id: "soar", name: "11 Innovation: Soar", status: "in_progress" },
@@ -222,11 +222,11 @@ test("track dispositions report ready, blocked, and needs-another-child per cont
 
   assert.deepEqual(
     summary.trackDispositions.map((track) => [track.track, track.disposition]),
-    [["Roost", "blocked"], ["Soar", "ready"]],
+    [["Roost", "ready"], ["Soar", "ready"]],
   );
   assert.equal(
     formatTrackDispositionSummary(summary.trackSummaries[0]),
-    "Roost: blocked (runnable=1/1, planned=1/3, named blockers=2)",
+    "Roost: ready (runnable=1/1, planned=1/1, named blockers=2)",
   );
 });
 
@@ -269,7 +269,7 @@ test("project truth can legally hold per-track fan-out without creating duplicat
   assert.match(summary.trackDispositions[0].fanoutSummary, /SR-001/);
   assert.equal(
     formatTrackDispositionSummary(summary.trackSummaries[0]),
-    "Roost: blocked (runnable=0/1, planned=0/3, named blockers=0, fanout=hold:release_gap_open_blocker_only)",
+    "Roost: blocked (runnable=0/1, planned=0/1, named blockers=0, fanout=hold:release_gap_open_blocker_only)",
   );
 });
 

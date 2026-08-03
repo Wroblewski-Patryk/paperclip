@@ -61,6 +61,8 @@
     "softwarehouse:project-truth-dispatch:apply": "node scripts/run-project-truth-gap-dispatcher.mjs --apply",
     "softwarehouse:documentation-hygiene": "node scripts/run-documentation-hygiene-audit.mjs",
     "softwarehouse:documentation-hygiene:strict": "node scripts/run-documentation-hygiene-audit.mjs --strict",
+    "softwarehouse:outcome-integrity": "node scripts/run-outcome-integrity-audit.mjs",
+    "softwarehouse:outcome-integrity:strict": "node scripts/run-outcome-integrity-audit.mjs --strict",
     "softwarehouse:architecture-lifecycle": "node scripts/check-architecture-awareness-lifecycle.mjs",
     "softwarehouse:architecture-lifecycle:apply": "node scripts/check-architecture-awareness-lifecycle.mjs --apply",
     "codex:bootstrap-supervisor": "node scripts/run-codex-bootstrap-supervisor.mjs",

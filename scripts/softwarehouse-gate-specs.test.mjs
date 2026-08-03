@@ -286,6 +286,17 @@ test("worker backlog decomposition stays in active products and serializes share
   assert.match(instructions, /Keep parked products parked/);
 });
 
+test("control tick audits observable outcomes without turning queue depth into a target", async () => {
+  const controlTick = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
+  const workerTracks = await readFile("scripts/lib/softwarehouse-worker-backlog-tracks.mjs", "utf8");
+
+  assert.match(controlTick, /name: "outcomeIntegrity"/);
+  assert.match(controlTick, /run-outcome-integrity-audit\.mjs/);
+  assert.match(workerTracks, /targetPlannedWorkerLaneCount = 1/);
+  assert.doesNotMatch(workerTracks, /three planned worker lanes/);
+  assert.match(workerTracks, /queue depth is a ceiling and flow signal, never a success target/);
+});
+
 test("shared supervision teaches the canonical completion evidence reference contract", async () => {
   const supervision = await readFile(
     "softwarehouse/instructions/shared/90-pipeline-and-supervision.md",

@@ -896,7 +896,7 @@ if (workerFanoutWeak) {
         "- do not create active agents silently.",
         "",
         "Trial proof:",
-        "- for one active project, create or verify at least one runnable worker todo and three planned worker todo/backlog lanes, or record exact blockers for each missing lane.",
+        "- for one active project, promote or create the single smallest justified runnable worker todo, or record the exact legal blocker; do not manufacture reserve inventory to satisfy a count.",
         "",
         "Retirement condition:",
         "- remove or narrow this learning rule after three consecutive control ticks show worker backlog depth is sufficient or all missing lanes have legal blockers.",

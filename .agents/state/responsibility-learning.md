@@ -1,5 +1,36 @@
 # Responsibility Learning
 
+## 2026-08-03 - Inventory is not progress and supervision must resist gaming
+
+Observed failure mode: the operating policy required three planned worker
+lanes per active product. Controllers correctly optimized that written metric
+by creating and replenishing backlog, even when one next action was enough.
+The queue, documentation, and review machinery could therefore grow while the
+owner-visible product state did not change.
+
+Standing rule:
+
+- Never use counts of tasks, comments, documents, commits, agents, runs, or
+  completion percentages as success targets. Use them only to trigger a causal
+  investigation.
+- Define success as observable product/owner state change or a necessary
+  risk/dependency reduction, backed by inspectable evidence and independent
+  review when required.
+- Keep one smallest justified runnable next action per active product. Create
+  more children just in time only for independent outcomes with named owners,
+  evidence contracts, dependencies, and an integration owner.
+- More than three open direct children, request depth above four, repeated
+  normalized titles, comment-only evidence, or documentation-only technical
+  closure are anti-gaming warnings, not invitations to create more process.
+- After three failures without materially new evidence, stop retrying and open
+  one systemic-cause, escalation, or redesign path.
+
+Current evidence: the three-lane quota was removed from the worker backlog
+model, seeder, learning loop, longevity routine, agent instructions, audit, and
+autonomy governor. `softwarehouse:outcome-integrity` and its control-tick step
+provide a testable regression guard, and Teachar now applies reversible staged
+supervision rather than declaring autonomy from silence.
+
 ## 2026-08-02 - Active work must drain for systemic repair, not block it forever
 
 Observed failure mode: Teachar could correctly identify control-plane defects

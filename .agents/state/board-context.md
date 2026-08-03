@@ -478,3 +478,14 @@ the active Stage 1 delivery mission.
 - No push or deployment occurred. The aggregate Softwarehouse status snapshot
   is stale and fail-closed; fresh source-control/runtime audits pass, no agent
   runs are live, and project mutation plus protected delivery remain disabled.
+# 2026-08-03 Owner directive: optimize outcomes, never activity inventory
+
+The owner requires Paperclip to behave as an autonomous softwarehouse whose
+work advances usable Soar, Roost, and Featherly outcomes, not a factory of
+tasks, documents, commits, agents, or reports. Goodhart/Campbell, reward
+hacking, specification gaming, Cobra, Parkinson, Brooks, Conway, Gall,
+KISS/YAGNI, local optimization, and Shirky are mandatory diagnostic lenses.
+They are never additional metric quotas. Normally keep one smallest justified
+next action per product; fan-out and retry require new independent outcomes and
+evidence. Teachar must audit outcome integrity, repair the systemic cause, and
+reduce its frequency only through reversible evidence-backed maturity stages.

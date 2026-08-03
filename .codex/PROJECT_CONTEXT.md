@@ -1,6 +1,29 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-08-02
+Last updated: 2026-08-03
+
+## 2026-08-03 Outcome Integrity And Anti-Gaming Contract
+
+- Queue depth, task/comment/document/commit/agent/run counts, and percent done
+  are diagnostic signals only. The governing outcome is an observable
+  owner/product state change or necessary risk/dependency reduction with
+  inspectable evidence and independent review when required.
+- The former rule requiring three planned worker lanes was a Goodhart/Cobra
+  defect: it caused controllers to manufacture backlog. Each active product now
+  keeps normally one smallest justified runnable next action. Further fan-out
+  is just in time and needs an independent outcome, owner, evidence contract,
+  dependency reason, and integration owner when the tree exceeds three open
+  direct children.
+- `pnpm softwarehouse:outcome-integrity` is the canonical live diagnostic for
+  excessive fan-out, recurring work fingerprints, deep request trees, weak
+  outcome contracts, missing typed evidence, comment-only evidence, and
+  documentation-only technical closure. The control tick and Teachar consume
+  it; indicators trigger investigation and repair, never new quotas.
+- Three failed attempts without materially new evidence open one systemic
+  cause/escalation path instead of another retry. Teachar supervision graduates
+  reversibly from 30 minutes to 2 hours, daily, weekly, and finally `PAUSED`
+  only through evidence-backed windows with mandatory readback and regression
+  rollback.
 
 ## 2026-08-02 Delivery-Orchestration Repair
 

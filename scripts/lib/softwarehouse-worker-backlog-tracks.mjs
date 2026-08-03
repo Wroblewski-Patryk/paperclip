@@ -83,8 +83,9 @@ export function formatWorkerFanoutContract() {
   return [
     "Contract:",
     "- fan out per controlled track, not company-wide totals; evaluate Soar and Roost independently;",
-    "- maintain a rolling queue per active track: at least one runnable worker `todo` plus three planned worker lanes total; `backlog` is reserve inventory and never counts as runnable;",
-    "- promote an existing backlog lane before creating a duplicate, and replenish the reserve after each completion or durable blocker;",
+    "- maintain one justified next worker `todo` per active track; queue depth is a ceiling and flow signal, never a success target;",
+    "- promote an existing backlog lane before creating a duplicate; create another child only just in time when it has an independent outcome, owner, evidence contract, and dependency reason;",
+    "- never replenish backlog merely because a lane count fell; completing or cancelling unnecessary work is healthy flow, not a deficit;",
     "- each worker-ready lane must end in ready, blocked, or needs-another-child;",
     "- each lane must name project, scope, affected files/entities, acceptance criteria, local proof, blocker policy, and handoff owner;",
     "- bind every product lane to the matching active project and primary workspace; never run Soar or Roost work from the Softwarehouse workspace;",
@@ -106,7 +107,7 @@ export function summarizeWorkerBacklogTracks({
   trackTruthByTrack = null,
   runnableStatuses = new Set(["todo"]),
   hasNamedBlocker = (issue) => Array.isArray(issue?.blockedBy) && issue.blockedBy.length > 0,
-  targetPlannedWorkerLaneCount = 3,
+  targetPlannedWorkerLaneCount = 1,
   targetRunnableWorkerLaneCount = 1,
 }) {
   const projectById = new Map(projects.map((project) => [project.id, project]));
