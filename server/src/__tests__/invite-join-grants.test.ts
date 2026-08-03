@@ -10,16 +10,11 @@ import {
 } from "../services/company-member-roles.js";
 
 describe("agentJoinGrantsFromDefaults", () => {
-  it("adds tasks:assign when invite defaults do not specify agent grants", () => {
-    expect(agentJoinGrantsFromDefaults(null)).toEqual([
-      {
-        permissionKey: "tasks:assign",
-        scope: null,
-      },
-    ]);
+  it("does not add tasks:assign when invite defaults do not specify agent grants", () => {
+    expect(agentJoinGrantsFromDefaults(null)).toEqual([]);
   });
 
-  it("preserves invite agent grants and appends tasks:assign", () => {
+  it("preserves invite agent grants without appending tasks:assign", () => {
     expect(
       agentJoinGrantsFromDefaults({
         agent: {
@@ -34,10 +29,6 @@ describe("agentJoinGrantsFromDefaults", () => {
     ).toEqual([
       {
         permissionKey: "agents:create",
-        scope: null,
-      },
-      {
-        permissionKey: "tasks:assign",
         scope: null,
       },
     ]);

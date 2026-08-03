@@ -524,15 +524,6 @@ export function agentRoutes(
       };
     }
 
-    if (canCreateAgents(agent)) {
-      return {
-        canAssignTasks: true,
-        taskAssignSource: "agent_creator" as const,
-        membership,
-        grants,
-      };
-    }
-
     if (hasExplicitTaskAssignGrant) {
       return {
         canAssignTasks: true,
@@ -2450,8 +2441,7 @@ export function agentRoutes(
       return;
     }
 
-    const effectiveCanAssignTasks =
-      agent.role === "ceo" || Boolean(agent.permissions?.canCreateAgents) || req.body.canAssignTasks;
+    const effectiveCanAssignTasks = agent.role === "ceo" || req.body.canAssignTasks;
     await access.ensureMembership(agent.companyId, "agent", agent.id, "member", "active");
     await access.setPrincipalPermission(
       agent.companyId,

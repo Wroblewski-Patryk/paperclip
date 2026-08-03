@@ -877,14 +877,7 @@ describe.sequential("agent permission routes", () => {
         status: "idle",
       }),
     );
-    expect(mockAccessService.setPrincipalPermission).toHaveBeenCalledWith(
-      companyId,
-      "agent",
-      agentId,
-      "tasks:assign",
-      true,
-      "agent-admin-user",
-    );
+    expect(mockAccessService.setPrincipalPermission).not.toHaveBeenCalled();
   });
 
   it("rejects direct agent creation when new agents require board approval", async () => {
@@ -915,7 +908,7 @@ describe.sequential("agent permission routes", () => {
     expect(mockLogActivity).not.toHaveBeenCalled();
   });
 
-  it("grants tasks:assign by default when board creates a new agent", async () => {
+  it("does not grant tasks:assign by default when board creates a new agent", async () => {
     const app = await createApp({
       type: "board",
       userId: "board-user",
@@ -941,14 +934,7 @@ describe.sequential("agent permission routes", () => {
       "member",
       "active",
     );
-    expect(mockAccessService.setPrincipalPermission).toHaveBeenCalledWith(
-      companyId,
-      "agent",
-      agentId,
-      "tasks:assign",
-      true,
-      "board-user",
-    );
+    expect(mockAccessService.setPrincipalPermission).not.toHaveBeenCalled();
   }, 15_000);
 
   it("rejects unsupported query parameters on the agent list route", async () => {
@@ -1451,7 +1437,7 @@ describe.sequential("agent permission routes", () => {
     expect(res.body.access.taskAssignSource).toBe("none");
   }, 15_000);
 
-  it("keeps task assignment enabled when agent creation privilege is enabled", async () => {
+  it("keeps agent creation privilege separate from task assignment", async () => {
     mockAgentService.updatePermissions.mockResolvedValue({
       ...baseAgent,
       permissions: { canCreateAgents: true },
@@ -1475,11 +1461,11 @@ describe.sequential("agent permission routes", () => {
       "agent",
       agentId,
       "tasks:assign",
-      true,
+      false,
       "board-user",
     );
-    expect(res.body.access.canAssignTasks).toBe(true);
-    expect(res.body.access.taskAssignSource).toBe("agent_creator");
+    expect(res.body.access.canAssignTasks).toBe(false);
+    expect(res.body.access.taskAssignSource).toBe("none");
   });
 
   it("exposes a dedicated agent route for the inbox mine view", async () => {
