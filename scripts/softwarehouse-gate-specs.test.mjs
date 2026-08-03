@@ -2618,12 +2618,13 @@ test("stale blocker repair requires fresh completed triage and preserves active 
   });
 });
 
-test("resolved blocker repair removes only done dependencies and resumes only from fresh resolution", () => {
+test("resolved blocker repair removes only done dependencies and preserves unresolved dependencies", () => {
   const repair = planResolvedBlockerRepair({
     target: {
       id: "target-id",
       identifier: "LUC-1396",
       status: "blocked",
+      assigneeAgentId: "agent-id",
       updatedAt: "2026-07-14T20:00:00.000Z",
     },
     detailedTarget: {
@@ -2641,6 +2642,7 @@ test("resolved blocker repair removes only done dependencies and resumes only fr
   assert.deepEqual(repair, {
     issueId: "target-id",
     issueIdentifier: "LUC-1396",
+    assigneeAgentId: "agent-id",
     resolvedBlockerIdentifiers: ["LUC-1420"],
     blockedByIssueIds: [],
     nextStatus: "todo",
@@ -2652,6 +2654,7 @@ test("resolved blocker repair removes only done dependencies and resumes only fr
       id: "target-id",
       identifier: "LUC-1374",
       status: "blocked",
+      assigneeAgentId: "agent-id",
       updatedAt: "2026-07-14T22:00:00.000Z",
     },
     detailedTarget: {
@@ -2665,6 +2668,7 @@ test("resolved blocker repair removes only done dependencies and resumes only fr
   assert.deepEqual(newerBlockedDisposition, {
     issueId: "target-id",
     issueIdentifier: "LUC-1374",
+    assigneeAgentId: "agent-id",
     resolvedBlockerIdentifiers: ["LUC-1387"],
     blockedByIssueIds: ["cancelled-id"],
     nextStatus: "blocked",
@@ -2672,7 +2676,39 @@ test("resolved blocker repair removes only done dependencies and resumes only fr
   });
 });
 
-test("stalled todo wake is bounded to untouched non-routine agent work", () => {
+test("resolved blocker repair resumes an orphaned blocked issue even after a newer touch", () => {
+  const repair = planResolvedBlockerRepair({
+    target: {
+      id: "target-id",
+      identifier: "LUC-2373",
+      status: "blocked",
+      assigneeAgentId: "agent-id",
+      updatedAt: "2026-08-03T05:44:20.110Z",
+    },
+    detailedTarget: {
+      blockedBy: [
+        {
+          id: "done-id",
+          identifier: "LUC-2374",
+          status: "done",
+          completedAt: "2026-08-02T03:29:48.923Z",
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(repair, {
+    issueId: "target-id",
+    issueIdentifier: "LUC-2373",
+    assigneeAgentId: "agent-id",
+    resolvedBlockerIdentifiers: ["LUC-2374"],
+    blockedByIssueIds: [],
+    nextStatus: "todo",
+    resolutionIsNewerThanTarget: false,
+  });
+});
+
+test("stalled todo wake is bounded to idle non-routine agent work and comments do not count as execution", () => {
   const issue = {
     id: "issue-id",
     identifier: "LUC-1452",
@@ -2688,10 +2724,18 @@ test("stalled todo wake is bounded to untouched non-routine agent work", () => {
     issueId: "issue-id",
     issueIdentifier: "LUC-1452",
     assigneeAgentId: "agent-id",
+    latestCommentId: null,
     ageHours: 10,
     idempotencyKey: "softwarehouse:stalled-todo:issue-id:2026-07-14T10:00:00.000Z",
   });
-  assert.equal(planStalledTodoWake({ issue, nowMs, hasComments: true }), null);
+  assert.deepEqual(planStalledTodoWake({ issue, nowMs, latestCommentId: "comment-id" }), {
+    issueId: "issue-id",
+    issueIdentifier: "LUC-1452",
+    assigneeAgentId: "agent-id",
+    latestCommentId: "comment-id",
+    ageHours: 10,
+    idempotencyKey: "softwarehouse:stalled-todo:issue-id:2026-07-14T10:00:00.000Z",
+  });
   assert.equal(planStalledTodoWake({ issue, nowMs, runIssueIds: new Set(["issue-id"]) }), null);
   assert.equal(planStalledTodoWake({ issue, nowMs, liveAgentIds: new Set(["agent-id"]) }), null);
   assert.equal(planStalledTodoWake({ issue: { ...issue, originKind: "routine_execution" }, nowMs }), null);
@@ -2716,6 +2760,11 @@ test("control tick applies the bounded issue queue reconciler", async () => {
   assert.match(reconciler, /skippedReason: candidateScanStatus === "timed_out" \? "candidate_scan_timeout" : "candidate_scan_api_error"/);
   assert.match(reconciler, /Agent can only invoke itself/);
   assert.match(reconciler, /reason: "stalled_todo_reconciler"/);
+  assert.match(reconciler, /reason: "resolved_blocker_reconciler"/);
+  assert.match(reconciler, /softwarehouse:resolved-blocker:/);
+  assert.match(reconciler, /commentId: latestComment\.id/);
+  assert.match(reconciler, /commentId: plan\.latestCommentId/);
+  assert.match(reconciler, /No unresolved first-class blocker remains/);
   assert.match(reconciler, /skippedReason: "issue_authorization_boundary"/);
   assert.match(reconciler, /if \(heartbeatAgentId && plan\.assigneeAgentId !== heartbeatAgentId\)/);
   assert.match(reconciler, /An authorized board\/user or the assigned agent must wake this stalled todo\./);

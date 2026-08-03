@@ -58,6 +58,15 @@ export function admissionControlRoutes(db: Db, deps?: Parameters<typeof heartbea
     const replay = body.toState === "open" && !result.idempotent
       ? await heartbeat.replayDeferredAdmissionWakeups(companyId)
       : null;
+    const recordedControl = replay
+      ? await svc.recordReopenReplay({
+          companyId,
+          controlId: result.control.id,
+          controlVersion: result.control.version,
+          reopenAttemptId: result.transition.id,
+          replay,
+        })
+      : result.control;
     await logActivity(db, {
       companyId,
       actorType: actor.actorType,
@@ -74,7 +83,7 @@ export function admissionControlRoutes(db: Db, deps?: Parameters<typeof heartbea
         replay,
       },
     });
-    res.json({ ...result, replay });
+    res.json({ ...result, control: recordedControl, replay });
   });
 
   return router;

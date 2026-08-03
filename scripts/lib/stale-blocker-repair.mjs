@@ -73,9 +73,14 @@ export function planResolvedBlockerRepair({ target, detailedTarget }) {
   return {
     issueId: target.id,
     issueIdentifier: target.identifier ?? target.id,
+    assigneeAgentId: target.assigneeAgentId ?? null,
     resolvedBlockerIdentifiers: resolvedBlockers.map((blocker) => blocker.identifier ?? blocker.id),
     blockedByIssueIds: retainedBlockers.map((blocker) => blocker.id).filter(Boolean),
-    nextStatus: retainedBlockers.length === 0 && resolutionIsNewerThanTarget ? "todo" : "blocked",
+    // A blocked issue without an unresolved first-class blocker is an orphaned
+    // queue state. Resume its owner even when the issue was touched after the
+    // dependency completed; the owner must link any still-real replacement
+    // blocker explicitly instead of leaving work parked forever.
+    nextStatus: retainedBlockers.length === 0 ? "todo" : "blocked",
     resolutionIsNewerThanTarget,
   };
 }
@@ -85,14 +90,17 @@ export function planStalledTodoWake({
   liveIssueIds = new Set(),
   liveAgentIds = new Set(),
   runIssueIds = new Set(),
-  hasComments = false,
+  latestCommentId = null,
   nowMs = Date.now(),
   staleHours = 6,
 }) {
   if (issue?.status !== "todo") return null;
   if (!issue.assigneeAgentId || issue.assigneeUserId) return null;
   if (issue.originKind === "routine_execution") return null;
-  if (liveIssueIds.has(issue.id) || liveAgentIds.has(issue.assigneeAgentId) || runIssueIds.has(issue.id) || hasComments) return null;
+  // A comment is not execution. In particular, queue reconciliation adds a
+  // comment while reopening work; treating that comment as activity strands
+  // the issue in `todo` forever when the status update itself emits no wake.
+  if (liveIssueIds.has(issue.id) || liveAgentIds.has(issue.assigneeAgentId) || runIssueIds.has(issue.id)) return null;
 
   const updatedAtMs = timestampMs(issue.updatedAt ?? issue.createdAt);
   if (updatedAtMs === null) return null;
@@ -103,6 +111,7 @@ export function planStalledTodoWake({
     issueId: issue.id,
     issueIdentifier: issue.identifier ?? issue.id,
     assigneeAgentId: issue.assigneeAgentId,
+    latestCommentId,
     ageHours: Math.round(ageHours * 100) / 100,
     idempotencyKey: `softwarehouse:stalled-todo:${issue.id}:${issue.updatedAt ?? issue.createdAt ?? "unknown"}`,
   };

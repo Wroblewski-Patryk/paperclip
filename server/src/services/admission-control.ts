@@ -487,5 +487,40 @@ export function admissionControlService(db: Db) {
     });
   }
 
-  return { ensureCompanyControl, list, evaluate, evaluateWork, transition };
+  async function recordReopenReplay(input: {
+    companyId: string;
+    controlId: string;
+    controlVersion: number;
+    reopenAttemptId: string;
+    replay: Record<string, number>;
+  }) {
+    const now = new Date();
+    const reopenResult = Number(input.replay.failed ?? 0) === 0
+      ? "completed"
+      : "completed_with_failures";
+    const updated = await db
+      .update(admissionControls)
+      .set({
+        replaySnapshot: input.replay,
+        reopenAttemptId: input.reopenAttemptId,
+        reopenResult,
+        lastErrorCode: Number(input.replay.failed ?? 0) === 0 ? null : "replay_failed",
+        lastErrorMessage: Number(input.replay.failed ?? 0) === 0
+          ? null
+          : `${input.replay.failed} deferred wakeup(s) failed during reopen replay`,
+        updatedAt: now,
+      })
+      .where(and(
+        eq(admissionControls.id, input.controlId),
+        eq(admissionControls.companyId, input.companyId),
+        eq(admissionControls.version, input.controlVersion),
+        eq(admissionControls.state, "open"),
+      ))
+      .returning()
+      .then((rows) => rows[0] ?? null);
+    if (!updated) throw conflict("Admission control changed before replay evidence could be recorded");
+    return updated;
+  }
+
+  return { ensureCompanyControl, list, evaluate, evaluateWork, transition, recordReopenReplay };
 }

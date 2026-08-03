@@ -107,12 +107,13 @@ const staleTodoCandidates = todoIssues
   .filter((issue) => !liveIssueIds.has(issue.id) && !runIssueIds.has(issue.id));
 const todoPlans = (await mapWithConcurrency(staleTodoCandidates, 8, async (issue) => {
   const comments = await request("GET", `/api/issues/${issue.id}/comments?order=desc&limit=1`);
+  const latestComment = (comments?.value ?? comments ?? [])[0] ?? null;
   return planStalledTodoWake({
     issue,
     liveIssueIds,
     liveAgentIds,
     runIssueIds,
-    hasComments: (comments?.value ?? comments ?? []).length > 0,
+    latestCommentId: latestComment?.id ?? null,
     staleHours: stalledTodoHours,
   });
 }))
@@ -139,12 +140,44 @@ if (apply) {
           `- Removed completed blocker relation(s): ${linkedResolved}.`,
           `- Resulting status: \`${plan.nextStatus}\`.`,
           plan.nextStatus === "todo"
-            ? "- The blocker resolved after the issue last changed, so the assigned owner can resume."
-            : "- The issue was updated after the blocker resolved, so its newer blocked disposition was preserved.",
+            ? plan.resolutionIsNewerThanTarget
+              ? "- The blocker resolved after the issue last changed, so the assigned owner can resume."
+              : "- No unresolved first-class blocker remains. The assigned owner must resume and explicitly link any replacement blocker that is still real."
+            : "- Other unresolved first-class blockers remain, so the blocked disposition was preserved.",
           "- Scope: board metadata only; no repository, production, secret, or deployment mutation.",
         ].join("\n"),
       });
-      applied.push({ kind: "resolved_blocker_repair", identifier: plan.issueIdentifier, status: updated.status });
+      const appliedRepair = { kind: "resolved_blocker_repair", identifier: plan.issueIdentifier, status: updated.status };
+      if (plan.nextStatus === "todo" && plan.assigneeAgentId) {
+        try {
+          const comments = await request("GET", `/api/issues/${plan.issueId}/comments?order=desc&limit=1`);
+          const latestComment = (comments?.value ?? comments ?? [])[0] ?? null;
+          const wake = await request("POST", `/api/agents/${plan.assigneeAgentId}/wakeup`, {
+            source: "automation",
+            triggerDetail: "system",
+            reason: "resolved_blocker_reconciler",
+            payload: {
+              issueId: plan.issueId,
+              taskId: plan.issueId,
+              wakeReason: "resolved_blocker_reconciler",
+              ...(latestComment?.id ? { commentId: latestComment.id } : {}),
+            },
+            idempotencyKey: `softwarehouse:resolved-blocker:${plan.issueId}:${plan.resolvedBlockerIdentifiers.slice().sort().join(",")}`,
+            forceFreshSession: true,
+          });
+          appliedRepair.runId = wake?.id ?? null;
+          appliedRepair.wakeStatus = wake?.status ?? "skipped";
+        } catch (error) {
+          if (!isCrossAgentWakeupError(error)) throw error;
+          skipped.push({
+            kind: "resolved_blocker_wake",
+            identifier: plan.issueIdentifier,
+            skippedReason: "issue_authorization_boundary",
+            ownerAction: "An authorized board/user or the assigned agent must wake this resumed issue.",
+          });
+        }
+      }
+      applied.push(appliedRepair);
     } catch (error) {
       if (!isIssueAuthorizationBoundaryError(error)) throw error;
       skipped.push({
@@ -175,6 +208,7 @@ if (apply) {
           issueId: plan.issueId,
           taskId: plan.issueId,
           wakeReason: "stalled_todo_reconciler",
+          ...(plan.latestCommentId ? { commentId: plan.latestCommentId } : {}),
         },
         idempotencyKey: plan.idempotencyKey,
         forceFreshSession: true,

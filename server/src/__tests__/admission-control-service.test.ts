@@ -169,6 +169,44 @@ describeEmbeddedPostgres("native admission control", () => {
     expect((await db.select().from(companies))[0].status).toBe("active");
   });
 
+  it("persists reopen replay evidence on the exact open control version", async () => {
+    const { companyId } = await seed("paused");
+    const admission = admissionControlService(db);
+    const reopening = await admission.transition({
+      companyId,
+      toState: "reopening",
+      idempotencyKey: "record-replay-reopening",
+      actorType: "system",
+      evidence: [{ kind: "safety_suite", result: "pass" }],
+    });
+    const opened = await admission.transition({
+      companyId,
+      toState: "open",
+      idempotencyKey: "record-replay-open",
+      actorType: "system",
+      evidence: [{ kind: "reopen_gate", result: "pass" }],
+    });
+    const replay = { inspected: 4, coalesced: 3, queued: 1, notAdmitted: 0, failed: 0 };
+    const recorded = await admission.recordReopenReplay({
+      companyId,
+      controlId: opened.control.id,
+      controlVersion: opened.control.version,
+      reopenAttemptId: opened.transition.id,
+      replay,
+    });
+
+    expect(reopening.control.state).toBe("reopening");
+    expect(recorded).toMatchObject({
+      state: "open",
+      version: opened.control.version,
+      replaySnapshot: replay,
+      reopenAttemptId: opened.transition.id,
+      reopenResult: "completed",
+      lastErrorCode: null,
+      lastErrorMessage: null,
+    });
+  });
+
   it("stops runaway retry work with a durable needs_decision and no run", async () => {
     const { agentId } = await seed("active");
     const heartbeat = heartbeatService(db);
