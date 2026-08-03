@@ -1,6 +1,6 @@
 import { getTableConfig } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
-import { deliveryTasks, deliveryTransitions, productDeliveries, productOutcomes } from "./schema/index.js";
+import { assignmentProposals, deliveryTasks, deliveryTransitions, productDeliveries, productOutcomes } from "./schema/index.js";
 
 const config = (table: Parameters<typeof getTableConfig>[0]) => getTableConfig(table);
 const indexNames = (table: Parameters<typeof getTableConfig>[0]) => config(table).indexes.map((index) => index.config.name);
@@ -20,5 +20,12 @@ describe("task, delivery, and outcome persistence", () => {
     expect(config(deliveryTasks).columns.map((column) => column.name)).not.toContain("status");
     expect(indexNames(deliveryTasks)).toContain("delivery_tasks_delivery_issue_unique");
     expect(indexNames(deliveryTransitions)).toContain("delivery_transitions_delivery_key_unique");
+  });
+
+  it("persists assignment intent separately from system-applied issue state", () => {
+    expect(config(assignmentProposals).columns.map((column) => column.name)).toEqual(expect.arrayContaining([
+      "proposed_assignee_agent_id", "proposed_by_agent_id", "admission_decision_id", "status", "disposition", "applied_at",
+    ]));
+    expect(indexNames(assignmentProposals)).toContain("assignment_proposals_company_key_unique");
   });
 });

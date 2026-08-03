@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildCodexLocalConfig } from "./build-config.js";
+import { DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX } from "../index.js";
 import type { CreateConfigValues } from "@paperclipai/adapter-utils";
 
 function makeValues(overrides: Partial<CreateConfigValues> = {}): CreateConfigValues {
@@ -36,6 +37,11 @@ function makeValues(overrides: Partial<CreateConfigValues> = {}): CreateConfigVa
 }
 
 describe("buildCodexLocalConfig", () => {
+  it("keeps sandbox and approval bypass opt-in", () => {
+    expect(DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX).toBe(false);
+    expect(buildCodexLocalConfig(makeValues({ dangerouslyBypassSandbox: false })).dangerouslyBypassApprovalsAndSandbox).toBe(false);
+  });
+
   it("persists the fastMode toggle into adapter config", () => {
     const config = buildCodexLocalConfig(
       makeValues({

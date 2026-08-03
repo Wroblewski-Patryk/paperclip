@@ -33,6 +33,7 @@ import {
   createDocumentAnnotationThreadSchema,
   createChildIssueSchema,
   createIssueSchema,
+  proposeAssignmentSchema,
   resolveCreateIssueStatusDefault,
   resolveIssueRecoveryActionSchema,
   feedbackTargetTypeSchema,
@@ -68,6 +69,7 @@ import { validate } from "../middleware/validate.js";
 import * as serviceIndex from "../services/index.js";
 import {
   accessService,
+  assignmentProposalService,
   agentService,
   companyService,
   companySearchService,
@@ -947,6 +949,7 @@ export function issueRoutes(
   const router = Router();
   const svc = issueService(db);
   const access = accessService(db);
+  const assignmentProposalsSvc = assignmentProposalService(db);
   const heartbeat = heartbeatService(db, {
     pluginWorkerManager: opts.pluginWorkerManager,
   });
@@ -4304,6 +4307,59 @@ export function issueRoutes(
     });
 
     res.json({ ok: true });
+  });
+
+  router.get("/issues/:id/assignment-proposals", async (req, res) => {
+    const issue = await svc.getById(req.params.id as string);
+    if (!issue) { res.status(404).json({ error: "Issue not found" }); return; }
+    assertCompanyAccess(req, issue.companyId);
+    if (!(await assertIssueReadAllowed(req, res, issue))) return;
+    res.json(await assignmentProposalsSvc.list(issue.id));
+  });
+
+  router.post("/issues/:id/assignment-proposals", validate(proposeAssignmentSchema), async (req, res) => {
+    const issue = await svc.getById(req.params.id as string);
+    if (!issue) { res.status(404).json({ error: "Issue not found" }); return; }
+    assertCompanyAccess(req, issue.companyId);
+    if (!(await assertIssueReadAllowed(req, res, issue))) return;
+    if (await assertLowTrustControlPlaneDenied(req, res, issue.companyId, issue)) return;
+    const actor = getActorInfo(req);
+    const result = await assignmentProposalsSvc.proposeAndApply(issue.id, req.body, {
+      type: req.actor.type === "agent" ? "agent" : req.actor.type === "board" ? "board" : "user",
+      agentId: actor.agentId,
+      userId: actor.actorType === "user" ? actor.actorId : null,
+    });
+    await logActivity(db, {
+      companyId: issue.companyId,
+      actorType: "system",
+      actorId: "admission-controller",
+      agentId: actor.agentId,
+      runId: actor.runId,
+      action: result.proposal.status === "applied" ? "assignment_proposal.applied" : "assignment_proposal.held",
+      entityType: "issue",
+      entityId: issue.id,
+      details: {
+        proposalId: result.proposal.id,
+        proposedByActorType: actor.actorType,
+        proposedByActorId: actor.actorId,
+        proposedAssigneeAgentId: result.proposal.proposedAssigneeAgentId,
+        status: result.proposal.status,
+        disposition: result.proposal.disposition,
+        idempotent: result.idempotent,
+      },
+    });
+    if (result.proposal.status === "applied") {
+      void queueIssueAssignmentWakeup({
+        heartbeat,
+        issue: result.issue,
+        reason: "assignment_proposal_admitted",
+        mutation: "update",
+        contextSource: "issue.assignment_proposal",
+        requestedByActorType: "system",
+        requestedByActorId: "admission-controller",
+      });
+    }
+    res.status(result.idempotent ? 200 : 201).json(result);
   });
 
   router.post("/companies/:companyId/issues", applyCreateIssueStatusDefault, validate(createIssueSchema), async (req, res) => {

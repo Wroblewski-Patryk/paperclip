@@ -771,6 +771,13 @@
       "when": 1785766780255,
       "tag": "0109_magenta_baron_strucker",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1785767388065,
+      "tag": "0110_hard_leper_queen",
+      "breakpoints": true
     }
   ]
 }

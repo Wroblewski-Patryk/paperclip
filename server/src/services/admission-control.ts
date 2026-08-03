@@ -80,6 +80,7 @@ type WorkAdmissionInput = {
 };
 
 export type WorkAdmissionDecision = Omit<AdmissionDecision, "disposition"> & {
+  decisionId: string;
   disposition: AdmissionDisposition;
   reasonCode: string;
   retryCount: number;
@@ -328,7 +329,7 @@ export function admissionControlService(db: Db) {
       reason = "Risk was explicitly accepted by the governed caller";
     }
 
-    const decision: WorkAdmissionDecision = {
+    const decisionBase = {
       ...stateDecision,
       admitted,
       disposition,
@@ -340,13 +341,13 @@ export function admissionControlService(db: Db) {
       cooldownUntil,
       observationUntil,
     };
-    await db.insert(admissionDecisions).values({
+    const persisted = await db.insert(admissionDecisions).values({
       companyId: input.companyId,
       projectId: input.projectId ?? null,
       issueId: input.issueId ?? null,
       agentId: input.agentId ?? null,
-      admissionControlId: decision.controlId,
-      controlVersion: decision.controlVersion,
+      admissionControlId: stateDecision.controlId,
+      controlVersion: stateDecision.controlVersion,
       fingerprint: input.fingerprint,
       source: input.source,
       disposition,
@@ -360,8 +361,8 @@ export function admissionControlService(db: Db) {
       limits,
       cooldownUntil,
       observationUntil,
-    });
-    return decision;
+    }).returning({ id: admissionDecisions.id }).then((rows) => rows[0]);
+    return { ...decisionBase, decisionId: persisted.id };
   }
 
   async function transition(input: {

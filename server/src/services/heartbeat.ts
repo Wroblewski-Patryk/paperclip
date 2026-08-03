@@ -8084,6 +8084,29 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       return;
     }
 
+    const adapterConfig = parseObject(agent.adapterConfig);
+    const sandboxBypassUsed = agent.adapterType === "codex_local" && (
+      adapterConfig.dangerouslyBypassApprovalsAndSandbox === true
+      || adapterConfig.dangerouslyBypassSandbox === true
+    );
+    if (sandboxBypassUsed) {
+      await logActivity(db, {
+        companyId: run.companyId,
+        actorType: "system",
+        actorId: "heartbeat",
+        agentId: agent.id,
+        runId: run.id,
+        action: "agent.sandbox_bypass_used",
+        entityType: "heartbeat_run",
+        entityId: run.id,
+        details: {
+          adapterType: agent.adapterType,
+          localOnlyException: true,
+          propagationPolicy: "forbidden_in_authenticated_deployments",
+        },
+      });
+    }
+
     const runtime = await ensureRuntimeState(agent);
     const context = parseObject(run.contextSnapshot);
     const taskKey = deriveTaskKeyWithHeartbeatFallback(context, null);

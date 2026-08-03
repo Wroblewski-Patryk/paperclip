@@ -90,7 +90,9 @@ const MAX_ISSUE_COMMENT_PAGE_LIMIT = 500;
 export const ISSUE_LIST_DEFAULT_LIMIT = 500;
 export const ISSUE_LIST_MAX_LIMIT = 1000;
 const ISSUE_LIST_RELATED_QUERY_CHUNK_SIZE = 500;
-export const MAX_CHILD_ISSUES_CREATED_BY_HELPER = 25;
+export const MAX_CHILD_ISSUES_CREATED_BY_HELPER = 8;
+export const MAX_AUTONOMOUS_DELEGATION_DEPTH = 6;
+export const MAX_DISTINCT_AGENTS_PER_PROBLEM = 4;
 const MAX_CHILD_COMPLETION_SUMMARIES = 20;
 const CHILD_COMPLETION_SUMMARY_BODY_MAX_CHARS = 500;
 const ISSUE_COMMENT_RUN_LOG_DERIVATION_MAX_LOG_BYTES = 2_000_000;
@@ -4338,6 +4340,12 @@ export function issueService(db: Db) {
         .where(eq(issues.id, parentIssueId))
         .then((rows) => rows[0] ?? null);
       if (!parent) throw notFound("Parent issue not found");
+      if (parent.requestDepth >= MAX_AUTONOMOUS_DELEGATION_DEPTH) {
+        throw unprocessable(`Autonomous delegation depth limit ${MAX_AUTONOMOUS_DELEGATION_DEPTH} reached`);
+      }
+      if (data.projectId && data.projectId !== parent.projectId) {
+        throw unprocessable("Child issues cannot cross project boundaries; create a separate project-scoped task with explicit owner approval");
+      }
 
       const [{ childCount }] = await db
         .select({ childCount: sql<number>`count(*)::int` })
@@ -4345,6 +4353,18 @@ export function issueService(db: Db) {
         .where(and(eq(issues.companyId, parent.companyId), eq(issues.parentId, parent.id)));
       if (childCount >= MAX_CHILD_ISSUES_CREATED_BY_HELPER) {
         throw unprocessable(`Parent issue already has the maximum ${MAX_CHILD_ISSUES_CREATED_BY_HELPER} child issues for this helper`);
+      }
+
+      if (data.assigneeAgentId) {
+        const assignees = await db
+          .select({ assigneeAgentId: issues.assigneeAgentId })
+          .from(issues)
+          .where(and(eq(issues.companyId, parent.companyId), or(eq(issues.id, parent.id), eq(issues.parentId, parent.id))));
+        const distinct = new Set(assignees.map((row) => row.assigneeAgentId).filter(Boolean));
+        distinct.add(data.assigneeAgentId);
+        if (distinct.size > MAX_DISTINCT_AGENTS_PER_PROBLEM) {
+          throw unprocessable(`Problem already uses the maximum ${MAX_DISTINCT_AGENTS_PER_PROBLEM} distinct agents`);
+        }
       }
 
       const {
@@ -4934,6 +4954,44 @@ export function issueService(db: Db) {
       };
       if (issueData.requestDepth !== undefined) {
         patch.requestDepth = clampIssueRequestDepth(issueData.requestDepth);
+      }
+
+      if (issueData.parentId !== undefined && issueData.parentId !== existing.parentId) {
+        if (issueData.parentId === id) throw unprocessable("Issue cannot be its own parent");
+        if (issueData.parentId) {
+          const proposedParent = await dbOrTx.select({
+            id: issues.id,
+            companyId: issues.companyId,
+            projectId: issues.projectId,
+            parentId: issues.parentId,
+          }).from(issues).where(eq(issues.id, issueData.parentId)).then((rows: Array<{ id: string; companyId: string; projectId: string | null; parentId: string | null }>) => rows[0] ?? null);
+          if (!proposedParent || proposedParent.companyId !== existing.companyId) {
+            throw unprocessable("Parent issue must belong to the same company");
+          }
+          const nextProject = issueData.projectId !== undefined ? issueData.projectId : existing.projectId;
+          if (proposedParent.projectId !== nextProject) {
+            throw unprocessable("Parent and child issues must remain in the same project");
+          }
+          const visited = new Set<string>([id]);
+          let cursor: typeof proposedParent | null = proposedParent;
+          let depth = 0;
+          while (cursor) {
+            if (visited.has(cursor.id)) throw unprocessable("Issue parent change would create a delegation loop");
+            visited.add(cursor.id);
+            depth += 1;
+            if (depth > MAX_AUTONOMOUS_DELEGATION_DEPTH) {
+              throw unprocessable(`Autonomous delegation depth limit ${MAX_AUTONOMOUS_DELEGATION_DEPTH} exceeded`);
+            }
+            cursor = cursor.parentId
+              ? await dbOrTx.select({ id: issues.id, companyId: issues.companyId, projectId: issues.projectId, parentId: issues.parentId })
+                .from(issues).where(eq(issues.id, cursor.parentId))
+                .then((rows: Array<{ id: string; companyId: string; projectId: string | null; parentId: string | null }>) => rows[0] ?? null)
+              : null;
+          }
+          patch.requestDepth = depth;
+        } else {
+          patch.requestDepth = 0;
+        }
       }
 
       const nextAssigneeAgentId =

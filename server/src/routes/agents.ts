@@ -130,7 +130,7 @@ function readRunIssueId(context: Record<string, unknown> | null) {
 
 export function agentRoutes(
   db: Db,
-  options: { pluginWorkerManager?: PluginWorkerManager } = {},
+  options: { pluginWorkerManager?: PluginWorkerManager; deploymentMode?: "local_trusted" | "authenticated" } = {},
 ) {
   // Legacy hardcoded maps — used as fallback when adapter module does not
   // declare capability flags explicitly.
@@ -1164,6 +1164,13 @@ export function agentRoutes(
     adapterType: string | null | undefined,
     adapterConfig: Record<string, unknown>,
   ) {
+    if (
+      adapterType === "codex_local" &&
+      options.deploymentMode === "authenticated" &&
+      (adapterConfig.dangerouslyBypassApprovalsAndSandbox === true || adapterConfig.dangerouslyBypassSandbox === true)
+    ) {
+      throw unprocessable("Codex sandbox/approval bypass is forbidden in authenticated deployments");
+    }
     if (adapterType !== "opencode_local") return;
     try {
       requireOpenCodeModelId(adapterConfig.model);

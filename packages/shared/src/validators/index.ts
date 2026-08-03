@@ -1,4 +1,9 @@
 export {
+  proposeAssignmentSchema,
+  type ProposeAssignment,
+} from "./assignment-proposal.js";
+
+export {
   createDeliverySchema,
   transitionDeliverySchema,
   updateProductOutcomeSchema,

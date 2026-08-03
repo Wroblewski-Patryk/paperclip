@@ -34,6 +34,7 @@ import {
   clampIssueListLimit,
   deriveIssueCommentRunLogAttribution,
   ISSUE_LIST_MAX_LIMIT,
+  MAX_AUTONOMOUS_DELEGATION_DEPTH,
   issueService,
 } from "../services/issues.ts";
 import { buildProjectMentionHref, MAX_ISSUE_REQUEST_DEPTH } from "@paperclipai/shared";
@@ -2304,7 +2305,7 @@ describeEmbeddedPostgres("issueService.create workspace inheritance", () => {
     ]);
   });
 
-  it("clamps helper-created child requestDepth to the safe maximum", async () => {
+  it("stops helper-created delegation at the autonomous depth limit", async () => {
     const companyId = randomUUID();
     const projectId = randomUUID();
     const goalId = randomUUID();
@@ -2342,16 +2343,14 @@ describeEmbeddedPostgres("issueService.create workspace inheritance", () => {
       title: "Parent issue",
       status: "in_progress",
       priority: "medium",
-      requestDepth: MAX_ISSUE_REQUEST_DEPTH,
+      requestDepth: MAX_AUTONOMOUS_DELEGATION_DEPTH,
     });
 
-    const { issue: child } = await svc.createChild(parentIssueId, {
+    await expect(svc.createChild(parentIssueId, {
       title: "Child helper",
       status: "todo",
       requestDepth: MAX_ISSUE_REQUEST_DEPTH + 100,
-    });
-
-    expect(child.requestDepth).toBe(MAX_ISSUE_REQUEST_DEPTH);
+    })).rejects.toMatchObject({ status: 422 });
   });
 });
 

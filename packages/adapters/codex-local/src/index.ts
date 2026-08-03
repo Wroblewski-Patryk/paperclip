@@ -9,7 +9,7 @@ export const CODEX_LOCAL_SOL_MODEL = "gpt-5.6-sol";
 export const CODEX_LOCAL_TERRA_MODEL = "gpt-5.6-terra";
 export const CODEX_LOCAL_LUNA_MODEL = "gpt-5.6-luna";
 export const DEFAULT_CODEX_LOCAL_MODEL = CODEX_LOCAL_TERRA_MODEL;
-export const DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX = true;
+export const DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX = false;
 export const CODEX_LOCAL_FAST_MODE_SUPPORTED_MODELS = ["gpt-5.4", "gpt-5.4-mini"] as const;
 
 function normalizeModelId(model: string | null | undefined): string {

@@ -19,6 +19,7 @@ scoped and inspectable.
 | SafeTraceLog / AgentFeedback / AgentEval / EvalRun / AgentImprovementTask | Current policy contract implemented through issues, comments, work products, docs, and evidence; future runtime tables may make these first-class | `docs/agent-improvement-flywheel.md` |
 | SupervisorReview | issue approvals, thread interactions, supervisor issues, activity entries | `doc/SPEC-implementation.md` |
 | ControlPolicy | agent/project/company runtime config, approvals, budgets, docs in this section | `docs/agent-policy-gates.md` |
+| AssignmentProposal | Agent/delegator intent mediated by deterministic admission before system assignment | `packages/db/src/schema/assignment_proposals.ts` |
 | CompanySituation | Deterministic company-scoped projection over goals, projects, issues, agents, approvals, and budget incidents | `server/src/services/company-situation.ts` |
 | OrganizationalRecord | Typed assumption, commitment, or decision with lifecycle, owner, evidence, review timing, and supersession | `packages/db/src/schema/organizational_records.ts` |
 | OrganizationalObservation | Source-backed outcome, causal finding, external signal, or learning candidate with freshness and governed promotion | `packages/db/src/schema/organizational_observations.ts` |

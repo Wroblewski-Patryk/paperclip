@@ -31,6 +31,7 @@ export { goalService } from "./goals.js";
 export { organizationalRecordService } from "./organizational-records.js";
 export { organizationalObservationService, observationFreshUntil } from "./organizational-observations.js";
 export { deliveryService } from "./deliveries.js";
+export { assignmentProposalService } from "./assignment-proposals.js";
 export { activityService, type ActivityFilters } from "./activity.js";
 export { approvalService } from "./approvals.js";
 export { budgetService } from "./budgets.js";

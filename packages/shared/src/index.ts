@@ -1,5 +1,9 @@
 export { agentAdapterTypeSchema, optionalAgentAdapterTypeSchema } from "./adapter-type.js";
 export {
+  proposeAssignmentSchema,
+  type ProposeAssignment,
+} from "./validators/assignment-proposal.js";
+export {
   DELIVERY_STAGES,
   PRODUCT_OUTCOME_STATUSES,
   type ProductDelivery,

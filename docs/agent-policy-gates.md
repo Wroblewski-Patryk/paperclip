@@ -11,6 +11,12 @@ Policy gates prevent autonomous agents from calling work done when the company c
 - No destructive action without an approval record.
 - No broad workspace/repository change without branch or worktree isolation.
 - No task handoff without a summary and next action.
+- Executors without a scoped direct-assignment grant propose an assignment; the deterministic
+  admission controller records its decision and the system applies an admitted proposal. An agent
+  cannot convert proposal authority into direct `tasks:assign` authority.
+- Autonomous delegation is bounded to 8 direct children, 4 distinct agents per problem, and depth
+  6. Child work remains in the parent's project, parent loops are rejected, and creating a child
+  never transfers or closes the parent's responsibility.
 - No repeated failure without a process-improvement issue.
 - No agent behavior, prompt, skill, routine, policy, permission, or `AGENTS.md`
   change without eval or regression evidence.
@@ -57,6 +63,11 @@ creation. A prose warning without blocker ownership does not satisfy this gate.
 
 Risky actions include secrets, production deploys, Coolify/VPS config, database migrations, deletion,
 force pushes, broad dependency upgrades, security/auth changes, and cross-repository rewrites.
+
+`dangerouslyBypassApprovalsAndSandbox` defaults to false. A local-trusted workstation may retain an
+explicit exception where non-interactive Codex execution technically requires it, but every such run
+emits `agent.sandbox_bypass_used`. Authenticated/VPS deployments reject the flag instead of copying
+the local exception.
 
 ## Enforcement Sources
 
