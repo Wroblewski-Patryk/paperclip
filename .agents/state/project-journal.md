@@ -5123,3 +5123,13 @@ identified precisely (LUC-2287, LUC-2291, LUC-2397, and LUC-2398) and
 canonically cancelled with automatic recovery suppressed. Final live readback
 shows zero running or queued runs whose current issue is `blocked`; the only
 live work is active LUC-2452 plus the legal queued LUC-2154 continuation.
+
+LUC-2452 subsequently closed the interaction diagnosis with typed evidence.
+The earlier 500 report could not be reproduced and its originating run had not
+captured the exact request. The live agent contract returned 201 for a valid
+targetless `request_confirmation` and 400 for malformed input. Focused route
+tests passed 12/12 and shared interaction-schema tests passed 4/4. Commit
+`b6886ba1` adds the missing route regression and documents that `payload.target`
+is optional for configuration choices; no handler or migration change was
+justified. Future systemic defect classification requires preserved request and
+response evidence rather than a bare status-code claim.

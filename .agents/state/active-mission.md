@@ -34,11 +34,12 @@
   deployments are zero, and its database volume namespace differs from
   production. LUC-2154 is now `todo` and queued for candidate-secret rotation
   plus the controlled first deploy.
-- Agent-authored `request_confirmation` returned HTTP 500 twice while a
-  bounded board-authored create/reject diagnostic passed 201/200. Treat this as
-  an agent/run-auth-path defect, not a failure of the interaction table or the
-  board route. LUC-2452 owns the focused diagnosis and repair and is running;
-  it is non-blocking for the corrected QA step.
+- The reported agent-authored `request_confirmation` HTTP 500 was not
+  reproducible and the originating run preserved no exact request evidence.
+  LUC-2452 is done: live targetless confirmation returned 201, malformed input
+  returned 400, route tests passed 12/12, and shared schema tests passed 4/4.
+  Commit `b6886ba1` adds regression coverage and documents the optional target;
+  no handler or migration change was evidence-justified.
 - Production Roost and the Product Map publisher remain protected. Do not
   activate delivery credentials, DNS, production traffic, or a production
   deployment until the QA, owner-journey, security, deployment, and monitoring

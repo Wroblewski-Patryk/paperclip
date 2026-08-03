@@ -559,3 +559,8 @@ the active Stage 1 delivery mission.
   database volume namespace. LUC-2154 owns secrets and controlled deployment.
 - Keep production Product Map delivery fail-closed until the remaining
   LUC-1910 QA/release gates and protected ingestion bindings are satisfied.
+- LUC-2452 disproved the unsubstantiated interaction-handler defect: the live
+  agent contract accepts targetless `request_confirmation` payloads (201) and
+  rejects malformed ones as validation errors (400). Commit `b6886ba1` records
+  the exact route regression and API shape; require captured requests before
+  promoting future transient status claims into systemic defects.
