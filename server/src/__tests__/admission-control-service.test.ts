@@ -11,6 +11,7 @@ import {
   createDb,
   heartbeatRunEvents,
   heartbeatRuns,
+  issues,
   projects,
 } from "@paperclipai/db";
 import {
@@ -277,6 +278,53 @@ describeEmbeddedPostgres("native admission control", () => {
       if (status && !["queued", "running"].includes(status)) break;
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
+  });
+
+  it("does not replay a maintenance wake after its issue becomes blocked", async () => {
+    const { companyId, agentId } = await seed("paused");
+    const issueId = randomUUID();
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      title: "Blocked while maintenance was active",
+      identifier: `A-${issueId.slice(0, 6)}`,
+      status: "todo",
+      assigneeAgentId: agentId,
+      createdByAgentId: agentId,
+    });
+    const heartbeat = heartbeatService(db);
+    const admission = admissionControlService(db);
+    await heartbeat.wakeup(agentId, {
+      source: "automation",
+      reason: "issue-assigned-during-maintenance",
+      payload: { issueId, taskId: issueId },
+      idempotencyKey: `blocked-replay:${issueId}`,
+      requestedByActorType: "system",
+    });
+    await db.update(issues).set({ status: "blocked" }).where(eq(issues.id, issueId));
+    await admission.transition({
+      companyId,
+      toState: "reopening",
+      idempotencyKey: "blocked-replay-reopening",
+      actorType: "system",
+      evidence: [{ kind: "safety_suite", result: "pass" }],
+    });
+    await admission.transition({
+      companyId,
+      toState: "open",
+      idempotencyKey: "blocked-replay-open",
+      actorType: "system",
+      evidence: [{ kind: "reopen_gate", result: "pass" }],
+    });
+
+    const replay = await heartbeat.replayDeferredAdmissionWakeups(companyId);
+
+    expect(replay).toMatchObject({ inspected: 1, queued: 0, notAdmitted: 1, failed: 0 });
+    expect(await db.select().from(agentWakeupRequests)).toMatchObject([{
+      status: "replayed",
+      replayResult: "issue_blocked",
+    }]);
+    expect(await db.select().from(heartbeatRuns)).toHaveLength(0);
   });
 
   it("coalesces legacy recovery rearm wakeups before reopening replay", async () => {

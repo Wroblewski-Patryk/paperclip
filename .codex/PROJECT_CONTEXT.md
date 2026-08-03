@@ -540,6 +540,9 @@ the active Stage 1 delivery mission.
 - Native admission control is open at version 7 after a bounded maintenance
   replay. Replay state is persisted on the control row; supervisory automation
   must compare only events inside the current drain/reopen window.
+- Deferred wake replay must re-read issue state. Never enqueue historical work
+  for an issue that is currently blocked, terminal, or missing; preserve the
+  current dependency graph as the authority for whether work is actionable.
 - Orphaned blocker repair is executable, not documentary: when all linked
   blockers are done the target returns to `todo` and its assigned agent is
   woken with current comment evidence. Regression coverage is in commit

@@ -5065,8 +5065,15 @@ transition service itself, and all four supervisory automations were updated
 to use the current drain/reopen boundary. LuckySparrow reopened at admission
 version 7 after a stable 19-item deferred set; replay inspected 19, queued 4,
 rejected 15 as no longer admissible, and failed 0. Targeted specifications
-passed 201/201, admission tests 9/9, server typecheck passed, and strict
+passed 201/201, admission tests 10/10, server typecheck passed, and strict
 runtime topology passed on ports 3200/54329.
+
+Post-reopen observation found one further replay defect: persisted wakeups for
+issues that had become `blocked` during maintenance could still create runs and
+consume project WIP. Replay now re-reads the current issue in the same company
+and records blocked, done, cancelled, or missing targets as not admitted rather
+than enqueueing them. The focused regression proves a deferred todo that later
+becomes blocked creates zero heartbeat runs.
 
 Accepted protected-session evidence from LUC-2373, LUC-2375, and LUC-2376 was
 used to close the obsolete LUC-2340 -> LUC-2338 -> LUC-2337 capability chain.

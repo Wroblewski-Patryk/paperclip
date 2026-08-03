@@ -11134,6 +11134,35 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       const replayPayload = parseObject(request.payload);
       const contextSnapshot = parseObject(replayPayload[DEFERRED_WAKE_CONTEXT_KEY]);
       delete replayPayload[DEFERRED_WAKE_CONTEXT_KEY];
+      const replayIssueId = readNonEmptyString(replayPayload.issueId)
+        ?? readNonEmptyString(replayPayload.taskId)
+        ?? readNonEmptyString(contextSnapshot.issueId)
+        ?? readNonEmptyString(contextSnapshot.taskId);
+      if (replayIssueId) {
+        const currentIssue = await db
+          .select({ status: issues.status })
+          .from(issues)
+          .where(and(
+            eq(issues.id, replayIssueId),
+            eq(issues.companyId, companyId),
+          ))
+          .limit(1)
+          .then((rows) => rows[0] ?? null);
+        if (!currentIssue || ["blocked", "done", "cancelled"].includes(currentIssue.status)) {
+          const replayResult = currentIssue ? `issue_${currentIssue.status}` : "issue_missing";
+          await db
+            .update(agentWakeupRequests)
+            .set({
+              status: "replayed",
+              replayResult,
+              finishedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(agentWakeupRequests.id, request.id));
+          summary.notAdmitted += 1;
+          continue;
+        }
+      }
       try {
         const run = await enqueueWakeup(request.agentId, {
           source: (request.source as WakeupOptions["source"]) ?? "automation",
