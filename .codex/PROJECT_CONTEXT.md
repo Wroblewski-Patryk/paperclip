@@ -549,6 +549,7 @@ the active Stage 1 delivery mission.
   `7115b032`.
 - The Roost protected browser/session capability chain is complete through
   LUC-2373/LUC-2375/LUC-2376 and LUC-2340/LUC-2338/LUC-2337. LUC-2336 has
-  resumed the approved isolated QA-resource creation step.
+  resumed the approved isolated QA-resource creation step. The Coolify-valid
+  environment name is `roost-qa`, not the rejected two-character name `qa`.
 - Keep production Product Map delivery fail-closed until the remaining
   LUC-1910 QA/release gates and protected ingestion bindings are satisfied.

@@ -5081,3 +5081,19 @@ Paperclip then automatically checked out and started LUC-2336 for the
 explicitly approved isolated, non-deployed Roost QA application. Production,
 DNS, publisher activation, secret values, and live traffic remain outside this
 checkpoint and protected by the remaining LUC-1910 QA/release chain.
+
+The first governed DRE attempt then found a concrete contract error before any
+resource was created: Coolify requires environment names of at least three
+characters, so the prescribed `qa` name was rejected. The child and parent
+contracts were corrected to `roost-qa`, all original non-production and
+no-deploy boundaries were preserved, the irrelevant blocked-parent wake was
+canonically cancelled without automatic recovery, and DRE resumed the same
+approved operation.
+
+That attempt also isolated a separate control-plane defect. Two valid-looking
+agent-authored `request_confirmation` requests returned HTTP 500. A bounded
+board-authored create plus immediate reject passed 201/200, including a second
+diagnostic with a source-run reference, so the database, generic route, and
+source-run foreign key are healthy. The unresolved fault is therefore scoped
+to agent/run authorization or agent-authored request handling and does not
+block the already owner-corrected `roost-qa` operation.
