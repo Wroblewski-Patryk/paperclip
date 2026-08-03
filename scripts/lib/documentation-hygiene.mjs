@@ -70,6 +70,7 @@ export async function auditDocumentationProject({ name, root, requireDeploymentI
   }
   const excluded = manifest.excludedFromDefaultContext ?? [];
   let defaultContextBytes = 0;
+  const defaultContextText = [];
   for (const relative of manifest.defaultAgentContext ?? []) {
     const absolute = path.resolve(root, relative);
     if (absolute !== root && !absolute.startsWith(`${root}${path.sep}`)) {
@@ -79,11 +80,36 @@ export async function auditDocumentationProject({ name, root, requireDeploymentI
     if (excluded.some((prefix) => relative === prefix || relative.startsWith(prefix))) {
       findings.push(finding("error", "excluded_default_context", `Excluded material is in default context: ${relative}.`, [relative]));
     }
-    try { defaultContextBytes += (await stat(absolute)).size; }
+    try {
+      defaultContextBytes += (await stat(absolute)).size;
+      if ([".md", ".mdx", ".txt"].includes(path.extname(relative).toLowerCase())) {
+        defaultContextText.push((await readFile(absolute, "utf8")).toLowerCase());
+      }
+    }
     catch { findings.push(finding("error", "context_file_missing", `Default context file is missing: ${relative}.`, [relative])); }
   }
   const maxDefault = Number(manifest.budgets?.maxDefaultContextBytes ?? 180000);
   if (defaultContextBytes > maxDefault) findings.push(finding("error", "context_budget_exceeded", `Default context is ${defaultContextBytes} bytes; budget is ${maxDefault}.`));
+  const canonicalText = defaultContextText.join("\n");
+  const contradictionRules = [
+    {
+      code: "gui_identity_contradiction",
+      left: /does not include (?:a )?gui|no gui/,
+      right: /web console|owner console/,
+      message: "Canonical context both denies a GUI and describes a web/owner console.",
+    },
+    {
+      code: "recovery_policy_contradiction",
+      left: /manual, not automatic|not automatically self-healing/,
+      right: /orphaned runs? automatically|automatic(?:ally)? recover/,
+      message: "Canonical context describes recovery as both manual-only and automatic.",
+    },
+  ];
+  for (const rule of contradictionRules) {
+    if (rule.left.test(canonicalText) && rule.right.test(canonicalText)) {
+      findings.push(finding("error", rule.code, rule.message, manifest.defaultAgentContext));
+    }
+  }
 
   const planning = (await filesBelow(root, "docs/planning")).filter((item) => DOC_EXTENSIONS.has(path.extname(item.relative).toLowerCase()));
   const state = [...await filesBelow(root, ".agents/state"), ...await filesBelow(root, ".codex/context")]

@@ -41,3 +41,11 @@ test("rejects a default context over budget", async () => {
   const result = await auditDocumentationProject({ name: "Test", root, requireDeploymentIdentity: false });
   assert(result.findings.some((item) => item.code === "context_budget_exceeded"));
 });
+
+test("rejects contradictory GUI identity in canonical context", async () => {
+  const root = await fixture();
+  await writeFile(path.join(root, "README.md"), "This application does not include a GUI.\n");
+  await writeFile(path.join(root, "docs/README.md"), "Use the owner web console.\n");
+  const result = await auditDocumentationProject({ name: "Test", root, requireDeploymentIdentity: false });
+  assert(result.findings.some((item) => item.code === "gui_identity_contradiction"));
+});
