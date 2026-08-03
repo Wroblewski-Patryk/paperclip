@@ -99,3 +99,29 @@ test("serializes cycles and deduplicates findings by fingerprint", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("bounds evidence retained for a finding", () => {
+  const dir = mkdtempSync(join(tmpdir(), "paperclip-supervision-registry-"));
+  const registry = join(dir, "findings.json");
+  try {
+    const evidence = Array.from({ length: 75 }, (_, index) => `evidence-${index}`);
+    const data = JSON.stringify({ evidence_references: evidence, closure_evidence: evidence });
+    assert.equal(
+      run(registry, [
+        "upsert",
+        "--automation",
+        "daily-integrity",
+        "--fingerprint",
+        "bounded-evidence",
+        "--data-json",
+        data,
+      ]).status,
+      "created",
+    );
+    const persisted = JSON.parse(readFileSync(registry, "utf8"));
+    assert.deepEqual(persisted.findings[0].evidence_references, evidence.slice(-50));
+    assert.deepEqual(persisted.findings[0].closure_evidence, evidence.slice(-50));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

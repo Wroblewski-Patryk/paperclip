@@ -12,6 +12,15 @@ const registryPath = resolve(
 const mutationLockPath = `${registryPath}.mutation.lock`;
 const mutationLockStaleMs = 5 * 60_000;
 const maxCycleHistory = 200;
+const maxFindingHistory = 1_000;
+const maxEvidenceReferences = 50;
+const terminalFindingStatuses = new Set([
+  "resolved",
+  "closed",
+  "rejected_as_duplicate",
+  "not_worth_doing",
+  "accepted_risk",
+]);
 
 function parseArgs(argv) {
   const [command = "show", ...rest] = argv;
@@ -123,6 +132,25 @@ function parseDataJson(value, base64Value) {
   return parsed;
 }
 
+function boundedReferences(value, fallback = []) {
+  const references = Array.isArray(value) ? value : fallback;
+  return references.slice(-maxEvidenceReferences);
+}
+
+function makeRoomForFinding(registry) {
+  if (registry.findings.length < maxFindingHistory) return;
+  const terminal = registry.findings
+    .map((finding, index) => ({ finding, index }))
+    .filter(({ finding }) => terminalFindingStatuses.has(finding.current_status))
+    .sort((left, right) => Date.parse(left.finding.last_seen_at) - Date.parse(right.finding.last_seen_at));
+  if (terminal.length === 0) {
+    throw new Error(
+      `Supervision registry reached ${maxFindingHistory} active findings; resolve or consolidate findings before adding another`,
+    );
+  }
+  registry.findings.splice(terminal[0].index, 1);
+}
+
 function cycleExpired(cycle) {
   return Boolean(cycle?.expires_at && Date.parse(cycle.expires_at) <= Date.now());
 }
@@ -217,7 +245,10 @@ async function upsertFinding(values) {
       last_seen_at: timestamp,
       occurrence_count: (previous?.occurrence_count || 0) + 1,
       source_automation: automation,
-      evidence_references: data.evidence_references ?? previous?.evidence_references ?? [],
+      evidence_references: boundedReferences(
+        data.evidence_references,
+        previous?.evidence_references,
+      ),
       current_status: data.current_status ?? previous?.current_status ?? "detected",
       owner: data.owner ?? previous?.owner ?? null,
       admission_decision: data.admission_decision ?? previous?.admission_decision ?? null,
@@ -231,10 +262,13 @@ async function upsertFinding(values) {
       permanent_safeguard: data.permanent_safeguard ?? previous?.permanent_safeguard ?? null,
       recurrence_count: data.recurrence_count ?? previous?.recurrence_count ?? 0,
       escalation_target: data.escalation_target ?? previous?.escalation_target ?? null,
-      closure_evidence: data.closure_evidence ?? previous?.closure_evidence ?? [],
+      closure_evidence: boundedReferences(data.closure_evidence, previous?.closure_evidence),
     };
     if (index >= 0) registry.findings[index] = finding;
-    else registry.findings.push(finding);
+    else {
+      makeRoomForFinding(registry);
+      registry.findings.push(finding);
+    }
     return { status: previous ? "updated" : "created", finding };
   });
 }
