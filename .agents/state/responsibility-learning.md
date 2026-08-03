@@ -1,5 +1,21 @@
 # Responsibility Learning
 
+## 2026-08-03 - Authority must shrink as uncertainty and irreversibility rise
+
+Observed failure mode: work could enter a runnable queue because it sounded
+urgent or important, without one machine-checkable record of expected value,
+cost of inaction, evidence quality, resource limits, stopping conditions, or
+rollback. That makes activity easier to authorize than deliberate restraint.
+
+Standing rule: critical and protected agent-created work requires a native
+pre-start decision contract. A low-confidence agent may investigate or propose,
+but may not self-authorize costly or irreversible execution. Irreversible work
+uses a governed proposal/escalation path. `later`, `monitor`, accepted debt,
+rejection, and conditional execution are valid outcomes when justified.
+Assumptions require provenance, confidence, review/expiry, and narrow linked
+invalidation. Behavioral organizational evals must prove these rules rather
+than relying on prompt wording.
+
 ## 2026-08-03 - Inventory is not progress and supervision must resist gaming
 
 Observed failure mode: the operating policy required three planned worker

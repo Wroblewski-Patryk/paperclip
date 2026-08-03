@@ -5,6 +5,7 @@ import {
   createIssueSchema,
   issueBlockedInboxAttentionSchema,
   issueCompletionEvidenceBundleSchema,
+  issueDecisionContractSchema,
   resolveIssueRecoveryActionSchema,
   respondIssueThreadInteractionSchema,
   suggestedTaskDraftSchema,
@@ -14,6 +15,70 @@ import {
 import { createAgentSchema } from "./agent.js";
 
 describe("issue validators", () => {
+  it("accepts a bounded evidence-backed decision contract", () => {
+    const parsed = issueDecisionContractSchema.parse({
+      value: "high",
+      urgency: "high",
+      costOfInaction: "high",
+      estimatedEffort: "small",
+      maxMinutes: 90,
+      maxTokens: null,
+      maxIterations: 3,
+      maxAgents: 2,
+      stopCondition: "Stop after three failed attempts or unexpected blast radius.",
+      doneEnough: "The named owner journey works and independent proof passes.",
+      disposition: "do_now",
+      rationale: "The current defect blocks the active product outcome.",
+      confidence: "verified",
+      evidenceRefs: ["issue:LUC-1", "test:reproduction"],
+      scope: "One project and one service.",
+      reversibility: "easy",
+      rollbackPlan: null,
+      restorePoint: null,
+      postChangeVerification: "Run the targeted regression and read back health.",
+      rollbackTrigger: null,
+    });
+
+    expect(parsed.maxIterations).toBe(3);
+    expect(parsed.disposition).toBe("do_now");
+  });
+
+  it("refuses autonomous irreversible execution and costly work without rollback", () => {
+    const base = {
+      value: "high" as const,
+      urgency: "medium" as const,
+      costOfInaction: "medium" as const,
+      estimatedEffort: "medium" as const,
+      maxMinutes: 120,
+      maxTokens: null,
+      maxIterations: 3,
+      maxAgents: 2,
+      stopCondition: "Stop on failed preflight.",
+      doneEnough: "The approved state is verified.",
+      rationale: "A protected change was proposed.",
+      confidence: "high" as const,
+      evidenceRefs: ["issue:LUC-2"],
+      scope: "One protected resource.",
+      postChangeVerification: "Read back exact state.",
+    };
+    expect(issueDecisionContractSchema.safeParse({
+      ...base,
+      disposition: "do_now",
+      reversibility: "irreversible",
+      rollbackPlan: "Not possible",
+      restorePoint: "Snapshot",
+      rollbackTrigger: "Any mismatch",
+    }).success).toBe(false);
+    expect(issueDecisionContractSchema.safeParse({
+      ...base,
+      disposition: "proposal",
+      reversibility: "costly",
+      rollbackPlan: null,
+      restorePoint: null,
+      rollbackTrigger: null,
+    }).success).toBe(false);
+  });
+
   it("passes real line breaks through unchanged", () => {
     const parsed = createIssueSchema.parse({
       title: "Follow up PR",

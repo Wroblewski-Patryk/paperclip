@@ -480,6 +480,29 @@ export interface IssueExecutionMonitorPolicy {
   recoveryPolicy?: IssueExecutionMonitorRecoveryPolicy | null;
 }
 
+export interface IssueDecisionContract {
+  value: "negligible" | "low" | "medium" | "high" | "critical";
+  urgency: "none" | "low" | "medium" | "high" | "critical";
+  costOfInaction: "none" | "low" | "medium" | "high" | "critical";
+  estimatedEffort: "tiny" | "small" | "medium" | "large" | "unknown";
+  maxMinutes: number | null;
+  maxTokens: number | null;
+  maxIterations: number | null;
+  maxAgents: number | null;
+  stopCondition: string;
+  doneEnough: string;
+  disposition: "do_now" | "later" | "monitor" | "accept_debt" | "reject" | "conditional" | "proposal" | "escalate";
+  rationale: string;
+  confidence: "unknown" | "low" | "medium" | "high" | "verified";
+  evidenceRefs: string[];
+  scope: string;
+  reversibility: "easy" | "costly" | "irreversible";
+  rollbackPlan: string | null;
+  restorePoint: string | null;
+  postChangeVerification: string;
+  rollbackTrigger: string | null;
+}
+
 export interface IssueExecutionPolicy {
   mode: IssueExecutionPolicyMode;
   commentRequired: boolean;
@@ -487,6 +510,7 @@ export interface IssueExecutionPolicy {
   monitor?: IssueExecutionMonitorPolicy | null;
   reviewPreset?: LowTrustReviewPresetPolicy;
   authorizationPolicy?: TrustAuthorizationPolicy;
+  decisionContract?: IssueDecisionContract;
 }
 
 export interface IssueExecutionMonitorState {

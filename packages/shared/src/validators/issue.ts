@@ -193,6 +193,65 @@ export const issueExecutionMonitorPolicySchema = z.object({
   recoveryPolicy: z.enum(ISSUE_EXECUTION_MONITOR_RECOVERY_POLICIES).optional().nullable().default(null),
 });
 
+export const issueDecisionContractSchema = z.object({
+  value: z.enum(["negligible", "low", "medium", "high", "critical"]),
+  urgency: z.enum(["none", "low", "medium", "high", "critical"]),
+  costOfInaction: z.enum(["none", "low", "medium", "high", "critical"]),
+  estimatedEffort: z.enum(["tiny", "small", "medium", "large", "unknown"]),
+  maxMinutes: z.number().int().positive().max(43_200).nullable(),
+  maxTokens: z.number().int().positive().max(100_000_000).nullable(),
+  maxIterations: z.number().int().positive().max(100).nullable(),
+  maxAgents: z.number().int().positive().max(20).nullable(),
+  stopCondition: z.string().trim().min(1).max(2000),
+  doneEnough: z.string().trim().min(1).max(2000),
+  disposition: z.enum(["do_now", "later", "monitor", "accept_debt", "reject", "conditional", "proposal", "escalate"]),
+  rationale: z.string().trim().min(1).max(4000),
+  confidence: z.enum(["unknown", "low", "medium", "high", "verified"]),
+  evidenceRefs: z.array(z.string().trim().min(1).max(1000)).max(20),
+  scope: z.string().trim().min(1).max(2000),
+  reversibility: z.enum(["easy", "costly", "irreversible"]),
+  rollbackPlan: z.string().trim().min(1).max(4000).nullable(),
+  restorePoint: z.string().trim().min(1).max(2000).nullable(),
+  postChangeVerification: z.string().trim().min(1).max(2000),
+  rollbackTrigger: z.string().trim().min(1).max(2000).nullable(),
+}).strict().superRefine((value, ctx) => {
+  if (value.disposition === "do_now" && value.evidenceRefs.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["evidenceRefs"],
+      message: "Immediate execution requires evidence that the problem and proposed action are real",
+    });
+  }
+  if (value.reversibility !== "easy") {
+    for (const key of ["rollbackPlan", "restorePoint", "rollbackTrigger"] as const) {
+      if (value[key]) continue;
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [key],
+        message: "Costly or irreversible work requires rollback, restore-point, and rollback-trigger fields",
+      });
+    }
+  }
+  if (value.reversibility === "irreversible" && !["proposal", "escalate", "reject"].includes(value.disposition)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["disposition"],
+      message: "Irreversible work cannot be authorized for autonomous execution by the decision contract",
+    });
+  }
+  if (["unknown", "low"].includes(value.confidence)
+    && value.reversibility !== "easy"
+    && !["proposal", "escalate", "monitor", "conditional", "reject"].includes(value.disposition)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["disposition"],
+      message: "Low-confidence work with meaningful reversal cost must be constrained, proposed, monitored, rejected, or escalated",
+    });
+  }
+});
+
+export type IssueDecisionContract = z.infer<typeof issueDecisionContractSchema>;
+
 export const issueExecutionPolicySchema = z.object({
   mode: z.enum(ISSUE_EXECUTION_POLICY_MODES).optional().default("normal"),
   commentRequired: z.boolean().optional().default(true),
@@ -200,6 +259,7 @@ export const issueExecutionPolicySchema = z.object({
   monitor: issueExecutionMonitorPolicySchema.optional().nullable(),
   reviewPreset: lowTrustReviewPresetPolicySchema.optional(),
   authorizationPolicy: trustAuthorizationPolicySchema.optional(),
+  decisionContract: issueDecisionContractSchema.optional(),
 });
 
 export const issueExecutionMonitorStateSchema = z.object({

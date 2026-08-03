@@ -2,6 +2,25 @@
 
 Last updated: 2026-08-03
 
+## 2026-08-03 Pre-start Decision And Organizational Metabolism
+
+- Critical or protected agent-created work must carry a structured
+  `executionPolicy.decisionContract`: value and cost of inaction, evidence and
+  confidence, explicit resource bounds, stop/done-enough conditions,
+  disposition, scope, reversibility, rollback, and post-change verification.
+  The server enforces the gate; instructions alone are not the control.
+- `later`, `monitor`, `accept_debt`, `reject`, `conditional`, `proposal`, and
+  `escalate` are legitimate decisions. Uncertain hard-to-reverse work cannot
+  self-authorize, and irreversible work must enter a governed proposal or
+  escalation path.
+- Active assumptions need provenance, confidence, review/expiry dates, and
+  narrow invalidation of linked dependants. Unsupported or stale knowledge
+  must be superseded or archived instead of silently propagating.
+- `softwarehouse:organizational-evals` is the executable behavioral suite for
+  objection, recurrence, authority under uncertainty, ownership, stopping
+  boundaries, assumption hygiene, and project isolation. The outcome audit
+  also reports organizational complexity as a signal, never a target.
+
 ## 2026-08-03 Outcome Integrity And Anti-Gaming Contract
 
 - Queue depth, task/comment/document/commit/agent/run counts, and percent done

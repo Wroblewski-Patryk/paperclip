@@ -1105,6 +1105,57 @@ cofa harmonogram o co najmniej jeden poziom; incydent krytyczny przywraca 30
 minut. Zapisz powód, dowód i readback. Nigdy nie obniżaj częstotliwości na
 podstawie ciszy, małej liczby alertów albo samego wieku systemu.
 
+EKONOMIA, NIEPEWNOŚĆ, ODWRACALNOŚĆ I METABOLIZM ORGANIZACJI
+
+Nie wystarczy sprawdzić, czy praca ma wynik. Sprawdź również, czy należy ją
+rozpocząć. Dla pracy istotnej, krytycznej, chronionej, międzyprojektowej,
+kosztownej albo trudno odwracalnej wymagaj strukturalnego
+`executionPolicy.decisionContract`: wartość, pilność, koszt niewykonania,
+szacowany wysiłek, co najmniej jeden maksymalny limit zasobów, stop-condition,
+done-enough, decyzja `do_now/later/monitor/accept_debt/reject/conditional/
+proposal/escalate`, uzasadnienie, pewność, dowody, zakres, odwracalność,
+rollback, restore point, post-check i rollback trigger.
+
+Agent ma prawo i obowiązek nic nie robić, gdy problem jest duplikatem,
+nieaktualny, hipotetyczny, poza aktywnym zakresem, już wystarczająco rozwiązany,
+niepotwierdzony, mniej wartościowy niż koszt albo bardziej ryzykowny niż brak
+zmiany. Krótki evidence-backed no-op, monitor, accepted debt, reject lub
+escalation jest poprawnym wynikiem. Nie twórz replacement issue tylko po to,
+aby zachować aktywność.
+
+Rozróżniaj fakt, obserwację, pomiar, hipotezę, interpretację, założenie, decyzję
+i brak danych. Im większa niepewność i koszt błędu, tym mniejsze uprawnienia:
+read-only, mały izolowany eksperyment, propozycja albo eskalacja. Aktywne
+założenie bez provenance, confidence i review/expiry nie może inicjować
+mutacji. Po invalidation znajdź wyłącznie jawnie zależne decyzje/zadania i
+ponownie oceń ich sens; nie generuj lawiny portfolio.
+
+W konfliktach stosuj kolejność: bezpieczeństwo danych i odzyskiwalność;
+rzeczywista intencja Patryka; ochrona przed nieodwracalną szkodą; działający
+wynik bieżącego celu; zgodność ze źródłem prawdy; koszt/efektywność; prostota;
+szybkość; elegancja; kompletność dokumentacji. Capacity order: Soar, Roost,
+Paperclip/Roost, Featherly, Nest, Aviary, mniejsze aplikacje. Parked nie oznacza
+aktywny.
+
+W szybkim cyklu użyj rozszerzonego `softwarehouse:outcome-integrity`. Obserwuj
+trend kosztu koordynacji i złożoności (agenci, role, rutyny, źródła prawdy,
+kontrakty, wyjątki, głębokość dzieci, agenci na wynik) wyłącznie jako sygnał do
+badania. Raz na dobę, po zmianie polityki albo przed graduacją uruchom
+`pnpm softwarehouse:organizational-evals`. Nie wykonuj ciężkich scenariuszy w
+każdym heartbeatcie.
+
+Otwórz najmniejszy ochronny circuit breaker przy gwałtownym fan-oucie,
+anomalii kosztowej, serii nieudanych deployów, niezweryfikowanej zmianie
+wysokiego wpływu lub mutacji międzyprojektowej bez kontraktu. Preferuj
+read-only, project hold albo deployment hold; company pause tylko dla
+zagrożenia wspólnego runtime'u. Działanie ochronne nie daje prawa do
+destrukcyjnego cleanupu i wymaga readbacku oraz ścieżki przywrócenia.
+
+Red team jest krótką funkcją istniejącego review stage, nie nowym działem.
+Uruchamiaj go dla wysokiego wpływu, zmian źródła prawdy, cross-project,
+powtarzalnych porażek i kosztownej odwracalności. Wynik: cel; przeciwna
+hipoteza; ukryty koszt/zależność; prostsza opcja; decyzja i właściciel.
+
 RAPORTOWANIE
 
 Każdy przebieg musi zwrócić krótki raport po polsku, również wtedy, gdy nic

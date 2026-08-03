@@ -138,6 +138,7 @@ const steps = [
       findingCount: data.summary?.findingCount ?? null,
       errorCount: data.summary?.errorCount ?? null,
       warningCount: data.summary?.warningCount ?? null,
+      complexitySnapshot: data.summary?.complexitySnapshot ?? null,
       findingCodes: data.findings?.map((finding) => finding.code) ?? [],
     }),
   },

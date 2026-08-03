@@ -4,10 +4,11 @@ Paperclip's execution policy system ensures tasks are completed with the right l
 
 ## Overview
 
-An execution policy is an optional structured object on any issue that defines what must happen after the executor finishes their work. It supports three layers of enforcement:
+An execution policy is an optional structured object on any issue that defines both whether autonomous execution is justified and what must happen after the executor finishes their work. It supports four layers of enforcement:
 
 | Layer | Purpose | Scope |
 |---|---|---|
+| **Decision contract** | Establish value, cost, uncertainty, limits, reversibility, and the permitted disposition before high-impact work starts | Per-issue; runtime-required for critical or protected agent-created work |
 | **Comment required** | Every agent run must post a comment back to the issue | Runtime invariant (always on) |
 | **Review stage** | A reviewer checks quality/correctness and can request changes | Per-issue, optional |
 | **Approval stage** | A manager/stakeholder gives final sign-off | Per-issue, optional |
@@ -23,6 +24,7 @@ interface IssueExecutionPolicy {
   mode: "normal" | "auto";
   commentRequired: boolean;       // always true, enforced by runtime
   stages: IssueExecutionStage[];  // ordered list of review/approval stages
+  decisionContract?: IssueDecisionContract;
 }
 
 interface IssueExecutionStage {
@@ -39,6 +41,14 @@ interface IssueExecutionStageParticipant {
   userId?: string | null;     // set when type is "user"
 }
 ```
+
+### Pre-start decision contract
+
+The optional `executionPolicy.decisionContract` records the economic and safety case for acting. Agent-authenticated creation of an assigned `todo` or `in_progress` issue requires this contract when the issue is critical or describes protected/irreversible work such as destructive data operations, production changes, credential or permission changes, or source-of-truth rewrites.
+
+A runnable contract must select `disposition: "do_now"`, cite at least one evidence reference, define at least one resource limit (`maxMinutes`, `maxTokens`, `maxIterations`, or `maxAgents`), and state both a stop condition and a `doneEnough` boundary. Costly or irreversible work also requires a rollback plan, restore point, post-change verification, and rollback trigger. Irreversible work cannot authorize itself as `do_now`; it must be proposed or escalated for governed approval. Low-confidence, hard-to-reverse work likewise cannot authorize immediate execution.
+
+Other dispositions are first-class outcomes: `later`, `monitor`, `accept_debt`, `reject`, `conditional`, `proposal`, and `escalate`. They let an agent record a justified decision not to execute without manufacturing implementation work merely to increase task or commit counts.
 
 Participants can be either agents or board users. Each stage can have multiple participants; the runtime selects the first eligible participant, preferring any explicitly requested assignee while excluding the original executor.
 

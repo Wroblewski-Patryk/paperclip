@@ -15,13 +15,16 @@ const companyId = configuredCompanyId
   ?? companies.find((company) => ["LuckySparrow Software House", "LuckySparrow"].includes(company.name))?.id;
 if (!companyId) throw new Error("LuckySparrow Software House company not found");
 
-const [projects, openIssues, doneIssues] = await Promise.all([
+const [projects, agents, routines, organizationalRecords, openIssues, doneIssues] = await Promise.all([
   request(`/api/companies/${companyId}/projects`),
+  request(`/api/companies/${companyId}/agents`),
+  request(`/api/companies/${companyId}/routines`),
+  request(`/api/companies/${companyId}/organizational-records?limit=500`),
   request(`/api/companies/${companyId}/issues?limit=2000`),
   request(`/api/companies/${companyId}/issues?status=done&limit=2000`),
 ]);
 const issues = [...new Map([...openIssues, ...doneIssues].map((issue) => [issue.id, issue])).values()];
-const report = auditOutcomeIntegrity({ issues, projects });
+const report = auditOutcomeIntegrity({ issues, projects, agents, routines, organizationalRecords });
 
 console.log(JSON.stringify({ mode: strict ? "strict" : "report", companyId, ...report }, null, 2));
 if (strict && report.status === "fail") process.exitCode = 1;

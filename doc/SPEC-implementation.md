@@ -232,6 +232,8 @@ Routine execution issues add a routine-scoped env overlay after project env and 
 - `billing_code` text null
 - `assignee_adapter_overrides` jsonb null
 - `execution_policy` jsonb null
+  - may include a pre-start `decisionContract` describing value, urgency, cost of inaction, bounded resource limits, stop/done-enough conditions, evidence, uncertainty, disposition, scope, reversibility, rollback, and verification
+  - agent-authenticated creation of assigned runnable critical or protected work must pass the native decision-contract gate; uncertain hard-to-reverse work cannot self-authorize, and irreversible work must use a governed proposal/escalation path
 - `execution_state` jsonb null
 - execution workspace fields: `execution_workspace_id`, `execution_workspace_preference`, `execution_workspace_settings`
 - `started_at` timestamptz null

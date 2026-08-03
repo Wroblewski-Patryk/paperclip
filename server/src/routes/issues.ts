@@ -105,6 +105,7 @@ import {
   SVG_CONTENT_TYPE,
 } from "../attachment-types.js";
 import { queueIssueAssignmentWakeup } from "../services/issue-assignment-wakeup.js";
+import { validateAgentDecisionContract } from "../services/issue-decision-contract.js";
 import { assertEnvironmentSelectionForCompany } from "./environment-selection.js";
 import { executionWorkspaceService as executionWorkspaceServiceDirect } from "../services/execution-workspaces.js";
 import { feedbackService } from "../services/feedback.js";
@@ -4327,6 +4328,19 @@ export function issueRoutes(
       ...createExecutionPatch,
       executionPolicy,
     };
+    const decisionContractError = validateAgentDecisionContract({
+      actorType: actor.actorType,
+      title: createFields.title,
+      description: createFields.description,
+      priority: createFields.priority,
+      status: createFields.status,
+      assigneeAgentId: createFields.assigneeAgentId,
+      executionPolicy,
+    });
+    if (decisionContractError) {
+      res.status(422).json({ error: decisionContractError.message, details: decisionContractError });
+      return;
+    }
     await assertAgentInReviewReviewPath({
       existing: {
         id: randomUUID(),
@@ -4463,6 +4477,19 @@ export function issueRoutes(
       ...createExecutionPatch,
       executionPolicy,
     };
+    const decisionContractError = validateAgentDecisionContract({
+      actorType: actor.actorType,
+      title: createFields.title,
+      description: createFields.description,
+      priority: createFields.priority,
+      status: createFields.status,
+      assigneeAgentId: createFields.assigneeAgentId,
+      executionPolicy,
+    });
+    if (decisionContractError) {
+      res.status(422).json({ error: decisionContractError.message, details: decisionContractError });
+      return;
+    }
     await assertAgentInReviewReviewPath({
       existing: {
         id: randomUUID(),

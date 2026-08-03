@@ -2,6 +2,9 @@ const terminalStatuses = new Set(["done", "cancelled"]);
 const deliveryTerms = /\b(implement|fix|repair|deploy|release|integrat|migrat|api|backend|frontend|database|runtime|security|test|ui|ux|bug|feature)\w*/i;
 const artifactOnlyTerms = /\b(document|docs?|report|plan|map|inventory|index|summary|comment|analysis|audit)\w*/i;
 const outcomeTerms = /\b(expected state|acceptance|verify|verification|proof|evidence|user can|owner can|observable|deployed|smoke|test|passes?|works?|result)\b/i;
+const highImpactTerms = /\b(delete|destroy|purge|drop\s+(?:table|database)|force[- ]?push|production|deploy|migration|credential|secret|permission|billing|financial|live\s+(?:trade|order)|source\s+of\s+truth|cross[- ]project)\b/i;
+const optimizationTerms = /\b(refactor|polish|cleanup|simplif|standardiz|document|coverage|architecture|optimiz)\w*/i;
+const stopBoundaryTerms = /\b(done enough|stop condition|stop when|do not optimize|return only|revisit only|accept(?:ed)? debt|non-goal|out of scope)\b/i;
 
 function list(value) {
   return Array.isArray(value) ? value : [];
@@ -54,7 +57,16 @@ function issueRef(issue) {
   };
 }
 
-export function auditOutcomeIntegrity({ issues, projects = [], now = new Date(), recentHours = 168, maxDirectChildren = 3 }) {
+export function auditOutcomeIntegrity({
+  issues,
+  projects = [],
+  agents = [],
+  routines = [],
+  organizationalRecords = [],
+  now = new Date(),
+  recentHours = 168,
+  maxDirectChildren = 3,
+}) {
   const cutoff = now.getTime() - recentHours * 60 * 60 * 1000;
   const issueById = new Map(issues.map((issue) => [issue.id, issue]));
   const projectById = new Map(projects.map((project) => [project.id, project]));
@@ -128,6 +140,107 @@ export function auditOutcomeIntegrity({ issues, projects = [], now = new Date(),
     total: weakContracts.length,
   });
 
+  const highImpactWithoutDecisionContract = openIssues.filter((issue) => {
+    if (!issue.assigneeAgentId || issue.originKind === "routine_execution") return false;
+    if (!["todo", "in_progress"].includes(issue.status)) return false;
+    const highImpact = issue.priority === "critical"
+      || highImpactTerms.test(`${issue.title ?? ""}\n${issue.description ?? ""}`);
+    return highImpact && !issue.executionPolicy?.decisionContract;
+  });
+  if (highImpactWithoutDecisionContract.length > 0) findings.push({
+    severity: "warn",
+    law: "economics / uncertainty / reversibility / least privilege",
+    code: "high_impact_without_decision_contract",
+    message: "Runnable high-impact work lacks the structured value, cost, confidence, reversibility, resource-limit, stop, and done-enough decision contract.",
+    total: highImpactWithoutDecisionContract.length,
+    items: highImpactWithoutDecisionContract.slice(0, 50).map(issueRef),
+  });
+
+  const decisionDispositionMismatches = openIssues.filter((issue) => {
+    const contract = issue.executionPolicy?.decisionContract;
+    return contract
+      && ["todo", "in_progress"].includes(issue.status)
+      && contract.disposition !== "do_now";
+  });
+  if (decisionDispositionMismatches.length > 0) findings.push({
+    severity: "error",
+    law: "right not to act / authorization proportional to risk",
+    code: "decision_disposition_status_mismatch",
+    message: "Work is runnable although its decision contract says later, monitor, accept debt, reject, conditional, proposal, or escalate.",
+    items: decisionDispositionMismatches.map(issueRef),
+  });
+
+  const uncertainHighRiskExecution = openIssues.filter((issue) => {
+    const contract = issue.executionPolicy?.decisionContract;
+    return contract
+      && ["todo", "in_progress"].includes(issue.status)
+      && ["unknown", "low"].includes(contract.confidence)
+      && contract.reversibility !== "easy";
+  });
+  if (uncertainHighRiskExecution.length > 0) findings.push({
+    severity: "error",
+    law: "uncertainty-constrained autonomy",
+    code: "uncertain_high_risk_execution",
+    message: "Low-confidence work with meaningful reversal cost is runnable instead of isolated, proposed, monitored, or escalated.",
+    items: uncertainHighRiskExecution.map(issueRef),
+  });
+
+  const optimizationWithoutStopBoundary = openIssues.filter((issue) => {
+    if (!issue.assigneeAgentId || issue.originKind === "routine_execution") return false;
+    if (!["todo", "in_progress"].includes(issue.status)) return false;
+    const text = `${issue.title ?? ""}\n${issue.description ?? ""}`;
+    return optimizationTerms.test(text)
+      && !issue.executionPolicy?.decisionContract?.doneEnough
+      && !stopBoundaryTerms.test(text);
+  });
+  if (optimizationWithoutStopBoundary.length > 0) findings.push({
+    severity: "warn",
+    law: "Parkinson / KISS / YAGNI / good-enough stopping",
+    code: "optimization_without_stop_boundary",
+    message: "Optimization, refactor, cleanup, architecture, coverage, or documentation work has no explicit done-enough/non-goal boundary.",
+    total: optimizationWithoutStopBoundary.length,
+    items: optimizationWithoutStopBoundary.slice(0, 50).map(issueRef),
+  });
+
+  const orphanOutcomeParents = [...childrenByParent.entries()]
+    .map(([parentId, children]) => ({ parent: issueById.get(parentId), children }))
+    .filter(({ parent }) => parent && !parent.assigneeAgentId && !parent.assigneeUserId);
+  if (orphanOutcomeParents.length > 0) findings.push({
+    severity: "warn",
+    law: "single accountable outcome owner",
+    code: "orphan_outcome_parent",
+    message: "An open parent has active delegated work but no accountable owner for the final outcome.",
+    items: orphanOutcomeParents.slice(0, 50).map(({ parent, children }) => ({
+      ...issueRef(parent),
+      activeChildCount: children.length,
+    })),
+    total: orphanOutcomeParents.length,
+  });
+
+  const assumptionHygieneFailures = organizationalRecords.filter((record) => {
+    if (record.kind !== "assumption" || record.status !== "active") return false;
+    const expired = record.expiresAt && Date.parse(record.expiresAt) <= now.getTime();
+    const missingProvenance = !Array.isArray(record.evidence) || record.evidence.length === 0;
+    const missingConfidence = record.confidence == null;
+    const missingReviewBoundary = !record.reviewAt && !record.expiresAt;
+    return expired || missingProvenance || missingConfidence || missingReviewBoundary;
+  });
+  if (assumptionHygieneFailures.length > 0) findings.push({
+    severity: "warn",
+    law: "belief provenance / controlled forgetting",
+    code: "active_assumption_hygiene_failure",
+    message: "Active assumptions are expired or lack evidence, confidence, and a review/expiry boundary; they must not propagate as organizational fact.",
+    total: assumptionHygieneFailures.length,
+    items: assumptionHygieneFailures.slice(0, 50).map((record) => ({
+      id: record.id,
+      title: record.title,
+      projectId: record.projectId ?? null,
+      confidence: record.confidence ?? null,
+      reviewAt: record.reviewAt ?? null,
+      expiresAt: record.expiresAt ?? null,
+    })),
+  });
+
   const missingEvidence = recentDone.filter((issue) => !issue.completionEvidence);
   if (missingEvidence.length > 0) findings.push({
     severity: "error",
@@ -174,6 +287,14 @@ export function auditOutcomeIntegrity({ issues, projects = [], now = new Date(),
     findingCount: findings.length,
     errorCount: findings.filter((finding) => finding.severity === "error").length,
     warningCount: findings.filter((finding) => finding.severity === "warn").length,
+    complexitySnapshot: {
+      agentCount: agents.length,
+      activeAgentCount: agents.filter((agent) => agent.status === "active").length,
+      routineCount: routines.length,
+      activeRoutineCount: routines.filter((routine) => routine.status === "active").length,
+      projectCount: projects.length,
+      organizationalRecordCount: organizationalRecords.length,
+    },
   };
 
   return {

@@ -25,6 +25,11 @@ project is idle only when:
 
 If any condition is false, create or wake the smallest owner issue.
 
+Before creating that issue, apply the decision contract. If the missing state
+is cosmetic, hypothetical, low-value/high-cost, duplicate, obsolete, already
+good enough, or outside the active portfolio, the correct result is a bounded
+no-op, monitor, accepted debt, rejection, or escalation — not another card.
+
 ## Map Before Polish
 
 UI polish is allowed only after primary workflows are mapped and testable. If a
@@ -122,3 +127,19 @@ cross-project contamination, runaway retry, or missing project-specific proof
 resets the window. Agents must not optimize metrics, hide failures, copy one
 project's evidence into another, or pause Teachar merely to make graduation
 appear complete.
+
+Each Paperclip-owned control cycle also observes organizational metabolism:
+active agents/roles, routines, sources of truth, cross-project contracts,
+manual exceptions, open child depth, agents per outcome, and evidence-backed
+owner-visible milestones. These counts are trend signals, never minimization
+targets. Investigate when coordination cost, activity, or complexity grows
+faster than delivered value.
+
+Protective modes are graduated and scoped: read-only discovery, project
+admission hold, deployment hold, company admission pause, and the native
+`open -> draining -> maintenance -> reopening -> open` controller when it is
+fully implemented. Use the smallest boundary. A sudden task/document fan-out,
+budget anomaly, repeated failed deployment, unverified high-impact change, or
+cross-project mutation without a decision contract opens the circuit and
+blocks new mutation; it does not authorize destructive cleanup. Read back the
+mode and preserve a rollback/restoration path.

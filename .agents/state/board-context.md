@@ -489,3 +489,15 @@ They are never additional metric quotas. Normally keep one smallest justified
 next action per product; fan-out and retry require new independent outcomes and
 evidence. Teachar must audit outcome integrity, repair the systemic cause, and
 reduce its frequency only through reversible evidence-backed maturity stages.
+
+# 2026-08-03 Owner directive: economic judgment before autonomous execution
+
+The owner wants Paperclip to behave like a mature firm: acting is not the
+default merely because work can be described. Before critical or protected
+work begins, the system must weigh value, urgency, cost of inaction, evidence,
+uncertainty, bounded resources, stopping conditions, reversibility, rollback,
+and verification. Agents have both the right and duty to defer, monitor,
+reject, accept bounded debt, propose, or escalate when execution is not yet
+justified. Increasing uncertainty or irreversibility must reduce autonomous
+authority. Assumptions need provenance and expiry, and process/role complexity
+must be treated as organizational cost rather than evidence of maturity.

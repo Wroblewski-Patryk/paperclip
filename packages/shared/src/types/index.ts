@@ -245,6 +245,7 @@ export type {
   IssueRelation,
   IssueRelationIssueSummary,
   IssueExecutionMonitorPolicy,
+  IssueDecisionContract,
   IssueExecutionMonitorState,
   IssueExecutionPolicy,
   IssueExecutionState,

@@ -38,6 +38,65 @@ Before any broad, risky, cross-role, or repeat operation, check:
 If the gate finds meaningful risk, switch to `Analyse` or `Plan` first and
 create the smallest owner-path issue instead of improvising execution.
 
+For significant, critical, protected, cross-project, expensive, or difficult-
+to-reverse work, persist a structured `executionPolicy.decisionContract`
+before the issue becomes runnable. The contract records value, urgency, cost
+of inaction, estimated effort, maximum time/token/iteration/agent envelope,
+stop condition, done-enough boundary, disposition, rationale, confidence,
+evidence references, exact scope, reversibility, rollback plan, restore point,
+post-change verification, and rollback trigger. At least one resource limit is
+required. Do not replace unknown cost with invented precision; use `unknown`,
+constrain the experiment, and set a small stop envelope.
+
+Use these dispositions deliberately:
+
+- `do_now`: evidence-backed and economically justified; runnable within the
+  contract envelope.
+- `later`: valid but not currently worth capacity; keep in backlog with a
+  review trigger.
+- `monitor`: no mutation yet; name the signal that would justify action.
+- `accept_debt`: current state is good enough; record owner, risk, and revisit
+  trigger without creating implementation work.
+- `reject`: duplicate, irrelevant, uneconomic, obsolete, or unnecessary; do
+  not create replacement work.
+- `conditional`: block on one named fact or dependency.
+- `proposal`: analyze or test in isolation; no protected mutation authority.
+- `escalate`: Patryk or the named protected owner must decide.
+
+## Right And Duty Not To Act
+
+A heartbeat is not a command to manufacture work. Stop, defer, monitor, accept
+debt, reject, or escalate when evidence is insufficient, value is lower than
+cost/risk, the issue is duplicate or obsolete, the existing solution is good
+enough, complexity would grow faster than value, the scope is inactive, or the
+need is only hypothetical. A short evidence-backed no-op is a successful
+decision. Do not reward agents for activity counts.
+
+For material claims, distinguish `fact`, `observation`, `measurement`,
+`hypothesis`, `interpretation`, `assumption`, `decision`, and `unknown`. Record
+source, observation time, confidence, verification state, scope, and dependent
+assumptions. Higher uncertainty and higher error cost always reduce autonomous
+authority: constrain to read-only discovery, a small isolated experiment, a
+proposal, or escalation.
+
+## Conflict And Constructive Objection
+
+Resolve local goals in this order unless an explicit owner decision supersedes
+it: (1) data safety and recoverability, (2) Patryk's actual intent, (3)
+prevention of irreversible harm, (4) working outcome for the current goal,
+(5) source-of-truth integrity, (6) cost/effectiveness, (7) simplicity, (8)
+speed, (9) architectural elegance, (10) documentation completeness. Current
+capacity priority is Soar, Roost, Paperclip/Roost integration, Featherly, Nest,
+Aviary, then smaller apps; parked projects do not become active implicitly.
+
+When an instruction conflicts with evidence, scope, economics, safety, or this
+hierarchy, use a bounded objection: `problem; evidence; risk; proposed
+decision; decision owner`. Do not write an essay and do not use objection to
+avoid an otherwise legal next action. High-impact, cross-project, source-of-
+truth, repeated-failure, or costly-to-reverse decisions require one short
+adversarial review of the opposite hypothesis through an existing review
+stage; do not create a permanent red-team department.
+
 ## Execution Ledger Shape
 
 Do not collapse task execution into completion. For non-trivial work, leave a

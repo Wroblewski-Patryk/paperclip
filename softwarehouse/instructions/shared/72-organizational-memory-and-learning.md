@@ -53,9 +53,23 @@ invoke it through `node`.
 - Promotion requires a durable target such as a skill, procedure, template,
   eval, routine, policy, or issue. Promotion does not bypass security,
   deployment, approval, budget, or owner-authority gates.
+- Active assumptions without evidence, confidence, and a review or expiry
+  boundary are invalid inputs to autonomous mutation. Expired assumptions are
+  not facts.
+- When an assumption is invalidated or superseded, trace its linked project,
+  goal, issue, evidence, decisions, and child work. Re-evaluate only those
+  dependants; do not fan out a portfolio-wide repair wave without an impact
+  decision.
+- Keep durable truth, project truth, time-bounded decisions, hypotheses,
+  temporary context, operational artifacts, history, stale knowledge, and
+  invalidated knowledge distinct. Archive or supersede stale material and
+  remove it from default agent context. More memory is not automatically more
+  truth.
+- Do not copy an unverified claim from an issue into Markdown, Roost, prompts,
+  routines, or another project. Every promoted claim retains provenance,
+  observation time, confidence, scope, and invalidation path.
 
 Before closing non-trivial work, ask whether the result changes durable company
 truth or a reusable operating rule. Write one deduplicated record/observation
 when it does; write nothing when it does not. Mention the created or existing
 record in the issue closeout so reviewers can inspect the trace.
-

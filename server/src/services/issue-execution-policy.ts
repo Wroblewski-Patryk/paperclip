@@ -387,7 +387,13 @@ export function normalizeIssueExecutionPolicy(input: unknown): IssueExecutionPol
     }
     : null;
 
-  if (stages.length === 0 && !monitor && !parsed.data.reviewPreset && !parsed.data.authorizationPolicy) return null;
+  if (
+    stages.length === 0
+    && !monitor
+    && !parsed.data.reviewPreset
+    && !parsed.data.authorizationPolicy
+    && !parsed.data.decisionContract
+  ) return null;
 
   return {
     mode: parsed.data.mode ?? "normal",
@@ -396,6 +402,7 @@ export function normalizeIssueExecutionPolicy(input: unknown): IssueExecutionPol
     ...(monitor ? { monitor } : {}),
     ...(parsed.data.reviewPreset ? { reviewPreset: parsed.data.reviewPreset } : {}),
     ...(parsed.data.authorizationPolicy ? { authorizationPolicy: parsed.data.authorizationPolicy } : {}),
+    ...(parsed.data.decisionContract ? { decisionContract: parsed.data.decisionContract } : {}),
   };
 }
 
