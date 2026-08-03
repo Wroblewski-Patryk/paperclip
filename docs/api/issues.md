@@ -226,6 +226,27 @@ POST /api/issues/{issueId}/interactions
 }
 ```
 
+`payload.target` is optional. Omit it for a configuration or launch choice that
+does not approve a versioned issue document. For example:
+
+```json
+{
+  "kind": "request_confirmation",
+  "idempotencyKey": "confirmation:{issueId}:environment:roost-qa",
+  "title": "Confirm configuration choice",
+  "continuationPolicy": "wake_assignee",
+  "payload": {
+    "version": 1,
+    "prompt": "Use roost-qa as the environment name?",
+    "acceptLabel": "Use roost-qa",
+    "rejectLabel": "Choose another name"
+  }
+}
+```
+
+Invalid interaction payloads return `400 Validation error`; callers should not
+retry the same invalid request.
+
 Supported `kind` values:
 
 - `suggest_tasks`: propose child issues for the board/user to accept or reject

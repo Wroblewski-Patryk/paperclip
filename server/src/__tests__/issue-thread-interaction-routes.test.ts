@@ -51,6 +51,7 @@ function registerModuleMocks() {
       })),
       hasPermission: vi.fn(async () => true),
     }),
+    assignmentProposalService: () => ({}),
     agentService: () => ({
       getById: vi.fn(async () => null),
       resolveByReference: vi.fn(async (_companyId: string, raw: string) => ({
@@ -812,5 +813,88 @@ describe.sequential("issue thread interaction routes", () => {
         userId: null,
       },
     );
+  });
+
+  it("creates agent-authored targetless request confirmations and rejects malformed payloads with 400", async () => {
+    mockInteractionService.create.mockResolvedValueOnce({
+      id: "interaction-confirmation",
+      companyId: "company-1",
+      issueId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      kind: "request_confirmation",
+      status: "pending",
+      continuationPolicy: "wake_assignee",
+      idempotencyKey: "confirmation:config:roost-qa",
+      sourceCommentId: null,
+      sourceRunId: "run-1",
+      title: "Confirm configuration choice",
+      summary: null,
+      createdByAgentId: CREATED_AGENT_ID,
+      createdByUserId: null,
+      resolvedByAgentId: null,
+      resolvedByUserId: null,
+      payload: {
+        version: 1,
+        prompt: "Use roost-qa as the environment name?",
+        acceptLabel: "Use roost-qa",
+        rejectLabel: "Choose another name",
+      },
+      result: null,
+      resolvedAt: null,
+      createdAt: "2026-04-20T12:00:00.000Z",
+      updatedAt: "2026-04-20T12:00:00.000Z",
+    });
+    const app = await createApp({
+      type: "agent",
+      agentId: CREATED_AGENT_ID,
+      companyId: "company-1",
+      runId: "run-1",
+    });
+
+    const validRes = await request(app)
+      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions")
+      .send({
+        kind: "request_confirmation",
+        idempotencyKey: "confirmation:config:roost-qa",
+        title: "Confirm configuration choice",
+        continuationPolicy: "wake_assignee",
+        payload: {
+          version: 1,
+          prompt: "Use roost-qa as the environment name?",
+          acceptLabel: "Use roost-qa",
+          rejectLabel: "Choose another name",
+        },
+      });
+
+    expect(validRes.status).toBe(201);
+    expect(validRes.body).toMatchObject({
+      kind: "request_confirmation",
+      status: "pending",
+      payload: {
+        prompt: "Use roost-qa as the environment name?",
+      },
+    });
+    expect(mockInteractionService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }),
+      expect.objectContaining({
+        kind: "request_confirmation",
+        sourceRunId: "run-1",
+        payload: expect.not.objectContaining({ target: expect.anything() }),
+      }),
+      {
+        agentId: CREATED_AGENT_ID,
+        userId: null,
+      },
+    );
+
+    const invalidRes = await request(app)
+      .post("/api/issues/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/interactions")
+      .send({
+        kind: "request_confirmation",
+        payload: { version: 1 },
+      });
+
+    expect(invalidRes.status).toBe(400);
+    expect(invalidRes.body).toMatchObject({ error: "Validation error" });
+    expect(mockInteractionService.create).toHaveBeenCalledTimes(1);
   });
 });
