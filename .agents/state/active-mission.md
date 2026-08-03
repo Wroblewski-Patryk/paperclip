@@ -17,7 +17,9 @@
   missing is closed as not admitted instead of consuming live WIP.
 - Periodic source-scoped recovery now follows the same rule: once its source
   issue is `blocked`, it cannot rearm an old recovery wake. The real blocker
-  completion is the only legal next signal.
+  completion is the only legal next signal. Four pre-fix queued wakes were
+  canonically cancelled with automatic recovery suppressed; readback shows
+  zero live runs whose current issue is blocked.
 - Targeted evidence is green: queue/controller specifications `201/201`,
   admission service `10/10`, focused blocked-source recovery `1/1`, server
   typecheck, and strict runtime topology.

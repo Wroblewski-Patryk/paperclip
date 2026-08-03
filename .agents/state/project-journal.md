@@ -5117,3 +5117,9 @@ only completion of the real blocker may provide the next legal wake. A focused
 embedded-Postgres regression passed (`1/1`) and proves repeated reconciliation
 creates no additional wakeup for the blocked source issue. Server typecheck
 also passed after the correction.
+
+Four queued source-scoped wakes created by the pre-fix runtime were then
+identified precisely (LUC-2287, LUC-2291, LUC-2397, and LUC-2398) and
+canonically cancelled with automatic recovery suppressed. Final live readback
+shows zero running or queued runs whose current issue is `blocked`; the only
+live work is active LUC-2452 plus the legal queued LUC-2154 continuation.
