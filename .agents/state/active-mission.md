@@ -2,10 +2,12 @@
 
 ## 2026-08-03 - Admission reopened; Roost QA execution resumed
 
-- LuckySparrow is open on native admission-control version 7. The bounded
-  maintenance replay inspected 19 semantic wakeups, queued 4, rejected 15 as
-  no longer admissible, failed 0, and persisted its replay snapshot plus the
-  completed reopen attempt id. Deferred maintenance work returned to zero.
+- LuckySparrow is open on native admission-control version 11. After the
+  original version-7 reopen, the watchdog correctly drained on four pre-fix
+  blocked queues. Their cleanup and the regression-tested prevention commit
+  enabled a bounded `draining -> maintenance -> reopening -> open` recovery;
+  replay inspected 4 wakeups, queued exactly 1 legal continuation, rejected 3,
+  and failed 0.
 - Commit `7115b032` closes two orchestration gaps: a blocked issue with no live
   blocker now returns to `todo`, and the reconciler wakes its assigned owner
   with current evidence instead of recording a paper-only status change.
@@ -32,8 +34,8 @@
   `roost-qa`; DRE completed the corrected provisioning with all original
   isolation and no-deploy boundaries. The QA app is Exited, auto-deploy is off,
   deployments are zero, and its database volume namespace differs from
-  production. LUC-2154 is now `todo` and queued for candidate-secret rotation
-  plus the controlled first deploy.
+  production. LUC-2154 is now `in_progress` with a fresh live run for
+  candidate-secret rotation plus the controlled first deploy.
 - The reported agent-authored `request_confirmation` HTTP 500 was not
   reproducible and the originating run preserved no exact request evidence.
   LUC-2452 is done: live targetless confirmation returned 201, malformed input

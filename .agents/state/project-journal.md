@@ -5133,3 +5133,14 @@ tests passed 12/12 and shared interaction-schema tests passed 4/4. Commit
 is optional for configuration choices; no handler or migration change was
 justified. Future systemic defect classification requires preserved request and
 response evidence rather than a bare status-code claim.
+
+The watchdog had already moved admission version 8 to `draining` after
+observing the four pre-fix blocked queues. This explained why the legal
+LUC-2154 wake remained skipped even after cleanup: the controller was correctly
+fail-closed on remembered evidence. After confirming zero live blocked issues,
+commit `8032ceb2`, the focused `1/1` regression, server typecheck, and strict
+runtime topology, the controller completed a bounded
+`draining -> maintenance -> reopening -> open` transition to version 11.
+Reopen replay inspected 4 deferred wakes, queued exactly 1 legal continuation,
+rejected 3, and failed 0. Final readback shows LUC-2154 `in_progress` with a
+fresh emitting run and `BLOCKED_LIVE_COUNT=0`.

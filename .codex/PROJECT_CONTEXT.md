@@ -537,9 +537,11 @@ the active Stage 1 delivery mission.
 
 ## 2026-08-03 - Current autonomy checkpoint
 
-- Native admission control is open at version 7 after a bounded maintenance
-  replay. Replay state is persisted on the control row; supervisory automation
-  must compare only events inside the current drain/reopen window.
+- Native admission control is open at version 11 after a second bounded
+  drain/reopen closed the pre-fix blocked-queue tail. Its replay inspected 4,
+  queued exactly 1 legal continuation, rejected 3, and failed 0. Replay state
+  is persisted on the control row; supervisory automation must compare only
+  events inside the current drain/reopen window.
 - Deferred wake replay must re-read issue state. Never enqueue historical work
   for an issue that is currently blocked, terminal, or missing; preserve the
   current dependency graph as the authority for whether work is actionable.
@@ -556,7 +558,8 @@ the active Stage 1 delivery mission.
   environment name is `roost-qa`, not the rejected two-character name `qa`.
   LUC-2336 is done: application `Roost QA LUC-2153` exists at the pinned
   candidate SHA, Exited, with auto-deploy off, zero deployments, and a distinct
-  database volume namespace. LUC-2154 owns secrets and controlled deployment.
+  database volume namespace. LUC-2154 owns secrets and controlled deployment
+  and has a fresh live `in_progress` run after the version-11 reopen.
 - Keep production Product Map delivery fail-closed until the remaining
   LUC-1910 QA/release gates and protected ingestion bindings are satisfied.
 - LUC-2452 disproved the unsubstantiated interaction-handler defect: the live
