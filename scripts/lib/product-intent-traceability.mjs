@@ -3,6 +3,24 @@ import path from "node:path";
 
 export const PRODUCT_INTENT_TRACE_MARKER = "softwarehouse-product-intent-trace:v1";
 
+const nonProductWorkTag = /\[(?:Known State(?: Refresh)?|Proof|QVE|Architecture|Docs?|Documentation|ARB-\d+)\]/i;
+
+export function productIntentGateApplicability(issue) {
+  const title = String(issue?.title ?? "");
+  const description = String(issue?.description ?? "");
+  if (description.includes(PRODUCT_INTENT_TRACE_MARKER)) return { applies: true, reason: "explicit_product_intent_trace" };
+  if (["routine_execution", "stranded_issue_recovery", "issue_productivity_review", "product_intent_reconciliation"].includes(issue?.originKind)) {
+    return { applies: false, reason: `non_product_origin:${issue.originKind}` };
+  }
+  if (/^\[Softwarehouse\]/i.test(title)) return { applies: false, reason: "softwarehouse_control_work" };
+  if (/^\[[^\]]+\]\[Product Intent\] Reconcile\b/i.test(title)) return { applies: false, reason: "intent_reconciliation_work" };
+  if (nonProductWorkTag.test(title)) return { applies: false, reason: "evidence_architecture_or_documentation_work" };
+  if (/^\s*(?:softwarehouse-known-state-refresh:v1|Architecture backlog row:)/i.test(description)) {
+    return { applies: false, reason: "generated_observation_or_architecture_backlog" };
+  }
+  return { applies: true, reason: "application_behavior_or_risk_change" };
+}
+
 function posix(value) {
   return value.split(path.sep).join("/");
 }

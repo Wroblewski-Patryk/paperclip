@@ -4,6 +4,7 @@ import {
   evaluateProductIntentTrace,
   inspectProductIntentContract,
   parseProductIntentTrace,
+  productIntentGateApplicability,
 } from "./lib/product-intent-traceability.mjs";
 import { softwarehouseActiveApplicationProjects } from "./lib/softwarehouse-project-registry.mjs";
 
@@ -36,11 +37,11 @@ try {
     error: null,
     projects: contracts.map(({ project, contract }) => {
       const paperclipProject = paperclipProjects.find((candidate) => candidate.name === project.paperclipName);
-      const candidates = issues
+      const scopedIssues = issues
         .filter((issue) => issue.projectId === paperclipProject?.id)
-        .filter((issue) => !["routine_execution", "stranded_issue_recovery", "issue_productivity_review", "product_intent_reconciliation"].includes(issue.originKind))
-        .filter((issue) => !/^\[[^\]]+\]\[Product Intent\] Reconcile\b/.test(issue.title ?? ""))
-        .filter((issue) => issue.assigneeAgentId && typeof issue.description === "string" && issue.description.trim().length >= 120)
+        .filter((issue) => issue.assigneeAgentId && typeof issue.description === "string" && issue.description.trim().length >= 120);
+      const candidates = scopedIssues
+        .filter((issue) => productIntentGateApplicability(issue).applies)
         .map((issue) => {
           const result = evaluateProductIntentTrace({ trace: parseProductIntentTrace(issue.description), contract });
           return {
@@ -60,6 +61,10 @@ try {
         candidates,
         readyCandidates: candidates.filter((item) => item.ready).length,
         reconciliationRequired: candidates.filter((item) => !item.ready).length,
+        excludedNonProductWork: scopedIssues
+          .map((issue) => ({ issue, classification: productIntentGateApplicability(issue) }))
+          .filter(({ classification }) => !classification.applies)
+          .map(({ issue, classification }) => ({ identifier: issue.identifier, title: issue.title, reason: classification.reason })),
       };
     }),
   };

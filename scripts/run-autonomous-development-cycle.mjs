@@ -6,6 +6,7 @@ import {
   evaluateProductIntentTrace,
   inspectProductIntentContract,
   parseProductIntentTrace,
+  productIntentGateApplicability,
   productIntentDecisionContract,
   renderProductIntentTraceTemplate,
 } from "./lib/product-intent-traceability.mjs";
@@ -193,6 +194,94 @@ async function ensureProductIntentReconciliation({ company, issue, project, agen
   };
 }
 
+async function ensureProjectIntentContractReconciliation({ company, project, agents, issues, contract }) {
+  const canonical = canonicalSoftwarehouseProject(project.name);
+  const title = `[${canonical.name}][Product Intent] Establish canonical product contract before implementation`;
+  const existing = issues.find((candidate) => candidate.title === title && !["done", "cancelled"].includes(candidate.status));
+  if (existing) {
+    return {
+      action: "supervise_product_intent_contract_reconciliation",
+      reason: `${canonical.name} has an existing project-level product-contract reconciliation lane.`,
+      reconciliationIdentifier: existing.identifier,
+      findings: contract.findings,
+      startedRuns: [],
+    };
+  }
+  const manager = agents.find((agent) => agent.metadata?.rosterKey === canonical.managerRosterKey)
+    ?? agents.find((agent) => agent.name === canonical.managerName);
+  if (!manager) {
+    return {
+      action: "product_intent_reconciliation_owner_missing",
+      reason: `No canonical product manager can establish the ${canonical.name} product contract.`,
+      findings: contract.findings,
+      startedRuns: [],
+    };
+  }
+  const created = await request("POST", `/api/companies/${company.id}/issues`, {
+    title,
+    description: [
+      "## Goal",
+      "",
+      `Make ${canonical.name}'s declared product authority substantive enough to authorize future behavior changes without guessing.`,
+      "",
+      "## Required reconciliation",
+      "",
+      "- Read `docs/documentation-contract.json` and the bounded current sources it declares.",
+      "- Classify relevant legacy `docs/architecture/` material as confirmed product intent, architecture, unresolved assumption, superseded material, or conflict.",
+      "- Preserve history, but move or link confirmed owner-visible behavior into the declared product authority and keep architecture implementation-focused.",
+      "- Route one owner decision only for a material unresolved conflict; do not infer business, safety, privacy, money, or authority choices.",
+      "- Run `pnpm softwarehouse:product-intent-traceability` from Paperclip Softwarehouse and attach the project-specific result.",
+      "",
+      `Current findings: ${(contract.findings ?? []).map((finding) => `${finding.code}: ${finding.message}`).join("; ")}`,
+      "",
+      "This issue establishes the project contract. It does not implement an application feature.",
+    ].join("\n"),
+    status: "todo",
+    priority: "high",
+    assigneeAgentId: manager.id,
+    projectId: project.id,
+    goalId: project.goalId ?? null,
+    acceptanceCriteria: [
+      "The declared product entrypoint contains substantive approved product behavior rather than a placeholder.",
+      "Legacy mixed architecture notes are preserved and classified without inventing owner intent.",
+      "Product, architecture, assumptions/decisions, and observed state have one non-conflicting current authority path.",
+      "The product-intent traceability audit reports the project documentation contract ready.",
+    ],
+  });
+  if (!created.ok) {
+    return {
+      action: "product_intent_reconciliation_creation_failed",
+      reason: created.error,
+      findings: contract.findings,
+      startedRuns: [],
+    };
+  }
+  const wake = await request("POST", `/api/agents/${manager.id}/wakeup`, {
+    source: "automation",
+    triggerDetail: "system",
+    reason: `Establish the canonical ${canonical.name} product contract before implementation`,
+    idempotencyKey: `${cycleId}:project-intent-contract:${project.id}`,
+    forceFreshSession: true,
+    payload: { issueId: created.data.id, projectId: project.id, cycleId },
+  });
+  const boundedHold = wake.status === 409 && wake.data?.error === "Work was not admitted"
+    && ["waiting_for_signal", "deferred"].includes(wake.data?.details?.disposition);
+  return {
+    action: wake.ok
+      ? "product_intent_contract_reconciliation_dispatched"
+      : boundedHold ? "product_intent_contract_reconciliation_waiting_for_capacity" : "product_intent_reconciliation_wake_failed",
+    reason: wake.ok
+      ? `${canonical.name}'s project-level product-contract reconciliation was dispatched.`
+      : boundedHold
+        ? `${canonical.name}'s reconciliation issue was created and left todo under the admission controller's bounded WIP hold.`
+        : wake.error,
+    reconciliationIdentifier: created.data.identifier,
+    findings: contract.findings,
+    admissionHold: boundedHold ? wake.data.details : null,
+    startedRuns: wake.data?.id ? [wake.data.id] : [],
+  };
+}
+
 async function executeBoundedDispatch({ company, issues, projects, agents, repositories, preliminary }) {
   if (!company || !Array.isArray(issues) || !Array.isArray(projects)) return preliminary;
   if (!["ready_for_next_paperclip_dispatch", "project_truth_gap_dispatched"].includes(preliminary.action)) return preliminary;
@@ -214,8 +303,7 @@ async function executeBoundedDispatch({ company, issues, projects, agents, repos
       && repositories[repoName]?.clean === true
       && ["backlog", "todo"].includes(issue.status)
       && issue.assigneeAgentId
-      && !["routine_execution", "stranded_issue_recovery", "issue_productivity_review"].includes(issue.originKind)
-      && !/^\[[^\]]+\]\[Product Intent\] Reconcile\b/.test(issue.title ?? "")
+      && productIntentGateApplicability(issue).applies
       && !issueIdsAlreadyInFlight.has(issue.id)
       && (typeof issue.description === "string" && issue.description.trim().length >= 120);
   }).sort((left, right) => {
@@ -251,6 +339,15 @@ async function executeBoundedDispatch({ company, issues, projects, agents, repos
         contract: held.contract,
         traceResult: held.traceResult,
       });
+    }
+    for (const canonical of softwarehouseActiveApplicationProjects) {
+      const project = projects.find((candidate) => candidate.name === canonical.paperclipName);
+      if (!project || repositories[canonical.name]?.clean !== true) continue;
+      let contract = contractsByProjectId.get(project.id);
+      if (!contract) contract = await inspectProductIntentContract(canonical);
+      if (!contract.ready) {
+        return ensureProjectIntentContractReconciliation({ company, project, agents, issues, contract });
+      }
     }
     return {
       ...preliminary,
@@ -683,6 +780,9 @@ const cycle = {
           "supervise_existing_runs",
           "supervise_product_intent_reconciliation",
           "product_intent_reconciliation_dispatched",
+          "supervise_product_intent_contract_reconciliation",
+          "product_intent_contract_reconciliation_dispatched",
+          "product_intent_contract_reconciliation_waiting_for_capacity",
           "bounded_product_delivery_dispatched",
         ].includes(dispatch.action),
         dispatch.reason,

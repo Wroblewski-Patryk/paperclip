@@ -21,9 +21,17 @@ Last updated: 2026-08-04
   contracts and live work. Missing traces route exactly one project-PM
   reconciliation child and block only the affected implementation until the
   source issue is repaired.
+- The trace gate applies to application behavior and product-bound
+  safety/reliability changes. Machine-tagged known-state, proof, QVE,
+  architecture/docs, routine, and Softwarehouse control work use their own
+  evidence contracts and must not fabricate product intent. An explicit trace
+  always opts an issue into the product gate.
 - Current audit: Soar and Featherly have substantive product entrypoints;
   Roost's `docs/product/product.md` is a placeholder and must be reconciled
   from its existing architecture/product material before new implementation.
+  If no behavior task is waiting, the autonomous cycle creates/reuses one
+  project-level PM contract-reconciliation issue once WIP and repo ownership
+  permit it.
 
 ## 2026-08-03 Pre-start Decision And Organizational Metabolism
 

@@ -5232,3 +5232,16 @@ fresh emitting run and `BLOCKED_LIVE_COUNT=0`.
 - A second live control tick returned `ok: true`; blocked triage passed and no
   duplicate work was forced while LUC-2481 (Soar), LUC-2483 (Featherly), and
   LUC-2485 (Roost) were active.
+- The next intent audit initially over-classified 12 evidence/control/docs
+  issues as product implementation. Added one shared work-class classifier
+  used by both audit and dispatcher. It excludes tagged observation, proof,
+  QVE, architecture/docs, generated ARB, routine, productivity, recovery, and
+  Softwarehouse-control work while keeping behavior and product-bound risk
+  changes gated; explicit traces always opt in.
+- Added a deduplicated project-level product-contract reconciliation route for
+  a contract failure with no waiting behavior issue. It respects clean-repo
+  ownership and admission WIP, and will repair Roost's placeholder product
+  entrypoint without blocking unrelated evidence collection.
+- Post-correction verification passed: intent tests 5/5, gate specs 204/204,
+  agent instruction synchronization 39/39, and agent settings audit with zero
+  findings.

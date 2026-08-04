@@ -23,6 +23,14 @@ An issue can start implementation only when it has enough context for a competen
   observed gap, assumption disposition, expected outcome, and acceptance
   evidence
 
+The Product Intent Trace gate applies to changes in application behavior or a
+product-bound safety/reliability contract. Observation, known-state refresh,
+proof collection, documentation/architecture maintenance, and Softwarehouse
+control work keep their own evidence contracts and must not fabricate product
+intent merely to pass this gate. Canonical work-class tags are executable
+routing input; an explicit Product Intent Trace always opts an issue into the
+product gate.
+
 ## If Ready Is Missing
 
 The agent enters DISCOVERY:

@@ -7,6 +7,7 @@ import {
   evaluateProductIntentTrace,
   inspectProductIntentContract,
   parseProductIntentTrace,
+  productIntentGateApplicability,
   renderProductIntentTraceTemplate,
 } from "./lib/product-intent-traceability.mjs";
 
@@ -101,4 +102,21 @@ test("rejects a placeholder product entrypoint that contains no usable product d
   const contract = await inspectProductIntentContract({ name: "Example", root });
   assert.equal(contract.ready, false);
   assert(contract.findings.some((finding) => finding.code === "product_entrypoint_placeholder"));
+});
+
+test("applies the intent gate to behavior changes but not observation or control work", () => {
+  assert.equal(productIntentGateApplicability({
+    title: "[Featherly] [Repair] Make exchange verification truthful and safe",
+    description: "Change the application behavior and prove the resulting customer-visible safety contract.",
+    originKind: "manual",
+  }).applies, true);
+  for (const title of [
+    "[Softwarehouse][Blocked Triage] Classify LUC-1",
+    "[Roost][QVE] Reconcile missing-test-link baseline",
+    "[Featherly] [Known State] Refresh architecture awareness",
+    "[Soar][ARB-003] Expand module test tables",
+    "[Featherly] [Proof] Establish route-level coverage",
+  ]) {
+    assert.equal(productIntentGateApplicability({ title, description: "A sufficiently long evidence-only task description.", originKind: "manual" }).applies, false, title);
+  }
 });

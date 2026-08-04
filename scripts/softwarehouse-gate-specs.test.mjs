@@ -2867,18 +2867,23 @@ test("autonomous cycle uses the live ProductDelivery ledger instead of future-le
   assert.match(cycle, /evaluateProductIntentTrace/);
   assert.match(cycle, /productIntentDecisionContract/);
   assert.match(cycle, /product_intent_reconciliation_dispatched/);
+  assert.match(cycle, /ensureProjectIntentContractReconciliation/);
+  assert.match(cycle, /Establish canonical product contract before implementation/);
+  assert.match(cycle, /product_intent_contract_reconciliation_waiting_for_capacity/);
   assert.match(cycle, /blockParentUntilDone: true/);
-  assert.match(cycle, /Product Intent\\\] Reconcile/);
+  assert.match(cycle, /\[Product Intent\] Reconcile/);
   assert.match(lifecycle, /GET \/api\/deliveries\/\{deliveryId\}/);
   assert.match(lifecycle, /delivery owner must not approve their own review or accept their own/);
   assert.match(lifecycle, /softwarehouse-product-intent-trace:v1/);
 });
 
 test("autonomous delivery admission fails closed without the owner-intent trace", async () => {
-  const [deliveryServiceSource, intentInstruction, controlTick] = await Promise.all([
+  const [deliveryServiceSource, intentInstruction, controlTick, cycle, intentLibrary] = await Promise.all([
     readFile("server/src/services/deliveries.ts", "utf8"),
     readFile("softwarehouse/instructions/shared/15-product-intent-from-architecture.md", "utf8"),
     readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8"),
+    readFile("scripts/run-autonomous-development-cycle.mjs", "utf8"),
+    readFile("scripts/lib/product-intent-traceability.mjs", "utf8"),
   ]);
 
   assert.match(deliveryServiceSource, /validateAutonomousDeliveryIntentContract/);
@@ -2892,6 +2897,9 @@ test("autonomous delivery admission fails closed without the owner-intent trace"
   assert.match(intentInstruction, /Acceptance evidence/);
   assert.match(controlTick, /name: "productIntentTraceability"/);
   assert.match(controlTick, /audit-product-intent-traceability\.mjs/);
+  assert.match(cycle, /productIntentGateApplicability\(issue\)\.applies/);
+  assert.match(intentLibrary, /evidence_architecture_or_documentation_work/);
+  assert.match(intentLibrary, /application_behavior_or_risk_change/);
   const graduation = await readFile("scripts/evaluate-autonomy-graduation.mjs", "utf8");
   assert.match(graduation, /accepted_autonomous_outcomes_are_intent_traceable/);
   assert.match(graduation, /hasCompleteProductIntentTrace/);

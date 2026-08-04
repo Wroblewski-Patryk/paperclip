@@ -32,6 +32,15 @@
   hold. Post-fix live control tick returned `ok: true`; the starter step passed
   while Soar LUC-2481, Featherly LUC-2483, and Roost LUC-2485 remained the
   three legitimate active project lanes.
+- A false-positive audit pass was removed: observation/proof/QVE/architecture,
+  generated backlog, routines, and Softwarehouse control issues are no longer
+  treated as product implementation. Their evidence obligations remain, but
+  they do not manufacture an owner-intent trace. Behavior and product-bound
+  risk changes remain fail-closed, and an explicit trace opts any issue in.
+- Roost's placeholder product source now has a guaranteed project-level PM
+  reconciliation route even when no behavior issue is waiting. It is created
+  only when the Roost repository is clean and admission capacity permits; an
+  admission WIP hold leaves one todo issue rather than failing the cycle.
 
 ## 2026-08-03 - Admission reopened; Roost QA execution resumed
 

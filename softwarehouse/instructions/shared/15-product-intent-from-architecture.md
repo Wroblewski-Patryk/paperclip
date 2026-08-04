@@ -34,6 +34,13 @@ to make an audit green.
 
 ## Required Trace Before Autonomous Implementation
 
+This gate is for application behavior changes and product-bound safety or
+reliability changes. Known-state refresh, observation, proof collection,
+documentation/architecture maintenance, and Softwarehouse control work retain
+their own evidence contracts; do not fabricate owner intent for them. Use the
+canonical work-class title tags so routing is machine-readable. Adding an
+explicit trace opts the issue into the product gate regardless of its title.
+
 Every issue admitted into an autonomous ProductDelivery must contain this
 completed block with repo-relative authoritative paths:
 
