@@ -5144,3 +5144,43 @@ runtime topology, the controller completed a bounded
 Reopen replay inspected 4 deferred wakes, queued exactly 1 legal continuation,
 rejected 3, and failed 0. Final readback shows LUC-2154 `in_progress` with a
 fresh emitting run and `BLOCKED_LIVE_COUNT=0`.
+
+## 2026-08-04 - End-to-end autonomy remediation and bounded reopen
+
+- Implemented the autonomous supervision loop in `86036caf`, followed by
+  focused fixes `aa35cfa1`, `29bb4d6b`, `8c1bc783`, `c42268a7`, `d8c05c94`,
+  and `bbe382ee`.
+- Repaired 32 orphaned blocked issues. Blocked transitions now require an
+  unresolved first-class dependency; exhausted recovery routes to review.
+- Fixed stale-running agent reconciliation, exact secret-ref descendant
+  cleanup, profile secret lifecycle, browser transcript redaction, and the
+  evidence-update side effect that reopened a closed issue.
+- Reopened admission through `maintenance -> reopening v14 -> open v15` after
+  a zero-live-run preflight. Replay inspected 20, queued 6, rejected 14, and
+  failed 0.
+- Corrected a Coolify QA task assigned to CTO without a binding: cancelled only
+  that fresh misrouted run and reassigned the issue to DRE rather than adding a
+  broad CTO token.
+- Productivity-review titles now derive a canonical marker from their owning
+  project, including future projects. Strict Soar/Roost/Featherly isolation
+  returned to zero findings.
+- Terminal `stranded_issue_recovery` now suppresses the same unchanged source
+  fingerprint; a new source run remains eligible. Duplicate LUC-2467 was
+  cancelled.
+- Roost Product Map v2 is deployed at exact SHA
+  `ae2daa656fc972bac5f6f1316ee81fb0ab579735`; authenticated readback keeps
+  Featherly, Roost, and Soar separate and exposes conflict honestly.
+- ProductDelivery now governs implementation, independent review, integration/
+  origin/deploy SHA, deployment URL, health observation, and independent
+  outcome acceptance. Owners cannot self-certify review or outcome.
+- Verification: repo-wide typecheck/build passed earlier in this repair;
+  focused evidence tests 15/15, productivity-title 3/3, gate specs 203/203,
+  agent settings 39/39, strict isolation 0 findings, strict outcome audit 0
+  errors, and canonical topology passed. The new embedded-Postgres recovery
+  regression timed out during isolated fixture initialization; no temporary
+  listener remained and canonical port 54329 was untouched. Server typecheck
+  passed after the change.
+- Graduation currently fails only the empirical condition: two independently
+  accepted autonomous outcomes in two projects. Once they exist, the 14-day
+  healthy window begins. The four automations remain active and self-retire
+  only on exact `operationally_graduated`.

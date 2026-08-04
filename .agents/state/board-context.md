@@ -501,3 +501,22 @@ reject, accept bounded debt, propose, or escalate when execution is not yet
 justified. Increasing uncertainty or irreversibility must reduce autonomous
 authority. Assumptions need provenance and expiry, and process/role complexity
 must be treated as organizational cost rather than evidence of maturity.
+
+# 2026-08-04 Owner directive: supervision is temporary autonomy scaffolding
+
+Safe supervision exists to produce an autonomous application factory, not to
+keep Paperclip permanently inactive under a glass dome. Safe stasis is a
+failure mode whenever a bounded, evidence-backed next action exists. The four
+external Codex automations must detect and repair control-plane defects, keep
+Soar/Roost/Featherly identity isolated, and ensure a productive autonomous
+cycle; they retire together only after the canonical graduation evaluator
+returns exactly `operationally_graduated`.
+
+Graduation requires a continuous 14-day repair-free healthy window plus at
+least two independently accepted ProductDelivery outcomes in two different
+projects. Activity, tasks, documents, commits, pushes, deployments, or healthy
+endpoints alone do not satisfy this condition. Every ProductDelivery must
+persist implementation evidence, independent review, exact source/integration/
+origin/deployed SHA, deployment URL, observed production health, and an
+independent owner-visible outcome acceptance. A delivery owner may not approve
+their own review or accept their own outcome.

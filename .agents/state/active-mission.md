@@ -1256,3 +1256,31 @@ or the relevant owners explicitly classify them as not required with evidence.
   test. It contains the verified fail-closed fix, but three evidence-memory
   files remain dirty. Treat closure as incomplete until one owner reviews the
   committed diff and closes those files; keep the company paused.
+
+## 2026-08-04 - Autonomous factory remediation is operational
+
+LuckySparrow admission is open at company control version 15. The evidence-
+gated reopen replay inspected 20 deferred wakeups, queued 6, rejected 14, and
+failed 0. A fresh canonical autonomous cycle completed with clean repositories
+and bounded supervision of live product work. Paperclip immediately continued
+real Roost, Soar, Featherly, and Paperclip OS lanes rather than remaining idle.
+
+The systemic controls now include: blocked-state validation against unresolved
+first-class dependencies; exhausted recovery routed to review; stale-running
+agent reconciliation; current-state replay validation; exact secret-ref
+rotation cleanup; browser transcript redaction; Product Map v2 publisher with
+encrypted least-privilege key binding and latest-state outbox; project-specific
+documentation contracts and truth gaps; and durable suppression of repeated
+stranded recovery for an unchanged source fingerprint.
+
+ProductDelivery is the canonical last-mile ledger. New bounded autonomous work
+must advance through evidence, independent review, integration SHA, origin SHA,
+deploy SHA/URL, observed health, and independent outcome acceptance. Static
+"future release ledger" placeholders were removed. The lifecycle contract is
+synced to all 39 active agents.
+
+Current graduation decision is honestly `not_operationally_graduated` only
+because the required empirical sample does not yet exist: two autonomous,
+independently accepted outcomes across two projects, followed by 14 continuous
+healthy days. All other current graduation checks pass. Keep the four bounded
+automations active until that evidence accrues; do not fabricate acceptance.
