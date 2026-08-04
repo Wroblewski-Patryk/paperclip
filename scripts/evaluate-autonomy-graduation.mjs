@@ -52,11 +52,20 @@ const [issuesResult, agentsResult, runsResult, deliveriesResult, controlsResult]
   : Array.from({ length: 5 }, () => ({ ok: false, data: null }));
 
 const issues = Array.isArray(issuesResult.data) ? issuesResult.data : [];
-const issueById = new Map(issues.map((issue) => [issue.id, issue]));
-const orphanBlocked = issues.filter((issue) => issue.status === "blocked" && !((issue.blockedBy ?? []).some((id) => {
-  const blocker = issueById.get(id);
-  return blocker && !["done", "cancelled"].includes(blocker.status);
-})));
+// Company issue listings intentionally omit the expanded dependency graph. Graduation
+// must inspect each blocked issue's authoritative detail instead of interpreting the
+// absent list projection as "no blockers" (which would turn every valid block orphaned).
+const blockedIssueDetails = await Promise.all(issues
+  .filter((issue) => issue.status === "blocked")
+  .map(async (issue) => {
+    const detail = await request(`/api/issues/${issue.id}`);
+    return detail.ok ? detail.data : { ...issue, blockerDetailUnavailable: true };
+  }));
+const orphanBlocked = blockedIssueDetails.filter((issue) => {
+  if (issue?.blockerDetailUnavailable) return true;
+  return !(Array.isArray(issue?.blockedBy)
+    && issue.blockedBy.some((blocker) => blocker && !["done", "cancelled"].includes(blocker.status)));
+});
 const runs = Array.isArray(runsResult.data) ? runsResult.data : [];
 const activeRuns = runs.filter((run) => ["queued", "running"].includes(run.status));
 const agents = Array.isArray(agentsResult.data) ? agentsResult.data : [];
