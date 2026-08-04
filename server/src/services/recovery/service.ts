@@ -22,6 +22,7 @@ import {
   issueRelations,
   issueThreadInteractions,
   issues,
+  projects,
 } from "@paperclipai/db";
 import { parseObject, asBoolean, asNumber } from "../../adapters/utils.js";
 import { runningProcesses } from "../../adapters/index.js";
@@ -62,6 +63,15 @@ import {
 import { isAutomaticRecoverySuppressedByPauseHold } from "./pause-hold-guard.js";
 
 const EXECUTION_PATH_HEARTBEAT_RUN_STATUSES = ["queued", "running", "scheduled_retry"] as const;
+
+export function projectScopedRecoveryTitle(
+  action: "Recover missing next step" | "Recover stalled issue",
+  sourceLabel: string,
+  projectName?: string | null,
+) {
+  const scopedName = projectName?.split(":").at(-1)?.trim();
+  return `${scopedName ? `[${scopedName}] ` : ""}${action} ${sourceLabel}`;
+}
 const UNSUCCESSFUL_HEARTBEAT_RUN_TERMINAL_STATUSES = ["failed", "cancelled", "timed_out"] as const;
 export const ACTIVE_RUN_OUTPUT_SUSPICION_THRESHOLD_MS = 60 * 60 * 1000;
 export const ACTIVE_RUN_OUTPUT_CRITICAL_THRESHOLD_MS = 4 * 60 * 60 * 1000;
@@ -2123,12 +2133,21 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
 
     const prefix = await getCompanyIssuePrefix(input.issue.companyId);
     const sourceAssignee = input.issue.assigneeAgentId ? await getAgent(input.issue.assigneeAgentId) : null;
+    const projectName = input.issue.projectId
+      ? await db.select({ name: projects.name })
+          .from(projects)
+          .where(and(
+            eq(projects.id, input.issue.projectId),
+            eq(projects.companyId, input.issue.companyId),
+          ))
+          .then((rows) => rows[0]?.name ?? null)
+      : null;
     let recovery: Awaited<ReturnType<typeof issuesSvc.createChild>>["issue"];
     try {
       recovery = (await issuesSvc.createChild(input.issue.id, {
         title: recoveryCause === SUCCESSFUL_RUN_MISSING_STATE_REASON
-          ? `Recover missing next step ${input.issue.identifier ?? input.issue.title}`
-          : `Recover stalled issue ${input.issue.identifier ?? input.issue.title}`,
+          ? projectScopedRecoveryTitle("Recover missing next step", input.issue.identifier ?? input.issue.title, projectName)
+          : projectScopedRecoveryTitle("Recover stalled issue", input.issue.identifier ?? input.issue.title, projectName),
         description: buildStrandedIssueRecoveryDescription({
           issue: input.issue,
           latestRun: input.latestRun,

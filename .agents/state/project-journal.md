@@ -5164,6 +5164,9 @@ fresh emitting run and `BLOCKED_LIVE_COUNT=0`.
 - Productivity-review titles now derive a canonical marker from their owning
   project, including future projects. Strict Soar/Roost/Featherly isolation
   returned to zero findings.
+- The same generic project marker is enforced for both missing-disposition and
+  stalled-issue recovery titles; fresh Featherly recovery LUC-2480 was repaired
+  and strict isolation again returned zero findings.
 - Terminal `stranded_issue_recovery` now suppresses the same unchanged source
   fingerprint; a new source run remains eligible. Duplicate LUC-2467 was
   cancelled.
