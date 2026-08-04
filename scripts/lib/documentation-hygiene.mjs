@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdx", ".txt", ".json", ".yaml", ".yml"]);
-const DOC_PATH = /^(?:docs?|history|\.agents|\.codex)(?:\/|$)|^(?:README|AGENTS)\.md$/i;
+const DOC_PATH = /^(?:docs?|history|\.agents|\.codex)(?:\/|$)|^(?:README|AGENTS)\.md$|^\.gitignore$/i;
 
 function posix(value) {
   return value.split(path.sep).join("/");

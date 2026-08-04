@@ -87,7 +87,8 @@ test("treats documentation-only commits ahead of upstream as a warning, not a fa
   git("branch", "baseline");
   git("branch", "--set-upstream-to", "baseline", "main");
   await writeFile(path.join(root, "README.md"), "# Test\n\nControl-plane clarification.\n");
-  git("add", "README.md");
+  await writeFile(path.join(root, ".gitignore"), "docs/status/generated.json\n");
+  git("add", "README.md", ".gitignore");
   git("commit", "-m", "docs: clarify control plane");
 
   const result = await auditDocumentationProject({ name: "Test", root, requireDeploymentIdentity: false });

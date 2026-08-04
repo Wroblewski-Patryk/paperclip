@@ -60,6 +60,7 @@ vi.mock("../services/index.js", () => ({
       agent: { id: raw },
     })),
   }),
+  assignmentProposalService: () => ({}),
   documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
   documentService: () => mockDocumentService,
   executionWorkspaceService: () => ({}),
@@ -129,6 +130,7 @@ function registerModuleMocks() {
         agent: { id: raw },
       })),
     }),
+    assignmentProposalService: () => ({}),
     documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
     documentService: () => mockDocumentService,
     executionWorkspaceService: () => ({}),
@@ -477,6 +479,51 @@ describe("issue update comment wakeups", () => {
         }),
       }),
     );
+  });
+
+  it("attaches typed evidence to a closed issue without implicitly reopening it", async () => {
+    const existing = makeIssue({ status: "done" });
+    const updated = makeIssue({ status: "done" });
+    mockIssueService.getById.mockResolvedValue(existing);
+    mockIssueService.update.mockResolvedValue(updated);
+    mockIssueService.addComment.mockResolvedValue({
+      id: "comment-historical-evidence",
+      issueId: existing.id,
+      companyId: existing.companyId,
+      body: "Historical completion evidence attached after production verification.",
+    });
+
+    const completionEvidence = {
+      summary: "Production verification now provides typed historical evidence.",
+      riskLevel: "standard" as const,
+      testEvidence: {
+        summary: "Focused verification passed.",
+        refs: [{ kind: "request_comment" as const, label: "Historical verification" }],
+      },
+      reviewEvidence: {
+        summary: "Review was recorded with the evidence repair.",
+        refs: [{ kind: "request_comment" as const, label: "Historical verification" }],
+      },
+      documentationEvidence: {
+        summary: "Documentation evidence was recorded with the repair.",
+        refs: [{ kind: "request_comment" as const, label: "Historical verification" }],
+      },
+    };
+
+    const res = await request(await createApp())
+      .patch(`/api/issues/${existing.id}`)
+      .send({
+        comment: "Historical completion evidence attached after production verification.",
+        completionEvidence,
+      });
+
+    expect(res.status).toBe(200);
+    expect(mockIssueService.update).toHaveBeenCalledWith(
+      existing.id,
+      expect.objectContaining({ completionEvidence }),
+    );
+    expect(mockIssueService.update.mock.calls[0]?.[1]).not.toHaveProperty("status", "todo");
+    expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
   });
 
   it("does not wake the assignee when a completion comment closes the issue", async () => {

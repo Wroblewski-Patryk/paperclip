@@ -4970,6 +4970,7 @@ export function issueRoutes(
     const effectiveMoveToTodoRequested =
       explicitMoveToTodoRequested ||
       (!!commentBody &&
+        !completionEvidence &&
         shouldImplicitlyMoveCommentedIssueToTodo({
           issueStatus: existing.status,
           assigneeAgentId: requestedAssigneeAgentId,
