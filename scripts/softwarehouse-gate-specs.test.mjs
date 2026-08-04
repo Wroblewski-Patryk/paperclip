@@ -2868,6 +2868,8 @@ test("autonomous cycle uses the live ProductDelivery ledger instead of future-le
   assert.match(cycle, /productIntentDecisionContract/);
   assert.match(cycle, /product_intent_reconciliation_dispatched/);
   assert.match(cycle, /ensureProjectIntentContractReconciliation/);
+  assert.match(cycle, /findOpenIssueByExactTitle/);
+  assert.match(cycle, /encodeURIComponent\(title\)/);
   assert.match(cycle, /Establish canonical product contract before implementation/);
   assert.match(cycle, /product_intent_contract_reconciliation_waiting_for_capacity/);
   assert.match(cycle, /blockParentUntilDone: true/);

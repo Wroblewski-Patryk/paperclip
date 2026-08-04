@@ -87,10 +87,18 @@ function intentReconciliationTitle(projectName, issueIdentifier) {
   return `[${projectName}][Product Intent] Reconcile ${issueIdentifier} before implementation`;
 }
 
+async function findOpenIssueByExactTitle(companyId, title, issues) {
+  const local = issues.find((candidate) => candidate.title === title && !["done", "cancelled"].includes(candidate.status));
+  if (local) return local;
+  const result = await request("GET", `/api/companies/${companyId}/issues?status=backlog,todo,in_progress,in_review,blocked&q=${encodeURIComponent(title)}&limit=50`);
+  if (!result.ok || !Array.isArray(result.data)) return null;
+  return result.data.find((candidate) => candidate.title === title && !["done", "cancelled"].includes(candidate.status)) ?? null;
+}
+
 async function ensureProductIntentReconciliation({ company, issue, project, agents, issues, contract, traceResult }) {
   const canonical = canonicalSoftwarehouseProject(project.name);
   const title = intentReconciliationTitle(canonical?.name ?? project.name, issue.identifier);
-  const existing = issues.find((candidate) => candidate.title === title && !["done", "cancelled"].includes(candidate.status));
+  const existing = await findOpenIssueByExactTitle(company.id, title, issues);
   if (existing) {
     return {
       action: "supervise_product_intent_reconciliation",
@@ -197,7 +205,7 @@ async function ensureProductIntentReconciliation({ company, issue, project, agen
 async function ensureProjectIntentContractReconciliation({ company, project, agents, issues, contract }) {
   const canonical = canonicalSoftwarehouseProject(project.name);
   const title = `[${canonical.name}][Product Intent] Establish canonical product contract before implementation`;
-  const existing = issues.find((candidate) => candidate.title === title && !["done", "cancelled"].includes(candidate.status));
+  const existing = await findOpenIssueByExactTitle(company.id, title, issues);
   if (existing) {
     return {
       action: "supervise_product_intent_contract_reconciliation",

@@ -5242,6 +5242,9 @@ fresh emitting run and `BLOCKED_LIVE_COUNT=0`.
   a contract failure with no waiting behavior issue. It respects clean-repo
   ownership and admission WIP, and will repair Roost's placeholder product
   entrypoint without blocking unrelated evidence collection.
+- Reconciliation deduplication uses an exact-title API fallback, not only the
+  cycle's capped issue snapshot, so growth beyond 1000 historical issues does
+  not create a second lane outside the first page.
 - Post-correction verification passed: intent tests 5/5, gate specs 204/204,
   agent instruction synchronization 39/39, and agent settings audit with zero
   findings.
