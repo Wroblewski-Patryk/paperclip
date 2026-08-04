@@ -192,7 +192,8 @@ const currentIssues = filterSupersededProjectTruthLanes({ issues, projects, curr
 const openIssues = issues.filter((issue) =>
   activeProjectIds.has(issue.projectId)
   && !terminalStatuses.has(issue.status)
-  && !String(issue.title ?? "").startsWith("Review productivity for ")
+  && issue.originKind !== "issue_productivity_review"
+  && !/(?:^|\]\s+)Review productivity for /.test(String(issue.title ?? ""))
 );
 const plannedIssues = openIssues.filter((issue) =>
   plannedStatuses.has(issue.status)

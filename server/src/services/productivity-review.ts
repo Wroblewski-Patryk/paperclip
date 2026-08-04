@@ -39,6 +39,12 @@ const MAX_PARENT_WALK_DEPTH = 25;
 const PRODUCTIVITY_REVIEW_EXCLUDED_ORIGIN_KINDS: string[] = ["routine_execution"];
 export const PRODUCTIVITY_REVIEW_REFRESH_COMMENT_PREFIX = "Productivity review evidence refreshed.";
 
+export function productivityReviewTitle(sourceLabel: string, projectName?: string | null) {
+  const scopedName = projectName?.split(":").at(-1)?.trim();
+  const marker = scopedName ? `[${scopedName}] ` : "";
+  return `${marker}Review productivity for ${sourceLabel}`;
+}
+
 type IssueRow = typeof issues.$inferSelect;
 type AgentRow = typeof agents.$inferSelect;
 type HeartbeatRunRow = typeof heartbeatRuns.$inferSelect;
@@ -733,10 +739,22 @@ export function productivityReviewService(db: Db, deps?: ProductivityReviewServi
     }
 
     const ownerAgentId = await resolveReviewOwnerAgentId(evidence.sourceIssue, evidence.sourceAgent);
+    const projectName = evidence.sourceIssue.projectId
+      ? await db.select({ name: projects.name })
+          .from(projects)
+          .where(and(
+            eq(projects.id, evidence.sourceIssue.projectId),
+            eq(projects.companyId, evidence.sourceIssue.companyId),
+          ))
+          .then((rows) => rows[0]?.name ?? null)
+      : null;
     let review: Awaited<ReturnType<typeof issuesSvc.create>>;
     try {
       review = await issuesSvc.create(evidence.sourceIssue.companyId, {
-        title: `Review productivity for ${evidence.sourceIssue.identifier ?? evidence.sourceIssue.title}`,
+        title: productivityReviewTitle(
+          evidence.sourceIssue.identifier ?? evidence.sourceIssue.title,
+          projectName,
+        ),
         description: buildReviewMarkdown(evidence, opts.prefix),
         status: "todo",
         priority: evidence.trigger === "long_active_duration" ? "medium" : "high",
