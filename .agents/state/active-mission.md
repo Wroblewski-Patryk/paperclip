@@ -26,6 +26,12 @@
   workspace-boundary audit, and server typecheck. The full environment test
   command timed out on live SSH/device-code fixtures; it produced no failing
   product-intent assertion and left no Vitest or temporary Postgres process.
+- Live proof exposed and repaired a separate controller defect: a normal
+  admission `409 waiting_for_signal / wip.project_limit` from a blocked-triage
+  wake no longer fails the entire control tick. It is recorded as a bounded
+  hold. Post-fix live control tick returned `ok: true`; the starter step passed
+  while Soar LUC-2481, Featherly LUC-2483, and Roost LUC-2485 remained the
+  three legitimate active project lanes.
 
 ## 2026-08-03 - Admission reopened; Roost QA execution resumed
 

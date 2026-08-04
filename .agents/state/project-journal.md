@@ -5219,3 +5219,16 @@ fresh emitting run and `BLOCKED_LIVE_COUNT=0`.
   readback all passed. `pnpm test:run` reached its 15-minute external timeout
   in live SSH/device-code fixtures; no focused failure or orphaned test process
   remained, and canonical PostgreSQL on port 54329 was untouched.
+- Building the monorepo caused the source watcher to restart after generated
+  plugin SDK output changed. Its one restart attempt collided with a transient
+  PostgreSQL refusal and left API port 3200 down. The registered lifecycle
+  scripts performed a bounded stop/start; health and strict topology then
+  passed with the same persisted instance and ports 3200/54329.
+- The first post-restart autonomous cycle correctly supervised active work but
+  failed because blocked-triage treated admission-control `409
+  waiting_for_signal / wip.project_limit` as a process error. The starter now
+  recognizes only structured 409 admission holds, records the disposition and
+  reason, and rethrows every unrelated error. Gate specs remained 204/204.
+- A second live control tick returned `ok: true`; blocked triage passed and no
+  duplicate work was forced while LUC-2481 (Soar), LUC-2483 (Featherly), and
+  LUC-2485 (Roost) were active.

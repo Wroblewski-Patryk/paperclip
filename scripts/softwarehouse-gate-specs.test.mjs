@@ -1084,6 +1084,11 @@ test("blocked triage starter scopes issue scans and has a dedicated timeout", as
   assert.match(source, /const terminalIssueStatuses = \["done", "cancelled"\]/);
   assert.match(source, /AbortSignal\.timeout\(requestTimeoutMs\)/);
   assert.match(source, /function isRequestTimeoutError\(error\)/);
+  assert.match(source, /function admissionHold\(error\)/);
+  assert.match(source, /error\.status !== 409/);
+  assert.match(source, /error\.data\?\.error !== "Work was not admitted"/);
+  assert.match(source, /\["waiting_for_signal", "deferred"\]\.includes\(details\.disposition\)/);
+  assert.match(source, /wakeStatus = "waiting_for_signal"/);
   assert.match(source, /candidateScanStatus: "timed_out"/);
   assert.match(source, /skip_blocked_triage_candidate_scan_timeout/);
   assert.match(source, /issues\?status=\$\{activeIssueStatuses\.join\(","\)\}&limit=2000/);

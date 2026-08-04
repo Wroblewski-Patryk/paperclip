@@ -73,12 +73,32 @@ async function request(method, route, body) {
   });
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;
-  if (!response.ok) throw new Error(`${method} ${route} failed with ${response.status}: ${text}`);
+  if (!response.ok) {
+    const error = new Error(`${method} ${route} failed with ${response.status}: ${text}`);
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
   return data;
 }
 
 function isRequestTimeoutError(error) {
   return error instanceof Error && error.name === "TimeoutError";
+}
+
+function admissionHold(error) {
+  if (!(error instanceof Error) || error.status !== 409 || error.data?.error !== "Work was not admitted") return null;
+  const details = error.data?.details;
+  if (!details || !["waiting_for_signal", "deferred"].includes(details.disposition)) return null;
+  return {
+    source: "admission_control",
+    disposition: details.disposition,
+    reasonCode: details.reasonCode ?? "admission_hold",
+    state: details.state ?? null,
+    scopeType: details.scopeType ?? null,
+    scopeId: details.scopeId ?? null,
+    controlVersion: details.controlVersion ?? null,
+  };
 }
 
 async function readGovernorDecision() {
@@ -553,18 +573,25 @@ if (
         actions.at(-1).liveRunCount = freshWip.liveRunCount;
         actions.at(-1).unknownActiveRunCount = freshWip.unknownActiveRunCount;
       } else {
-        const run = await request("POST", `/api/agents/${created.assigneeAgentId}/heartbeat/invoke?companyId=${company.id}`, {
-          reason: "issue_assigned",
-          payload: {
-            issueId: created.id,
-            taskId: created.id,
-            taskKey: created.identifier,
-            source: "softwarehouse-blocked-triage-lane-starter",
-          },
-          idempotencyKey: `softwarehouse-blocked-triage:${created.id}:${created.updatedAt ?? Date.now()}`,
-        });
-        actions.at(-1).wakeRunId = run?.id ?? null;
-        actions.at(-1).wakeStatus = run?.status ?? null;
+        try {
+          const run = await request("POST", `/api/agents/${created.assigneeAgentId}/heartbeat/invoke?companyId=${company.id}`, {
+            reason: "issue_assigned",
+            payload: {
+              issueId: created.id,
+              taskId: created.id,
+              taskKey: created.identifier,
+              source: "softwarehouse-blocked-triage-lane-starter",
+            },
+            idempotencyKey: `softwarehouse-blocked-triage:${created.id}:${created.updatedAt ?? Date.now()}`,
+          });
+          actions.at(-1).wakeRunId = run?.id ?? null;
+          actions.at(-1).wakeStatus = run?.status ?? null;
+        } catch (error) {
+          const hold = admissionHold(error);
+          if (!hold) throw error;
+          actions.at(-1).wakeSkipped = hold;
+          actions.at(-1).wakeStatus = "waiting_for_signal";
+        }
       }
     }
   }
