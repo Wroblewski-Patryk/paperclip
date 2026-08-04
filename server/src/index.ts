@@ -38,6 +38,7 @@ import {
   reconcileCloudUpstreamRunsOnStartup,
   reconcilePersistedRuntimeServicesOnStartup,
   routineService,
+  secretService,
   startRoostProductMapOutboxRuntime,
 } from "./services/index.js";
 import { createFeedbackTraceShareClientFromConfig } from "./services/feedback-share-client.js";
@@ -968,24 +969,35 @@ export async function startServer(): Promise<StartedServer> {
   const productMapCompanyId = process.env.PRODUCT_MAP_COMPANY_ID?.trim();
   let productMapRuntime: ReturnType<typeof startRoostProductMapOutboxRuntime> | null = null;
   if (process.env.PRODUCT_MAP_PUBLISHER_ENABLED === "true" && productMapCompanyId) {
-    const required = [
-      "PRODUCT_MAP_PAPERCLIP_SOURCE_URL",
-      "PRODUCT_MAP_PAPERCLIP_READ_KEY",
-      "PRODUCT_MAP_ROOST_INGEST_URL",
-      "PRODUCT_MAP_ROOST_INGEST_KEY",
-    ] as const;
+    const required = ["PRODUCT_MAP_ROOST_INGEST_URL"] as const;
     const missing = required.filter((name) => !process.env[name]?.trim());
-    if (missing.length > 0) {
+    const ingestSecretId = process.env.PRODUCT_MAP_ROOST_INGEST_SECRET_ID?.trim();
+    let ingestKey = process.env.PRODUCT_MAP_ROOST_INGEST_KEY?.trim();
+    if (!ingestKey && ingestSecretId) {
+      try {
+        ingestKey = await secretService(db).resolveSecretValue(productMapCompanyId, ingestSecretId, "latest", {
+          consumerType: "system",
+          consumerId: "roost-product-map-publisher",
+          configPath: "PRODUCT_MAP_ROOST_INGEST_KEY",
+          actorType: "system",
+          actorId: "roost-product-map-publisher",
+        });
+      } catch (error) {
+        logger.error({ err: error }, "Roost Product Map publisher held: ingest secret could not be resolved");
+      }
+    }
+    if (missing.length > 0 || !ingestKey) {
       logger.error({ missingBindings: missing }, "Roost Product Map publisher held: bindings incomplete");
     } else {
       productMapRuntime = startRoostProductMapOutboxRuntime({
         db,
         companyId: productMapCompanyId,
         bindings: {
-          PRODUCT_MAP_PAPERCLIP_SOURCE_URL: process.env.PRODUCT_MAP_PAPERCLIP_SOURCE_URL!,
-          PRODUCT_MAP_PAPERCLIP_READ_KEY: process.env.PRODUCT_MAP_PAPERCLIP_READ_KEY!,
+          PRODUCT_MAP_PAPERCLIP_SOURCE_URL: process.env.PRODUCT_MAP_PAPERCLIP_SOURCE_URL
+            ?? `http://127.0.0.1:3200/api/companies/${productMapCompanyId}/softwarehouse/portfolio-projection/v1`,
+          PRODUCT_MAP_PAPERCLIP_READ_KEY: process.env.PRODUCT_MAP_PAPERCLIP_READ_KEY,
           PRODUCT_MAP_ROOST_INGEST_URL: process.env.PRODUCT_MAP_ROOST_INGEST_URL!,
-          PRODUCT_MAP_ROOST_INGEST_KEY: process.env.PRODUCT_MAP_ROOST_INGEST_KEY!,
+          PRODUCT_MAP_ROOST_INGEST_KEY: ingestKey,
           PRODUCT_MAP_ROOST_INGEST_SIGNING_KEY: process.env.PRODUCT_MAP_ROOST_INGEST_SIGNING_KEY,
         },
         onEvent: (event) => logger.info(event, "Roost Product Map outbox cycle"),

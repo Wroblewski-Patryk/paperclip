@@ -61,9 +61,12 @@ function statusBucket(entity) {
 
 function routeKind(entity) {
   const normalizedPath = String(entity.path ?? "").replaceAll("\\", "/").toLowerCase();
+  if (/^routes\/api\.php(?:#|$)/.test(normalizedPath)) return "api_endpoint";
   const visibleUiBoundary = /\/(?:page|pages)\//.test(normalizedPath)
     || (/\/app\//.test(normalizedPath) && /\/page\.(?:[jt]sx?)$/.test(normalizedPath))
-    || /(?:page|view|screen)\.(?:[jt]sx?)$/i.test(String(entity.name ?? ""));
+    || /(?:page|view|screen)\.(?:[jt]sx?)$/i.test(String(entity.name ?? ""))
+    || /^routes\/web\.php(?:#|$)/.test(normalizedPath)
+    || /resources\/views\/.*\.blade\.php(?:#|$)/.test(normalizedPath);
   if (["route", "component"].includes(entity.type) && visibleUiBoundary) {
     return "screen_or_route";
   }

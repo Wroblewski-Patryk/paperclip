@@ -4706,6 +4706,18 @@ export function issueService(db: Db) {
         throw unprocessable("in_progress issues require an assignee");
       }
       return db.transaction(async (tx) => {
+        if (issueData.status === "blocked") {
+          const unresolvedBlockerIssueIds = await listUnresolvedBlockerIssueIds(
+            tx,
+            companyId,
+            blockedByIssueIds ?? [],
+          );
+          if (unresolvedBlockerIssueIds.length === 0) {
+            throw unprocessable(
+              "Blocked issues require at least one unresolved first-class blocker; use in_review for an owned decision",
+            );
+          }
+        }
         const defaultCompanyGoal = await getDefaultCompanyGoal(tx, companyId);
         const projectGoalId = await getProjectDefaultGoalId(tx, companyId, issueData.projectId);
         let projectWorkspaceId = issueData.projectWorkspaceId ?? null;
@@ -5013,6 +5025,19 @@ export function issueService(db: Db) {
             ).get(id)?.unresolvedBlockerIssueIds ?? [];
         if (unresolvedBlockerIssueIds.length > 0) {
           throw unprocessable("Issue is blocked by unresolved blockers", { unresolvedBlockerIssueIds });
+        }
+      }
+      const nextStatus = patch.status ?? existing.status;
+      if (nextStatus === "blocked" && (patch.status === "blocked" || blockedByIssueIds !== undefined)) {
+        const unresolvedBlockerIssueIds = blockedByIssueIds !== undefined
+          ? await listUnresolvedBlockerIssueIds(dbOrTx, existing.companyId, blockedByIssueIds)
+          : (
+              await listIssueDependencyReadinessMap(dbOrTx, existing.companyId, [id])
+            ).get(id)?.unresolvedBlockerIssueIds ?? [];
+        if (unresolvedBlockerIssueIds.length === 0) {
+          throw unprocessable(
+            "Blocked issues require at least one unresolved first-class blocker; use in_review for an owned decision",
+          );
         }
       }
       if (issueData.assigneeAgentId) {

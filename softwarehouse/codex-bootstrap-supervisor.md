@@ -1,6 +1,6 @@
 # Codex Bootstrap Supervisor
 
-Last updated: 2026-08-02
+Last updated: 2026-08-04
 
 ## Purpose
 
@@ -51,6 +51,8 @@ Outputs:
 
 - `report/codex-bootstrap-supervisor.latest.json`
 - `report/codex-bootstrap-supervisor.latest.md`
+- `report/paperclip-autonomy-graduation.latest.json` (the authoritative,
+  machine-readable retirement decision)
 
 For quick report regeneration without running the full Paperclip control tick:
 
@@ -87,9 +89,15 @@ The local Codex automation can be removed only when all required checks pass:
 - `selfImprovementLoopAvailable`
 
 After those pass, the local Codex bootstrap automation should keep running
-every 30 minutes through a 14-day graduation window. Any material Teachar
+every 30 minutes through a 14-day graduation window. Any material external
 repair, critical regression, cross-project contamination, stale Paperclip-owned
 cycle, unsafe retry loop, or missing evidence resets that window.
+
+Healthy but motionless is a failure, not a graduation signal. Every qualifying
+window must contain fresh Paperclip-owned cycles that either dispatch one
+bounded ProductDelivery or supervise an already active delivery, plus at least
+two accepted autonomous deliveries with non-empty task links, agent-authored
+transitions, and owner-visible outcomes across two different projects.
 
 Graduation is portfolio-wide, not Soar-only:
 
@@ -107,11 +115,12 @@ Only then should the local Codex automation be retired.
 The Soar acceptance ledger remains Soar-only. Roost and Featherly require their
 own acceptance/deployment evidence; no project's ledger may qualify another.
 The graduation packet must also prove fresh autonomous-cycle and control-tick
-ledgers, zero critical isolation findings, zero material Teachar repairs during
+ledgers, zero open supervision findings, zero critical isolation findings, zero material external repairs during
 the window, and a fresh owner-visible Roost portfolio projection.
 
-When every criterion remains satisfied for the complete window, Teachar writes
-its final Polish decision packet and pauses automation `paperclip-teachar`.
+When every criterion remains satisfied for the complete window, the weekly
+graduation evaluator writes its final Polish decision packet and pauses all
+four bootstrap-supervision automations.
 If the automation-management tool is unavailable or pause readback fails, it
 must remain active and report the exact blocker rather than claiming retirement.
 

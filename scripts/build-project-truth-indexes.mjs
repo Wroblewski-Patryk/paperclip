@@ -18,6 +18,7 @@ const statusDir = path.join(repoRoot, "docs", "status");
 const graphPath = path.join(repoRoot, "docs", "graphs", "architecture-awareness.json");
 const appCompletionPath = path.join(statusDir, "app-completion-index.json");
 const apply = hasFlag("--apply");
+const observedAt = process.env.PROJECT_TRUTH_OBSERVED_AT ?? new Date().toISOString();
 let generatedAt = "1970-01-01T00:00:00.000Z";
 
 const outputPaths = {
@@ -67,7 +68,13 @@ function repositorySnapshot() {
   const upstreamSha = git(["rev-parse", "@{upstream}"]);
   const divergence = upstreamSha ? git(["rev-list", "--left-right", "--count", "@{upstream}...HEAD"]) : null;
   const [behind, ahead] = divergence?.split(/\s+/).map(Number) ?? [null, null];
-  return { headSha, upstreamSha, behind, ahead };
+  const aheadPaths = upstreamSha && Number(ahead) > 0
+    ? (git(["diff", "--name-only", "@{upstream}..HEAD"]) ?? "").split(/\r?\n/).filter(Boolean)
+    : [];
+  const controlPlaneOnlyAhead = aheadPaths.length > 0 && aheadPaths.every((file) =>
+    /^(?:docs?|history|\.agents|\.codex)(?:\/|$)|^(?:README|AGENTS)\.md$/i.test(file)
+  );
+  return { headSha, upstreamSha, behind, ahead, aheadPaths, controlPlaneOnlyAhead, releaseSha: controlPlaneOnlyAhead ? upstreamSha : headSha };
 }
 
 function deploymentShaFrom(value) {
@@ -197,6 +204,7 @@ function buildEventChainIndex({ graph, appCompletion }) {
   });
 
   return {
+    observedAt,
     generatedAt,
     project: projectName,
     root: toPosix(repoRoot),
@@ -293,9 +301,20 @@ function buildAppCompletionGapIndex(appCompletion) {
   const priorityItems = Array.isArray(appCompletion.priorityReviewItems)
     ? appCompletion.priorityReviewItems
     : [];
-  const gaps = priorityItems
-    .map(appCompletionGapForItem)
-    .filter(Boolean);
+  const itemGaps = priorityItems.map(appCompletionGapForItem).filter(Boolean);
+  const grouped = new Map();
+  for (const gap of itemGaps) {
+    const key = `${gap.userFlow ?? "Unclassified user workflow"}:${gap.risk}`;
+    const current = grouped.get(key) ?? { ...gap, sourceItemIds: [], evidence: [], affectedItemCount: 0 };
+    current.affectedItemCount += 1;
+    if (gap.sourceItemId) current.sourceItemIds.push(gap.sourceItemId);
+    for (const evidence of gap.evidence ?? []) {
+      if (!current.evidence.includes(evidence) && current.evidence.length < 20) current.evidence.push(evidence);
+    }
+    current.summary = `${gap.userFlow ?? "Unclassified user workflow"} has ${current.affectedItemCount} item(s) with app-completion risk ${gap.risk}.`;
+    grouped.set(key, current);
+  }
+  const gaps = [...grouped.values()];
   const counts = appCompletion.counts ?? {};
   const knownAppCompletionGaps = Number.isFinite(Number(counts.appCompletionRiskItems))
     ? Number(counts.appCompletionRiskItems)
@@ -317,7 +336,8 @@ function buildAppCompletionGapIndex(appCompletion) {
       priorityReviewLimit,
       priorityReviewTruncated,
       indexedAppCompletionGaps: gaps.length,
-      appCompletionGaps: knownAppCompletionGaps,
+      appCompletionGaps: gaps.length,
+      affectedAppCompletionItems: knownAppCompletionGaps,
       knownAppCompletionRiskItems: knownRiskItems,
       knownBlockedAppCompletionItems: Number(counts.blocked ?? 0),
       needsBrowserReview: Number(counts.needsBrowserReview ?? gaps.filter((gap) => gap.risk === "needs_browser_review").length),
@@ -333,11 +353,11 @@ function buildOperationalReadinessIndex({ eventChainIndex, runtimeErrorIndex, ap
   const sourceTimestamp = Date.parse(generatedAt);
   const sourceFresh = Number.isFinite(sourceTimestamp) && (Date.now() - sourceTimestamp) <= 24 * 3_600_000;
   const releaseAligned = Boolean(repository.upstreamSha)
-    && Number(repository.ahead) === 0
+    && (Number(repository.ahead) === 0 || repository.controlPlaneOnlyAhead)
     && Number(repository.behind) === 0;
   const deployedSha = publicProbe?.deployedSha ?? null;
-  const deploymentAligned = Boolean(deployedSha && repository.headSha
-    && (repository.headSha.startsWith(deployedSha) || deployedSha.startsWith(repository.headSha)));
+  const deploymentAligned = Boolean(deployedSha && repository.releaseSha
+    && (repository.releaseSha.startsWith(deployedSha) || deployedSha.startsWith(repository.releaseSha)));
   const gates = [
     {
       gate: "source_freshness",
@@ -347,14 +367,14 @@ function buildOperationalReadinessIndex({ eventChainIndex, runtimeErrorIndex, ap
     },
     {
       gate: "release_branch_alignment",
-      status: releaseAligned ? "aligned" : repository.upstreamSha ? "diverged" : "unknown",
+      status: releaseAligned ? (repository.controlPlaneOnlyAhead ? "control_plane_only_ahead" : "aligned") : repository.upstreamSha ? "diverged" : "unknown",
       evidence: repository,
       requiredFor: "an exact source release candidate",
     },
     {
       gate: "deployment_identity",
       status: deploymentAligned ? "aligned" : deployedSha ? "mismatch" : "unknown",
-      evidence: { sourceSha: repository.headSha, deployedSha },
+      evidence: { sourceSha: repository.headSha, releaseSha: repository.releaseSha, deployedSha },
       requiredFor: "proof that the owner-visible runtime matches source",
     },
     {
@@ -395,12 +415,13 @@ function buildOperationalReadinessIndex({ eventChainIndex, runtimeErrorIndex, ap
     },
   ];
   return {
+    observedAt,
     generatedAt,
     project: projectName,
     root: toPosix(repoRoot),
     repository,
     deployment: { deployedSha, matchesSource: deploymentAligned },
-    status: gates.every((gate) => ["present", "covered", "gaps_indexed", "pass", "fresh", "aligned"].includes(gate.status))
+    status: gates.every((gate) => ["present", "covered", "gaps_indexed", "pass", "fresh", "aligned", "control_plane_only_ahead"].includes(gate.status))
       ? "ready_for_repair_flow"
       : "truth_incomplete",
     gates,
@@ -410,7 +431,7 @@ function buildOperationalReadinessIndex({ eventChainIndex, runtimeErrorIndex, ap
 
 function buildProjectTruthIndex({ eventChainIndex, runtimeErrorIndex, appCompletionGapIndex, operationalReadinessIndex, appCompletion, repository, publicProbe }) {
   const eventChainGaps = eventChainIndex.chains.filter((chain) => chain.status !== "chain_indexed");
-  const operationalGateGaps = operationalReadinessIndex.gates.filter((gate) => !["present", "covered", "gaps_indexed", "pass", "fresh", "aligned"].includes(gate.status));
+  const operationalGateGaps = operationalReadinessIndex.gates.filter((gate) => !["present", "covered", "gaps_indexed", "pass", "fresh", "aligned", "control_plane_only_ahead"].includes(gate.status));
   const gaps = [
     ...eventChainGaps
       .map((chain) => ({
@@ -446,6 +467,7 @@ function buildProjectTruthIndex({ eventChainIndex, runtimeErrorIndex, appComplet
     + operationalGateGaps.length;
 
   return {
+    observedAt,
     generatedAt,
     project: projectName,
     root: toPosix(repoRoot),
@@ -540,6 +562,7 @@ function renderTruthMarkdown(index) {
     "# Project Truth Index",
     "",
     `Generated: ${index.generatedAt}`,
+    `Observed: ${index.observedAt}`,
     `Project: ${index.project}`,
     `Status: ${index.status}`,
     `Source HEAD: ${index.repository?.headSha ?? "unknown"}`,
@@ -583,6 +606,10 @@ async function publicProbeForProject() {
       web: "https://roost.luckysparrow.ch",
       api: "https://api.roost.luckysparrow.ch",
     },
+    featherly: {
+      web: "https://wroblewskipatryk.pl",
+      requireBuildInfo: false,
+    },
   };
   const defaults = defaultPublicUrls[projectName.toLowerCase()] ?? {};
   const webUrl = process.env[`${projectName.toUpperCase()}_PUBLIC_URL`] ?? defaults.web;
@@ -591,7 +618,7 @@ async function publicProbeForProject() {
 
   const checks = [
     webUrl ? { name: "web_home", url: webUrl, required: true } : null,
-    webUrl ? { name: "web_build_info", url: new URL("/api/build-info", webUrl).toString(), required: true } : null,
+    webUrl && defaults.requireBuildInfo !== false ? { name: "web_build_info", url: new URL("/api/build-info", webUrl).toString(), required: true } : null,
     apiUrl ? { name: "api_health", url: new URL("/health", apiUrl).toString(), required: true } : null,
     apiUrl ? { name: "api_ready", url: new URL("/ready", apiUrl).toString(), required: true } : null,
   ].filter(Boolean);

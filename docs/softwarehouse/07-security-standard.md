@@ -73,6 +73,32 @@ Retirement condition:
   incident, follows this shared routine without creating a fresh ad hoc blocker
   chain across security, CTO, and DRE lanes.
 
+### Browser run-code transcript prevention
+
+Treat arbitrary browser run-code payloads as secret-bearing even when an agent
+believes the source is safe. Codex emits MCP arguments in both start and
+completion events, and browser results or error diagnostics may repeat source,
+headers, environment values, cookies, or page-derived credentials.
+
+- Paperclip must withhold the arguments, result, and error fields for Codex
+  `browser_run_code` and `browser_run_code_unsafe` events before run-log or
+  result persistence. Keep only the tool/server identity, item id, event type,
+  and coarse status needed for audit.
+- Malformed events that name either run-code tool fail closed: persist a
+  redaction marker rather than the unclassified line.
+- Regression tests use synthetic markers and must cover start/completion,
+  chunk-split input, result/error diagnostics, and an unaffected safe browser
+  tool.
+- This control does not authorize placing secrets in browser source. Use
+  protected bindings, managed authentication state, or provider APIs that keep
+  values outside transcript-visible tool inputs.
+
+Residual boundary: the Paperclip adapter controls Paperclip run logs and stored
+run results. It cannot retroactively sanitize external provider/session files,
+third-party browser logs, screenshots, arbitrary page content, or adapter types
+that do not pass through this Codex JSONL transformer. A suspected exposure on
+those surfaces still follows the incident routine above.
+
 ## Stop Conditions
 
 Security must block when:

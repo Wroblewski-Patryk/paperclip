@@ -309,7 +309,7 @@ describeEmbeddedPostgres("issue recovery actions", () => {
 
     const [updatedIssue] = await db.select().from(issues).where(eq(issues.id, sourceIssue.id));
     expect(updatedIssue).toMatchObject({
-      status: "blocked",
+      status: "in_review",
     });
     const recoveryIssues = await db
       .select()
@@ -379,7 +379,7 @@ describeEmbeddedPostgres("issue recovery actions", () => {
     });
   });
 
-  it("keeps the source issue blocked when source-scoped wakeup is claimed synchronously", async () => {
+  it("keeps the source issue in review when source-scoped wakeup is claimed synchronously", async () => {
     const { companyId, managerId, coderId, sourceIssue } = await seedCompany();
     await db.update(agents).set({ status: "paused" }).where(eq(agents.id, managerId));
     const enqueueWakeup = vi.fn(async () => {
@@ -408,7 +408,7 @@ describeEmbeddedPostgres("issue recovery actions", () => {
     });
 
     const [afterFirst] = await db.select().from(issues).where(eq(issues.id, sourceIssue.id));
-    expect(afterFirst?.status).toBe("blocked");
+    expect(afterFirst?.status).toBe("in_review");
     expect(afterFirst?.assigneeAgentId).toBe(coderId);
 
     const secondLatestRun = {
@@ -437,7 +437,7 @@ describeEmbeddedPostgres("issue recovery actions", () => {
       attemptCount: 2,
     });
     const [afterSecond] = await db.select().from(issues).where(eq(issues.id, sourceIssue.id));
-    expect(afterSecond?.status).toBe("blocked");
+    expect(afterSecond?.status).toBe("in_review");
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, sourceIssue.id));
     expect(comments).toHaveLength(1);
@@ -485,7 +485,7 @@ describeEmbeddedPostgres("issue recovery actions", () => {
       .from(issues)
       .where(and(eq(issues.companyId, companyId), eq(issues.originKind, "stranded_issue_recovery")));
     expect(recoveryIssues).toHaveLength(1);
-    expect(recoveryIssues[0]?.status).toBe("blocked");
+    expect(recoveryIssues[0]?.status).toBe("in_review");
   });
 
   it("exposes active recovery actions on the issue read API", async () => {

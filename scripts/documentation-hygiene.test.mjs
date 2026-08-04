@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -68,4 +69,28 @@ test("counts only planning and state paths declared active by the documentation 
   assert.equal(result.metrics.activeStateFiles, 0);
   assert(!result.findings.some((item) => item.code === "planning_file_oversized"));
   assert(!result.findings.some((item) => item.code === "state_file_oversized"));
+});
+
+test("treats documentation-only commits ahead of upstream as a warning, not a false deployment green", async () => {
+  const root = await fixture();
+  await writeFile(path.join(root, "docs/status/project-truth-index.json"), JSON.stringify({
+    observedAt: new Date().toISOString(),
+    status: "known_and_routable",
+    counts: { totalGaps: 0 },
+  }));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  git("init", "-b", "main");
+  git("config", "user.email", "test@example.invalid");
+  git("config", "user.name", "Documentation Hygiene Test");
+  git("add", ".");
+  git("commit", "-m", "baseline");
+  git("branch", "baseline");
+  git("branch", "--set-upstream-to", "baseline", "main");
+  await writeFile(path.join(root, "README.md"), "# Test\n\nControl-plane clarification.\n");
+  git("add", "README.md");
+  git("commit", "-m", "docs: clarify control plane");
+
+  const result = await auditDocumentationProject({ name: "Test", root, requireDeploymentIdentity: false });
+  assert(!result.findings.some((item) => item.code === "false_green_source_ahead"));
+  assert(result.findings.some((item) => item.code === "control_plane_source_ahead"));
 });

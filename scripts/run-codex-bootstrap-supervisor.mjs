@@ -244,7 +244,7 @@ function nextBootstrapActionsFor({ checks, controlTickSummary, paperclipRepo }) 
   }
 
   if (actions.length === 0) {
-    actions.push("Begin or continue the 14-day graduation window; do not retire Teachar from a single clean cycle.");
+    actions.push("Begin or continue the 14-day graduation window; do not retire bootstrap supervision from a single clean cycle.");
   }
 
   return actions;
@@ -282,7 +282,7 @@ function renderMarkdown(report) {
     "",
     "## Retirement Rule",
     "",
-    "The local Codex automation may pause itself only after every required retirement check remains green for 14 consecutive days, every active application has a project-specific terminal outcome or accepted pause/no-go, and no material Teachar repair was required during the window.",
+    "The local Codex automations may pause themselves only when `report/paperclip-autonomy-graduation.latest.json` says `operationally_graduated`: every required check must remain green for 14 consecutive days, autonomous owner-visible outcomes must span at least two projects, and no material external repair may be required during the window. Safe stasis is not graduation.",
     "",
   ].join("\n");
 }
@@ -350,6 +350,13 @@ const report = {
     controlTickSummary,
     paperclipRepo: statusLinesForRepo(process.cwd()),
   }),
+};
+
+const graduationRun = run(process.execPath, ["scripts/evaluate-autonomy-graduation.mjs"], { timeoutMs: 120_000 });
+report.graduation = {
+  reportPath: "report/paperclip-autonomy-graduation.latest.json",
+  evaluatorCompleted: graduationRun.exitCode === 0 || graduationRun.exitCode === 1,
+  healthyNow: graduationRun.exitCode === 0,
 };
 
 await mkdir("report", { recursive: true });

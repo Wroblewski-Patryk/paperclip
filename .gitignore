@@ -72,6 +72,9 @@ coolify.*
 /artifacts/
 /report/
 /screenshots/
+/closeout*.md
+/cto-closeout.md
+/completion-evidence*.json
 .agents/state/backups/
 
 # Local Obsidian plugin/theme installs for the docs vault

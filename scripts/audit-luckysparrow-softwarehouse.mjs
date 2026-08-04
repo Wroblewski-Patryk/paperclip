@@ -25,6 +25,27 @@ const unblockPacketFreshnessMs = 60 * 60 * 1000;
 const liveRunTailWarningAgeMs = Number(process.env.SOFTWAREHOUSE_AUDIT_LIVE_RUN_TAIL_WARNING_MS ?? 90_000);
 const runningInsideControlTick = process.env.SOFTWAREHOUSE_CONTROL_TICK_RUNNING === "1";
 const takeoverTitlePattern = /^\[(?<project>.+?)\] Full takeover audit and operating baseline$/;
+const forbiddenAgentSecretKeyPattern = /^(?:vps_host|vps_ssh(?:_|$))/i;
+const protectedSecretRolePolicies = new Map([
+  ["coolify_read_api_token", new Set([
+    "deployment-reliability-engineer",
+    "security-privacy-auditor",
+    "test-automation-engineer",
+    "qa-verification-engineer",
+  ])],
+  ["coolify_deploy_api_token", new Set(["deployment-reliability-engineer"])],
+  ["companycore_api_key", new Set([
+    "deployment-reliability-engineer",
+    "qa-verification-engineer",
+  ])],
+  ["roost_prod_test_email", new Set(["test-automation-engineer", "qa-verification-engineer"])],
+  ["roost_prod_test_password", new Set(["test-automation-engineer", "qa-verification-engineer"])],
+  ["roost_prod_test_workspace_name", new Set(["test-automation-engineer", "qa-verification-engineer"])],
+  ["soar_prod_admin_smoke_email", new Set(["test-automation-engineer", "qa-verification-engineer"])],
+  ["soar_prod_admin_smoke_password", new Set(["test-automation-engineer", "qa-verification-engineer"])],
+  ["soar_prod_test_email", new Set(["test-automation-engineer", "qa-verification-engineer"])],
+  ["soar_prod_test_password", new Set(["test-automation-engineer", "qa-verification-engineer"])],
+]);
 async function request(method, route, body) {
   const response = await fetch(`${apiBase}${route}`, {
     method,
@@ -880,6 +901,100 @@ const blockedByPendingDecision = blockedIssueAnalyses.filter((analysis) =>
 );
 const knownGateRootIdentifiers = new Set(blockedGateDetails.map((gate) => gate.rootBlocker).filter(Boolean));
 const secretByKey = new Map(secrets.map((secret) => [normalizeKey(secret.key), secret]));
+const activeSecrets = secrets.filter((secret) => secret.status === "active");
+const unusedActiveSecrets = activeSecrets.filter((secret) => Number(secret.referenceCount ?? 0) === 0);
+const forbiddenVpsAgentSecrets = activeSecrets.filter((secret) =>
+  forbiddenAgentSecretKeyPattern.test(normalizeKey(secret.key))
+);
+const protectedSecretUsage = await Promise.all(Array.from(protectedSecretRolePolicies.entries())
+  .map(async ([secretKey, allowedRosterKeys]) => {
+    const secret = secretByKey.get(secretKey);
+    if (!secret || secret.status !== "active") return null;
+    const usage = await request("GET", `/api/secrets/${secret.id}/usage`);
+    const violations = (usage.bindings ?? []).flatMap((binding) => {
+      if (binding.targetType !== "agent") {
+        return [{
+          targetType: binding.targetType,
+          targetId: binding.targetId,
+          configPath: binding.configPath,
+          reason: "protected secret must not be bound to routines or other shared targets",
+        }];
+      }
+      const agent = activeAgentById.get(binding.targetId);
+      const rosterKey = agentRosterKey(agent);
+      if (agent && allowedRosterKeys.has(rosterKey)) return [];
+      return [{
+        targetType: binding.targetType,
+        targetId: binding.targetId,
+        targetName: agent?.name ?? null,
+        targetRosterKey: rosterKey,
+        configPath: binding.configPath,
+        reason: agent ? "agent role is outside the least-privilege allowlist" : "agent is missing or terminated",
+      }];
+    });
+    return {
+      secretId: secret.id,
+      secret: stableSecretMetadata(secret),
+      bindingCount: usage.bindings?.length ?? 0,
+      allowedRosterKeys: Array.from(allowedRosterKeys),
+      bindings: usage.bindings ?? [],
+      violations,
+    };
+  }));
+const secretRoleBindingDrift = protectedSecretUsage
+  .filter((entry) => entry?.violations.length > 0);
+const protectedModelProfileSecretDrift = activeAgents.flatMap((agent) => {
+  const rosterKey = agentRosterKey(agent);
+  const modelProfiles = agent.runtimeConfig?.modelProfiles;
+  if (!modelProfiles || typeof modelProfiles !== "object") return [];
+  return Object.entries(modelProfiles).flatMap(([profileName, profile]) => {
+    const adapterConfig = profile?.adapterConfig;
+    const env = adapterConfig?.env;
+    const secretDrift = env && typeof env === "object"
+      ? Object.entries(env).flatMap(([envKey, reference]) => {
+          const secretKey = normalizeKey(envKey);
+          const allowedRosterKeys = protectedSecretRolePolicies.get(secretKey);
+          if (!allowedRosterKeys) return [];
+          const canonicalSecret = secretByKey.get(secretKey);
+          const usage = protectedSecretUsage.find((entry) => entry?.secretId === canonicalSecret?.id);
+          const hasBinding = usage?.bindings?.some((binding) =>
+            binding.targetType === "agent"
+            && binding.targetId === agent.id
+            && binding.configPath === `env.${envKey}`
+          );
+          const referenceSecretId = reference?.type === "secret_ref" ? reference.secretId : null;
+          const reasons = [];
+          if (!allowedRosterKeys.has(rosterKey)) reasons.push("agent role is outside the least-privilege allowlist");
+          if (!canonicalSecret || canonicalSecret.status !== "active") reasons.push("canonical protected secret is missing or inactive");
+          if (referenceSecretId !== canonicalSecret?.id) reasons.push("model profile references a non-canonical or invalid secret");
+          if (!hasBinding) reasons.push("model profile secret has no matching agent binding");
+          return reasons.length > 0 ? [{
+            agentId: agent.id,
+            agentName: agent.name,
+            agentRosterKey: rosterKey,
+            profileName,
+            envKey,
+            reasons,
+          }] : [];
+        })
+      : [];
+    const companyCoreArgs = Array.isArray(adapterConfig?.extraArgs)
+      ? adapterConfig.extraArgs.filter((value) => String(value).startsWith("mcp_servers.companycore."))
+      : [];
+    const companyCoreAllowed = protectedSecretRolePolicies.get("companycore_api_key")?.has(rosterKey) ?? false;
+    const integrationDrift = companyCoreArgs.length > 0 && !companyCoreAllowed
+      ? [{
+          agentId: agent.id,
+          agentName: agent.name,
+          agentRosterKey: rosterKey,
+          profileName,
+          integration: "companycore_mcp",
+          reason: "CompanyCore MCP is configured outside its least-privilege role allowlist",
+        }]
+      : [];
+    return [...secretDrift, ...integrationDrift];
+  });
+});
 const issueByIdentifier = new Map(issues.map((issue) => [issue.identifier, issue]));
 const gateSecretFreshness = Array.from(knownGateRootIdentifiers)
   .map((rootBlocker) => {
@@ -1129,6 +1244,30 @@ if (runtimeBindingGaps.length > 0) findings.push({
   area: "secrets",
   message: "Runtime-gated issues are assigned to agents without the required secret/env bindings; keep them blocked or bind the secrets before expecting autonomous progress.",
   items: runtimeBindingGaps,
+});
+if (unusedActiveSecrets.length > 0) findings.push({
+  severity: "warn",
+  area: "secret-hygiene",
+  message: "Active secrets have no bindings; archive or remove them instead of retaining unused credential surface.",
+  items: unusedActiveSecrets.map((secret) => stableSecretMetadata(secret)),
+});
+if (forbiddenVpsAgentSecrets.length > 0) findings.push({
+  severity: "critical",
+  area: "secret-hygiene",
+  message: "Direct VPS/SSH access is stored in the agent secret vault; autonomous deployment must use scoped Coolify tokens instead.",
+  items: forbiddenVpsAgentSecrets.map((secret) => stableSecretMetadata(secret)),
+});
+if (secretRoleBindingDrift.length > 0) findings.push({
+  severity: "critical",
+  area: "secret-hygiene",
+  message: "Protected credentials are bound outside their least-privilege role allowlists or to shared routine targets.",
+  items: secretRoleBindingDrift,
+});
+if (protectedModelProfileSecretDrift.length > 0) findings.push({
+  severity: "critical",
+  area: "secret-hygiene",
+  message: "Protected credentials or MCP integrations remain hidden in model-profile overrides without valid least-privilege bindings.",
+  items: protectedModelProfileSecretDrift,
 });
 if (blockedIssues.length > 0 && (!unblockPacketStatus.markdownExists || !unblockPacketStatus.jsonExists)) findings.push({
   severity: "warn",
@@ -1382,5 +1521,13 @@ console.log(JSON.stringify({
     repos: latestSourceControl,
   },
   runtimeBindingGaps,
+  secretHygiene: {
+    activeSecretCount: activeSecrets.length,
+    unusedActiveSecrets: unusedActiveSecrets.map((secret) => stableSecretMetadata(secret)),
+    forbiddenVpsAgentSecrets: forbiddenVpsAgentSecrets.map((secret) => stableSecretMetadata(secret)),
+    protectedSecretUsage,
+    roleBindingDrift: secretRoleBindingDrift,
+    modelProfileDrift: protectedModelProfileSecretDrift,
+  },
   findings,
 }, null, 2));

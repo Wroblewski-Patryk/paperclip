@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lte } from "drizzle-orm";
+import { and, asc, desc, eq, lte, ne } from "drizzle-orm";
 import { roostProductMapOutbox, type Db } from "@paperclipai/db";
 import type { RoostBridgePortfolioProjection } from "@paperclipai/shared";
 import {
@@ -22,14 +22,31 @@ export function roostProductMapOutboxService(db: Db) {
     if (latest && latest.observedAt.getTime() > new Date(envelope.observedAt).getTime()) {
       return { outcome: "stale" as const, row: latest };
     }
-    const [inserted] = await db.insert(roostProductMapOutbox).values({
-      companyId: envelope.companyId,
-      sourceSnapshotId: envelope.sourceSnapshotId,
-      packetDigest: envelope.packetDigest,
-      idempotencyKey: envelope.idempotencyKey,
-      observedAt: new Date(envelope.observedAt),
-      envelope,
-    }).onConflictDoNothing().returning();
+    const observedAt = new Date(envelope.observedAt);
+    const [inserted] = await db.transaction(async (tx) => {
+      const rows = await tx.insert(roostProductMapOutbox).values({
+        companyId: envelope.companyId,
+        sourceSnapshotId: envelope.sourceSnapshotId,
+        packetDigest: envelope.packetDigest,
+        idempotencyKey: envelope.idempotencyKey,
+        observedAt,
+        envelope,
+      }).onConflictDoNothing().returning();
+      const row = rows[0];
+      if (row) {
+        await tx.update(roostProductMapOutbox).set({
+          status: "dead",
+          lastErrorCode: "SUPERSEDED_BY_NEWER_SNAPSHOT",
+          updatedAt: new Date(),
+        }).where(and(
+          eq(roostProductMapOutbox.companyId, envelope.companyId),
+          eq(roostProductMapOutbox.status, "pending"),
+          ne(roostProductMapOutbox.id, row.id),
+          lte(roostProductMapOutbox.observedAt, observedAt),
+        ));
+      }
+      return rows;
+    });
     if (inserted) return { outcome: "enqueued" as const, row: inserted };
     const duplicate = await db.query.roostProductMapOutbox.findFirst({
       where: and(eq(roostProductMapOutbox.companyId, envelope.companyId), eq(roostProductMapOutbox.idempotencyKey, envelope.idempotencyKey)),

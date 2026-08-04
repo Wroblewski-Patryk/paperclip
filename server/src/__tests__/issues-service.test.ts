@@ -2385,6 +2385,32 @@ describeEmbeddedPostgres("issueService blockers and dependency wake readiness", 
     await tempDb?.cleanup();
   });
 
+  it("rejects blocked state without an unresolved first-class blocker", async () => {
+    const companyId = randomUUID();
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+
+    await expect(svc.create(companyId, {
+      title: "Orphan blocked issue",
+      status: "blocked",
+      priority: "medium",
+    })).rejects.toMatchObject({ status: 422 });
+
+    const issue = await svc.create(companyId, {
+      title: "Owned decision",
+      status: "todo",
+      priority: "medium",
+    });
+    await expect(svc.update(issue.id, { status: "blocked" }))
+      .rejects.toMatchObject({ status: 422 });
+    await expect(svc.update(issue.id, { status: "in_review" }))
+      .resolves.toMatchObject({ status: "in_review" });
+  });
+
   it("persists blocked-by relations and exposes both blockedBy and blocks summaries", async () => {
     const companyId = randomUUID();
     await db.insert(companies).values({

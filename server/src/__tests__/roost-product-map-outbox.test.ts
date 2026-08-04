@@ -47,7 +47,7 @@ describeEmbedded("durable Roost Product Map outbox", () => {
     };
   }
 
-  it("deduplicates events, refuses stale events, and preserves source order", async () => {
+  it("deduplicates events, refuses stale events, and supersedes obsolete pending snapshots", async () => {
     await seed();
     const service = roostProductMapOutboxService(db);
     const older = envelopeForOutbox(packet("2026-08-03T10:00:00.000Z"), "2026-08-03T10:00:01.000Z");
@@ -63,8 +63,8 @@ describeEmbedded("durable Roost Product Map outbox", () => {
       return { status: 202, body: {} };
     };
     expect((await service.drainOne(companyId, bindings, request as never, new Date("2026-08-04T11:00:00.000Z"))).outcome).toBe("published");
-    expect((await service.drainOne(companyId, bindings, request as never, new Date("2026-08-04T11:00:00.000Z"))).outcome).toBe("published");
-    expect(delivered).toEqual(["2026-08-03T10:00:00.000Z", "2026-08-03T10:05:00.000Z"]);
+    expect((await service.drainOne(companyId, bindings, request as never, new Date("2026-08-04T11:00:00.000Z"))).outcome).toBe("empty");
+    expect(delivered).toEqual(["2026-08-03T10:05:00.000Z"]);
   });
 
   it("survives publisher outage, retries after backoff, recovers, and reports stale-feed lag", async () => {

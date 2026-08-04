@@ -356,6 +356,42 @@ describeEmbeddedPostgres("secretService", () => {
     expect(bindings.map((binding) => binding.configPath)).toEqual(["runtime.token"]);
   });
 
+  it("idempotently replaces an exact top-level secret reference", async () => {
+    const companyId = await seedCompany();
+    const svc = secretService(db);
+    const firstSecret = await svc.create(companyId, {
+      name: `publisher-key-first-${randomUUID()}`,
+      provider: "local_encrypted",
+      value: "first-value",
+    });
+    const rotatedSecret = await svc.create(companyId, {
+      name: `publisher-key-rotated-${randomUUID()}`,
+      provider: "local_encrypted",
+      value: "rotated-value",
+    });
+    const target = { targetType: "system" as const, targetId: "roost-product-map-publisher" };
+    const configPath = "PRODUCT_MAP_ROOST_INGEST_KEY";
+
+    await svc.syncSecretRefsForTarget(companyId, target, [{
+      secretId: firstSecret.id,
+      configPath,
+    }]);
+    await svc.syncSecretRefsForTarget(companyId, target, [{
+      secretId: rotatedSecret.id,
+      configPath,
+    }]);
+
+    const bindings = await db
+      .select()
+      .from(companySecretBindings)
+      .where(eq(companySecretBindings.targetId, target.targetId));
+    expect(bindings).toHaveLength(1);
+    expect(bindings[0]).toMatchObject({
+      secretId: rotatedSecret.id,
+      configPath,
+    });
+  });
+
   it("returns resolved secrets even when success metadata writes fail", async () => {
     const companyId = await seedCompany();
     const svc = secretService(db);

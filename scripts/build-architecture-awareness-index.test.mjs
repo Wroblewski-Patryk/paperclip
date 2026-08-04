@@ -23,7 +23,10 @@ test("build-architecture-awareness-index writes byte-identical graph exports whe
         const commonArgs = ["--project", "Fixture", "--root", root];
         execFileSync(process.execPath, [scriptPath, ...commonArgs], { encoding: "utf8" });
         execFileSync(process.execPath, [appCompletionScriptPath, ...commonArgs], { encoding: "utf8" });
-        execFileSync(process.execPath, [projectTruthScriptPath, ...commonArgs, "--apply"], { encoding: "utf8" });
+        execFileSync(process.execPath, [projectTruthScriptPath, ...commonArgs, "--apply"], {
+          encoding: "utf8",
+          env: { ...process.env, PROJECT_TRUTH_OBSERVED_AT: "2026-01-01T00:00:00.000Z" },
+        });
       };
 
       run();
@@ -48,6 +51,40 @@ test("build-architecture-awareness-index writes byte-identical graph exports whe
     }
 });
 
+test("project truth aggregates symbol-level proof gaps into user-flow repair lanes", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "paperclip-project-truth-aggregation-"));
+  try {
+    await mkdir(path.join(root, "docs", "graphs"), { recursive: true });
+    await mkdir(path.join(root, "docs", "status"), { recursive: true });
+    const generatedAt = new Date().toISOString();
+    await writeFile(path.join(root, "docs", "graphs", "architecture-awareness.json"), JSON.stringify({
+      generatedAt,
+      entities: [],
+      relations: [],
+    }));
+    await writeFile(path.join(root, "docs", "status", "app-completion-index.json"), JSON.stringify({
+      generatedAt,
+      counts: { items: 4, riskItems: 4, appCompletionRiskItems: 4, priorityReviewItems: 4 },
+      flows: [],
+      priorityReviewItems: [
+        { id: "a", risk: "missing_test_link", userFlow: "Account access", name: "login", path: "src/login.ts", kind: "api_endpoint" },
+        { id: "b", risk: "missing_test_link", userFlow: "Account access", name: "logout", path: "src/logout.ts", kind: "api_endpoint" },
+        { id: "c", risk: "missing_test_link", userFlow: "Account access", name: "session", path: "src/session.ts", kind: "api_endpoint" },
+        { id: "d", risk: "missing_doc_link", userFlow: "Dashboard overview", name: "dashboard", path: "src/dashboard.ts", kind: "api_endpoint" },
+      ],
+    }));
+
+    execFileSync(process.execPath, [projectTruthScriptPath, "--project", "Fixture", "--root", root, "--apply"], { encoding: "utf8" });
+    const truth = JSON.parse(await readFile(path.join(root, "docs", "status", "project-truth-index.json"), "utf8"));
+    assert.equal(truth.counts.appCompletionGaps, 2);
+    const accountGap = truth.gaps.find((gap) => gap.userFlow === "Account access" && gap.risk === "missing_test_link");
+    assert.equal(accountGap.affectedItemCount, 3);
+    assert.equal(accountGap.sourceItemIds.length, 3);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("build-architecture-awareness-index excludes repo-local .tmp content", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "paperclip-awareness-tmp-exclusion-"));
   try {
@@ -55,6 +92,7 @@ test("build-architecture-awareness-index excludes repo-local .tmp content", asyn
     await mkdir(path.join(root, "tests"), { recursive: true });
     await mkdir(path.join(root, "docs", "architecture"), { recursive: true });
     await mkdir(path.join(root, ".tmp", "nested"), { recursive: true });
+    await mkdir(path.join(root, "storage", "framework", "views"), { recursive: true });
 
     await writeFile(
       path.join(root, "src", "real-feature.ts"),
@@ -81,6 +119,11 @@ test("build-architecture-awareness-index excludes repo-local .tmp content", asyn
       "# Temporary Shadow Documentation\n\nThis must not enter the canonical graph.\n",
       "utf8",
     );
+    await writeFile(
+      path.join(root, "storage", "framework", "views", "compiled.php"),
+      "<?php function generatedStorageFunction() { return false; }\n",
+      "utf8",
+    );
 
     execFileSync(
       process.execPath,
@@ -104,6 +147,7 @@ test("build-architecture-awareness-index excludes repo-local .tmp content", asyn
       );
     const entityById = new Map(graph.entities.map((entity) => [entity.id, entity]));
     assert.deepEqual(graph.entities.filter(originatesFromTmp), []);
+    assert.equal(graph.entities.some((entity) => /^storage\//.test(entity.path)), false);
     assert.equal(
       graph.relations.some((relation) =>
         originatesFromTmp(entityById.get(relation.from)) ||

@@ -7846,7 +7846,66 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     if (reaped.length > 0) {
       logger.warn({ reapedCount: reaped.length, runIds: reaped }, "reaped orphaned heartbeat runs");
     }
-    return { reaped: reaped.length, runIds: reaped };
+
+    // A server/process crash can persist the terminal run update and miss the
+    // following agent-status update. Reconcile the denormalized `running`
+    // marker only when the database proves there is no queued/running run.
+    // The conditional update closes the race with a concurrently admitted run.
+    const staleRunningAgents = await db
+      .select({ id: agents.id, companyId: agents.companyId })
+      .from(agents)
+      .where(eq(agents.status, "running"));
+    const reconciledAgentIds: string[] = [];
+    for (const staleAgent of staleRunningAgents) {
+      const latestRun = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.agentId, staleAgent.id))
+        .orderBy(desc(heartbeatRuns.createdAt))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
+      const nextStatus = latestRun?.status === "failed" || latestRun?.status === "timed_out"
+        ? "error"
+        : "idle";
+      const updated = await db
+        .update(agents)
+        .set({ status: nextStatus, updatedAt: now })
+        .where(and(
+          eq(agents.id, staleAgent.id),
+          eq(agents.status, "running"),
+          sql`not exists (
+            select 1 from ${heartbeatRuns}
+            where ${heartbeatRuns.agentId} = ${staleAgent.id}
+              and ${heartbeatRuns.status} in ('queued', 'running')
+          )`,
+        ))
+        .returning({ id: agents.id, companyId: agents.companyId, status: agents.status })
+        .then((rows) => rows[0] ?? null);
+      if (!updated) continue;
+      reconciledAgentIds.push(updated.id);
+      await logActivity(db, {
+        companyId: updated.companyId,
+        actorType: "system",
+        actorId: "heartbeat_reaper",
+        agentId: updated.id,
+        action: "agent.stale_running_status_reconciled",
+        entityType: "agent",
+        entityId: updated.id,
+        details: { previousStatus: "running", status: updated.status, latestRunStatus: latestRun?.status ?? null },
+      });
+      publishLiveEvent({
+        companyId: updated.companyId,
+        type: "agent.status",
+        payload: { agentId: updated.id, status: updated.status, reconciled: true },
+      });
+    }
+
+    return {
+      reaped: reaped.length,
+      runIds: reaped,
+      reconciledAgentStatuses: reconciledAgentIds.length,
+      reconciledAgentIds,
+    };
   }
 
   async function resumeQueuedRuns() {

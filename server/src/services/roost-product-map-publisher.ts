@@ -53,7 +53,7 @@ export type RoostProductMapPublisherBindingName = (typeof bindingNames)[number];
 
 export interface RoostProductMapPublisherBindings {
   PRODUCT_MAP_PAPERCLIP_SOURCE_URL: string;
-  PRODUCT_MAP_PAPERCLIP_READ_KEY: string;
+  PRODUCT_MAP_PAPERCLIP_READ_KEY?: string;
   PRODUCT_MAP_ROOST_INGEST_URL: string;
   PRODUCT_MAP_ROOST_INGEST_KEY: string;
   PRODUCT_MAP_ROOST_INGEST_SIGNING_KEY?: string;
@@ -86,16 +86,107 @@ export interface PinnedRequest {
   kind: "source" | "outbound";
 }
 
+const lifecycleGates = [
+  ["direction_portfolio_fit", "Board / 00 AIA / 11 CINO"],
+  ["opportunity_problem_validation", "Product / Innovation"],
+  ["business_framing", "Product / Finance / Legal"],
+  ["product_discovery_requirements", "App PM / Product"],
+  ["ux_accessibility_design", "UX / UI / Product"],
+  ["architecture_data_threat_design", "CTO / TSA / Security"],
+  ["delivery_release_planning", "Delivery / Operations / PM"],
+  ["implementation", "Layer specialist"],
+  ["automated_verification", "Test Automation / specialist"],
+  ["user_flow_qa", "QA / Product / UX"],
+  ["independent_review", "Code Review / CTO / Security"],
+  ["documentation_operational_readiness", "Docs / DRE / support owner"],
+  ["release_decision", "PM / QVE / DRE / Security"],
+  ["source_control_closure", "Delivery / author"],
+  ["deployment_migration", "DRE / Security"],
+  ["production_acceptance", "QVE / DRE / App PM"],
+  ["operate_support_observe", "Operations / Product / support owner"],
+  ["retrospective_improvement", "COO / accountable stage owner"],
+] as const;
+
+const issueStatusCountsSchema = z.object({
+  backlog: z.number().int().nonnegative(),
+  todo: z.number().int().nonnegative(),
+  inProgress: z.number().int().nonnegative(),
+  inReview: z.number().int().nonnegative(),
+  blocked: z.number().int().nonnegative(),
+  done: z.number().int().nonnegative(),
+  cancelled: z.number().int().nonnegative(),
+}).strict();
+
+const roostProductMapPacketV2Schema = z.object({
+  schemaVersion: z.literal("2.0"),
+  observedAt: z.string().datetime(),
+  sourceState: z.enum(["available", "unavailable", "timed_out"]),
+  stale: z.boolean(),
+  conflictState: z.enum(["none", "source_unavailable", "project_mapping_conflict", "owner_surface_unavailable"]),
+  lifecycleProcedure: z.object({
+    procedureId: z.literal("PROC-SH-APPLICATION-LIFECYCLE"),
+    procedureVersion: z.literal("1.0"),
+    executionAuthority: z.literal("paperclip"),
+    observedAt: z.string().datetime(),
+    verifiedAt: z.string().datetime().nullable(),
+    freshness: z.enum(["current", "stale", "unavailable"]),
+    gateResults: z.array(z.object({
+      stageKey: z.string().min(1),
+      status: z.enum(["verified", "not_applicable", "blocked", "stale", "failed"]),
+      summary: z.string().min(1).max(500),
+      ownerRole: z.string().min(1).max(120),
+      verifiedAt: z.string().datetime().nullable(),
+      evidenceRefs: z.array(z.never()),
+    }).strict()).length(lifecycleGates.length),
+    evidenceRefs: z.array(z.never()),
+    supersession: z.object({
+      status: z.literal("active"),
+      supersedesVersion: z.string().nullable(),
+      supersededByVersion: z.null(),
+    }).strict(),
+    source: z.object({
+      repository: z.literal("Paperclip_Softwarehouse"),
+      path: z.literal("docs/softwarehouse/19-autonomous-application-business-lifecycle.md"),
+      documentVersion: z.literal("1.0"),
+      commitSha: z.string().regex(/^[a-f0-9]{40}$/),
+    }).strict(),
+  }).strict(),
+  items: z.array(z.object({
+    offeringId: z.string().min(1).max(128).regex(/^[A-Za-z0-9._:-]+$/),
+    paperclipProjectName: z.string().min(1).max(120),
+    lifecycleStage: z.string().min(1).max(120),
+    conflictState: z.enum(["none", "project_mapping_conflict", "owner_surface_unavailable"]),
+    sourceControl: z.object({
+      branch: z.string().min(1).max(120).nullable(),
+      sourceSha: z.string().regex(/^[a-f0-9]{40}$/).nullable(),
+      deployedSha: z.string().regex(/^[a-f0-9]{40}$/).nullable(),
+      versionAlignment: z.enum(["aligned", "different", "unknown"]),
+    }).strict(),
+    readiness: z.object({
+      status: z.enum(["GO", "NO-GO", "UNKNOWN"]),
+      evidenceState: z.enum(["complete", "missing", "unknown"]),
+      zeroGapButNoGo: z.boolean(),
+      totalGaps: z.number().int().nonnegative(),
+      nextGate: z.string().min(1).max(500).nullable(),
+    }).strict(),
+    aggregates: z.object({
+      issues: z.object({ total: z.number().int().nonnegative(), byStatus: issueStatusCountsSchema }).strict(),
+    }).strict(),
+  }).strict()).max(50),
+}).strict();
+
+type RoostProductMapPacketV2 = z.infer<typeof roostProductMapPacketV2Schema>;
+
 const envelopeSchema = z.object({
   transportVersion: z.literal("product-map-projection-transport/v1"),
-  schemaVersion: z.literal("1.0"),
+  schemaVersion: z.literal("2.0"),
   companyId: z.string().uuid(),
   observedAt: z.string().datetime(),
   publishedAt: z.string().datetime(),
   sourceSnapshotId: z.string().min(1),
   packetDigest: z.string().regex(/^[a-f0-9]{64}$/),
   idempotencyKey: z.string().regex(/^[a-f0-9]{64}$/),
-  packet: roostBridgePortfolioProjectionSchema,
+  packet: roostProductMapPacketV2Schema,
 });
 
 export type RoostProductMapEnvelope = z.infer<typeof envelopeSchema>;
@@ -120,7 +211,7 @@ function isLoopbackHost(hostname: string) {
 export function validateBindings(bindings: RoostProductMapPublisherBindings) {
   const source = new URL(requireNonBlank(bindings.PRODUCT_MAP_PAPERCLIP_SOURCE_URL, "PRODUCT_MAP_PAPERCLIP_SOURCE_URL"));
   const ingest = new URL(requireNonBlank(bindings.PRODUCT_MAP_ROOST_INGEST_URL, "PRODUCT_MAP_ROOST_INGEST_URL"));
-  const readKey = requireNonBlank(bindings.PRODUCT_MAP_PAPERCLIP_READ_KEY, "PRODUCT_MAP_PAPERCLIP_READ_KEY");
+  const readKey = bindings.PRODUCT_MAP_PAPERCLIP_READ_KEY?.trim() || null;
   const ingestKey = requireNonBlank(bindings.PRODUCT_MAP_ROOST_INGEST_KEY, "PRODUCT_MAP_ROOST_INGEST_KEY");
   if (source.protocol !== "http:" || !isLoopbackHost(source.hostname) || source.port !== "3200" || source.username || source.password || source.search || source.hash) {
     throw new Error("INVALID_SOURCE_URL");
@@ -133,7 +224,7 @@ export function validateBindings(bindings: RoostProductMapPublisherBindings) {
   }
   if (ingest.pathname !== "/v1/product-map/projection/ingest") throw new Error("INVALID_INGEST_ROUTE");
   if (isLoopbackHost(ingest.hostname) || isPrivateAddress(ingest.hostname)) throw new Error("INVALID_INGEST_HOST");
-  for (const token of [readKey, ingestKey]) {
+  for (const token of [readKey, ingestKey].filter((value): value is string => Boolean(value))) {
     if (/^(Bearer\s+)?(?:board|session|agent|run)[_:\-]/i.test(token)) throw new Error("BROAD_CREDENTIAL_REJECTED");
   }
   return { source, ingest };
@@ -161,24 +252,103 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
-export function semanticPacketDigest(packet: RoostBridgePortfolioProjection) {
+export function semanticPacketDigest(packet: unknown) {
   // The source packet itself is semantic. Delivery timestamps and idempotency
   // live only in the envelope and therefore cannot change this digest.
   return createHash("sha256").update(canonicalJson(packet)).digest("hex");
 }
 
-export function createTransportEnvelope(packet: RoostBridgePortfolioProjection, publishedAt: string): RoostProductMapEnvelope {
+function issueCount(byStatus: Record<string, number>, ...keys: string[]) {
+  return keys.reduce((total, key) => total + (byStatus[key] ?? 0), 0);
+}
+
+export function toRoostProductMapPacketV2(packet: RoostBridgePortfolioProjection): RoostProductMapPacketV2 {
+  const freshness = packet.sourceState === "available" ? (packet.stale ? "stale" : "current") : "unavailable";
+  const candidate = {
+    schemaVersion: "2.0",
+    observedAt: packet.observedAt,
+    sourceState: packet.sourceState,
+    stale: freshness !== "current",
+    conflictState: packet.conflictState,
+    lifecycleProcedure: {
+      procedureId: "PROC-SH-APPLICATION-LIFECYCLE",
+      procedureVersion: "1.0",
+      executionAuthority: "paperclip",
+      observedAt: packet.observedAt,
+      verifiedAt: null,
+      freshness,
+      gateResults: lifecycleGates.map(([stageKey, ownerRole]) => ({
+        stageKey,
+        status: "blocked" as const,
+        summary: "Paperclip has not projected inspectable verification evidence for this portfolio-level lifecycle gate.",
+        ownerRole,
+        verifiedAt: null,
+        evidenceRefs: [],
+      })),
+      evidenceRefs: [],
+      supersession: { status: "active", supersedesVersion: null, supersededByVersion: null },
+      source: {
+        repository: "Paperclip_Softwarehouse",
+        path: "docs/softwarehouse/19-autonomous-application-business-lifecycle.md",
+        documentVersion: "1.0",
+        commitSha: "b0e02c28de8bb3ebe0abf6239a5771b389a779f9",
+      },
+    },
+    items: packet.items.map((item) => {
+      const counts = item.aggregates.issues.byStatus;
+      return {
+        offeringId: item.offeringId,
+        paperclipProjectName: item.paperclipProjectName,
+        lifecycleStage: item.lifecycleStage,
+        conflictState: item.conflictState,
+        sourceControl: {
+          branch: item.sourceControl.branch,
+          sourceSha: item.sourceControl.sourceSha,
+          deployedSha: item.sourceControl.deployedSha,
+          versionAlignment: item.sourceControl.versionAlignment,
+        },
+        readiness: {
+          status: item.readiness.status,
+          evidenceState: item.readiness.evidenceState,
+          zeroGapButNoGo: item.readiness.zeroGapButNoGo,
+          totalGaps: item.readiness.totalGaps,
+          nextGate: item.readiness.nextGate?.trim() || null,
+        },
+        aggregates: {
+          issues: {
+            total: item.aggregates.issues.total,
+            byStatus: {
+              backlog: issueCount(counts, "backlog"),
+              todo: issueCount(counts, "todo"),
+              inProgress: issueCount(counts, "in_progress", "inProgress"),
+              inReview: issueCount(counts, "in_review", "inReview"),
+              blocked: issueCount(counts, "blocked"),
+              done: issueCount(counts, "done"),
+              cancelled: issueCount(counts, "cancelled", "canceled"),
+            },
+          },
+        },
+      };
+    }),
+  };
+  const parsed = roostProductMapPacketV2Schema.safeParse(candidate);
+  if (!parsed.success) throw new Error("DESTINATION_SCHEMA_REJECTED");
+  return parsed.data;
+}
+
+export function createTransportEnvelope(sourcePacket: RoostBridgePortfolioProjection, publishedAt: string): RoostProductMapEnvelope {
+  const packet = toRoostProductMapPacketV2(sourcePacket);
   const packetDigest = semanticPacketDigest(packet);
   return envelopeSchema.parse({
     transportVersion: "product-map-projection-transport/v1",
     schemaVersion: packet.schemaVersion,
-    companyId: packet.companyId,
+    companyId: sourcePacket.companyId,
     observedAt: packet.observedAt,
     publishedAt,
-    sourceSnapshotId: packet.sourceSnapshotId,
+    sourceSnapshotId: sourcePacket.sourceSnapshotId.replace(/^sha256:/, ""),
     packetDigest,
     idempotencyKey: createHash("sha256")
-      .update(`${packet.companyId}:${packet.schemaVersion}:${packet.sourceSnapshotId}:${packetDigest}`, "utf8")
+      .update(`${sourcePacket.companyId}:${packet.schemaVersion}:${sourcePacket.sourceSnapshotId.replace(/^sha256:/, "")}:${packetDigest}`, "utf8")
       .digest("hex"),
     packet,
   });
@@ -199,6 +369,10 @@ async function resolvePublicAddress(hostname: string) {
   return answers[0]!;
 }
 
+export function pinnedRequestHeaders(target: URL, kind: "source" | "outbound", headers: Record<string, string>) {
+  return kind === "outbound" ? { host: target.host, ...headers } : { ...headers };
+}
+
 async function pinnedRequest(input: PinnedRequest): Promise<{ status: number; body: unknown }> {
   const target = input.target;
   const source = input.kind === "source";
@@ -213,7 +387,7 @@ async function pinnedRequest(input: PinnedRequest): Promise<{ status: number; bo
       port: source ? 3200 : 443,
       path: `${target.pathname}`,
       method: input.method,
-      headers: input.headers,
+      headers: pinnedRequestHeaders(target, input.kind, input.headers),
       agent: false,
       rejectUnauthorized: !source,
       lookup: source ? undefined : ((_hostname, _options, callback) => callback(null, resolved!.address, resolved!.family)),
@@ -255,7 +429,12 @@ export async function loadRoostProductMapEnvelope(options: RoostProductMapPublis
   const request = options.request ?? pinnedRequest;
   const sourceResponse = await withTotalTimeout(() => request({
     target: source, method: "GET", kind: "source", signal: options.signal,
-    headers: { authorization: `Bearer ${options.bindings.PRODUCT_MAP_PAPERCLIP_READ_KEY}`, accept: "application/json" },
+    headers: {
+      ...(options.bindings.PRODUCT_MAP_PAPERCLIP_READ_KEY
+        ? { authorization: `Bearer ${options.bindings.PRODUCT_MAP_PAPERCLIP_READ_KEY}` }
+        : {}),
+      accept: "application/json",
+    },
   }), options.signal);
   if (sourceResponse.status !== 200) throw new Error("SOURCE_AUTH_OR_LOAD_REJECTED");
   const packet = roostBridgePortfolioProjectionSchema.parse(sourceResponse.body);
@@ -281,7 +460,12 @@ export async function deliverRoostProductMapEnvelope(
     headers["x-product-map-signature"] = `sha256=${createHash("sha256").update(options.bindings.PRODUCT_MAP_ROOST_INGEST_SIGNING_KEY).update(bytes).digest("hex")}`;
   }
   const outbound = await withTotalTimeout(() => request({ target: ingest, method: "POST", kind: "outbound", headers, body: bytes, signal: options.signal }), options.signal);
-  if (outbound.status < 200 || outbound.status >= 300) throw new Error("INGEST_REJECTED");
+  if (outbound.status < 200 || outbound.status >= 300) {
+    const safeStatus = Number.isInteger(outbound.status) && outbound.status >= 100 && outbound.status <= 599
+      ? outbound.status
+      : 0;
+    throw new Error(`INGEST_REJECTED_${safeStatus}`);
+  }
   return { packetDigest: envelope.packetDigest, idempotencyKey: envelope.idempotencyKey };
 }
 

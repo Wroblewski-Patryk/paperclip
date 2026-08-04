@@ -69,6 +69,7 @@
     "softwarehouse:architecture-lifecycle": "node scripts/check-architecture-awareness-lifecycle.mjs",
     "softwarehouse:architecture-lifecycle:apply": "node scripts/check-architecture-awareness-lifecycle.mjs --apply",
     "codex:bootstrap-supervisor": "node scripts/run-codex-bootstrap-supervisor.mjs",
+    "softwarehouse:autonomy-graduation": "node scripts/evaluate-autonomy-graduation.mjs",
     "softwarehouse:autonomous-cycle": "node scripts/run-autonomous-development-cycle.mjs",
     "softwarehouse:autonomy-governor": "node scripts/configure-autonomy-governor.mjs",
     "softwarehouse:control-loop": "node scripts/run-autonomy-governor.mjs",

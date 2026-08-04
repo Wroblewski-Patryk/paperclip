@@ -111,12 +111,14 @@ const ignoredDirs = new Set([
   "vendor",
   "history",
 ]);
+const ignoredGeneratedPathPrefixes = ["storage/", "bootstrap/cache/"];
 
-const codeExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py"]);
+const codeExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".php"]);
 const docExtensions = new Set([".md", ".mdx"]);
 const modelNamePattern = /(schema|model|entity|types?)\.(ts|tsx|js|mjs|py)$/i;
 const routeSegmentPattern = /(^|[\\/])(app|pages|routes|router|api)([\\/]|$)/i;
 const apiEndpointPattern = /\b(?:app|router)\.(get|post|put|patch|delete|use)\s*\(\s*["'`]([^"'`]+)["'`]/g;
+const laravelEndpointPattern = /\bRoute::(get|post|put|patch|delete|options|any|match)\s*\(\s*["']([^"']+)["']/g;
 const importPattern = /(?:import\s+(?:[^"'`]*?\s+from\s+)?|export\s+[^"'`]*?\s+from\s+|require\s*\()\s*["'`]([^"'`]+)["'`]/g;
 const functionPattern = /(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)|(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g;
 const classPattern = /(?:export\s+)?class\s+([A-Za-z_$][\w$]*)/g;
@@ -342,6 +344,7 @@ async function walk(dir) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       const relativePath = rel(full);
+      if (ignoredGeneratedPathPrefixes.some((prefix) => `${relativePath}/`.startsWith(prefix))) continue;
       if (isExcludedByOverride(relativePath)) continue;
       files.push(...await walk(full));
     } else if (entry.isFile()) {
@@ -583,7 +586,8 @@ function addRelation(relations, from, to, type, evidence = "") {
 
 function pathLooksLikeTest(relativePath) {
   return /(^|[\\/])(__tests__|tests?|specs?)([\\/]|$)/i.test(relativePath) ||
-    /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs|py)$/i.test(relativePath);
+    /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs|py|php)$/i.test(relativePath) ||
+    /(^|[\\/])tests?[\\/].*Test\.php$/i.test(relativePath);
 }
 
 function pathLooksLikeStructuredTestArtifact(relativePath) {
@@ -600,7 +604,7 @@ function pathLooksLikeTestFixture(relativePath) {
 }
 
 function pathLooksLikeComponent(relativePath) {
-  return /\.(tsx|jsx)$/.test(relativePath) &&
+  return (/\.(tsx|jsx)$/.test(relativePath) || /\.blade\.php$/i.test(relativePath)) &&
     (/(^|[\\/])(components?|ui|views?|pages?)([\\/]|$)/i.test(relativePath) ||
       /^[A-Z]/.test(path.basename(relativePath)));
 }
@@ -978,6 +982,19 @@ for (const file of files) {
           name: `${match[1].toUpperCase()} ${match[2]}`,
           path: `${relativePath}#${match[2]}`,
           description: "API endpoint inferred from route registration.",
+          status: "implemented",
+          evidence: [relativePath],
+        });
+        fileEntityByPath.set(endpoint.path, endpoint);
+        addRelation(relations, entity, endpoint, "implements", relativePath);
+        addRelation(relations, endpoint, moduleEntity, "connected_to", relativePath);
+      }
+      for (const match of text.matchAll(laravelEndpointPattern)) {
+        const endpoint = addEntity(entities, {
+          type: "api_endpoint",
+          name: `${match[1].toUpperCase()} ${match[2]}`,
+          path: `${relativePath}#${match[2]}`,
+          description: "Laravel endpoint inferred from route registration.",
           status: "implemented",
           evidence: [relativePath],
         });

@@ -745,7 +745,7 @@ export function AgentDetail() {
     enabled: Boolean(resolvedAgentId) && needsDashboardData,
   });
 
-  const { data: heartbeats } = useQuery({
+  const { data: heartbeats, isLoading: heartbeatsLoading, error: heartbeatsError } = useQuery({
     queryKey: queryKeys.heartbeats(resolvedCompanyId!, agent?.id ?? undefined),
     queryFn: () => heartbeatsApi.list(resolvedCompanyId!, agent?.id ?? undefined),
     enabled: !!resolvedCompanyId && !!agent?.id && shouldLoadHeartbeats,
@@ -1330,6 +1330,8 @@ export function AgentDetail() {
           selectedRunId={urlRunId ?? null}
           adapterType={agent.adapterType}
           adapterConfig={agent.adapterConfig}
+          isLoading={heartbeatsLoading}
+          error={heartbeatsError}
         />
       )}
 
@@ -3197,6 +3199,8 @@ function RunsTab({
   selectedRunId,
   adapterType,
   adapterConfig,
+  isLoading,
+  error,
 }: {
   runs: HeartbeatRun[];
   companyId: string;
@@ -3205,8 +3209,18 @@ function RunsTab({
   selectedRunId: string | null;
   adapterType: string;
   adapterConfig: Record<string, unknown>;
+  isLoading: boolean;
+  error: unknown;
 }) {
   const { isMobile } = useSidebar();
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">Loading runs...</p>;
+  }
+
+  if (error) {
+    return <p className="text-sm text-destructive">Could not load runs. Refresh the page and try again.</p>;
+  }
 
   if (runs.length === 0) {
     return <p className="text-sm text-muted-foreground">No runs yet.</p>;

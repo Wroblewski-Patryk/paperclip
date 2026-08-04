@@ -102,6 +102,25 @@ test("softwarehouse audit recognizes the renamed canonical operating project", a
   assert.match(source, /project\.urlKey === "softwarehouse"/);
 });
 
+test("softwarehouse audit enforces least-privilege secret hygiene", async () => {
+  const source = await readFile("scripts/audit-luckysparrow-softwarehouse.mjs", "utf8");
+
+  assert.match(source, /forbiddenAgentSecretKeyPattern/);
+  assert.match(source, /protectedSecretRolePolicies/);
+  assert.match(source, /coolify_read_api_token/);
+  assert.match(source, /coolify_deploy_api_token/);
+  assert.match(source, /companycore_api_key/);
+  assert.match(source, /unusedActiveSecrets/);
+  assert.match(source, /secretRoleBindingDrift/);
+  assert.match(source, /protectedModelProfileSecretDrift/);
+  assert.match(source, /model profile secret has no matching agent binding/);
+  assert.match(source, /CompanyCore MCP is configured outside its least-privilege role allowlist/);
+  assert.match(source, /modelProfileDrift/);
+  assert.match(source, /Direct VPS\/SSH access is stored in the agent secret vault/);
+  assert.match(source, /protected credentials are bound outside their least-privilege role allowlists/i);
+  assert.match(source, /secretHygiene/);
+});
+
 test("live-run janitor protects Paperclip OS closure lanes from ordinary duplicate cleanup", async () => {
   const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
 

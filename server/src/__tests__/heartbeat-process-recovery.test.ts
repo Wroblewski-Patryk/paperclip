@@ -989,6 +989,23 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     return { companyId, agentId, runId, wakeupRequestId, issueId };
   }
 
+  it("reconciles a stale running agent when no active run exists", async () => {
+    const { agentId, runId } = await seedRunFixture({ includeIssue: false });
+    await db.update(heartbeatRuns).set({ status: "succeeded", finishedAt: new Date() }).where(eq(heartbeatRuns.id, runId));
+    await db.update(agents).set({ status: "running" }).where(eq(agents.id, agentId));
+    const heartbeat = heartbeatService(db);
+
+    const result = await heartbeat.reapOrphanedRuns();
+
+    expect(result).toMatchObject({
+      reaped: 0,
+      reconciledAgentStatuses: 1,
+      reconciledAgentIds: [agentId],
+    });
+    await expect(db.select().from(agents).where(eq(agents.id, agentId)).then((rows) => rows[0]?.status))
+      .resolves.toBe("idle");
+  });
+
   it("keeps a local run active when the recorded pid is still alive", async () => {
     const child = spawnAliveProcess();
     childProcesses.add(child);
@@ -1270,7 +1287,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       id: sourceIssueId,
       companyId,
       title: "Original stranded source",
-      status: "blocked",
+      status: "in_review",
       priority: "medium",
       issueNumber: 2,
       identifier: `${issuePrefix}-2`,
@@ -2389,7 +2406,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(comments[0]?.body).toContain("Recovery owner: [CodexCoder]");
   });
 
-  it("blocks an already stranded recovery issue without creating a recovery child", async () => {
+  it("moves an already stranded recovery issue to review without creating a recovery child", async () => {
     const { companyId, issueId } = await seedStrandedIssueFixture({
       status: "todo",
       runStatus: "failed",
@@ -2403,7 +2420,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       id: sourceIssueId,
       companyId,
       title: "Original source issue",
-      status: "blocked",
+      status: "in_review",
       priority: "medium",
       issueNumber: 2,
       identifier: `${issuePrefix}-2`,
@@ -2438,7 +2455,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(recoveryIssues).toHaveLength(1);
     expect(recoveryIssues[0]).toMatchObject({
       id: issueId,
-      status: "blocked",
+      status: "in_review",
       parentId: sourceIssueId,
       originId: sourceIssueId,
       originRunId: sourceRunId,
@@ -3115,7 +3132,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     await expect(sourceBlockerIssueIds(companyId, issueId)).resolves.toEqual([]);
   });
 
-  it("blocks stranded recovery issues in place instead of creating nested recovery issues", async () => {
+  it("moves stranded recovery issues to review instead of creating nested recovery issues", async () => {
     const sourceIssueId = randomUUID();
     const { companyId, agentId, issueId, runId } = await seedStrandedIssueFixture({
       status: "in_progress",
@@ -3154,7 +3171,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(result.issueIds).toEqual([issueId]);
 
     const recoveryIssue = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0] ?? null);
-    expect(recoveryIssue?.status).toBe("blocked");
+    expect(recoveryIssue?.status).toBe("in_review");
     expect(recoveryIssue?.assigneeAgentId).toBe(agentId);
     expect(recoveryIssue?.originKind).toBe("stranded_issue_recovery");
     expect(recoveryIssue?.originId).toBe(sourceIssueId);

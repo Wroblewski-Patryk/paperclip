@@ -292,6 +292,8 @@ const configuredResourceIds = Object.fromEntries(
 );
 const roostAppId = process.env.COOLIFY_ROOST_APP_ID;
 const roostAppRoute = roostAppId ? `/api/v1/applications/${encodeURIComponent(roostAppId)}` : null;
+const roostDeploymentsRoute = roostAppId ? `/api/v1/deployments/applications/${encodeURIComponent(roostAppId)}` : null;
+const roostLogsRoute = roostAppId ? `/api/v1/applications/${encodeURIComponent(roostAppId)}/logs?lines=200` : null;
 const routes = [
   ...(teamId ? [`/api/v1/teams/${teamId}`] : []),
   ...(projectId ? [
@@ -303,6 +305,8 @@ const routes = [
   ] : []),
   ...directResourceRoutes.map((item) => item.route),
   ...(roostAppRoute ? [roostAppRoute] : []),
+  ...(roostDeploymentsRoute ? [roostDeploymentsRoute] : []),
+  ...(roostLogsRoute ? [roostLogsRoute] : []),
 ];
 const responses = [];
 for (const route of routes) responses.push(await coolifyGet(route));
@@ -362,6 +366,46 @@ const roostResponse = roostAppRoute
 const roostResources = roostResponse
   ? summarizeDirectResource(roostResponse, "application", "COOLIFY_ROOST_APP_ID")
   : [];
+const roostDeploymentsResponse = roostDeploymentsRoute
+  ? responses.find((response) => response.route === roostDeploymentsRoute)
+  : null;
+const roostDeploymentRows = responseItems(roostDeploymentsResponse);
+const roostDeployments = roostDeploymentRows.map((deployment) => ({
+  id: deployment.id ?? deployment.deployment_uuid ?? deployment.uuid ?? null,
+  uuid: deployment.deployment_uuid ?? deployment.uuid ?? null,
+  status: deployment.status ?? deployment.state ?? null,
+  commit: deployment.commit ?? deployment.git_commit_sha ?? deployment.commit_sha ?? null,
+  createdAt: deployment.created_at ?? deployment.createdAt ?? null,
+  finishedAt: deployment.finished_at ?? deployment.finishedAt ?? null,
+})).slice(0, 20);
+let latestRoostDeploymentLogLines = [];
+try {
+  const parsed = JSON.parse(String(roostDeploymentRows[0]?.logs ?? "[]"));
+  latestRoostDeploymentLogLines = Array.isArray(parsed)
+    ? parsed.map((entry) => String(entry?.output ?? entry?.command ?? ""))
+    : [];
+} catch {
+  latestRoostDeploymentLogLines = String(roostDeploymentRows[0]?.logs ?? "").split(/\r?\n/);
+}
+const latestRoostDeploymentLogSummary = latestRoostDeploymentLogLines
+  .filter((line) => /error|exception|fatal|failed|refused|panic|invalid|missing|denied|EADDR|ECONN|migration/i.test(line))
+  .slice(-40)
+  .map((line) => line
+    .replace(/(authorization|token|secret|password|api[_-]?key|cookie)\s*[:=]\s*\S+/gi, "$1=[REDACTED]")
+    .replace(/postgres(?:ql)?:\/\/[^\s]+/gi, "postgresql://[REDACTED]")
+    .slice(0, 1000));
+const roostLogsResponse = roostLogsRoute
+  ? responses.find((response) => response.route === roostLogsRoute)
+  : null;
+const roostLogText = typeof roostLogsResponse?.data?.logs === "string" ? roostLogsResponse.data.logs : "";
+const roostLogSummary = roostLogText
+  .split(/\r?\n/)
+  .filter((line) => /error|exception|fatal|failed|refused|panic|invalid|missing|denied|EADDR|ECONN|migration/i.test(line))
+  .slice(-40)
+  .map((line) => line
+    .replace(/(authorization|token|secret|password|api[_-]?key|cookie)\s*[:=]\s*\S+/gi, "$1=[REDACTED]")
+    .replace(/postgres(?:ql)?:\/\/[^\s]+/gi, "postgresql://[REDACTED]")
+    .slice(0, 1000));
 const roostOverall = !baseUrl || !token || !roostAppId
   ? "not_ready"
   : roostResponse?.ok && roostResources.length === 1
@@ -408,6 +452,14 @@ const output = {
       source: "coolify_direct_application_readback",
       resource: roostResources[0] ?? null,
       responseStatus: roostResponse?.status ?? null,
+      deploymentsResponseStatus: roostDeploymentsResponse?.status ?? null,
+      deployments: roostDeployments,
+      latestDeploymentLogSummary: latestRoostDeploymentLogSummary,
+      logsResponseStatus: roostLogsResponse?.status ?? null,
+      logsError: typeof roostLogsResponse?.data?.message === "string"
+        ? roostLogsResponse.data.message.slice(0, 500)
+        : null,
+      logSummary: roostLogSummary,
     },
   },
   overall: soarOverall,

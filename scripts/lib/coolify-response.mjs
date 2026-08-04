@@ -3,6 +3,7 @@ export function coolifyResponseItems(raw) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.resources)) return data.resources;
+  if (Array.isArray(data?.deployments)) return data.deployments;
   if (!data || typeof data !== "object") return [];
 
   const keys = Object.keys(data);

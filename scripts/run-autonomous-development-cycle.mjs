@@ -37,11 +37,12 @@ function run(command, args, options = {}) {
   };
 }
 
-async function request(method, route) {
+async function request(method, route, body = undefined) {
   try {
     const response = await fetch(`${apiBase}${route}`, {
       method,
       headers: { "content-type": "application/json" },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(10_000),
     });
     const text = await response.text();
@@ -60,6 +61,112 @@ async function request(method, route) {
       error: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+const terminalDeliveryStages = new Set(["outcome_accepted", "rolled_back"]);
+const canonicalProjectRoots = new Map([
+  ["11 Innovation: Soar", "Soar"],
+  ["11 Innovation: Roost", "Roost"],
+  ["11 Innovation: Featherly", "Featherly"],
+]);
+
+function priorityRank(priority) {
+  return ({ critical: 0, high: 1, medium: 2, low: 3 })[priority] ?? 4;
+}
+
+async function executeBoundedDispatch({ company, issues, projects, repositories, preliminary }) {
+  if (!company || !Array.isArray(issues) || !Array.isArray(projects)) return preliminary;
+  if (!["ready_for_next_paperclip_dispatch", "project_truth_gap_dispatched"].includes(preliminary.action)) return preliminary;
+
+  const projectById = new Map(projects.map((project) => [project.id, project]));
+  const deliveriesResponse = await request("GET", `/api/companies/${company.id}/deliveries?limit=500`);
+  const deliveries = Array.isArray(deliveriesResponse.data) ? deliveriesResponse.data : [];
+  const deliveryDetails = await Promise.all(deliveries
+    .filter((delivery) => !terminalDeliveryStages.has(delivery.stage))
+    .map((delivery) => request("GET", `/api/deliveries/${delivery.id}`).then((result) => result.data)));
+  const issueIdsAlreadyInFlight = new Set(deliveryDetails.flatMap((delivery) =>
+    Array.isArray(delivery?.tasks) ? delivery.tasks.map((task) => task.issueId) : []));
+
+  const preferredIdentifier = preliminary.issueIdentifier ?? null;
+  const candidates = issues.filter((issue) => {
+    const project = projectById.get(issue.projectId);
+    const repoName = canonicalProjectRoots.get(project?.name);
+    return repoName
+      && repositories[repoName]?.clean === true
+      && ["backlog", "todo"].includes(issue.status)
+      && issue.assigneeAgentId
+      && !["routine_execution", "stranded_issue_recovery"].includes(issue.originKind)
+      && !issueIdsAlreadyInFlight.has(issue.id)
+      && (typeof issue.description === "string" && issue.description.trim().length >= 120);
+  }).sort((left, right) => {
+    if (left.identifier === preferredIdentifier) return -1;
+    if (right.identifier === preferredIdentifier) return 1;
+    return priorityRank(left.priority) - priorityRank(right.priority)
+      || String(left.createdAt).localeCompare(String(right.createdAt));
+  });
+  const issue = candidates[0];
+  if (!issue) {
+    return {
+      ...preliminary,
+      action: "no_admissible_product_work_packet",
+      reason: "No clean-repository product issue has an assignee, bounded description, runnable status, and no existing delivery. The cycle is unhealthy until intake supplies one.",
+    };
+  }
+
+  const project = projectById.get(issue.projectId);
+  const acceptanceCriteria = [{
+    kind: "issue_acceptance_contract",
+    issueIdentifier: issue.identifier,
+    requirement: "Implementation, inspectable tests, review, documentation, release impact, and owner-visible outcome evidence are attached before closure.",
+  }];
+  const created = await request("POST", `/api/companies/${company.id}/deliveries`, {
+    projectId: issue.projectId,
+    title: issue.title,
+    problemStatement: issue.description,
+    decisionContract: {
+      source: "paperclip_autonomous_cycle",
+      cycleId,
+      boundedToIssueId: issue.id,
+      maxConcurrentDispatches: 1,
+      projectIsolation: project.name,
+    },
+    ownerAgentId: issue.assigneeAgentId,
+    outcomeStatement: `The owner can use or inspect the accepted result of ${issue.identifier} in ${project.name}; activity alone is not an outcome.`,
+    acceptanceCriteria,
+    taskIssueIds: [issue.id],
+  });
+  if (!created.ok) return { ...preliminary, action: "delivery_record_creation_failed", reason: created.error, issueIdentifier: issue.identifier };
+  const delivery = created.data;
+  const admitted = await request("POST", `/api/deliveries/${delivery.id}/transition`, {
+    toStage: "admitted",
+    idempotencyKey: `${cycleId}:admitted`,
+  });
+  if (!admitted.ok) return { ...preliminary, action: "delivery_admission_rejected", reason: admitted.error, deliveryId: delivery.id, issueIdentifier: issue.identifier };
+  const implementing = await request("POST", `/api/deliveries/${delivery.id}/transition`, {
+    toStage: "implementing",
+    idempotencyKey: `${cycleId}:implementing`,
+  });
+  if (!implementing.ok) return { ...preliminary, action: "delivery_start_failed", reason: implementing.error, deliveryId: delivery.id, issueIdentifier: issue.identifier };
+  const wake = await request("POST", `/api/agents/${issue.assigneeAgentId}/wakeup`, {
+    source: "automation",
+    triggerDetail: "system",
+    reason: `Autonomous product delivery ${delivery.id} for ${issue.identifier}`,
+    idempotencyKey: `${cycleId}:dispatch:${issue.id}`,
+    forceFreshSession: true,
+    payload: { issueId: issue.id, projectId: issue.projectId, deliveryId: delivery.id, cycleId },
+  });
+  if (!wake.ok) return { ...preliminary, action: "agent_dispatch_failed", reason: wake.error, deliveryId: delivery.id, issueIdentifier: issue.identifier };
+  return {
+    action: "bounded_product_delivery_dispatched",
+    reason: "One company-scoped product delivery was admitted, linked to its task, and dispatched to its accountable agent.",
+    deliveryId: delivery.id,
+    issueIdentifier: issue.identifier,
+    issueTitle: issue.title,
+    projectName: project.name,
+    assigneeAgentId: issue.assigneeAgentId,
+    startedRuns: wake.data?.id ? [wake.data.id] : [],
+    allowedLaneTypes: preliminary.allowedLaneTypes,
+  };
 }
 
 async function readJsonIfExists(filePath) {
@@ -300,6 +407,9 @@ let companySnapshot = {
   projectCount: null,
   agentCount: null,
 };
+let selectedCompany = null;
+let companyIssues = [];
+let companyProjects = [];
 const companies = await request("GET", "/api/companies");
 if (companies.ok) {
   const company = companies.data?.find((candidate) => preferredCompanyNames.includes(candidate.name));
@@ -309,6 +419,9 @@ if (companies.ok) {
       request("GET", `/api/companies/${company.id}/projects`),
       request("GET", `/api/companies/${company.id}/agents`),
     ]);
+    selectedCompany = company;
+    companyIssues = Array.isArray(issues.data) ? issues.data : [];
+    companyProjects = Array.isArray(projects.data) ? projects.data : [];
     companySnapshot = {
       ok: issues.ok && projects.ok && agents.ok,
       company: {
@@ -332,11 +445,16 @@ const repositories = {
   Paperclip_Softwarehouse: gitStatusFor(process.cwd()),
   Soar: gitStatusFor(path.join(appsRoot, "Soar")),
   Roost: gitStatusFor(path.join(appsRoot, "Roost")),
-  Aviary: gitStatusFor(path.join(appsRoot, "Aviary")),
-  Nest: gitStatusFor(path.join(appsRoot, "Nest")),
+  Featherly: gitStatusFor(path.join(appsRoot, "Featherly")),
 };
 
-const dispatch = dispatchDecisionFor(controlTick);
+const dispatch = await executeBoundedDispatch({
+  company: selectedCompany,
+  issues: companyIssues,
+  projects: companyProjects,
+  repositories,
+  preliminary: dispatchDecisionFor(controlTick),
+});
 const validationRun = skipValidation
   ? null
   : run(process.execPath, ["--test", "scripts/softwarehouse-gate-specs.test.mjs"], {
@@ -358,8 +476,15 @@ const monitoring = monitorDecisionFor(release);
 const learning = learningFor(controlTick, validation, repositories);
 
 const controlTickHealthy = skipControlTick ? controlTick?.ok === true : controlTickRun?.ok === true && controlTick?.ok === true;
-const outcome = controlTickHealthy && validation.ok && dispatch.action !== "blocked_by_delivery_permission"
-  && dispatch.action !== "project_truth_gap_dispatch_required"
+const outcome = controlTickHealthy && validation.ok && ![
+  "blocked_by_delivery_permission",
+  "project_truth_gap_dispatch_required",
+  "no_admissible_product_work_packet",
+  "delivery_record_creation_failed",
+  "delivery_admission_rejected",
+  "delivery_start_failed",
+  "agent_dispatch_failed",
+].includes(dispatch.action)
   ? "cycle_recorded"
   : "cycle_recorded_with_holds";
 
@@ -402,6 +527,7 @@ const cycle = {
           "project_truth_gap_dispatched",
           "supervise_existing_project_truth_run",
           "supervise_existing_runs",
+          "bounded_product_delivery_dispatched",
         ].includes(dispatch.action),
         dispatch.reason,
       ),
@@ -445,6 +571,6 @@ await writeFile(path.join("report", "autonomous-cycles", "latest.md"), markdown)
 
 console.log(JSON.stringify(cycle, null, 2));
 
-if (!controlTickHealthy || !validation.ok) {
+if (!controlTickHealthy || !validation.ok || outcome === "cycle_recorded_with_holds") {
   process.exitCode = 1;
 }

@@ -2433,7 +2433,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       failureSummary ? `- Failure: ${failureSummary.trim()}` : "- Failure: none recorded",
       "- Guard: recovery issues do not create nested `stranded_issue_recovery` issues.",
       "",
-      "Next action: the current recovery owner should inspect the failed run evidence, restore a live execution path or record the manual resolution, then move this recovery issue out of `blocked`.",
+      "Next action: the current recovery owner should inspect the failed run evidence, restore a live execution path or record the manual resolution, then dispose this `in_review` recovery issue.",
     ].join("\n");
   }
 
@@ -2442,7 +2442,10 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     previousStatus: "todo" | "in_progress";
     latestRun: LatestIssueRun;
   }) {
-    const updated = await issuesSvc.update(input.issue.id, { status: "blocked" });
+    // Exhausted recovery work needs an owned decision, not a fictional
+    // dependency. Leaving it blocked without a first-class blocker creates a
+    // permanent orphan, so route it to the explicit review state instead.
+    const updated = await issuesSvc.update(input.issue.id, { status: "in_review" });
     if (!updated) return null;
 
     const prefix = await getCompanyIssuePrefix(input.issue.companyId);
@@ -2468,7 +2471,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       entityId: input.issue.id,
       details: {
         identifier: input.issue.identifier,
-        status: "blocked",
+        status: "in_review",
         previousStatus: input.previousStatus,
         source: "recovery.reconcile_stranded_recovery_issue",
         latestRunId: input.latestRun?.id ?? null,
@@ -2543,8 +2546,9 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       successfulRunHandoffEvidence: input.successfulRunHandoffEvidence,
     });
     const blockerIds = await existingUnresolvedBlockerIssueIds(input.issue.companyId, input.issue.id);
+    const recoveryDisposition = blockerIds.length > 0 ? "blocked" : "in_review";
     let updated = await issuesSvc.update(input.issue.id, {
-      status: "blocked",
+      status: recoveryDisposition,
       blockedByIssueIds: blockerIds,
       assigneeAgentId: recoveryAction.ownerAgentId ?? input.issue.assigneeAgentId,
       expectedStatus: input.previousStatus,
@@ -2553,7 +2557,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       const currentIssue = await issuesSvc.getById(input.issue.id);
       const expectedOwnerAgentId = recoveryAction.ownerAgentId ?? input.issue.assigneeAgentId;
       if (
-        currentIssue?.status === "blocked" &&
+        currentIssue?.status === recoveryDisposition &&
         currentIssue.assigneeAgentId === expectedOwnerAgentId
       ) {
         updated = currentIssue;
@@ -2661,7 +2665,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       entityId: input.issue.id,
       details: {
         identifier: input.issue.identifier,
-        status: "blocked",
+        status: recoveryDisposition,
         previousStatus: input.previousStatus,
         source: input.recoveryCause === SUCCESSFUL_RUN_MISSING_STATE_REASON
           ? "recovery.reconcile_successful_run_handoff_missing_state"
@@ -2696,11 +2700,11 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         .limit(1);
       if (
         currentIssue &&
-        (currentIssue.status !== "blocked" ||
+        (currentIssue.status !== recoveryDisposition ||
           currentIssue.assigneeAgentId !== recoveryAction.ownerAgentId)
       ) {
         const reblocked = await issuesSvc.update(input.issue.id, {
-          status: "blocked",
+          status: recoveryDisposition,
           blockedByIssueIds: blockerIds,
           assigneeAgentId: recoveryAction.ownerAgentId,
         });

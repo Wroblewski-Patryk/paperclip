@@ -86,6 +86,7 @@ const mockIssueService = vi.hoisted(() => ({
 const mockSecretService = vi.hoisted(() => ({
   normalizeAdapterConfigForPersistence: vi.fn(),
   resolveAdapterConfigForRuntime: vi.fn(),
+  syncEnvBindingsForTarget: vi.fn(),
 }));
 
 const mockAgentInstructionsService = vi.hoisted(() => ({
@@ -205,6 +206,7 @@ function registerModuleMocks() {
 
 function createDbStub(options: { requireBoardApprovalForNewAgents?: boolean } = {}) {
   return {
+    transaction: vi.fn(async (callback: (tx: unknown) => unknown) => callback({})),
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
@@ -320,6 +322,7 @@ describe.sequential("agent permission routes", () => {
     mockIssueService.list.mockReset();
     mockSecretService.normalizeAdapterConfigForPersistence.mockReset();
     mockSecretService.resolveAdapterConfigForRuntime.mockReset();
+    mockSecretService.syncEnvBindingsForTarget.mockReset();
     mockAgentInstructionsService.materializeManagedBundle.mockReset();
     mockCompanySkillService.listRuntimeSkillEntries.mockReset();
     mockCompanySkillService.resolveRequestedSkillKeys.mockReset();
@@ -388,6 +391,7 @@ describe.sequential("agent permission routes", () => {
     );
     mockSecretService.normalizeAdapterConfigForPersistence.mockImplementation(async (_companyId, config) => config);
     mockSecretService.resolveAdapterConfigForRuntime.mockImplementation(async (_companyId, config) => ({ config }));
+    mockSecretService.syncEnvBindingsForTarget.mockResolvedValue([]);
     mockInstanceSettingsService.getGeneral.mockResolvedValue({
       censorUsernameInLogs: false,
     });
@@ -751,6 +755,61 @@ describe.sequential("agent permission routes", () => {
         },
       }),
       expect.anything(),
+    );
+  });
+
+  it("synchronizes base and model-profile env bindings and removes deleted profiles", async () => {
+    const updated = {
+      ...baseAgent,
+      adapterConfig: { env: { BASE_TOKEN: { type: "secret_ref", secretId: "33333333-3333-4333-8333-333333333333" } } },
+      runtimeConfig: {
+        modelProfiles: {
+          standard: {
+            adapterConfig: { env: { PROFILE_TOKEN: { type: "secret_ref", secretId: "44444444-4444-4444-8444-444444444444" } } },
+          },
+        },
+      },
+    };
+    mockAgentService.getById.mockResolvedValue({
+      ...baseAgent,
+      adapterConfig: { env: { BASE_TOKEN: { type: "secret_ref", secretId: "33333333-3333-4333-8333-333333333333" } } },
+      runtimeConfig: {
+        modelProfiles: {
+          cheap: { adapterConfig: { env: { OLD_TOKEN: { type: "secret_ref", secretId: "55555555-5555-4555-8555-555555555555" } } } },
+        },
+      },
+    });
+    mockAgentService.update.mockResolvedValue(updated);
+
+    const app = await createApp({
+      type: "board",
+      userId: "board-user",
+      source: "local_implicit",
+      isInstanceAdmin: true,
+      companyIds: [companyId],
+    });
+    const res = await requestApp(app, (baseUrl) => request(baseUrl)
+      .patch(`/api/agents/${agentId}`)
+      .send({ runtimeConfig: updated.runtimeConfig }));
+
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(mockSecretService.syncEnvBindingsForTarget).toHaveBeenCalledWith(
+      companyId,
+      { targetType: "agent", targetId: agentId },
+      updated.adapterConfig.env,
+      { db: expect.anything() },
+    );
+    expect(mockSecretService.syncEnvBindingsForTarget).toHaveBeenCalledWith(
+      companyId,
+      expect.objectContaining({ pathPrefix: "runtimeConfig.modelProfiles.cheap.adapterConfig.env" }),
+      undefined,
+      { db: expect.anything() },
+    );
+    expect(mockSecretService.syncEnvBindingsForTarget).toHaveBeenCalledWith(
+      companyId,
+      expect.objectContaining({ pathPrefix: "runtimeConfig.modelProfiles.standard.adapterConfig.env" }),
+      updated.runtimeConfig.modelProfiles.standard.adapterConfig.env,
+      { db: expect.anything() },
     );
   });
 

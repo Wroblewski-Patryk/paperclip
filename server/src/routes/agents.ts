@@ -1089,6 +1089,42 @@ export function agentRoutes(
     return normalizedRuntimeConfig;
   }
 
+  async function syncAgentEnvBindings(agent: {
+    companyId: string;
+    id: string;
+    adapterConfig?: unknown;
+    runtimeConfig?: unknown;
+    previousRuntimeConfig?: unknown;
+  }) {
+    const sync = secretsSvc.syncEnvBindingsForTarget;
+    if (!sync) return;
+    const target = { targetType: "agent" as const, targetId: agent.id };
+    await db.transaction(async (tx) => {
+      await sync(agent.companyId, target, asRecord(agent.adapterConfig)?.env, { db: tx });
+      const modelProfiles = asRecord(asRecord(agent.runtimeConfig)?.modelProfiles);
+      const previousModelProfiles = asRecord(asRecord(agent.previousRuntimeConfig)?.modelProfiles);
+      const currentProfileKeys = new Set(Object.keys(modelProfiles ?? {}));
+      for (const profileKey of Object.keys(previousModelProfiles ?? {})) {
+        if (currentProfileKeys.has(profileKey)) continue;
+        await sync(
+          agent.companyId,
+          { ...target, pathPrefix: `runtimeConfig.modelProfiles.${profileKey}.adapterConfig.env` },
+          undefined,
+          { db: tx },
+        );
+      }
+      for (const [profileKey, rawProfile] of Object.entries(modelProfiles ?? {})) {
+        const profile = asRecord(rawProfile);
+        await sync(
+          agent.companyId,
+          { ...target, pathPrefix: `runtimeConfig.modelProfiles.${profileKey}.adapterConfig.env` },
+          asRecord(profile?.adapterConfig)?.env,
+          { db: tx },
+        );
+      }
+    });
+  }
+
   function generateEd25519PrivateKeyPem(): string {
     const { privateKey } = generateKeyPairSync("ed25519");
     return privateKey.export({ type: "pkcs8", format: "pem" }).toString();
@@ -2032,6 +2068,8 @@ export function agentRoutes(
       return;
     }
 
+    await syncAgentEnvBindings({ ...updated, previousRuntimeConfig: existing.runtimeConfig });
+
     await logActivity(db, {
       companyId: updated.companyId,
       actorType: actor.actorType,
@@ -2360,14 +2398,7 @@ export function agentRoutes(
       lastHeartbeatAt: null,
     });
     const agent = await materializeDefaultInstructionsBundleForNewAgent(createdAgent, instructionsBundle);
-    const agentEnv = asRecord(agent.adapterConfig)?.env;
-    if (agentEnv) {
-      await secretsSvc.syncEnvBindingsForTarget?.(
-        companyId,
-        { targetType: "agent", targetId: agent.id },
-        agentEnv,
-      );
-    }
+    await syncAgentEnvBindings(agent);
 
     const actor = getActorInfo(req);
     await logActivity(db, {
@@ -2844,13 +2875,8 @@ export function agentRoutes(
       res.status(404).json({ error: "Agent not found" });
       return;
     }
-    if (touchesAdapterConfiguration) {
-      const agentEnv = asRecord(agent.adapterConfig)?.env;
-      await secretsSvc.syncEnvBindingsForTarget?.(
-        agent.companyId,
-        { targetType: "agent", targetId: agent.id },
-        agentEnv,
-      );
+    if (touchesAdapterConfiguration || requestedRuntimeConfig) {
+      await syncAgentEnvBindings({ ...agent, previousRuntimeConfig: existing.runtimeConfig });
     }
 
     await logActivity(db, {

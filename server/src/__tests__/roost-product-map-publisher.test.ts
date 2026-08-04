@@ -4,6 +4,7 @@ import {
   createRoostProductMapPublisherSupervisorIdentity,
   createTransportEnvelope,
   isPrivateAddress,
+  pinnedRequestHeaders,
   roostProductMapPublisherService,
   runRoostProductMapPublisher,
   semanticPacketDigest,
@@ -37,28 +38,36 @@ describe("Roost Product Map publisher", () => {
     expect(isPrivateAddress("10.0.0.1")).toBe(true);
     expect(isPrivateAddress("fe80::1")).toBe(true);
     expect(isPrivateAddress("8.8.8.8")).toBe(false);
+    expect(pinnedRequestHeaders(new URL(bindings.PRODUCT_MAP_ROOST_INGEST_URL), "outbound", { accept: "application/json" }))
+      .toEqual({ host: "roost.example.test", accept: "application/json" });
   });
 
-  it("creates the accepted v1 envelope with canonical digest and hashed idempotency", () => {
-    const digest = semanticPacketDigest(packet);
+  it("adapts the source v1 projection into the accepted Roost v2 envelope", () => {
     const envelope = createTransportEnvelope(packet, "2026-07-28T09:01:00.000Z");
+    const digest = semanticPacketDigest(envelope.packet);
     expect(envelope.observedAt).toBe(packet.observedAt);
     expect(envelope.packetDigest).toBe(digest);
     expect(envelope).toMatchObject({
       transportVersion: "product-map-projection-transport/v1",
-      schemaVersion: "1.0",
+      schemaVersion: "2.0",
       companyId,
       observedAt: packet.observedAt,
       publishedAt: "2026-07-28T09:01:00.000Z",
-      sourceSnapshotId: packet.sourceSnapshotId,
+      sourceSnapshotId: "a".repeat(64),
       packetDigest: digest,
-      packet,
+      packet: {
+        schemaVersion: "2.0",
+        observedAt: packet.observedAt,
+        sourceState: "available",
+        stale: false,
+        conflictState: "none",
+      },
     });
     expect(digest).toMatch(/^[a-f0-9]{64}$/);
     expect(digest).not.toMatch(/^sha256:/);
     expect(envelope.transportVersion).not.toBe("v1");
     expect(envelope.idempotencyKey).toBe(createHash("sha256")
-      .update(`${companyId}:1.0:${packet.sourceSnapshotId}:${digest}`, "utf8")
+      .update(`${companyId}:2.0:${"a".repeat(64)}:${digest}`, "utf8")
       .digest("hex"));
     expect(envelope.idempotencyKey).toMatch(/^[a-f0-9]{64}$/);
     expect(envelope.idempotencyKey).not.toContain("pmap:v1:");
@@ -69,7 +78,7 @@ describe("Roost Product Map publisher", () => {
       }
       return value;
     };
-    expect(semanticPacketDigest(recursivelyReordered(packet) as typeof packet)).toBe(digest);
+    expect(semanticPacketDigest(recursivelyReordered(envelope.packet))).toBe(digest);
     expect(createTransportEnvelope(packet, "2026-07-28T09:02:00.000Z").packetDigest).toBe(digest);
   });
 
@@ -121,7 +130,7 @@ describe("Roost Product Map publisher", () => {
       return { status: 503, body: {} };
     } });
     expect(attempts).toBe(roostProductMapPublisherService.maxAttempts * 2);
-    expect(result).toEqual({ outcome: "failed", attemptCount: 3, errorCode: "INGEST_REJECTED" });
+    expect(result).toEqual({ outcome: "failed", attemptCount: 3, errorCode: "INGEST_REJECTED_503" });
     expect(JSON.stringify(result)).not.toContain(bindings.PRODUCT_MAP_ROOST_INGEST_KEY);
   });
 
@@ -180,12 +189,12 @@ describe("Roost Product Map publisher", () => {
     const oversized = await runRoostProductMapPublisher({ bindings, companyId, request: async (request) => (
       request.kind === "source" ? { status: 200, body: oversizedPacket } : { status: 200, body: {} }
     ) });
-    expect(oversized).toEqual({ outcome: "failed", attemptCount: 3, errorCode: "PAYLOAD_TOO_LARGE" });
+    expect(oversized).toEqual({ outcome: "failed", attemptCount: 3, errorCode: "DESTINATION_SCHEMA_REJECTED" });
 
     const redirect = await runRoostProductMapPublisher({ bindings, companyId, request: async (request) => (
       request.kind === "source" ? { status: 200, body: packet } : { status: 302, body: {} }
     ) });
-    expect(redirect).toEqual({ outcome: "failed", attemptCount: 3, errorCode: "INGEST_REJECTED" });
+    expect(redirect).toEqual({ outcome: "failed", attemptCount: 3, errorCode: "INGEST_REJECTED_302" });
     expect(JSON.stringify({ invalidSchema, oversized, redirect })).not.toContain(bindings.PRODUCT_MAP_ROOST_INGEST_KEY);
   });
 });

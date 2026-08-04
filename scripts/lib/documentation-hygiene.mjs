@@ -57,13 +57,17 @@ function repositorySnapshot(root) {
   const upstream = git(root, ["rev-parse", "@{upstream}"]);
   const divergence = upstream ? git(root, ["rev-list", "--left-right", "--count", "@{upstream}...HEAD"]) : null;
   const [behind, ahead] = divergence?.split(/\s+/).map(Number) ?? [null, null];
+  const aheadPaths = upstream && Number(ahead) > 0
+    ? (git(root, ["diff", "--name-only", "@{upstream}..HEAD"]) ?? "").split(/\r?\n/).filter(Boolean)
+    : [];
+  const controlPlaneOnlyAhead = aheadPaths.length > 0 && aheadPaths.every((file) => DOC_PATH.test(file));
   const log = git(root, ["log", "-100", "--name-only", "--pretty=format:@@"]);
   const commits = log?.split(/^@@\r?$/m).map((block) => block.trim()).filter(Boolean) ?? [];
   const docsOnly = commits.filter((block) => {
     const files = block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
     return files.length > 0 && files.every((file) => DOC_PATH.test(file));
   }).length;
-  return { head, upstream, ahead, behind, sampledCommits: commits.length, docsOnlyCommits: docsOnly };
+  return { head, upstream, ahead, behind, aheadPaths, controlPlaneOnlyAhead, sampledCommits: commits.length, docsOnlyCommits: docsOnly };
 }
 
 function finding(severity, code, message, evidence = []) {
@@ -170,9 +174,11 @@ export async function auditDocumentationProject({ name, root, requireDeploymentI
     }
     const looksGreen = truth.status === "known_and_routable" && Number(truth.counts?.totalGaps ?? 0) === 0;
     const sourceAhead = Number(truth.repository?.ahead ?? repo.ahead ?? 0) > 0;
+    const controlPlaneOnlyAhead = Boolean(truth.repository?.controlPlaneOnlyAhead ?? repo.controlPlaneOnlyAhead);
     const deployedSha = truth.deployment?.deployedSha ?? null;
-    const sourceSha = truth.repository?.headSha ?? repo.head;
-    if (looksGreen && sourceAhead) findings.push(finding("error", "false_green_source_ahead", `Truth is green while source is ${truth.repository?.ahead ?? repo.ahead} commit(s) ahead of upstream.`));
+    const sourceSha = truth.repository?.releaseSha ?? (controlPlaneOnlyAhead ? truth.repository?.upstreamSha ?? repo.upstream : truth.repository?.headSha ?? repo.head);
+    if (looksGreen && sourceAhead && !controlPlaneOnlyAhead) findings.push(finding("error", "false_green_source_ahead", `Truth is green while runtime-affecting source is ${truth.repository?.ahead ?? repo.ahead} commit(s) ahead of upstream.`));
+    if (looksGreen && sourceAhead && controlPlaneOnlyAhead) findings.push(finding("warning", "control_plane_source_ahead", `Truth is green while ${truth.repository?.ahead ?? repo.ahead} documentation/control-plane-only commit(s) remain ahead of upstream; production redeploy is not required.`));
     if (looksGreen && requireDeploymentIdentity && !deployedSha) findings.push(finding("error", "false_green_deployment_unknown", "Truth is green while deployed commit identity is unknown."));
     if (looksGreen && deployedSha && sourceSha && !sourceSha.startsWith(deployedSha) && !deployedSha.startsWith(sourceSha)) findings.push(finding("error", "false_green_deployment_mismatch", "Truth is green while deployed SHA differs from source HEAD."));
   }
