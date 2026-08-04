@@ -41,7 +41,7 @@ This packet is generated from the local Paperclip API. It intentionally redacts 
 | Approval dry-run command | node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-30 |
 | Approval apply command | node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-30 --apply |
 | Recheck handoff | After current Coolify metadata exists, 09 DRE may run exactly one read-only Coolify status/log/resource recheck, then must post pass/fail evidence and route any unhealthy resource without mutating production. |
-| Latest tracked secret freshness | 2026-07-23T13:35:02.703Z |
+| Latest tracked secret freshness | 2026-08-03T21:27:22.508Z |
 | Missing direct company secret keys | none |
 | Covered by runtime aliases | coolify_api_token -> coolify_read_api_token, coolify_token -> coolify_read_api_token, coolify_team_id -> coolify_team_id_luckysparrow, coolify_soar_team_id -> coolify_team_id_luckysparrow, coolify_soar_project_id -> coolify_project_id_soar, coolify_soar_project_uuid -> coolify_project_uuid_soar, coolify_soar_production_environment -> coolify_environment_uuid_soar_production, coolify_soar_app_id -> coolify_resource_uuid_soar_web, coolify_soar_api_app_id -> coolify_resource_uuid_soar_api, coolify_soar_web_app_id -> coolify_resource_uuid_soar_web, coolify_soar_worker_backtest_app_id -> coolify_resource_uuid_soar_worker_backtest, coolify_soar_worker_execution_app_id -> coolify_resource_uuid_soar_worker_execution, coolify_soar_worker_market_data_app_id -> coolify_resource_uuid_soar_worker_market_data, coolify_soar_worker_market_stream_app_id -> coolify_resource_uuid_soar_worker_market_stream, coolify_soar_postgres_resource_id -> coolify_database_uuid_soar_postgresql, coolify_soar_redis_resource_id -> coolify_database_uuid_soar_redis, coolify_roost_app_id -> coolify_resource_uuid_roost_app |
 | Secret updated after blocker | true |
@@ -58,7 +58,7 @@ Tracked secret metadata:
 | Key | Status | Latest version | Freshness at | Last rotated | Created at | Has value metadata |
 | --- | --- | --- | --- | --- | --- | --- |
 | coolify_base_url | active | 1 | 2026-07-04T00:21:08.369Z | 2026-07-04T00:21:08.369Z | 2026-07-04T00:21:08.334Z | true |
-| coolify_read_api_token | active | 2 | 2026-07-23T13:35:02.703Z | 2026-07-23T13:35:02.703Z | 2026-07-04T00:37:27.407Z | true |
+| coolify_read_api_token | active | 3 | 2026-08-03T21:27:22.508Z | 2026-08-03T21:27:22.508Z | 2026-07-04T00:37:27.407Z | true |
 | coolify_team_id_luckysparrow | active | 1 | 2026-07-04T00:37:27.524Z | 2026-07-04T00:37:27.524Z | 2026-07-04T00:37:27.502Z | true |
 | coolify_project_id_soar | active | 1 | 2026-07-04T00:37:27.619Z | 2026-07-04T00:37:27.619Z | 2026-07-04T00:37:27.601Z | true |
 | coolify_project_uuid_soar | active | 1 | 2026-07-04T00:37:27.672Z | 2026-07-04T00:37:27.672Z | 2026-07-04T00:37:27.654Z | true |
@@ -145,8 +145,8 @@ Blocked issue sample:
 | Approval dry-run command | node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-32 |
 | Approval apply command | node scripts/record-softwarehouse-gate-approval.mjs --gate=LUC-32 --apply |
 | Recheck handoff | After current secret/resource metadata exists, 10 SPA may run exactly one redacted safety-gate recheck and must post names-only evidence plus residual risk. |
-| Latest tracked secret freshness | 2026-07-23T13:35:02.714Z |
-| Missing direct company secret keys | none |
+| Latest tracked secret freshness | 2026-08-03T21:29:58.026Z |
+| Missing direct company secret keys | coolify_api_url |
 | Covered by runtime aliases | none |
 | Secret updated after blocker | true |
 | Explicit approval/evidence comment | false |
@@ -161,10 +161,9 @@ Tracked secret metadata:
 
 | Key | Status | Latest version | Freshness at | Last rotated | Created at | Has value metadata |
 | --- | --- | --- | --- | --- | --- | --- |
-| coolify_read_api_token | active | 2 | 2026-07-23T13:35:02.703Z | 2026-07-23T13:35:02.703Z | 2026-07-04T00:37:27.407Z | true |
-| coolify_deploy_api_token | active | 2 | 2026-07-23T13:35:02.714Z | 2026-07-23T13:35:02.714Z | 2026-07-04T00:37:27.447Z | true |
+| coolify_read_api_token | active | 3 | 2026-08-03T21:27:22.508Z | 2026-08-03T21:27:22.508Z | 2026-07-04T00:37:27.407Z | true |
+| coolify_deploy_api_token | active | 3 | 2026-08-03T21:29:58.026Z | 2026-08-03T21:29:58.026Z | 2026-07-04T00:37:27.447Z | true |
 | coolify_base_url | active | 1 | 2026-07-04T00:21:08.369Z | 2026-07-04T00:21:08.369Z | 2026-07-04T00:21:08.334Z | true |
-| coolify_api_url | active | 1 | 2026-07-04T00:21:08.393Z | 2026-07-04T00:21:08.393Z | 2026-07-04T00:21:08.385Z | true |
 | coolify_team_id_luckysparrow | active | 1 | 2026-07-04T00:37:27.524Z | 2026-07-04T00:37:27.524Z | 2026-07-04T00:37:27.502Z | true |
 | coolify_project_id_soar | active | 1 | 2026-07-04T00:37:27.619Z | 2026-07-04T00:37:27.619Z | 2026-07-04T00:37:27.601Z | true |
 | coolify_project_uuid_soar | active | 1 | 2026-07-04T00:37:27.672Z | 2026-07-04T00:37:27.672Z | 2026-07-04T00:37:27.654Z | true |
