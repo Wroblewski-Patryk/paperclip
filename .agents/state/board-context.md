@@ -1,6 +1,25 @@
 # Board Context
 
-Last updated: 2026-08-02
+Last updated: 2026-08-04
+
+## 2026-08-04 Owner Intent Is Step Zero
+
+The owner designs applications incrementally through natural-language ideas
+and assumptions. Confirmed behavior belongs in each application's declared
+product authority; unresolved hypotheses remain explicitly marked assumptions
+and are not implementation truth. Architecture explains how approved behavior
+is realized, while code, tests, runtime, and project-truth indexes describe the
+observed state. A compatible, low-risk consequence may be derived and recorded;
+material choices involving behavior, business, money, privacy, safety, or
+authority return to the owner.
+
+Historical owner notes under `docs/architecture/` are valuable input, not
+permission to mix product, design, observed state, and speculation forever.
+On first use, the project PM must preserve and classify the narrow relevant
+material, update or link the canonical product/architecture source, supersede
+contradictions, and attach the complete intent trace to the implementation
+issue. Do not create an empty `docs/product/assumptions.md` for ceremony; use
+one only when real unresolved assumptions exist.
 
 ## 2026-08-02 Separate Application Projects And Shared Specialists
 

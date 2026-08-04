@@ -1,6 +1,29 @@
 # Paperclip Softwarehouse Codex Context
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
+
+## 2026-08-04 Product Intent Traceability
+
+- Autonomous application work begins with confirmed owner intent in the
+  project's declared product authority, then explicit assumption disposition,
+  architecture constraints, observed-state gap, bounded task, implementation,
+  tests, independent review, deployment, observation, and accepted outcome.
+- `docs/architecture/` may preserve historical owner-authored product notes,
+  but agents must classify them on first use as product intent, architecture,
+  assumption, superseded material, or conflict. Architecture and generated
+  status may not silently redefine the product.
+- Every autonomous ProductDelivery requires marker
+  `softwarehouse-product-intent-trace:v1`, canonical product/architecture
+  sources, an observed gap, assumption disposition, expected outcome, and
+  acceptance evidence linked to its bounded source issue. Server admission
+  enforces the contract.
+- `pnpm softwarehouse:product-intent-traceability` audits both repository
+  contracts and live work. Missing traces route exactly one project-PM
+  reconciliation child and block only the affected implementation until the
+  source issue is repaired.
+- Current audit: Soar and Featherly have substantive product entrypoints;
+  Roost's `docs/product/product.md` is a placeholder and must be reconciled
+  from its existing architecture/product material before new implementation.
 
 ## 2026-08-03 Pre-start Decision And Organizational Metabolism
 

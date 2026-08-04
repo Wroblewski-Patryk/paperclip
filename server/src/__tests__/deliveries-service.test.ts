@@ -12,10 +12,66 @@ import {
   projects,
 } from "@paperclipai/db";
 import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.js";
-import { deliveryService } from "../services/deliveries.js";
+import { deliveryService, validateAutonomousDeliveryIntentContract } from "../services/deliveries.js";
 
 const support = await getEmbeddedPostgresTestSupport();
 const describeEmbedded = support.supported ? describe : describe.skip;
+
+describe("autonomous delivery intent admission contract", () => {
+  it("rejects autonomous delivery without traceability and accepts a complete trace", () => {
+    expect(validateAutonomousDeliveryIntentContract({ source: "paperclip_autonomous_cycle" }))
+      .toMatch(/intentContract/);
+    expect(validateAutonomousDeliveryIntentContract({
+      source: "paperclip_autonomous_cycle",
+      intentContract: {
+        schemaVersion: 1,
+        marker: "softwarehouse-product-intent-trace:v1",
+        manifestPath: "docs/documentation-contract.json",
+        productAuthority: ["docs/product/"],
+        architectureAuthority: ["docs/architecture/", "docs/adr/"],
+        productSources: ["docs/product/product.md"],
+        architectureSources: ["docs/architecture/architecture-source-of-truth.md"],
+        observedStateSource: "docs/status/project-truth-index.json",
+        issue: { id: randomUUID() },
+        trace: {
+          ownerIntent: "docs/product/product.md",
+          productContract: "docs/product/product.md#account-settings",
+          architectureContract: "docs/architecture/architecture-source-of-truth.md",
+          observedGap: "The authenticated dashboard has no route to account settings.",
+          assumptionDisposition: "owner_approved - account settings belong to the client area",
+          expectedOutcome: "An authenticated user reaches settings and can update account details.",
+          acceptanceEvidence: "Contract tests, browser proof, independent review, deployment, and observation.",
+        },
+      },
+    })).toBeNull();
+  });
+
+  it("keeps unresolved assumptions outside implementation admission", () => {
+    expect(validateAutonomousDeliveryIntentContract({
+      source: "paperclip_autonomous_cycle",
+      intentContract: {
+        schemaVersion: 1,
+        marker: "softwarehouse-product-intent-trace:v1",
+        manifestPath: "docs/documentation-contract.json",
+        productAuthority: ["docs/product/"],
+        architectureAuthority: ["docs/architecture/", "docs/adr/"],
+        productSources: ["docs/product/product.md"],
+        architectureSources: ["docs/architecture/architecture-source-of-truth.md"],
+        observedStateSource: "docs/status/project-truth-index.json",
+        issue: { id: randomUUID() },
+        trace: {
+          ownerIntent: "docs/product/product.md",
+          productContract: "docs/product/product.md",
+          architectureContract: "docs/architecture/architecture-source-of-truth.md",
+          observedGap: "Product sources disagree about whether registration is public.",
+          assumptionDisposition: "needs_decision - public versus invite-only registration",
+          expectedOutcome: "One approved rule controls product, architecture, and implementation.",
+          acceptanceEvidence: "Owner decision, updated sources, tests, and independent review.",
+        },
+      },
+    })).toMatch(/unresolved assumptions/);
+  });
+});
 
 describeEmbedded("task, delivery, and outcome separation", () => {
   let db!: ReturnType<typeof createDb>;
@@ -78,6 +134,26 @@ describeEmbedded("task, delivery, and outcome separation", () => {
     expect(await db.select().from(deliveryTasks)).toHaveLength(1);
     expect((await db.select().from(productDeliveries))[0].stage).toBe("proposed");
     expect((await db.select().from(productOutcomes))[0].status).toBe("unachieved");
+  });
+
+  it("does not admit an autonomous delivery that bypasses product-intent traceability", async () => {
+    const refs = await seed();
+    const svc = deliveryService(db);
+    const created = await svc.create(refs.companyId, {
+      projectId: refs.projectId,
+      title: "Untraceable autonomous delivery",
+      problemStatement: "An implementation task exists without a product-intent contract.",
+      decisionContract: { source: "paperclip_autonomous_cycle", boundedToIssueId: refs.issueId },
+      outcomeStatement: "The owner can use the intended behavior.",
+      acceptanceCriteria: [{ kind: "owner_outcome" }],
+      taskIssueIds: [refs.issueId],
+    });
+
+    await expect(svc.transition(created.id, {
+      toStage: "admitted",
+      idempotencyKey: "missing-intent-contract",
+      evidence: [],
+    }, { actorType: "user", actorId: "board" })).rejects.toMatchObject({ status: 422 });
   });
 
   it("enforces review rejection independently from task completion and outcome", async () => {

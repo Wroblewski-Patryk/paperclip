@@ -77,7 +77,20 @@ const companyControl = controls.find((control) => control.scopeType === "company
 const deliveryDetails = await Promise.all((Array.isArray(deliveriesResult.data) ? deliveriesResult.data : [])
   .filter((delivery) => delivery.stage === "outcome_accepted" && ageMs(delivery.updatedAt) <= observationDays * 86_400_000)
   .map((delivery) => request(`/api/deliveries/${delivery.id}`).then((result) => result.data)));
-const autonomousAcceptedDeliveries = deliveryDetails.filter((delivery) => {
+function hasCompleteProductIntentTrace(delivery) {
+  const intent = delivery?.decisionContract?.intentContract;
+  const trace = intent?.trace;
+  return intent?.schemaVersion === 1
+    && intent?.marker === "softwarehouse-product-intent-trace:v1"
+    && Array.isArray(intent?.productSources) && intent.productSources.length > 0
+    && Array.isArray(intent?.architectureSources) && intent.architectureSources.length > 0
+    && typeof intent?.observedStateSource === "string" && intent.observedStateSource.length > 0
+    && ["ownerIntent", "productContract", "architectureContract", "observedGap", "assumptionDisposition", "expectedOutcome", "acceptanceEvidence"]
+      .every((field) => typeof trace?.[field] === "string" && trace[field].trim().length > 0)
+    && !/\b(?:pending|unknown|unvalidated|needs_decision|conflict)\b/i.test(trace.assumptionDisposition);
+}
+
+const independentlyAcceptedAutonomousDeliveries = deliveryDetails.filter((delivery) => {
   const hasTask = Array.isArray(delivery?.tasks) && delivery.tasks.length > 0;
   const agentTransition = Array.isArray(delivery?.transitions)
     && delivery.transitions.some((transition) => transition.actorType === "agent");
@@ -87,6 +100,8 @@ const autonomousAcceptedDeliveries = deliveryDetails.filter((delivery) => {
         && delivery.outcome.acceptedByAgentId !== delivery.ownerAgentId));
   return hasTask && agentTransition && independentAcceptance;
 });
+const acceptedDeliveriesWithoutIntentTrace = independentlyAcceptedAutonomousDeliveries.filter((delivery) => !hasCompleteProductIntentTrace(delivery));
+const autonomousAcceptedDeliveries = independentlyAcceptedAutonomousDeliveries.filter(hasCompleteProductIntentTrace);
 const acceptedProjects = new Set(autonomousAcceptedDeliveries.map((delivery) => delivery.projectId));
 
 const activeFindings = Array.isArray(registry?.findings)
@@ -95,7 +110,7 @@ const activeFindings = Array.isArray(registry?.findings)
 const criticalFindings = activeFindings.filter((finding) => ["critical", "p0"].includes(String(finding.severity).toLowerCase()));
 const cycleDispatch = cycle?.phases?.workDispatch?.action ?? null;
 const productiveCycle = ageMs(cycle?.generatedAt) <= 90 * 60_000
-  && ["bounded_product_delivery_dispatched", "supervise_existing_runs", "supervise_existing_project_truth_run"].includes(cycleDispatch);
+  && ["bounded_product_delivery_dispatched", "product_intent_reconciliation_dispatched", "supervise_product_intent_reconciliation", "supervise_existing_runs", "supervise_existing_project_truth_run"].includes(cycleDispatch);
 
 const checks = [
   { id: "runtime_healthy", passed: health.ok && health.data?.status === "ok", evidence: health.status },
@@ -105,6 +120,7 @@ const checks = [
   { id: "paperclip_owned_cycle_fresh_and_productive", passed: productiveCycle, evidence: { generatedAt: cycle?.generatedAt ?? null, action: cycleDispatch } },
   { id: "cross_project_isolation", passed: isolation?.ok === true, evidence: isolation?.failures ?? isolation?.blockers ?? [] },
   { id: "supervision_findings_closed", passed: activeFindings.length === 0, evidence: { active: activeFindings.length, critical: criticalFindings.length } },
+  { id: "accepted_autonomous_outcomes_are_intent_traceable", passed: acceptedDeliveriesWithoutIntentTrace.length === 0, evidence: acceptedDeliveriesWithoutIntentTrace.map((delivery) => delivery.id) },
   { id: "two_autonomous_outcomes_across_two_projects", passed: autonomousAcceptedDeliveries.length >= 2 && acceptedProjects.size >= 2, evidence: { deliveries: autonomousAcceptedDeliveries.map((delivery) => delivery.id), projects: [...acceptedProjects] } },
 ];
 

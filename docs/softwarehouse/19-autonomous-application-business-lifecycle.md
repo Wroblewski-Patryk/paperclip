@@ -18,6 +18,12 @@ company knowledge and procedure projection. Product repositories remain the
 authority for product intent, architecture, source, tests, release contracts,
 and actual behavior.
 
+Within each product repository, authority is layered rather than blended:
+owner input is captured into the product authority; unresolved assumptions are
+explicit hypotheses; approved product behavior precedes and constrains
+architecture; architecture constrains implementation; observed code/runtime
+truth exposes gaps but cannot silently redefine intent.
+
 ## Procedure Card
 
 - **ID:** `PROC-SH-APPLICATION-LIFECYCLE`
@@ -54,6 +60,8 @@ closed until reconciled and superseded explicitly.
 
 ```text
 direction
+  -> owner intent capture and assumption classification
+  -> current product/architecture/observed-truth reconciliation
   -> opportunity validation
   -> product discovery
   -> business and risk framing
@@ -74,6 +82,12 @@ direction
 The flow is iterative, but it is not allowed to become an evidence-free loop.
 Every transition must attach current proof or name a first-class blocker and
 next owner.
+
+Before implementation, the delivery issue must carry
+`softwarehouse-product-intent-trace:v1`. A missing or conflicting trace routes
+to Product/App PM reconciliation and cannot enter autonomous ProductDelivery.
+Reconciliation must update or supersede the narrowest canonical source; a new
+report alone is not a fix.
 
 ## Stage Contract
 

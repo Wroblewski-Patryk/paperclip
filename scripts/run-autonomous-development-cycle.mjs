@@ -2,6 +2,17 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  evaluateProductIntentTrace,
+  inspectProductIntentContract,
+  parseProductIntentTrace,
+  productIntentDecisionContract,
+  renderProductIntentTraceTemplate,
+} from "./lib/product-intent-traceability.mjs";
+import {
+  canonicalSoftwarehouseProject,
+  softwarehouseActiveApplicationProjects,
+} from "./lib/softwarehouse-project-registry.mjs";
 
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const apiBase = (process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200").replace(/\/$/, "");
@@ -64,17 +75,125 @@ async function request(method, route, body = undefined) {
 }
 
 const terminalDeliveryStages = new Set(["outcome_accepted", "rolled_back"]);
-const canonicalProjectRoots = new Map([
-  ["11 Innovation: Soar", "Soar"],
-  ["11 Innovation: Roost", "Roost"],
-  ["11 Innovation: Featherly", "Featherly"],
-]);
+const canonicalProjectRoots = new Map(softwarehouseActiveApplicationProjects
+  .map((project) => [project.paperclipName, project.name]));
 
 function priorityRank(priority) {
   return ({ critical: 0, high: 1, medium: 2, low: 3 })[priority] ?? 4;
 }
 
-async function executeBoundedDispatch({ company, issues, projects, repositories, preliminary }) {
+function intentReconciliationTitle(projectName, issueIdentifier) {
+  return `[${projectName}][Product Intent] Reconcile ${issueIdentifier} before implementation`;
+}
+
+async function ensureProductIntentReconciliation({ company, issue, project, agents, issues, contract, traceResult }) {
+  const canonical = canonicalSoftwarehouseProject(project.name);
+  const title = intentReconciliationTitle(canonical?.name ?? project.name, issue.identifier);
+  const existing = issues.find((candidate) => candidate.title === title && !["done", "cancelled"].includes(candidate.status));
+  if (existing) {
+    return {
+      action: "supervise_product_intent_reconciliation",
+      reason: `${issue.identifier} cannot enter ProductDelivery until its existing intent-reconciliation lane is resolved.`,
+      issueIdentifier: issue.identifier,
+      reconciliationIdentifier: existing.identifier,
+      missing: traceResult.missing,
+      conflicts: traceResult.conflicts,
+      startedRuns: [],
+    };
+  }
+
+  const manager = agents.find((agent) => agent.metadata?.rosterKey === canonical?.managerRosterKey)
+    ?? agents.find((agent) => agent.name === canonical?.managerName);
+  if (!manager) {
+    return {
+      action: "product_intent_reconciliation_owner_missing",
+      reason: `No canonical product manager can reconcile ${issue.identifier}.`,
+      issueIdentifier: issue.identifier,
+      missing: traceResult.missing,
+      conflicts: traceResult.conflicts,
+      startedRuns: [],
+    };
+  }
+
+  const traceTemplate = renderProductIntentTraceTemplate(contract, {
+    observedGap: `Reconcile the source issue ${issue.identifier} against current product intent, approved architecture, and observed project truth before implementation.`,
+    expectedOutcome: `The source issue ${issue.identifier} contains one non-conflicting, source-backed Product Intent Trace that makes the smallest intended outcome testable.`,
+    acceptanceEvidence: "Updated source issue, cited canonical files, explicit assumption disposition, contradiction review, and PM handoff evidence.",
+  });
+  const created = await request("POST", `/api/issues/${issue.id}/children`, {
+    title,
+    description: [
+      "## Goal",
+      "",
+      `Prevent implementation of [${issue.identifier}](/LUC/issues/${issue.identifier}) from guessing product behavior. Reconcile the owner's intent, the approved product contract, architecture constraints, observed code/runtime truth, and every material assumption.`,
+      "",
+      "## Required decision flow",
+      "",
+      "1. Read the project's `docs/documentation-contract.json` and only its declared current product, architecture, decision, and observed-state authorities.",
+      "2. Treat legacy owner notes in `docs/architecture/` as valuable input, but classify each relevant statement as approved product intent, approved architecture, unresolved assumption, superseded material, or contradiction.",
+      "3. If sources conflict and the choice changes product behavior, do not guess. Record the options and route one bounded owner decision.",
+      "4. Update the narrowest canonical product/architecture/decision source so only one current rule remains. Unresolved hypotheses belong in an assumptions/open-decisions register and do not authorize implementation.",
+      "5. Patch the source issue with the completed block below. Replace every placeholder and use repo-relative authoritative paths.",
+      "",
+      "```markdown",
+      traceTemplate,
+      "```",
+      "",
+      "## Current gate diagnosis",
+      "",
+      `- Missing fields: ${traceResult.missing.join(", ") || "none"}`,
+      `- Conflicts: ${traceResult.conflicts.join(", ") || "none"}`,
+      `- Documentation contract findings: ${(contract.findings ?? []).map((item) => item.code).join(", ") || "none"}`,
+      "",
+      "Do not implement the product change in this reconciliation issue.",
+    ].join("\n"),
+    status: "todo",
+    priority: issue.priority ?? "high",
+    assigneeAgentId: manager.id,
+    projectId: project.id,
+    goalId: issue.goalId ?? project.goalId ?? null,
+    executionWorkspacePreference: "shared_workspace",
+    acceptanceCriteria: [
+      "The source issue contains a complete softwarehouse-product-intent-trace:v1 block.",
+      "Every cited product and architecture path belongs to the project's declared documentation authority.",
+      "All material assumptions are classified; pending or conflicting assumptions block implementation.",
+      "Contradictory current sources are reconciled or routed to one explicit owner decision without guessing.",
+      "The smallest owner-visible expected outcome and its acceptance evidence are explicit.",
+    ],
+    blockParentUntilDone: true,
+  });
+  if (!created.ok) {
+    return {
+      action: "product_intent_reconciliation_creation_failed",
+      reason: created.error,
+      issueIdentifier: issue.identifier,
+      missing: traceResult.missing,
+      conflicts: traceResult.conflicts,
+      startedRuns: [],
+    };
+  }
+  const wake = await request("POST", `/api/agents/${manager.id}/wakeup`, {
+    source: "automation",
+    triggerDetail: "system",
+    reason: `Reconcile product intent for ${issue.identifier} before ProductDelivery admission`,
+    idempotencyKey: `${cycleId}:intent-reconciliation:${issue.id}`,
+    forceFreshSession: true,
+    payload: { issueId: created.data.id, projectId: project.id, sourceIssueId: issue.id, cycleId },
+  });
+  return {
+    action: wake.ok ? "product_intent_reconciliation_dispatched" : "product_intent_reconciliation_wake_failed",
+    reason: wake.ok
+      ? `${issue.identifier} was held before implementation and one project-scoped PM reconciliation lane was dispatched.`
+      : wake.error,
+    issueIdentifier: issue.identifier,
+    reconciliationIdentifier: created.data.identifier,
+    missing: traceResult.missing,
+    conflicts: traceResult.conflicts,
+    startedRuns: wake.data?.id ? [wake.data.id] : [],
+  };
+}
+
+async function executeBoundedDispatch({ company, issues, projects, agents, repositories, preliminary }) {
   if (!company || !Array.isArray(issues) || !Array.isArray(projects)) return preliminary;
   if (!["ready_for_next_paperclip_dispatch", "project_truth_gap_dispatched"].includes(preliminary.action)) return preliminary;
 
@@ -95,7 +214,8 @@ async function executeBoundedDispatch({ company, issues, projects, repositories,
       && repositories[repoName]?.clean === true
       && ["backlog", "todo"].includes(issue.status)
       && issue.assigneeAgentId
-      && !["routine_execution", "stranded_issue_recovery"].includes(issue.originKind)
+      && !["routine_execution", "stranded_issue_recovery", "issue_productivity_review"].includes(issue.originKind)
+      && !/^\[[^\]]+\]\[Product Intent\] Reconcile\b/.test(issue.title ?? "")
       && !issueIdsAlreadyInFlight.has(issue.id)
       && (typeof issue.description === "string" && issue.description.trim().length >= 120);
   }).sort((left, right) => {
@@ -104,8 +224,34 @@ async function executeBoundedDispatch({ company, issues, projects, repositories,
     return priorityRank(left.priority) - priorityRank(right.priority)
       || String(left.createdAt).localeCompare(String(right.createdAt));
   });
-  const issue = candidates[0];
+  const inspected = [];
+  const contractsByProjectId = new Map();
+  for (const candidate of candidates) {
+    const project = projectById.get(candidate.projectId);
+    const canonical = canonicalSoftwarehouseProject(project?.name);
+    let contract = contractsByProjectId.get(project.id);
+    if (!contract) {
+      contract = await inspectProductIntentContract({ name: canonical?.name ?? project.name, root: canonical?.root ?? path.join(appsRoot, canonicalProjectRoots.get(project.name)) });
+      contractsByProjectId.set(project.id, contract);
+    }
+    const trace = parseProductIntentTrace(candidate.description);
+    inspected.push({ issue: candidate, project, contract, trace, traceResult: evaluateProductIntentTrace({ trace, contract }) });
+  }
+  const selected = inspected.find((candidate) => candidate.traceResult.ready);
+  const issue = selected?.issue ?? null;
   if (!issue) {
+    const held = inspected[0];
+    if (held) {
+      return ensureProductIntentReconciliation({
+        company,
+        issue: held.issue,
+        project: held.project,
+        agents,
+        issues,
+        contract: held.contract,
+        traceResult: held.traceResult,
+      });
+    }
     return {
       ...preliminary,
       action: "no_admissible_product_work_packet",
@@ -114,6 +260,8 @@ async function executeBoundedDispatch({ company, issues, projects, repositories,
   }
 
   const project = projectById.get(issue.projectId);
+  const contract = selected.contract;
+  const trace = selected.trace;
   const acceptanceCriteria = [{
     kind: "issue_acceptance_contract",
     issueIdentifier: issue.identifier,
@@ -129,6 +277,7 @@ async function executeBoundedDispatch({ company, issues, projects, repositories,
       boundedToIssueId: issue.id,
       maxConcurrentDispatches: 1,
       projectIsolation: project.name,
+      intentContract: productIntentDecisionContract({ contract, trace, issue, project }),
     },
     ownerAgentId: issue.assigneeAgentId,
     outcomeStatement: `The owner can use or inspect the accepted result of ${issue.identifier} in ${project.name}; activity alone is not an outcome.`,
@@ -409,6 +558,7 @@ let companySnapshot = {
 let selectedCompany = null;
 let companyIssues = [];
 let companyProjects = [];
+let companyAgents = [];
 const companies = await request("GET", "/api/companies");
 if (companies.ok) {
   const company = companies.data?.find((candidate) => preferredCompanyNames.includes(candidate.name));
@@ -421,6 +571,7 @@ if (companies.ok) {
     selectedCompany = company;
     companyIssues = Array.isArray(issues.data) ? issues.data : [];
     companyProjects = Array.isArray(projects.data) ? projects.data : [];
+    companyAgents = Array.isArray(agents.data) ? agents.data : [];
     companySnapshot = {
       ok: issues.ok && projects.ok && agents.ok,
       company: {
@@ -451,6 +602,7 @@ const dispatch = await executeBoundedDispatch({
   company: selectedCompany,
   issues: companyIssues,
   projects: companyProjects,
+  agents: companyAgents,
   repositories,
   preliminary: dispatchDecisionFor(controlTick),
 });
@@ -479,6 +631,9 @@ const outcome = controlTickHealthy && validation.ok && ![
   "blocked_by_delivery_permission",
   "project_truth_gap_dispatch_required",
   "no_admissible_product_work_packet",
+  "product_intent_reconciliation_owner_missing",
+  "product_intent_reconciliation_creation_failed",
+  "product_intent_reconciliation_wake_failed",
   "delivery_record_creation_failed",
   "delivery_admission_rejected",
   "delivery_start_failed",
@@ -526,6 +681,8 @@ const cycle = {
           "project_truth_gap_dispatched",
           "supervise_existing_project_truth_run",
           "supervise_existing_runs",
+          "supervise_product_intent_reconciliation",
+          "product_intent_reconciliation_dispatched",
           "bounded_product_delivery_dispatched",
         ].includes(dispatch.action),
         dispatch.reason,

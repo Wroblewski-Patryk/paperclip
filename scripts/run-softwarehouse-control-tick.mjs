@@ -143,6 +143,19 @@ const steps = [
     }),
   },
   {
+    name: "productIntentTraceability",
+    command: ["scripts/audit-product-intent-traceability.mjs"],
+    summary: (data) => ({
+      status: data.status ?? null,
+      contractFailures: data.contracts?.filter((contract) => !contract.ready).map((contract) => contract.project) ?? [],
+      readyCandidates: data.live?.projects?.reduce((count, project) => count + Number(project.readyCandidates ?? 0), 0) ?? 0,
+      reconciliationRequired: data.live?.projects?.reduce((count, project) => count + Number(project.reconciliationRequired ?? 0), 0) ?? 0,
+      conflicts: data.live?.projects?.flatMap((project) => project.candidates
+        ?.filter((candidate) => candidate.conflicts?.length > 0)
+        .map((candidate) => ({ project: project.name, identifier: candidate.identifier, conflicts: candidate.conflicts })) ?? []) ?? [],
+    }),
+  },
+  {
     name: "quotaAgentRecovery",
     command: ["scripts/recover-softwarehouse-quota-agents.mjs", "--apply"],
     summary: (data) => ({
@@ -1900,6 +1913,7 @@ if (singleFlight.mode === "follower") {
     const unblockPacket = byName.get("unblockPacket")?.summary ?? {};
     const sourceControl = byName.get("sourceControl")?.summary ?? {};
     const architectureLifecycle = byName.get("architectureAwarenessLifecycle")?.summary ?? {};
+    const productIntentTraceability = byName.get("productIntentTraceability")?.summary ?? {};
     const projectTruthAudit = byName.get("projectTruthAudit")?.summary ?? {};
     const projectTruthGapDispatcher = byName.get("projectTruthGapDispatcher")?.summary ?? {};
     const learningLoop = byName.get("learningLoop")?.summary ?? {};
@@ -2262,6 +2276,7 @@ if (singleFlight.mode === "follower") {
       sourceControlClean: sourceControl.clean ?? null,
       sourceControlRepos: sourceControl.repos ?? [],
       architectureAwarenessLifecycle: architectureLifecycle,
+      productIntentTraceability,
       projectTruthAudit,
       projectTruthGapDispatcher,
       runtimeBindingRepairActionCount: runtimeBindingRepair.actionCount ?? null,

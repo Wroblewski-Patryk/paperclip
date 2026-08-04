@@ -68,6 +68,8 @@
     "softwarehouse:organizational-evals": "node --test scripts/organizational-behavior-evals.test.mjs scripts/outcome-integrity.test.mjs",
     "softwarehouse:architecture-lifecycle": "node scripts/check-architecture-awareness-lifecycle.mjs",
     "softwarehouse:architecture-lifecycle:apply": "node scripts/check-architecture-awareness-lifecycle.mjs --apply",
+    "softwarehouse:product-intent-traceability": "node scripts/audit-product-intent-traceability.mjs",
+    "softwarehouse:product-intent-traceability:strict": "node scripts/audit-product-intent-traceability.mjs --strict",
     "codex:bootstrap-supervisor": "node scripts/run-codex-bootstrap-supervisor.mjs",
     "softwarehouse:autonomy-graduation": "node scripts/evaluate-autonomy-graduation.mjs",
     "softwarehouse:autonomous-cycle": "node scripts/run-autonomous-development-cycle.mjs",

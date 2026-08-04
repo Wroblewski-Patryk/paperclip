@@ -2859,8 +2859,37 @@ test("autonomous cycle uses the live ProductDelivery ledger instead of future-le
   assert.doesNotMatch(cycle, /future_release_ledger|future deployment continuation|future work-packet dispatch/);
   assert.match(cycle, /release_managed_by_product_delivery/);
   assert.match(cycle, /monitoring_managed_by_product_delivery/);
+  assert.match(cycle, /evaluateProductIntentTrace/);
+  assert.match(cycle, /productIntentDecisionContract/);
+  assert.match(cycle, /product_intent_reconciliation_dispatched/);
+  assert.match(cycle, /blockParentUntilDone: true/);
+  assert.match(cycle, /Product Intent\\\] Reconcile/);
   assert.match(lifecycle, /GET \/api\/deliveries\/\{deliveryId\}/);
   assert.match(lifecycle, /delivery owner must not approve their own review or accept their own/);
+  assert.match(lifecycle, /softwarehouse-product-intent-trace:v1/);
+});
+
+test("autonomous delivery admission fails closed without the owner-intent trace", async () => {
+  const [deliveryServiceSource, intentInstruction, controlTick] = await Promise.all([
+    readFile("server/src/services/deliveries.ts", "utf8"),
+    readFile("softwarehouse/instructions/shared/15-product-intent-from-architecture.md", "utf8"),
+    readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8"),
+  ]);
+
+  assert.match(deliveryServiceSource, /validateAutonomousDeliveryIntentContract/);
+  assert.match(deliveryServiceSource, /cannot admit unresolved assumptions or source conflicts/);
+  assert.match(intentInstruction, /Owner intent/);
+  assert.match(intentInstruction, /Product contract/);
+  assert.match(intentInstruction, /Architecture contract/);
+  assert.match(intentInstruction, /Observed gap/);
+  assert.match(intentInstruction, /Assumption disposition/);
+  assert.match(intentInstruction, /Expected outcome/);
+  assert.match(intentInstruction, /Acceptance evidence/);
+  assert.match(controlTick, /name: "productIntentTraceability"/);
+  assert.match(controlTick, /audit-product-intent-traceability\.mjs/);
+  const graduation = await readFile("scripts/evaluate-autonomy-graduation.mjs", "utf8");
+  assert.match(graduation, /accepted_autonomous_outcomes_are_intent_traceable/);
+  assert.match(graduation, /hasCompleteProductIntentTrace/);
 });
 
 test("known-state harvester reuses canonical Soar and Roost projects", async () => {

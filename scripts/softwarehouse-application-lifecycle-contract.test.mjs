@@ -27,6 +27,8 @@ test("application lifecycle covers business, engineering, production, and learni
     "Retrospective and improvement",
     "commercial readiness",
     "immutable deployed SHA",
+    "owner intent capture and assumption classification",
+    "softwarehouse-product-intent-trace:v1",
   ]) {
     assert.match(lifecycle, new RegExp(required, "i"), `missing lifecycle contract: ${required}`);
   }
@@ -38,6 +40,8 @@ test("shared agent instructions require the canonical lifecycle", async () => {
   assert.match(instructions, /Paperclip owns live execution, gates, and evidence/);
   assert.match(instructions, /Coolify-bound push/);
   assert.match(instructions, /commercial\s+boundary/i);
+  assert.match(instructions, /owner direction -> captured intent -> assumptions classified/);
+  assert.match(instructions, /softwarehouse-product-intent-trace:v1/);
 });
 
 test("architecture, SDLC, procedure registry, and policy gates link the lifecycle", async () => {

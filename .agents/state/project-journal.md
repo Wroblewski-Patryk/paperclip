@@ -5187,3 +5187,35 @@ fresh emitting run and `BLOCKED_LIVE_COUNT=0`.
   accepted autonomous outcomes in two projects. Once they exist, the 14-day
   healthy window begins. The four automations remain active and self-retire
   only on exact `operationally_graduated`.
+
+## 2026-08-04 - Owner intent promoted to an executable step-zero contract
+
+- Replaced the ambiguous instruction to infer product intent from architecture
+  with a layered documentation contract: confirmed owner intent/product rules,
+  explicit assumptions and decisions, implementation architecture, and
+  observed state have separate meanings and authorities.
+- Added `scripts/lib/product-intent-traceability.mjs` and
+  `scripts/audit-product-intent-traceability.mjs`. The audit rejects missing or
+  placeholder entrypoints and inspects live application work for a complete
+  `softwarehouse-product-intent-trace:v1` trace.
+- Updated the autonomous cycle to create/reuse one project-PM reconciliation
+  child when a source issue lacks a trace or the project sources conflict. The
+  parent is dependency-blocked; no recursive reconciliation or implementation
+  is allowed in the reconciliation issue.
+- ProductDelivery admission now validates the trace, its authority paths, its
+  bounded source issue, and its delivery-task linkage. Autonomy graduation no
+  longer counts accepted outcomes that bypass this chain.
+- Added the audit to the deterministic control tick, synchronized the policy to
+  all 39 managed agents, and updated watchdog, doctor, daily, and weekly
+  automations. Readback shows all four ACTIVE with both the audit command and
+  marker.
+- The real portfolio audit found a substantive contract in Soar and Featherly,
+  a placeholder product entrypoint in Roost, and five legacy candidate issues
+  requiring reconciliation. This is now executable repair work rather than an
+  undocumented inference.
+- Verification: product-intent trace 4/4, lifecycle 3/3, gate specs 204/204,
+  delivery service 7/7 (embedded PostgreSQL), repo-wide typecheck and build,
+  workspace-boundary audit, server typecheck, script syntax, and automation
+  readback all passed. `pnpm test:run` reached its 15-minute external timeout
+  in live SSH/device-code fixtures; no focused failure or orphaned test process
+  remained, and canonical PostgreSQL on port 54329 was untouched.

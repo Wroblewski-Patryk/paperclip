@@ -51,6 +51,59 @@ function requireEvidence(toStage: DeliveryStage, evidence: Array<Record<string, 
   }
 }
 
+export function validateAutonomousDeliveryIntentContract(decisionContract: Record<string, unknown>) {
+  if (decisionContract.source !== "paperclip_autonomous_cycle") return null;
+  const intent = decisionContract.intentContract;
+  if (!intent || typeof intent !== "object" || Array.isArray(intent)) return "Autonomous ProductDelivery requires decisionContract.intentContract";
+  const value = intent as Record<string, unknown>;
+  const trace = value.trace;
+  if (value.schemaVersion !== 1 || value.marker !== "softwarehouse-product-intent-trace:v1") {
+    return "Autonomous ProductDelivery requires softwarehouse-product-intent-trace:v1";
+  }
+  if (value.manifestPath !== "docs/documentation-contract.json") return "Autonomous ProductDelivery requires the project documentation authority manifest";
+  if (!Array.isArray(value.productAuthority) || value.productAuthority.length === 0 || value.productAuthority.some((item) => typeof item !== "string" || !item.trim())) {
+    return "Autonomous ProductDelivery requires declared product authority";
+  }
+  if (!Array.isArray(value.architectureAuthority) || value.architectureAuthority.length === 0 || value.architectureAuthority.some((item) => typeof item !== "string" || !item.trim())) {
+    return "Autonomous ProductDelivery requires declared architecture authority";
+  }
+  if (!Array.isArray(value.productSources) || value.productSources.length === 0 || value.productSources.some((item) => typeof item !== "string" || !item.trim())) {
+    return "Autonomous ProductDelivery requires canonical product sources";
+  }
+  if (!Array.isArray(value.architectureSources) || value.architectureSources.length === 0 || value.architectureSources.some((item) => typeof item !== "string" || !item.trim())) {
+    return "Autonomous ProductDelivery requires canonical architecture sources";
+  }
+  if (typeof value.observedStateSource !== "string" || !value.observedStateSource.trim()) return "Autonomous ProductDelivery requires an observed-state source";
+  if (!trace || typeof trace !== "object" || Array.isArray(trace)) return "Autonomous ProductDelivery requires an issue-specific intent trace";
+  const fields = trace as Record<string, unknown>;
+  for (const field of ["ownerIntent", "productContract", "architectureContract", "observedGap", "assumptionDisposition", "expectedOutcome", "acceptanceEvidence"]) {
+    if (typeof fields[field] !== "string" || !String(fields[field]).trim()) return `Autonomous ProductDelivery intent trace is missing ${field}`;
+  }
+  for (const field of ["observedGap", "expectedOutcome", "acceptanceEvidence"]) {
+    if (String(fields[field]).trim().length < 20) return `Autonomous ProductDelivery intent trace ${field} is not substantive`;
+  }
+  const belongsTo = (candidate: string, authority: unknown[]) => {
+    const normalized = candidate.split("#", 1)[0].replaceAll("\\", "/").replace(/^\.\//, "");
+    return authority.some((entry) => {
+      const prefix = String(entry).replaceAll("\\", "/").replace(/^\.\//, "");
+      return prefix.endsWith("/") ? normalized.startsWith(prefix) : normalized === prefix;
+    });
+  };
+  if (!belongsTo(String(fields.ownerIntent), value.productAuthority)) return "Autonomous ProductDelivery owner intent is outside declared product authority";
+  if (!belongsTo(String(fields.productContract), value.productAuthority)) return "Autonomous ProductDelivery product contract is outside declared product authority";
+  const architectureNotApplicable = /^not_applicable\s+-\s+.{20,}$/i.test(String(fields.architectureContract));
+  if (!architectureNotApplicable && !belongsTo(String(fields.architectureContract), value.architectureAuthority)) {
+    return "Autonomous ProductDelivery architecture contract is outside declared architecture authority";
+  }
+  if (/\b(?:pending|unknown|unvalidated|needs_decision|conflict)\b/i.test(String(fields.assumptionDisposition))) {
+    return "Autonomous ProductDelivery cannot admit unresolved assumptions or source conflicts";
+  }
+  if (!/^(?:none|validated|owner_approved|rejected|experiment_only)(?:\s+-\s+.+)?$/i.test(String(fields.assumptionDisposition))) {
+    return "Autonomous ProductDelivery requires an explicit assumption disposition";
+  }
+  return null;
+}
+
 export function deliveryService(db: Db) {
   const admission = admissionControlService(db);
 
@@ -131,9 +184,27 @@ export function deliveryService(db: Db) {
       }
       requireEvidence(data.toStage, data.evidence);
       if (data.toStage === "admitted") {
+        const intentContractError = validateAutonomousDeliveryIntentContract(existing.decisionContract);
+        if (intentContractError) throw unprocessable(intentContractError);
+        const isAutonomousCycle = existing.decisionContract.source === "paperclip_autonomous_cycle";
+        let boundedIssueId: string | undefined;
+        if (isAutonomousCycle) {
+          const intentContract = existing.decisionContract.intentContract as Record<string, unknown> | undefined;
+          const intentIssue = intentContract?.issue as Record<string, unknown> | undefined;
+          const intentIssueId = typeof intentIssue?.id === "string" ? intentIssue.id : null;
+          if (!intentIssueId || existing.decisionContract.boundedToIssueId !== intentIssueId) {
+            throw unprocessable("Autonomous ProductDelivery intent trace must identify its bounded source issue");
+          }
+          const linkedIntentTask = await db.select({ issueId: deliveryTasks.issueId }).from(deliveryTasks)
+            .where(and(eq(deliveryTasks.deliveryId, existing.id), eq(deliveryTasks.issueId, intentIssueId)))
+            .then((rows) => rows[0] ?? null);
+          if (!linkedIntentTask) throw unprocessable("Autonomous ProductDelivery intent source issue must be a linked delivery task");
+          boundedIssueId = intentIssueId;
+        }
         const decision = await admission.evaluateWork({
           companyId: existing.companyId,
           projectId: existing.projectId,
+          issueId: boundedIssueId,
           agentId: existing.ownerAgentId,
           source: "delivery.transition",
           fingerprint: `delivery:${existing.id}`,

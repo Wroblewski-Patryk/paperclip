@@ -18,6 +18,7 @@ export const softwarehouseActiveApplicationProjects = Object.freeze([
     requiredDocumentationPaths: Object.freeze([
       "docs/README.md",
       "docs/documentation-contract.json",
+      "docs/product/product.md",
       "docs/architecture/architecture-source-of-truth.md",
     ]),
     projectTruthPath: "docs/status/project-truth-index.json",
@@ -38,6 +39,7 @@ export const softwarehouseActiveApplicationProjects = Object.freeze([
     requiredDocumentationPaths: Object.freeze([
       "docs/README.md",
       "docs/documentation-contract.json",
+      "docs/product/product.md",
       "docs/architecture/architecture-source-of-truth.md",
     ]),
     projectTruthPath: "docs/status/project-truth-index.json",
@@ -58,6 +60,7 @@ export const softwarehouseActiveApplicationProjects = Object.freeze([
     requiredDocumentationPaths: Object.freeze([
       "docs/README.md",
       "docs/documentation-contract.json",
+      "docs/product/product.md",
       "docs/architecture/architecture-source-of-truth.md",
     ]),
     projectTruthPath: "docs/status/project-truth-index.json",

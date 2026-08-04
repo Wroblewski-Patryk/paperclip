@@ -1,5 +1,32 @@
 # Active Mission
 
+## 2026-08-04 - Product intent admission gate implemented
+
+- The canonical autonomous chain now begins before task creation: owner
+  direction -> captured product intent -> assumptions classified -> approved
+  product contract -> architecture contract -> observed-state gap -> bounded
+  task -> implementation -> tests -> independent review -> deployment ->
+  observation -> accepted outcome.
+- Autonomous ProductDelivery admission is fail-closed unless its bounded issue
+  carries `softwarehouse-product-intent-trace:v1` and complete canonical source,
+  gap, assumption, outcome, and evidence fields. Non-autonomous deliveries keep
+  their existing admission behavior.
+- Missing or conflicting intent creates/reuses exactly one project-scoped PM
+  reconciliation child, blocks only its source implementation, and resumes via
+  the normal dependency mechanism after canonical sources and the issue trace
+  are repaired. The reconciliation task does not implement the feature.
+- All four guardian automations are active and explicitly run/consume the
+  product-intent trace audit. All 39 managed agents received the same contract.
+- Live repository audit currently reports Soar and Featherly ready at the
+  documentation-contract level. Roost is correctly fail-closed because its
+  product entrypoint is still a placeholder; its historical architecture
+  material must be classified into a substantive product contract.
+- Focused evidence is green: trace tests 4/4, lifecycle 3/3, gate specs 204/204,
+  deliveries service 7/7 with embedded PostgreSQL, repo-wide typecheck, build,
+  workspace-boundary audit, and server typecheck. The full environment test
+  command timed out on live SSH/device-code fixtures; it produced no failing
+  product-intent assertion and left no Vitest or temporary Postgres process.
+
 ## 2026-08-03 - Admission reopened; Roost QA execution resumed
 
 - LuckySparrow is open on native admission-control version 11. After the

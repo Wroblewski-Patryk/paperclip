@@ -11,6 +11,15 @@ the full accountable flow:
 
 `direction -> validated problem -> business/product/UX contract -> architecture and risk -> plan -> implementation -> automated proof -> browser/QA -> independent review -> docs/operations -> release decision -> commit/push -> deploy/migrate -> production acceptance -> operate/support/measure -> retrospective/improvement`.
 
+The expanded start of that chain is mandatory:
+
+`owner direction -> captured intent -> assumptions classified -> approved product contract -> architecture contract -> observed-state gap -> bounded task`.
+
+Before ProductDelivery admission, require the completed
+`softwarehouse-product-intent-trace:v1` block from shared instruction 15. If it
+is missing or conflicting, use the single PM reconciliation lane produced by
+the autonomous cycle. Do not implement first and reconcile intent afterward.
+
 For the current issue:
 
 - name the lifecycle stage and accountable owner;

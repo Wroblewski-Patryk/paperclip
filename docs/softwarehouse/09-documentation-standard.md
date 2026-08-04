@@ -30,6 +30,35 @@ Every active application must provide:
 - a bounded `defaultAgentContext` containing only current product,
   architecture, and status entrypoints.
 
+The authority map must keep five meanings separate:
+
+| Meaning | Canonical home | Rule |
+| --- | --- | --- |
+| Owner intent | `docs/product/` after capture and confirmation | Describes what the owner wants the product to do and for whom. A chat remains input until captured. |
+| Assumption | `docs/product/assumptions.md` when a durable register is needed, or the project's declared open-decisions source | A hypothesis with provenance, status, review trigger, and dependants. It is never implementation authority while pending or conflicting. |
+| Product contract | `docs/product/` | Approved user behavior, journeys, scope, non-goals, and acceptance boundary. |
+| Architecture contract | `docs/architecture/` plus declared ADR/decision sources | Explains how the approved product is realized and which technical constraints implementation must preserve. |
+| Observed truth | declared project-truth/status source plus code, tests, and runtime evidence | Records what exists and works now; it cannot silently redefine owner intent. |
+
+For a new application, create `docs/documentation-contract.json`, one bounded
+product entrypoint, one architecture entrypoint, and one observed-state
+entrypoint before broad implementation. Create `docs/product/assumptions.md`
+only when unresolved hypotheses actually exist; an empty assumptions register
+is optional and must not become documentation ceremony.
+
+Legacy owner ideas already stored in `docs/architecture/` remain valuable. On
+first use, classify the relevant statement as approved product intent,
+approved architecture, unresolved assumption, superseded material, or a
+conflict. Move or link it to the narrowest canonical home instead of deleting
+history or letting one paragraph carry several meanings indefinitely.
+
+Every autonomous implementation candidate must contain the machine-readable,
+human-readable `softwarehouse-product-intent-trace:v1` block defined in
+`softwarehouse/instructions/shared/15-product-intent-from-architecture.md`.
+Run `pnpm softwarehouse:product-intent-traceability` to inspect the portfolio.
+Missing traceability routes one bounded PM reconciliation lane; it never
+authorizes implementation and never just becomes a report-only warning.
+
 Classify durable material as exactly one of `canonical`, `derived`,
 `historical`, or `ephemeral`. A file location or the phrase "source of truth"
 does not grant authority. New documents require a named owner and consumer,

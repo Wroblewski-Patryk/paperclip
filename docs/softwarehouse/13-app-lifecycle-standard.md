@@ -78,6 +78,39 @@ The first release slice should be small enough for agents to prove end to end:
 login if required, configure if required, perform the primary user action, see
 the correct result, and know what remains outside the slice.
 
+The brief must be promoted into the project's declared documentation
+authorities before implementation tasks are admitted. Owner conversation is
+input, not an invisible contract. Capture confirmed behavior in
+`docs/product/`; keep unresolved hypotheses in an assumptions/open-decisions
+register; derive `docs/architecture/` from the approved product behavior; and
+create tasks only from a named gap between that intended state and observed
+code/runtime truth.
+
+Incremental owner direction follows the same rule. For example, adding account
+settings after login extends the product journey first; Product/UX and
+Architecture reconcile navigation, authorization, data, and failure states;
+only then does Delivery split implementation tasks. Consequences that are
+unambiguous and compatible may be derived autonomously and recorded. A choice
+that changes user behavior, commercial scope, safety, privacy, or another
+approved rule requires an explicit decision owner.
+
+## Intent-To-Delivery Trace
+
+Before implementation, every autonomous delivery must answer:
+
+1. What owner/product intent authorizes this work?
+2. Which current product contract defines the behavior?
+3. Which architecture contract constrains the solution?
+4. What does code, testing, or runtime evidence do now?
+5. What exact gap is being closed?
+6. Which assumptions are validated, owner-approved, rejected, experimental,
+   or still unresolved?
+7. What smallest owner-visible outcome and acceptance evidence will close it?
+
+Pending or conflicting assumptions stop implementation and create one
+project-scoped reconciliation path. They do not create speculative worker
+fan-out.
+
 ## Active And Parked Apps
 
 Current active apps:
