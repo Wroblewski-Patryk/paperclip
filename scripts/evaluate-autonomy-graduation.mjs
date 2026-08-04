@@ -81,7 +81,11 @@ const autonomousAcceptedDeliveries = deliveryDetails.filter((delivery) => {
   const hasTask = Array.isArray(delivery?.tasks) && delivery.tasks.length > 0;
   const agentTransition = Array.isArray(delivery?.transitions)
     && delivery.transitions.some((transition) => transition.actorType === "agent");
-  return hasTask && agentTransition && delivery?.outcome?.status === "accepted";
+  const independentAcceptance = delivery?.outcome?.status === "accepted"
+    && Boolean(delivery.outcome.acceptedByUserId
+      || (delivery.outcome.acceptedByAgentId
+        && delivery.outcome.acceptedByAgentId !== delivery.ownerAgentId));
+  return hasTask && agentTransition && independentAcceptance;
 });
 const acceptedProjects = new Set(autonomousAcceptedDeliveries.map((delivery) => delivery.projectId));
 

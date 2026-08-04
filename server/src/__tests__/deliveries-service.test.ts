@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
+  agents,
   companies,
   createDb,
   deliveryTasks,
@@ -32,6 +33,8 @@ describeEmbedded("task, delivery, and outcome separation", () => {
     const companyId = randomUUID();
     const projectId = randomUUID();
     const issueId = randomUUID();
+    const ownerAgentId = randomUUID();
+    const reviewerAgentId = randomUUID();
     await db.insert(companies).values({
       id: companyId,
       name: "Delivery test",
@@ -40,6 +43,10 @@ describeEmbedded("task, delivery, and outcome separation", () => {
       requireBoardApprovalForNewAgents: false,
     });
     await db.insert(projects).values({ id: projectId, companyId, name: "Canary", status: "in_progress" });
+    await db.insert(agents).values([
+      { id: ownerAgentId, companyId, name: "Delivery owner", role: "engineer", status: "idle", adapterType: "codex_local", adapterConfig: {}, runtimeConfig: {}, permissions: {} },
+      { id: reviewerAgentId, companyId, name: "Independent reviewer", role: "reviewer", status: "idle", adapterType: "codex_local", adapterConfig: {}, runtimeConfig: {}, permissions: {} },
+    ]);
     await db.insert(issues).values({
       id: issueId,
       companyId,
@@ -50,7 +57,7 @@ describeEmbedded("task, delivery, and outcome separation", () => {
       priority: "medium",
       completedAt: new Date(),
     });
-    return { companyId, projectId, issueId };
+    return { companyId, projectId, issueId, ownerAgentId, reviewerAgentId };
   }
 
   it("does not infer delivered or achieved from a done task", async () => {
@@ -119,5 +126,48 @@ describeEmbedded("task, delivery, and outcome separation", () => {
     await expect(svc.updateOutcome(created.id, { status: "achieved", evidence: [{ kind: "local_test" }] }, {})).resolves.toMatchObject({ status: "achieved" });
     await expect(svc.updateOutcome(created.id, { status: "accepted", evidence: [{ kind: "owner" }] }, {}))
       .rejects.toMatchObject({ status: 422 });
+  });
+
+  it("rejects self-review and self-acceptance by the delivery owner", async () => {
+    const refs = await seed();
+    const svc = deliveryService(db);
+    const created = await svc.create(refs.companyId, {
+      projectId: refs.projectId,
+      ownerAgentId: refs.ownerAgentId,
+      title: "Independent delivery",
+      problemStatement: "A delivery owner must not certify their own result.",
+      decisionContract: { expected: "independent review and acceptance" },
+      outcomeStatement: "A distinct actor accepts the observed result.",
+      acceptanceCriteria: [{ kind: "independent_acceptance" }],
+      taskIssueIds: [refs.issueId],
+    });
+    const board = { actorType: "user", actorId: "board" };
+    await svc.transition(created.id, { toStage: "admitted", idempotencyKey: "i-1", evidence: [] }, board);
+    await svc.transition(created.id, { toStage: "implementing", idempotencyKey: "i-2", evidence: [] }, board);
+    await svc.transition(created.id, { toStage: "evidence_complete", idempotencyKey: "i-3", evidence: [{ kind: "test" }] }, board);
+    await expect(svc.transition(created.id, {
+      toStage: "review_accepted",
+      idempotencyKey: "i-self-review",
+      evidence: [{ kind: "review" }],
+    }, { actorType: "agent", actorId: refs.ownerAgentId })).rejects.toMatchObject({ status: 422 });
+
+    await svc.transition(created.id, {
+      toStage: "review_accepted",
+      idempotencyKey: "i-review",
+      evidence: [{ kind: "review", reviewer: refs.reviewerAgentId }],
+    }, { actorType: "agent", actorId: refs.reviewerAgentId });
+    await svc.transition(created.id, { toStage: "integrated", idempotencyKey: "i-4", evidence: [], integrationSha: "1234567" }, board);
+    await svc.transition(created.id, { toStage: "push_ready", idempotencyKey: "i-5", evidence: [], originSha: "1234567" }, board);
+    await svc.transition(created.id, { toStage: "deployed", idempotencyKey: "i-6", evidence: [{ kind: "deploy" }], deployedSha: "1234567", deploymentUrl: "https://example.test" }, board);
+    await svc.transition(created.id, { toStage: "observed_healthy", idempotencyKey: "i-7", evidence: [{ kind: "smoke" }] }, board);
+    await svc.updateOutcome(created.id, { status: "achieved", evidence: [{ kind: "monitoring" }] }, { agentId: refs.ownerAgentId });
+    await expect(svc.updateOutcome(created.id, {
+      status: "accepted",
+      evidence: [{ kind: "owner_claim" }],
+    }, { agentId: refs.ownerAgentId })).rejects.toMatchObject({ status: 422 });
+    await expect(svc.updateOutcome(created.id, {
+      status: "accepted",
+      evidence: [{ kind: "independent_acceptance" }],
+    }, { agentId: refs.reviewerAgentId })).resolves.toMatchObject({ status: "accepted" });
   });
 });

@@ -37,3 +37,26 @@ company-facing procedure, offering, decision, dependency, and KPI projection.
 Product repositories own versioned product, source, architecture, test, and
 release truth. Resolve conflicts at the accountable source; do not let one
 projection silently overwrite another.
+
+## ProductDelivery Ledger
+
+When the wake payload or run context contains `deliveryId`, the issue is part
+of a persisted ProductDelivery and the delivery ledger is mandatory, not an
+optional report:
+
+- read `GET /api/deliveries/{deliveryId}` before implementation and before
+  every handoff;
+- advance only the next legal stage through
+  `POST /api/deliveries/{deliveryId}/transition` with an idempotency key and
+  inspectable evidence;
+- record exact `integrationSha`, `originSha`, `deployedSha`, and
+  `deploymentUrl` at their corresponding stages; never infer deployment from
+  a local commit or push;
+- after deployment, record production observation before updating the outcome
+  through `POST /api/deliveries/{deliveryId}/outcome`;
+- the delivery owner must not approve their own review or accept their own
+  product outcome. Hand the delivery to a distinct reviewer or owner actor;
+- reach `outcome_accepted` only after the independent outcome status is
+  `accepted`. A done issue by itself is never a delivered application result;
+- if a gate fails, persist the blocker or rollback evidence on the delivery and
+  return to the legal corrective stage instead of starting a parallel ledger.

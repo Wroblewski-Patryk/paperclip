@@ -155,6 +155,14 @@ export function deliveryService(db: Db) {
       if (data.toStage === "outcome_accepted" && outcome?.status !== "accepted") {
         throw unprocessable("Delivery cannot reach outcome_accepted until its outcome is accepted independently");
       }
+      if (
+        data.toStage === "review_accepted"
+        && actor.actorType === "agent"
+        && actor.actorId
+        && actor.actorId === existing.ownerAgentId
+      ) {
+        throw unprocessable("Delivery review must be accepted by an independent actor");
+      }
       return db.transaction(async (tx) => {
         const prior = await tx.select().from(deliveryTransitions).where(and(
           eq(deliveryTransitions.deliveryId, id),
@@ -219,6 +227,14 @@ export function deliveryService(db: Db) {
       }
       if (data.status === "accepted" && delivery.stage !== "observed_healthy") {
         throw unprocessable("Outcome acceptance requires an observed_healthy delivery");
+      }
+      if (data.status === "accepted") {
+        if (!actor.agentId && !actor.userId) {
+          throw unprocessable("Outcome acceptance requires an identified independent actor");
+        }
+        if (actor.agentId && actor.agentId === delivery.ownerAgentId) {
+          throw unprocessable("Delivery owners cannot accept their own product outcome");
+        }
       }
       return db.update(productOutcomes).set({
         status: data.status,

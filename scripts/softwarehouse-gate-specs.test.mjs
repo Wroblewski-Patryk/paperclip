@@ -2850,6 +2850,19 @@ test("recovery janitor only restores reusable routines after their own fresh suc
   assert.equal(planReusableRoutineRecoveryRestore({ issue, activeBlockers: [], runs: [{ ...runs[0], status: "failed" }], activeRoutineTitles }), null);
 });
 
+test("autonomous cycle uses the live ProductDelivery ledger instead of future-ledger placeholders", async () => {
+  const [cycle, lifecycle] = await Promise.all([
+    readFile("scripts/run-autonomous-development-cycle.mjs", "utf8"),
+    readFile("softwarehouse/instructions/shared/21-autonomous-application-lifecycle.md", "utf8"),
+  ]);
+
+  assert.doesNotMatch(cycle, /future_release_ledger|future deployment continuation|future work-packet dispatch/);
+  assert.match(cycle, /release_managed_by_product_delivery/);
+  assert.match(cycle, /monitoring_managed_by_product_delivery/);
+  assert.match(lifecycle, /GET \/api\/deliveries\/\{deliveryId\}/);
+  assert.match(lifecycle, /delivery owner must not approve their own review or accept their own/);
+});
+
 test("known-state harvester reuses canonical Soar and Roost projects", async () => {
   const source = await readFile("scripts/run-project-known-state-harvester.mjs", "utf8");
 
