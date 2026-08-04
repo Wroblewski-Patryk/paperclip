@@ -1916,6 +1916,37 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       .then((rows) => rows[0] ?? null);
   }
 
+  async function findStrandedIssueRecoveryIssueByFingerprint(companyId: string, originFingerprint: string) {
+    return db
+      .select()
+      .from(issues)
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          eq(issues.originKind, STRANDED_ISSUE_RECOVERY_ORIGIN_KIND),
+          eq(issues.originFingerprint, originFingerprint),
+          isNull(issues.hiddenAt),
+        ),
+      )
+      .orderBy(desc(issues.createdAt))
+      .limit(1)
+      .then((rows) => rows[0] ?? null);
+  }
+
+  function strandedIssueRecoveryOriginFingerprint(input: {
+    issue: typeof issues.$inferSelect;
+    latestRun: LatestIssueRun;
+    recoveryCause: StrandedRecoveryCause;
+  }) {
+    return [
+      STRANDED_ISSUE_RECOVERY_ORIGIN_KIND,
+      input.issue.companyId,
+      input.issue.id,
+      input.recoveryCause,
+      input.latestRun?.id ?? "no-run",
+    ].join(":");
+  }
+
   function isStrandedIssueRecoveryIssue(issue: typeof issues.$inferSelect) {
     return issue.originKind === STRANDED_ISSUE_RECOVERY_ORIGIN_KIND;
   }
@@ -2067,6 +2098,23 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
   }) {
     if (isStrandedIssueRecoveryIssue(input.issue)) return null;
 
+    const recoveryCause = input.recoveryCause ?? "stranded_assigned_issue";
+    const originFingerprint = strandedIssueRecoveryOriginFingerprint({
+      issue: input.issue,
+      latestRun: input.latestRun,
+      recoveryCause,
+    });
+
+    // A terminal recovery issue is durable evidence that this exact source signal was
+    // already handled. Reopening the same fingerprint creates a fast feedback loop
+    // between the reconciler and a status-only recovery run. A genuinely new source
+    // run changes the fingerprint and remains eligible for a new bounded recovery.
+    const handledSameEvidence = await findStrandedIssueRecoveryIssueByFingerprint(
+      input.issue.companyId,
+      originFingerprint,
+    );
+    if (handledSameEvidence) return handledSameEvidence;
+
     const existing = await findOpenStrandedIssueRecoveryIssue(input.issue.companyId, input.issue.id);
     if (existing) return existing;
 
@@ -2075,7 +2123,6 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
 
     const prefix = await getCompanyIssuePrefix(input.issue.companyId);
     const sourceAssignee = input.issue.assigneeAgentId ? await getAgent(input.issue.assigneeAgentId) : null;
-    const recoveryCause = input.recoveryCause ?? "stranded_assigned_issue";
     let recovery: Awaited<ReturnType<typeof issuesSvc.createChild>>["issue"];
     try {
       recovery = (await issuesSvc.createChild(input.issue.id, {
@@ -2100,13 +2147,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         originKind: STRANDED_ISSUE_RECOVERY_ORIGIN_KIND,
         originId: input.issue.id,
         originRunId: input.latestRun?.id ?? null,
-        originFingerprint: [
-          STRANDED_ISSUE_RECOVERY_ORIGIN_KIND,
-          input.issue.companyId,
-          input.issue.id,
-          recoveryCause,
-          input.latestRun?.id ?? "no-run",
-        ].join(":"),
+        originFingerprint,
         billingCode: input.issue.billingCode,
         inheritExecutionWorkspaceFromIssueId: input.issue.id,
         blockParentUntilDone: true,

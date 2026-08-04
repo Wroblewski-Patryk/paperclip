@@ -1898,6 +1898,49 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     await expect(sourceBlockerIssueIds(companyId, issueId)).resolves.toEqual([recoveryIssue?.id]);
   });
 
+  it("does not recreate terminal stranded recovery work for unchanged source evidence", async () => {
+    const { companyId, runId, issueId } = await seedStrandedIssueFixture({
+      status: "in_progress",
+      runStatus: "succeeded",
+      livenessState: "advanced",
+    });
+    const sourceRunId = randomUUID();
+    await db.update(heartbeatRuns).set({
+      contextSnapshot: {
+        issueId,
+        taskId: issueId,
+        wakeReason: "finish_successful_run_handoff",
+        sourceRunId,
+        resumeFromRunId: sourceRunId,
+        handoffRequired: true,
+        handoffReason: "successful_run_missing_state",
+        missingDisposition: "clear_next_step",
+        handoffAttempt: 1,
+        maxHandoffAttempts: 1,
+      },
+    }).where(eq(heartbeatRuns.id, runId));
+    const heartbeat = heartbeatService(db);
+
+    await heartbeat.reconcileStrandedAssignedIssues();
+    const recovery = await db.select().from(issues).where(and(
+      eq(issues.companyId, companyId),
+      eq(issues.originKind, "stranded_issue_recovery"),
+      eq(issues.originId, issueId),
+    )).then((rows) => rows[0]);
+    expect(recovery).toBeTruthy();
+
+    await db.update(issues).set({ status: "done" }).where(eq(issues.id, recovery!.id));
+    await db.update(issues).set({ status: "in_progress" }).where(eq(issues.id, issueId));
+    await heartbeat.reconcileStrandedAssignedIssues();
+
+    const recoveries = await db.select().from(issues).where(and(
+      eq(issues.companyId, companyId),
+      eq(issues.originKind, "stranded_issue_recovery"),
+      eq(issues.originId, issueId),
+    ));
+    expect(recoveries).toHaveLength(1);
+  });
+
   it("clears the detached warning when the run reports activity again", async () => {
     const { runId } = await seedRunFixture({
       includeIssue: false,
