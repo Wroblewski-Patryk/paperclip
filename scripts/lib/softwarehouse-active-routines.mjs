@@ -1,7 +1,7 @@
 export { softwarehouseActiveApplicationProjectNames } from "./softwarehouse-project-registry.mjs";
 import { softwarehouseActiveApplicationProjectNames } from "./softwarehouse-project-registry.mjs";
 
-export const activeApplicationRoutineSpecs = softwarehouseActiveApplicationProjectNames.flatMap((projectName) => [
+export const softwarehouseApplicationRoutineLibrarySpecs = softwarehouseActiveApplicationProjectNames.flatMap((projectName) => [
   {
     title: `[${projectName}] Daily project status refresh`,
     scheduleLabel: `Daily ${projectName} PM status at 09:45`,
@@ -20,6 +20,14 @@ export const activeApplicationRoutineSpecs = softwarehouseActiveApplicationProje
   },
 ]);
 
+// Keep one low-frequency project truth refresh per active application. The
+// autonomy governor already owns queue dispatch, source-control classification,
+// and known-state refresh through the control tick, so scheduling the three
+// additional per-project controllers only duplicates work and comments.
+export const activeApplicationRoutineSpecs = softwarehouseApplicationRoutineLibrarySpecs.filter(
+  (routine) => routine.title.endsWith("Daily project status refresh"),
+);
+
 export const softwarehouseRoutineTitleRenames = new Map([
   ["[Softwarehouse] Autonomy governor", "11 Innovation: Autonomy Governor"],
   ["[Softwarehouse] Continuation watchdog", "11 Innovation: Continuation Watchdog"],
@@ -34,30 +42,10 @@ export const softwarehouseRoutineTitleRenames = new Map([
 
 const softwarehousePilotLegacyActiveRoutineTitles = new Set([
   "[Softwarehouse] Autonomy governor",
-  "[Softwarehouse] Continuation watchdog",
-  "[Softwarehouse] Gate freshness watcher",
-  "[Soar] Daily project status refresh",
-  "[Soar][PM] No-stall queue expeditor",
-  "[Soar] Autonomous idle and map drift sweep",
-  "[Soar] Regression evidence sweep",
-  "[Soar] V1 audit-to-completion controller",
-  "[Soar] Gap register and repair lane refresh",
-  "[Soar] Coolify production deploy health sweep",
-  "[Soar] Security and account-access gate sweep",
-  "[Softwarehouse] Architecture awareness graph sync",
-  "[Softwarehouse] Stale board janitor",
   "[Softwarehouse] Agent health and model governance",
-  "[Softwarehouse] Docs and memory loop",
-  "[Softwarehouse] Template feedback sweep",
   "[Softwarehouse] Longevity doctor and watchdog",
   "[Softwarehouse] Longevity snapshot backup",
   "[Softwarehouse] Organizational learning loop",
-  "[Softwarehouse] Company value-stream governance",
-  "[Softwarehouse] Human decision inbox steward",
-  "[Softwarehouse] Product acceptance gate review",
-  "[Softwarehouse] CTO technical acceptance gate review",
-  "[Softwarehouse] AI-agent development review",
-  "[Softwarehouse] Organizational learning and agent improvement review",
   ...activeApplicationRoutineSpecs.map((routine) => routine.title),
 ]);
 
@@ -100,7 +88,7 @@ const softwarehousePilotLegacyRoutineScheduleLabels = new Map([
   ["[Softwarehouse] CTO technical acceptance gate review", "CTO technical acceptance gate review every 4 hours"],
   ["[Softwarehouse] AI-agent development review", "Daily AI-agent development review"],
   ["[Softwarehouse] Organizational learning and agent improvement review", "Weekly organizational learning and agent improvement review"],
-  ...activeApplicationRoutineSpecs.map((routine) => [routine.title, routine.scheduleLabel]),
+  ...softwarehouseApplicationRoutineLibrarySpecs.map((routine) => [routine.title, routine.scheduleLabel]),
 ]);
 
 export const softwarehousePilotRoutineScheduleLabels = new Map(

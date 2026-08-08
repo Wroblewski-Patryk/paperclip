@@ -71,7 +71,7 @@ function adapterConfigForLane(roster, laneKey) {
     modelReasoningEffort: lane.modelReasoningEffort,
     fastMode: Boolean(lane.fastMode),
     search: false,
-    dangerouslyBypassApprovalsAndSandbox: true,
+    dangerouslyBypassApprovalsAndSandbox: false,
     timeoutSec: 0,
     graceSec: 15,
   };

@@ -4,7 +4,7 @@ import {
 } from "./lib/softwarehouse-active-routines.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
+const companyNames = ["LuckySparrow", "LuckySparrow Software House"];
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 
 const activeRoutineTitles = softwarehousePilotActiveRoutineTitles;
@@ -64,8 +64,8 @@ async function resolveCompany() {
   if (companyId) return { id: companyId, source: "PAPERCLIP_COMPANY_ID" };
 
   const companies = await request("GET", "/api/companies");
-  const company = companies.find((candidate) => candidate.name === companyName);
-  if (!company) throw new Error(`Company not found: ${companyName}`);
+  const company = companies.find((candidate) => companyNames.includes(candidate.name));
+  if (!company) throw new Error(`Company not found: ${companyNames.join(" or ")}`);
   return { id: company.id, source: "company_name" };
 }
 
@@ -87,11 +87,13 @@ if (activeRunCount > 0) {
 const updates = [];
 for (const routine of routines) {
   const shouldBeActive = activeRoutineTitles.has(routine.title);
-  const nextStatus = shouldBeActive ? "active" : "paused";
+  const nextStatus = shouldBeActive ? "active" : "archived";
   const patch = {};
   if (routine.status !== nextStatus) patch.status = nextStatus;
-  const nextDescription = withParallelExecutionPolicy(routine.description);
-  if (nextDescription !== (routine.description ?? "")) patch.description = nextDescription;
+  if (shouldBeActive) {
+    const nextDescription = withParallelExecutionPolicy(routine.description);
+    if (nextDescription !== (routine.description ?? "")) patch.description = nextDescription;
+  }
 
   if (Object.keys(patch).length > 0) {
     const updated = await request("PATCH", `/api/routines/${routine.id}`, patch);
@@ -128,5 +130,5 @@ console.log(JSON.stringify({
   liveRunCount,
   updates,
   activeRoutines,
-  pausedRoutineCount: finalRoutines.filter((routine) => routine.status === "paused").length,
+  archivedRoutineCount: finalRoutines.filter((routine) => routine.status === "archived").length,
 }, null, 2));

@@ -780,15 +780,31 @@ test("softwarehouse doctor and team adoption share the canonical routine title r
   );
   for (const title of [
     "09 Technology: Agent Health and Model Governance",
+    "11 Innovation: Autonomy Governor",
+    "09 Technology: Longevity Doctor and Watchdog",
+    "04 Operations: Longevity Snapshot Backup",
+    "04 Operations: Organizational Learning Loop",
+    "[Soar] Daily project status refresh",
+    "[Roost] Daily project status refresh",
+    "[Featherly] Daily project status refresh",
+  ]) {
+    assert.equal(
+      softwarehousePilotActiveRuntimeRoutineTitles.has(title),
+      true,
+      `missing canonical runtime routine title: ${title}`,
+    );
+  }
+  for (const title of [
     "11 Innovation: Continuation Watchdog",
+    "04 Operations: Gate Freshness Watcher",
     "[Soar] Source-control closure sweep",
     "[Roost] Known-state and map drift sweep",
     "[Featherly][PM] No-stall queue expeditor",
   ]) {
     assert.equal(
       softwarehousePilotActiveRuntimeRoutineTitles.has(title),
-      true,
-      `missing canonical runtime routine title: ${title}`,
+      false,
+      `duplicate controller should remain library-only: ${title}`,
     );
   }
 });
