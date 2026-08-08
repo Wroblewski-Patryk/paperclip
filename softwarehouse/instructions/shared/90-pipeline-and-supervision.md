@@ -110,6 +110,26 @@ owner, or delegate a linked one-owner follow-up. Keep
 `run-in-review-decision-path.mjs` as the runtime safety repair; do not use
 janitor behavior as a substitute for a complete handoff.
 
+Use this admission block in the issue handoff comment or review interaction
+before moving an issue to `in_review`:
+
+```markdown
+### Review decision path
+- Reviewer: <person, role, or typed participant>
+- Decision options: accept -> done; request changes -> <return owner>; block -> <unblock owner/action>; delegate -> <child owner>; continue review -> <next check>
+- Evidence: <links to files, checks, artifacts, or findings>
+- Decision timing: <deadline or next-check time> / cooldown <duration if applicable>
+- Next owner: <owner after the decision>
+```
+
+For `request_confirmation` or `ask_user_questions`, the interaction must
+identify the reviewer/board owner and resulting decision route; repeat the
+evidence, timing, and next-owner fields in the issue comment when the payload
+cannot carry them. A pending interaction is a waiting mechanism, not proof
+that the handoff is complete. If any field is unknown, keep the issue in
+`in_progress` or move it to `blocked` with the owner/action needed to complete
+admission.
+
 Paperclip issues are the shared Kanban board for Stage 1 delivery. Goals define
 why a lane matters, routines/procedures create or inspect repeatable work, and
 issues/tasks carry the actual visible flow.

@@ -34,6 +34,7 @@ import {
   feedbackService,
   backfillPrincipalAccessCompatibility,
   heartbeatService,
+  nativeSupervisionEngine,
   instanceSettingsService,
   reconcileCloudUpstreamRunsOnStartup,
   reconcilePersistedRuntimeServicesOnStartup,
@@ -765,6 +766,9 @@ export async function startServer(): Promise<StartedServer> {
   
   if (config.heartbeatSchedulerEnabled) {
     const heartbeat = heartbeatService(db as any, { pluginWorkerManager });
+    const nativeSupervision = nativeSupervisionEngine(db as any, {
+      enqueueWakeup: (agentId, options) => heartbeat.wakeup(agentId, options),
+    });
     const routines = routineService(db as any, { pluginWorkerManager });
   
     // Reap orphaned running runs at startup while in-memory execution state is empty,
@@ -807,6 +811,10 @@ export async function startServer(): Promise<StartedServer> {
         if (reviewed.created > 0 || reviewed.updated > 0 || reviewed.failed > 0) {
           logger.warn({ ...reviewed }, "startup productivity reconciliation created or updated review work");
         }
+      })
+      .then(async () => {
+        const supervised = await nativeSupervision.runDue();
+        logger.info({ companyCount: supervised.length }, "startup native supervision cycles completed");
       })
       .catch((err) => {
         logger.error({ err }, "startup heartbeat recovery failed");
@@ -879,6 +887,11 @@ export async function startServer(): Promise<StartedServer> {
           logger.error({ err }, "periodic heartbeat recovery failed");
         });
     }, config.heartbeatSchedulerIntervalMs);
+    setInterval(() => {
+      void nativeSupervision.runDue().catch((err) => {
+        logger.error({ err }, "periodic native supervision cycles failed");
+      });
+    }, 60_000);
   }
   
   if (config.databaseBackupEnabled) {

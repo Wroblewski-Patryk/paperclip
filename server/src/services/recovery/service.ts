@@ -38,6 +38,7 @@ import { issueRecoveryActionService } from "../issue-recovery-actions.js";
 import { issueTreeControlService } from "../issue-tree-control.js";
 import { issueService } from "../issues.js";
 import { getRunLogStore } from "../run-log-store.js";
+import { supervisionRegistryService } from "../supervision-registry.js";
 import {
   DEFAULT_MAX_SUCCESSFUL_RUN_HANDOFF_ATTEMPTS,
   FINISH_SUCCESSFUL_RUN_HANDOFF_REASON,
@@ -460,6 +461,7 @@ function buildLivenessOriginalIssueComment(finding: IssueLivenessFinding, escala
 
 export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup }) {
   const issuesSvc = issueService(db);
+  const supervision = supervisionRegistryService(db);
   const recoveryActionsSvc = issueRecoveryActionService(db);
   const treeControlSvc = issueTreeControlService(db);
   const budgets = budgetService(db);
@@ -1750,6 +1752,9 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       folded: 0,
       snoozed: 0,
       skipped: 0,
+      registryRecorded: 0,
+      registryFailed: 0,
+      findingIds: [] as string[],
       evaluationIssueIds: [] as string[],
     };
 
@@ -1767,6 +1772,57 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       else result.skipped += 1;
       if ("evaluationIssueId" in outcome && outcome.evaluationIssueId) {
         result.evaluationIssueIds.push(outcome.evaluationIssueId);
+      }
+      try {
+        const severity = outcome.kind === "escalated" ? "critical" as const : "high" as const;
+        const status = outcome.kind === "folded" ? "no_action" as const : "needs_decision" as const;
+        const registered = await supervision.upsertFinding(run.companyId, {
+          fingerprint: `active-run-output-silence:${run.id}`,
+          problemClass: "active_run_output_silence",
+          severity,
+          status,
+          classification: outcome.kind === "folded" ? "false_positive" : "runtime_health",
+          sourceKind: "native_watchdog",
+          sourceRef: `heartbeat_run:${run.id}`,
+          title: `Active run output silence for run ${run.id}`,
+          summary: `Native active-run watchdog outcome: ${outcome.kind}.`,
+          affectedComponent: "heartbeat_runtime",
+          projectId: null,
+          issueId: "evaluationIssueId" in outcome ? outcome.evaluationIssueId ?? null : null,
+          deliveryId: null,
+          deliveryTaskId: null,
+          affectedAgentId: run.agentId,
+          ownerAgentId: null,
+          ownerUserId: null,
+          admissionDecisionId: null,
+          rootCauseId: null,
+          nativeSafeguardId: null,
+          retryCount: 0,
+          economics: {
+            risk: severity,
+            priority: severity === "critical" ? "immediate" : "high",
+            reversibility: "Watchdog review work is reversible; run termination remains separately governed.",
+            retryBudget: 1,
+            stopBoundary: "Do not terminate or restart without an admitted recovery decision.",
+          },
+          decision: { watchdogOutcome: outcome.kind, evaluationIssueId: "evaluationIssueId" in outcome ? outcome.evaluationIssueId ?? null : null },
+          recoveryState: outcome.kind === "folded" ? "source_resolved" : "review_required",
+          cooldownUntil: null,
+          evidence: [
+            { sourceKind: "heartbeat_run", sourceRef: run.id, label: "silent active run", metadata: { status: run.status, lastOutputAt: run.lastOutputAt?.toISOString() ?? null } },
+            ...( "evaluationIssueId" in outcome && outcome.evaluationIssueId
+              ? [{ sourceKind: "issue", sourceRef: outcome.evaluationIssueId, label: "watchdog evaluation", metadata: {} }]
+              : []),
+          ],
+          recurrenceEvidence: { outcome: outcome.kind, scannedAt: now.toISOString() },
+          runId: run.id,
+          cycleId: null,
+        });
+        result.registryRecorded += 1;
+        result.findingIds.push(registered.finding.id);
+      } catch (error) {
+        result.registryFailed += 1;
+        logger.error({ err: error, runId: run.id, companyId: run.companyId }, "native watchdog failed to record supervision finding");
       }
     }
 

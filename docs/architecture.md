@@ -26,6 +26,9 @@ The projection carries source/deployed identity plus latest delivery stage, inde
 | SupervisorReview | issue approvals, thread interactions, supervisor issues, activity entries | `doc/SPEC-implementation.md` |
 | ControlPolicy | agent/project/company runtime config, approvals, budgets, docs in this section | `docs/agent-policy-gates.md` |
 | AssignmentProposal | Agent/delegator intent mediated by deterministic admission before system assignment | `packages/db/src/schema/assignment_proposals.ts` |
+| SupervisionFinding / RootCause | Versioned, deduplicated, company-scoped operational evidence and causal state in PostgreSQL | `packages/db/src/schema/supervision.ts` |
+| NativeSafeguard / ObservationWindow | Durable prevention and post-change verification gates; closure cannot be inferred from a passing test alone | `packages/db/src/schema/supervision.ts` |
+| SupervisionCycle / ShadowComparison | Restart-safe native Watchdog/Daily/Weekly cycles and read-only comparison with external owner assurance | `server/src/services/native-supervision-engine.ts` |
 | CompanySituation | Deterministic company-scoped projection over goals, projects, issues, agents, approvals, and budget incidents | `server/src/services/company-situation.ts` |
 | OrganizationalRecord | Typed assumption, commitment, or decision with lifecycle, owner, evidence, review timing, and supersession | `packages/db/src/schema/organizational_records.ts` |
 | OrganizationalObservation | Source-backed outcome, causal finding, external signal, or learning candidate with freshness and governed promotion | `packages/db/src/schema/organizational_observations.ts` |
@@ -68,6 +71,13 @@ engine. Useful graph-workflow semantics are expressed through existing, inspecta
 | Memory and learning | Organizational records, observations, issue history, work products, project docs, and governed learning promotion |
 | Observability | Heartbeat runs/events, activity log, Softwarehouse cockpit, project truth, costs, gates, and artifacts |
 | External tools | Roost-hosted capabilities exposed to Paperclip agents through governed MCP-first interfaces |
+
+Native supervision is part of the control plane, not a parallel task system. The scheduler starts
+deterministic Watchdog, Daily Integrity, and aggregate Weekly cycles with durable cycle keys and
+expiry recovery. Diagnosis-requiring findings may dispatch the Operational Doctor only after
+admission; missing Doctor capacity produces a visible `no_doctor` state rather than unsafe fallback.
+External Codex automations are read-only owner assurance: they compare fingerprints through the
+shadow-comparison API and cannot create a second backlog or mutate native policy.
 
 Task, delivery, and outcome are deliberately separate state machines. Closing an issue records only
 the executor's task state. It cannot advance a delivery, and neither a commit, local SHA, review,
@@ -116,3 +126,41 @@ freshness, and a bounded historical-throughput forecast. Forecasts retain
 sample size, confidence, and limitations; they do not become deadlines. Decisions do not grant authority
 or bypass approvals, budgets, or evidence gates. The complementary roadmap and remaining calibration work live in
 `doc/plans/2026-07-15-organizational-orientation-system.md`.
+
+`NextLegalActionProjection` is the decision-readiness companion to
+`CompanySituation`. It remains a derived read model rather than a parallel work
+registry: all classifications come from canonical company-scoped operational
+tables. Native supervision consumes the same projection, persists its aggregate
+queue epistemology and one read-only shadow-dispatch decision, and runs the
+bounded Observe -> Reconcile -> Decide -> Act -> Verify internal control lane. Roost may later
+retain durable cross-project dependency knowledge, while Paperclip owns the
+currently observed dependency and legal-action state.
+
+The autonomy decision layer remains subordinate to those canonical records. It
+persists five company-scoped structures: operational constraints, autonomy
+envelopes, autonomy decisions, attached decision evaluations, and autonomy
+executions. These are an audit/control layer, not new task truth. Operational
+constraints carry affected issues, evidence, an owner, flow SLO, proposed
+response, and resolution criteria. Decisions reference constraints and
+envelopes; executions reference decisions and preserve dispatch, execution, and
+outcome postconditions independently.
+
+The decision vector is deliberately layered rather than collapsed into one
+opaque score. Eligibility is a hard gate. Constraint relevance and
+organizational value explain why work matters now. Risk, cost, and opportunity
+cost bound authority. Confidence controls epistemic posture. A high queue rank
+cannot override a failed layer.
+
+Iteration 5 extends the internal lane to `Observe -> Reconcile -> Decide ->
+Authorize -> Act -> Verify -> Learn -> Recalculate Constraint`. Authorization
+has two non-equivalent sources: a graduated envelope, or one expiring
+board-authorized canary record. Canary authority is consumed inside the same
+serializable/idempotent admission transaction as the issue recheck and never
+mutates the envelope stage.
+
+Operational intent, interrupt, learned-policy, exception, dependency-freshness,
+cost-semantics, and autonomy-debt records remain Paperclip projections because
+they gate current execution. Their declared future canonical owner is Roost for
+durable strategic intent/policy/organizational memory. Work selection from the
+existing queue is versioned separately from future work generation and
+goal/opportunity planning.

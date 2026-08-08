@@ -2,6 +2,8 @@ export type {
   AdapterAgent,
   AdapterRuntime,
   UsageSummary,
+  AdapterRuntimeProgress,
+  AdapterRuntimeControl,
   AdapterBillingType,
   AdapterRuntimeServiceReport,
   AdapterExecutionResult,

@@ -33,6 +33,21 @@ export interface UsageSummary {
   cachedInputTokens?: number;
 }
 
+export interface AdapterRuntimeProgress {
+  inputTokens?: number;
+  cachedInputTokens?: number;
+  outputTokens?: number;
+  toolReads?: number;
+  referencedFiles?: number;
+  iterations?: number;
+  elapsedMs?: number;
+}
+
+export interface AdapterRuntimeControl {
+  action: "continue" | "throttle" | "stop";
+  reason?: string;
+}
+
 export type AdapterBillingType =
   | "api"
   | "subscription"
@@ -116,6 +131,7 @@ export interface AdapterInvocationMeta {
   env?: Record<string, string>;
   prompt?: string;
   promptMetrics?: Record<string, number>;
+  repoAgentInstructionFiles?: Array<{ path: string; bytes: number }>;
   context?: Record<string, unknown>;
 }
 
@@ -136,6 +152,12 @@ export interface AdapterExecutionContext {
   };
   onLog: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
   onMeta?: (meta: AdapterInvocationMeta) => Promise<void>;
+  /**
+   * Reports cumulative progress for the current adapter invocation. Core may
+   * return a fail-closed stop directive when the immutable session budget is
+   * exhausted. Adapters must not interpret or increase the configured limit.
+   */
+  onProgress?: (progress: AdapterRuntimeProgress) => Promise<AdapterRuntimeControl>;
   onSpawn?: (meta: { pid: number; processGroupId: number | null; startedAt: string }) => Promise<void>;
   authToken?: string;
 }

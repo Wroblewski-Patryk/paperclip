@@ -17,6 +17,7 @@ import {
   createRoostBridgePortfolioRepository,
 } from "../services/roost-bridge-portfolio.js";
 import { assertCompanyAccess } from "./authz.js";
+import { hierarchyHealthService } from "../services/hierarchy-health.js";
 
 function resolveWorkspaceRoot() {
   const cwd = process.cwd();
@@ -911,6 +912,13 @@ export function softwarehouseRoutes(db?: Db, options: SoftwarehouseRoutesOptions
     assertCompanyAccess(req, companyId);
     requireSoftwarehouseSourceOwner(companyId);
     res.json(await sourceLoaders.status());
+  });
+
+  router.get("/companies/:companyId/softwarehouse/hierarchy-health", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    if (!db) throw new HttpError(503, "Hierarchy health data source is unavailable");
+    res.json(await hierarchyHealthService(db).evaluate(companyId));
   });
 
   router.get("/companies/:companyId/softwarehouse/knowledge", async (req, res) => {

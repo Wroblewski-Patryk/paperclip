@@ -1090,15 +1090,23 @@ export function authorizationService(db: Db) {
       const policyEffect = await assignmentPolicyEffect(input.resource);
       const policyDeny = await denyForAssignmentPolicyIfNeeded(policyEffect);
       if (policyDeny) return policyDeny;
-      if (policyEffect.kind === "restricted") {
-        const grantDecision = await decideWithTaskAssignmentGrants("agent", actorAgentId);
-        if (grantDecision.allowed) return grantDecision;
-        return denyRestrictedAssignmentPolicy(policyEffect);
+      const targetAgentId = input.resource.type === "issue"
+        ? input.resource.assigneeAgentId ?? null
+        : null;
+      const targetAgent = targetAgentId ? await loadAgent(targetAgentId) : null;
+      if (targetAgent?.reportsTo === actorAgentId) {
+        return allow({
+          action: input.action,
+          reason: "allow_manager_chain",
+          explanation: "Allowed because the target agent is a direct report of the delegating agent.",
+        });
       }
-      return allow({
+      return deny({
         action: input.action,
-        reason: "allow_simple_company_member",
-        explanation: "Allowed by simple mode company-wide task assignment default.",
+        reason: policyEffect.kind === "restricted" ? "deny_policy_restricted" : "deny_scope",
+        explanation: policyEffect.kind === "restricted"
+          ? policyEffect.explanation
+          : "Agent task assignment is limited to direct reports; submit a governed assignment proposal for ProductDelivery fast path routing.",
       });
     }
 

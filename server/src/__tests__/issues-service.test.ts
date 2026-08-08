@@ -612,6 +612,30 @@ describeEmbeddedPostgres("issueService.list participantAgentId", () => {
     await expect(svc.getById("not-a-uuid")).resolves.toBeNull();
   });
 
+  it("keeps unowned work in backlog until an executable owner is assigned", async () => {
+    const companyId = randomUUID();
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+
+    await expect(svc.create(companyId, {
+      title: "Unowned executable work",
+      status: "todo",
+      priority: "medium",
+    })).rejects.toMatchObject({ status: 422 });
+
+    const backlog = await svc.create(companyId, {
+      title: "Unowned proposed work",
+      status: "backlog",
+      priority: "medium",
+    });
+    await expect(svc.update(backlog.id, { status: "todo" }))
+      .rejects.toMatchObject({ status: 422 });
+  });
+
   it("persists completion evidence and returns it from issue readback", async () => {
     const companyId = randomUUID();
     const issueId = randomUUID();
@@ -2402,7 +2426,7 @@ describeEmbeddedPostgres("issueService blockers and dependency wake readiness", 
 
     const issue = await svc.create(companyId, {
       title: "Owned decision",
-      status: "todo",
+      status: "backlog",
       priority: "medium",
     });
     await expect(svc.update(issue.id, { status: "blocked" }))

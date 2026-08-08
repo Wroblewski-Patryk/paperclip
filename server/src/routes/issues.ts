@@ -33,6 +33,8 @@ import {
   createDocumentAnnotationThreadSchema,
   createChildIssueSchema,
   createIssueSchema,
+  createWorkProposalSchema,
+  createDelegationReportSchema,
   proposeAssignmentSchema,
   resolveCreateIssueStatusDefault,
   resolveIssueRecoveryActionSchema,
@@ -70,6 +72,7 @@ import * as serviceIndex from "../services/index.js";
 import {
   accessService,
   assignmentProposalService,
+  delegationFlowService,
   agentService,
   companyService,
   companySearchService,
@@ -950,6 +953,7 @@ export function issueRoutes(
   const svc = issueService(db);
   const access = accessService(db);
   const assignmentProposalsSvc = assignmentProposalService(db);
+  const delegationFlowSvc = delegationFlowService(db);
   const heartbeat = heartbeatService(db, {
     pluginWorkerManager: opts.pluginWorkerManager,
   });
@@ -1540,7 +1544,8 @@ export function issueRoutes(
     const nextStatus = typeof input.updateFields.status === "string"
       ? input.updateFields.status
       : input.existing.status;
-    if (input.actorType !== "agent" || input.existing.status === "in_review" || nextStatus !== "in_review") return;
+    const explicitlyDisposesToReview = input.updateFields.status === "in_review";
+    if (input.actorType !== "agent" || !explicitlyDisposesToReview || nextStatus !== "in_review") return;
 
     const nextAssigneeUserId = input.updateFields.assigneeUserId === undefined
       ? input.existing.assigneeUserId
@@ -2701,6 +2706,7 @@ export function issueRoutes(
       typeof req.query.wakeCommentId === "string" && req.query.wakeCommentId.trim().length > 0
         ? req.query.wakeCommentId.trim()
         : null;
+    const includeCompanySituation = req.query.includeCompanySituation === "true";
 
     const currentExecutionWorkspacePromise = issue.executionWorkspaceId
       ? executionWorkspacesSvc.getById(issue.executionWorkspaceId)
@@ -2733,7 +2739,7 @@ export function issueRoutes(
         documentsSvc.getIssueDocumentByKey(issue.id, ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY),
         currentExecutionWorkspacePromise,
         recoveryActionsSvc.getActiveForIssue(issue.companyId, issue.id),
-        companySituationSvc
+        includeCompanySituation && companySituationSvc
           ? companySituationSvc.get(issue.companyId)
           : Promise.resolve(null),
       ]);
@@ -2835,6 +2841,9 @@ export function issueRoutes(
         : null,
       currentExecutionWorkspace,
       companySituation,
+      companySituationRef: companySituationSvc
+        ? `/api/companies/${issue.companyId}/situation`
+        : null,
     });
   });
 
@@ -4360,6 +4369,50 @@ export function issueRoutes(
       });
     }
     res.status(result.idempotent ? 200 : 201).json(result);
+  });
+
+  router.get("/issues/:id/work-proposals", async (req, res) => {
+    const issue = await svc.getById(req.params.id as string);
+    if (!issue) { res.status(404).json({ error: "Issue not found" }); return; }
+    assertCompanyAccess(req, issue.companyId);
+    if (!(await assertIssueReadAllowed(req, res, issue))) return;
+    res.json(await delegationFlowSvc.listWorkProposals(issue.id));
+  });
+
+  router.post("/issues/:id/work-proposals", validate(createWorkProposalSchema), async (req, res) => {
+    const issue = await svc.getById(req.params.id as string);
+    if (!issue) { res.status(404).json({ error: "Issue not found" }); return; }
+    if (req.actor.type !== "agent" || !req.actor.agentId) throw forbidden("Agent identity is required");
+    assertCompanyAccess(req, issue.companyId);
+    const proposal = await delegationFlowSvc.createWorkProposal(issue.id, req.actor.agentId, req.body);
+    await logActivity(db, {
+      companyId: issue.companyId, actorType: "agent", actorId: req.actor.agentId,
+      agentId: req.actor.agentId, runId: req.actor.runId, action: "work_proposal.submitted",
+      entityType: "issue", entityId: issue.id, details: { proposalId: proposal.id, targetParentAgentId: proposal.targetParentAgentId },
+    });
+    res.status(201).json(proposal);
+  });
+
+  router.get("/issues/:id/delegation-reports", async (req, res) => {
+    const issue = await svc.getById(req.params.id as string);
+    if (!issue) { res.status(404).json({ error: "Issue not found" }); return; }
+    assertCompanyAccess(req, issue.companyId);
+    if (!(await assertIssueReadAllowed(req, res, issue))) return;
+    res.json(await delegationFlowSvc.listReports(issue.id));
+  });
+
+  router.post("/issues/:id/delegation-reports", validate(createDelegationReportSchema), async (req, res) => {
+    const issue = await svc.getById(req.params.id as string);
+    if (!issue) { res.status(404).json({ error: "Issue not found" }); return; }
+    if (req.actor.type !== "agent" || !req.actor.agentId) throw forbidden("Agent identity is required");
+    assertCompanyAccess(req, issue.companyId);
+    const report = await delegationFlowSvc.createReport(issue.id, req.actor.agentId, req.body);
+    await logActivity(db, {
+      companyId: issue.companyId, actorType: "agent", actorId: req.actor.agentId,
+      agentId: req.actor.agentId, runId: req.actor.runId, action: `delegation_report.${report.kind}`,
+      entityType: "issue", entityId: issue.id, details: { reportId: report.id, toParentAgentId: report.toParentAgentId },
+    });
+    res.status(201).json(report);
   });
 
   router.post("/companies/:companyId/issues", applyCreateIssueStatusDefault, validate(createIssueSchema), async (req, res) => {

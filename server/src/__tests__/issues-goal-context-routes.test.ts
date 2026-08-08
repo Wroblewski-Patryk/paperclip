@@ -109,6 +109,7 @@ const mockDb = vi.hoisted(() => ({
 }));
 
 vi.mock("../services/index.js", () => ({
+  assignmentProposalService: () => ({}),
   companySituationService: () => mockCompanySituationService,
   companyService: () => ({
     getById: vi.fn(async () => ({ id: "company-1", attachmentMaxBytes: 10 * 1024 * 1024 })),
@@ -117,6 +118,7 @@ vi.mock("../services/index.js", () => ({
   agentService: () => mockAgentService,
   documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
   documentService: () => mockDocumentsService,
+  delegationFlowService: () => ({}),
   environmentService: () => mockEnvironmentService,
   executionWorkspaceService: () => mockExecutionWorkspaceService,
   feedbackService: () => mockFeedbackService,
@@ -284,7 +286,7 @@ describe.sequential("issue goal context routes", () => {
 
   it("surfaces the project goal from GET /issues/:id/heartbeat-context", async () => {
     const res = await request(createApp()).get(
-      "/api/issues/11111111-1111-4111-8111-111111111111/heartbeat-context",
+      "/api/issues/11111111-1111-4111-8111-111111111111/heartbeat-context?includeCompanySituation=true",
     );
 
     expect(res.status).toBe(200);
@@ -303,6 +305,17 @@ describe.sequential("issue goal context routes", () => {
       companyId: "company-1",
       basis: "deterministic_projection",
     });
+  });
+
+  it("keeps the full company situation on demand in heartbeat context", async () => {
+    const res = await request(createApp()).get(
+      "/api/issues/11111111-1111-4111-8111-111111111111/heartbeat-context",
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockCompanySituationService.get).not.toHaveBeenCalled();
+    expect(res.body.companySituation).toBeNull();
+    expect(res.body.companySituationRef).toBe("/api/companies/company-1/situation");
   });
 
   it("preserves direct continuation summary lookup in GET /issues/:id/heartbeat-context", async () => {

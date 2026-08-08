@@ -2,7 +2,7 @@ import {
   planResolvedBlockerRepair,
   planStalledTodoWake,
 } from "./lib/stale-blocker-repair.mjs";
-import { softwarehousePilotActiveRoutineTitles } from "./lib/softwarehouse-active-routines.mjs";
+import { isSoftwarehousePilotRoutineTitle } from "./lib/softwarehouse-active-routines.mjs";
 import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
@@ -91,7 +91,7 @@ const blockedIssues = issues
   .filter((issue) => issue.status === "blocked")
   // Reusable controller issues have a separate recovery contract. Removing or
   // reopening their blocker graph here would revive legacy routine copies.
-  .filter((issue) => !softwarehousePilotActiveRoutineTitles.has(issue.title));
+  .filter((issue) => !isSoftwarehousePilotRoutineTitle(issue.title));
 const todoIssues = issues.filter((issue) => issue.status === "todo");
 
 const blockerPlans = (await mapWithConcurrency(blockedIssues, 8, async (issue) => {

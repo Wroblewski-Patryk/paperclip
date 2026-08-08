@@ -69,7 +69,7 @@ async function buildInstructions(definition) {
     "AGENTS.md": [
       "# LuckySparrow Software House Agent Instructions",
       "",
-      "This is the bundle entry file. Before taking non-trivial action, read the shared contracts and your role file listed below.",
+      "This is the task-scoped bundle entry file. Start from the assigned Paperclip issue; the listed files are on-demand references, not bootstrap. Do not preload or concatenate them.",
       "",
       "## Shared Contracts",
       "",
@@ -83,7 +83,7 @@ async function buildInstructions(definition) {
       "",
       "- `metadata.md`",
       "",
-      "The role file is the only agent-specific responsibility file. If a task needs more responsibility than this role owns, create or request a handoff instead of expanding the role silently.",
+      "The native run context is the current role/hierarchy/permission authority; use the role file only on demand. If a task needs more responsibility than this role owns, create or request a handoff.",
     ].join("\n"),
   };
 

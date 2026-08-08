@@ -267,14 +267,14 @@ const routineSpecs = [
     schedule: ["Delivery gap loop every 2 hours", "15 */2 * * *"],
   },
   {
-    title: "[Softwarehouse] Stale board janitor",
+    title: "09 Technology: Stale Board Janitor",
     description: "Company-wide stale state cleanup. Run `node scripts/run-live-run-janitor.mjs` first; apply only for closed-issue live-run tails or governor self-supervision loops that the dry-run names. Then find in_progress without live run, missing owner, blocked without unblock action, done without proof, and parent/controller issues pretending to be active.",
     assigneeAgentId: agent.pm?.id ?? agent.portfolio?.id ?? null,
     priority: "critical",
     schedule: ["Hourly stale board janitor", "5 * * * *"],
   },
   {
-    title: "[Softwarehouse] Agent health and model governance",
+    title: "09 Technology: Agent Health and Model Governance",
     description: "Check adapter health, agent error states, model policy, Spark drift, Codex command paths, and role/runtime alignment. Repair safe config drift or create blockers.",
     assigneeAgentId: agent.cto?.id ?? null,
     priority: "critical",

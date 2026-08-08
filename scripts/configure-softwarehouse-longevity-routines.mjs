@@ -112,7 +112,7 @@ const longevityGoal = await ensureGoal(company.id, goalsByTitle, {
 const routinesByTitle = new Map(routines.map((routine) => [routine.title, routine]));
 const specs = [
   {
-    title: "[Softwarehouse] Longevity doctor and watchdog",
+    title: "09 Technology: Longevity Doctor and Watchdog",
     assignee: cto ?? portfolio,
     priority: "critical",
     description: [
@@ -127,7 +127,7 @@ const specs = [
     schedule: ["Hourly longevity doctor", "20 * * * *"],
   },
   {
-    title: "[Softwarehouse] Continuation watchdog",
+    title: "11 Innovation: Continuation Watchdog",
     assignee: portfolio ?? cto,
     priority: "critical",
     description: [
@@ -144,7 +144,7 @@ const specs = [
     schedule: ["Every 5 minutes continuation watchdog", "*/5 * * * *"],
   },
   {
-    title: "[Softwarehouse] Longevity snapshot backup",
+    title: "04 Operations: Longevity Snapshot Backup",
     assignee: docs ?? portfolio,
     priority: "high",
     description: [
@@ -155,7 +155,7 @@ const specs = [
     schedule: ["Daily redacted longevity snapshot", "10 3 * * *"],
   },
   {
-    title: "[Softwarehouse] Organizational learning loop",
+    title: "04 Operations: Organizational Learning Loop",
     assignee: docs ?? cto ?? portfolio,
     priority: "high",
     description: [
@@ -166,7 +166,7 @@ const specs = [
     schedule: ["Daily learning loop", "40 3 * * *"],
   },
   {
-    title: "[Softwarehouse] AI-agent development review",
+    title: "06 People: AI-Agent Development Review",
     assignee: aiAgentDevelopment ?? aiAgentManager ?? chro ?? docs ?? cto ?? portfolio,
     priority: "high",
     description: [

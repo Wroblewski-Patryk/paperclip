@@ -1,6 +1,10 @@
 import { rootBlockerIdentifierFor } from "./lib/issue-blockers.mjs";
 import { planReusableRoutineRecoveryRestore } from "./lib/reusable-routine-recovery.mjs";
-import { softwarehousePilotActiveRoutineTitles } from "./lib/softwarehouse-active-routines.mjs";
+import {
+  canonicalSoftwarehouseRoutineTitle,
+  isSoftwarehousePilotRoutineTitle,
+  softwarehousePilotActiveRuntimeRoutineTitles,
+} from "./lib/softwarehouse-active-routines.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -10,8 +14,8 @@ const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.RECOVERY_ACTION_JANITOR_REQUEST_TIMEOUT_MS ?? 15_000);
 const terminalStatuses = new Set(["done", "cancelled"]);
 const repairPriority = new Map([
-  ["[Softwarehouse] Continuation watchdog", 0],
-  ["[Softwarehouse] Autonomy governor", 1],
+  ["11 Innovation: Continuation Watchdog", 0],
+  ["11 Innovation: Autonomy Governor", 1],
 ]);
 
 function canReuseIssueRunsForRecurringRestore(issue, blockers) {
@@ -20,7 +24,7 @@ function canReuseIssueRunsForRecurringRestore(issue, blockers) {
     && action?.status === "active"
     && action?.kind === "stranded_assigned_issue"
     && blockers.length === 0
-    && softwarehousePilotActiveRoutineTitles.has(issue?.title ?? "");
+    && isSoftwarehousePilotRoutineTitle(issue?.title ?? "");
 }
 
 async function request(method, route, body) {
@@ -134,7 +138,7 @@ for (const issue of issues.filter((candidate) => candidate.activeRecoveryAction?
     issue: detail,
     activeBlockers: blockers,
     runs: issueRuns,
-    activeRoutineTitles: softwarehousePilotActiveRoutineTitles,
+    activeRoutineTitles: softwarehousePilotActiveRuntimeRoutineTitles,
   });
   const action = {
     issueId: detail.id,
@@ -198,7 +202,8 @@ for (const issue of issues.filter((candidate) => candidate.activeRecoveryAction?
 }
 
 actions.sort((left, right) =>
-  (repairPriority.get(left.issueTitle) ?? 999) - (repairPriority.get(right.issueTitle) ?? 999)
+  (repairPriority.get(canonicalSoftwarehouseRoutineTitle(left.issueTitle)) ?? 999)
+    - (repairPriority.get(canonicalSoftwarehouseRoutineTitle(right.issueTitle)) ?? 999)
   || String(left.issueIdentifier).localeCompare(String(right.issueIdentifier))
 );
 const actionable = actions.filter((action) => applicationPlans.has(action.issueId));

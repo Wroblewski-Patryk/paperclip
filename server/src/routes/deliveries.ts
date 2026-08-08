@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Db } from "@paperclipai/db";
 import {
   createDeliverySchema,
+  dispatchDeliverySchema,
   listDeliveriesQuerySchema,
   transitionDeliverySchema,
   updateDeliveryStatusSchema,
@@ -10,6 +11,7 @@ import {
 import { validate } from "../middleware/validate.js";
 import { deliveryService, logActivity } from "../services/index.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
+import { forbidden } from "../errors.js";
 
 export function deliveryRoutes(db: Db) {
   const router = Router();
@@ -51,6 +53,37 @@ export function deliveryRoutes(db: Db) {
       companyId: existing.companyId, actorType: actor.actorType, actorId: actor.actorId, agentId: actor.agentId, runId: actor.runId,
       action: "delivery.transitioned", entityType: "delivery", entityId: existing.id,
       details: { fromStage: existing.stage, toStage: result.delivery.stage, idempotent: result.idempotent },
+    });
+    res.json(result);
+  });
+
+  router.post("/deliveries/:id/dispatch", validate(dispatchDeliverySchema), async (req, res) => {
+    const existing = await svc.getById(req.params.id as string);
+    if (!existing) { res.status(404).json({ error: "Delivery not found" }); return; }
+    assertCompanyAccess(req, existing.companyId);
+    if (req.actor.type === "agent") throw forbidden("Delivery admission is a system responsibility");
+    if (existing.stage !== "proposed") {
+      res.json({ delivery: existing, transition: null, idempotent: true });
+      return;
+    }
+    const requestedBy = getActorInfo(req);
+    const result = await svc.transition(existing.id, {
+      toStage: "admitted",
+      idempotencyKey: req.body.idempotencyKey,
+      evidence: [],
+    }, { actorType: "system", actorId: "delivery-dispatcher" });
+    await logActivity(db, {
+      companyId: existing.companyId,
+      actorType: "system",
+      actorId: "delivery-dispatcher",
+      action: "delivery.dispatched",
+      entityType: "delivery",
+      entityId: existing.id,
+      details: {
+        requestedByActorType: requestedBy.actorType,
+        requestedByActorId: requestedBy.actorId,
+        idempotent: result.idempotent,
+      },
     });
     res.json(result);
   });

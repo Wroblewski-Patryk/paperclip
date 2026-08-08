@@ -14,6 +14,7 @@ import {
   hasPendingReviewInteraction,
   interactionRows,
 } from "./lib/softwarehouse-routine-gates.mjs";
+import { canonicalSoftwarehouseRoutineTitle } from "./lib/softwarehouse-active-routines.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyNames = [
@@ -473,7 +474,7 @@ const closedIssueLiveRuns = liveRunIssuePairs.filter(({ issue }) =>
 );
 const governorSelfSupervisionRuns = liveRunIssuePairs.filter(({ issue, run }) =>
   issue
-  && issue.title === "[Softwarehouse] Autonomy governor"
+  && canonicalSoftwarehouseRoutineTitle(issue.title) === "11 Innovation: Autonomy Governor"
   && issue.status === "in_progress"
   && ageMs(run.lastOutputAt ?? run.startedAt ?? run.createdAt) >= governorSelfSupervisionMinAgeMs
 );

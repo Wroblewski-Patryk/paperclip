@@ -12,6 +12,7 @@ import { trustAuthorizationPolicySchema, trustPresetSchema } from "./trust-polic
 
 export const agentPermissionsSchema = z.object({
   canCreateAgents: z.boolean().optional().default(false),
+  executionPermissionClass: z.enum(["read_only", "project_write", "review_test", "integration", "deployment", "system_maintenance", "observe", "review", "workspace_write", "privileged_local"]).optional(),
   trustPreset: trustPresetSchema.optional(),
   authorizationPolicy: trustAuthorizationPolicySchema.optional(),
 });
@@ -164,6 +165,7 @@ export type TestAdapterEnvironment = z.infer<typeof testAdapterEnvironmentSchema
 export const updateAgentPermissionsSchema = z.object({
   canCreateAgents: z.boolean(),
   canAssignTasks: z.boolean(),
+  executionPermissionClass: z.enum(["read_only", "project_write", "review_test", "integration", "deployment", "system_maintenance", "observe", "review", "workspace_write", "privileged_local"]).optional(),
 });
 
 export type UpdateAgentPermissions = z.infer<typeof updateAgentPermissionsSchema>;

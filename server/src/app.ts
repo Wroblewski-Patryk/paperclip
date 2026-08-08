@@ -24,6 +24,7 @@ import { executionWorkspaceRoutes } from "./routes/execution-workspaces.js";
 import { goalRoutes } from "./routes/goals.js";
 import { organizationalRecordRoutes } from "./routes/organizational-records.js";
 import { organizationalObservationRoutes } from "./routes/organizational-observations.js";
+import { supervisionRoutes } from "./routes/supervision.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { secretRoutes } from "./routes/secrets.js";
 import { costRoutes } from "./routes/costs.js";
@@ -230,7 +231,8 @@ export async function createApp(
   api.use(executionWorkspaceRoutes(db));
   api.use(goalRoutes(db));
   api.use(organizationalRecordRoutes(db));
-  api.use(organizationalObservationRoutes(db));
+    api.use(organizationalObservationRoutes(db));
+    api.use(supervisionRoutes(db));
   api.use(approvalRoutes(db, { pluginWorkerManager: workerManager }));
   api.use(secretRoutes(db));
   api.use(costRoutes(db, { pluginWorkerManager: workerManager }));

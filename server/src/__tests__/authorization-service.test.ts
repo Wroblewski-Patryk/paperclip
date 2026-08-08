@@ -192,10 +192,10 @@ describeEmbeddedPostgres("authorization service", () => {
     expect(decision.explanation).toContain("Agent key cannot access another company");
   });
 
-  it("allows simple-mode task assignment between same-company agents without explicit grants", async () => {
+  it("allows simple-mode task assignment only to a direct child", async () => {
     const company = await createCompany(db, "AssignmentDefault");
     const actorAgent = await createAgent(db, company.id, { role: "engineer" });
-    const targetAgent = await createAgent(db, company.id, { role: "engineer" });
+    const targetAgent = await createAgent(db, company.id, { role: "engineer", reportsTo: actorAgent.id });
     await db.insert(companyMemberships).values({
       companyId: company.id,
       principalType: "agent",
@@ -213,9 +213,9 @@ describeEmbeddedPostgres("authorization service", () => {
 
     expect(decision).toMatchObject({
       allowed: true,
-      reason: "allow_simple_company_member",
+      reason: "allow_manager_chain",
     });
-    expect(decision.explanation).toContain("simple mode");
+    expect(decision.explanation).toContain("direct report");
   });
 
   it("denies simple-mode assignment when the target agent requires protected-assignment approval", async () => {
@@ -252,7 +252,7 @@ describeEmbeddedPostgres("authorization service", () => {
     expect(decision.explanation).toContain("requires approval");
   });
 
-  it("requires an explicit grant before assigning to a private target agent", async () => {
+  it("does not let an explicit scoped grant bypass the reporting hierarchy", async () => {
     const company = await createCompany(db, "PrivateAssignment");
     const actorAgent = await createAgent(db, company.id, { role: "engineer" });
     const targetAgent = await createAgent(db, company.id, {
@@ -298,11 +298,7 @@ describeEmbeddedPostgres("authorization service", () => {
       reason: "deny_policy_restricted",
     });
     expect(denied.explanation).toContain("private");
-    expect(allowed).toMatchObject({
-      allowed: true,
-      reason: "allow_explicit_grant",
-      grant: { permissionKey: "tasks:assign_scope" },
-    });
+    expect(allowed).toMatchObject({ allowed: false, reason: "deny_policy_restricted" });
   });
 
   it("allows simple-mode task assignment for active same-company board operators without explicit grants", async () => {

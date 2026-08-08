@@ -29,6 +29,11 @@ describe("parseCodexJsonl", () => {
         cachedInputTokens: 2,
         outputTokens: 4,
       },
+      contextRetrievalTelemetry: {
+        reads: 0,
+        outputChars: 0,
+        estimatedTokens: 0,
+      },
       errorMessage: "resume failed",
     });
   });
@@ -62,7 +67,29 @@ describe("parseCodexJsonl", () => {
         cachedInputTokens: 2,
         outputTokens: 4,
       },
+      contextRetrievalTelemetry: {
+        reads: 0,
+        outputChars: 0,
+        estimatedTokens: 0,
+      },
       errorMessage: null,
+    });
+  });
+
+  it("reports context retrieval telemetry for command execution output", () => {
+    const stdout = [
+      JSON.stringify({ type: "thread.started", thread_id: "thread_123" }),
+      JSON.stringify({
+        type: "item.completed",
+        item: { type: "command_execution", aggregated_output: "abcdefgh" },
+      }),
+      JSON.stringify({ type: "turn.completed", usage: {} }),
+    ].join("\n");
+
+    expect(parseCodexJsonl(stdout).contextRetrievalTelemetry).toEqual({
+      reads: 1,
+      outputChars: 8,
+      estimatedTokens: 2,
     });
   });
 });

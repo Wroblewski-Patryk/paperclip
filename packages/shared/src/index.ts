@@ -1,8 +1,16 @@
 export { agentAdapterTypeSchema, optionalAgentAdapterTypeSchema } from "./adapter-type.js";
+export * from "./types/next-legal-action.js";
 export {
   proposeAssignmentSchema,
   type ProposeAssignment,
 } from "./validators/assignment-proposal.js";
+export {
+  createWorkProposalSchema,
+  createDelegationReportSchema,
+  type CreateWorkProposal,
+  type CreateDelegationReport,
+} from "./validators/delegation-flow.js";
+export * from "./validators/supervision.js";
 export {
   DELIVERY_STAGES,
   PRODUCT_OUTCOME_STATUSES,
@@ -12,11 +20,13 @@ export {
 } from "./types/delivery.js";
 export {
   createDeliverySchema,
+  dispatchDeliverySchema,
   transitionDeliverySchema,
   updateDeliveryStatusSchema,
   updateProductOutcomeSchema,
   listDeliveriesQuerySchema,
   type CreateDelivery,
+  type DispatchDelivery,
   type TransitionDelivery,
   type UpdateDeliveryStatus,
   type UpdateProductOutcome,

@@ -131,6 +131,19 @@ import {
   remoteSecretImportSchema,
   workspaceFileListQuerySchema,
   workspaceFileResourceQuerySchema,
+  closeSupervisionRootCauseSchema,
+  completeObservationWindowSchema,
+  createNativeSafeguardSchema,
+  createObservationWindowSchema,
+  createSupervisionCycleSchema,
+  createSupervisionInterventionSchema,
+  createSupervisionRootCauseSchema,
+  createSupervisionShadowComparisonSchema,
+  finishSupervisionCycleSchema,
+  linkFindingRootCauseSchema,
+  listSupervisionFindingsQuerySchema,
+  updateNativeSafeguardSchema,
+  upsertSupervisionFindingSchema,
 } from "@paperclipai/shared";
 
 type JsonSchema = Record<string, unknown>;
@@ -2862,6 +2875,15 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
+  path: "/api/companies/{companyId}/next-legal-actions",
+  tags: ["dashboard"],
+  summary: "Get deterministic issue readiness and shadow-dispatch decisions",
+  request: { params: z.object({ companyId: z.string() }) },
+  responses: { 200: r.ok(), 401: r.unauthorized, 404: r.notFound },
+});
+
+registry.registerPath({
+  method: "get",
   path: "/api/companies/{companyId}/organizational-records",
   tags: ["dashboard"],
   summary: "List assumptions, commitments, and decisions",
@@ -4203,6 +4225,7 @@ for (const route of [
   ["/api/companies/{companyId}/costs/model-profiles", "List model-profile cost summaries"],
   ["/api/companies/{companyId}/secrets/metadata", "List secret metadata"],
   ["/api/companies/{companyId}/softwarehouse/status", "Get softwarehouse control status"],
+  ["/api/companies/{companyId}/softwarehouse/hierarchy-health", "Get hierarchical delegation health"],
   ["/api/companies/{companyId}/softwarehouse/portfolio-projection/{version}", "Get versioned read-only Roost bridge portfolio projection"],
   ["/api/companies/{companyId}/softwarehouse/knowledge", "Get softwarehouse knowledge catalog"],
   ["/api/companies/{companyId}/softwarehouse/tools", "Get softwarehouse tool catalog"],
@@ -4526,6 +4549,66 @@ for (const route of [
     tags: ["routines"],
     summary: route[2],
   });
+}
+
+for (const route of [
+  ["get", "/api/companies/{companyId}/supervision/findings", "List native supervision findings"],
+  ["get", "/api/supervision/findings/{id}", "Get a native supervision finding"],
+  ["get", "/api/companies/{companyId}/supervision/snapshot", "Get the native supervision snapshot"],
+  ["get", "/api/companies/{companyId}/supervision/shadow-comparisons", "List owner-assurance shadow comparisons"],
+] as const) {
+  registerCurrentRoute({
+    method: route[0],
+    path: route[1],
+    tags: ["supervision"],
+    summary: route[2],
+    ...(route[1].endsWith("/findings") ? { query: listSupervisionFindingsQuerySchema } : {}),
+  });
+}
+
+for (const route of [
+  ["post", "/api/companies/{companyId}/supervision/findings", "Create or recur a native supervision finding", upsertSupervisionFindingSchema],
+  ["post", "/api/companies/{companyId}/supervision/root-causes", "Create or deduplicate a root cause", createSupervisionRootCauseSchema],
+  ["post", "/api/supervision/findings/{id}/root-cause", "Link a finding to a root cause", linkFindingRootCauseSchema],
+  ["post", "/api/companies/{companyId}/supervision/safeguards", "Create or deduplicate a native safeguard", createNativeSafeguardSchema],
+  ["patch", "/api/supervision/safeguards/{id}", "Update a native safeguard", updateNativeSafeguardSchema],
+  ["post", "/api/companies/{companyId}/supervision/cycles", "Start or deduplicate a supervision cycle", createSupervisionCycleSchema],
+  ["post", "/api/supervision/cycles/{id}/finish", "Finish a supervision cycle", finishSupervisionCycleSchema],
+  ["post", "/api/companies/{companyId}/supervision/interventions", "Create an admitted supervision intervention", createSupervisionInterventionSchema],
+  ["post", "/api/companies/{companyId}/supervision/observation-windows", "Start a supervision observation window", createObservationWindowSchema],
+  ["post", "/api/supervision/observation-windows/{id}/complete", "Complete a supervision observation window", completeObservationWindowSchema],
+  ["post", "/api/supervision/root-causes/{id}/close", "Close a root cause through safeguard and observation gates", closeSupervisionRootCauseSchema],
+  ["post", "/api/companies/{companyId}/supervision/shadow-comparisons", "Compare external owner assurance with native findings", createSupervisionShadowComparisonSchema],
+] as const) {
+  registerCurrentRoute({ method: route[0], path: route[1], tags: ["supervision"], summary: route[2], body: route[3] });
+}
+
+for (const route of [
+  ["post", "/api/companies/{companyId}/supervision/recover", "Recover expired native supervision cycles"],
+  ["post", "/api/companies/{companyId}/supervision/archive", "Archive expired closed supervision findings"],
+] as const) {
+  registerCurrentRoute({ method: route[0], path: route[1], tags: ["supervision"], summary: route[2] });
+}
+
+for (const route of [
+  ["get", "/api/companies/{companyId}/autonomy/decisions", "List typed autonomy decisions"],
+  ["get", "/api/companies/{companyId}/autonomy/envelopes", "List per-action-class autonomy envelopes"],
+  ["get", "/api/companies/{companyId}/autonomy/constraints", "List operational constraints"],
+  ["get", "/api/companies/{companyId}/autonomy/executions", "List autonomy execution postconditions"],
+  ["get", "/api/companies/{companyId}/autonomy/health", "Inspect autonomy debts, sample independence, and governance state"],
+  ["get", "/api/companies/{companyId}/autonomy/intents", "List typed issue intent projections"],
+  ["post", "/api/companies/{companyId}/autonomy/intents/{issueId}", "Confirm or supersede bounded issue intent"],
+  ["get", "/api/companies/{companyId}/autonomy/canary-authorizations", "List bounded board-authorized autonomy canaries"],
+  ["post", "/api/autonomy/decisions/{id}/canary-authorizations", "Authorize one bounded canary without graduating its envelope"],
+  ["get", "/api/companies/{companyId}/autonomy/interrupts", "List expiring autonomy interrupts"],
+  ["post", "/api/companies/{companyId}/autonomy/interrupts", "Create a scoped expiring autonomy interrupt"],
+  ["get", "/api/companies/{companyId}/autonomy/learned-policies", "List versioned reversible learned policies"],
+  ["post", "/api/companies/{companyId}/autonomy/learned-policies", "Create the next version of a learned policy"],
+  ["get", "/api/autonomy/decisions/{id}/evaluations", "List evaluations attached to an autonomy decision"],
+  ["post", "/api/autonomy/decisions/{id}/evaluations", "Attach an evaluator verdict to an autonomy decision"],
+  ["post", "/api/autonomy/decisions/{id}/dispatch", "Attempt a policy-gated autonomy dispatch"],
+] as const) {
+  registerCurrentRoute({ method: route[0], path: route[1], tags: ["autonomy"], summary: route[2] });
 }
 
 const pluginLocalFolderRequestSchema = z.object({

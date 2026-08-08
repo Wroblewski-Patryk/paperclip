@@ -29,6 +29,19 @@ export { deliveryTasks } from "./delivery_tasks.js";
 export { productOutcomes } from "./product_outcomes.js";
 export { deliveryTransitions } from "./delivery_transitions.js";
 export { assignmentProposals } from "./assignment_proposals.js";
+export { workProposals } from "./work_proposals.js";
+export { delegationReports } from "./delegation_reports.js";
+export {
+  nativeSafeguards,
+  supervisionCycles,
+  supervisionEvidenceRefs,
+  supervisionFindings,
+  supervisionInterventions,
+  supervisionObservationWindows,
+  supervisionRecurrences,
+  supervisionRootCauses,
+  supervisionShadowComparisons,
+} from "./supervision.js";
 export { roostProductMapOutbox } from "./roost_product_map_outbox.js";
 export { projects } from "./projects.js";
 export { projectMemberships } from "./project_memberships.js";
@@ -48,6 +61,18 @@ export { issuePlanDecompositions } from "./issue_plan_decompositions.js";
 export { issueRecoveryActions } from "./issue_recovery_actions.js";
 export { issueReferenceMentions } from "./issue_reference_mentions.js";
 export { issueRelations } from "./issue_relations.js";
+export {
+  operationalConstraints,
+  autonomyEnvelopes,
+  autonomyDecisions,
+  autonomyDecisionEvaluations,
+  autonomyExecutions,
+  issueIntents,
+  autonomyCanaryAuthorizations,
+  autonomyInterrupts,
+  learnedPolicies,
+  policyExceptions,
+} from "./autonomy.js";
 export { routines, routineRevisions, routineTriggers, routineRuns } from "./routines.js";
 export { issueWorkProducts } from "./issue_work_products.js";
 export { labels } from "./labels.js";

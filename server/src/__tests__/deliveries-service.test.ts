@@ -172,7 +172,19 @@ describeEmbedded("task, delivery, and outcome separation", () => {
     await svc.transition(created.id, { toStage: "admitted", idempotencyKey: "1", evidence: [] }, actor);
     await svc.transition(created.id, { toStage: "implementing", idempotencyKey: "2", evidence: [] }, actor);
     await svc.transition(created.id, { toStage: "evidence_complete", idempotencyKey: "3", evidence: [{ kind: "test", result: "pass" }] }, actor);
-    await svc.transition(created.id, { toStage: "review_rejected", idempotencyKey: "4", evidence: [{ kind: "review", result: "reject" }] }, actor);
+    await svc.transition(created.id, {
+      toStage: "review_rejected",
+      idempotencyKey: "4",
+      evidence: [{ kind: "review", result: "reject" }],
+      reviewVerdict: {
+        verdict: "CHANGES_REQUIRED",
+        reviewerAgentId: refs.reviewerAgentId,
+        executorAgentId: refs.ownerAgentId,
+        finding: "The acceptance path lacks a required regression assertion.",
+        evidenceRefs: ["test-report:missing-regression"],
+        correctionIteration: 1,
+      },
+    }, actor);
 
     const detail = await svc.getDetail(created.id);
     expect(detail?.stage).toBe("review_rejected");
@@ -225,12 +237,28 @@ describeEmbedded("task, delivery, and outcome separation", () => {
       toStage: "review_accepted",
       idempotencyKey: "i-self-review",
       evidence: [{ kind: "review" }],
+      reviewVerdict: {
+        verdict: "ACCEPTED",
+        reviewerAgentId: refs.ownerAgentId,
+        executorAgentId: refs.reviewerAgentId,
+        finding: "Owner attempted to accept the independently executed delivery.",
+        evidenceRefs: ["review:self"],
+        correctionIteration: 0,
+      },
     }, { actorType: "agent", actorId: refs.ownerAgentId })).rejects.toMatchObject({ status: 422 });
 
     await svc.transition(created.id, {
       toStage: "review_accepted",
       idempotencyKey: "i-review",
       evidence: [{ kind: "review", reviewer: refs.reviewerAgentId }],
+      reviewVerdict: {
+        verdict: "ACCEPTED",
+        reviewerAgentId: refs.reviewerAgentId,
+        executorAgentId: refs.ownerAgentId,
+        finding: "Independent review found all acceptance evidence complete.",
+        evidenceRefs: ["review:accepted"],
+        correctionIteration: 0,
+      },
     }, { actorType: "agent", actorId: refs.reviewerAgentId });
     await svc.transition(created.id, { toStage: "integrated", idempotencyKey: "i-4", evidence: [], integrationSha: "1234567" }, board);
     await svc.transition(created.id, { toStage: "push_ready", idempotencyKey: "i-5", evidence: [], originSha: "1234567" }, board);
@@ -244,6 +272,84 @@ describeEmbedded("task, delivery, and outcome separation", () => {
     await expect(svc.updateOutcome(created.id, {
       status: "accepted",
       evidence: [{ kind: "independent_acceptance" }],
+      predicateResults: [{
+        key: "criterion_1",
+        passed: true,
+        actual: "independent reviewer accepted observed production behavior",
+        evidenceRefs: ["review:accepted", "smoke:observed"],
+        checkedAt: new Date().toISOString(),
+      }],
     }, { agentId: refs.reviewerAgentId })).resolves.toMatchObject({ status: "accepted" });
+  });
+
+  it("fails closed on missing predicates and labels owner override as accepted_with_risk", async () => {
+    const refs = await seed();
+    const svc = deliveryService(db);
+    const created = await svc.create(refs.companyId, {
+      projectId: refs.projectId,
+      title: "Predicate-gated delivery",
+      problemStatement: "A narrative claim must not pass as typed acceptance.",
+      decisionContract: { expected: "exact production proof" },
+      outcomeStatement: "The exact deployed revision is healthy.",
+      acceptanceCriteria: [{ kind: "exact_sha", expected: "abcdef1" }],
+      acceptancePredicates: [{ key: "exact_sha", label: "Exact deployed SHA", kind: "exact_sha", required: true, expected: "abcdef1" }],
+      taskIssueIds: [refs.issueId],
+    });
+    await db.update(productDeliveries).set({ stage: "observed_healthy" }).where(sql`${productDeliveries.id}=${created.id}`);
+    await db.update(productOutcomes).set({ status: "achieved" }).where(sql`${productOutcomes.deliveryId}=${created.id}`);
+
+    await expect(svc.updateOutcome(created.id, {
+      status: "accepted",
+      evidence: [{ kind: "claim" }],
+      predicateResults: [],
+    }, { agentId: refs.reviewerAgentId })).rejects.toMatchObject({ status: 422 });
+
+    await expect(svc.updateOutcome(created.id, {
+      status: "accepted_with_risk",
+      evidence: [{ kind: "owner_override" }],
+      predicateResults: [{ key: "exact_sha", passed: false, actual: "unknown", evidenceRefs: ["deploy:missing-readback"], checkedAt: new Date().toISOString() }],
+      manualOverride: {
+        reason: "Owner accepts a bounded temporary risk while protected readback is repaired.",
+        failedPredicateKeys: ["exact_sha"],
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      },
+    }, { userId: "owner-user" })).resolves.toMatchObject({ status: "accepted_with_risk" });
+  });
+
+  it("reopens a legacy accepted delivery when its acceptance evidence must be revalidated", async () => {
+    const refs = await seed();
+    const svc = deliveryService(db);
+    const created = await svc.create(refs.companyId, {
+      projectId: refs.projectId,
+      title: "Legacy accepted delivery",
+      problemStatement: "Prior acceptance lacks typed predicates.",
+      decisionContract: { expected: "revalidation" },
+      outcomeStatement: "The protected target remains healthy.",
+      acceptanceCriteria: [{ kind: "protected_readback" }],
+      taskIssueIds: [refs.issueId],
+    });
+    await db.update(productDeliveries).set({ stage: "outcome_accepted" }).where(sql`${productDeliveries.id}=${created.id}`);
+    await db.update(productOutcomes).set({ status: "accepted", acceptedAt: new Date(), acceptedByUserId: "legacy-owner" })
+      .where(sql`${productOutcomes.deliveryId}=${created.id}`);
+
+    await expect(svc.transition(created.id, {
+      toStage: "observed_healthy",
+      idempotencyKey: "revalidate-stage",
+      evidence: [{ kind: "revalidation_required", reason: "missing_typed_predicates" }],
+    }, { actorType: "board", actorId: "owner-user" })).resolves.toMatchObject({
+      delivery: { stage: "observed_healthy" },
+    });
+    await expect(svc.updateOutcome(created.id, {
+      status: "unknown",
+      evidence: [{ kind: "revalidation_required", reason: "missing_typed_predicates" }],
+      acceptancePredicates: [{ key: "protected_readback", label: "Protected readback", kind: "protected_readback", required: true }],
+      predicateResults: [],
+    }, { userId: "owner-user" })).resolves.toMatchObject({
+      status: "unknown",
+      acceptedAt: null,
+      acceptedByUserId: null,
+      acceptedByAgentId: null,
+      acceptancePredicates: [{ key: "protected_readback" }],
+    });
   });
 });

@@ -40,6 +40,7 @@ import {
 } from "@paperclipai/adapter-utils/server-utils";
 import {
   parseCodexJsonl,
+  parseCodexRuntimeProgressLine,
   extractCodexRetryNotBefore,
   isCodexTransientUpstreamError,
   isCodexUnknownSessionError,
@@ -58,6 +59,29 @@ import { readCodexAuthInfo } from "./quota.js";
 const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const CODEX_ROLLOUT_NOISE_RE =
   /^\d{4}-\d{2}-\d{2}T[^\s]+\s+ERROR\s+codex_core::rollout::list:\s+state db missing rollout path for thread\s+[a-z0-9-]+$/i;
+
+async function measureRepoAgentInstructions(startCwd: string) {
+  const directories: string[] = [];
+  let current = path.resolve(startCwd);
+  while (true) {
+    directories.push(current);
+    if (await pathExists(path.join(current, ".git"))) break;
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  const files: Array<{ path: string; bytes: number }> = [];
+  for (const directory of directories.reverse()) {
+    const candidate = path.join(directory, "AGENTS.md");
+    try {
+      const contents = await fs.readFile(candidate, "utf8");
+      files.push({ path: candidate, bytes: Buffer.byteLength(contents, "utf8") });
+    } catch {
+      // Missing/unreadable instructions are left to Codex's own discovery behavior.
+    }
+  }
+  return { files, bytes: files.reduce((total, file) => total + file.bytes, 0) };
+}
 
 function stripCodexRolloutNoise(text: string): string {
   const parts = text.split(/\r?\n/);
@@ -313,7 +337,7 @@ export async function ensureCodexSkillsInjected(
 }
 
 export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
-  const { runId, agent, runtime, config, context, onLog, onMeta, onSpawn, authToken } = ctx;
+  const { runId, agent, runtime, config, context, onLog, onMeta, onProgress, onSpawn, authToken } = ctx;
 
   const promptTemplate = asString(
     config.promptTemplate,
@@ -738,6 +762,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     sessionHandoffNote,
     renderedPrompt,
   ]);
+  const repoAgentInstructions = executionTargetIsRemote
+    ? { files: [] as Array<{ path: string; bytes: number }>, bytes: 0 }
+    : await measureRepoAgentInstructions(effectiveExecutionCwd);
   const promptMetrics = {
     promptChars: prompt.length,
     instructionsChars,
@@ -745,6 +772,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     wakePromptChars: wakePrompt.length,
     sessionHandoffChars: sessionHandoffNote.length,
     heartbeatPromptChars: renderedPrompt.length,
+    repoAgentsChars: repoAgentInstructions.bytes,
   };
   const statusOnlyRecovery = isStatusOnlyRecoveryContext(context);
   const transcriptCommandOutputMaxChars = normalizeCodexTranscriptCommandOutputMaxChars(
@@ -760,6 +788,39 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   );
 
   const runAttempt = async (resumeSessionId: string | null) => {
+    const progressStartedAt = Date.now();
+    const runtimeProgress = {
+      inputTokens: 0,
+      cachedInputTokens: 0,
+      outputTokens: 0,
+      toolReads: 0,
+      referencedFiles: 0,
+      iterations: 0,
+    };
+    let progressBuffer = "";
+    let controlledStopReason: string | null = null;
+    const inspectProgress = async (chunk: string) => {
+      if (!onProgress || controlledStopReason) return controlledStopReason;
+      progressBuffer += chunk;
+      const lines = progressBuffer.split(/\r?\n/);
+      progressBuffer = lines.pop() ?? "";
+      for (const line of lines) {
+        const delta = parseCodexRuntimeProgressLine(line);
+        if (!delta) continue;
+        runtimeProgress.inputTokens = Math.max(runtimeProgress.inputTokens, delta.inputTokens);
+        runtimeProgress.cachedInputTokens = Math.max(runtimeProgress.cachedInputTokens, delta.cachedInputTokens);
+        runtimeProgress.outputTokens = Math.max(runtimeProgress.outputTokens, delta.outputTokens);
+        runtimeProgress.toolReads += delta.toolReads;
+        runtimeProgress.referencedFiles += delta.referencedFiles;
+        runtimeProgress.iterations += delta.iterations;
+        const control = await onProgress({ ...runtimeProgress, elapsedMs: Date.now() - progressStartedAt });
+        if (control.action === "stop") {
+          controlledStopReason = control.reason?.trim() || "session_budget_exhausted";
+          return controlledStopReason;
+        }
+      }
+      return controlledStopReason;
+    };
     const transcriptLimiter = createCodexTranscriptLimiter(transcriptCommandOutputMaxChars);
     const execArgs = buildCodexExecArgs(
       forceSaferInvocation ? { ...config, fastMode: false } : config,
@@ -787,6 +848,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         env: loggedEnv,
         prompt,
         promptMetrics,
+        repoAgentInstructionFiles: repoAgentInstructions.files,
         context,
       });
     }
@@ -798,6 +860,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       timeoutSec,
       graceSec,
       onSpawn,
+      onOutputControl: async (stream, chunk) => {
+        if (stream !== "stdout") return { action: "continue" };
+        const reason = await inspectProgress(chunk);
+        return reason ? { action: "terminate", reason } : { action: "continue" };
+      },
       onLog: async (stream, chunk) => {
         if (stream === "stdout") {
           const limited = transcriptLimiter.push(chunk);
@@ -823,14 +890,30 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       },
       rawStderr: proc.stderr,
       parsed: parseCodexJsonl(proc.stdout),
+      controlledStopReason: proc.controlledStopReason ?? controlledStopReason,
     };
   };
 
   const toResult = (
-    attempt: { proc: { exitCode: number | null; signal: string | null; timedOut: boolean; stdout: string; stderr: string }; rawStderr: string; parsed: ReturnType<typeof parseCodexJsonl> },
+    attempt: { proc: { exitCode: number | null; signal: string | null; timedOut: boolean; stdout: string; stderr: string }; rawStderr: string; parsed: ReturnType<typeof parseCodexJsonl>; controlledStopReason?: string | null },
     clearSessionOnMissingSession = false,
     isRetry = false,
   ): AdapterExecutionResult => {
+    if (attempt.controlledStopReason) {
+      return {
+        exitCode: attempt.proc.exitCode,
+        signal: attempt.proc.signal,
+        timedOut: false,
+        errorCode: "SESSION_BUDGET_EXHAUSTED",
+        errorMessage: `Stopped by session runtime budget: ${attempt.controlledStopReason}`,
+        usage: attempt.parsed.usage,
+        resultJson: {
+          stdout: limitCodexTranscriptText(attempt.proc.stdout, transcriptCommandOutputMaxChars),
+          stderr: attempt.proc.stderr,
+          sessionRuntimeTelemetry: { state: "stopped_by_session_budget", reason: attempt.controlledStopReason },
+        },
+      };
+    }
     if (attempt.proc.timedOut) {
       return {
         exitCode: attempt.proc.exitCode,
@@ -907,6 +990,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       resultJson: {
         stdout: limitCodexTranscriptText(attempt.proc.stdout, transcriptCommandOutputMaxChars),
         stderr: attempt.proc.stderr,
+        contextRetrievalTelemetry: attempt.parsed.contextRetrievalTelemetry,
         ...(transientUpstream ? { errorFamily: "transient_upstream" } : {}),
         ...(transientRetryNotBefore ? { retryNotBefore: transientRetryNotBefore.toISOString() } : {}),
         ...(transientRetryNotBefore ? { transientRetryNotBefore: transientRetryNotBefore.toISOString() } : {}),

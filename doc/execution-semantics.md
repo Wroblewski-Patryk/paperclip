@@ -1,7 +1,7 @@
 # Execution Semantics
 
 Status: Current implementation guide
-Date: 2026-05-23
+Date: 2026-08-04
 Audience: Product and engineering
 
 This document explains how Paperclip interprets issue assignment, issue status, execution runs, wakeups, parent/sub-issue structure, and blocker relationships.
@@ -18,6 +18,33 @@ Paperclip separates four concepts that are easy to blur together:
 4. execution: whether the control plane currently has a live path to move the issue forward
 
 The system works best when those are kept separate.
+
+## Hierarchical delegation and upward reporting
+
+Agent-to-agent routing is not company-wide dispatch. The normal path is:
+
+`work_proposal -> assignment_proposal -> admission_decision -> assignment -> run`
+
+- A delegating agent may assign only its direct report (`target.reportsTo === actor.id`).
+- A leaf proposes work or reports a blocker upward; it does not assign laterally or skip a manager.
+- Every governed assignment records the parent, child, delegation path, scope contract, budget contract,
+  acceptance criteria, reviewer, admission decision, and optional ProductDelivery.
+- The only lateral exception is an admitted, same-project ProductDelivery fast path whose decision
+  contract explicitly enables the actor pair and whose task ledger contains the issue.
+- Results move upward as typed `result`, `evidence`, `status`, `blocker`, `risk`, `budget`, `review`, or
+  `outcome` reports to the executor's direct parent. The parent retains outcome responsibility.
+- A reviewer is independent from the executor. Rejected work returns through the responsible parent
+  to the original executor; review authority is not implementation authority.
+
+`GET /api/companies/:companyId/softwarehouse/hierarchy-health` exposes hierarchy violations,
+stalled ready work, parent-capacity gaps, `no_work`, and `bottleneck` states for the core control loop.
+It also reports a rolling 24-hour per-role context-usage summary and flags runs whose raw input
+exceeds the current 250,000-token diagnostic threshold. This is visibility, not yet a hard context
+admission limit; callers must treat a breach as evidence for scope reduction or a native budget gate.
+
+`POST /api/deliveries/:id/dispatch` invokes the native admission controller and records the
+`proposed -> admitted` decision as the `delivery-dispatcher` system actor before governed assignment
+and run creation. Agent callers are rejected because an executor cannot admit its own delivery.
 
 ## 2. Assignee Semantics
 
@@ -659,3 +686,140 @@ For a board operator, the intended meaning is:
 - blockers explain waiting
 
 That is the execution contract Paperclip should present to operators.
+
+## 15. Native Supervision and Owner Assurance
+
+Paperclip owns execution, detection, repair admission, and learning state. PostgreSQL is the source
+of truth for findings, recurrences, root causes, safeguards, cycles, interventions, evidence,
+observation windows, and external shadow comparisons. Stable fingerprints deduplicate repeated
+signals while recurrence rows preserve every occurrence.
+
+The native cadence is deliberately asymmetric:
+
+- Watchdog is frequent and deterministic; it performs liveness and admission checks without LLMs.
+- Operational Doctor is event-driven; it runs only for a diagnosis-requiring finding and only after
+  deterministic admission. Its packet permits one change, one test, and requires rollback.
+- Daily Integrity is a deterministic breadth scan and does not spend LLM quota.
+- Weekly Meta-Architecture aggregates outcomes, costs, delegation paths, recurrences, and open root
+  causes. It emits at most three priorities and requests LLM judgment only for detected anomalies.
+
+Every cycle has a durable idempotency key and expiry. Startup recovery expires abandoned cycles;
+the next due bucket can then run safely. Native checks may record a finding, but they do not grant
+themselves authority to repair it.
+
+External automations are retained as owner assurance. They read the native snapshot, run bounded
+independent checks, and write only a shadow comparison. An external-only critical signal must recur
+for two assurance cycles before owner notification; it never silently becomes a second source of
+task or policy truth. Break-glass intervention requires explicit owner authority.
+
+Rollback is staged: disable the native scheduler, retain the PostgreSQL evidence, restore the prior
+external cadence if needed, and keep the compatibility JSON reader only as a temporary recovery
+path. Do not dual-write native and JSON registries.
+
+### Session runtime budget
+
+Every adapter session has one cumulative runtime budget, independent from the
+admission-time context packet limit. The control plane aggregates all runs that
+share the adapter session and evaluates raw input, uncached input, cached input,
+output, tool reads, referenced files, iterations, retries, and elapsed time.
+The live states are `healthy`, `warning`, `throttle`, `near_limit`, and
+`stopped_by_session_budget`. The local Codex adapter streams progress into the
+evaluator; crossing any hard limit terminates the child process and records a
+critical native finding. A later run in the same exhausted session is rejected
+before invocation. Agents cannot alter this evaluator through their prompt or
+result payload.
+
+### Fail-closed product outcomes
+
+Product outcome acceptance is a separate decision from task completion and
+delivery stage. A delivery declares typed, required predicates (for example
+exact SHA, published outbox row, protected readback, no conflict, freshness,
+digest match, health, functional smoke, and no critical regression). Missing,
+failed, expired, or stale required results reject `accepted`. A board owner may
+use only the explicit `accepted_with_risk` state with a time-bounded override
+that names every failed predicate. Historical narrative-only acceptances can be
+reopened to `observed_healthy`/`unknown` for evidence revalidation.
+
+### External assurance retirement gate
+
+External Codex automations remain read-only shadow assurance until all of these
+conditions hold for 14 consecutive daily windows: no external-only critical
+signal, no false-green native cycle, 100% cost/session telemetry coverage for
+completed runs, no orphan execution locks, no evidence-free agent completion,
+and every accepted real delivery has fresh typed predicate evidence. In
+addition, each class of prior external intervention must have a native owner,
+safeguard, and passing regression. Retirement is an owner decision recorded in
+the activity log; a single regression resets the observation window.
+
+### Next legal action and shadow dispatch
+
+Queue labels are not execution authority. Paperclip derives a typed next legal
+action from the same issue, relation, hold, approval, interaction, run, delivery,
+and outcome records used by execution. `READY_FOR_EXECUTION` means that recorded
+dependencies and dependency outcomes are ready, an owner is available, no hold
+or governed decision is pending, and no accepted-outcome conflict exists.
+`RECONCILIATION_REQUIRED` never implies automatic task closure.
+
+Dependency cycles are organizational deadlocks. The control plane reports the
+cycle as `BLOCKED_BY_CONFLICT` with its issue path and escalates it; it does not
+rewrite relations automatically. A blocked issue without a typed reason remains
+`INVALID_STATE` plus `insufficient_evidence`, so reducing `blocked_unknown` means
+classifying reality rather than silently unblocking work.
+
+Shadow dispatch answers which one eligible and currently valuable issue would be
+selected by declared priority, unblock value, age, and a stable tie-breaker. It
+persists the concise decision in the durable autonomy registry and references it
+from native supervision cycle metrics, but performs no wakeup, checkout,
+assignment, or state mutation. Limited-auto remains disabled until the
+action-class graduation contract has sufficient distinct shadow samples,
+evaluator evidence, confidence, and verified recommended outcomes.
+
+Homeostasis dimensions declare their expected sensor IDs. A missing sensor makes
+the dimension `unknown` unless an observed failure already makes it `critical`.
+This prevents monitoring-contract drift from manufacturing a healthy result.
+
+### Decision freshness, dispatch, and verification
+
+The native control lane is `Observe -> Reconcile -> Decide -> Act -> Verify`.
+`Decide` persists a typed Decision Record and an Expected Outcome Contract.
+`Act` is a no-op in shadow/recommend mode. In a graduated envelope it first
+re-runs eligibility and checks evidence TTL, owner, dependencies, policy, goal,
+priority interrupts, and duplicate execution under an idempotency key.
+
+Dispatch acceptance means only that the bounded wake request was accepted. Run
+liveness, task terminal state, ProductOutcome acceptance, independent outcome
+confidence, actual impact, and cost coverage are verified separately. Repeated
+unchanged shadow cycles deduplicate by state digest and do not manufacture new
+graduation samples.
+
+Task/Delivery/Outcome reconciliation preserves lifecycle meaning. `done` means
+the task obligation has inspectable fulfillment evidence; `cancelled` means the
+obligation was intentionally abandoned or superseded. An outcome satisfied by a
+linked delivery can reconcile the task to `done` only with an individual reason
+code and same-task evidence. No batch state rewrite is implied.
+
+### Authorized canary, intent, and learning loop
+
+`AUTHORIZED_CANARY` is execution authority, not an autonomy-envelope stage. A
+board record may authorize only a bounded action class/candidate set, risk,
+environment, concurrency, cost/call budget, validity window, rollback method,
+verification independence, and explicit stop conditions. The atomic dispatch
+transaction rechecks both the issue and the still-active authorization, consumes
+one execution allowance exactly once, and retains the envelope/model versions.
+One canary outcome is one calibration sample; it never graduates the envelope.
+
+`READY_FOR_EXECUTION` is insufficient without fresh intent. Fresh issue activity
+can supply a short-lived operational projection for current work; old work,
+expired confirmation, or an achieved parent goal yields
+`REQUEST_INTENT_CONFIRMATION` unless a durable `ACTIVE` child obligation names
+its owner/source/reason. Superseded, obsolete, or satisfied-elsewhere intent is
+reconciled rather than executed.
+
+Execution liveness is task-class-specific: `STARTING`, `RUNNING`,
+`WAITING_VALID`, `UNCERTAIN`, `STALLED`, or `TERMINAL`. Silence first creates
+`UNCERTAIN` and a gather-evidence action; exceeding the class escalation window
+creates `STALLED`. The first canary has zero automatic retries. Outcome
+verification records its independence class separately from executor claims.
+Constraint impact is `SUPPORTED`, `AMBIGUOUS`, `CONTRADICTED`, or
+`NOT_MEASURABLE` and requires a named dependency edge plus resolution evidence;
+a queue-count delta is never causal proof.

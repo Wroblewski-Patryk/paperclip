@@ -1,6 +1,6 @@
 import { and, eq, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
-import { agents, assignmentProposals, issues } from "@paperclipai/db";
+import { agents, assignmentProposals, deliveryTasks, issues, productDeliveries } from "@paperclipai/db";
 import type { ProposeAssignment } from "@paperclipai/shared";
 import { conflict, forbidden, notFound, unprocessable } from "../errors.js";
 import { admissionControlService } from "./admission-control.js";
@@ -46,6 +46,48 @@ export function assignmentProposalService(db: Db) {
           || issue.createdByAgentId === actor.agentId
           || parent?.assigneeAgentId === actor.agentId;
         if (!ownsDelegation) throw forbidden("Agent may propose assignment only for work it owns, created, or directly supervises");
+
+        if (data.routingMode === "direct_child") {
+          if (assignee.reportsTo !== actor.agentId) {
+            throw forbidden("Hierarchical delegation is limited to the actor's direct reports");
+          }
+        } else {
+          const delivery = data.deliveryId
+            ? await db.select().from(productDeliveries).where(and(
+              eq(productDeliveries.id, data.deliveryId),
+              eq(productDeliveries.companyId, issue.companyId),
+            )).then((rows) => rows[0] ?? null)
+            : null;
+          if (!delivery || !["admitted", "implementing"].includes(delivery.stage)) {
+            throw forbidden("ProductDelivery fast path requires an admitted active delivery");
+          }
+          if (delivery.projectId !== issue.projectId) {
+            throw forbidden("ProductDelivery fast path cannot cross project boundaries");
+          }
+          const linkedTask = await db.select({ id: deliveryTasks.id }).from(deliveryTasks).where(and(
+            eq(deliveryTasks.deliveryId, delivery.id),
+            eq(deliveryTasks.issueId, issue.id),
+          )).then((rows) => rows[0] ?? null);
+          const contract = delivery.decisionContract as Record<string, unknown>;
+          const fastPath = contract.fastPath as Record<string, unknown> | undefined;
+          const allowedAgentIds = Array.isArray(fastPath?.allowedAgentIds)
+            ? fastPath.allowedAgentIds.filter((value): value is string => typeof value === "string")
+            : [];
+          if (!linkedTask || fastPath?.enabled !== true || !allowedAgentIds.includes(actor.agentId) || !allowedAgentIds.includes(assignee.id)) {
+            throw forbidden("ProductDelivery fast path is not approved for this issue and actor pair");
+          }
+        }
+      }
+
+      if (data.reviewerAgentId === data.proposedAssigneeAgentId) {
+        throw unprocessable("Executor and reviewer must be different agents");
+      }
+      const reviewer = await db.select().from(agents).where(and(
+        eq(agents.id, data.reviewerAgentId),
+        eq(agents.companyId, issue.companyId),
+      )).then((rows) => rows[0] ?? null);
+      if (!reviewer || ["terminated", "pending_approval"].includes(reviewer.status)) {
+        throw unprocessable("Reviewer is not an active agent in this company");
       }
 
       const familyAssignees = await db.select({ assigneeAgentId: issues.assigneeAgentId }).from(issues)
@@ -87,6 +129,14 @@ export function assignmentProposalService(db: Db) {
           proposedAssigneeAgentId: data.proposedAssigneeAgentId,
           proposedByAgentId: actor.agentId ?? null,
           proposedByUserId: actor.userId ?? null,
+          parentAgentId: actor.agentId ?? null,
+          routingMode: data.routingMode,
+          deliveryId: data.deliveryId ?? null,
+          delegationPath: actor.agentId ? [actor.agentId, data.proposedAssigneeAgentId] : [data.proposedAssigneeAgentId],
+          scopeContract: data.scopeContract,
+          budgetContract: data.budgetContract,
+          acceptanceCriteria: data.acceptanceCriteria,
+          reviewerAgentId: data.reviewerAgentId,
           admissionDecisionId: decision.decisionId,
           status,
           idempotencyKey: data.idempotencyKey,

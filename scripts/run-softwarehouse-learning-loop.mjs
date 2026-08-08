@@ -194,6 +194,11 @@ issues = [...issueById.values()];
 
 const activeAgents = agents.filter((agent) => agent.status !== "terminated");
 const agentByName = new Map(activeAgents.map((agent) => [agent.name, agent]));
+const defaultLearningOwner = resolveLearningOwner(activeAgents, "Portfolio Director", [
+  "Engineering Delivery Lead",
+  "CTO Architect",
+  "Chief Operating Officer",
+]);
 const projectByName = new Map(projects.map((project) => [project.name, project]));
 const operating = byName(projects, "Softwarehouse Operating System")
   ?? byName(projects, "Paperclip")
@@ -380,13 +385,22 @@ async function createLearningIssue(input, action) {
     if (existingIssue) await ensureLearningObservation(existingIssue, input, { source: "existing_learning_issue" });
     return existingIssue;
   }
+  const executableWithoutOwner = ["todo", "in_progress"].includes(input.status) && !isUuid(input.assigneeAgentId);
+  const normalizedInput = executableWithoutOwner
+    ? defaultLearningOwner
+      ? { ...input, assigneeAgentId: defaultLearningOwner.id }
+      : { ...input, status: "backlog", assigneeAgentId: null }
+    : input;
   actions.push({
     ...action,
     action: apply ? action.action : action.action.replace(/^created_/, "would_create_"),
     title: input.title,
+    ownerFallback: executableWithoutOwner
+      ? defaultLearningOwner?.name ?? "backlog_pending_native_routing"
+      : null,
   });
   if (!apply) return null;
-  const created = await request("POST", `/api/companies/${company.id}/issues`, input);
+  const created = await request("POST", `/api/companies/${company.id}/issues`, normalizedInput);
   actions.at(-1).identifier = created.identifier;
   actions.at(-1).status = created.status;
   existingLearningTitles.add(input.title);
@@ -843,7 +857,7 @@ for (const [key, groupedIssues] of processedBlockedGroups) {
   });
 }
 
-const engineeringLead = agentByName.get("Engineering Delivery Lead") ?? agentByName.get("CTO Architect") ?? null;
+const engineeringLead = resolveLearningOwner(activeAgents, "Engineering Delivery Lead", ["CTO Architect", "Portfolio Director"]);
 const workerFanoutWeak = trackBacklog.weakTracks.length > 0;
 if (workerFanoutWeak) {
   const duplicate = findSuppressibleV2WorkerFanoutDuplicate({
@@ -947,7 +961,7 @@ const reviewIssuesWithoutDecision = findInReviewIssuesWithoutStructuredDecisionP
   issueStateById: reviewIssueStateById,
 });
 if (reviewIssuesWithoutDecision.length > 0) {
-  const portfolioDirector = agentByName.get("Portfolio Director") ?? null;
+  const portfolioDirector = resolveLearningOwner(activeAgents, "Portfolio Director", ["Engineering Delivery Lead", "CTO Architect"]);
   const sourceIssueIdentifiers = reviewIssuesWithoutDecision
     .map((issue) => issue.identifier)
     .filter(Boolean)

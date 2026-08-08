@@ -15,6 +15,7 @@ import {
 import { companies } from "./companies.js";
 import { agents } from "./agents.js";
 import { agentWakeupRequests } from "./agent_wakeup_requests.js";
+import { admissionDecisions } from "./admission_decisions.js";
 
 export const heartbeatRuns = pgTable(
   "heartbeat_runs",
@@ -29,6 +30,7 @@ export const heartbeatRuns = pgTable(
     finishedAt: timestamp("finished_at", { withTimezone: true }),
     error: text("error"),
     wakeupRequestId: uuid("wakeup_request_id").references((): AnyPgColumn => agentWakeupRequests.id),
+    admissionDecisionId: uuid("admission_decision_id").references((): AnyPgColumn => admissionDecisions.id, { onDelete: "restrict" }),
     exitCode: integer("exit_code"),
     signal: text("signal"),
     usageJson: jsonb("usage_json").$type<Record<string, unknown>>(),

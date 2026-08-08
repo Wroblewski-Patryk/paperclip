@@ -43,6 +43,20 @@ test("rejects a default context over budget", async () => {
   assert(result.findings.some((item) => item.code === "context_budget_exceeded"));
 });
 
+test("warns when the compact Codex bootstrap exceeds its separate budget", async () => {
+  const root = await fixture();
+  await mkdir(path.join(root, ".codex"), { recursive: true });
+  await writeFile(path.join(root, ".codex/PROJECT_CONTEXT.md"), "x".repeat(101));
+  const contractPath = path.join(root, "docs/documentation-contract.json");
+  const contract = JSON.parse(await readFile(contractPath, "utf8"));
+  contract.budgets.maxCodexBootstrapBytes = 100;
+  await writeFile(contractPath, JSON.stringify(contract));
+
+  const result = await auditDocumentationProject({ name: "Test", root, requireDeploymentIdentity: false });
+  assert(result.findings.some((item) => item.code === "codex_bootstrap_oversized"));
+  assert.equal(result.metrics.codexBootstrapBytes, 101);
+});
+
 test("rejects contradictory GUI identity in canonical context", async () => {
   const root = await fixture();
   await writeFile(path.join(root, "README.md"), "This application does not include a GUI.\n");

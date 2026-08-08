@@ -112,6 +112,20 @@ export async function auditDocumentationProject({ name, root, requireDeploymentI
   }
   const maxDefault = Number(manifest.budgets?.maxDefaultContextBytes ?? 180000);
   if (defaultContextBytes > maxDefault) findings.push(finding("error", "context_budget_exceeded", `Default context is ${defaultContextBytes} bytes; budget is ${maxDefault}.`));
+  const codexBootstrapPath = path.join(root, ".codex", "PROJECT_CONTEXT.md");
+  const configuredBootstrapBudget = manifest.budgets?.maxCodexBootstrapBytes;
+  let codexBootstrapBytes = 0;
+  if (configuredBootstrapBudget !== undefined) {
+    const maxCodexBootstrapBytes = Number(configuredBootstrapBudget);
+    if (!await exists(codexBootstrapPath)) {
+      findings.push(finding("error", "codex_bootstrap_missing", "Configured Codex bootstrap is missing.", [".codex/PROJECT_CONTEXT.md"]));
+    } else {
+      codexBootstrapBytes = (await stat(codexBootstrapPath)).size;
+      if (codexBootstrapBytes > maxCodexBootstrapBytes) {
+        findings.push(finding("warning", "codex_bootstrap_oversized", `.codex/PROJECT_CONTEXT.md is ${codexBootstrapBytes} bytes; budget is ${maxCodexBootstrapBytes}.`, [".codex/PROJECT_CONTEXT.md"]));
+      }
+    }
+  }
   const canonicalText = defaultContextText.join("\n");
   const contradictionRules = [
     {
@@ -187,7 +201,7 @@ export async function auditDocumentationProject({ name, root, requireDeploymentI
     name,
     root: posix(root),
     status: findings.some((item) => item.severity === "error") ? "fail" : findings.length ? "warning" : "pass",
-    metrics: { defaultContextBytes, maxDefaultContextBytes: maxDefault, planningFiles: planning.length, activeStateFiles: state.length, ...repo },
+    metrics: { defaultContextBytes, maxDefaultContextBytes: maxDefault, codexBootstrapBytes, planningFiles: planning.length, activeStateFiles: state.length, ...repo },
     findings,
   };
 }

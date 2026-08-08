@@ -3,7 +3,7 @@ import path from "node:path";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { createHash, randomUUID } from "node:crypto";
-import { and, asc, desc, eq, getTableColumns, gt, inArray, isNull, lt, lte, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, gt, inArray, isNull, lt, lte, ne, notInArray, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   AGENT_DEFAULT_MAX_CONCURRENT_RUNS,
@@ -41,6 +41,7 @@ import {
   documentAnnotationComments,
   documentAnnotationThreads,
   documentRevisions,
+  deliveryTasks,
   issueDocuments,
   heartbeatRunEvents,
   heartbeatRuns,
@@ -52,13 +53,14 @@ import {
   issues,
   issueWorkProducts,
   projects,
+  productDeliveries,
   projectWorkspaces,
   routineRevisions,
   routineRuns,
   routines,
   workspaceOperations,
 } from "@paperclipai/db";
-import { conflict, HttpError, notFound } from "../errors.js";
+import { conflict, HttpError, notFound, unprocessable } from "../errors.js";
 import { logger } from "../middleware/logger.js";
 import { publishLiveEvent } from "./live-events.js";
 import { getRunLogStore, type RunLogHandle } from "./run-log-store.js";
@@ -66,6 +68,7 @@ import { getServerAdapter, listAdapterModelProfiles, runningProcesses } from "..
 import type {
   AdapterExecutionResult,
   AdapterInvocationMeta,
+  AdapterRuntimeProgress,
   AdapterModelProfileDefinition,
   AdapterSessionCodec,
   ProviderQuotaResult,
@@ -80,6 +83,22 @@ import { getTelemetryClient } from "../telemetry.js";
 import { companySkillService } from "./company-skills.js";
 import { budgetService, type BudgetEnforcementScope } from "./budgets.js";
 import { admissionControlService } from "./admission-control.js";
+import { runContextBuilderService } from "./run-context-builder.js";
+import {
+  buildAdapterContextSources,
+  deriveContextWorkType,
+  evaluateFinalContextAdmission,
+  resolveContextBudget,
+  type ContextManifestSource,
+} from "./context-admission.js";
+import { supervisionRegistryService } from "./supervision-registry.js";
+import { evaluateExecutionQuota } from "./execution-quota.js";
+import {
+  emptySessionRuntimeUsage,
+  evaluateSessionRuntimeBudget,
+  resolveSessionRuntimeLimits,
+  type SessionRuntimeUsage,
+} from "./session-runtime-budget.js";
 import { secretService } from "./secrets.js";
 import { resolveDefaultAgentWorkspaceDir, resolveManagedProjectWorkspaceDir } from "../home-paths.js";
 import {
@@ -3032,6 +3051,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
   };
   const budgets = budgetService(db, budgetHooks);
   const admission = admissionControlService(db);
+  const contextBuilder = runContextBuilderService(db);
+  const supervisionRegistry = supervisionRegistryService(db);
 
   async function resolveAdmissionProjectId(
     companyId: string,
@@ -4029,6 +4050,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     sessionId: string | null;
     issueId: string | null;
     continuationSummaryBody?: string | null;
+    hardRawInputTokenLimit?: number | null;
   }): Promise<SessionCompactionDecision> {
     const { agent, sessionId, issueId } = input;
     if (!sessionId) {
@@ -4041,7 +4063,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     }
 
     const policy = parseSessionCompactionPolicy(agent);
-    if (!policy.enabled || !hasSessionCompactionThresholds(policy)) {
+    const hardRawInputTokenLimit = input.hardRawInputTokenLimit && input.hardRawInputTokenLimit > 0
+      ? input.hardRawInputTokenLimit
+      : null;
+    if ((!policy.enabled || !hasSessionCompactionThresholds(policy)) && hardRawInputTokenLimit === null) {
       return {
         rotate: false,
         reason: null,
@@ -4088,7 +4113,15 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         : 0;
 
     let reason: string | null = null;
-    if (policy.maxSessionRuns > 0 && runs.length > policy.maxSessionRuns) {
+    if (
+      hardRawInputTokenLimit !== null &&
+      latestRawUsage &&
+      latestRawUsage.inputTokens >= hardRawInputTokenLimit
+    ) {
+      reason =
+        `session raw input reached ${formatCount(latestRawUsage.inputTokens)} tokens ` +
+        `(hard context-admission threshold ${formatCount(hardRawInputTokenLimit)})`;
+    } else if (policy.maxSessionRuns > 0 && runs.length > policy.maxSessionRuns) {
       reason = `session exceeded ${policy.maxSessionRuns} runs`;
     } else if (
       policy.maxRawInputTokens > 0 &&
@@ -6715,7 +6748,6 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       logger.warn({ err, adapterType: agent.adapterType }, "Failed to fetch provider quota windows");
       return null;
     }
-
     providerQuotaCache.set(cacheKey, {
       expiresAt: nowMs + CODEX_LOCAL_PROVIDER_QUOTA_CACHE_MS,
       result,
@@ -7044,6 +7076,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       }
       return null;
     }
+    await db.update(heartbeatRuns).set({ admissionDecisionId: admissionDecision.decisionId, updatedAt: new Date() })
+      .where(eq(heartbeatRuns.id, run.id));
     if (companyStatus !== "active") return null;
     const invokability = await evaluateAgentInvokabilityFromDb(db, agent);
     if (!invokability.invokable) {
@@ -9028,6 +9062,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       sessionId: previousSessionDisplayId ?? runtimeSessionIdForAdapter,
       issueId,
       continuationSummaryBody: continuationSummary?.body ?? null,
+      hardRawInputTokenLimit: (() => {
+        const budget = parseObject(parseObject(context.nativeContext).budget);
+        return typeof budget.tokenLimit === "number" ? budget.tokenLimit : null;
+      })(),
     });
     if (sessionCompaction.rotate) {
       context.paperclipSessionHandoffMarkdown = sessionCompaction.handoffMarkdown;
@@ -9257,6 +9295,122 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             if (key in meta.env) meta.env[key] = "***REDACTED***";
           }
         }
+        const nativeContext = parseObject(context.nativeContext);
+        const nativeManifest = parseObject(nativeContext.contextManifest);
+        const nativeBudget = parseObject(nativeContext.budget);
+        const roleIdentity = [agent.name, agent.title, agent.role].filter(Boolean).join(" ");
+        const fallbackWorkType = deriveContextWorkType(context, roleIdentity);
+        const fallbackBudget = resolveContextBudget({ workType: fallbackWorkType, role: roleIdentity });
+        const effectiveHardTokenLimit = typeof nativeBudget.hardTokenLimit === "number"
+          ? nativeBudget.hardTokenLimit
+          : fallbackBudget.hardTokenLimit;
+        const explicitIssueExecutionLimit = asNumber(nativeBudget.executionHardRawInputTokenLimit, 0);
+        const issueExecutionLimit = explicitIssueExecutionLimit > 0
+          ? Math.floor(explicitIssueExecutionLimit)
+          : Math.max(1_000_000, effectiveHardTokenLimit * 500);
+        const priorIssueRuns = issueId ? await db.select({ usageJson: heartbeatRuns.usageJson }).from(heartbeatRuns).where(and(
+          eq(heartbeatRuns.companyId, agent.companyId),
+          ne(heartbeatRuns.id, run.id),
+          sql`${heartbeatRuns.contextSnapshot}->>'issueId'=${issueId}`,
+        )) : [];
+        const observedRawInputTokens = priorIssueRuns.reduce((total, prior) => {
+          const usage = parseObject(prior.usageJson);
+          return total + Math.max(0, Math.floor(asNumber(usage.rawInputTokens, asNumber(usage.inputTokens, 0))));
+        }, 0);
+        const criticalCloseout = issueId ? await db.select({ id: productDeliveries.id }).from(productDeliveries)
+          .innerJoin(deliveryTasks, eq(deliveryTasks.deliveryId, productDeliveries.id))
+          .where(and(
+            eq(deliveryTasks.issueId, issueId),
+            inArray(productDeliveries.stage, ["review_accepted", "integrated", "push_ready", "deployed", "observed_healthy"]),
+            sql`coalesce((${productDeliveries.decisionContract}->>'criticalCloseout')::boolean, false)=true`,
+          )).limit(1).then((rows) => rows.length > 0) : false;
+        const executionQuota = evaluateExecutionQuota({ observedRawInputTokens, hardRawInputTokenLimit: issueExecutionLimit, criticalCloseout });
+        context.executionQuota = { ...executionQuota, scopeType: "issue", scopeId: issueId, evaluatedAt: new Date().toISOString() };
+        if (!executionQuota.admitted) {
+          await db.update(heartbeatRuns).set({ contextSnapshot: context, updatedAt: new Date() }).where(eq(heartbeatRuns.id, run.id));
+          await supervisionRegistry.upsertFinding(agent.companyId, {
+            fingerprint: `quota_bottleneck:issue:${issueId}`, problemClass: "execution_quota_exceeded", severity: executionQuota.state === "emergency" ? "critical" : "high",
+            status: "needs_decision", classification: "quota_bottleneck", sourceKind: "native_watchdog", sourceRef: `heartbeat_runs:${run.id}`,
+            title: `Execution quota held issue ${issueId}`, summary: `Issue raw input usage ${observedRawInputTokens}/${issueExecutionLimit} exceeded its dedicated execution limit.`,
+            affectedComponent: "heartbeat.execution_quota", projectId: issueRef?.projectId ?? null, issueId, deliveryId: null, deliveryTaskId: null,
+            affectedAgentId: agent.id, ownerAgentId: agent.reportsTo ?? agent.id, ownerUserId: null, admissionDecisionId: null, rootCauseId: null,
+            nativeSafeguardId: null, retryCount: 0, economics: { risk: "high", tokenBudget: issueExecutionLimit, stopBoundary: "No additional issue run without owner quota action or protected closeout." },
+            decision: { ...executionQuota, metric: "raw_input_tokens" }, recoveryState: "blocked", bottleneckType: "quota_bottleneck", bottleneckStartedAt: new Date().toISOString(),
+            bottleneckStage: "pre_invocation", dependency: "Owner quota decision or derived critical closeout is required.", slaDueAt: null,
+            nextAllowedAction: "Hold all agents for this issue until quota is raised or closeout is authorized.", escalationCondition: "Owner approval required.",
+            cooldownUntil: null, evidence: [{ sourceKind: "heartbeat_run", sourceRef: run.id, label: "issue-scoped hard quota", metadata: executionQuota }],
+            recurrenceEvidence: { issueId, observedRawInputTokens }, runId: run.id, cycleId: null,
+          });
+          throw unprocessable("Issue execution quota hard hold", executionQuota);
+        }
+        const nativeSources = Array.isArray(nativeManifest.sources)
+          ? nativeManifest.sources.filter(
+              (source): source is ContextManifestSource => Boolean(source && typeof source === "object" && !Array.isArray(source)),
+            )
+          : [];
+        const adapterSources = buildAdapterContextSources(meta as unknown as Record<string, unknown>);
+        const sessionSource: ContextManifestSource | null = runtimeForAdapter.sessionId || runtimeForAdapter.sessionDisplayId
+          ? {
+              source: `session:${runtimeForAdapter.sessionDisplayId ?? runtimeForAdapter.sessionId}`,
+              sourceType: "session_history",
+              bytes: 0,
+              estimatedTokens: 0,
+              inclusionReason: "Task-scoped adapter continuation below the hard raw-input rotation threshold",
+              requirement: "required",
+              freshness: "previous_task_run",
+              owner: agent.id,
+              version: runtimeForAdapter.sessionDisplayId ?? runtimeForAdapter.sessionId ?? "unknown",
+              onDemand: false,
+              included: true,
+              reduction: "none",
+            }
+          : null;
+        const sources = [...nativeSources, ...adapterSources, ...(sessionSource ? [sessionSource] : [])];
+        const contextAdmission = evaluateFinalContextAdmission({
+          sources,
+          tokenLimit: typeof nativeBudget.tokenLimit === "number" ? nativeBudget.tokenLimit : fallbackBudget.tokenLimit,
+          fileLimit: typeof nativeBudget.fileLimit === "number" ? nativeBudget.fileLimit : fallbackBudget.fileLimit,
+          referencedFiles: typeof nativeBudget.referencedFiles === "number" ? nativeBudget.referencedFiles : 0,
+        });
+        context.contextAdmission = {
+          schemaVersion: 1,
+          evaluatedAt: new Date().toISOString(),
+          workType: nativeManifest.workType ?? fallbackWorkType,
+          sources,
+          ...contextAdmission,
+          onDemandReads: 0,
+        };
+        await db.update(heartbeatRuns).set({ contextSnapshot: context, updatedAt: new Date() }).where(eq(heartbeatRuns.id, run.id));
+        if (!contextAdmission.admitted) {
+          try {
+            await supervisionRegistry.upsertFinding(agent.companyId, {
+              fingerprint: `context_budget_exceeded:${run.id}`,
+              problemClass: "context_budget_exceeded",
+              severity: "high",
+              status: "detected",
+              classification: "context_bottleneck",
+              sourceKind: "native_watchdog",
+              sourceRef: `heartbeat_runs:${run.id}`,
+              title: `Context admission blocked run ${run.id}`,
+              summary: `The final adapter prompt failed closed: ${contextAdmission.reason}; estimated ${contextAdmission.estimatedTokens}/${contextAdmission.tokenLimit} tokens and ${contextAdmission.referencedFiles}/${contextAdmission.fileLimit} references.`,
+              affectedComponent: "heartbeat.context_admission",
+              projectId: issueRef?.projectId ?? null,
+              issueId,
+              affectedAgentId: agent.id,
+              ownerAgentId: agent.reportsTo ?? agent.id,
+              retryCount: 0,
+              economics: {},
+              recoveryState: "blocked",
+              decision: { ...contextAdmission },
+              evidence: [{ sourceKind: "heartbeat_run", sourceRef: run.id, label: "blocked run context manifest", metadata: {} }],
+              recurrenceEvidence: {},
+              runId: run.id,
+            });
+          } catch (findingError) {
+            logger.error({ err: findingError, runId: run.id }, "failed to persist context-budget supervision finding");
+          }
+          throw unprocessable("Final run context failed hard admission", contextAdmission);
+        }
         const modelProfileMetadata = modelProfileRunMetadata(modelProfileApplication);
         await appendRunEvent(currentRun, seq++, {
           eventType: "adapter.invoke",
@@ -9284,6 +9438,117 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           },
           "local agent jwt secret missing or invalid; running without injected PAPERCLIP_API_KEY",
         );
+      }
+      const sessionBudgetId = runtimeForAdapter.sessionDisplayId ?? runtimeForAdapter.sessionId ?? `run:${run.id}`;
+      const nativeBudgetForSession = parseObject(parseObject(context.nativeContext).budget);
+      const fallbackSessionBudget = resolveContextBudget({
+        workType: deriveContextWorkType(context, [agent.name, agent.title, agent.role].filter(Boolean).join(" ")),
+        role: [agent.name, agent.title, agent.role].filter(Boolean).join(" "),
+      });
+      const sessionRuntimeLimits = resolveSessionRuntimeLimits({
+        configured: parseObject(nativeBudgetForSession.sessionRuntime),
+        contextHardTokenLimit: asNumber(nativeBudgetForSession.hardTokenLimit, fallbackSessionBudget.hardTokenLimit),
+      });
+      const priorSessionRows = runtimeForAdapter.sessionDisplayId || runtimeForAdapter.sessionId
+        ? await db.select({
+            usageJson: heartbeatRuns.usageJson,
+            startedAt: heartbeatRuns.startedAt,
+            finishedAt: heartbeatRuns.finishedAt,
+            processLossRetryCount: heartbeatRuns.processLossRetryCount,
+            scheduledRetryAttempt: heartbeatRuns.scheduledRetryAttempt,
+            continuationAttempt: heartbeatRuns.continuationAttempt,
+          }).from(heartbeatRuns).where(and(
+            eq(heartbeatRuns.companyId, agent.companyId),
+            eq(heartbeatRuns.agentId, agent.id),
+            ne(heartbeatRuns.id, run.id),
+            or(
+              eq(heartbeatRuns.sessionIdAfter, sessionBudgetId),
+              eq(heartbeatRuns.sessionIdBefore, sessionBudgetId),
+              sql`${heartbeatRuns.usageJson}->>'persistedSessionId'=${sessionBudgetId}`,
+            ),
+          ))
+        : [];
+      const priorSessionUsage = priorSessionRows.reduce<SessionRuntimeUsage>((total, row) => {
+        const usage = parseObject(row.usageJson);
+        const contextTelemetry = parseObject(usage.contextTelemetry);
+        const elapsedMs = row.startedAt && row.finishedAt
+          ? Math.max(0, row.finishedAt.getTime() - row.startedAt.getTime())
+          : 0;
+        return {
+          inputTokens: total.inputTokens + Math.max(0, asNumber(usage.inputTokens, 0)),
+          cachedInputTokens: total.cachedInputTokens + Math.max(0, asNumber(usage.cachedInputTokens, 0)),
+          uncachedInputTokens: total.uncachedInputTokens + Math.max(0, asNumber(usage.uncachedInputTokens, 0)),
+          outputTokens: total.outputTokens + Math.max(0, asNumber(usage.outputTokens, 0)),
+          toolReads: total.toolReads + Math.max(0, asNumber(contextTelemetry.onDemandReads, 0)),
+          referencedFiles: total.referencedFiles + Math.max(0, asNumber(contextTelemetry.referencedFiles, 0)),
+          iterations: total.iterations + 1,
+          retries: total.retries + Math.max(0, row.processLossRetryCount + row.scheduledRetryAttempt + row.continuationAttempt),
+          elapsedMs: total.elapsedMs + elapsedMs,
+        };
+      }, emptySessionRuntimeUsage());
+      let lastSessionBudgetState: string | null = null;
+      const evaluateLiveSessionBudget = async (progress: AdapterRuntimeProgress) => {
+        const liveInput = Math.max(0, Math.floor(progress.inputTokens ?? 0));
+        const liveCached = Math.max(0, Math.floor(progress.cachedInputTokens ?? 0));
+        const usage: SessionRuntimeUsage = {
+          inputTokens: Math.max(priorSessionUsage.inputTokens, liveInput),
+          cachedInputTokens: Math.max(priorSessionUsage.cachedInputTokens, liveCached),
+          uncachedInputTokens: Math.max(priorSessionUsage.uncachedInputTokens, liveInput - liveCached),
+          outputTokens: Math.max(priorSessionUsage.outputTokens, Math.max(0, Math.floor(progress.outputTokens ?? 0))),
+          toolReads: priorSessionUsage.toolReads + Math.max(0, Math.floor(progress.toolReads ?? 0)),
+          referencedFiles: priorSessionUsage.referencedFiles + Math.max(0, Math.floor(progress.referencedFiles ?? 0)),
+          iterations: priorSessionUsage.iterations + Math.max(0, Math.floor(progress.iterations ?? 0)),
+          retries: priorSessionUsage.retries + Math.max(0, run.processLossRetryCount + run.scheduledRetryAttempt + run.continuationAttempt),
+          elapsedMs: priorSessionUsage.elapsedMs + Math.max(0, Math.floor(progress.elapsedMs ?? 0)),
+        };
+        const evaluation = evaluateSessionRuntimeBudget(usage, sessionRuntimeLimits);
+        context.sessionRuntimeBudget = {
+          schemaVersion: 1,
+          sessionId: sessionBudgetId,
+          evaluatedAt: new Date().toISOString(),
+          ...evaluation,
+        };
+        if (lastSessionBudgetState !== evaluation.state || !evaluation.admitted) {
+          lastSessionBudgetState = evaluation.state;
+          await db.update(heartbeatRuns).set({ contextSnapshot: context, updatedAt: new Date() }).where(eq(heartbeatRuns.id, run.id));
+        }
+        if (!evaluation.admitted) {
+          await supervisionRegistry.upsertFinding(agent.companyId, {
+            fingerprint: `session_budget:${sessionBudgetId}`,
+            problemClass: "session_runtime_budget_exhausted",
+            severity: "critical",
+            status: "needs_decision",
+            classification: "quota_bottleneck",
+            sourceKind: "native_watchdog",
+            sourceRef: `heartbeat_runs:${run.id}`,
+            title: `Session runtime budget stopped ${sessionBudgetId}`,
+            summary: `Session was stopped fail-closed because ${evaluation.reason}.`,
+            affectedComponent: "heartbeat.session_runtime_budget",
+            projectId: issueRef?.projectId ?? null,
+            issueId,
+            affectedAgentId: agent.id,
+            ownerAgentId: agent.reportsTo ?? agent.id,
+            retryCount: usage.retries,
+            economics: { tokenBudget: sessionRuntimeLimits.rawInputTokens, timeBudgetMinutes: Math.floor(sessionRuntimeLimits.elapsedMs / 60_000), retryBudget: sessionRuntimeLimits.retries, stopBoundary: "Only an audited, time-bounded delivery override may resume this session." },
+            decision: evaluation,
+            recoveryState: "blocked",
+            bottleneckType: "quota_bottleneck",
+            bottleneckStartedAt: new Date().toISOString(),
+            bottleneckStage: "runtime",
+            dependency: "Owner-reviewed session budget disposition.",
+            slaDueAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+            nextAllowedAction: "Rotate the session or request an audited delivery-scoped override.",
+            escalationCondition: "Repeated exhaustion after one fresh bounded session.",
+            evidence: [{ sourceKind: "heartbeat_run", sourceRef: run.id, label: "session runtime budget telemetry", metadata: evaluation }],
+            recurrenceEvidence: { sessionId: sessionBudgetId, limitingMetric: evaluation.limitingMetric },
+            runId: run.id,
+          });
+        }
+        return evaluation;
+      };
+      const preInvocationSessionBudget = await evaluateLiveSessionBudget({ elapsedMs: 0 });
+      if (!preInvocationSessionBudget.admitted) {
+        throw unprocessable("Session runtime budget hard stop", preInvocationSessionBudget);
       }
       let adapterFinalizeOutcome: "succeeded" | "failed" | null = null;
       const recordWorkspaceFinalize = async (
@@ -9322,6 +9587,12 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             : undefined,
           onLog,
           onMeta: onAdapterMeta,
+          onProgress: async (progress) => {
+            const evaluation = await evaluateLiveSessionBudget(progress);
+            return evaluation.admitted
+              ? { action: evaluation.state === "throttle" || evaluation.state === "near_limit" ? "throttle" : "continue", reason: evaluation.reason }
+              : { action: "stop", reason: evaluation.reason };
+          },
           onSpawn: async (meta) => {
             await persistRunProcessMetadata(run.id, {
               pid: meta.pid,
@@ -9472,12 +9743,16 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
               : "failed";
 
       const usageJson =
-        normalizedUsage || adapterResult.costUsd != null
+        normalizedUsage || adapterResult.costUsd != null || Object.keys(parseObject(context.contextAdmission)).length > 0
           ? ({
               ...(normalizedUsage ?? {}),
+              ...(normalizedUsage ? {
+                uncachedInputTokens: Math.max(0, normalizedUsage.inputTokens - normalizedUsage.cachedInputTokens),
+              } : {}),
               ...(rawUsage ? {
                 rawInputTokens: rawUsage.inputTokens,
                 rawCachedInputTokens: rawUsage.cachedInputTokens,
+                rawUncachedInputTokens: Math.max(0, rawUsage.inputTokens - rawUsage.cachedInputTokens),
                 rawOutputTokens: rawUsage.outputTokens,
               } : {}),
               ...(sessionUsageResolution.derivedFromSessionTotals ? { usageSource: "session_delta" } : {}),
@@ -9494,6 +9769,25 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
               model: readNonEmptyString(adapterResult.model) ?? "unknown",
               ...(adapterResult.costUsd != null ? { costUsd: adapterResult.costUsd } : {}),
               billingType: normalizeLedgerBillingType(adapterResult.billingType),
+              contextTelemetry: {
+                ...parseObject(context.contextAdmission),
+                onDemandReads: (() => {
+                  const retrieval = parseObject(parseObject(adapterResult.resultJson).contextRetrievalTelemetry);
+                  return typeof retrieval.reads === "number" ? retrieval.reads : 0;
+                })(),
+                onDemandOutputChars: (() => {
+                  const retrieval = parseObject(parseObject(adapterResult.resultJson).contextRetrievalTelemetry);
+                  return typeof retrieval.outputChars === "number" ? retrieval.outputChars : 0;
+                })(),
+                onDemandEstimatedTokens: (() => {
+                  const retrieval = parseObject(parseObject(adapterResult.resultJson).contextRetrievalTelemetry);
+                  return typeof retrieval.estimatedTokens === "number" ? retrieval.estimatedTokens : 0;
+                })(),
+                outcomeContribution: issueId
+                  ? (outcome === "succeeded" ? "task_run_evidence" : "none_failed_run")
+                  : "none_unscoped_run",
+              },
+              sessionRuntimeBudget: parseObject(context.sessionRuntimeBudget),
             } as Record<string, unknown>)
           : null;
 
@@ -10407,6 +10701,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       enrichedContextSnapshot.projectId = projectId;
     }
 
+    enrichedContextSnapshot.nativeContext = await contextBuilder.build({
+      companyId: agent.companyId,
+      agentId,
+      issueId,
+      projectId,
+      inputContext: enrichedContextSnapshot,
+    });
+
     const budgetBlock = await budgets.getInvocationBlock(agent.companyId, agentId, {
       issueId,
       projectId,
@@ -10937,6 +11239,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             triggerDetail,
             status: "queued",
             wakeupRequestId: wakeupRequest.id,
+            admissionDecisionId: admissionDecision.decisionId,
             contextSnapshot: enrichedContextSnapshot,
             sessionIdBefore: sessionBefore,
             continuationAttempt,
@@ -11069,6 +11372,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         triggerDetail,
         status: "queued",
         wakeupRequestId: wakeupRequest.id,
+        admissionDecisionId: admissionDecision.decisionId,
         contextSnapshot: enrichedContextSnapshot,
         sessionIdBefore: sessionBefore,
         continuationAttempt,

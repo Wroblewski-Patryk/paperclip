@@ -11,6 +11,46 @@ const CODEX_REMOTE_COMPACTION_RE = /remote\s+compact\s+task/i;
 const CODEX_USAGE_LIMIT_RE =
   /you(?:'|’)ve hit your usage limit for .+\.\s+switch to another model now,\s+or try again at\s+([^.!\n]+)(?:[.!]|\n|$)/i;
 
+export type CodexRuntimeProgressDelta = {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  toolReads: number;
+  referencedFiles: number;
+  iterations: number;
+};
+
+export function parseCodexRuntimeProgressLine(rawLine: string): CodexRuntimeProgressDelta | null {
+  const event = parseJson(rawLine.trim());
+  if (!event) return null;
+  const type = asString(event.type, "");
+  if (type === "turn.completed") {
+    const usage = parseObject(event.usage);
+    return {
+      inputTokens: asNumber(usage.input_tokens, 0),
+      cachedInputTokens: asNumber(usage.cached_input_tokens, 0),
+      outputTokens: asNumber(usage.output_tokens, 0),
+      toolReads: 0,
+      referencedFiles: 0,
+      iterations: 1,
+    };
+  }
+  if (type !== "item.completed") return null;
+  const item = parseObject(event.item);
+  if (asString(item.type, "") !== "command_execution") return null;
+  const command = asString(item.command, "");
+  const readLike = /(?:^|\s)(?:rg|grep|findstr|Get-Content|type|cat|sed|head|tail)(?:\s|$)/i.test(command);
+  const pathMentions = command.match(/(?:[A-Za-z]:[\\/]|\.\.?[\\/])[^\s"']+|[\w.-]+[\\/][\w./\\-]+/g) ?? [];
+  return {
+    inputTokens: 0,
+    cachedInputTokens: 0,
+    outputTokens: 0,
+    toolReads: readLike ? 1 : 0,
+    referencedFiles: new Set(pathMentions).size,
+    iterations: 0,
+  };
+}
+
 export function parseCodexJsonl(stdout: string) {
   let sessionId: string | null = null;
   let finalMessage: string | null = null;
@@ -20,6 +60,8 @@ export function parseCodexJsonl(stdout: string) {
     cachedInputTokens: 0,
     outputTokens: 0,
   };
+  let onDemandReads = 0;
+  let onDemandOutputChars = 0;
 
   for (const rawLine of stdout.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -46,6 +88,10 @@ export function parseCodexJsonl(stdout: string) {
         const text = asString(item.text, "");
         if (text) finalMessage = text;
       }
+      if (asString(item.type, "") === "command_execution") {
+        onDemandReads += 1;
+        onDemandOutputChars += asString(item.aggregated_output, "").length;
+      }
       continue;
     }
 
@@ -68,6 +114,11 @@ export function parseCodexJsonl(stdout: string) {
     sessionId,
     summary: finalMessage?.trim() ?? "",
     usage,
+    contextRetrievalTelemetry: {
+      reads: onDemandReads,
+      outputChars: onDemandOutputChars,
+      estimatedTokens: Math.ceil(onDemandOutputChars / 4),
+    },
     errorMessage,
   };
 }

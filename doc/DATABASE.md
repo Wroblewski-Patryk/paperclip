@@ -304,3 +304,39 @@ transition with `POST /api/companies/{companyId}/admission-controls/transition`.
 The legal company path is `open -> draining -> maintenance -> reopening -> open`;
 reopening and opening require an evidence array. Returning to `open` synchronizes the
 legacy company status, but should only be requested after the safety suite passes.
+
+## Autonomous decision persistence
+
+Migration `0119_sad_kitty_pryde` adds five company-scoped control tables:
+
+- `operational_constraints`: current constraint, affected issues, evidence,
+  response, flow SLO, and resolution criteria;
+- `autonomy_envelopes`: per-action-class authority stage, scope, budget,
+  concurrency, allowed actions, rollback, and graduation metrics;
+- `autonomy_decisions`: deduplicated world-state decision records with layered
+  vectors, evidence TTL, invalidation rules, and expected outcomes;
+- `autonomy_decision_evaluations`: evaluator verdicts attached to decisions,
+  keeping oracle agreement distinct from actual outcome quality;
+- `autonomy_executions`: idempotent dispatch, execution, outcome, impact, and
+  cost-coverage postconditions.
+
+These tables reference canonical issues, goals indirectly through decision
+evidence, supervision cycles, agents, and heartbeat runs. They do not replace
+issue or ProductDelivery/ProductOutcome state machines.
+
+Migration `0120_abnormal_morbius` adds the Iteration 5 bootstrap and governance
+projection. `issue_intents` makes issue-level intent status, owner, source,
+confirmation, expiry, hierarchy, and Paperclip-to-Roost canonical ownership
+explicit. `autonomy_canary_authorizations` is a time-bounded board authority
+record tied to an unchanged envelope and, normally, one decision/issue; it does
+not change envelope stage or graduation history. `autonomy_interrupts` stores
+scoped expiring preemption signals. `learned_policies` and `policy_exceptions`
+store versioned, reversible learning and bounded exceptions.
+
+The same migration versions decision samples and calibration cohorts, separates
+oracle/operator/counterfactual signals, records execution liveness and
+preemption class, and adds evidence-backed constraint-impact fields. Dependency
+edges now carry type, resolving predicate, owner, verification/expiry, status,
+and resolution evidence. Existing edges intentionally start as stale/untyped
+debt until revalidated; migration does not invent semantics for historical
+relations.

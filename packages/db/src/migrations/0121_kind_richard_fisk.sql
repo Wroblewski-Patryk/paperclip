@@ -1,0 +1,2 @@
+ALTER TABLE "autonomy_decisions" ALTER COLUMN "decision_model_version" SET DEFAULT 'work-selection-v2.1';--> statement-breakpoint
+ALTER TABLE "autonomy_decisions" ALTER COLUMN "calibration_cohort" SET DEFAULT 'work-selection-v2.1';

@@ -1,0 +1,2 @@
+ALTER TABLE "heartbeat_runs" ADD COLUMN "admission_decision_id" uuid;--> statement-breakpoint
+ALTER TABLE "heartbeat_runs" ADD CONSTRAINT "heartbeat_runs_admission_decision_id_admission_decisions_id_fk" FOREIGN KEY ("admission_decision_id") REFERENCES "public"."admission_decisions"("id") ON DELETE restrict ON UPDATE no action;

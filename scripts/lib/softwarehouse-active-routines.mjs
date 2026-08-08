@@ -32,7 +32,7 @@ export const softwarehouseRoutineTitleRenames = new Map([
   ["[Softwarehouse] Longevity snapshot backup", "04 Operations: Longevity Snapshot Backup"],
 ]);
 
-export const softwarehousePilotActiveRoutineTitles = new Set([
+const softwarehousePilotLegacyActiveRoutineTitles = new Set([
   "[Softwarehouse] Autonomy governor",
   "[Softwarehouse] Continuation watchdog",
   "[Softwarehouse] Gate freshness watcher",
@@ -61,12 +61,20 @@ export const softwarehousePilotActiveRoutineTitles = new Set([
   ...activeApplicationRoutineSpecs.map((routine) => routine.title),
 ]);
 
+export function canonicalSoftwarehouseRoutineTitle(title) {
+  return softwarehouseRoutineTitleRenames.get(title) ?? title;
+}
+
+export const softwarehousePilotActiveRoutineTitles = new Set(
+  [...softwarehousePilotLegacyActiveRoutineTitles].map(canonicalSoftwarehouseRoutineTitle),
+);
+
 export const softwarehousePilotActiveRuntimeRoutineTitles = new Set([
+  ...softwarehousePilotLegacyActiveRoutineTitles,
   ...softwarehousePilotActiveRoutineTitles,
-  ...softwarehouseRoutineTitleRenames.values(),
 ]);
 
-export const softwarehousePilotRoutineScheduleLabels = new Map([
+const softwarehousePilotLegacyRoutineScheduleLabels = new Map([
   ["[Softwarehouse] Autonomy governor", "Every 30 minutes autonomy governor"],
   ["[Softwarehouse] Continuation watchdog", "Every 5 minutes continuation watchdog"],
   ["[Softwarehouse] Gate freshness watcher", "Every 30 minutes gate freshness watcher"],
@@ -94,3 +102,16 @@ export const softwarehousePilotRoutineScheduleLabels = new Map([
   ["[Softwarehouse] Organizational learning and agent improvement review", "Weekly organizational learning and agent improvement review"],
   ...activeApplicationRoutineSpecs.map((routine) => [routine.title, routine.scheduleLabel]),
 ]);
+
+export const softwarehousePilotRoutineScheduleLabels = new Map(
+  [...softwarehousePilotLegacyRoutineScheduleLabels].flatMap(([title, label]) => {
+    const canonicalTitle = canonicalSoftwarehouseRoutineTitle(title);
+    return canonicalTitle === title
+      ? [[title, label]]
+      : [[title, label], [canonicalTitle, label]];
+  }),
+);
+
+export function isSoftwarehousePilotRoutineTitle(title) {
+  return softwarehousePilotActiveRoutineTitles.has(canonicalSoftwarehouseRoutineTitle(title));
+}

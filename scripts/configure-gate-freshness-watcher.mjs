@@ -8,7 +8,7 @@ const companyNames = [
   "LuckySparrow Software House",
 ].filter(Boolean);
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
-const routineTitle = "[Softwarehouse] Gate freshness watcher";
+const routineTitle = "04 Operations: Gate Freshness Watcher";
 const scheduleLabel = "Every 30 minutes gate freshness watcher";
 const scheduleCron = "17,47 * * * *";
 const currentRunId = process.env.PAPERCLIP_RUN_ID ?? null;

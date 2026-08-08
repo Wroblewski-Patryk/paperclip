@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { softwarehouseGateSpecs } from "./lib/softwarehouse-gates.mjs";
+import { canonicalSoftwarehouseRoutineTitle } from "./lib/softwarehouse-active-routines.mjs";
 
 const requireFromDb = createRequire(new URL("../packages/db/package.json", import.meta.url));
 const postgres = requireFromDb("postgres");
@@ -23,9 +24,9 @@ const safeBulkActionLimit = Number(process.env.LIVE_RUN_JANITOR_SAFE_BULK_ACTION
 const terminalStatuses = new Set(["done", "cancelled"]);
 const gateRootBlockers = new Set(softwarehouseGateSpecs.map((spec) => spec.rootBlocker));
 const nonBlockingTerminalSoftwarehouseRoutineTitles = new Set([
-  "[Softwarehouse] Agent health and model governance",
-  "[Softwarehouse] Autonomy governor",
-  "[Softwarehouse] Gate freshness watcher",
+  "09 Technology: Agent Health and Model Governance",
+  "11 Innovation: Autonomy Governor",
+  "04 Operations: Gate Freshness Watcher",
 ]);
 const operatingSourceControlClosureTitlePrefix = "[Softwarehouse][OS Closure]";
 const closedTailCancelMarkerPrefix = "softwarehouse-live-run-janitor:cancel_closed_issue_tail:";
@@ -154,7 +155,7 @@ function commentTimestamp(comment) {
 }
 
 function isGovernorSelfSupervision(issue, run) {
-  return issue?.title === "[Softwarehouse] Autonomy governor"
+  return canonicalSoftwarehouseRoutineTitle(issue?.title) === "11 Innovation: Autonomy Governor"
     && issue.status === "in_progress"
     && ageMs(run?.lastOutputAt ?? run?.startedAt ?? run?.createdAt) >= minTailAgeMs;
 }
@@ -165,7 +166,7 @@ function isTerminalSoftwarehouseTail(issue) {
 
 function isNonBlockingTerminalSoftwarehouseRoutineTail(issue) {
   return terminalStatuses.has(issue?.status)
-    && nonBlockingTerminalSoftwarehouseRoutineTitles.has(issue?.title);
+    && nonBlockingTerminalSoftwarehouseRoutineTitles.has(canonicalSoftwarehouseRoutineTitle(issue?.title));
 }
 
 function isClosedIssueTail(issue, run) {

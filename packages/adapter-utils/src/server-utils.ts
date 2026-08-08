@@ -19,6 +19,7 @@ export interface RunProcessResult {
   stderr: string;
   pid: number | null;
   startedAt: string | null;
+  controlledStopReason?: string | null;
 }
 
 export interface TerminalResultCleanupOptions {
@@ -2122,6 +2123,10 @@ export async function runChildProcess(
     timeoutSec: number;
     graceSec: number;
     onLog: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
+    onOutputControl?: (
+      stream: "stdout" | "stderr",
+      chunk: string,
+    ) => Promise<{ action: "continue" | "terminate"; reason?: string }>;
     onLogError?: (err: unknown, runId: string, message: string) => void;
     onSpawn?: (meta: { pid: number; processGroupId: number | null; startedAt: string }) => Promise<void>;
     terminalResultCleanup?: TerminalResultCleanupOptions;
@@ -2177,6 +2182,7 @@ export async function runChildProcess(
         runningProcesses.set(runId, { child, graceSec: opts.graceSec, processGroupId });
 
         let timedOut = false;
+        let controlledStopReason: string | null = null;
         let stdout = "";
         let stderr = "";
         let logChain: Promise<void> = Promise.resolve();
@@ -2249,7 +2255,15 @@ export async function runChildProcess(
           stdout = appendWithCap(stdout, text);
           maybeArmTerminalResultCleanup();
           logChain = logChain
-            .then(() => opts.onLog("stdout", text))
+            .then(async () => {
+              const control = await opts.onOutputControl?.("stdout", text);
+              if (control?.action === "terminate" && controlledStopReason === null) {
+                controlledStopReason = control.reason?.trim() || "controlled_stop";
+                signalRunningProcess({ child, processGroupId }, "SIGTERM");
+                setTimeout(() => signalRunningProcess({ child, processGroupId }, "SIGKILL"), Math.max(1, opts.graceSec) * 1000);
+              }
+              await opts.onLog("stdout", text);
+            })
             .catch((err) => onLogError(err, runId, "failed to append stdout log chunk"))
             .finally(() => {
               maybeArmTerminalResultCleanup();
@@ -2316,6 +2330,7 @@ export async function runChildProcess(
                 stderr,
                 pid: child.pid ?? null,
                 startedAt,
+                controlledStopReason,
               });
               });
           });

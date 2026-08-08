@@ -33,16 +33,19 @@ const transitions: Record<DeliveryStage, readonly DeliveryStage[]> = {
   deployed: ["observed_healthy", "rolled_back"],
   observed_healthy: ["outcome_accepted", "rolled_back"],
   rolled_back: ["implementing"],
-  outcome_accepted: [],
+  outcome_accepted: ["observed_healthy"],
 };
 
 const outcomeTransitions: Record<ProductOutcomeStatus, readonly ProductOutcomeStatus[]> = {
-  unachieved: ["observing", "achieved", "rejected", "rolled_back"],
-  observing: ["achieved", "unachieved", "rejected", "rolled_back"],
-  achieved: ["accepted", "rejected", "observing", "rolled_back"],
-  accepted: ["rolled_back"],
-  rejected: ["observing", "unachieved"],
+  unachieved: ["observing", "achieved", "partial", "rejected", "rolled_back", "unknown"],
+  observing: ["achieved", "unachieved", "partial", "rejected", "rolled_back", "unknown"],
+  achieved: ["accepted", "accepted_with_risk", "partial", "rejected", "observing", "rolled_back", "unknown"],
+  accepted: ["observing", "unknown", "rolled_back"],
+  accepted_with_risk: ["observing", "rolled_back"],
+  partial: ["observing", "achieved", "rejected", "rolled_back", "unknown"],
+  rejected: ["observing", "unachieved", "unknown"],
   rolled_back: ["unachieved"],
+  unknown: ["observing", "unachieved", "achieved", "rejected"],
 };
 
 function requireEvidence(toStage: DeliveryStage, evidence: Array<Record<string, unknown>>) {
@@ -167,6 +170,19 @@ export function deliveryService(db: Db) {
           deliveryId: delivery.id,
           statement: data.outcomeStatement,
           acceptanceCriteria: data.acceptanceCriteria,
+          acceptancePredicates: (data.acceptancePredicates ?? []).length > 0
+            ? data.acceptancePredicates
+            : data.acceptanceCriteria.map((criterion, index) => ({
+                key: `criterion_${index + 1}`,
+                label: typeof criterion.label === "string"
+                  ? criterion.label
+                  : typeof criterion.kind === "string"
+                    ? criterion.kind
+                    : `Acceptance criterion ${index + 1}`,
+                kind: "custom",
+                required: true,
+                expected: criterion,
+              })),
         }).returning().then((rows) => rows[0]);
         if (data.taskIssueIds.length > 0) await tx.insert(deliveryTasks).values(
           data.taskIssueIds.map((issueId) => ({ companyId, deliveryId: delivery.id, issueId })),
@@ -223,16 +239,37 @@ export function deliveryService(db: Db) {
       if (data.toStage === "deployed" && (!(data.deployedSha ?? existing.deployedSha) || !(data.deploymentUrl ?? existing.deploymentUrl))) {
         throw unprocessable("Deployed delivery requires deployedSha and deploymentUrl");
       }
-      if (data.toStage === "outcome_accepted" && outcome?.status !== "accepted") {
+      if (data.toStage === "outcome_accepted" && !["accepted", "accepted_with_risk"].includes(outcome?.status ?? "")) {
         throw unprocessable("Delivery cannot reach outcome_accepted until its outcome is accepted independently");
       }
       if (
-        data.toStage === "review_accepted"
+        (data.toStage === "review_accepted" || data.toStage === "review_rejected")
         && actor.actorType === "agent"
         && actor.actorId
         && actor.actorId === existing.ownerAgentId
       ) {
-        throw unprocessable("Delivery review must be accepted by an independent actor");
+        throw unprocessable("Delivery review verdict must be issued by an independent actor");
+      }
+      if (data.reviewVerdict) {
+        if (actor.actorType === "agent" && actor.actorId !== data.reviewVerdict.reviewerAgentId) {
+          throw unprocessable("Typed review verdict reviewer must match the acting agent");
+        }
+        const [reviewer, executor] = await Promise.all([
+          db.select({ companyId: agents.companyId }).from(agents).where(eq(agents.id, data.reviewVerdict.reviewerAgentId)).then((rows) => rows[0] ?? null),
+          db.select({ companyId: agents.companyId }).from(agents).where(eq(agents.id, data.reviewVerdict.executorAgentId)).then((rows) => rows[0] ?? null),
+        ]);
+        if (!reviewer || !executor || reviewer.companyId !== existing.companyId || executor.companyId !== existing.companyId) {
+          throw badRequest("Review verdict actors must belong to the delivery company");
+        }
+        if (data.toStage === "review_rejected") {
+          const rejectedCount = await db.select().from(deliveryTransitions).where(and(
+            eq(deliveryTransitions.deliveryId, id),
+            eq(deliveryTransitions.toStage, "review_rejected"),
+          ));
+          if (rejectedCount.length >= 3 || data.reviewVerdict.correctionIteration !== rejectedCount.length + 1) {
+            throw unprocessable("Correction loop is limited to three ordered CHANGES_REQUIRED iterations");
+          }
+        }
       }
       return db.transaction(async (tx) => {
         const prior = await tx.select().from(deliveryTransitions).where(and(
@@ -265,7 +302,7 @@ export function deliveryService(db: Db) {
           actorType: actor.actorType,
           actorId: actor.actorId ?? null,
           evidence: data.evidence,
-          details: { localSha: data.localSha, originSha: data.originSha, integrationSha: data.integrationSha, deployedSha: data.deployedSha, deploymentUrl: data.deploymentUrl },
+          details: { localSha: data.localSha, originSha: data.originSha, integrationSha: data.integrationSha, deployedSha: data.deployedSha, deploymentUrl: data.deploymentUrl, reviewVerdict: data.reviewVerdict },
         }).returning().then((rows) => rows[0]);
         if (data.toStage === "rolled_back" && outcome) await tx.update(productOutcomes)
           .set({ status: "rolled_back", evidence: [...(outcome.evidence ?? []), ...data.evidence], updatedAt: now })
@@ -293,13 +330,57 @@ export function deliveryService(db: Db) {
       if (!outcome) throw notFound("Product outcome not found");
       const from = outcome.status as ProductOutcomeStatus;
       if (!outcomeTransitions[from].includes(data.status)) throw conflict(`Illegal outcome transition: ${from} -> ${data.status}`);
-      if (["achieved", "accepted", "rejected", "rolled_back"].includes(data.status) && data.evidence.length === 0) {
+      if (["achieved", "accepted", "accepted_with_risk", "partial", "rejected", "rolled_back", "unknown"].includes(data.status) && data.evidence.length === 0) {
         throw unprocessable(`Outcome transition to '${data.status}' requires inspectable evidence`);
       }
-      if (data.status === "accepted" && delivery.stage !== "observed_healthy") {
+      if (["accepted", "accepted_with_risk"].includes(data.status) && delivery.stage !== "observed_healthy") {
         throw unprocessable("Outcome acceptance requires an observed_healthy delivery");
       }
-      if (data.status === "accepted") {
+      if (data.acceptancePredicates && !actor.userId) {
+        throw unprocessable("Only an identified board owner can replace outcome acceptance predicates");
+      }
+      if (data.acceptancePredicates && !["observing", "unknown", "achieved"].includes(data.status)) {
+        throw unprocessable("Acceptance predicates can only be replaced while the outcome is observing, unknown, or achieved");
+      }
+      const definitions = (data.acceptancePredicates ?? outcome.acceptancePredicates ?? []) as Array<Record<string, unknown>>;
+      const priorResults = (outcome.predicateResults ?? []) as Array<Record<string, unknown>>;
+      const mergedResults = new Map(priorResults.map((result) => [String(result.key ?? ""), result]));
+      for (const result of data.predicateResults ?? []) mergedResults.set(result.key, result);
+      const nowMs = Date.now();
+      const requiredKeys = definitions.filter((definition) => definition.required !== false).map((definition) => String(definition.key ?? "")).filter(Boolean);
+      const failedPredicateKeys = requiredKeys.filter((key) => {
+        const result = mergedResults.get(key);
+        if (!result || result.passed !== true) return true;
+        if (typeof result.expiresAt === "string" && Date.parse(result.expiresAt) <= nowMs) return true;
+        const definition = definitions.find((item) => item.key === key);
+        if (typeof definition?.maxAgeMinutes === "number") {
+          const checkedAt = typeof result.checkedAt === "string" ? Date.parse(result.checkedAt) : Number.NaN;
+          if (!Number.isFinite(checkedAt) || checkedAt + definition.maxAgeMinutes * 60_000 <= nowMs) return true;
+        }
+        return false;
+      });
+      const passedPredicateKeys = requiredKeys.filter((key) => !failedPredicateKeys.includes(key));
+      if (data.status === "accepted" && (requiredKeys.length === 0 || failedPredicateKeys.length > 0)) {
+        throw unprocessable("Outcome acceptance failed closed because required predicates are missing, failed, or stale", { requiredKeys, failedPredicateKeys });
+      }
+      if (data.status === "accepted_with_risk") {
+        if (!actor.userId || !data.manualOverride) throw unprocessable("accepted_with_risk requires an identified board owner and a time-bounded manual override");
+        const declared = [...new Set(data.manualOverride.failedPredicateKeys)].sort();
+        const actual = [...failedPredicateKeys].sort();
+        if (JSON.stringify(declared) !== JSON.stringify(actual)) {
+          throw unprocessable("Manual override must name every failed acceptance predicate exactly", { declared, actual });
+        }
+        if (Date.parse(data.manualOverride.expiresAt) <= nowMs) throw unprocessable("Manual acceptance override is already expired");
+      } else if (data.manualOverride) {
+        throw unprocessable("manualOverride is only valid for accepted_with_risk");
+      }
+      if (data.status === "partial" && (passedPredicateKeys.length === 0 || failedPredicateKeys.length === 0)) {
+        throw unprocessable("Partial outcome requires both passed and failed required predicates", { passedPredicateKeys, failedPredicateKeys });
+      }
+      if (data.status === "rejected" && failedPredicateKeys.length === 0) {
+        throw unprocessable("Rejected outcome requires at least one failed required predicate");
+      }
+      if (["accepted", "accepted_with_risk"].includes(data.status)) {
         if (!actor.agentId && !actor.userId) {
           throw unprocessable("Outcome acceptance requires an identified independent actor");
         }
@@ -310,9 +391,19 @@ export function deliveryService(db: Db) {
       return db.update(productOutcomes).set({
         status: data.status,
         evidence: [...(outcome.evidence ?? []), ...data.evidence],
-        acceptedByAgentId: data.status === "accepted" ? actor.agentId ?? null : outcome.acceptedByAgentId,
-        acceptedByUserId: data.status === "accepted" ? actor.userId ?? null : outcome.acceptedByUserId,
-        acceptedAt: data.status === "accepted" ? new Date() : outcome.acceptedAt,
+        acceptancePredicates: definitions,
+        predicateResults: [...mergedResults.values()],
+        acceptanceDecision: {
+          status: data.status,
+          requiredPredicateKeys: requiredKeys,
+          passedPredicateKeys,
+          failedPredicateKeys,
+          manualOverride: data.manualOverride ?? null,
+          decidedAt: new Date().toISOString(),
+        },
+        acceptedByAgentId: ["accepted", "accepted_with_risk"].includes(data.status) ? actor.agentId ?? null : null,
+        acceptedByUserId: ["accepted", "accepted_with_risk"].includes(data.status) ? actor.userId ?? null : null,
+        acceptedAt: ["accepted", "accepted_with_risk"].includes(data.status) ? new Date() : null,
         updatedAt: new Date(),
       }).where(eq(productOutcomes.id, outcome.id)).returning().then((rows) => rows[0]);
     },

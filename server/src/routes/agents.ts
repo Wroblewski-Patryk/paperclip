@@ -86,10 +86,7 @@ import {
   DEFAULT_ACPX_LOCAL_NON_INTERACTIVE_PERMISSIONS,
   DEFAULT_ACPX_LOCAL_PERMISSION_MODE,
 } from "@paperclipai/adapter-acpx-local";
-import {
-  DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
-  DEFAULT_CODEX_LOCAL_MODEL,
-} from "@paperclipai/adapter-codex-local";
+import { DEFAULT_CODEX_LOCAL_MODEL } from "@paperclipai/adapter-codex-local";
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "@paperclipai/adapter-cursor-local";
 import { DEFAULT_GEMINI_LOCAL_MODEL } from "@paperclipai/adapter-gemini-local";
 import { DEFAULT_OPENCODE_LOCAL_MODEL } from "@paperclipai/adapter-opencode-local";
@@ -514,15 +511,6 @@ export function agentRoutes(
       ? await access.listPrincipalGrants(agent.companyId, "agent", agent.id)
       : [];
     const hasExplicitTaskAssignGrant = grants.some((grant) => grant.permissionKey === "tasks:assign");
-
-    if (agent.role === "ceo") {
-      return {
-        canAssignTasks: true,
-        taskAssignSource: "ceo_role" as const,
-        membership,
-        grants,
-      };
-    }
 
     if (hasExplicitTaskAssignGrant) {
       return {
@@ -1038,6 +1026,7 @@ export function agentRoutes(
     adapterType: string | null | undefined;
     adapterConfig: Record<string, unknown>;
     constraintAdapterConfig?: Record<string, unknown>;
+    executionPermissionClass?: unknown;
   }): Promise<Record<string, unknown>> {
     const normalizedAdapterConfig = await secretsSvc.normalizeAdapterConfigForPersistence(
       input.companyId,
@@ -1049,6 +1038,7 @@ export function agentRoutes(
       input.constraintAdapterConfig
         ? { ...input.constraintAdapterConfig, ...normalizedAdapterConfig }
         : normalizedAdapterConfig,
+      input.executionPermissionClass,
     );
     return normalizedAdapterConfig;
   }
@@ -1058,6 +1048,7 @@ export function agentRoutes(
     adapterType: string,
     runtimeConfig: Record<string, unknown>,
     baseAdapterConfig: Record<string, unknown>,
+    executionPermissionClass?: unknown,
   ): Promise<Record<string, unknown>> {
     const entries = listRuntimeModelProfileAdapterConfigs(runtimeConfig);
     if (entries.length === 0) return runtimeConfig;
@@ -1079,6 +1070,7 @@ export function agentRoutes(
           ...baseAdapterConfig,
           ...adapterDefaultConfig,
         },
+        executionPermissionClass,
       });
       normalizedModelProfiles[entry.profileKey] = {
         ...entry.profile,
@@ -1169,7 +1161,7 @@ export function agentRoutes(
         typeof next.dangerouslyBypassApprovalsAndSandbox === "boolean" ||
         typeof next.dangerouslyBypassSandbox === "boolean";
       if (!hasBypassFlag) {
-        next.dangerouslyBypassApprovalsAndSandbox = DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX;
+        next.dangerouslyBypassApprovalsAndSandbox = false;
       }
       return ensureGatewayDeviceKey(adapterType, next);
     }
@@ -1190,11 +1182,17 @@ export function agentRoutes(
   async function assertAdapterConfigConstraints(
     adapterType: string | null | undefined,
     adapterConfig: Record<string, unknown>,
+    executionPermissionClass?: unknown,
   ) {
+    const bypassRequested = adapterConfig.dangerouslyBypassApprovalsAndSandbox === true
+      || adapterConfig.dangerouslyBypassSandbox === true;
+    if (adapterType === "codex_local" && bypassRequested && executionPermissionClass !== "system_maintenance" && executionPermissionClass !== "privileged_local") {
+      throw unprocessable("Codex sandbox/approval bypass requires executionPermissionClass=system_maintenance");
+    }
     if (
       adapterType === "codex_local" &&
       options.deploymentMode === "authenticated" &&
-      (adapterConfig.dangerouslyBypassApprovalsAndSandbox === true || adapterConfig.dangerouslyBypassSandbox === true)
+      bypassRequested
     ) {
       throw unprocessable("Codex sandbox/approval bypass is forbidden in authenticated deployments");
     }
@@ -2190,12 +2188,14 @@ export function agentRoutes(
       companyId,
       adapterType: hireInput.adapterType,
       adapterConfig: desiredSkillAssignment.adapterConfig,
+      executionPermissionClass: asRecord(hireInput.permissions)?.executionPermissionClass,
     });
     const normalizedRuntimeConfig = await normalizeRuntimeConfigAdapterConfigsForPersistence(
       companyId,
       hireInput.adapterType,
       normalizeNewAgentRuntimeConfig(hireInput.runtimeConfig),
       normalizedAdapterConfig,
+      asRecord(hireInput.permissions)?.executionPermissionClass,
     );
     const normalizedHireInput = {
       ...hireInput,
@@ -2376,12 +2376,14 @@ export function agentRoutes(
       companyId,
       adapterType: createInput.adapterType,
       adapterConfig: desiredSkillAssignment.adapterConfig,
+      executionPermissionClass: asRecord(createInput.permissions)?.executionPermissionClass,
     });
     const normalizedRuntimeConfig = await normalizeRuntimeConfigAdapterConfigsForPersistence(
       companyId,
       createInput.adapterType,
       normalizeNewAgentRuntimeConfig(createInput.runtimeConfig),
       normalizedAdapterConfig,
+      asRecord(createInput.permissions)?.executionPermissionClass,
     );
     await assertAgentEnvironmentSelection(companyId, createInput.adapterType, createInput.defaultEnvironmentId);
     await assertAgentDefaultEnvironmentSelection(companyId, createInput.defaultEnvironmentId, {
@@ -2472,7 +2474,7 @@ export function agentRoutes(
       return;
     }
 
-    const effectiveCanAssignTasks = agent.role === "ceo" || req.body.canAssignTasks;
+    const effectiveCanAssignTasks = req.body.canAssignTasks;
     await access.ensureMembership(agent.companyId, "agent", agent.id, "member", "active");
     await access.setPrincipalPermission(
       agent.companyId,
@@ -2838,6 +2840,8 @@ export function agentRoutes(
         companyId: existing.companyId,
         adapterType: requestedAdapterType,
         adapterConfig: effectiveAdapterConfig,
+        executionPermissionClass: asRecord(patchData.permissions)?.executionPermissionClass
+          ?? existing.permissions?.executionPermissionClass,
       });
       patchData.adapterConfig = syncInstructionsBundleConfigFromFilePath(existing, normalizedEffectiveAdapterConfig);
     }
@@ -2848,6 +2852,8 @@ export function agentRoutes(
         requestedAdapterType,
         requestedRuntimeConfig,
         baseAdapterConfig,
+        asRecord(patchData.permissions)?.executionPermissionClass
+          ?? existing.permissions?.executionPermissionClass,
       );
     }
     if (touchesAdapterConfiguration || Object.prototype.hasOwnProperty.call(patchData, "defaultEnvironmentId")) {

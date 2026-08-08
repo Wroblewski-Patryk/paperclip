@@ -15,9 +15,24 @@ The Product Map publisher is disabled unless explicitly enabled with company-sco
 - No destructive action without an approval record.
 - No broad workspace/repository change without branch or worktree isolation.
 - No task handoff without a summary and next action.
-- Executors without a scoped direct-assignment grant propose an assignment; the deterministic
-  admission controller records its decision and the system applies an admitted proposal. An agent
-  cannot convert proposal authority into direct `tasks:assign` authority.
+- Agent assignment is limited to a direct child. Broad `tasks:assign` grants do not bypass the
+  reporting hierarchy; lateral routing requires the admitted ProductDelivery fast-path contract.
+  The deterministic admission controller records its decision and the system applies an admitted
+  proposal. A leaf uses `work_proposal`, escalation, or an upward delegation report.
+- Codex execution uses explicit permission classes: `read_only`, `project_write`, `review_test`,
+  `integration`, `deployment`, and `system_maintenance`. The former `observe`, `review`,
+  `workspace_write`, and `privileged_local` values remain input aliases during migration and are
+  normalized before authorization. Sandbox/approval bypass is valid only for
+  `system_maintenance` and remains forbidden in authenticated deployments.
+- Every heartbeat run that reaches execution must carry the deterministic admission decision that
+  authorized its claim. A queued legacy or retry record may be undecided, but it cannot start until
+  claim-time admission has been persisted.
+- A supervision intervention requires its own admission decision, one bounded change, one explicit
+  test, a rollback plan, and an observation window. A root cause cannot close until an enabled,
+  verified native safeguard and a passed observation window are durable.
+- Hierarchy health records rolling per-role context usage and diagnostic breaches above 250,000 raw
+  input tokens per run. A breach is not a permission grant or proof of a bounded context packet;
+  enforcement must remain fail-closed where a task declares a smaller explicit budget.
 - Autonomous delegation is bounded to 8 direct children, 4 distinct agents per problem, and depth
   6. Child work remains in the parent's project, parent loops are rejected, and creating a child
   never transfers or closes the parent's responsibility.
@@ -121,3 +136,60 @@ Every meaningful agent failure should produce, in order:
 Clearing a red/error/recovery-needed state is not enough. The root cause, prevention path, and
 future regression signal must be captured unless the feedback owner explicitly classifies the event
 as a one-off low-risk false alarm.
+
+## Runtime Session and Outcome Gates
+
+- Session runtime limits are cumulative across one adapter session and are
+  evaluated by the control plane before invocation and during streamed local
+  execution. Prompt text and adapter output are not policy inputs.
+- `stopped_by_session_budget` is fail-closed and creates a critical native
+  supervision finding; a new session or an audited owner policy change is the
+  only recovery path.
+- `accepted` product outcomes require every required typed predicate to be
+  present, passed, fresh, and unexpired.
+- Manual acceptance is never relabeled as fully accepted. It is stored as
+  `accepted_with_risk`, requires an identified board owner, lists the exact
+  failed predicates, expires, and remains visible in decision evidence.
+- Native watchdog cycles cannot report green while a severe active finding,
+  orphan execution lock, evidence-free completion, untyped accepted outcome,
+  cost telemetry gap, or external-only shadow signal remains.
+
+## Autonomy Envelope Gate
+
+- `SHADOW` and `RECOMMEND` never dispatch work.
+- `LIMITED_AUTO` and `AUTO` are granted per action class, not globally.
+- The candidate must remain eligible at atomic recheck and its evidence must be
+  within TTL.
+- Only low-risk, existing, locally scoped work is in the default dispatch
+  envelope. Production, secret, destructive, or broad cross-system actions are
+  excluded.
+- Unknown execution cost, stale source state, an achieved linked goal, medium or
+  high risk, or confidence below threshold yields `GATHER_EVIDENCE`.
+- Dispatch is idempotent and bounded to one owner wake. `ACCEPTED` does not imply
+  live execution or successful outcome.
+- An `unsafe` evaluator verdict or observed outcome regression immediately
+  downgrades the action class to `SHADOW`.
+- Oracle agreement is calibration evidence only. It cannot substitute for
+  independent ProductOutcome verification.
+
+### Board-authorized canary exception to execution stage
+
+`AUTHORIZED_CANARY` is the only bootstrap path from a SHADOW/RECOMMEND decision
+to execution. It is not a policy bypass: the envelope must remain enabled, the
+decision must still be an active recommendation, typed issue intent must be
+`ACTIVE` and unexpired, risk must be low, scope/environment/cost uncertainty
+must match, verification must be at least `INDEPENDENT_INTERNAL`, and no active
+warning/critical interrupt may apply. Authorization is board-only, expiring,
+execution-counted, concurrency-bounded, audited, and consumed atomically.
+
+Unknown monetary value may be accepted only as `UNKNOWN_BOUNDED` with a hard
+cost ceiling and maximum call count. A reported zero is `ZERO_REPORTED` until
+provider semantics prove `VERIFIED_ZERO`. Liveness stall, failed verification,
+budget breach, duplicate, interrupt, or stale atomic recheck stops the canary;
+there is no unbounded rescue retry.
+
+Learned policies use `PROPOSED -> EXPERIMENTAL -> ACTIVE` with reversible
+`SUSPECT`, `ROLLED_BACK`, `SUPERSEDED`, and `RETIRED` states. Every version names
+provenance, scope, expected effect, confidence, review owner/date, and rollback
+condition. Policy exceptions are explicit, owned, risk-accepted, evidenced, and
+expiring; they are never hidden permanent bypasses.

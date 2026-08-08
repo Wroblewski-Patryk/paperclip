@@ -41,4 +41,46 @@ describeEmbeddedPostgres("organizational observation service", () => {
     expect(replacement.supersedesId).toBe(original.id);
     expect((await svc.getById(original.id))?.status).toBe("superseded");
   });
+
+  it("promotes a high-confidence learning only after independent evidence satisfies the evaluator", async () => {
+    const companyId = randomUUID();
+    await db.insert(companies).values({ id: companyId, name: "LuckySparrow", issuePrefix: "LSP", requireBoardApprovalForNewAgents: false });
+    const svc = organizationalObservationService(db);
+    const learning = await svc.create(companyId, {
+      kind: "learning",
+      status: "proposed",
+      title: "Bounded dispatch restores a review decision path",
+      summary: "Reuse the bounded safeguard after its postcondition has been independently observed.",
+      sourceClass: "native_supervision_verified_intervention",
+      provenance: [
+        { kind: "other", ref: "supervision_intervention:test" },
+        { kind: "metric", ref: "supervision_observation_window:test" },
+      ],
+      confidence: 95,
+      observedAt: new Date().toISOString(),
+      promotionTarget: { kind: "policy", ref: "native_safeguard:test" },
+    }, { userId: "native-supervision" });
+
+    const result = await svc.evaluateLearningPromotion(learning.id);
+
+    expect(result).toMatchObject({ disposition: "promoted", transitions: ["validated", "promoted"] });
+    expect((await svc.getById(learning.id))?.status).toBe("promoted");
+  });
+
+  it("holds a learning when its evidence is not independent", async () => {
+    const companyId = randomUUID();
+    await db.insert(companies).values({ id: companyId, name: "LuckySparrow", issuePrefix: "LSP", requireBoardApprovalForNewAgents: false });
+    const svc = organizationalObservationService(db);
+    const learning = await svc.create(companyId, {
+      kind: "learning", status: "proposed", title: "Unverified learning", summary: "One source is not enough.",
+      sourceClass: "test", provenance: evidence, confidence: 99, observedAt: new Date().toISOString(),
+      promotionTarget: { kind: "eval", ref: "evals/unverified" },
+    }, { userId: "board" });
+
+    const result = await svc.evaluateLearningPromotion(learning.id);
+
+    expect(result).toMatchObject({ disposition: "held" });
+    expect(result?.reasons).toContain("insufficient_independent_evidence");
+    expect((await svc.getById(learning.id))?.status).toBe("proposed");
+  });
 });

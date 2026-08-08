@@ -4702,8 +4702,8 @@ export function issueService(db: Db) {
       if (data.assigneeUserId) {
         await assertAssignableUser(companyId, data.assigneeUserId);
       }
-      if (data.status === "in_progress" && !data.assigneeAgentId && !data.assigneeUserId) {
-        throw unprocessable("in_progress issues require an assignee");
+      if (["todo", "in_progress"].includes(data.status ?? "backlog") && !data.assigneeAgentId && !data.assigneeUserId) {
+        throw unprocessable("Executable todo or in_progress issues require an assignee; use backlog until ownership is admitted");
       }
       return db.transaction(async (tx) => {
         if (issueData.status === "blocked") {
@@ -5014,8 +5014,9 @@ export function issueService(db: Db) {
       if (nextAssigneeAgentId && nextAssigneeUserId) {
         throw unprocessable("Issue can only have one assignee");
       }
-      if (patch.status === "in_progress" && !nextAssigneeAgentId && !nextAssigneeUserId) {
-        throw unprocessable("in_progress issues require an assignee");
+      const nextStatus = patch.status ?? existing.status;
+      if (["todo", "in_progress"].includes(nextStatus) && !nextAssigneeAgentId && !nextAssigneeUserId) {
+        throw unprocessable("Executable todo or in_progress issues require an assignee; use backlog until ownership is admitted");
       }
       if (patch.status === "in_progress") {
         const unresolvedBlockerIssueIds = blockedByIssueIds !== undefined
@@ -5027,7 +5028,6 @@ export function issueService(db: Db) {
           throw unprocessable("Issue is blocked by unresolved blockers", { unresolvedBlockerIssueIds });
         }
       }
-      const nextStatus = patch.status ?? existing.status;
       if (nextStatus === "blocked" && (patch.status === "blocked" || blockedByIssueIds !== undefined)) {
         const unresolvedBlockerIssueIds = blockedByIssueIds !== undefined
           ? await listUnresolvedBlockerIssueIds(dbOrTx, existing.companyId, blockedByIssueIds)

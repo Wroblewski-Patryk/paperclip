@@ -11,7 +11,7 @@ const companyNames = [
   "LuckySparrow Software House",
 ].filter(Boolean);
 const legacyAutonomyRoutineTitle = "[Softwarehouse] Single-lane autonomy governor";
-const autonomyRoutineTitle = "[Softwarehouse] Autonomy governor";
+const autonomyRoutineTitle = "11 Innovation: Autonomy Governor";
 const autonomyScheduleLabel = "Every 30 minutes autonomy governor";
 const autonomyScheduleCron = "2,32 * * * *";
 

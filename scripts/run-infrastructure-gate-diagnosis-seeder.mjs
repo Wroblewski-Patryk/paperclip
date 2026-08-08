@@ -1,5 +1,6 @@
 import { softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
 import { spawnSync } from "node:child_process";
+import { canonicalSoftwarehouseRoutineTitle } from "./lib/softwarehouse-active-routines.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -8,9 +9,9 @@ const apply = process.argv.includes("--apply");
 const targetGate = process.argv.find((arg) => arg.startsWith("--gate="))?.slice("--gate=".length) ?? "LUC-241";
 const marker = `softwarehouse-infrastructure-gate-diagnosis:${targetGate}:v1`;
 const nonBlockingRoutineTitles = new Set([
-  "[Softwarehouse] Agent health and model governance",
-  "[Softwarehouse] Autonomy governor",
-  "[Softwarehouse] Gate freshness watcher",
+  "09 Technology: Agent Health and Model Governance",
+  "11 Innovation: Autonomy Governor",
+  "04 Operations: Gate Freshness Watcher",
 ]);
 
 async function request(method, route, body) {
@@ -96,7 +97,8 @@ const activeRunCount = health.devServer?.activeRunCount ?? liveRuns.length;
 const issueById = new Map(issues.map((issue) => [issue.id, issue]));
 const nonBlockingRoutineLiveRunCount = liveRuns.filter((run) => {
   const issue = issueById.get(run.issueId);
-  return issue?.originKind === "routine_execution" && nonBlockingRoutineTitles.has(issue.title);
+  return issue?.originKind === "routine_execution"
+    && nonBlockingRoutineTitles.has(canonicalSoftwarehouseRoutineTitle(issue.title));
 }).length;
 const blockingActiveRunCount = Math.max(0, activeRunCount - nonBlockingRoutineLiveRunCount);
 if (apply && blockingActiveRunCount > 0) {

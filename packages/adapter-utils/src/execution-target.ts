@@ -80,6 +80,10 @@ export interface AdapterExecutionTargetProcessOptions {
   timeoutSec: number;
   graceSec: number;
   onLog: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
+  onOutputControl?: (
+    stream: "stdout" | "stderr",
+    chunk: string,
+  ) => Promise<{ action: "continue" | "terminate"; reason?: string }>;
   onSpawn?: (meta: { pid: number; processGroupId: number | null; startedAt: string }) => Promise<void>;
   terminalResultCleanup?: TerminalResultCleanupOptions;
 }
@@ -430,6 +434,7 @@ export async function runAdapterExecutionTargetProcess(
     timeoutSec: options.timeoutSec,
     graceSec: options.graceSec,
     onLog: options.onLog,
+    onOutputControl: options.onOutputControl,
     onSpawn: options.onSpawn,
     terminalResultCleanup: options.terminalResultCleanup,
     remoteExecution: adapterExecutionTargetToRemoteSpec(target),

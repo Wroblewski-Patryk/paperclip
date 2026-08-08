@@ -155,5 +155,46 @@ export function organizationalObservationService(db: Db) {
         return updated;
       });
     },
+
+    async evaluateLearningPromotion(id: string, options: { now?: Date; minimumConfidence?: number; minimumIndependentEvidence?: number } = {}) {
+      const existing = await getById(id);
+      if (!existing) return null;
+      if (existing.kind !== "learning") throw badRequest("Only learning observations can be evaluated for promotion");
+
+      const now = options.now ?? new Date();
+      const minimumConfidence = options.minimumConfidence ?? 80;
+      const minimumIndependentEvidence = options.minimumIndependentEvidence ?? 2;
+      const distinctEvidence = new Set(existing.provenance.map((item) => `${item.kind}:${item.ref}`)).size;
+      const reasons: string[] = [];
+      if (!existing.promotionTarget) reasons.push("missing_promotion_target");
+      if ((existing.confidence ?? 0) < minimumConfidence) reasons.push("confidence_below_threshold");
+      if (distinctEvidence < minimumIndependentEvidence) reasons.push("insufficient_independent_evidence");
+      if (existing.validUntil && existing.validUntil <= now) reasons.push("evidence_expired");
+      if (["rejected", "superseded"].includes(existing.status)) reasons.push(`terminal_status:${existing.status}`);
+
+      if (reasons.length > 0) {
+        return { disposition: "held" as const, observation: existing, reasons, transitions: [] as string[] };
+      }
+      if (existing.status === "promoted") {
+        return { disposition: "already_promoted" as const, observation: existing, reasons: [], transitions: [] as string[] };
+      }
+
+      const transitions: string[] = [];
+      let current = existing;
+      if (current.status === "proposed") {
+        current = await db.update(organizationalObservations).set({ status: "validated", updatedAt: now })
+          .where(and(eq(organizationalObservations.id, id), eq(organizationalObservations.status, "proposed")))
+          .returning().then((rows) => rows[0] ?? current);
+        transitions.push("validated");
+      }
+      if (current.status !== "validated") {
+        return { disposition: "held" as const, observation: current, reasons: [`status_not_promotable:${current.status}`], transitions };
+      }
+      current = await db.update(organizationalObservations).set({ status: "promoted", promotedAt: now, updatedAt: now })
+        .where(and(eq(organizationalObservations.id, id), eq(organizationalObservations.status, "validated")))
+        .returning().then((rows) => rows[0] ?? current);
+      if (current.status === "promoted") transitions.push("promoted");
+      return { disposition: current.status === "promoted" ? "promoted" as const : "held" as const, observation: current, reasons: [], transitions };
+    },
   };
 }

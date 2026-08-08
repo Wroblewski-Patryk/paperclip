@@ -23,6 +23,7 @@ import type {
   CompanySituationSourceRef,
 } from "@paperclipai/shared";
 import { notFound } from "../errors.js";
+import { nextLegalActionService } from "./next-legal-action.js";
 import { budgetService } from "./budgets.js";
 import { observationFreshUntil } from "./organizational-observations.js";
 
@@ -138,6 +139,7 @@ export function buildHistoricalThroughputForecast(input: {
 
 export function companySituationService(db: Db) {
   const budgets = budgetService(db);
+  const nextActions = nextLegalActionService(db);
 
   return {
     get: async (companyId: string, options: { now?: Date } = {}): Promise<CompanySituation> => {
@@ -155,6 +157,11 @@ export function companySituationService(db: Db) {
         activeProjects,
         issueStatusRows,
         agentStatusRows,
+        schedulerActiveAgentCount,
+        dispatchableRunnableIssueCount,
+        structuredReviewIssueCount,
+        outcomeReconciliationIssueCount,
+        heldRunnableIssueCount,
         unassignedRunnableCount,
         pendingApprovalCount,
         errorAgentSamples,
@@ -167,6 +174,7 @@ export function companySituationService(db: Db) {
         openFlowRows,
         pendingApprovalIssueRows,
         observationRows,
+        nextActionProjection,
       ] = await Promise.all([
         db
           .select({
@@ -208,6 +216,83 @@ export function companySituationService(db: Db) {
           .from(agents)
           .where(and(eq(agents.companyId, companyId), ne(agents.status, "terminated")))
           .groupBy(agents.status),
+        db
+          .select({ count: sql<number>`count(*)::double precision` })
+          .from(agents)
+          .where(and(
+            eq(agents.companyId, companyId),
+            sql`${agents.status} in ('active','idle','running')`,
+            sql`lower(coalesce(${agents.runtimeConfig}#>>'{heartbeat,enabled}','false')) in ('true','1','yes','on')`,
+            sql`coalesce(nullif(${agents.runtimeConfig}#>>'{heartbeat,intervalSec}','')::int,0) > 0`,
+          ))
+          .then((rows) => Number(rows[0]?.count ?? 0)),
+        db.execute<{ count: number | string }>(sql`
+          select count(distinct i.id)::int as count
+          from issues i
+          join agents a on a.id=i.assignee_agent_id and a.company_id=i.company_id
+          where i.company_id=${companyId}
+            and i.hidden_at is null
+            and i.origin_kind <> 'routine_execution'
+            and i.status in ('backlog','todo')
+            and a.status in ('active','idle','running')
+            and lower(coalesce(a.runtime_config#>>'{heartbeat,enabled}','false')) not in ('true','1','yes','on')
+            and not exists (
+              select 1 from heartbeat_runs r
+              where r.company_id=i.company_id and r.agent_id=a.id
+                and r.status in ('queued','running','scheduled_retry')
+            )
+            and not exists (
+              select 1 from issue_tree_hold_members hm
+              join issue_tree_holds h on h.id=hm.hold_id and h.company_id=hm.company_id
+              where hm.company_id=i.company_id and hm.issue_id=i.id and h.status='active'
+            )
+            and not exists (
+              select 1 from delivery_tasks dt
+              join product_deliveries d on d.id=dt.delivery_id and d.company_id=dt.company_id
+              join product_outcomes o on o.delivery_id=d.id and o.company_id=d.company_id
+              where dt.company_id=i.company_id and dt.issue_id=i.id
+                and d.stage='outcome_accepted'
+                and o.status in ('accepted','accepted_with_risk')
+            )
+        `).then((rows) => Number(rows[0]?.count ?? 0)),
+        db.execute<{ count: number | string }>(sql`
+          select count(distinct i.id)::int as count
+          from issues i
+          where i.company_id=${companyId}
+            and i.hidden_at is null
+            and i.origin_kind <> 'routine_execution'
+            and i.status='in_review'
+            and exists (
+              select 1 from issue_thread_interactions interaction
+              where interaction.company_id=i.company_id
+                and interaction.issue_id=i.id
+                and interaction.status='pending'
+            )
+        `).then((rows) => Number(rows[0]?.count ?? 0)),
+        db.execute<{ count: number | string }>(sql`
+          select count(distinct i.id)::int as count
+          from issues i
+          join delivery_tasks dt on dt.issue_id=i.id and dt.company_id=i.company_id
+          join product_deliveries d on d.id=dt.delivery_id and d.company_id=dt.company_id
+          join product_outcomes o on o.delivery_id=d.id and o.company_id=d.company_id
+          where i.company_id=${companyId}
+            and i.hidden_at is null
+            and i.origin_kind <> 'routine_execution'
+            and i.status not in ('done','cancelled')
+            and d.stage='outcome_accepted'
+            and o.status in ('accepted','accepted_with_risk')
+        `).then((rows) => Number(rows[0]?.count ?? 0)),
+        db.execute<{ count: number | string }>(sql`
+          select count(distinct i.id)::int as count
+          from issues i
+          join issue_tree_hold_members hm on hm.issue_id=i.id and hm.company_id=i.company_id
+          join issue_tree_holds h on h.id=hm.hold_id and h.company_id=hm.company_id
+          where i.company_id=${companyId}
+            and i.hidden_at is null
+            and i.origin_kind <> 'routine_execution'
+            and i.status in ('backlog','todo')
+            and h.status='active'
+        `).then((rows) => Number(rows[0]?.count ?? 0)),
         db
           .select({ count: sql<number>`count(*)::double precision` })
           .from(issues)
@@ -315,6 +400,7 @@ export function companySituationService(db: Db) {
           ))
           .orderBy(desc(organizationalObservations.observedAt))
           .limit(MAX_OBSERVATIONS),
+        nextActions.project(companyId, { now }),
       ]);
 
       const issueCounts = countByStatus(issueStatusRows);
@@ -329,6 +415,13 @@ export function companySituationService(db: Db) {
       const pausedAgents = agentCounts.paused ?? 0;
       const errorAgents = agentCounts.error ?? 0;
       const totalAgents = Object.values(agentCounts).reduce((sum, count) => sum + count, 0);
+      const dispatchState = runnable + inReview === 0
+        ? "healthy" as const
+        : dispatchableRunnableIssueCount > 0 && schedulerActiveAgentCount === 0
+          ? "critical" as const
+          : dispatchableRunnableIssueCount === 0 || schedulerActiveAgentCount < Math.min(2, availableAgents)
+            ? "degraded" as const
+            : "healthy" as const;
       const deliberation = deliberationRows.map<CompanySituationOrganizationalRecord>((record) => ({
         ...record,
         dueAt: record.dueAt ? asIso(record.dueAt) : null,
@@ -355,13 +448,20 @@ export function companySituationService(db: Db) {
         completed: completedIssueRows,
       });
       const pendingApprovalIssueIds = new Set(pendingApprovalIssueRows.map((row) => row.issueId));
+      const nextActionByIssueId = new Map(nextActionProjection.actions.map((action) => [action.issueId, action]));
+      const opaqueBlockedRows = openFlowRows.filter((row) => row.status === "blocked" && !row.monitorNextCheckAt && !pendingApprovalIssueIds.has(row.id));
       const stageRows: Record<CompanySituationFlowStage["stage"], typeof openFlowRows> = {
         assigned_queue: openFlowRows.filter((row) => ["backlog", "todo"].includes(row.status) && Boolean(row.assigneeAgentId)),
         execution: openFlowRows.filter((row) => row.status === "in_progress"),
         review: openFlowRows.filter((row) => row.status === "in_review"),
         human_gate: openFlowRows.filter((row) => pendingApprovalIssueIds.has(row.id)),
         external_wait: openFlowRows.filter((row) => row.status === "blocked" && Boolean(row.monitorNextCheckAt) && !pendingApprovalIssueIds.has(row.id)),
-        blocked_unknown: openFlowRows.filter((row) => row.status === "blocked" && !row.monitorNextCheckAt && !pendingApprovalIssueIds.has(row.id)),
+        blocked_dependency: opaqueBlockedRows.filter((row) => nextActionByIssueId.get(row.id)?.actionClass === "WAITING_FOR_DEPENDENCY"),
+        blocked_conflict: opaqueBlockedRows.filter((row) => ["BLOCKED_BY_CONFLICT", "RECONCILIATION_REQUIRED"].includes(nextActionByIssueId.get(row.id)?.actionClass ?? "")),
+        blocked_unknown: opaqueBlockedRows.filter((row) => {
+          const actionClass = nextActionByIssueId.get(row.id)?.actionClass;
+          return actionClass !== "WAITING_FOR_DEPENDENCY" && actionClass !== "BLOCKED_BY_CONFLICT" && actionClass !== "RECONCILIATION_REQUIRED";
+        }),
       };
       const flow = (Object.entries(stageRows) as Array<[CompanySituationFlowStage["stage"], typeof openFlowRows]>)
         .map<CompanySituationFlowStage>(([stage, rows]) => ({
@@ -556,6 +656,28 @@ export function companySituationService(db: Db) {
           sources: [sourceRef("company", company.id, company.updatedAt)],
         });
       }
+      if (dispatchableRunnableIssueCount > 0 && schedulerActiveAgentCount === 0) {
+        attention.push({
+          id: "dispatch-capacity-disabled",
+          kind: "dispatch_capacity_disabled",
+          severity: "critical",
+          title: "Dispatch-eligible assigned work has no scheduled capacity",
+          summary: `${dispatchableRunnableIssueCount} assigned backlog or todo issue${dispatchableRunnableIssueCount === 1 ? " is" : "s are"} eligible under the local scheduler invariants while no available agent has an active scheduler heartbeat. Structured review waits, active subtree holds, routine executions, and accepted-outcome conflicts are excluded.`,
+          suggestedAction: "Restore one bounded owner lane only after confirming priority and dependency readiness; do not create more work while the downstream queue remains stalled.",
+          sources: [sourceRef("company", company.id, company.updatedAt)],
+        });
+      }
+      if (outcomeReconciliationIssueCount > 0) {
+        attention.push({
+          id: "outcome-state-conflicts",
+          kind: "outcome_state_conflict",
+          severity: "warning",
+          title: `${outcomeReconciliationIssueCount} task${outcomeReconciliationIssueCount === 1 ? " conflicts" : "s conflict"} with accepted outcome state`,
+          summary: "A linked delivery and outcome are accepted while the task remains non-terminal. The task is excluded from dispatch until typed evidence establishes the authoritative state.",
+          suggestedAction: "Reconcile Task, Delivery, and Outcome evidence; do not auto-close or re-run the task without a typed acceptance decision.",
+          sources: [sourceRef("company", company.id, company.updatedAt)],
+        });
+      }
       if (unassignedRunnableCount > 0) {
         attention.push({
           id: "unassigned-runnable-work",
@@ -698,6 +820,12 @@ export function companySituationService(db: Db) {
           runningAgents,
           pausedAgents,
           errorAgents,
+          schedulerActiveAgents: schedulerActiveAgentCount,
+          dispatchableRunnableIssues: dispatchableRunnableIssueCount,
+          structuredReviewIssues: structuredReviewIssueCount,
+          outcomeReconciliationIssues: outcomeReconciliationIssueCount,
+          heldRunnableIssues: heldRunnableIssueCount,
+          dispatchState,
           runnableIssuesPerAvailableAgent:
             availableAgents > 0 ? Number((runnable / availableAgents).toFixed(2)) : null,
           flow,

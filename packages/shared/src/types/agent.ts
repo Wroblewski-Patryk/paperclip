@@ -13,6 +13,7 @@ import type { TrustAuthorizationPolicy, TrustPreset } from "../trust-policy.js";
 
 export interface AgentPermissions {
   canCreateAgents: boolean;
+  executionPermissionClass?: "read_only" | "project_write" | "review_test" | "integration" | "deployment" | "system_maintenance" | "observe" | "review" | "workspace_write" | "privileged_local";
   trustPreset?: TrustPreset;
   authorizationPolicy?: TrustAuthorizationPolicy;
 }

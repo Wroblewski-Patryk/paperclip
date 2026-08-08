@@ -1916,7 +1916,7 @@ test("local source-control sidecars preserve parallelism across independent proj
 test("longevity configuration keeps the continuation watchdog frequent without duplicate triggers", async () => {
   const source = await readFile("scripts/configure-softwarehouse-longevity-routines.mjs", "utf8");
 
-  assert.match(source, /title: "\[Softwarehouse\] Continuation watchdog",[\s\S]*?assignee: portfolio \?\? cto/);
+  assert.match(source, /title: "11 Innovation: Continuation Watchdog",[\s\S]*?assignee: portfolio \?\? cto/);
   assert.match(source, /"Every 5 minutes continuation watchdog", "\*\/5 \* \* \* \*"/);
   assert.match(source, /scheduleTriggers\.length === 1/);
 });
@@ -2206,9 +2206,9 @@ test("continuation watchdog applies the next legal action when Paperclip goes id
   assert.match(source, /spawnSync\("pnpm", \["run", "softwarehouse:next-legal-action:apply"\]/);
   assert.match(source, /\.\.\.\(apiKey \? \{ authorization: `Bearer \$\{apiKey\}` \} : \{\}\)/);
   assert.match(source, /report\/softwarehouse-continuation-watchdog\.latest\.json/);
-  assert.match(activeRoutines, /"\[Softwarehouse\] Continuation watchdog"/);
+  assert.match(activeRoutines, /"11 Innovation: Continuation Watchdog"/);
   assert.match(activeRoutines, /"Every 5 minutes continuation watchdog"/);
-  assert.match(longevityConfigurator, /title: "\[Softwarehouse\] Continuation watchdog"/);
+  assert.match(longevityConfigurator, /title: "11 Innovation: Continuation Watchdog"/);
   assert.match(longevityConfigurator, /pnpm run softwarehouse:continuation-watchdog/);
   assert.match(packageJson, /"softwarehouse:continuation-watchdog": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --once"/);
   assert.match(packageJson, /"softwarehouse:continuation-watchdog:loop": "node scripts\/run-softwarehouse-continuation-watchdog\.mjs --loop"/);
@@ -2796,14 +2796,14 @@ test("control tick applies the bounded issue queue reconciler", async () => {
 
 test("recovery janitor only restores reusable routines after their own fresh successful recovery run", async () => {
   const source = await readFile("scripts/run-recovery-action-janitor.mjs", "utf8");
-  assert.match(source, /softwarehousePilotActiveRoutineTitles/);
+  assert.match(source, /softwarehousePilotActiveRuntimeRoutineTitles/);
   assert.match(source, /function canReuseIssueRunsForRecurringRestore/);
   assert.match(source, /issues\?status=backlog,todo,in_progress,in_review,blocked&limit=2000&includeBlockedBy=true/);
   assert.match(source, /healthReportedActiveRunCount = health\?\.devServer\?\.activeRunCount \?\? null/);
   assert.match(source, /activeRunCount = liveActiveRunCount/);
   assert.match(source, /restored_recurring_controller/);
   assert.match(source, /deferred_serial_repair/);
-  assert.match(source, /\["\[Softwarehouse\] Continuation watchdog", 0\]/);
+  assert.match(source, /\["11 Innovation: Continuation Watchdog", 0\]/);
   assert.match(source, /const reusableRoutineRestoreCandidate = canReuseIssueRunsForRecurringRestore\(detail, blockers\);/);
   assert.match(source, /const recoveryAttemptAt = detail\.activeRecoveryAction\.lastAttemptAt;/);
   assert.match(source, /!reusableRoutineRestoreCandidate \|\| !recoveryAttemptAt/);
@@ -2844,7 +2844,7 @@ test("recovery janitor only restores reusable routines after their own fresh suc
     title: "Review productivity for LUC-1438",
   };
   assert.equal(
-    source.includes("softwarehousePilotActiveRoutineTitles.has(issue?.title ?? \"\")"),
+    source.includes("isSoftwarehousePilotRoutineTitle(issue?.title ?? \"\")"),
     true,
   );
   assert.equal(

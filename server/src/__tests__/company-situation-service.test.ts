@@ -5,10 +5,14 @@ import {
   approvals,
   companies,
   createDb,
+  deliveryTasks,
   goals,
+  issueThreadInteractions,
   issues,
   organizationalObservations,
   organizationalRecords,
+  productDeliveries,
+  productOutcomes,
   projects,
 } from "@paperclipai/db";
 import {
@@ -73,6 +77,10 @@ describeEmbeddedPostgres("company situation service", () => {
     await db.delete(organizationalObservations);
     await db.delete(organizationalRecords);
     await db.delete(approvals);
+    await db.delete(issueThreadInteractions);
+    await db.delete(deliveryTasks);
+    await db.delete(productOutcomes);
+    await db.delete(productDeliveries);
     await db.delete(issues);
     await db.delete(projects);
     await db.delete(goals);
@@ -299,6 +307,12 @@ describeEmbeddedPostgres("company situation service", () => {
         totalAgents: 2,
         availableAgents: 1,
         errorAgents: 1,
+        schedulerActiveAgents: 0,
+        dispatchableRunnableIssues: 0,
+        structuredReviewIssues: 0,
+        outcomeReconciliationIssues: 0,
+        heldRunnableIssues: 0,
+        dispatchState: "degraded",
         runnableIssuesPerAvailableAgent: 1,
         agentsWithParallelWip: 0,
         maxParallelWip: 0,
@@ -341,5 +355,68 @@ describeEmbeddedPostgres("company situation service", () => {
     expect(situation.attention.flatMap((signal) => signal.sources)).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ entityId: otherAgentId })]),
     );
+  });
+
+  it("separates structured review and accepted-outcome conflicts from dispatch eligibility", async () => {
+    const companyId = randomUUID();
+    const agentId = randomUUID();
+    const projectId = randomUUID();
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Queue truth",
+      issuePrefix: "QTR",
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "Owner",
+      role: "engineer",
+      status: "idle",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    });
+    await db.insert(projects).values({
+      id: projectId,
+      companyId,
+      name: "Canary",
+      status: "in_progress",
+    });
+    const [acceptedTask, review] = await db.insert(issues).values([
+      { companyId, projectId, title: "Accepted canary task", status: "todo", assigneeAgentId: agentId },
+      { companyId, projectId, title: "Waiting for explicit review decision", status: "in_review", assigneeAgentId: agentId },
+    ]).returning();
+    const [delivery] = await db.insert(productDeliveries).values({
+      companyId,
+      projectId,
+      title: "Accepted canary",
+      problemStatement: "Exercise queue truth.",
+      decisionContract: {},
+      stage: "outcome_accepted",
+      ownerAgentId: agentId,
+    }).returning();
+    await db.insert(deliveryTasks).values({ companyId, deliveryId: delivery.id, issueId: acceptedTask.id, role: "implementation" });
+    await db.insert(productOutcomes).values({ companyId, deliveryId: delivery.id, status: "accepted", statement: "Canary accepted." });
+    await db.insert(issueThreadInteractions).values({
+      companyId,
+      issueId: review.id,
+      kind: "request_confirmation",
+      status: "pending",
+      continuationPolicy: "none",
+      payload: { version: 1, prompt: "Accept or request changes?" },
+    });
+
+    const situation = await companySituationService(db).get(companyId, { now: new Date("2026-08-08T17:00:00Z") });
+
+    expect(situation.capacity).toMatchObject({
+      dispatchableRunnableIssues: 0,
+      structuredReviewIssues: 1,
+      outcomeReconciliationIssues: 1,
+      dispatchState: "degraded",
+    });
+    expect(situation.attention.map((signal) => signal.kind)).toContain("outcome_state_conflict");
+    expect(situation.attention.map((signal) => signal.kind)).not.toContain("dispatch_capacity_disabled");
   });
 });

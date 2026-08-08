@@ -6,7 +6,7 @@ export const DELIVERY_STAGES = [
 export type DeliveryStage = (typeof DELIVERY_STAGES)[number];
 
 export const PRODUCT_OUTCOME_STATUSES = [
-  "unachieved", "observing", "achieved", "accepted", "rejected", "rolled_back",
+  "unachieved", "observing", "achieved", "accepted", "accepted_with_risk", "partial", "rejected", "rolled_back", "unknown",
 ] as const;
 export type ProductOutcomeStatus = (typeof PRODUCT_OUTCOME_STATUSES)[number];
 

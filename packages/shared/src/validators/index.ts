@@ -2,14 +2,23 @@ export {
   proposeAssignmentSchema,
   type ProposeAssignment,
 } from "./assignment-proposal.js";
+export {
+  createWorkProposalSchema,
+  createDelegationReportSchema,
+  type CreateWorkProposal,
+  type CreateDelegationReport,
+} from "./delegation-flow.js";
+export * from "./supervision.js";
 
 export {
   createDeliverySchema,
+  dispatchDeliverySchema,
   transitionDeliverySchema,
   updateDeliveryStatusSchema,
   updateProductOutcomeSchema,
   listDeliveriesQuerySchema,
   type CreateDelivery,
+  type DispatchDelivery,
   type TransitionDelivery,
   type UpdateDeliveryStatus,
   type UpdateProductOutcome,

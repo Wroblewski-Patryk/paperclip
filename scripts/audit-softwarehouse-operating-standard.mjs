@@ -100,8 +100,9 @@ const requiredPromptTerms = [
 
 const requiredRoleTerms = ["Responsibilities", "Done Means"];
 const requiredBundleEntryTerms = [
-  "Before taking non-trivial action, read the shared contracts and your role file",
-  "The role file is the only agent-specific responsibility file",
+  "do not preload the knowledge bundle",
+  "The native run context is the current role/hierarchy/permission authority",
+  "files below are references, not bootstrap",
 ];
 const requiredReferenceFiles = [
   "agent-activation-governance.md",

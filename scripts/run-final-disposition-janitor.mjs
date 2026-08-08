@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { canonicalSoftwarehouseRoutineTitle } from "./lib/softwarehouse-active-routines.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow Software House";
@@ -14,9 +15,9 @@ const candidateStatuses = new Set(["in_progress", "in_review", "blocked"]);
 const candidateStatusList = [...candidateStatuses];
 const markerPrefix = "softwarehouse-final-disposition-janitor:close_done:";
 const nonBlockingRoutineTitles = new Set([
-  "[Softwarehouse] Agent health and model governance",
-  "[Softwarehouse] Autonomy governor",
-  "[Softwarehouse] Gate freshness watcher",
+  "09 Technology: Agent Health and Model Governance",
+  "11 Innovation: Autonomy Governor",
+  "04 Operations: Gate Freshness Watcher",
 ]);
 
 async function request(method, route, body) {
@@ -203,7 +204,8 @@ try {
 const issueById = new Map(issues.map((issue) => [issue.id, issue]));
 const nonBlockingRoutineLiveRunCount = liveRuns.filter((run) => {
   const issue = issueById.get(run.issueId);
-  return issue?.originKind === "routine_execution" && nonBlockingRoutineTitles.has(issue.title);
+  return issue?.originKind === "routine_execution"
+    && nonBlockingRoutineTitles.has(canonicalSoftwarehouseRoutineTitle(issue.title));
 }).length;
 const blockingLiveRunCount = Math.max(0, liveRuns.length - nonBlockingRoutineLiveRunCount);
 const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean));

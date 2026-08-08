@@ -7,6 +7,8 @@ export type CompanySituationSignalKind =
   | "blocked_work"
   | "unassigned_runnable_work"
   | "no_available_agents"
+  | "dispatch_capacity_disabled"
+  | "outcome_state_conflict"
   | "missing_active_goal"
   | "project_overdue"
   | "project_due_soon"
@@ -106,7 +108,7 @@ export interface CompanySituationObservation {
 }
 
 export interface CompanySituationFlowStage {
-  stage: "assigned_queue" | "execution" | "review" | "human_gate" | "external_wait" | "blocked_unknown";
+  stage: "assigned_queue" | "execution" | "review" | "human_gate" | "external_wait" | "blocked_dependency" | "blocked_conflict" | "blocked_unknown";
   count: number;
   oldestHours: number | null;
 }
@@ -136,6 +138,12 @@ export interface CompanySituation {
     runningAgents: number;
     pausedAgents: number;
     errorAgents: number;
+    schedulerActiveAgents: number;
+    dispatchableRunnableIssues: number;
+    structuredReviewIssues: number;
+    outcomeReconciliationIssues: number;
+    heldRunnableIssues: number;
+    dispatchState: "healthy" | "degraded" | "critical";
     runnableIssuesPerAvailableAgent: number | null;
     flow: CompanySituationFlowStage[];
     bottleneck: CompanySituationFlowStage | null;

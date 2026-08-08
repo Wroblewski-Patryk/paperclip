@@ -494,6 +494,12 @@ V1 non-terminal liveness rule:
 
 Detailed ownership, execution, blocker, active-run watchdog, crash-recovery, conveyor parent-liveness, and non-terminal liveness semantics are documented in `doc/execution-semantics.md`.
 
+Native supervision uses company-scoped PostgreSQL records for findings, recurrences, root causes,
+safeguards, cycles, interventions, observation windows, evidence, and owner-assurance comparisons.
+Watchdog and integrity scans are deterministic by default; repair is separately admitted and root
+cause closure requires both a verified native safeguard and a passed observation window. External
+automations may compare read-only results but are not an execution or backlog authority.
+
 ## 8.3 Approval Status
 
 - `pending -> approved | rejected | cancelled`
@@ -1079,3 +1085,92 @@ Export/import behavior in V1:
 - import supports collision strategies: `rename`, `skip`, `replace`
 - import supports preview (dry-run) before apply
 - GitHub imports warn on unpinned refs instead of blocking
+
+## 22. Autonomous Runtime Integrity Addendum
+
+The control plane enforces a cumulative session runtime budget over raw,
+uncached, cached, and output tokens plus tool/file/iteration/retry/time usage.
+It exposes deterministic health states and stops an exhausted local adapter
+session during execution, not merely after the process exits.
+
+ProductDelivery acceptance uses typed predicate definitions and timestamped
+results. Required missing, failed, stale, or expired evidence fails closed.
+The outcome vocabulary is `unachieved`, `observing`, `achieved`, `accepted`,
+`accepted_with_risk`, `partial`, `rejected`, `rolled_back`, and `unknown`.
+Only an identified board owner can create a time-bounded
+`accepted_with_risk` decision; it must enumerate every failed predicate.
+
+Native supervision owns liveness recovery, orphan routing, stale-lock cleanup,
+Doctor diagnosis admission, false-green prevention, cost/session economics,
+and conversion of external-only assurance signals into durable native findings
+with an `external_intervention_required` learning record. External automation
+is assurance, never a second mutable backlog.
+
+`GET /api/companies/:companyId/next-legal-actions` exposes a deterministic,
+company-scoped readiness projection for every open non-routine issue. Eligibility
+and priority are separate contracts. Eligibility fails closed over explicit
+dependencies, dependency outcome state, owner availability, holds, approvals,
+structured interactions, live runs, and Task/Delivery/Outcome conflicts. Priority
+remains explainable and multidimensional (declared priority, goal linkage,
+unblock value, age, and current-constraint effect); it is not collapsed into a
+magic score.
+
+The projection records `ACT`, `WAIT`, `VERIFY`, `RECONCILE`, `ESCALATE`, or
+`NONE` with typed evidence and an epistemic state. Missing blocking reasons or
+sensor coverage produce `insufficient_evidence`/`unknown`, never healthy or
+eligible by absence of evidence. Its shadow-dispatch decision is read-only and
+selects at most one candidate. It does not grant execution authority or enable
+limited-auto dispatch.
+
+## 23. Autonomous Decision and Canary Delivery Addendum
+
+Every native supervision cycle materializes a typed autonomy decision from the
+current next-legal-action projection. A decision stores the candidate set,
+selected issue, rejected high alternatives, current constraint, evidence refs,
+freshness deadline, invalidation conditions, expected-outcome contract, and a
+layered vector for eligibility, constraint relevance, organizational value,
+risk, cost, opportunity cost, and confidence. It stores concise reasons and
+evidence, never hidden model reasoning.
+
+Decision evaluations are attached to the decision rather than creating another
+backlog. Their verdict vocabulary is `agree`, `disagree`,
+`insufficient_evidence`, `alternative`, `unsafe`, and `stale_state`. Oracle
+agreement and actual outcome quality are separate fields and separate graduation
+signals.
+
+Autonomy graduates per action class through `SHADOW`, `RECOMMEND`,
+`LIMITED_AUTO`, and `AUTO`. Graduation requires distinct samples, no unsafe
+verdict, minimum confidence, and—before execution authority—verified outcome
+history. Any unsafe verdict or outcome-quality regression downgrades the action
+class to `SHADOW`. The autonomy envelope bounds task type, risk, environment,
+owner scope, budget, concurrency, allowed action, and rollback.
+
+Dispatch performs a fresh eligibility projection immediately before mutation.
+Expired evidence or changed issue, owner, dependency, policy, goal, priority, or
+duplicate-execution state invalidates the decision. Dispatch has an explicit
+`ACCEPTED`, `FAILED`, or `UNCERTAIN` postcondition; acceptance does not prove run
+liveness or outcome success. Execution and outcome verification are recorded
+later with predicted-versus-actual impact and cost coverage classified as
+`KNOWN_ZERO`, `NONZERO`, `PARTIAL`, or `UNKNOWN`.
+
+Iteration 5 adds an explicit bootstrap without weakening graduation. A board can
+create one bounded `AUTHORIZED_CANARY` record for an active `RECOMMEND`
+decision. It constrains candidate, action class, risk, local environment,
+concurrency, executions, call/cost budget, validity, rollback, verification, and
+stop conditions. Native supervision may consume it on a later cycle, but the
+envelope remains SHADOW/RECOMMEND and one result is only one outcome sample.
+
+The next-legal-action contract is version 2 and carries typed issue intent.
+Old/expired/unknown intent yields `REQUEST_INTENT_CONFIRMATION`; stale dependency
+edges yield `RECONFIRM_DEPENDENCY`. Decision sample identity excludes elapsed
+time and includes material world/candidate/constraint/issue/evidence/outcome
+context. Evaluator class/model/version/evidence is retained, while oracle,
+operator, actual outcome, and observational counterfactual evidence remain
+separate signals.
+
+Execution records carry task-class liveness policy, `UNCERTAIN`/`STALLED`
+semantics, preemption class, verification independence, Cost Semantics V2, and
+edge-specific constraint-impact attribution. Expiring interrupts and reversible,
+versioned learned policies provide the first governance-learning MVP. The
+autonomy health projection reports intent, dependency, verification, and policy
+debt as prioritization evidence, never optimization rewards.
