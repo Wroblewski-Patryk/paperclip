@@ -63,6 +63,7 @@ const statusDir = path.join(outputRoot, "status");
 const curatedGraphPath = path.join(graphsDir, "architecture-graph.json");
 const startedAtMs = Date.now();
 const defaultUpdatedAt = "1970-01-01T00:00:00.000Z";
+const observedAt = process.env.ARCHITECTURE_AWARENESS_OBSERVED_AT ?? new Date().toISOString();
 const statusOnly = hasFlag("--status-only");
 const maxElapsedMs = Math.max(0, intArg("--max-elapsed-ms", 0));
 const progressEveryFiles = Math.max(1, intArg("--progress-every", 250) || 250);
@@ -1375,11 +1376,9 @@ try {
   // Optional curated priority test links file.
 }
 
-const generatedAt = [...entities.values(), ...relations.values()]
-  .map((item) => item.updated_at)
-  .filter((value) => typeof value === "string" && value.length > 0)
-  .sort()
-  .at(-1) ?? defaultUpdatedAt;
+// Artifact freshness describes when this repository snapshot was scanned. Entity and
+// relation `updated_at` fields continue to preserve the underlying source timestamps.
+const generatedAt = observedAt;
 
 const graph = {
   schema_version: 1,

@@ -21,11 +21,16 @@ test("build-architecture-awareness-index writes byte-identical graph exports whe
 
       const run = () => {
         const commonArgs = ["--project", "Fixture", "--root", root];
-        execFileSync(process.execPath, [scriptPath, ...commonArgs], { encoding: "utf8" });
+        const env = {
+          ...process.env,
+          ARCHITECTURE_AWARENESS_OBSERVED_AT: "2026-01-01T00:00:00.000Z",
+          PROJECT_TRUTH_OBSERVED_AT: "2026-01-01T00:00:00.000Z",
+        };
+        execFileSync(process.execPath, [scriptPath, ...commonArgs], { encoding: "utf8", env });
         execFileSync(process.execPath, [appCompletionScriptPath, ...commonArgs], { encoding: "utf8" });
         execFileSync(process.execPath, [projectTruthScriptPath, ...commonArgs, "--apply"], {
           encoding: "utf8",
-          env: { ...process.env, PROJECT_TRUTH_OBSERVED_AT: "2026-01-01T00:00:00.000Z" },
+          env,
         });
       };
 
