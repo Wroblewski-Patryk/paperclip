@@ -7,8 +7,8 @@ import {
 } from "./lib/softwarehouse-active-routines.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
-const companyNameAliases = [companyName, "LuckySparrow"];
+const companyName = "LuckySparrow";
+const companyNameAliases = [companyName, "LuckySparrow Software House"];
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.RECOVERY_ACTION_JANITOR_REQUEST_TIMEOUT_MS ?? 15_000);

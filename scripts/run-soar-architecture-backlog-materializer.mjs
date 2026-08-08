@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = process.env.PAPERCLIP_COMPANY_NAME ?? "LuckySparrow Software House";
+const companyName = process.env.PAPERCLIP_COMPANY_NAME ?? "LuckySparrow";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const apply = process.argv.includes("--apply");

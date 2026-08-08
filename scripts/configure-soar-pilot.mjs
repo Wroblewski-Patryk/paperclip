@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const appsRoot = path.resolve(root, "..");
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
+const companyName = "LuckySparrow";
 const pilotProjectName = "Soar";
 const generalProjectName = "Softwarehouse Operating System";
 

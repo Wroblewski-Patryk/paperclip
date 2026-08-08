@@ -6,7 +6,7 @@ import { agentWipBlockerFor, fetchAgentWipState, summarizeAgentWip } from "./lib
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? process.env.PAPERCLIP_COMPANY_NAME ?? "LuckySparrow Software House";
+const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? process.env.PAPERCLIP_COMPANY_NAME ?? "LuckySparrow";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? process.env.SOFTWAREHOUSE_COMPANY_ID ?? null;
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_BLOCKED_TRIAGE_REQUEST_TIMEOUT_MS ?? 30_000);

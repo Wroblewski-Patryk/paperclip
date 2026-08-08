@@ -1,8 +1,8 @@
 import { softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
-const companyAliases = [companyName, "LuckySparrow"];
+const companyName = "LuckySparrow";
+const companyAliases = [companyName, "LuckySparrow Software House"];
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const apply = process.argv.includes("--apply");
 const commentScanLimit = Math.max(

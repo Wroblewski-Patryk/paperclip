@@ -5,8 +5,8 @@ import { softwarehouseGateSpecs } from "./lib/softwarehouse-gates.mjs";
 import { agentWipBlockerFor, fetchAgentWipState, summarizeAgentWip } from "./lib/agent-wip-guard.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
-const companyNameAliases = [companyName, "LuckySparrow"];
+const companyName = "LuckySparrow";
+const companyNameAliases = [companyName, "LuckySparrow Software House"];
 const apply = process.argv.includes("--apply");
 const currentWatcherRunId = process.env.PAPERCLIP_RUN_ID ?? null;
 const heartbeatCompanyId = process.env.PAPERCLIP_COMPANY_ID ?? null;

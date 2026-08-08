@@ -14,8 +14,8 @@ import {
 } from "./lib/softwarehouse-routine-gates.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
-const companyAliases = [companyName, "LuckySparrow"];
+const companyName = "LuckySparrow";
+const companyAliases = [companyName, "LuckySparrow Software House"];
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const safeNonProductionLaneTitle = "[Soar][Safe Lane] Non-production architecture/status refresh while gate is blocked";

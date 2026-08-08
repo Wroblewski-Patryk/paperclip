@@ -9,7 +9,7 @@ import {
 import { softwarehouseActiveApplicationProjects } from "./lib/softwarehouse-project-registry.mjs";
 
 const apiBase = (process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200").replace(/\/$/, "");
-const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow Software House";
+const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow";
 const strict = process.argv.includes("--strict");
 
 async function request(route) {

@@ -3,8 +3,8 @@ import path from "node:path";
 import { canonicalSoftwarehouseRoutineTitle } from "./lib/softwarehouse-active-routines.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
-const companyNameAliases = [companyName, "LuckySparrow"];
+const companyName = "LuckySparrow";
+const companyNameAliases = [companyName, "LuckySparrow Software House"];
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const apply = process.argv.includes("--apply");

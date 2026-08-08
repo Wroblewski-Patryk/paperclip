@@ -20,7 +20,7 @@ import {
 } from "./lib/softwarehouse-project-registry.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
+const companyName = "LuckySparrow";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const authToken = process.env.PAPERCLIP_API_KEY ?? null;
 const runId = process.env.PAPERCLIP_RUN_ID ?? null;

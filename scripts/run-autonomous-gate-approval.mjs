@@ -3,7 +3,7 @@ import { normalizeKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { softwarehouseGateSpecs } from "./lib/softwarehouse-gates.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
+const companyName = "LuckySparrow";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const apply = process.argv.includes("--apply");
 const requestTimeoutMs = Number(process.env.AUTONOMOUS_GATE_APPROVAL_REQUEST_TIMEOUT_MS ?? 15_000);

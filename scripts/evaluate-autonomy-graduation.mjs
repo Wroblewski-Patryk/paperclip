@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 const apiBase = (process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200").replace(/\/$/, "");
-const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow Software House";
+const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow";
 const observationDays = Number(process.env.SOFTWAREHOUSE_GRADUATION_DAYS ?? 14);
 const materialRepair = process.argv.includes("--material-repair");
 const now = new Date();

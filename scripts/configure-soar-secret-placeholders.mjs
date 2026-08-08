@@ -1,5 +1,5 @@
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
+const companyName = "LuckySparrow";
 
 async function request(method, route, body) {
   const response = await fetch(`${apiBase}${route}`, {

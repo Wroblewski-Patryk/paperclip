@@ -1,5 +1,5 @@
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
+const companyName = "LuckySparrow";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const blockerTitle = "[Softwarehouse][Blocker] Configure OpenAI runtime auth for Codex agents";
 const targetModel = process.env.SOFTWAREHOUSE_CODEX_MODEL ?? "gpt-5.6-terra";

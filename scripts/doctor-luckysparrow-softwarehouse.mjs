@@ -1,7 +1,7 @@
 import { softwarehousePilotActiveRuntimeRoutineTitles } from "./lib/softwarehouse-active-routines.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
+const companyName = "LuckySparrow";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 const expectedActiveRoutineTitles = softwarehousePilotActiveRuntimeRoutineTitles;
 

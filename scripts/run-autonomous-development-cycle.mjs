@@ -17,7 +17,7 @@ import {
 
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const apiBase = (process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200").replace(/\/$/, "");
-const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow Software House";
+const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow";
 const preferredCompanyNames = [
   companyName,
   process.env.PAPERCLIP_COMPANY_NAME,

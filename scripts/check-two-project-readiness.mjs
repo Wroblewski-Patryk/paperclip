@@ -4,7 +4,7 @@ import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 import { collectNonTerminalBlockerLeaves } from "./lib/delivery-blocker-graph.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow Software House";
+const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow";
 const preferredCompanyNames = [
   process.env.SOFTWAREHOUSE_COMPANY_NAME,
   process.env.PAPERCLIP_COMPANY_NAME,

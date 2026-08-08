@@ -5,7 +5,7 @@ import { isRunnableAgent } from "./lib/softwarehouse-agent-resolver.mjs";
 
 const apply = process.argv.includes("--apply");
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
-const companyName = "LuckySparrow Software House";
+const companyName = "LuckySparrow";
 const companyNames = ["LuckySparrow", "LuckySparrow Software House"];
 const outputJson = "report/softwarehouse-access-unblock-tasks.latest.json";
 const outputMd = "report/softwarehouse-access-unblock-tasks.latest.md";

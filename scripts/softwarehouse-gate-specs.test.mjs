@@ -2500,7 +2500,7 @@ test("softwarehouse autonomous project defaults activate Featherly while keeping
 test("project ownership assignment resolves both LuckySparrow company aliases", async () => {
   const source = await readFile("scripts/run-project-ownership-assignment.mjs", "utf8");
 
-  assert.match(source, /const companyNameAliases = \[companyName, "LuckySparrow"\]/);
+  assert.match(source, /const companyNameAliases = \[companyName, "LuckySparrow Software House"\]/);
   assert.match(source, /companyNameAliases\.includes\(candidate\.name\)/);
   assert.match(source, /\^LuckySparrow\\b\/i/);
 });
@@ -3395,7 +3395,7 @@ test("runtime binding audits do not misclassify subscription controller coordina
     "scripts/repair-runtime-binding-assignees.mjs",
   ]) {
     const source = await readFile(scriptPath, "utf8");
-    assert.match(source, /companyAliases = \[companyName, "LuckySparrow"\]/);
+    assert.match(source, /companyAliases = \[companyName, "LuckySparrow Software House"\]/);
     assert.match(source, /companyAliases\.includes\(candidate\.name\)/);
     assert.match(source, /subscription business readiness controller/);
     assert.doesNotMatch(source, /server health\|runtime/);
