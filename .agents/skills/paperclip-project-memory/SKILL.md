@@ -15,7 +15,9 @@ Use this skill to keep the repository-local memory coherent across Codex chats. 
 2. Read `.codex/PROJECT_CONTEXT.md` for compact current context when present.
 3. Read `.agents/state/board-context.md` for the user's intent and operating preferences.
 4. Read `.agents/state/active-mission.md` when the work affects Softwarehouse priorities, Soar/Roost delivery, agents, gates, or production posture.
-5. Read `.agents/state/project-journal.md` before appending a durable diary entry.
+5. Read `.agents/state/project-journal.md` before appending a durable diary
+   entry. Search `history/agent-memory/` only when the task requires older
+   history.
 6. Use `.agents/workflows/context-capture.md` when the user asks to save or analyze a chat.
 
 For file locations and update rules, see `references/memory-map.md`.
@@ -26,11 +28,18 @@ When asked to save context from a conversation or recent work:
 
 1. Extract decisions, goals, constraints, open questions, and concrete next actions.
 2. Separate durable context from transient chat noise.
-3. Append a dated entry to `.agents/state/project-journal.md`.
+3. Append a dated entry to `.agents/state/project-journal.md` only when the
+   conversation creates a durable delta. Do not journal routine no-change
+   reviews.
 4. Update `.agents/state/board-context.md` only when the user's intent, preferences, or operating model changed.
 5. Update `.agents/state/active-mission.md` only when priorities, gates, owners, or live project status changed.
 6. Update `.agents/state/responsibility-learning.md` or `.agents/state/agent-evals.md` only for repeated agent behavior patterns, failures, or evaluations.
-7. Keep product docs in `doc/` for product contracts and `.agents`/`.codex` for operating memory.
+7. Keep product docs in `doc/` for product contracts, `.agents` for canonical
+   operating memory, and `.codex` for the compact Codex routing bootstrap.
+8. If the active journal approaches the byte budget in
+   `docs/documentation-contract.json`, move it intact to
+   `history/agent-memory/`, link the archive from the new journal, and carry
+   forward only unresolved durable context.
 
 ## What To Record
 
@@ -48,6 +57,7 @@ Avoid recording:
 - raw secrets, tokens, cookies, private keys, or credential values;
 - unverified assumptions as facts;
 - huge pasted transcripts when a concise synthesis is enough;
+- repeated no-change checkpoints already preserved in issue or run evidence;
 - product requirements that belong in `doc/SPEC-implementation.md` or issue documents.
 
 ## Writing Style

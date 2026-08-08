@@ -35,8 +35,10 @@ startup payload and not higher-authority truth.
 - `packages/adapter-utils/`: shared adapter utilities
 - `packages/plugins/`: plugin system packages
 - `doc/`: operational and product docs
-- `.codex/PROJECT_CONTEXT.md`: compact repo-local context for future Codex chats
-- `.agents/state/`: durable Softwarehouse operating memory and project journal
+- `.codex/PROJECT_CONTEXT.md`: compact Codex routing bootstrap, not a live-state copy
+- `.agents/skills/`: provider-neutral repository workflows and specialist guidance
+- `.agents/state/`: curated, provider-neutral Softwarehouse operating memory
+- `history/agent-memory/`: archived journals and superseded agent-context snapshots
 - `.agents/skills/paperclip-project-memory/`: workflow for saving chat context and updating project memory
 
 When the user asks to "zapisz do dziennika", "przeanalizuj i zapisz", or otherwise preserve context for future chats, use `.agents/skills/paperclip-project-memory/SKILL.md` and update the relevant `.agents/state/` files.

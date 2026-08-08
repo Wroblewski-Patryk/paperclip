@@ -13,6 +13,17 @@
     "architecture": ["docs/architecture/", "doc/execution-semantics.md"],
     "operations": ["docs/softwarehouse/", "doc/DEVELOPING.md"],
     "activePlanning": ["doc/plans/"],
+    "activeState": [
+      ".agents/state/README.md",
+      ".agents/state/current-focus.md",
+      ".agents/state/active-mission.md",
+      ".agents/state/board-context.md",
+      ".agents/state/decision-register.md",
+      ".agents/state/next-steps.md",
+      ".agents/state/risk-register.md",
+      ".agents/state/responsibility-learning.md",
+      ".agents/state/project-journal.md"
+    ],
     "derivedStatus": ["docs/status/", "docs/graphs/"],
     "historical": ["history/"],
     "ephemeral": [".paperclip/agent-instructions/"]
@@ -27,6 +38,7 @@
   ],
   "budgets": {
     "maxDefaultContextBytes": 180000,
+    "maxCodexBootstrapBytes": 16384,
     "maxActiveStateFileBytes": 256000,
     "maxActivePlanningFileBytes": 256000,
     "maxActivePlanningFiles": 60,

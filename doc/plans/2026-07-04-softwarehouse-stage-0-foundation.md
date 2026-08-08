@@ -34,7 +34,10 @@ projects, secrets, routines, evidence, and learning.
 - Current-agent managed instruction bundles: 38/38 verified, managed mode, no warnings
 - Agent creation authority: only `06 AIM (AI Agent Manager)` has `permissions.canCreateAgents: true`
 - Department map: `.agents/state/softwarehouse-departments.md`
-- Backup checkpoint: manual DB backup `paperclip-20260704-024049.sql.gz` plus config snapshot `.agents/state/backups/stage0-config-20260704-024049.zip`
+- Backup checkpoint: manual DB backup `paperclip-20260704-024049.sql.gz`; the
+  recursively growing config ZIP series was retired on 2026-08-08 and replaced
+  locally by the compact, non-recursive
+  `.agents/state/backups/stage0-config-final-20260704-030908-no-recursive-backups.zip`.
 - V0 audit: `.agents/state/softwarehouse-v0-readiness-audit.md`
 - Resource policy: `.agents/state/softwarehouse-resource-policy.md`
 - Resource access matrix: `.agents/state/softwarehouse-resource-access-matrix.md`

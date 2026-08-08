@@ -1,5 +1,27 @@
 # Active Mission
 
+## 2026-08-08 - Stabilize And Restart Constructive Delivery
+
+- The active mission is stabilization before scale: no upstream Paperclip
+  upgrade, no new agent structure, and no additional orchestration layer until
+  the current control plane reliably advances application outcomes.
+- The broad native autonomy/supervision implementation was validated with
+  repo-wide typecheck and build, its inconsistent context clock was repaired,
+  and it was closed in commit `b098fbc39`.
+- A routine-title migration defect was found: departmental canonical titles
+  had replaced legacy titles in the database, while the active matrix and
+  janitors still matched the legacy names. Central canonicalization now keeps
+  legacy recognition but activates only canonical routines.
+- Before configuration mutation, a fresh logical backup was written as
+  `paperclip-20260808-230645.sql.gz` (1263.5 MB). The exact temporary
+  `.paperclip-delegate-luc2472.ps1` file was removed after a redacted scan
+  proved it contained authentication headers; it was untracked and is not
+  recoverable from Git.
+- Next operational sequence: close documentation/memory compaction, normalize
+  routine posture at zero live runs, repair project identity blockers, run one
+  control tick, and admit at most one safe product canary with a complete
+  evidence contract.
+
 ## 2026-08-04 - Product intent admission gate implemented
 
 - The canonical autonomous chain now begins before task creation: owner

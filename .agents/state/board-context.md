@@ -1,6 +1,23 @@
 # Board Context
 
-Last updated: 2026-08-04
+Last updated: 2026-08-08
+
+## 2026-08-08 Stabilization Before Further Scale
+
+The owner explicitly stopped further scaling, agent growth, configuration
+expansion, and upstream Paperclip upgrades until the existing autonomous
+softwarehouse works constructively. Existing sound mechanisms should be kept;
+unfinished mechanisms must be completed, incorrect mechanisms repaired, and
+duplicated or noisy configuration removed. The required outcome is not another
+recommendation report: canonical routines must keep Roost, Soar, and Featherly
+moving from owner intent and product documentation through verified delivery
+and observable outcome.
+
+Activity, issue volume, agent count, and generated documentation are not
+success signals. The operating system must prefer a small legal delivery lane,
+produce inspectable test/review/docs evidence, reconcile source and deployed
+identity, and then select the next real product gap. Paperclip must not be
+upgraded while the local migration/source divergence remains unsafe.
 
 ## 2026-08-04 Owner Intent Is Step Zero
 

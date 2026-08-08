@@ -6,16 +6,16 @@ description: >
   adding pages or features to the frontend, styling UI elements, or when you
   need to understand the design language and conventions. Covers: component
   creation, design tokens, typography, status/priority systems, composition
-  patterns, and the /design-guide showcase page. Always use this skill
-  alongside the frontend-design skill (for visual quality) and the
-  web-design-guidelines skill (for web best practices).
+  patterns, and the /design-guide showcase page.
 ---
 
 # Paperclip Design Guide
 
 Paperclip's UI is a professional-grade control plane — dense, keyboard-driven, dark-themed by default. Every pixel earns its place.
 
-**Always use with:** `frontend-design` (visual polish) and `web-design-guidelines` (web best practices).
+Read `doc/UI-DESIGN-SYSTEM.md` first. It is the repository authority when this
+skill or the living `/design-guide` showcase drifts. Use additional visual or
+web-design skills only when they are available and relevant to the task.
 
 ---
 

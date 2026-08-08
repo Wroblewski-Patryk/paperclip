@@ -103,6 +103,16 @@ default context. Archive old or duplicate work when:
 Do not archive active blockers, owner decisions, production gates, or product
 source-of-truth gaps until the current owner and next action are visible.
 
+Repository-local agent memory follows the same split:
+
+- `.agents/state/` contains curated memory; the documentation contract
+  explicitly names which files count as active state;
+- `history/agent-memory/` contains immutable journal and bootstrap snapshots;
+- `.codex/PROJECT_CONTEXT.md` is a routing bootstrap, not a copy of current
+  operational state;
+- byte budgets trigger lossless rotation into history, never deletion of
+  unique knowledge.
+
 ## Closure Rule
 
 When a task changes knowledge, its handoff must say one of:

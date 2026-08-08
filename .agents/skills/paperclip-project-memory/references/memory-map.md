@@ -1,14 +1,15 @@
 # Paperclip Project Memory Map
 
-Last updated: 2026-07-22
+Last updated: 2026-08-08
 
 ## Files
 
 | Path | Purpose | Update when |
 | --- | --- | --- |
-| `.codex/PROJECT_CONTEXT.md` | Compact bootstrap context for new Codex chats. | The top-level mission, active priorities, or key reading order changes. |
+| `.codex/PROJECT_CONTEXT.md` | Compact routing bootstrap for new Codex chats; no volatile status duplication. | Authority, task-routing, or stable workspace boundaries change. |
 | `.agents/state/board-context.md` | User intent, collaboration style, and desired company shape. | The user clarifies what they want Paperclip/Softwarehouse to become. |
-| `.agents/state/project-journal.md` | Dated diary of durable decisions and context captures. | Any conversation or work session should be preserved for future chats. |
+| `.agents/state/project-journal.md` | Active diary of recent durable decisions and context captures. | A conversation creates a meaningful durable delta. |
+| `history/agent-memory/` | Immutable historical journals and superseded bootstrap snapshots. | Active memory is rotated at a natural checkpoint or approaches its byte budget. |
 | `.agents/state/active-mission.md` | Operational mission, gates, lanes, and recent checkpoints. | Live priorities, gates, owner paths, or proof status changes. |
 | `.agents/state/responsibility-learning.md` | Lessons from repeated agent/process failures. | A repeated failure pattern or responsibility boundary change is identified. |
 | `.agents/state/agent-evals.md` | Evaluations of agent behavior and quality. | Reviewing agent performance or learning-loop outcomes. |
@@ -20,8 +21,9 @@ Last updated: 2026-07-22
 
 ## Boundaries
 
-- `.agents` is operating memory for agents.
-- `.codex` is compact Codex bootstrap context and local runtime scratch.
+- `.agents` is the provider-neutral canonical home for operating memory and
+  reusable repository skills.
+- `.codex` is a compact Codex routing bootstrap plus ignored local scratch.
 - `doc/` is product and engineering documentation.
 - Paperclip issue documents are the source of truth for issue-specific plans.
 - Generated deliverables should be attached as Paperclip work products when the issue workflow requires it.
@@ -31,4 +33,15 @@ Last updated: 2026-07-22
 
 ## Update Granularity
 
-Prefer one concise dated entry per meaningful session. Update summary files only when the new information will matter to future work.
+Prefer one concise dated entry per meaningful session. Do not append a
+no-change heartbeat merely because a review occurred. Update summary files
+only when the new information will matter to future work.
+
+When the active journal approaches `maxActiveStateFileBytes`:
+
+1. Move the complete journal to `history/agent-memory/` with a bounded date in
+   the filename.
+2. Start a small active journal with an archive link and only unresolved or
+   newly durable context.
+3. Do not summarize away or delete the archived source.
+4. Never load all archives unless the task is explicitly historical.
