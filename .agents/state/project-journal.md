@@ -58,3 +58,25 @@ evidence.
 - Recursive Stage 0 ZIP snapshots were identified as disk bloat rather than
   useful context. Backup generation must exclude its own destination and use
   bounded retention.
+
+### 2026-08-08 - Stabilization completed and canary failed closed
+
+- The installed Paperclip remains on `0.3.1`; no upstream update was needed or
+  attempted.
+- Company naming, 39 agent configurations, safe sandbox defaults, and the
+  canonical routine matrix converged. Eight routines are active and 29
+  overlapping definitions are archived.
+- Current project-truth indexes were rebuilt for Soar, Roost, and Featherly.
+  Product-aware classification now prevents generic credential/secret and
+  robots/order/strategy text from inventing Exchange/Trading work in
+  non-trading products.
+- The three application repositories now keep only bounded project-specific
+  guidance; Paperclip owns organizational roles, coordination, and durable
+  memory. The resulting cleanup commits are Soar `9ba70cc5f`, Roost
+  `4a230f02`, and Featherly `8d1fce1`.
+- A stale Soar canary for LUC-1972 attempted an unsafe cross-baseline
+  integration. Its partial changes were rejected, the repo was restored clean,
+  and the stale lane plus redundant recovery lanes were cancelled.
+- Final health, agent settings, workspace-boundary, runtime-topology, and
+  restore-drill checks pass. The durable closeout is
+  `docs/status/2026-08-08-softwarehouse-stabilization-closeout.md`.

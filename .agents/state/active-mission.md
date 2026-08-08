@@ -1348,3 +1348,21 @@ because the required empirical sample does not yet exist: two autonomous,
 independently accepted outcomes across two projects, followed by 14 continuous
 healthy days. All other current graduation checks pass. Keep the four bounded
 automations active until that evidence accrues; do not fabricate acceptance.
+
+## 2026-08-08 - Stabilized operating baseline
+
+- Paperclip `0.3.1` is healthy on strict ports `3200`/`54329`; no upstream
+  update was performed.
+- The canonical runtime has 39 audited active agents, eight active routines,
+  29 archived duplicate/overlapping routines, and no unexpected live run.
+- Soar, Roost, and Featherly are clean and their redundant local agent
+  hierarchies/state copies have been replaced by bounded project guidance.
+- Project truth is freshly generated and product-aware. Featherly no longer
+  produces Exchange or Trading work from generic security/runtime vocabulary.
+- The stale LUC-1972 canary was rejected after cross-baseline integration
+  produced out-of-scope deletions; no partial product code survived. Direct
+  `.git` writes remain sandboxed and must use the explicit source-control
+  closure path rather than a global bypass.
+- Health, topology, workspace boundary, settings, targeted regression, and
+  isolated restore evidence pass. Protected production and secret boundaries
+  remain fail-closed.
