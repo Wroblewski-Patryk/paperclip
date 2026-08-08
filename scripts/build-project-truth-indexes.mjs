@@ -1,6 +1,7 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { hasExchangeIntent, hasTradingIntent } from "./lib/product-flow-classifier.mjs";
 
 function argValue(name, fallback = null) {
   const index = process.argv.indexOf(name);
@@ -105,9 +106,9 @@ function flowForText(value) {
   const text = lower(value);
   if (/(login|logout|register|session|auth|user)/.test(text)) return "Account access";
   if (/(subscription|billing|stripe|checkout|payment|entitlement|plan)/.test(text)) return "Subscription and entitlement";
-  if (/(binance|gateio|gate\.io|exchange|api key|credential|secret)/.test(text)) return "Exchange connection and configuration";
+  if (hasExchangeIntent(text, { projectName })) return "Exchange connection and configuration";
   if (/(dashboard|home|overview|widget)/.test(text)) return "Dashboard overview";
-  if (/(dca|bot|strategy|trade|order|position|wallet|market|worker|runtime)/.test(text)) return "Trading operation";
+  if (hasTradingIntent(text, { projectName })) return "Trading operation";
   if (/(settings|profile|config)/.test(text)) return "User configuration";
   if (/(admin)/.test(text)) return "Admin operation";
   return "Unclassified user workflow";

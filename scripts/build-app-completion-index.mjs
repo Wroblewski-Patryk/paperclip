@@ -1,5 +1,6 @@
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { hasExchangeIntent, hasTradingIntent } from "./lib/product-flow-classifier.mjs";
 
 function argValue(name, fallback = null) {
   const index = process.argv.indexOf(name);
@@ -89,9 +90,9 @@ function userFlowName(entity) {
   const text = entityText(entity);
   if (includesAny(text, ["login", "register", "session", "auth"])) return "Account access";
   if (hasSubscriptionIntent(text)) return "Subscription and entitlement";
-  if (includesAny(text, ["binance", "gateio", "gate.io", "exchange", "api key", "credential"])) return "Exchange connection and configuration";
+  if (hasExchangeIntent(text, { projectName })) return "Exchange connection and configuration";
   if (includesAny(text, ["dashboard", "home", "overview"])) return "Dashboard overview";
-  if (includesAny(text, ["bot", "strategy", "trade", "order", "position", "wallet", "market"])) return "Trading operation";
+  if (hasTradingIntent(text, { projectName })) return "Trading operation";
   if (includesAny(text, ["settings", "profile", "config"])) return "User configuration";
   if (includesAny(text, ["admin"])) return "Admin operation";
   return "Unclassified user workflow";
