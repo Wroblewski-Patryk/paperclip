@@ -1,0 +1,131 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Paperclip — raport powdrożeniowy",
+    "description": "Techniczny raport A–K z dowodami, ograniczeniami i materiałem do falsyfikacji.",
+    "generatedAt": "2026-08-04T21:25:00+02:00",
+    "filters": [],
+    "cards": [],
+    "charts": [
+      {
+        "id": "context_packet_comparison",
+        "title": "Preloaded context packet: baseline i run kontrolowany",
+        "subtitle": "Kontrolowany packet jest wyraźnie mniejszy; wykres nie obejmuje późniejszego kosztu całej sesji.",
+        "type": "bar",
+        "dataset": "context_comparison",
+        "sourceId": "context_chart_data",
+        "valueFormat": "number",
+        "encodings": {
+          "x": { "field": "run", "type": "nominal", "label": "Run" },
+          "y": { "field": "raw_tokens", "type": "quantitative", "label": "Szacowane tokeny pakietu" },
+          "tooltip": [{ "field": "raw_tokens", "type": "quantitative", "label": "Tokeny", "format": "number" }]
+        }
+      }
+    ],
+    "tables": [],
+    "sources": [
+      { "id": "implementation", "label": "Implementacja Paperclip", "path": "server/src/services" },
+      { "id": "targeted_tests", "label": "Targetowane testy Paperclip", "path": "server/src/__tests__" },
+      { "id": "live_runs", "label": "Lokalny Paperclip — runy, findings i delivery", "path": "docs/status/2026-08-04-paperclip-control-plane-report.artifact.json" },
+      { "id": "context_chart_data", "label": "Porównanie pakietów context", "path": "docs/status/2026-08-04-paperclip-control-plane-report.artifact.json" },
+      { "id": "roost_delivery", "label": "Roost — implementacja, testy i produkcyjny readback", "path": "scripts/verify-roost-protected-product-map-readback.ts" },
+      { "id": "operating_docs", "label": "Kontrakty operacyjne Paperclip", "path": "docs/architecture.md" }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# Paperclip — raport powdrożeniowy"
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## A. System wykonał realną pracę, ale jeden warunek końcowy pozostaje niespełniony\n\n- **[VERIFIED]** Wdrożono hard context admission, telemetrykę źródeł, issue-scoped quota hold, 12 typów bottlenecków, stalled-ready dispatch oraz wspólny kontrakt 27 kontroli. Targetowane testy kontraktowe zakończyły się wynikiem 12/12, a typecheck serwera przeszedł.\n- **[OBSERVED]** Live flow wykonał pełne `CHANGES_REQUIRED → korekta przez pierwotnego wykonawcę → niezależny re-review → ACCEPTED`, rozwiązał jeden owner bottleneck i zatrzymał kosztowny run przy 315,92× limitu.\n- **[OBSERVED]** Rzeczywista zmiana Roosta została wypchnięta i wdrożona pod SHA `893c8536e9243bc7af17e3e21a5f4104a368d63c`; publiczny health zwrócił dokładnie ten commit.\n- **[OBSERVED]** Protected readback zwrócił dokładny `sourceSnapshotId`, ale jednocześnie `projectionStatus=conflict` i `freshness.status=stale`. Literalne kryterium „ta sama wersja bez conflict” nie przeszło, mimo że transport, auth, duplicate i out-of-order zachowały się poprawnie.\n- **[INFERRED]** Największe ryzyko to rozjazd między poprawnym wykonaniem mechaniki a przedwczesnym zaakceptowaniem outcome przez ręczne board transitions. System nadal może pomylić aktywność i zdrowie wdrożenia z pełnym wynikiem biznesowym."
+      },
+      {
+        "id": "context",
+        "type": "markdown",
+        "body": "## B. Context gate ogranicza pakiet wejściowy, lecz nie rozwiązał jeszcze kosztu całej sesji\n\n- **[DOCUMENTED]** Poprzedni baseline wynosił około 6,82 mln raw input tokens dla dwóch kontrolowanych outcomes, czyli około 3,41 mln na outcome.\n- **[OBSERVED]** Kontrolowany pakiet 46 320 tokenów był mniejszy o około 82–92% od świeżych runów bazowych 256k, 333k i 599k. Kolejne dopuszczone pakiety miały 13 410/14 000 i 13 470/16 000 tokenów.\n- **[VERIFIED]** Manifest zawiera źródło, typ, bajty, szacowane tokeny, powód, requirement, freshness, ownera, hash/wersję, on-demand oraz informację o redukcji. Gate usuwa optional, zamienia treści na referencje/syntezę, a następnie fail-closed z findingiem. Override jest systemowy i ma expiry.\n- **[VERIFIED]** Testy pokrywają run pod limitem, redukcję optional, fail-closed, expiry override i attribution per source; 4/4 przeszły.\n- **[NOT TESTED]** On-demand retrieval jest sprawdzony kontraktowo, ale nie ma wiarygodnego live pomiaru liczby realnych pobrań przez agenta.\n- **[OBSERVED]** Co najmniej dwa review runy zostały odrzucone przez limit. Wykryto również błąd fallbacku ustawiający limit na 1 token i go naprawiono.\n- **[OBSERVED]** Największym stałym źródłem pakietu pozostaje wymagany repozytoryjny kontrakt `AGENTS.md` wraz z instrukcją roli. Pełny ranking zbędnych źródeł z Daily Audit nie został jeszcze zebrany.\n- **[OBSERVED]** Surowy koszt całych sesji nadal był wysoki: implementacja około 1,08 mln raw, wcześniejszy reviewer około 1,37 mln, finalny reviewer 448 969. Gate ogranicza preloaded packet, ale nie gwarantuje niskiego łącznego kosztu narzędzi i kontynuacji sesji.\n- **[NOT TESTED]** Po ostatniej poprawce klasyfikacji roli nie wykonano nowego live review; limit review 12k może być zbyt niski dla obowiązkowego kontraktu repozytorium."
+      },
+      { "id": "context_chart", "type": "chart", "chartId": "context_packet_comparison" },
+      {
+        "id": "correction",
+        "type": "markdown",
+        "body": "## C. Correction loop przeszedł pełną ścieżkę i zachował niezależność review\n\n- **[OBSERVED]** Delivery `006c4a3c-6f17-4d7e-a423-3ec0069de2b8`, parent LUC-2527, implementation LUC-2528 i review LUC-2529 przeszły intake, admission, implementację, review, korektę, re-review i dalsze etapy.\n- **[OBSERVED]** Executor CBE utworzył commit `86e489b1e0909ed41338a796357feea678173be0`. Niezależny CRS zwrócił typed `CHANGES_REQUIRED`, ponieważ testy granic freshness były niedeterministyczne. Reviewer nie poprawiał kodu.\n- **[OBSERVED]** Ta sama CBE przygotowała korektę; po problemie sandboxa commit został zapisany ręcznie jako `893c8536e9243bc7af17e3e21a5f4104a368d63c`. `npm run test:api:local` przeszedł 8/8.\n- **[OBSERVED]** Finalny CRS zatwierdził bazę i korektę w runie `48058477-782c-4de0-9427-1e09e476ff01`. Nie powstało równoległe delivery, a plik użytkownika `docs/architecture/scanner-overrides.json` pozostał nietknięty.\n- **[OBSERVED]** Finalny verdict przeszedł do `review_accepted`, następnie integration, push, deployment i observation. Outcome na boardzie zapisano jako accepted.\n- **[OBSERVED]** Ręczne interwencje obejmowały typed transitions delivery, anulowanie zawieszonego re-review, przywrócenie reviewera po błędzie limitu 1 token oraz ręczny commit korekty. To istotne odstępstwo od wymogu minimalnych ręcznych board transitions.\n- **[UNKNOWN]** Nie ma kompletnego, jednego mianownika tokenów dla tego outcome po odjęciu cache i pracy kontrolnej; dlatego koszt na accepted outcome nie jest jeszcze wiarygodny."
+      },
+      {
+        "id": "bottlenecks",
+        "type": "markdown",
+        "body": "## D. Jeden owner bottleneck został rozwiązany natywnie; pozostałe routing flows nie mają pełnego live proof\n\n- **[VERIFIED]** Schemat utrwala 12 wymaganych klas: admission, delegation, owner, executor, review, correction, integration, deployment, observation, reporting, context i quota bottleneck. Każdy rekord ma ownera, start, stage, dependency, SLA, next action, escalation condition, evidence i resolvedAt.\n- **[OBSERVED]** Finding `11a087f6-4350-439b-8fab-ab0021837bce` powstał dla stalled-ready Roost delivery, routed do EDL, a po delegacji do CBE/CRS został automatycznie oznaczony `resolved` i `healthy` o 19:00:35Z. Watchdog nie wykonywał pracy produktowej.\n- **[VERIFIED]** Engine nie traktuje delivery z aktywnym, delegowanym child taskiem jako nadal stalled i zapisuje activity przy automatycznym resolution.\n- **[NOT TESTED]** Najnowszy embedded-Postgres test tej rekonsyliacji utknął przy `initdb` i został bezpiecznie przerwany. Wcześniejsze 5/5 testów engine przeszło przed ostatnią poprawką.\n- **[NOT TESTED]** Review, correction i deployment bottleneck nie zostały osobno przetestowane live. Nie ma jeszcze wiarygodnego pomiaru wpływu na WIP CTO/AIA/EDL/CINO, liczbę handoffów ani koszt delegowania."
+      },
+      {
+        "id": "supervision",
+        "type": "markdown",
+        "body": "## E. Macierz kontroli ma wspólny kontrakt, ale większość wierszy nie ma jeszcze natywnej implementacji\n\n- **[VERIFIED]** Kontrakt zwraca dokładnie 27 wymaganych `check_id` oraz pola `check_version`, status, severity, scope, evidence_refs, measured_value, threshold, finding_fingerprint, native_action, owner i next_check_at. Test 1/1 przeszedł.\n- **[VERIFIED]** Wynik jest skonsolidowany bez tworzenia superwatchdoga. Istniejące kontrole są mapowane do stabilnych identyfikatorów, a brakujące wiersze jawnie zwracają `not_configured`.\n- **[DOCUMENTED]** Natywny Watchdog pozostaje deterministyczny, Doctor event-driven, Daily deterministyczny, Weekly oparty na agregatach, a external assurance read-only.\n- **[NOT TESTED]** Nie wykonano świeżego live cyklu całej 27-wierszowej macierzy po zmianie nazw. Database health, dead locks, fan-out, evidence completeness, documentation growth, outbox dead letters, accepted outcomes i cost per outcome nie mają jeszcze pełnych natywnych pomiarów w tym kontrakcie.\n- **[UNKNOWN]** Nie istnieje seria kilku zgodnych native-vs-external comparisons pozwalająca oszacować pominięte klasy błędów."
+      },
+      {
+        "id": "quota",
+        "type": "markdown",
+        "body": "## F. Quota potrafi zatrzymać run, ale obecnie jest tylko issue-scoped i raw-input based\n\n- **[VERIFIED]** Stany to normal, warning od 70%, throttle od 90%, hold od 100% i emergency od 200%. Testy warning/throttle/hold/emergency, braku bypassu przez innego agenta i krytycznego closeout exception przeszły 7/7.\n- **[OBSERVED]** Kontrolowany run `b1b059ba-7fa5-4b8c-8f2a-1f254f312b58` został zatrzymany przed adapterem przy 4 422 876 raw input tokens, limicie 14 000 i wykorzystaniu 315,92×. Inny agent nie ominął limitu.\n- **[OBSERVED]** Finding `a77b00cf-1822-400e-9e9c-9236840b6598` utrwalił `quota_bottleneck`. Zewnętrzny error code nadal jest ogólnym `adapter_failed`, a nie dedykowanym `quota_hard_hold`.\n- **[VERIFIED]** Krytyczny wyjątek jest wyliczany z etapu delivery i decision contract, nie z deklaracji caller’a.\n- **[NOT TESTED]** Krytyczny wyjątek nie został wykonany live.\n- **[NOT TESTED]** Nie ma jeszcze zunifikowanego hard quota dla organization, project, delivery, agent, routine, supervision i model/profile ani wspólnego limitowania uncached input, run count, czasu i accepted outcome.\n- **[UNKNOWN]** Quota per outcome oraz control/product ratio nie mogą być policzone rzetelnie bez spójnego przypisania cache, kontrolnych retry i wkładu runu do outcome."
+      },
+      {
+        "id": "roost",
+        "type": "markdown",
+        "body": "## G. Roost zachował wersję i ochronę zapisu, ale semantyczny readback ujawnił konflikt\n\n- **[OBSERVED]** Event outbox `0dfb1e7c-5242-4d5d-8784-57cc5ac536a7` miał status published. Jego `sourceSnapshotId` to `a80ac4ef8e288deb4a3186b836e162163495436e514fc0e35a1758635c4f2a11`; protected readback zwrócił dokładnie ten sam identyfikator.\n- **[OBSERVED]** Ephemeral read key miał wyłącznie scope `product-map:projection:read`; odczyt zwrócił 200, a próba zapisu 403. Klucz został wycofany, bindingi tymczasowych sekretów usunięte, a output nie zawierał sekretu.\n- **[OBSERVED]** Duplikat zwrócił 200/duplicate bez zmiany stanu, a starszy event z nowym idempotency key został odrzucony 409/rejected.\n- **[OBSERVED]** Freshness: checkedAt 19:08:48Z, observedAt 19:06:39Z, age/lag około 128 s, TTL 900 s i last-known-good window 24 h. Mimo wieku poniżej TTL pole `freshness.status` było `stale`.\n- **[OBSERVED]** `projectionStatus` było `conflict`, chociaż source projection raportował `conflictState=none`; konflikt pochodzi z lokalnego lifecycle Roosta. Kryterium „readback bez conflict” jest niespełnione.\n- **[OBSERVED]** Publisher przeżył restart procesu Paperclip i późniejszy rekord został opublikowany.\n- **[NOT TESTED]** Nie wykonano izolowanego testu: event pozostaje pending dokładnie w chwili restartu, a następnie jest odzyskany. Dowód restart recovery jest częściowy."
+      },
+      {
+        "id": "production_delivery",
+        "type": "markdown",
+        "body": "## H. Produkcyjny delivery dostarczył owner-visible freshness metadata pod dokładnym SHA\n\n- **[OBSERVED]** Projekt: Roost. Realny problem: chroniony product-map readback nie wyjaśniał wieku i granic ważności projekcji. Zmiana dodała `checkedAt`, `observedAt`, `ageMs`, `lagMs`, `ttlMs`, `lastKnownGoodWindowMs` i `status` do API oraz dokumentacji.\n- **[OBSERVED]** Normalna hierarchia użyła EDL jako parenta, CBE jako executora i CRS jako niezależnego reviewera. Review zasadnie wymusiło deterministyczne testy granic.\n- **[VERIFIED]** `npm run test:api:local` zbudował server/web, zastosował 33 migracje na disposable PostgreSQL i przeszedł 8/8 testów.\n- **[OBSERVED]** Exact integration/push/deploy SHA: `893c8536e9243bc7af17e3e21a5f4104a368d63c`. Push `HEAD → origin/main` przeszedł; publiczny `https://api.roost.luckysparrow.ch/health` zwrócił status ok i ten sam commit.\n- **[OBSERVED]** Delivery przeszedł push_ready, deployed i observed_healthy. Outcome zapisano jako achieved/accepted, a owner summary popłynęło przez board.\n- **[INFERRED]** Outcome acceptance było przedwczesne względem literalnego kryterium braku conflict. Zdrowy deploy nie dowodzi zdrowej projekcji biznesowej.\n- **[OBSERVED]** Ręczne odstępstwa: transitions delivery/outcome, ręczny commit po ograniczeniu sandboxa, anulowanie zawieszonego re-review i przywracanie assignera po błędzie gate. To znaczy, że Codex nadal prowadził część orkiestracji ręcznie."
+      },
+      {
+        "id": "external_assurance",
+        "type": "markdown",
+        "body": "## I. External assurance pozostaje read-only i nie powinno być jeszcze redukowane\n\n- **[DOCUMENTED]** External Watchdog działa co 6 h, Doctor codziennie, Daily codziennie, Weekly raz w tygodniu. Automatyzacje nie odzyskały uprawnień wykonawczych.\n- **[NOT TESTED]** W tej iteracji nie zebrano porównywalnego kosztu każdego zewnętrznego cyklu ani external-only findings względem nowej macierzy.\n- **[INFERRED]** Nie ma podstaw do zmniejszenia Watchdoga do jednego uruchomienia dziennie po pojedynczym zielonym porównaniu. Najpierw potrzeba kilku zgodnych cykli z recall pominiętych klas, kosztem i wpływem na autonomy.\n- **[INFERRED]** Docelowo Doctor powinien przejść głównie na trwały external-only finding, Daily na codziennie lub co drugi dzień, a Weekly pozostać tygodniowy — dopiero po uzyskaniu trendu."
+      },
+      {
+        "id": "risks",
+        "type": "markdown",
+        "body": "## J. Najważniejsze ryzyka to niepełny hard quota, ręczna orkiestracja i brak trendu\n\n- **[OBSERVED]** Context gate kontroluje zbudowany packet, ale całe sesje nadal mogą skumulować setki tysięcy lub milion raw tokens przez cache, narzędzia i kontynuacje.\n- **[NOT TESTED]** Pełne live proof nie obejmuje review/correction/deployment bottleneck routing, krytycznego quota exception, nowej klasyfikacji review po role fix ani pending-event restartu.\n- **[OBSERVED]** Outcome został zaakceptowany mimo konfliktowego readbacku, co ujawnia lukę w evidence gate i możliwość ręcznego obejścia semantycznego kryterium.\n- **[UNKNOWN]** Brak wielodniowego trendu dla tokenów/outcome, bottleneck SLA, external recall i Roost freshness. Jednorazowy sukces nie dowodzi stabilności.\n- **[INFERRED]** Najbardziej prawdopodobna regresja to fallback do szerokiego bootstrapu albo ręcznych board transitions, gdy gate lub hierarchy routing zatrzyma run.\n- **[NOT TESTED]** Nie wykonano repo-wide `pnpm -r typecheck`, `pnpm test:run` i `pnpm build` po całym zestawie zmian; wykonano tylko typecheck serwera i targetowane testy."
+      },
+      {
+        "id": "falsification",
+        "type": "markdown",
+        "body": "## K. Materiał do falsyfikacji i następne kroki\n\n- **[INFERRED] Najsłabiej udowodnione twierdzenie:** „Paperclip autonomicznie doprowadza delivery do outcome”. Deployment przeszedł, ale kilka transitions, recovery i commit korekty wykonano ręcznie, a outcome zaakceptowano mimo konfliktu.\n- **[INFERRED] Najbardziej prawdopodobny powrót do starego zachowania:** szeroki role/bootstrap context przy nowym typie roli lub braku nativeContext. Potrzebny jest live regression run po ostatniej poprawce klasyfikacji.\n- **[OBSERVED] Największy koszt:** długie sesje implementacji/review i retry, nie sam task packet. Hard gate musi rozszerzyć egzekucję na uncached input, run count i czas.\n- **[INFERRED] Aktywność mylona z outcome:** `deployed + health=ok` zostało potraktowane jako wystarczające do acceptance, mimo `projectionStatus=conflict`. Acceptance gate powinien wymagać exact business readback.\n- **[INFERRED] Kandydat do usunięcia:** okresowy external Doctor, jeżeli po kilku cyklach nie wniesie external-only findings; wtedy powinien pozostać wyłącznie event-driven.\n- **[VERIFIED] Następny krok 1:** dodać automatyczny blocker acceptance dla niespełnionych protected-readback predicates i ponowić jedną kontrolowaną mutację Roost do stanu bez conflict.\n- **[VERIFIED] Następny krok 2:** rozszerzyć quota z issue/raw na wszystkie wymagane scope i jednostki oraz nadać dedykowany error code.\n- **[VERIFIED] Następny krok 3:** wykonać live review po role fix, live routing review/deployment bottleneck i izolowany publisher restart z pending eventem.\n- **[VERIFIED] Następny krok 4:** po stabilizacji uruchomić pełny PR-ready check i co najmniej kilkudniowe okno trendu."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-04T21:25:00+02:00",
+    "status": "ready",
+    "datasets": {
+      "context_comparison": [
+        { "run": "Baseline A", "raw_tokens": 256000 },
+        { "run": "Baseline B", "raw_tokens": 333000 },
+        { "run": "Baseline C", "raw_tokens": 599000 },
+        { "run": "Gate control", "raw_tokens": 46320 }
+      ]
+    },
+    "accessIssues": []
+  },
+  "sources": [
+    { "id": "implementation", "path": "server/src/services", "description": "Implementacja context admission, quota, supervision i bottleneck routing w bieżącym workspace." },
+    { "id": "targeted_tests", "path": "server/src/__tests__", "description": "Targetowane testy Vitest uruchomione 4 sierpnia 2026 r." },
+    { "id": "live_runs", "path": "docs/status/2026-08-04-paperclip-control-plane-report.artifact.json", "description": "Zapisane identyfikatory i wyniki live runów, findings, transitions i readbacków z lokalnej instancji Paperclip." },
+    {
+      "id": "context_chart_data",
+      "query": {
+        "engine": "postgresql",
+        "language": "sql",
+        "sql": "SELECT run, raw_tokens FROM (VALUES ('Baseline A', 256000), ('Baseline B', 333000), ('Baseline C', 599000), ('Gate control', 46320)) AS observed_context_packets(run, raw_tokens)",
+        "description": "Reprodukowalna transformacja czterech zaobserwowanych wartości context packet do wykresu.",
+        "executed_at": "2026-08-04T21:25:00+02:00"
+      }
+    },
+    { "id": "roost_delivery", "path": "scripts/verify-roost-protected-product-map-readback.ts", "description": "Reprodukowalny protected-readback utility oraz evidence produkcyjnego Roost delivery." },
+    { "id": "operating_docs", "path": "docs/architecture.md", "description": "Repozytoryjne kontrakty native supervision i external owner assurance." }
+  ]
+}

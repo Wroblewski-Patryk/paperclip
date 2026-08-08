@@ -1,0 +1,265 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Paperclip Autonomy Evolution — Iteracja 3",
+    "description": "Techniczny raport o Queue Epistemology, Next Legal Action, reconciliation, liveness, meta-observability i shadow dispatch.",
+    "generatedAt": "2026-08-08T18:41:40Z",
+    "filters": [],
+    "cards": [],
+    "charts": [
+      {
+        "id": "next_action_distribution",
+        "title": "Rozkład Next Legal Action",
+        "subtitle": "61 z 114 otwartych elementów czeka na zależność; tylko jedna runnable akcja pomaga bieżącemu constraintowi.",
+        "type": "bar",
+        "dataset": "action_distribution",
+        "sourceId": "live_projection",
+        "valueFormat": "number",
+        "encodings": {
+          "x": { "field": "label", "type": "nominal", "label": "Klasa działania" },
+          "y": { "field": "count", "type": "quantitative", "label": "Liczba issues" },
+          "tooltip": [
+            { "field": "action_class", "type": "nominal", "label": "Pełna klasa" },
+            { "field": "count", "type": "quantitative", "label": "Issues", "format": "number" },
+            { "field": "main_reason", "type": "nominal", "label": "Główny powód" }
+          ]
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "queue_epistemology",
+        "title": "Queue Epistemology",
+        "dataset": "action_distribution",
+        "sourceId": "live_projection",
+        "columns": [
+          { "field": "action_class", "label": "State", "type": "text" },
+          { "field": "count", "label": "Count", "type": "number" },
+          { "field": "meaning", "label": "Meaning", "type": "text" },
+          { "field": "confidence", "label": "Confidence", "type": "text" }
+        ],
+        "defaultSort": { "field": "count", "direction": "desc" }
+      },
+      {
+        "id": "blocked_reason_distribution",
+        "title": "Blocked Reason Distribution",
+        "dataset": "blocked_reasons",
+        "sourceId": "live_projection",
+        "columns": [
+          { "field": "reason", "label": "Reason", "type": "text" },
+          { "field": "before", "label": "Before", "type": "number" },
+          { "field": "after", "label": "After", "type": "number" },
+          { "field": "interpretation", "label": "Interpretation", "type": "text" }
+        ],
+        "defaultSort": { "field": "after", "direction": "desc" }
+      },
+      {
+        "id": "capability_matrix",
+        "title": "Updated 25 Capability Matrix",
+        "dataset": "capabilities",
+        "sourceId": "capability_assessment",
+        "columns": [
+          { "field": "number", "label": "#", "type": "number" },
+          { "field": "capability", "label": "Capability", "type": "text" },
+          { "field": "status", "label": "Status", "type": "text" },
+          { "field": "maturity", "label": "Maturity", "type": "number" },
+          { "field": "change", "label": "Change", "type": "number" },
+          { "field": "main_gap", "label": "Runtime evidence / main gap", "type": "text" },
+          { "field": "priority", "label": "Priority", "type": "text" }
+        ],
+        "defaultSort": { "field": "number", "direction": "asc" }
+      }
+    ],
+    "sources": [
+      {
+        "id": "live_projection",
+        "label": "Paperclip live Next Legal Action projection",
+        "query": {
+          "engine": "postgresql",
+          "language": "sql",
+          "sql": "SELECT * FROM (VALUES (1, 'Dependency', 'WAITING_FOR_DEPENDENCY', 61, 'ineligible', 'dependency_not_complete'), (2, 'Decision', 'WAITING_FOR_DECISION', 37, 'ineligible', 'pending_review_interaction'), (3, 'Execute', 'READY_FOR_EXECUTION', 11, 'eligible', 'eligibility_verified'), (4, 'Reconcile', 'RECONCILIATION_REQUIRED', 3, 'ineligible', 'task_nonterminal_outcome_accepted'), (5, 'Policy hold', 'HELD_BY_POLICY', 1, 'ineligible', 'active_issue_tree_hold'), (6, 'Owner', 'WAITING_FOR_OWNER', 1, 'ineligible', 'owner_unavailable')) AS reviewed_next_legal_action_snapshot(rank, label, action_class, count, eligibility, main_reason) ORDER BY rank",
+          "description": "Company-scoped projection from the active local Paperclip runtime.",
+          "tables_used": ["issues", "issue_relations", "agents", "issue_tree_holds", "approvals", "issue_thread_interactions", "heartbeat_runs", "delivery_tasks", "product_deliveries", "product_outcomes"],
+          "filters": ["company_id = active LuckySparrow company", "hidden_at is null", "origin_kind != routine_execution", "nonterminal issue states"],
+          "metric_definitions": {
+            "action_count": "Count of projected nonterminal, nonroutine issues by deterministic actionClass.",
+            "unknown_blockers": "Blocked issues whose typed state cannot identify a legal blocker reason.",
+            "valuable_now": "Eligible work whose measured constraintEffect helps the current organization constraint."
+          },
+          "executed_at": "2026-08-08T18:40:59Z"
+        }
+      },
+      {
+        "id": "native_cycle",
+        "label": "Native supervision cycle and findings",
+        "query": {
+          "engine": "paperclip_api",
+          "language": "http",
+          "description": "Latest completed native watchdog cycle, homeostasis coverage, reconciliation, liveness and shadow decision.",
+          "tables_used": ["supervision_cycles", "supervision_findings", "supervision_shadow_comparisons"],
+          "filters": ["latest completed native_watchdog cycle for active company"],
+          "executed_at": "2026-08-08T18:41:40Z"
+        }
+      },
+      {
+        "id": "verification",
+        "label": "Targeted typecheck and Vitest evidence",
+        "path": "server/src/__tests__",
+        "query": {
+          "description": "Sequential targeted tests and package typechecks executed on the Windows host.",
+          "tables_used": ["next-legal-action.test.ts", "native-supervision-engine.test.ts", "supervision-registry-service.test.ts", "company-situation-service.test.ts"],
+          "executed_at": "2026-08-08T18:33:00Z"
+        }
+      },
+      {
+        "id": "capability_assessment",
+        "label": "Iteration 3 capability assessment",
+        "path": "docs/status/2026-08-08-paperclip-autonomy-evolution-iteration-3-report.md",
+        "query": {
+          "description": "Conservative assessment against the same 25-capability baseline, adjusted only where runtime evidence exists.",
+          "engine": "postgresql",
+          "language": "sql",
+          "sql": "SELECT * FROM (VALUES (1,'Purpose, goals, constraints','PARTIAL',3.3,0.0,'Strategy and targets incomplete','P1'),(2,'Cybernetic control','PARTIAL',3.9,0.2,'No real safe dispatch outcome','P0'),(3,'Observability','PARTIAL',3.7,0.2,'Infrastructure coverage incomplete','P0'),(4,'World model','PARTIAL/MISPLACED',2.8,0.0,'No complete Roost world state','P0'),(5,'Memory architecture','PARTIAL/DUPLICATED',3.0,0.0,'No unified retrieval promotion expiry','P1'),(6,'Causal memory','PARTIAL',3.6,0.0,'No new verified interventions','P0'),(7,'Planning','PARTIAL',3.1,0.3,'No strategic replanner','P1'),(8,'Organization and delegation','PARTIAL',3.8,0.0,'No continuous role quality','P1'),(9,'Quality system','PARTIAL',3.6,0.1,'246 evidence failures remain','P0'),(10,'Epistemic system','PARTIAL',4.0,0.5,'Runtime envelope not yet universal','P0'),(11,'Risk and autonomy boundaries','PARTIAL',3.9,0.1,'Limited-auto still unproven','P1'),(12,'Anti-Goodhart','PARTIAL',3.5,0.3,'Small trusted outcome sample','P0'),(13,'Theory of Constraints','PARTIAL',3.1,0.4,'No full exploit-elevate lifecycle','P1'),(14,'Multi-agent coordination','PARTIAL',4.2,0.1,'No global invariant proof','P1'),(15,'Idempotency','PARTIAL',4.3,0.1,'Historical commands not all ensure-state','P1'),(16,'Transactions rollback recovery','PARTIAL',3.2,0.0,'No general saga model','P1'),(17,'Resilience engineering','PARTIAL',4.0,0.1,'Uneven circuit breakers','P1'),(18,'Antifragility','PARTIAL',3.4,0.0,'No new closed intervention-learning loop','P1'),(19,'Resource economics','PARTIAL',3.6,0.1,'Cost coverage incomplete','P1'),(20,'Attention management','PARTIAL',3.8,0.7,'Decision queue remains large','P1'),(21,'Event-driven architecture','PARTIAL/DUPLICATED',3.5,0.0,'Still scheduler and timer heavy','P1'),(22,'Homeostasis','PARTIAL',3.7,0.5,'Some required sensors still missing','P1'),(23,'Meta-control','PARTIAL/DUPLICATED',3.4,0.2,'No process retirement proof','P1'),(24,'Exploration vs exploitation','EMERGENT',2.6,0.2,'No oracle labels or canary execution','P2'),(25,'Institutional learning','PARTIAL',2.9,0.0,'105 proposed without typed disposition','P0')) AS capability_matrix(number,capability,status,maturity,change,main_gap,priority) ORDER BY number",
+          "tables_used": ["docs.status.iteration3_capability_assessment"],
+          "metric_definitions": {
+            "maturity": "0 missing, 1 contract/experiment, 2 seed, 3 working subset, 4 mature mechanism with evidence, 5 closed and maintained capability.",
+            "change": "Difference from the 2026-08-08 full-audit baseline."
+          },
+          "executed_at": "2026-08-08T18:40:00Z"
+        }
+      }
+    ],
+    "blocks": [
+      { "id": "title", "type": "markdown", "body": "# Paperclip Autonomy Evolution — Iteracja 3" },
+      {
+        "id": "executive_summary",
+        "type": "markdown",
+        "body": "## Executive Summary\n\nIteracja 3 dostarczyła działającą Queue Epistemology i typed Next Legal Action. W live runtime 114 otwartych nierutynowych issues otrzymało deterministyczną projekcję; dawne `60 blocked_unknown` rozpadło się na 59 znanych zależności i 1 konflikt, przy 0 epistemicznie nieznanych blockerach. Bieżące ograniczenie to `dependency` (61). Spośród 11 `READY_FOR_EXECUTION` tylko jedno zadanie jest jednocześnie `valuable_now` i pomaga constraintowi. Shadow scheduler zaproponował `LUC-1972` z wysoką pewnością, ale wykonał 0 dispatchy. Overall maturity pozostaje konserwatywnie **5,8/10**, ponieważ nie ma jeszcze udowodnionego dispatch postcondition ani bezpiecznie zamkniętego outcome."
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## Technical Summary\n\nProjekcja jest company-scoped i wyliczana z kanonicznych issues, dependencies, owners, holds, approvals, interactions, runs, deliveries i outcomes — bez drugiego backlogu. Natywny cykl zapisuje rozkład akcji, blocked reasons, current constraint, liveness, shadow decision oraz pas `Observe → Reconcile → Verify`. Brak wymaganego sensora daje `UNKNOWN`, nie `healthy`. Accepted outcome z nieterminalnym taskiem daje `RECONCILIATION_REQUIRED`, nigdy automatyczne zamknięcie. Accepted outcomes przy łącznym reported cost równym zero dają `COST_UNKNOWN`, także gdy istnieje zero-valued cost event."
+      },
+      { "id": "distribution_chart", "type": "chart", "chartId": "next_action_distribution" },
+      {
+        "id": "queue_result",
+        "type": "markdown",
+        "body": "## 60 niewyjaśnionych blokad stało się 60 znanymi ograniczeniami\n\nRedukcja `unknown` nie oznacza usunięcia blokad. Oznacza, że każda blokada ma typ i może otrzymać legalną następną akcję. `WAITING_FOR_DECISION` reprezentuje structured decision path, a nie anonimowe oczekiwanie na review."
+      },
+      { "id": "queue_table", "type": "table", "tableId": "queue_epistemology" },
+      { "id": "blocked_table", "type": "table", "tableId": "blocked_reason_distribution" },
+      {
+        "id": "liveness",
+        "type": "markdown",
+        "sourceId": "native_cycle",
+        "body": "## Liveness wykrywa wartościową pracę, lecz poprawnie pozostaje w shadow\n\nRuntime raportuje: eligible valuable work 1, held 1, unexplained idle 1, dispatch attempts 0, accepted dispatches 0 i no-op `SHADOW_CANDIDATE_EXISTS`. Execution scheduler ma 0 active agents, natomiast native supervision scheduler zakończył cykl `18:40Z`. Kandydat `LUC-1972` ma `unblockValue=1`, goal link i `helps_current_constraint:dependency`. False positives, false negatives i oracle acceptance pozostają unknown, dlatego limited-auto nie zostało włączone."
+      },
+      {
+        "id": "reconciliation",
+        "type": "markdown",
+        "sourceId": "native_cycle",
+        "body": "## Trzy konflikty Task↔Outcome są wykryte, ale nie zostały arbitralnie zamknięte\n\nWykryto 3 nieterminalne taski połączone z accepted outcomes. Auto-resolved: 0; requires review: 3; remaining: 3. System zachowuje oba fakty i wymaga typed evidence dla legalnej mutacji task state."
+      },
+      {
+        "id": "meta_observability",
+        "type": "markdown",
+        "sourceId": "native_cycle",
+        "body": "## Meta-observability uniemożliwia false-green przy brakującym sensorze\n\nCykl ma jawny sensor coverage. Runtime health jest healthy, natomiast dispatch, evidence i supervision health są critical. Dispatch coverage wskazuje brak `review_bottleneck`; ponieważ równolegle istnieją realne failures, stan pozostaje critical. Przy braku failures i brakującym wymaganym sensorze stan byłby unknown, nigdy healthy."
+      },
+      {
+        "id": "external_parity",
+        "type": "markdown",
+        "sourceId": "native_cycle",
+        "body": "## External assurance osiągnęło parity dla badanych klas\n\nKońcowe comparison `iteration3-final-shadow-20260808T184139790Z` jest aligned: matched 2/2 (`evidence_completeness`, `cost_telemetry_gap`), onlyExternal 0, severity mismatch 0. Native-only 21 odzwierciedla szersze pokrycie native supervision. Orphan locks = 0, więc brak external finding jest poprawnym clean signal. Poprzedni `external_assurance_gap` pozostaje aktywny tylko do następnego freshness reconciliation cycle."
+      },
+      {
+        "id": "capabilities",
+        "type": "markdown",
+        "body": "## Updated 25 Capability Matrix\n\nSub-scores rosną tylko tam, gdzie runtime pokazał nowe zachowanie. Największy wzrost dotyczy Attention Management (+0,7), Epistemic System (+0,5), Homeostasis (+0,5) i Theory of Constraints (+0,4). Brak realnego dispatchu utrzymuje overall maturity na 5,8/10."
+      },
+      { "id": "capability_table", "type": "table", "tableId": "capability_matrix" },
+      {
+        "id": "new_layers",
+        "type": "markdown",
+        "body": "## Dwie nowe zdolności powinny pozostać first-class\n\n**Queue Epistemology & Next Legal Action** nie jest tylko Planning: dowodzi, co wolno i warto zrobić teraz. **Cross-State Reconciliation** nie jest zwykłą jakością danych: utrzymuje legalną spójność wielu maszyn stanów. Meta-Observability Contract Integrity powinna pozostać mierzalną sub-capability Observability + Homeostasis, a Scheduler Liveness — sub-capability Cybernetic Control + Theory of Constraints."
+      },
+      {
+        "id": "methodology",
+        "type": "markdown",
+        "body": "## Scope, Methodology and Metric Definitions\n\nAnaliza obejmuje aktywną instancję LuckySparrow na strict `3200/54329`, company-scoped projection, najnowszy ukończony native watchdog, świeże shadow comparison oraz celowane testy. `READY_FOR_EXECUTION` oznacza lokalną legalność, nie globalną wartość. `valuable_now` wymaga pomagania current constraint. `unknown blocker` oznacza brak typed reason, a nie dowolną nierozwiązaną zależność. Claims są opisowe; raport nie dowodzi causal impact na delivery throughput."
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## Limitations, Uncertainty and Robustness\n\nNie wykonano realnego dispatchu, więc oracle precision/recall i postcondition są nieznane. Trzy konflikty reconciliation pozostają otwarte. Cost coverage nie obejmuje jeszcze wszystkich token/model/runtime/API/compute channels. Targetowane testy przeszły: Next Legal Action 10/10, native supervision 14/14, registry 5/5, CompanySituation 4/4; shared i server typecheck przeszły. Nie wykonano browser suites ani pełnego repo-wide build/test, ponieważ zmiana nie dotyczy UI, a workspace zawiera szeroki istniejący dirty scope."
+      },
+      {
+        "id": "next_steps",
+        "type": "markdown",
+        "body": "## Recommended Next Steps\n\n1. Zapisywać serię shadow decisions razem z niezależnym oracle verdict i późniejszym wyborem operatora.\n2. Dopiero po stabilnym agreement wykonać jeden low-risk canary dispatch z hard stop, idempotency key i verify postcondition.\n3. Zamknąć trzy konflikty przez typed per-case reconciliation evidence.\n4. Wprowadzić cost coverage ratio i blokować cost/outcome, gdy obowiązkowy kanał jest unknown.\n5. Utrzymać 25 capability dla porównywalności, ale dodać osobno Queue Epistemology/NLA oraz Cross-State Reconciliation."
+      },
+      {
+        "id": "questions",
+        "type": "markdown",
+        "body": "## Further Questions\n\n- Jaki minimalny observation window i próg oracle agreement otwiera limited-auto?\n- Jaka legalna transition rule powinna rozwiązywać Task↔Outcome dla `done`, `cancelled` lub przyszłego `outcome_satisfied`?\n- Które cost sources są obowiązkowe dla stanu known?\n- Czy dependency constraint powinien mieć first-class owner i SLO?\n- Jak przechowywać oracle verdicts bez tworzenia drugiego backlogu i reward-hacking targetu?"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-08T18:41:40Z",
+    "status": "ready",
+    "datasets": {
+      "action_distribution": [
+        { "rank": 1, "label": "Dependency", "action_class": "WAITING_FOR_DEPENDENCY", "count": 61, "meaning": "Blocker or typed dependency outcome is not ready", "confidence": "high", "eligibility": "ineligible", "main_reason": "dependency_not_complete" },
+        { "rank": 2, "label": "Decision", "action_class": "WAITING_FOR_DECISION", "count": 37, "meaning": "Structured decision interaction is pending", "confidence": "high", "eligibility": "ineligible", "main_reason": "pending_review_interaction" },
+        { "rank": 3, "label": "Execute", "action_class": "READY_FOR_EXECUTION", "count": 11, "meaning": "Owner, dependencies and policy are locally ready", "confidence": "high locally; 1 valuable now", "eligibility": "eligible", "main_reason": "eligibility_verified" },
+        { "rank": 4, "label": "Reconcile", "action_class": "RECONCILIATION_REQUIRED", "count": 3, "meaning": "Task state conflicts with accepted outcome", "confidence": "high", "eligibility": "ineligible", "main_reason": "task_nonterminal_outcome_accepted" },
+        { "rank": 5, "label": "Policy hold", "action_class": "HELD_BY_POLICY", "count": 1, "meaning": "Active issue-tree hold", "confidence": "high", "eligibility": "ineligible", "main_reason": "active_issue_tree_hold" },
+        { "rank": 6, "label": "Owner", "action_class": "WAITING_FOR_OWNER", "count": 1, "meaning": "Assigned owner is unavailable", "confidence": "high", "eligibility": "ineligible", "main_reason": "owner_unavailable" }
+      ],
+      "blocked_reasons": [
+        { "reason": "dependency", "before": 0, "after": 59, "interpretation": "Known recorded blocking relationship" },
+        { "reason": "conflicting_state", "before": 0, "after": 1, "interpretation": "Cross-state conflict requiring reconciliation" },
+        { "reason": "unknown", "before": 60, "after": 0, "interpretation": "No epistemically unexplained blocker in current snapshot" }
+      ],
+      "capabilities": [
+        { "number": 1, "capability": "Purpose, goals, constraints", "status": "PARTIAL", "maturity": 3.3, "change": 0.0, "main_gap": "Goal link retained; strategy and targets incomplete", "priority": "P1" },
+        { "number": 2, "capability": "Cybernetic control", "status": "PARTIAL", "maturity": 3.9, "change": 0.2, "main_gap": "Native Observe-Reconcile-Verify; no real safe dispatch outcome", "priority": "P0" },
+        { "number": 3, "capability": "Observability", "status": "PARTIAL", "maturity": 3.7, "change": 0.2, "main_gap": "Sensor coverage and UNKNOWN; infrastructure coverage incomplete", "priority": "P0" },
+        { "number": 4, "capability": "World model", "status": "PARTIAL/MISPLACED", "maturity": 2.8, "change": 0.0, "main_gap": "No complete Roost world state", "priority": "P0" },
+        { "number": 5, "capability": "Memory architecture", "status": "PARTIAL/DUPLICATED", "maturity": 3.0, "change": 0.0, "main_gap": "No unified retrieval, promotion and expiry", "priority": "P1" },
+        { "number": 6, "capability": "Causal memory", "status": "PARTIAL", "maturity": 3.6, "change": 0.0, "main_gap": "No new verified interventions", "priority": "P0" },
+        { "number": 7, "capability": "Planning", "status": "PARTIAL", "maturity": 3.1, "change": 0.3, "main_gap": "Dependency-aware NLA; no strategic replanner", "priority": "P1" },
+        { "number": 8, "capability": "Organization and delegation", "status": "PARTIAL", "maturity": 3.8, "change": 0.0, "main_gap": "Typed owner availability; no continuous role quality", "priority": "P1" },
+        { "number": 9, "capability": "Quality system", "status": "PARTIAL", "maturity": 3.6, "change": 0.1, "main_gap": "Outcome-task guard; 246 evidence failures remain", "priority": "P0" },
+        { "number": 10, "capability": "Epistemic system", "status": "PARTIAL", "maturity": 4.0, "change": 0.5, "main_gap": "Known, unknown, conflict, confidence and evidence work live", "priority": "P0" },
+        { "number": 11, "capability": "Risk and autonomy boundaries", "status": "PARTIAL", "maturity": 3.9, "change": 0.1, "main_gap": "Shadow-only gate blocks premature auto", "priority": "P1" },
+        { "number": 12, "capability": "Anti-Goodhart", "status": "PARTIAL", "maturity": 3.5, "change": 0.3, "main_gap": "COST_UNKNOWN and cross-state truth; small outcome sample", "priority": "P0" },
+        { "number": 13, "capability": "Theory of Constraints", "status": "PARTIAL", "maturity": 3.1, "change": 0.4, "main_gap": "Dependency constraint and subordinate ranking", "priority": "P1" },
+        { "number": 14, "capability": "Multi-agent coordination", "status": "PARTIAL", "maturity": 4.2, "change": 0.1, "main_gap": "Dependency, cycle and owner readiness; no global invariant proof", "priority": "P1" },
+        { "number": 15, "capability": "Idempotency", "status": "PARTIAL", "maturity": 4.3, "change": 0.1, "main_gap": "Internal lane key and concurrency protection", "priority": "P1" },
+        { "number": 16, "capability": "Transactions, rollback, recovery", "status": "PARTIAL", "maturity": 3.2, "change": 0.0, "main_gap": "No general saga model", "priority": "P1" },
+        { "number": 17, "capability": "Resilience engineering", "status": "PARTIAL", "maturity": 4.0, "change": 0.1, "main_gap": "Timeout, retry and fail-closed lane; uneven circuit breakers", "priority": "P1" },
+        { "number": 18, "capability": "Antifragility", "status": "PARTIAL", "maturity": 3.4, "change": 0.0, "main_gap": "No new closed intervention-learning loop", "priority": "P1" },
+        { "number": 19, "capability": "Resource economics", "status": "PARTIAL", "maturity": 3.6, "change": 0.1, "main_gap": "Truth gate improved; cost coverage incomplete", "priority": "P1" },
+        { "number": 20, "capability": "Attention management", "status": "PARTIAL", "maturity": 3.8, "change": 0.7, "main_gap": "60 opaque blockers became 59 dependency plus 1 conflict", "priority": "P1" },
+        { "number": 21, "capability": "Event-driven architecture", "status": "PARTIAL/DUPLICATED", "maturity": 3.5, "change": 0.0, "main_gap": "Still scheduler and timer heavy", "priority": "P1" },
+        { "number": 22, "capability": "Homeostasis", "status": "PARTIAL", "maturity": 3.7, "change": 0.5, "main_gap": "Healthy, warning, critical and unknown with sensor coverage", "priority": "P1" },
+        { "number": 23, "capability": "Meta-control", "status": "PARTIAL/DUPLICATED", "maturity": 3.4, "change": 0.2, "main_gap": "Aliases, freshness and native lane; no process retirement proof", "priority": "P1" },
+        { "number": 24, "capability": "Exploration vs exploitation", "status": "EMERGENT", "maturity": 2.6, "change": 0.2, "main_gap": "Shadow dispatch exists; no oracle labels or canary execution", "priority": "P2" },
+        { "number": 25, "capability": "Institutional learning", "status": "PARTIAL", "maturity": 2.9, "change": 0.0, "main_gap": "105 proposed without typed disposition at scale", "priority": "P0" }
+      ]
+    },
+    "accessIssues": []
+  },
+  "sources": [
+    { "id": "live_projection", "label": "Paperclip live Next Legal Action projection" },
+    { "id": "native_cycle", "label": "Native supervision cycle and findings" },
+    { "id": "verification", "label": "Targeted typecheck and Vitest evidence", "path": "server/src/__tests__" },
+    { "id": "capability_assessment", "label": "Iteration 3 capability assessment", "path": "docs/status/2026-08-08-paperclip-autonomy-evolution-iteration-3-report.md" }
+  ]
+}

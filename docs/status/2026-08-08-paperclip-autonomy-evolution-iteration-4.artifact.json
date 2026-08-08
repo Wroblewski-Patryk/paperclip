@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "paperclip_autonomy_evolution_report",
+  "iteration": 4,
+  "title": "AUTONOMY EVOLUTION REPORT — ITERACJA 4",
+  "status": "ready",
+  "snapshotObservedAt": "2026-08-08T19:10:20.007Z",
+  "companyId": "ae26bb8b-8f5f-4a85-b341-78d4e1985975",
+  "reportPath": "docs/status/2026-08-08-paperclip-autonomy-evolution-iteration-4-report.md",
+  "runtimeEvidence": {
+    "supervisionCycleId": "4e14e7c5-6306-4e34-a1dd-d5ef9019dc8c",
+    "decisionId": "e4302b3c-bd03-4122-82f7-9d06eb0e688b",
+    "decisionEvaluationId": "b0373d6f-289e-436c-beb0-a4d881f88a0b",
+    "autonomyEnvelopeId": "12515a11-e53a-4daf-b3cc-04af3164d0c7",
+    "constraintId": "e25ac034-b288-4d53-8caf-e867bd29ccd8"
+  },
+  "headline": {
+    "decisionMode": "SHADOW",
+    "decisionDisposition": "GATHER_EVIDENCE",
+    "canaryDispatched": false,
+    "dispatchProbe": "FAILED_AUTONOMY_ENVELOPE_NOT_AUTHORIZED",
+    "taskOutcomeConflictsBefore": 3,
+    "taskOutcomeConflictsAfter": 0,
+    "currentConstraint": "dependency",
+    "currentConstraintCount": 61,
+    "costCoverageRatio": 0.7694813420681168,
+    "costCoverageState": "PARTIAL"
+  },
+  "verification": {
+    "targetedTestsPassed": 34,
+    "targetedTestsFailed": 0,
+    "sharedTypecheck": "pass",
+    "databaseTypecheck": "pass",
+    "serverTypecheck": "pass",
+    "migration": "0119_sad_kitty_pryde",
+    "workspaceBoundaryAudit": "pass",
+    "runtimeTopologyAudit": "pass",
+    "repoWideBuild": "not_run",
+    "repoWideTestRun": "not_run"
+  },
+  "limitations": [
+    "No authorized canary execution or actual outcome sample occurred.",
+    "Three accepted legacy outcomes still lack typed acceptance predicates.",
+    "Cost event linkage coverage is partial and monetary totals remain semantically weak.",
+    "The artifact is a bounded runtime snapshot, not a live connector."
+  ]
+}

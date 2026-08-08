@@ -1,0 +1,61 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Paperclip Autonomy Evolution — Iteracja 5",
+    "description": "Technical audit of authorized-canary readiness, live epistemic debt, and remaining autonomy gaps.",
+    "generatedAt": "2026-08-08T20:10:25.296Z",
+    "blocks": [
+      {"id": "title", "type": "markdown", "body": "# Paperclip Autonomy Evolution — Iteracja 5"},
+      {"id": "executive", "type": "markdown", "body": "## Executive Summary\n\n**Final state: CANARY_READY — no canary execution and no envelope graduation.** Iteration 5 adds bounded one-shot authorization, typed intent, stable samples, Oracle/Operator/Outcome separation, independent verification, liveness with UNCERTAIN, causal impact, dependency freshness, Cost Semantics V2, scoped interrupts, and reversible policy primitives. The live queue has no trustworthy low-risk candidate with fresh intent and dependencies; forcing execution would fabricate work or infer owner intent. Conservative maturity: **6.2/10**."},
+      {"id": "decision", "type": "markdown", "body": "## A–H. Decision and canary result\n\nThe current constraint is `dependency` with 62 projected items. Historical edges without typed semantics and freshness are epistemic debt, not executable truth. The v2.1 cohort contains one material sample: `NO_ACTION / INSUFFICIENT_EVIDENCE`. One independent Oracle class agrees with that decision and remains decision-only evidence. There is no operator authorization, canary execution, or outcome evidence. The envelope remains SHADOW version 1. The immediate gate is fresh owner intent plus fresh dependency validation for a real low-risk issue."},
+      {"id": "debt_chart", "type": "chart", "chartId": "autonomy_debt"},
+      {"id": "execution", "type": "markdown", "body": "## I–M. Verification, liveness, dependencies, and cost\n\nCanary outcomes require at least INDEPENDENT_INTERNAL verification. Liveness distinguishes STARTING, RUNNING, WAITING_VALID, STALLED, UNCERTAIN, and TERMINAL. Constraint impact compares exact causal edges rather than treating count deltas as proof. Dependencies now carry type, blocking condition, expected result, owner, freshness, and resolution evidence. Cost Semantics V2 separates KNOWN_ZERO, NONZERO, PARTIAL, and UNKNOWN. No execution sample exists, so these are readiness claims, not outcome claims."},
+      {"id": "governance", "type": "markdown", "body": "## N–S. Governance, learning, and intervention debt\n\nScoped interrupts block only matching dispatches. Safe-entry preemption exists, but cancellation of an already running process at a confirmed safe point remains partial. Learned policies are versioned with lifecycle, observation window, rollback trigger, and exceptions; automatic statistical rollback is incomplete. Paperclip remains the operational projection, while durable strategy and intent target Roost. The natural cycle created the v2.1 sample autonomously, but Codex still implemented migrations, recovered one exact orphan process tree, restarted the registered supervisor, and supplied the explicit Oracle evaluation."},
+      {"id": "matrix", "type": "markdown", "body": "## T. 25-capability assessment\n\nRuntime-confirmed: typed intent, reconfirmation, stable identity, cohort isolation, time-only deduplication, Oracle signal, envelope non-graduation, and dependency freshness. Test-confirmed or ready without a natural sample: post-goal ACTIVE intent, atomic dispatch recheck, signal separation, bounded authorization, native consumption, liveness, UNCERTAIN, causal impact, and scoped interrupts. Partial: independent outcome verification, dependency migration, cost telemetry, runtime preemption, and policy monitoring. Incomplete: automatic policy rollback. The companion Markdown report contains the full numbered 25-row matrix."},
+      {"id": "architecture", "type": "markdown", "body": "## Queue Epistemology and Decision Architecture\n\nThe queue is a projection of hypotheses whose legality depends on intent, freshness, world state, policy, risk, cost, and independent verification. Decisions persist an envelope snapshot, material sample identity, and invalidation conditions; dispatch rechecks the world serializably. Observation, recommendation, Oracle evaluation, operator authorization, execution, and outcome are separate records."},
+      {"id": "calibration", "type": "markdown", "body": "## Envelope, Intent Freshness, and Calibration\n\nThe envelope stays SHADOW with maxRuns 1, maxCostCents 100, and maxActive 1. Canary authorization is narrower than the envelope and cannot graduate it. Intent is an expiring contract; achieved goals require explicit durable ACTIVE intent for continued work. Calibration v2.1 has one sample and one evaluator class—useful negative evidence, but insufficient for reliability estimates or graduation."},
+      {"id": "verification", "type": "markdown", "body": "## Verification performed\n\nServer typecheck passed. NLA and autonomy tests passed 24/24. Native supervision and control-contract tests passed 15/15. Workspace-boundary and runtime-topology audits passed. Migrations 0121 and 0122 applied on canonical embedded PostgreSQL. API health passed on port 3200; PostgreSQL remained on 54329 with no 54330 fallback. Repo-wide test:run, full build, and browser suites were not run."},
+      {"id": "gaps", "type": "markdown", "body": "## Theoretical gaps\n\nRemaining gaps include global optimization, canonical strategic intent, resource allocation, goal-conflict resolution, multi-project trade-offs, statistically credible trust calibration, multi-operator governance, strategic outcome semantics, autonomous runtime recovery, and automatic policy-regression rollback. The next iteration should move one real, freshly confirmed, low-risk issue through bounded authorization to independent outcome and causal impact—or continue to refuse if none exists."},
+      {"id": "notes", "type": "markdown", "body": "## Source notes\n\nThis is a bounded snapshot, not a live connector. Debt counts may overlap and are not a trend. The complete A–T narrative and exact 25-capability matrix are preserved in the companion Markdown report."}
+    ],
+    "cards": [],
+    "charts": [
+      {
+        "id": "autonomy_debt",
+        "title": "Live autonomy debt by gate",
+        "type": "bar",
+        "dataset": "autonomy_debt",
+        "sourceId": "debt_snapshot_sql",
+        "encodings": {
+          "x": {"field": "gate", "type": "nominal"},
+          "y": {"field": "count", "type": "quantitative"}
+        }
+      }
+    ],
+    "tables": [],
+    "sources": [
+      {"id": "debt_snapshot_sql", "label": "Bounded autonomy debt snapshot", "path": "docs/status/2026-08-08-paperclip-autonomy-evolution-iteration-5-debt-snapshot.sql"}
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-08T20:10:25.296Z",
+    "status": "ready",
+    "datasets": {
+      "autonomy_debt": [
+        {"gate": "Intent", "count": 129, "scope": "company", "snapshotAt": "2026-08-08T20:07:54.499Z", "meaning": "missing or stale durable intent"},
+        {"gate": "Dependency stale", "count": 262, "scope": "relations", "snapshotAt": "2026-08-08T20:07:54.499Z", "meaning": "freshness cannot be established"},
+        {"gate": "Dependency unowned", "count": 262, "scope": "relations", "snapshotAt": "2026-08-08T20:07:54.499Z", "meaning": "no accountable relation owner"},
+        {"gate": "Dependency untyped", "count": 262, "scope": "relations", "snapshotAt": "2026-08-08T20:07:54.499Z", "meaning": "no typed blocking semantics"},
+        {"gate": "Verification", "count": 3, "scope": "outcomes", "snapshotAt": "2026-08-08T20:07:54.499Z", "meaning": "insufficiently independent evidence"},
+        {"gate": "Policy", "count": 0, "scope": "policies", "snapshotAt": "2026-08-08T20:07:54.499Z", "meaning": "active policy lifecycle debt"}
+      ]
+    },
+    "accessIssues": []
+  },
+  "sources": [
+    {"id": "debt_snapshot_sql", "label": "Bounded autonomy debt snapshot", "path": "docs/status/2026-08-08-paperclip-autonomy-evolution-iteration-5-debt-snapshot.sql"}
+  ]
+}
