@@ -2521,6 +2521,15 @@ test("autonomy governor uses resilient issue pagination and retry defaults", asy
   assert.match(controlTickSource, /candidateScanStatus: data\.candidateScanStatus \?\? null/);
 });
 
+test("autonomy governor excludes runnable issues held by active subtree pause controls", async () => {
+  const source = await readFile("scripts/run-autonomy-governor.mjs", "utf8");
+
+  assert.match(source, /activeTreeHoldByRunnableIssueId/);
+  assert.match(source, /\/tree-control\/state/);
+  assert.match(source, /!activeTreeHoldByRunnableIssueId\.has\(issue\.id\)/);
+  assert.match(source, /heldRunnableIssues: activeTreeHoldByRunnableIssueId\.size/);
+});
+
 test("live-run janitor falls back to API reads when direct database is unavailable", async () => {
   const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
 

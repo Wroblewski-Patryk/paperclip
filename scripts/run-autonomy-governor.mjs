@@ -424,9 +424,16 @@ const protectedGateRunnableIssues = openActiveIssues.filter((issue) =>
   && !liveIssueIds.has(issue.id)
   && isProtectedGateRootIssue(issue)
 );
+const activeTreeHoldByRunnableIssueId = new Map(
+  (await Promise.all(runnableIssues.map(async (issue) => {
+    const state = await request("GET", `/api/issues/${issue.id}/tree-control/state`).catch(() => null);
+    return state?.activePauseHold ? [issue.id, state.activePauseHold] : null;
+  }))).filter(Boolean),
+);
 const independentRunnableIssues = runnableIssues.filter((issue) =>
   !liveProjectIds.has(issue.projectId)
   && (!issue.assigneeAgentId || !busyAgentIds.has(issue.assigneeAgentId))
+  && !activeTreeHoldByRunnableIssueId.has(issue.id)
 );
 const eligibleRunnableIssues = independentRunnableIssues.filter((issue) =>
   controlledProjectIdToName.has(issue.projectId)
@@ -742,6 +749,7 @@ console.log(JSON.stringify({
     recurringRoutineIssues: recurringRoutineIssues.length,
     runnableIssues: runnableIssues.length,
     protectedGateRunnableIssues: protectedGateRunnableIssues.length,
+    heldRunnableIssues: activeTreeHoldByRunnableIssueId.size,
     eligibleRunnableIssues: eligibleRunnableIssues.length,
     pendingReviewInteractionIssues: pendingReviewInteractionIssueIds.size,
     reviewIssuesWithoutPendingDecision: reviewIssuesWithoutPendingDecision.length,
@@ -833,6 +841,7 @@ console.log(JSON.stringify({
     assigneeAgentId: issue.assigneeAgentId ?? null,
     project: activeProjectById.get(issue.projectId)?.name ?? null,
     controlledProject: controlledProjectIdToName.get(issue.projectId) ?? null,
+    activeTreeHold: activeTreeHoldByRunnableIssueId.get(issue.id) ?? null,
     eligible: eligibleRunnableIssues.some((candidate) => candidate.id === issue.id),
   })),
   protectedGateRunnableIssues: protectedGateRunnableIssues.slice(0, 10).map((issue) => ({
