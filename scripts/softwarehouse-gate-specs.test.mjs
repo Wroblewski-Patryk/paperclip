@@ -11,7 +11,16 @@ import {
   planStaleCancelledBlockerRepair,
   planStalledTodoWake,
 } from "./lib/stale-blocker-repair.mjs";
-import { autonomyDispositionForMode, controlActionSummaryFor, controlActionTypeFor, deliveryPermissionForMode, gateBriefFor, staleGateOwnerActionLine } from "./lib/softwarehouse-control-brief.mjs";
+import {
+  autonomyDispositionForMode,
+  controlActionSummaryFor,
+  controlActionTypeFor,
+  deliveryPermissionForMode,
+  gateBriefFor,
+  guardrailsForOperatingPosture,
+  operatorActionStatusFor,
+  staleGateOwnerActionLine,
+} from "./lib/softwarehouse-control-brief.mjs";
 import { softwarehouseGateSpecs, softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
 import { finalizeRecurringIssue } from "./run-softwarehouse-continuation-watchdog.mjs";
 import { shouldShellExecuteApplyCommand } from "./run-next-legal-action-selector.mjs";
@@ -3764,6 +3773,40 @@ test("delivery permission allows local source-control closure without protected 
     "local_commit_closure",
   ]);
   assert.match(permission.reason, /protected gates still block push/i);
+});
+
+test("dirty project closure is an internal action rather than an operator gate", () => {
+  assert.equal(
+    operatorActionStatusFor({ blockedGateCount: 0, dirtyProjectCount: 2 }),
+    "source_control_closure_needed",
+  );
+  assert.equal(
+    operatorActionStatusFor({ blockedGateCount: 1, dirtyProjectCount: 2 }),
+    "operator_input_or_gate_evidence_needed",
+  );
+  assert.equal(
+    operatorActionStatusFor({ blockedGateCount: 0, dirtyProjectCount: 0 }),
+    "no_operator_action_needed",
+  );
+});
+
+test("source-control posture emits one coherent local closure contract", async () => {
+  const guardrails = guardrailsForOperatingPosture(
+    "project_source_control_closure_allowed",
+    ["wait for operator"],
+    ["commit"],
+  );
+  const source = await readFile("scripts/check-softwarehouse-source-control.mjs", "utf8");
+
+  assert.ok(guardrails.allowed.some((item) => /classify dirty project/i.test(item)));
+  assert.ok(guardrails.allowed.some((item) => /run local validation/i.test(item)));
+  assert.ok(guardrails.allowed.some((item) => /commit local project/i.test(item)));
+  assert.ok(guardrails.forbidden.includes("push"));
+  assert.ok(guardrails.forbidden.some((item) => /deploy or restart/i.test(item)));
+  assert.ok(!guardrails.forbidden.includes("commit"));
+  assert.match(source, /status: repo\.name === "Paperclip_Softwarehouse" \? "os_closure_allowed" : "project_source_control_closure_allowed"/);
+  assert.match(source, /local-closure: classify before mutation, then validate and commit or record no-commit evidence/);
+  assert.doesNotMatch(source, /project_gate_blocked_until_source_control_closure/);
 });
 
 test("delivery permission allows local repair lanes while protected gates remain blocked", () => {

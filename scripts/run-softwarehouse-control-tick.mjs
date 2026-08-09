@@ -1,6 +1,14 @@
 import { spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
-import { autonomyDispositionForMode, controlActionSummaryFor, deliveryPermissionForMode, gateBriefFor, staleGateOwnerActionLine } from "./lib/softwarehouse-control-brief.mjs";
+import {
+  autonomyDispositionForMode,
+  controlActionSummaryFor,
+  deliveryPermissionForMode,
+  gateBriefFor,
+  guardrailsForOperatingPosture,
+  operatorActionStatusFor,
+  staleGateOwnerActionLine,
+} from "./lib/softwarehouse-control-brief.mjs";
 import { mergeProtectedDeliveryGates } from "./lib/delivery-blocker-graph.mjs";
 import { acquireSingleFlightExecution } from "./lib/single-flight-lock.mjs";
 import { resolveRuntimeBindingRepairSummary } from "./lib/softwarehouse-runtime-binding-repair-summary.mjs";
@@ -1351,7 +1359,10 @@ function operatorActionPacketFor({ gateHandoffs, protectedDeliveryBlockers, sour
     }));
 
   return {
-    status: blockedGates.length > 0 || dirtyProjects.length > 0 ? "operator_input_or_gate_evidence_needed" : "no_operator_action_needed",
+    status: operatorActionStatusFor({
+      blockedGateCount: blockedGates.length,
+      dirtyProjectCount: dirtyProjects.length,
+    }),
     blockedGates: blockedGates.map((gate) => ({
       project: gate.project,
       rootBlocker: gate.rootBlocker,
@@ -2056,6 +2067,13 @@ if (singleFlight.mode === "follower") {
       gateHandoffs: unblockPacket.gateHandoffs ?? [],
       protectedDeliveryBlockers: readiness.protectedDeliveryBlockers ?? [],
     });
+    const normalizedGuardrails = guardrailsForOperatingPosture(
+      effectiveOperatingPosture,
+      allowedWhileBlocked,
+      forbiddenWhileBlocked,
+    );
+    allowedWhileBlocked = normalizedGuardrails.allowed;
+    forbiddenWhileBlocked = normalizedGuardrails.forbidden;
     const nextControlActions = nextControlActionsFor({
       controlDecision,
       effectiveOperatingPosture,

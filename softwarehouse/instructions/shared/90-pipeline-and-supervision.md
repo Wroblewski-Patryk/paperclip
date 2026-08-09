@@ -343,3 +343,9 @@ When `node scripts/run-softwarehouse-control-tick.mjs` exposes
 invent filler work. Surface the redacted packet as the operator-facing unblock
 summary, keep monitoring fresh, and wait for one accepted fresh fact before
 resuming protected project mutation, commit, push, deploy, or restart work.
+
+When the status is `source_control_closure_needed`, operator input is not
+required. Classify the listed paths first, run the smallest relevant local
+validation, then make and record a local commit or an explicit no-commit
+decision. Push, deploy, restart, protected smoke, and secret access remain
+forbidden unless their separate release or operator gate is satisfied.

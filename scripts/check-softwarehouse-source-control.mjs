@@ -159,14 +159,14 @@ function closureLaneFor(repo, group) {
       ? "project_state_or_evidence_change_requires_classification"
       : "operating_system_change_requires_closure";
   const gatePolicy = repo.name !== "Paperclip_Softwarehouse"
-    ? "gate-hold: classify only in Paperclip comments; no project filesystem writes, mutation, commit, push, deploy, restart, or repeated protected smoke without fresh gate fact"
+    ? "local-closure: classify before mutation, then validate and commit or record no-commit evidence; no push, deploy, restart, or protected smoke without a fresh accepted gate fact"
     : "os-closure: verify and commit/classify before broad delivery";
   return {
     repository: repo.name,
     group: group.group,
     count: group.count,
     owner: sourceControlOwnerFor(repo),
-    status: repo.name === "Paperclip_Softwarehouse" ? "os_closure_allowed" : "project_gate_blocked_until_source_control_closure",
+    status: repo.name === "Paperclip_Softwarehouse" ? "os_closure_allowed" : "project_source_control_closure_allowed",
     risk,
     gatePolicy,
     action: guidance.action,

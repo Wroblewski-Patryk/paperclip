@@ -69,6 +69,40 @@ export function deliveryPermissionForMode(mode, blockedGateCount = 0) {
   };
 }
 
+export function operatorActionStatusFor({ blockedGateCount = 0, dirtyProjectCount = 0 } = {}) {
+  if (blockedGateCount > 0) return "operator_input_or_gate_evidence_needed";
+  if (dirtyProjectCount > 0) return "source_control_closure_needed";
+  return "no_operator_action_needed";
+}
+
+export function guardrailsForOperatingPosture(posture, currentAllowed = [], currentForbidden = []) {
+  if (posture !== "project_source_control_closure_allowed") {
+    return {
+      allowed: currentAllowed ?? [],
+      forbidden: currentForbidden ?? [],
+    };
+  }
+
+  return {
+    allowed: [
+      "refresh control tick, source-control packet, and unblock packet",
+      "classify dirty project source-control lanes before mutation",
+      "run local validation for the classified changed files",
+      "commit local project source-control closure when evidence supports it",
+      "record an explicit no-commit decision when evidence does not support a commit",
+      "supervise independent live work without duplicating its lane",
+    ],
+    forbidden: [
+      "mutate project files before source-control classification",
+      "create duplicate source-control cleanup or commit issues",
+      "push",
+      "deploy or restart production",
+      "protected smoke without a fresh accepted gate fact",
+      "secret disclosure",
+    ],
+  };
+}
+
 export function autonomyDispositionForMode(mode) {
   if (mode === "wait_for_gate_fact") return "intentional_gate_hold";
   if (mode === "operating_system_closure") return "operating_system_closure_required";
