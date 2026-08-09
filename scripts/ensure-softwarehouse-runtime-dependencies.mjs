@@ -11,6 +11,8 @@ function dependencySentinels(root) {
     path.join(root, "node_modules", "typescript", "bin", "tsc"),
     path.join(root, "node_modules", "@openai", "codex", "bin", "codex.js"),
     path.join(root, "node_modules", ".bin", process.platform === "win32" ? "vitest.cmd" : "vitest"),
+    path.join(root, "server", "node_modules", "tsx", "dist", "cli.mjs"),
+    path.join(root, "server", "node_modules", ".bin", process.platform === "win32" ? "tsx.cmd" : "tsx"),
   ];
 }
 

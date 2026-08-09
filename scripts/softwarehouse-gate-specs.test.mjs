@@ -557,6 +557,8 @@ test("Paperclip keeps the pnpm virtual store outside sandbox-cleaned node_module
   assert.match(npmrc, /^virtual-store-dir=\.paperclip\/runtime\/pnpm-virtual-store$/m);
   assert.match(repair, /corepack pnpm install --offline --frozen-lockfile/);
   assert.match(repair, /typescript.*bin.*tsc/s);
+  assert.match(repair, /server.*node_modules.*tsx.*dist.*cli\.mjs/s);
+  assert.match(repair, /server.*node_modules.*\.bin.*tsx\.cmd/s);
   assert.match(starter, /ensure-softwarehouse-runtime-dependencies\.mjs/);
   assert.match(doctor, /ensureSoftwarehouseRuntimeDependencies\(\)/);
 });
