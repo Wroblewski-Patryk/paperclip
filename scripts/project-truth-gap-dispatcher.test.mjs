@@ -5,9 +5,11 @@ import {
   activeProjectTruthTrackIssues,
   blockingAdmissionControl,
   isReusableProjectTruthGapIssue,
+  isProblemAgentCapError,
   parseProjectTruthSourceItemId,
   persistentCompletionParentForProject,
   runtimeOwnerNamesForGap,
+  selectProblemParticipantFallback,
   selectReusableProjectTruthGapIssue,
 } from "./lib/project-truth-gap-dispatcher.mjs";
 
@@ -243,6 +245,55 @@ test("selectReusableProjectTruthGapIssue returns null when only detached or bloc
       status: "blocked",
     },
   ], completionParentId);
+
+  assert.equal(selected, null);
+});
+
+test("problem agent cap errors are recognized without swallowing unrelated validation failures", () => {
+  assert.equal(isProblemAgentCapError({
+    status: 422,
+    body: '{"error":"Problem already uses the maximum 4 distinct agents"}',
+  }), true);
+  assert.equal(isProblemAgentCapError({ status: 422, body: '{"error":"Title is required"}' }), false);
+  assert.equal(isProblemAgentCapError({ status: 500, body: "maximum 4 distinct agents" }), false);
+});
+
+test("agent-cap fallback reuses an active engineering participant instead of adding a fifth agent", () => {
+  const selected = selectProblemParticipantFallback({
+    completionParent: {
+      id: "parent",
+      assigneeAgentId: "pm",
+      blockedBy: [
+        { id: "old-devops", assigneeAgentId: "devops" },
+        { id: "old-engineering", assigneeAgentId: "engineer" },
+      ],
+    },
+    issues: [
+      { id: "child", parentId: "parent", assigneeAgentId: "cto" },
+      { id: "grandchild", parentId: "child", assigneeAgentId: "engineer" },
+    ],
+    agents: [
+      { id: "preferred-qa", name: "Test Automation Engineer", role: "qa", status: "idle" },
+      { id: "pm", name: "Product Manager", role: "pm", status: "idle" },
+      { id: "devops", name: "Deployment Engineer", role: "devops", status: "idle" },
+      { id: "engineer", name: "Solution Architect", role: "engineer", status: "idle" },
+      { id: "cto", name: "CTO", role: "cto", status: "idle" },
+    ],
+    preferredAssigneeId: "preferred-qa",
+  });
+
+  assert.equal(selected?.id, "engineer");
+});
+
+test("agent-cap fallback never selects a paused participant", () => {
+  const selected = selectProblemParticipantFallback({
+    completionParent: {
+      id: "parent",
+      blockedBy: [{ id: "child", assigneeAgentId: "paused-engineer" }],
+    },
+    issues: [],
+    agents: [{ id: "paused-engineer", name: "Engineer", role: "engineer", status: "paused" }],
+  });
 
   assert.equal(selected, null);
 });

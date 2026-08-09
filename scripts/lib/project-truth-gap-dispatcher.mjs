@@ -80,6 +80,67 @@ export function selectReusableProjectTruthGapIssue(issues, completionParentId) {
     .at(0) ?? null;
 }
 
+export function isProblemAgentCapError(error) {
+  return error?.status === 422
+    && /maximum\s+4\s+distinct\s+agents/i.test(String(error?.body ?? error?.message ?? ""));
+}
+
+export function selectProblemParticipantFallback({
+  completionParent,
+  issues,
+  agents,
+  preferredAssigneeId = null,
+}) {
+  if (!completionParent?.id) return null;
+
+  const participantIds = new Set();
+  if (completionParent.assigneeAgentId) participantIds.add(completionParent.assigneeAgentId);
+
+  for (const child of completionParent.blockedBy ?? []) {
+    if (child?.assigneeAgentId) participantIds.add(child.assigneeAgentId);
+  }
+
+  const descendantsByParent = new Map();
+  for (const issue of issues ?? []) {
+    if (!issue?.parentId) continue;
+    const descendants = descendantsByParent.get(issue.parentId) ?? [];
+    descendants.push(issue);
+    descendantsByParent.set(issue.parentId, descendants);
+  }
+  const pendingParentIds = [completionParent.id];
+  const visitedParentIds = new Set();
+  while (pendingParentIds.length > 0) {
+    const parentId = pendingParentIds.shift();
+    if (!parentId || visitedParentIds.has(parentId)) continue;
+    visitedParentIds.add(parentId);
+    for (const child of descendantsByParent.get(parentId) ?? []) {
+      if (child.assigneeAgentId) participantIds.add(child.assigneeAgentId);
+      if (child.id) pendingParentIds.push(child.id);
+    }
+  }
+
+  if (preferredAssigneeId && participantIds.has(preferredAssigneeId)) {
+    return (agents ?? []).find((agent) => agent.id === preferredAssigneeId && agent.status !== "paused") ?? null;
+  }
+
+  const rolePriority = new Map([
+    ["engineer", 0],
+    ["qa", 1],
+    ["devops", 2],
+    ["cto", 3],
+    ["researcher", 4],
+    ["designer", 5],
+    ["pm", 6],
+  ]);
+  return (agents ?? [])
+    .filter((agent) => participantIds.has(agent.id) && agent.status !== "paused")
+    .sort((left, right) =>
+      (rolePriority.get(left.role) ?? 50) - (rolePriority.get(right.role) ?? 50)
+      || String(left.name ?? "").localeCompare(String(right.name ?? ""))
+    )
+    .at(0) ?? null;
+}
+
 export function activeProjectTruthTrackIssues({
   projectName,
   issues,

@@ -7,11 +7,13 @@ import {
   activeProjectTruthTrackIssues,
   blockingAdmissionControl,
   isMonitorEnvironmentGap,
+  isProblemAgentCapError,
   isReusableProjectTruthGapIssue,
   parseProjectTruthSourceItemId,
   persistentCompletionParentForProject,
   persistentCompletionParentIdentifierByProject,
   runtimeOwnerNamesForGap,
+  selectProblemParticipantFallback,
   selectReusableProjectTruthGapIssue,
 } from "./lib/project-truth-gap-dispatcher.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
@@ -808,7 +810,7 @@ for (const projectGapSet of gapsToDispatch) {
       continue;
     }
 
-    actions.push({
+    const dispatchAction = {
       action: apply ? "create_project_truth_gap_issue" : "would_create_project_truth_gap_issue",
       project: gap.project,
       title,
@@ -817,7 +819,8 @@ for (const projectGapSet of gapsToDispatch) {
       trackDepthBefore: trackDepth,
       trackDepthTarget: perTrackDispatchDepth,
       parentIdentifier: completionParent.identifier,
-    });
+    };
+    actions.push(dispatchAction);
 
     if (apply) {
       for (const [name, color] of [
@@ -835,7 +838,7 @@ for (const projectGapSet of gapsToDispatch) {
         gap.kind === "event_chain_gap" ? "architecture" : "runtime",
         gap.kind === "runtime_error" ? "ops" : "architecture",
       ];
-      const created = await request("POST", `/api/issues/${completionParent.id}/children`, {
+      const createBody = {
         title,
         description: descriptionForGap(gap, audit),
         status: "todo",
@@ -859,7 +862,40 @@ for (const projectGapSet of gapsToDispatch) {
           "For runtime findings, production health is restored with smoke proof or an exact remaining provider/permission blocker is assigned.",
         ],
         blockParentUntilDone: true,
-      });
+      };
+      let created;
+      try {
+        created = await request("POST", `/api/issues/${completionParent.id}/children`, createBody);
+      } catch (error) {
+        if (!isProblemAgentCapError(error)) throw error;
+        const fallback = selectProblemParticipantFallback({
+          completionParent,
+          issues,
+          agents,
+          preferredAssigneeId: assignee.id,
+        });
+        if (!fallback || fallback.id === assignee.id) {
+          dispatchAction.action = "noop_problem_agent_cap";
+          dispatchAction.error = "Problem already uses the maximum 4 distinct agents and no active existing participant can own this gap.";
+          missingDepthReasons.push({ reason: "problem_agent_cap", title });
+          continue;
+        }
+        try {
+          created = await request("POST", `/api/issues/${completionParent.id}/children`, {
+            ...createBody,
+            assigneeAgentId: fallback.id,
+          });
+        } catch (fallbackError) {
+          if (!isProblemAgentCapError(fallbackError)) throw fallbackError;
+          dispatchAction.action = "noop_problem_agent_cap";
+          dispatchAction.error = "Problem agent participation changed during dispatch; the bounded retry stayed within the cap and no issue was created.";
+          missingDepthReasons.push({ reason: "problem_agent_cap_race", title });
+          continue;
+        }
+        dispatchAction.preferredAssignee = assignee.name;
+        dispatchAction.assignee = fallback.name;
+        dispatchAction.assigneeFallbackReason = "problem_agent_cap";
+      }
       const wakeBlocker = activeConflictForCreatedIssue(created, wip);
       const wakeBoundary = directWakeBoundaryForAgent(created.assigneeAgentId);
       const wakeSkipped = wakeBlocker ?? wakeBoundary;
@@ -875,14 +911,14 @@ for (const projectGapSet of gapsToDispatch) {
           idempotencyKey: `softwarehouse-project-truth-gap-dispatcher:${created.id}:${created.updatedAt ?? Date.now()}`,
         });
       }
-      actions.at(-1).identifier = created.identifier;
-      actions.at(-1).status = created.status;
-      actions.at(-1).wakeSkipped = wakeSkipped;
-      actions.at(-1).handoff = wakeBoundary
+      dispatchAction.identifier = created.identifier;
+      dispatchAction.status = created.status;
+      dispatchAction.wakeSkipped = wakeSkipped;
+      dispatchAction.handoff = wakeBoundary
         ? "created_todo_issue_for_assignee_without_cross_agent_direct_invoke"
         : "direct_wake_allowed_or_guarded";
-      actions.at(-1).activeRunCount = wip?.activeRunCount ?? null;
-      actions.at(-1).liveRunCount = wip?.liveRunCount ?? null;
+      dispatchAction.activeRunCount = wip?.activeRunCount ?? null;
+      dispatchAction.liveRunCount = wip?.liveRunCount ?? null;
       retainedDispatchTitles.add(created.title);
       retainedDispatchIds.add(created.id);
     }
