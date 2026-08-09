@@ -538,6 +538,12 @@ test("Windows Softwarehouse lifecycle uses one registered process tree", async (
   assert.doesNotMatch(stopper, /Stop-Process[^\n]+node|Stop-Process[^\n]+postgres/i);
 });
 
+test("Paperclip keeps the pnpm virtual store outside sandbox-cleaned node_modules", async () => {
+  const npmrc = await readFile(".npmrc", "utf8");
+
+  assert.match(npmrc, /^virtual-store-dir=\.paperclip\/runtime\/pnpm-virtual-store$/m);
+});
+
 test("architecture awareness prefers structured task status over free text", () => {
   assert.equal(canonicalArchitectureStatus("DONE"), "verified");
   assert.equal(canonicalArchitectureStatus("verified_local"), "verified");
