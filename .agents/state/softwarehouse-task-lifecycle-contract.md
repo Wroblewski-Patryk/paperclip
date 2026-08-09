@@ -85,6 +85,13 @@ unblocks a specialist is also bad. The rule is: create the smallest executable
 child that preserves ownership and evidence; otherwise comment or ask the
 parent/AIA for a decision.
 
+`suggest_tasks` is not an approval gate for ordinary internal delegation. If
+the parent already names the specialist or gate owner and the proposed child is
+bounded, safe, and requires no protected mutation, credential, budget, or owner
+choice, create the child directly through the permitted reporting route. Use a
+typed interaction only when the board or owner must make a real decision that
+changes scope or authority.
+
 ## Structured `in_review` Handoff Packet
 
 `in_review` is valid only when the next decision path is inspectable. Before

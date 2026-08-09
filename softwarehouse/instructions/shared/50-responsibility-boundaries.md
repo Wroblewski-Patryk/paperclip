@@ -31,6 +31,14 @@ your reporting subtree. Route the request through the shortest common-manager
 path so the responsible leads stay informed and can accept, reject, split, or
 reroute the work.
 
+Do not turn a known, safe internal handoff into a board decision. When the
+parent issue already names the specialist or gate owner, the work is bounded,
+and no protected mutation, credential, budget, or owner choice is required,
+create the one-owner child issue directly and notify the named chain. Do not use
+`suggest_tasks` merely to ask the board to approve ordinary internal routing.
+Reserve typed interactions for a genuine human choice, governed approval,
+missing credential fact, or confirmation that changes the permitted scope.
+
 Default rule:
 
 - direct report to direct manager is allowed;

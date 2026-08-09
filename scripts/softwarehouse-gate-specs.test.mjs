@@ -3934,6 +3934,14 @@ test("control packet refresh remains allowed in every delivery mode", () => {
   assert.equal(summary.allowedActionCount, 1);
 });
 
+test("agent boundaries reserve task suggestions for genuine owner decisions", async () => {
+  const source = await readFile("softwarehouse/instructions/shared/50-responsibility-boundaries.md", "utf8");
+
+  assert.match(source, /Do not turn a known, safe internal handoff into a board decision/);
+  assert.match(source, /Do not use\s+`suggest_tasks` merely to ask the board to approve ordinary internal routing/);
+  assert.match(source, /create the one-owner child issue directly/);
+});
+
 test("control tick emits stale gate owner actions during operating system closure", async () => {
   const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
   const operatingSystemClosureBranch = source.match(
