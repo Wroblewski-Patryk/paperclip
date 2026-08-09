@@ -1297,6 +1297,7 @@ test("control tick treats delivery-ready readiness as a non-blocking posture det
   assert.match(source, /readinessHasNoBlockingConstraint/);
   assert.match(source, /readinessPosture === "two_project_delivery_ready"/);
   assert.match(source, /readinessPosture === "supervision_ready_limited_delivery"/);
+  assert.match(source, /readinessPosture === "active_project_delivery_ready"/);
   assert.match(source, /\|\| readinessHasNoBlockingConstraint/);
 });
 

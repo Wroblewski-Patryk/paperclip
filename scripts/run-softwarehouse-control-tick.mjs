@@ -1147,7 +1147,8 @@ function resolveEffectivePosture(governorPosture, readinessPosture, activeRunCou
 function posturesAreConsistent({ governorPosture, readinessPosture, activeWorkOverlay, gateRecheckOverlay }) {
   const readinessHasNoBlockingConstraint =
     readinessPosture === "two_project_delivery_ready"
-    || readinessPosture === "supervision_ready_limited_delivery";
+    || readinessPosture === "supervision_ready_limited_delivery"
+    || readinessPosture === "active_project_delivery_ready";
   const readinessIsStricterGateHold =
     (
       governorPosture === "blocked_triage_allowed"
