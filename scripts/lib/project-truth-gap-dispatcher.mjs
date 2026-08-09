@@ -3,7 +3,7 @@ import {
   workerBacklogTrackForIssue,
 } from "./softwarehouse-worker-backlog-tracks.mjs";
 
-const activeDispatchStatuses = new Set(["todo", "in_progress", "in_review"]);
+const activeDispatchStatuses = new Set(["backlog", "todo", "in_progress", "in_review", "blocked"]);
 const defaultTerminalStatuses = new Set(["done", "cancelled"]);
 const admissionBlockingStates = new Set(["draining", "maintenance", "reopening"]);
 

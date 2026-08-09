@@ -141,7 +141,7 @@ export function controlActionSummaryFor(actions, allowedLaneTypes = []) {
     return {
       action,
       type,
-      allowedByDeliveryPermission: type === "supervision_only" || allowed.has(type),
+      allowedByDeliveryPermission: ["supervision_only", "control_packet_refresh"].includes(type) || allowed.has(type),
     };
   });
   return {

@@ -1,6 +1,7 @@
 const controlledProjectAliases = new Map([
   ["Soar", ["Soar", "11 Innovation: Soar"]],
   ["Roost", ["Roost", "11 Innovation: Roost"]],
+  ["Featherly", ["Featherly", "11 Innovation: Featherly"]],
 ]);
 
 function normalizeText(value) {

@@ -39,6 +39,11 @@ import {
   softwarehousePilotActiveRuntimeRoutineTitles,
   softwarehouseRoutineTitleRenames,
 } from "./lib/softwarehouse-active-routines.mjs";
+import {
+  activeProjectTruthTrackIssues,
+  isReusableProjectTruthGapIssue,
+  selectReusableProjectTruthGapIssue,
+} from "./lib/project-truth-gap-dispatcher.mjs";
 
 const requiredFields = [
   "project",
@@ -2266,6 +2271,39 @@ test("project truth dispatcher does not treat terminal issues as active gap cove
   assert.match(source, /"kept_existing_project_truth_gap_issue"/);
 });
 
+test("project truth dispatcher reuses blocked and backlog gaps instead of creating duplicates", () => {
+  const completionParentId = "parent-1";
+  const base = {
+    parentId: completionParentId,
+    projectId: "project-1",
+    hiddenAt: null,
+    title: "[Featherly][Project Truth][Critical Runtime] Restore production runtime",
+    description: "softwarehouse-project-truth-gap-dispatcher:v1",
+    createdAt: "2026-08-09T18:00:00.000Z",
+  };
+  const blocked = { ...base, id: "blocked-1", identifier: "LUC-2566", status: "blocked" };
+  const backlog = { ...base, id: "backlog-1", identifier: "LUC-2568", status: "backlog" };
+  const done = { ...base, id: "done-1", identifier: "LUC-2500", status: "done" };
+
+  assert.equal(isReusableProjectTruthGapIssue(blocked, completionParentId), true);
+  assert.equal(isReusableProjectTruthGapIssue(backlog, completionParentId), true);
+  assert.equal(isReusableProjectTruthGapIssue(done, completionParentId), false);
+  assert.equal(
+    selectReusableProjectTruthGapIssue([done, blocked, backlog], completionParentId)?.id,
+    "blocked-1",
+  );
+  assert.deepEqual(
+    activeProjectTruthTrackIssues({
+      projectName: "Featherly",
+      issues: [blocked],
+      projects: [{ id: "project-1", name: "11 Innovation: Featherly" }],
+      marker: "softwarehouse-project-truth-gap-dispatcher:v1",
+      completionParentId,
+    }).map((issue) => issue.id),
+    ["blocked-1"],
+  );
+});
+
 test("next legal action selector routes fresh blocked triage before stale runnable snapshots", async () => {
   const { pickAction } = await import("./run-next-legal-action-selector.mjs");
   const source = await readFile("scripts/run-next-legal-action-selector.mjs", "utf8");
@@ -3884,6 +3922,16 @@ test("supervision actions remain allowed while a narrower lane type is active", 
   assert.equal(summary.actions[0].allowedByDeliveryPermission, true);
   assert.equal(summary.actions[1].allowedByDeliveryPermission, true);
   assert.equal(summary.allowedActionCount, 2);
+});
+
+test("control packet refresh remains allowed in every delivery mode", () => {
+  const summary = controlActionSummaryFor([
+    "Refresh control tick, source-control packet, and unblock packet.",
+  ], ["source_control_classification", "local_validation", "local_commit_closure"]);
+
+  assert.equal(summary.actions[0].type, "control_packet_refresh");
+  assert.equal(summary.actions[0].allowedByDeliveryPermission, true);
+  assert.equal(summary.allowedActionCount, 1);
 });
 
 test("control tick emits stale gate owner actions during operating system closure", async () => {
