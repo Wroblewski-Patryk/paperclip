@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { agentWipBlockerFor, fetchAgentWipState } from "./lib/agent-wip-guard.mjs";
 import {
+  admissionHoldForDispatcherWake,
   activeProjectTruthTrackIssues,
   blockingAdmissionControl,
   isMonitorEnvironmentGap,
@@ -898,24 +899,33 @@ for (const projectGapSet of gapsToDispatch) {
       const wakeBlocker = activeConflictForCreatedIssue(created, wip);
       const wakeBoundary = directWakeBoundaryForAgent(created.assigneeAgentId);
       const wakeSkipped = wakeBlocker ?? wakeBoundary;
+      let admissionHold = null;
       if (!wakeSkipped) {
-        await request("POST", `/api/agents/${created.assigneeAgentId}/heartbeat/invoke?companyId=${company.id}`, {
-          reason: "issue_assigned",
-          payload: {
-            issueId: created.id,
-            taskId: created.id,
-            taskKey: created.identifier,
-            source: "softwarehouse-project-truth-gap-dispatcher",
-          },
-          idempotencyKey: `softwarehouse-project-truth-gap-dispatcher:${created.id}:${created.updatedAt ?? Date.now()}`,
-        });
+        try {
+          await request("POST", `/api/agents/${created.assigneeAgentId}/heartbeat/invoke?companyId=${company.id}`, {
+            reason: "issue_assigned",
+            payload: {
+              issueId: created.id,
+              taskId: created.id,
+              taskKey: created.identifier,
+              source: "softwarehouse-project-truth-gap-dispatcher",
+            },
+            idempotencyKey: `softwarehouse-project-truth-gap-dispatcher:${created.id}:${created.updatedAt ?? Date.now()}`,
+          });
+        } catch (error) {
+          admissionHold = admissionHoldForDispatcherWake(error);
+          if (!admissionHold) throw error;
+        }
       }
       dispatchAction.identifier = created.identifier;
       dispatchAction.status = created.status;
-      dispatchAction.wakeSkipped = wakeSkipped;
+      dispatchAction.wakeSkipped = wakeSkipped ?? admissionHold?.reasonCode ?? null;
+      dispatchAction.admissionHold = admissionHold;
       dispatchAction.handoff = wakeBoundary
         ? "created_todo_issue_for_assignee_without_cross_agent_direct_invoke"
-        : "direct_wake_allowed_or_guarded";
+        : admissionHold
+          ? "created_todo_issue_waiting_for_governed_capacity"
+          : "direct_wake_allowed_or_guarded";
       dispatchAction.activeRunCount = wip?.activeRunCount ?? null;
       dispatchAction.liveRunCount = wip?.liveRunCount ?? null;
       retainedDispatchTitles.add(created.title);

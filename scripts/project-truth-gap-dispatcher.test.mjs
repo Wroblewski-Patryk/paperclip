@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  admissionHoldForDispatcherWake,
   activeProjectTruthTrackIssues,
   blockingAdmissionControl,
   isReusableProjectTruthGapIssue,
@@ -15,6 +16,45 @@ import {
 
 const marker = "softwarehouse-project-truth-gap-dispatcher:v1";
 const terminalStatuses = new Set(["done", "cancelled"]);
+
+test("admissionHoldForDispatcherWake accepts bounded WIP holds", () => {
+  const error = {
+    status: 409,
+    body: JSON.stringify({
+      error: "Work was not admitted",
+      details: {
+        disposition: "waiting_for_signal",
+        reasonCode: "wip.project_limit",
+        state: "open",
+        scopeType: "company",
+        scopeId: "company-1",
+        controlVersion: 15,
+      },
+    }),
+  };
+
+  assert.deepEqual(admissionHoldForDispatcherWake(error), {
+    source: "admission_control",
+    disposition: "waiting_for_signal",
+    reasonCode: "wip.project_limit",
+    state: "open",
+    scopeType: "company",
+    scopeId: "company-1",
+    controlVersion: 15,
+  });
+});
+
+test("admissionHoldForDispatcherWake rejects unrelated conflicts and malformed bodies", () => {
+  assert.equal(admissionHoldForDispatcherWake({ status: 409, body: "not-json" }), null);
+  assert.equal(admissionHoldForDispatcherWake({
+    status: 409,
+    body: JSON.stringify({ error: "Conflict", details: { disposition: "waiting_for_signal" } }),
+  }), null);
+  assert.equal(admissionHoldForDispatcherWake({
+    status: 409,
+    body: JSON.stringify({ error: "Work was not admitted", details: { disposition: "rejected_as_duplicate" } }),
+  }), null);
+});
 
 test("activeProjectTruthTrackIssues returns active lanes for one track in identifier order", () => {
   const issues = activeProjectTruthTrackIssues({

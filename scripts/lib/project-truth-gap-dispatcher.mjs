@@ -85,6 +85,31 @@ export function isProblemAgentCapError(error) {
     && /maximum\s+4\s+distinct\s+agents/i.test(String(error?.body ?? error?.message ?? ""));
 }
 
+export function admissionHoldForDispatcherWake(error) {
+  if (error?.status !== 409) return null;
+  let data = null;
+  try {
+    data = typeof error?.body === "string" ? JSON.parse(error.body) : error?.body;
+  } catch {
+    return null;
+  }
+  const details = data?.details;
+  if (data?.error !== "Work was not admitted"
+    || !details
+    || !["waiting_for_signal", "deferred"].includes(details.disposition)) {
+    return null;
+  }
+  return {
+    source: "admission_control",
+    disposition: details.disposition,
+    reasonCode: details.reasonCode ?? "admission_hold",
+    state: details.state ?? null,
+    scopeType: details.scopeType ?? null,
+    scopeId: details.scopeId ?? null,
+    controlVersion: details.controlVersion ?? null,
+  };
+}
+
 export function selectProblemParticipantFallback({
   completionParent,
   agents,
