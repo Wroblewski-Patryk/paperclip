@@ -94,7 +94,7 @@ export function classifyNativeRemediation(input: Pick<CheckResult, "problemClass
   if (input.problemClass === "dispatch_capacity_gap") {
     return { route: "auto_remediate", riskLevel: "low", rationale: "The bounded action wakes one existing review owner and cannot create work or change product state directly." };
   }
-  if (["stalled_ready_work", "review_bottleneck", "stale_roost", "cost_telemetry_gap"].includes(input.problemClass)) {
+  if (["stalled_ready_work", "review_bottleneck", "blocked_chain_stalled", "stale_roost", "cost_telemetry_gap"].includes(input.problemClass)) {
     return { route: "review_then_remediate", riskLevel: "medium", rationale: "A bounded diagnosis is required before changing operational state." };
   }
   return { route: "escalate", riskLevel: input.severity === "critical" ? "high" : "medium", rationale: "The finding lacks a deterministic, reversible native action with a bounded blast radius." };
@@ -125,7 +125,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
   async function collectChecks(companyId: string, now: Date, expanded: boolean): Promise<CheckResult[]> {
     const old24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const old2h = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-    const [runningWithoutAdmission, runawayRetries, stalledReady, orphanTasks, orphanDeliveries, reviewBottlenecks, deploymentBottlenecks, staleRoost, duplicateRoutines, excessiveWip, activeSevereFindings, orphanExecutionLocks, evidenceFreeDone, untypedAcceptedOutcomes, taskOutcomeStateGap, costTelemetryGap, externalShadowGap, dispatchCapacityGap, runnableDispatchGap] = await Promise.all([
+    const [runningWithoutAdmission, runawayRetries, stalledReady, orphanTasks, orphanDeliveries, reviewBottlenecks, stalledBlockedChains, deploymentBottlenecks, staleRoost, duplicateRoutines, excessiveWip, activeSevereFindings, orphanExecutionLocks, evidenceFreeDone, untypedAcceptedOutcomes, taskOutcomeStateGap, costTelemetryGap, externalShadowGap, dispatchCapacityGap, runnableDispatchGap] = await Promise.all([
       scalar(companyId, sql`select count(*)::int from heartbeat_runs where company_id=${companyId} and status='running' and admission_decision_id is null`),
       scalar(companyId, sql`select count(*)::int from heartbeat_runs where company_id=${companyId} and status in ('queued','running','scheduled_retry') and greatest(process_loss_retry_count, scheduled_retry_attempt, continuation_attempt) > 2`),
       scalar(companyId, sql`select count(*)::int from product_deliveries d where d.company_id=${companyId} and d.stage in ('admitted','implementing') and d.updated_at < ${old2h.toISOString()}::timestamptz and not exists (select 1 from heartbeat_runs r where r.company_id=d.company_id and r.status in ('queued','running') and r.context_snapshot->>'projectId'=d.project_id::text)`),
@@ -145,6 +145,46 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
             where interaction.company_id=i.company_id
               and interaction.issue_id=i.id
               and interaction.status='pending'
+          )
+      `),
+      scalar(companyId, sql`
+        select count(distinct blocked_issue.id)::int
+        from issues blocked_issue
+        where blocked_issue.company_id=${companyId}
+          and blocked_issue.status='blocked'
+          and blocked_issue.hidden_at is null
+          and exists (
+            select 1
+            from issue_relations relation
+            join issues blocker
+              on blocker.id=relation.issue_id
+             and blocker.company_id=relation.company_id
+            where relation.company_id=blocked_issue.company_id
+              and relation.related_issue_id=blocked_issue.id
+              and relation.type='blocks'
+              and blocker.status not in ('done','cancelled')
+          )
+          and not exists (
+            select 1
+            from issue_relations relation
+            join issues blocker
+              on blocker.id=relation.issue_id
+             and blocker.company_id=relation.company_id
+            where relation.company_id=blocked_issue.company_id
+              and relation.related_issue_id=blocked_issue.id
+              and relation.type='blocks'
+              and blocker.status in ('todo','in_progress','in_review')
+          )
+          and not exists (
+            select 1
+            from heartbeat_runs active_run
+            join issue_relations relation
+              on relation.company_id=active_run.company_id
+             and relation.issue_id::text=active_run.context_snapshot->>'issueId'
+             and relation.related_issue_id=blocked_issue.id
+             and relation.type='blocks'
+            where active_run.company_id=blocked_issue.company_id
+              and active_run.status in ('queued','running','scheduled_retry')
           )
       `),
       scalar(companyId, sql`select count(*)::int from product_deliveries where company_id=${companyId} and stage in ('integrated','push_ready','deployed') and updated_at < ${old24h.toISOString()}::timestamptz`),
@@ -273,6 +313,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       ["orphan_tasks", "Executable issues have no owner", "orphan_task", orphanTasks, "high", "ownership", "Todo or in-progress issues must have an owner."],
       ["orphan_deliveries", "Active deliveries have no delivery tasks", "orphan_delivery", orphanDeliveries, "high", "delivery_flow", "Active delivery lacks a bounded execution task."],
       ["review_bottleneck", "Review queue has no decision path", "review_bottleneck", reviewBottlenecks, "high", "review_flow", "Review work exceeded 24 hours without a pending confirmation, question, or other structured decision path.", true],
+      ["blocked_attention", "Blocked chains have no active resolution path", "blocked_chain_stalled", stalledBlockedChains, "high", "dependency_flow", "A blocked issue depends only on terminally stalled blocked work with no runnable blocker or active resolution run.", true],
       ["deployment_bottleneck", "Deployment progression is stale", "deployment_bottleneck", deploymentBottlenecks, "high", "deployment_flow", "Integrated or deployed work has not progressed within 24 hours.", true],
       ["stale_roost", "Roost publication is stale", "stale_roost", staleRoost, "warning", "integration_health", "Roost outbox contains stale unpublished product state."],
       ["routine_overlap", "Active routines overlap by title", "routine_overlap", duplicateRoutines, "warning", "control_complexity", "Multiple active routines declare the same normalized purpose."],
@@ -288,8 +329,8 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       ["runnable_dispatch", "Dispatch-eligible assigned work has no active owner lane", "runnable_dispatch_gap", runnableDispatchGap, "high", "dispatch_flow", "Assigned backlog or todo work passes local scheduler exclusions, but its owner has no scheduler heartbeat or live run; priority and dependency readiness still require diagnosis."],
     ];
     return specs
-      .filter(([key]) => expanded || ["admission_coverage", "runaway_retry", "stalled_ready_work", "review_bottleneck", "active_findings_guard", "orphan_execution_locks", "completion_evidence", "outcome_predicates", "task_outcome_reconciliation", "cost_telemetry", "external_shadow_gap", "dispatch_capacity", "runnable_dispatch"].includes(key))
-      .map(([key, title, problemClass, count, severity, classification, summary]) => ({ key, title, problemClass, count, severity, classification, summary, status: count === 0 ? "passed" : severity === "warning" ? "warning" : "failed", requiresDiagnosis: ["admission_gap", "runaway_loop", "stalled_ready_work", "review_bottleneck", "deployment_bottleneck", "orphan_execution_lock", "evidence_completeness", "outcome_acceptance_gap", "task_outcome_state_gap", "cost_telemetry_gap", "external_assurance_gap"].includes(problemClass) }));
+      .filter(([key]) => expanded || ["admission_coverage", "runaway_retry", "stalled_ready_work", "review_bottleneck", "blocked_attention", "active_findings_guard", "orphan_execution_locks", "completion_evidence", "outcome_predicates", "task_outcome_reconciliation", "cost_telemetry", "external_shadow_gap", "dispatch_capacity", "runnable_dispatch"].includes(key))
+      .map(([key, title, problemClass, count, severity, classification, summary]) => ({ key, title, problemClass, count, severity, classification, summary, status: count === 0 ? "passed" : severity === "warning" ? "warning" : "failed", requiresDiagnosis: ["admission_gap", "runaway_loop", "stalled_ready_work", "review_bottleneck", "blocked_chain_stalled", "deployment_bottleneck", "orphan_execution_lock", "evidence_completeness", "outcome_acceptance_gap", "task_outcome_state_gap", "cost_telemetry_gap", "external_assurance_gap"].includes(problemClass) }));
   }
 
   async function collectReviewDispatchCandidate(companyId: string, now: Date): Promise<ReviewDispatchCandidate | null> {
@@ -993,7 +1034,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const nativeActionCount = orphanLockRecoveries.length + orphanTaskRoutes.length + (reviewDispatch.status === "dispatched" ? 1 : 0) + verifiedReviewInterventions.length;
     const homeostasis = {
       runtimeHealth: evaluateHomeostasisDimension(checks, ["admission_coverage", "runaway_retry", "orphan_execution_locks"]),
-      dispatchHealth: evaluateHomeostasisDimension(checks, ["dispatch_capacity", "runnable_dispatch", "stalled_ready_work", "review_bottleneck"]),
+      dispatchHealth: evaluateHomeostasisDimension(checks, ["dispatch_capacity", "runnable_dispatch", "stalled_ready_work", "review_bottleneck", "blocked_attention"]),
       evidenceHealth: evaluateHomeostasisDimension(checks, ["completion_evidence", "outcome_predicates", "task_outcome_reconciliation"]),
       supervisionHealth: evaluateHomeostasisDimension(checks, ["active_findings_guard", "external_shadow_gap"]),
     };

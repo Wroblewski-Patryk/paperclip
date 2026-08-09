@@ -880,9 +880,32 @@ test("work-aware heartbeat admission preserves useful parallelism without empty 
   assert.match(heartbeat, /hasLiveRunForTimerProject/);
   assert.match(heartbeat, /workAwareDispatch: true/);
   assert.match(heartbeat, /serializeByProject/);
+  assert.match(heartbeat, /hasUnresolvedProjectReviewPressure/);
+  assert.match(heartbeat, /timerCandidate\?\.status !== "in_review"/);
+  assert.match(heartbeat, /workType: timerCandidate\.status === "in_review" \? "review" : "implementation"/);
   assert.match(sync, /workAware: true/);
   assert.match(sync, /serializeByProject: true/);
+  assert.match(sync, /reviewFirst: true/);
   assert.match(sync, /maxConcurrentRuns: 1/);
+});
+
+test("native supervision treats blocked dependency dead ends as one diagnostic finding", async () => {
+  const source = await readFile("server/src/services/native-supervision-engine.ts", "utf8");
+
+  assert.match(source, /blocked_attention/);
+  assert.match(source, /blocked_chain_stalled/);
+  assert.match(source, /blocker\.status in \('todo','in_progress','in_review'\)/);
+  assert.match(source, /active_run\.status in \('queued','running','scheduled_retry'\)/);
+});
+
+test("workspace boundary audit rejects duplicate active roots and temporary residue", async () => {
+  const source = await readFile("scripts/audit-softwarehouse-workspace-boundaries.mjs", "utf8");
+
+  assert.match(source, /duplicate_active_project_workspace/);
+  assert.match(source, /workspace_temporary_residue/);
+  assert.match(source, /\.pnpm-store/);
+  assert.match(source, /tmp\|temp\|scratch/);
+  assert.match(source, /--porcelain=v1/);
 });
 
 test("dashboard surfaces provider quota separately from dollar spend", async () => {

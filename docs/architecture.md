@@ -87,11 +87,21 @@ execution quota to the current routine-run epoch; ordinary issues retain issue-l
 quota hard hold is a policy decision, not a transient adapter failure: recovery escalates it to the
 board and does not re-arm the same run every few minutes. Native stale-review consumption remains
 active even when agent timers are enabled and admits at most one review lane per supervision cycle.
+Work-aware timers are review-first: an assigned review is selected ahead of implementation, and a
+project with an unstructured review wait cannot admit another implementation timer until a review
+owner starts a decision lane or records a structured pending decision. This bounds review fan-in
+without serializing independent projects.
 
 The canonical local Softwarehouse service runs without source hot reload. Agents may edit the
 Paperclip checkout, but validated control-plane changes enter the running instance only through an
 explicit restart. This prevents a source edit from restarting Paperclip underneath the heartbeat
 process that made the edit and turning successful engineering work into a `process_lost` loop.
+
+Workspace-boundary assurance also rejects two forms of hidden operational debt before handoff:
+multiple active Paperclip projects claiming the same canonical workspace, and untracked top-level
+temporary stores or scratch directories such as `.pnpm-store/` and `tmp-*`. Temporary output must
+be removed or promoted to a tracked artifact/work product; it cannot silently become repository
+state.
 
 Task, delivery, and outcome are deliberately separate state machines. Closing an issue records only
 the executor's task state. It cannot advance a delivery, and neither a commit, local SHA, review,

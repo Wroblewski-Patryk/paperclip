@@ -106,6 +106,7 @@ async function syncAgentRuntime(agent, definition) {
       wakeOnDemand: true,
       workAware: true,
       serializeByProject: true,
+      reviewFirst: true,
       maxConcurrentRuns: 1,
     },
     modelProfiles: {

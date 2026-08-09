@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { agents, companies, costEvents, createDb, deliveryTasks, heartbeatRuns, issueThreadInteractions, issues, nativeSafeguards, organizationalObservations, productDeliveries, productOutcomes, projects, supervisionFindings, supervisionInterventions, supervisionObservationWindows, supervisionRootCauses } from "@paperclipai/db";
+import { agents, companies, costEvents, createDb, deliveryTasks, heartbeatRuns, issueRelations, issueThreadInteractions, issues, nativeSafeguards, organizationalObservations, productDeliveries, productOutcomes, projects, supervisionFindings, supervisionInterventions, supervisionObservationWindows, supervisionRootCauses } from "@paperclipai/db";
 import { classifyNativeRemediation, nativeSupervisionEngine } from "../services/native-supervision-engine.js";
 import { supervisionRegistryService } from "../services/supervision-registry.js";
 import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.js";
@@ -27,6 +27,7 @@ describeEmbedded("native supervision engine", () => {
   it("routes only deterministic bounded corrections to native auto-remediation", () => {
     expect(classifyNativeRemediation({ problemClass: "dispatch_capacity_gap", severity: "critical" })).toMatchObject({ route: "auto_remediate", riskLevel: "low" });
     expect(classifyNativeRemediation({ problemClass: "review_bottleneck", severity: "high" })).toMatchObject({ route: "review_then_remediate", riskLevel: "medium" });
+    expect(classifyNativeRemediation({ problemClass: "blocked_chain_stalled", severity: "high" })).toMatchObject({ route: "review_then_remediate", riskLevel: "medium" });
     expect(classifyNativeRemediation({ problemClass: "unknown_mutation", severity: "critical" })).toMatchObject({ route: "escalate", riskLevel: "high" });
   });
 
@@ -198,6 +199,34 @@ describeEmbedded("native supervision engine", () => {
     expect(finding).toMatchObject({ problemClass: "review_bottleneck" });
     expect(finding.summary).toContain("without a pending confirmation");
     expect(missingDecisionPath.id).not.toBe(waitingForOwner.id);
+  });
+
+  it("detects a blocked dependency chain with no runnable or active resolution path", async () => {
+    const refs = await seed();
+    const [root, stalledBlocker] = await db.insert(issues).values([
+      { companyId: refs.companyId, projectId: refs.projectId, title: "Blocked root", status: "blocked", assigneeAgentId: refs.ownerId },
+      { companyId: refs.companyId, projectId: refs.projectId, title: "Blocked leaf", status: "blocked", assigneeAgentId: refs.ownerId },
+    ]).returning();
+    await db.insert(issueRelations).values({
+      companyId: refs.companyId,
+      issueId: stalledBlocker.id,
+      relatedIssueId: root.id,
+      type: "blocks",
+    });
+
+    const result = await nativeSupervisionEngine(db).runWatchdog(
+      refs.companyId,
+      new Date("2026-08-04T03:00:00Z"),
+    );
+
+    expect(result.checks.find((check) => check.key === "blocked_attention")).toMatchObject({
+      count: 1,
+      status: "failed",
+      requiresDiagnosis: true,
+    });
+    expect(await db.select().from(supervisionFindings)).toContainEqual(
+      expect.objectContaining({ problemClass: "blocked_chain_stalled" }),
+    );
   });
 
   it("separates accepted-outcome task conflicts from dispatch capacity", async () => {

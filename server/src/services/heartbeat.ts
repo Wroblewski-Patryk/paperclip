@@ -6679,6 +6679,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       maxConcurrentRuns: normalizeMaxConcurrentRuns(heartbeat.maxConcurrentRuns),
       workAware: asBoolean(heartbeat.workAware, false),
       serializeByProject: asBoolean(heartbeat.serializeByProject, true),
+      reviewFirst: asBoolean(heartbeat.reviewFirst, true),
     };
   }
 
@@ -6687,6 +6688,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       .select({
         id: issues.id,
         projectId: issues.projectId,
+        status: issues.status,
         priority: issues.priority,
         updatedAt: issues.updatedAt,
       })
@@ -6694,9 +6696,19 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       .where(and(
         eq(issues.companyId, agent.companyId),
         eq(issues.assigneeAgentId, agent.id),
-        inArray(issues.status, ["backlog", "todo"]),
+        inArray(issues.status, ["backlog", "todo", "in_review"]),
         isNull(issues.hiddenAt),
         or(isNull(issues.originKind), ne(issues.originKind, "routine_execution")),
+        sql`(
+          ${issues.status} <> 'in_review'
+          or not exists (
+            select 1
+            from issue_thread_interactions pending_review_decision
+            where pending_review_decision.company_id=${agent.companyId}
+              and pending_review_decision.issue_id=${issues.id}
+              and pending_review_decision.status='pending'
+          )
+        )`,
         sql`not exists (
           select 1
           from issue_relations relation
@@ -6742,6 +6754,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         )`,
       ))
       .orderBy(
+        sql`case when ${issues.status}='in_review' then 0 else 1 end`,
         sql`case ${issues.priority}
           when 'critical' then 0
           when 'high' then 1
@@ -6753,6 +6766,47 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       )
       .limit(1)
       .then((rows) => rows[0] ?? null);
+  }
+
+  async function hasUnresolvedProjectReviewPressure(companyId: string, projectId: string | null) {
+    return db
+      .execute<{ id: string }>(sql`
+        select review_issue.id
+        from issues review_issue
+        where review_issue.company_id=${companyId}
+          and coalesce(review_issue.project_id::text, '')=${projectId ?? ''}
+          and review_issue.status='in_review'
+          and review_issue.hidden_at is null
+          and coalesce(review_issue.origin_kind, 'manual') <> 'routine_execution'
+          and not exists (
+            select 1
+            from issue_relations review_blocker_relation
+            join issues review_blocker
+              on review_blocker.id=review_blocker_relation.issue_id
+             and review_blocker.company_id=review_blocker_relation.company_id
+            where review_blocker_relation.company_id=review_issue.company_id
+              and review_blocker_relation.related_issue_id=review_issue.id
+              and review_blocker_relation.type='blocks'
+              and review_blocker.status not in ('done','cancelled')
+              and review_blocker.hidden_at is null
+          )
+          and not exists (
+            select 1
+            from issue_thread_interactions pending_review_decision
+            where pending_review_decision.company_id=review_issue.company_id
+              and pending_review_decision.issue_id=review_issue.id
+              and pending_review_decision.status='pending'
+          )
+          and not exists (
+            select 1
+            from heartbeat_runs review_run
+            where review_run.company_id=review_issue.company_id
+              and review_run.status in ('queued','running','scheduled_retry')
+              and review_run.context_snapshot->>'issueId'=review_issue.id::text
+          )
+        limit 1
+      `)
+      .then((rows) => rows.length > 0);
   }
 
   async function hasLiveRunForTimerProject(companyId: string, projectId: string | null) {
@@ -12263,6 +12317,16 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           continue;
         }
 
+        if (
+          policy.workAware &&
+          policy.reviewFirst &&
+          timerCandidate?.status !== "in_review" &&
+          await hasUnresolvedProjectReviewPressure(agent.companyId, timerCandidate?.projectId ?? null)
+        ) {
+          skipped += 1;
+          continue;
+        }
+
         const projectLaneKey = timerCandidate?.projectId ?? `${agent.companyId}:unscoped`;
         if (
           policy.workAware &&
@@ -12284,7 +12348,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           requestedByActorId: "heartbeat_scheduler",
           contextSnapshot: {
             source: "scheduler",
-            reason: timerCandidate ? "assigned_work_available" : "interval_elapsed",
+            reason: timerCandidate?.status === "in_review"
+              ? "assigned_review_available"
+              : timerCandidate
+                ? "assigned_work_available"
+                : "interval_elapsed",
             now: now.toISOString(),
             ...(timerCandidate
               ? {
@@ -12293,6 +12361,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
                   projectId: timerCandidate.projectId,
                   wakeReason: "heartbeat_timer",
                   workAwareDispatch: true,
+                  workType: timerCandidate.status === "in_review" ? "review" : "implementation",
                 }
               : {}),
           },
