@@ -540,8 +540,15 @@ test("Windows Softwarehouse lifecycle uses one registered process tree", async (
 
 test("Paperclip keeps the pnpm virtual store outside sandbox-cleaned node_modules", async () => {
   const npmrc = await readFile(".npmrc", "utf8");
+  const repair = await readFile("scripts/ensure-softwarehouse-runtime-dependencies.mjs", "utf8");
+  const starter = await readFile("scripts/start-luckysparrow-softwarehouse.ps1", "utf8");
+  const doctor = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
 
   assert.match(npmrc, /^virtual-store-dir=\.paperclip\/runtime\/pnpm-virtual-store$/m);
+  assert.match(repair, /corepack pnpm install --offline --frozen-lockfile/);
+  assert.match(repair, /typescript.*bin.*tsc/s);
+  assert.match(starter, /ensure-softwarehouse-runtime-dependencies\.mjs/);
+  assert.match(doctor, /ensureSoftwarehouseRuntimeDependencies\(\)/);
 });
 
 test("architecture awareness prefers structured task status over free text", () => {

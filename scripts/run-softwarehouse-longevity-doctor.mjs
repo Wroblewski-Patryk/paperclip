@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { ensureSoftwarehouseRuntimeDependencies } from "./ensure-softwarehouse-runtime-dependencies.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow";
@@ -385,6 +386,15 @@ let apiReachable = false;
 let company = null;
 let payload = {};
 const findings = [];
+const dependencyLinkHealth = ensureSoftwarehouseRuntimeDependencies();
+if (!dependencyLinkHealth.ok) {
+  findings.push({
+    severity: "critical",
+    area: "runtime_dependencies",
+    message: "Paperclip workspace dependency links could not be restored from the managed offline store.",
+    data: dependencyLinkHealth,
+  });
+}
 const softwarehouseChecks = [];
 const repairActions = [];
 let restartRequestWritten = false;

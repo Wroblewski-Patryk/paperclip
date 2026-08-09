@@ -142,6 +142,11 @@ foreach ($listener in $listeners) {
   }
 }
 
+& node (Join-Path $Root 'scripts\ensure-softwarehouse-runtime-dependencies.mjs')
+if ($LASTEXITCODE -ne 0) {
+  throw "LuckySparrow Software House dependency links could not be restored from the managed offline store."
+}
+
 $command = @"
 Set-Location '$Root'
 `$env:PAPERCLIP_CONFIG = '$Root\.paperclip\config.json'

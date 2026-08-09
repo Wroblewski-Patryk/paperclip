@@ -48,10 +48,15 @@ export function resolveSessionRuntimeLimits(input: {
 }): SessionRuntimeLimits {
   const configured = input.configured ?? {};
   const hardContext = Math.max(1, Math.floor(input.contextHardTokenLimit));
+  const uncachedInputTokens = finiteLimit(configured.uncachedInputTokens, Math.max(100_000, hardContext * 25));
+  const cachedInputTokens = finiteLimit(configured.cachedInputTokens, Math.max(1_000_000, hardContext * 500));
   return {
-    rawInputTokens: finiteLimit(configured.rawInputTokens, Math.max(250_000, hardContext * 100)),
-    uncachedInputTokens: finiteLimit(configured.uncachedInputTokens, Math.max(100_000, hardContext * 25)),
-    cachedInputTokens: finiteLimit(configured.cachedInputTokens, Math.max(1_000_000, hardContext * 500)),
+    // Total input is cached + uncached. Its default ceiling must not contradict
+    // the two independently enforced component ceilings. Explicit operator
+    // configuration may still choose a tighter aggregate hard stop.
+    rawInputTokens: finiteLimit(configured.rawInputTokens, cachedInputTokens + uncachedInputTokens),
+    uncachedInputTokens,
+    cachedInputTokens,
     outputTokens: finiteLimit(configured.outputTokens, Math.max(50_000, hardContext * 20)),
     toolReads: finiteLimit(configured.toolReads, 300),
     referencedFiles: finiteLimit(configured.referencedFiles, 120),
