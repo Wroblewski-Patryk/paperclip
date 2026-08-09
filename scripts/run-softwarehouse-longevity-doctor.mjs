@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -104,17 +105,29 @@ function runNodeScript(script, args = [], { timeoutMs = childScriptTimeoutMs } =
 
 function runPackageScript(scriptName, { timeoutMs = governanceChildTimeoutMs } = {}) {
   const pnpmEntrypoint = process.env.npm_execpath;
-  if (!pnpmEntrypoint) {
+  if (!/^[a-zA-Z0-9:_-]+$/.test(scriptName)) {
     return {
       ok: false,
       exitCode: null,
       timedOut: false,
       stdout: "",
-      stderr: "Cannot run pnpm script safely: npm_execpath is unavailable.",
+      stderr: `Cannot run pnpm script safely: unsupported script name ${scriptName}.`,
     };
   }
 
-  const result = spawnSync(process.execPath, [pnpmEntrypoint, scriptName], {
+  const hasPnpmEntrypoint = Boolean(pnpmEntrypoint && existsSync(pnpmEntrypoint));
+  const command = hasPnpmEntrypoint
+    ? process.execPath
+    : process.platform === "win32"
+      ? (process.env.ComSpec?.trim() || "cmd.exe")
+      : "pnpm";
+  const args = hasPnpmEntrypoint
+    ? [pnpmEntrypoint, scriptName]
+    : process.platform === "win32"
+      ? ["/d", "/s", "/c", `corepack pnpm ${scriptName}`]
+      : [scriptName];
+
+  const result = spawnSync(command, args, {
     cwd: process.cwd(),
     env: { ...process.env },
     encoding: "utf8",

@@ -16,6 +16,30 @@ describe("hard context admission", () => {
     expect(deriveContextWorkType({ wakeReason: "weekly_meta_review" }, "engineer")).toBe("weekly_meta");
   });
 
+  it("admits the bounded mandatory context used by doctor and audit roles", () => {
+    const budget = resolveContextBudget({
+      workType: "doctor",
+      role: "Security & Privacy Auditor",
+      requested: { tokenLimit: 500_000, fileLimit: 500 },
+    });
+    const sources = buildAdapterContextSources({
+      promptMetrics: {
+        instructionsChars: 9_720,
+        wakePromptChars: 4_085,
+        heartbeatPromptChars: 3_005,
+        repoAgentsChars: 15_361,
+      },
+    });
+
+    expect(budget).toMatchObject({ tokenLimit: 10_000, fileLimit: 8 });
+    expect(evaluateFinalContextAdmission({
+      sources,
+      tokenLimit: budget.tokenLimit,
+      fileLimit: budget.fileLimit,
+      referencedFiles: 1,
+    })).toMatchObject({ admitted: true, reason: "within_budget" });
+  });
+
   it("attributes adapter prompt tokens by source", () => {
     const sources = buildAdapterContextSources({
       promptMetrics: { instructionsChars: 4_000, wakePromptChars: 2_000, heartbeatPromptChars: 2_000 },

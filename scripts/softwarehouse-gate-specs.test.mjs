@@ -716,12 +716,14 @@ test("longevity doctor gives snapshot export enough time for large local instanc
   assert.match(doctor, /SOFTWAREHOUSE_LONGEVITY_CHILD_TIMEOUT_MS \?\? 300_000/);
 });
 
-test("longevity doctor invokes pnpm through the current Node runtime on Windows", async () => {
+test("longevity doctor invokes pnpm portably when npm_execpath is stale", async () => {
   const doctor = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
 
   assert.match(doctor, /const pnpmEntrypoint = process\.env\.npm_execpath/);
-  assert.match(doctor, /spawnSync\(process\.execPath, \[pnpmEntrypoint, scriptName\]/);
-  assert.match(doctor, /Cannot run pnpm script safely: npm_execpath is unavailable/);
+  assert.match(doctor, /pnpmEntrypoint && existsSync\(pnpmEntrypoint\)/);
+  assert.match(doctor, /process\.env\.ComSpec\?\.trim\(\) \|\| "cmd\.exe"/);
+  assert.match(doctor, /\["\/d", "\/s", "\/c", `corepack pnpm \$\{scriptName\}`\]/);
+  assert.match(doctor, /spawnSync\(command, args/);
   assert.doesNotMatch(doctor, /spawnSync\("pnpm", \[scriptName\]/);
   assert.doesNotMatch(doctor, /shell: process\.platform === "win32"/);
 });
@@ -754,17 +756,10 @@ test("longevity watchdog covers autonomous softwarehouse contract checks", async
   assert.match(doctor, /runtimeBindingGaps/);
   assert.match(doctor, /loadedSecretKeys/);
 
-  assert.match(configurator, /operating docs\/ADR\/evidence-map/);
-  assert.match(configurator, /softwarehouse autonomy audit/);
-  assert.match(configurator, /Coolify runtime access/);
-  assert.match(configurator, /project-truth indexes/);
-  assert.match(configurator, /policy gate specs/);
-  assert.match(configurator, /agent operating records/);
-  assert.match(configurator, /task\/run\/event evidence/);
-  assert.match(configurator, /QA\/security\/docs gates/);
-  assert.match(configurator, /supervisor review/);
-  assert.match(configurator, /deployment monitoring/);
-  assert.match(configurator, /process-improvement loops/);
+  assert.match(configurator, /structured findings and repair actions as the complete scope/);
+  assert.match(configurator, /do not perform a broad repository or documentation audit/);
+  assert.match(configurator, /Fix at most one concrete control-plane cause/);
+  assert.doesNotMatch(configurator, /agent operating records|task\/run\/event evidence|process-improvement loops/);
 });
 
 test("longevity doctor recognizes the current team-adoption routine titles", async () => {
@@ -822,6 +817,16 @@ test("softwarehouse doctor and team adoption share the canonical routine title r
       `duplicate controller should remain library-only: ${title}`,
     );
   }
+});
+
+test("routine governor keeps shared execution policy bounded and out of task context", async () => {
+  const governor = await readFile("scripts/enforce-softwarehouse-routine-governor.mjs", "utf8");
+  const policy = governor.match(/const parallelExecutionPolicy = \[[\s\S]*?\]\.join\("\\n"\);/)?.[0] ?? "";
+
+  assert.ok(policy.length > 0 && policy.length < 2_000, `routine policy is too large: ${policy.length}`);
+  assert.match(policy, /one active execution lane per agent/);
+  assert.match(policy, /Pending interactions and protected operator gates stay fail-closed/);
+  assert.doesNotMatch(policy, /controlBrief\.deliveryPermission|operatorActionPacket|readinessOperatingConstraints/);
 });
 
 test("delivery runtime access restores role-scoped Soar and Roost smoke bindings", async () => {

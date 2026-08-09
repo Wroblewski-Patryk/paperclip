@@ -23,13 +23,16 @@ const WORK_TYPE_BUDGETS: Record<ContextWorkType, { tokenLimit: number; fileLimit
   execution: { tokenLimit: 16_000, fileLimit: 16 },
   review: { tokenLimit: 12_000, fileLimit: 12 },
   owner: { tokenLimit: 14_000, fileLimit: 8 },
-  doctor: { tokenLimit: 8_000, fileLimit: 8 },
+  // Doctor runs always receive the repository contract in addition to their role,
+  // task, wake and runtime prompts. Keep enough bounded headroom for those
+  // mandatory sources so a healthy run cannot fail before adapter invocation.
+  doctor: { tokenLimit: 10_000, fileLimit: 8 },
   weekly_meta: { tokenLimit: 6_000, fileLimit: 4 },
 };
 
 const MAX_ROLE_BUDGETS: Array<{ pattern: RegExp; tokenLimit: number; fileLimit: number }> = [
   { pattern: /owner|chief executive|ceo|aia|product manager|\bpm\b/i, tokenLimit: 14_000, fileLimit: 8 },
-  { pattern: /doctor|watchdog|integrity|audit/i, tokenLimit: 8_000, fileLimit: 8 },
+  { pattern: /doctor|watchdog|integrity|audit/i, tokenLimit: 10_000, fileLimit: 8 },
   { pattern: /review|quality|qa/i, tokenLimit: 12_000, fileLimit: 12 },
 ];
 
