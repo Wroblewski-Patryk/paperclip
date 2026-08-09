@@ -3314,7 +3314,7 @@ test("access unblock seeder refreshes exact title matches before creating work",
 
   assert.match(source, /refreshIssueGroupByExactTitle/);
   assert.match(source, /issues\?q=\$\{encodeURIComponent\(title\)\}&limit=100/);
-  assert.match(source, /status: wakeBlocker \? "backlog" : "todo"/);
+  assert.match(source, /status: assignmentBoundary \|\| wakeBlocker \? "backlog" : "todo"/);
 });
 
 test("access unblock seeder skips no-op updates for existing issues", async () => {
@@ -3324,6 +3324,30 @@ test("access unblock seeder skips no-op updates for existing issues", async () =
   assert.match(source, /const patchNeeded =/);
   assert.match(source, /if \(!patchNeeded\) \{/);
   assert.match(source, /action: "kept_existing_issue"/);
+});
+
+test("access unblock seeder decision-contracts critical runnable lanes", async () => {
+  const source = await readFile("scripts/run-access-unblock-task-seeder.mjs", "utf8");
+
+  assert.match(source, /function decisionContractForPlan\(plan\)/);
+  assert.match(source, /disposition: "do_now"/);
+  assert.match(source, /maxAgents: 1/);
+  assert.match(source, /evidenceRefs: \[/);
+  assert.match(source, /decisionContract: decisionContractForPlan\(plan\)/);
+  assert.match(source, /\.\.\.\(existing\.executionPolicy \?\? \{\}\)/);
+  assert.match(source, /patch\.executionPolicy \?\? existing\.executionPolicy/);
+});
+
+test("access unblock seeder routes cross-hierarchy ownership upward", async () => {
+  const source = await readFile("scripts/run-access-unblock-task-seeder.mjs", "utf8");
+
+  assert.match(source, /function directAssignmentBoundaryForAgent\(agent\)/);
+  assert.match(source, /agent\.reportsTo === actorAgentId/);
+  assert.match(source, /cross_hierarchy_direct_assignment_forbidden/);
+  assert.match(source, /\/work-proposals`/);
+  assert.match(source, /targetParentAgentId: actorAgent\.reportsTo/);
+  assert.match(source, /assignmentRouting = "proposed_upward"/);
+  assert.match(source, /status: assignmentBoundary \|\| wakeBlocker \? "backlog" : "todo"/);
 });
 
 test("access unblock seeder dedupes semantic Coolify operator lanes", async () => {

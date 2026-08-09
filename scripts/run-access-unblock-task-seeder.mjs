@@ -132,8 +132,44 @@ function directWakeBoundaryForAgent(agentId) {
   return "cross_agent_direct_invoke_forbidden";
 }
 
+function directAssignmentBoundaryForAgent(agent) {
+  if (!authToken) return null;
+  if (!actorAgentId) return null;
+  if (!agent?.id || actorAgentId === agent.id || agent.reportsTo === actorAgentId) return null;
+  return "cross_hierarchy_direct_assignment_forbidden";
+}
+
 function sameJson(a, b) {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
+function decisionContractForPlan(plan) {
+  const critical = plan.priority === "critical";
+  return {
+    value: critical ? "critical" : "high",
+    urgency: critical ? "critical" : "high",
+    costOfInaction: critical ? "high" : "medium",
+    estimatedEffort: "small",
+    maxMinutes: 90,
+    maxTokens: null,
+    maxIterations: 3,
+    maxAgents: 1,
+    stopCondition: "Stop before any secret disclosure, production mutation, deploy, restart, or action outside the named access/evidence lane; stop after three failed bounded verification attempts.",
+    doneEnough: "The named access or evidence gap is resolved with redacted proof, or remains fail-closed with an exact owner, unblock action, and next verification condition.",
+    disposition: "do_now",
+    rationale: plan.why,
+    confidence: "high",
+    evidenceRefs: [
+      "report/soar-delivery-acceptance.latest.json",
+      "report/coolify-production-reconciler.latest.json",
+    ],
+    scope: `${plan.title}: ${plan.missing}`,
+    reversibility: "easy",
+    rollbackPlan: null,
+    restorePoint: null,
+    postChangeVerification: "Rerun the bounded acceptance/reconciliation check and confirm the targeted gap is resolved or explicitly fail-closed without exposing secret values.",
+    rollbackTrigger: null,
+  };
 }
 
 async function ensureIssue(companyId, issuesByTitle, issuesBySemanticKey, input) {
@@ -150,6 +186,12 @@ async function ensureIssue(companyId, issuesByTitle, issuesBySemanticKey, input)
       priority: input.priority,
       status: existing.status,
     };
+    if (input.executionPolicy) {
+      patch.executionPolicy = {
+        ...(existing.executionPolicy ?? {}),
+        ...input.executionPolicy,
+      };
+    }
     if (input.projectId !== existing.projectId) {
       patch.projectId = input.projectId;
       patch.projectWorkspaceId = input.projectWorkspaceId;
@@ -178,6 +220,10 @@ async function ensureIssue(companyId, issuesByTitle, issuesBySemanticKey, input)
       || !sameJson(
         patch.executionWorkspaceSettings ?? existing.executionWorkspaceSettings ?? null,
         existing.executionWorkspaceSettings ?? null,
+      )
+      || !sameJson(
+        patch.executionPolicy ?? existing.executionPolicy ?? null,
+        existing.executionPolicy ?? null,
       );
     if (!patchNeeded) {
       return { action: "kept_existing_issue", issue: existing };
@@ -370,6 +416,7 @@ if (apply && planned.length > 0) {
   for (const issue of issuesByTitle.values()) {
     issuesBySemanticKey.set(semanticIssueKey(issue.title), issue);
   }
+  const actorAgent = actorAgentId ? agents.find((agent) => agent.id === actorAgentId) ?? null : null;
   for (const plan of planned) {
     const owner = ownerAgentForPlan(agents, plan.owner);
     await refreshIssueGroupByExactTitle(companyId, issueGroupsByTitle, issuesByTitle, plan.title);
@@ -428,15 +475,23 @@ if (apply && planned.length > 0) {
     const project = (plan.title.includes("[Soar]") || plan.title.includes("[Coolify]")) ? soar ?? operating : operating ?? soar;
     const goal = goalForPlan(goals, plan);
     const workspace = project?.id ? primaryWorkspaceByProjectId.get(project.id) ?? null : null;
+    const assignmentBoundary = directAssignmentBoundaryForAgent(owner);
+    const existing = issuesByTitle.get(plan.title) ?? issuesBySemanticKey.get(semanticIssueKey(plan.title));
+    const assigneeAgentId = assignmentBoundary
+      ? existing?.assigneeAgentId ?? null
+      : owner?.id ?? null;
     const result = await ensureIssue(companyId, issuesByTitle, issuesBySemanticKey, {
       title: plan.title,
       description: taskBody(plan),
       projectId: project?.id ?? null,
       projectWorkspaceId: workspace?.id ?? null,
       goalId: goal?.id ?? null,
-      assigneeAgentId: owner?.id ?? null,
+      assigneeAgentId,
       priority: plan.priority,
-      status: wakeBlocker ? "backlog" : "todo",
+      status: assignmentBoundary || wakeBlocker ? "backlog" : "todo",
+      executionPolicy: {
+        decisionContract: decisionContractForPlan(plan),
+      },
       executionWorkspacePreference: workspace ? "shared_workspace" : null,
       executionWorkspaceSettings: workspace ? {
         mode: "shared_workspace",
@@ -452,10 +507,37 @@ if (apply && planned.length > 0) {
       title: result.issue.title,
       assignee: plan.owner,
     });
+    if (assignmentBoundary && result.issue.assigneeAgentId !== owner?.id) {
+      if (!actorAgent?.reportsTo) {
+        applied.at(-1).assignmentRouting = "missing_direct_parent_for_work_proposal";
+      } else {
+        const proposal = await request("POST", `/api/issues/${result.issue.id}/work-proposals`, {
+          targetParentAgentId: actorAgent.reportsTo,
+          title: `Route ${plan.title} to ${plan.owner}`,
+          problemStatement: `${plan.missing} The requested specialist is outside the current actor's direct-report boundary.`,
+          expectedOutcome: `The direct parent admits, forwards, or rejects a bounded assignment to ${plan.owner} without bypassing hierarchy or protected-action gates.`,
+          scopeContract: {
+            projectId: project?.id ?? null,
+            requestedAssigneeAgentId: owner?.id ?? null,
+            requestedOwner: plan.owner,
+            allowedActions: ["redacted evidence collection", "read-only verification", "fail-closed blocker update"],
+            forbiddenActions: ["secret disclosure", "push", "deploy", "restart", "production mutation"],
+          },
+          evidence: [
+            { kind: "report", ref: "report/soar-delivery-acceptance.latest.json" },
+            { kind: "report", ref: "report/coolify-production-reconciler.latest.json" },
+          ],
+          idempotencyKey: `softwarehouse-access-unblock-routing:${result.issue.id}:${owner?.id ?? plan.owner}`,
+        });
+        applied.at(-1).assignmentRouting = "proposed_upward";
+        applied.at(-1).workProposalId = proposal.id;
+        applied.at(-1).targetParentAgentId = actorAgent.reportsTo;
+      }
+    }
     const wakeBoundary = result.issue.assigneeAgentId
       ? directWakeBoundaryForAgent(result.issue.assigneeAgentId)
       : "missing_assignee";
-    const wakeSkipped = wakeBlocker ?? wakeBoundary;
+    const wakeSkipped = assignmentBoundary ?? wakeBlocker ?? wakeBoundary;
     if (!wakeSkipped && ["created_issue", "updated_issue", "kept_existing_issue"].includes(result.action)) {
       await request("POST", `/api/agents/${result.issue.assigneeAgentId}/heartbeat/invoke?companyId=${companyId}`, {
         reason: "issue_assigned",
