@@ -781,6 +781,8 @@ test("softwarehouse doctor and team adoption share the canonical routine title r
 
   assert.match(doctor, /softwarehousePilotActiveRuntimeRoutineTitles/);
   assert.match(teamAdoption, /softwarehouseRoutineTitleRenames/);
+  assert.match(teamAdoption, /preservedArchivedRoutineTitles/);
+  assert.doesNotMatch(teamAdoption, /Routine must remain paused/);
   assert.equal(
     softwarehouseRoutineTitleRenames.get("[Softwarehouse] Agent health and model governance"),
     "09 Technology: Agent Health and Model Governance",
@@ -1492,6 +1494,8 @@ test("autonomy governor configurator uses the central active routine matrix", as
   assert.match(source, /const activeRoutineTitles = softwarehousePilotActiveRoutineTitles/);
   assert.match(source, /const activeRoutineSchedules = softwarehousePilotRoutineScheduleLabels/);
   assert.match(source, /const shouldBeActive = activeRoutineTitles\.has\(routine\.title\)/);
+  assert.match(source, /status: shouldBeActive \? "active" : "archived"/);
+  assert.doesNotMatch(source, /status: shouldBeActive \? "active" : "paused"/);
   assert.match(source, /const autonomyScheduleCron = "2,32 \* \* \* \*"/);
   assert.match(source, /byRosterKey\(agents, "innovation-portfolio-manager"\)/);
   assert.match(source, /"00 General: Softwarehouse"/);

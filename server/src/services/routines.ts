@@ -163,7 +163,7 @@ function nextCronTickInTimeZone(expression: string, timeZone: string, after: Dat
 function nextResultText(status: string, issueId?: string | null) {
   if (status === "issue_created" && issueId) return `Created execution issue ${issueId}`;
   if (status === "issue_reused" && issueId) return `Reused idle execution issue ${issueId}`;
-  if (status === "coalesced") return "Coalesced into an existing live execution issue";
+  if (status === "coalesced") return "Coalesced into an existing open execution issue";
   if (status === "skipped") return "Skipped because a live execution issue already exists";
   if (status === "completed") return "Execution issue completed";
   if (status === "failed") return "Execution failed";

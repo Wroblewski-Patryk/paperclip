@@ -14,6 +14,7 @@ import {
   instanceSettings,
   issueInboxArchives,
   issueReadStates,
+  issueRelations,
   issues,
   projectWorkspaces,
   projects,
@@ -68,6 +69,7 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
     await db.delete(companySecretVersions);
     await db.delete(companySecrets);
     await db.delete(heartbeatRuns);
+    await db.delete(issueRelations);
     await db.delete(issues);
     await db.delete(executionWorkspaces);
     await db.delete(projectWorkspaces);
@@ -756,13 +758,13 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
   });
 
   it("coalesces into a blocked routine issue without a live run instead of creating a duplicate", async () => {
-    const { companyId, issueSvc, routine, svc } = await seedFixture();
+    const { agentId, companyId, issueSvc, routine, svc } = await seedFixture();
     const previousRunId = randomUUID();
     const previousIssue = await issueSvc.create(companyId, {
       projectId: routine.projectId,
       title: routine.title,
       description: routine.description,
-      status: "blocked",
+      status: "todo",
       priority: routine.priority,
       assigneeAgentId: routine.assigneeAgentId,
       originKind: "routine_execution",
@@ -770,6 +772,20 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
       originRunId: previousRunId,
       originFingerprint: "older-schedule-tick",
     });
+    const blockerIssue = await issueSvc.create(companyId, {
+      projectId: routine.projectId,
+      title: "Unresolved routine blocker",
+      status: "todo",
+      priority: routine.priority,
+      assigneeAgentId: agentId,
+    });
+    await db.insert(issueRelations).values({
+      companyId,
+      issueId: blockerIssue.id,
+      relatedIssueId: previousIssue.id,
+      type: "blocks",
+    });
+    await db.update(issues).set({ status: "blocked" }).where(eq(issues.id, previousIssue.id));
 
     await db.insert(routineRuns).values({
       id: previousRunId,

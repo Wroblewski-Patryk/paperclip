@@ -254,11 +254,11 @@ async function main() {
     const isCanonical = canonicalRoutineIdsByTitle.get(routine.title) === routine.id;
     const shouldBeActive = activeRoutineTitles.has(routine.title) && isCanonical;
     if ((routine.status === "active") === shouldBeActive) continue;
-    await request("PATCH", `/api/routines/${routine.id}`, { status: shouldBeActive ? "active" : "paused" });
+    await request("PATCH", `/api/routines/${routine.id}`, { status: shouldBeActive ? "active" : "archived" });
     statusChanges.push({
       routine: routine.title,
       id: routine.id,
-      status: shouldBeActive ? "active" : "paused",
+      status: shouldBeActive ? "active" : "archived",
       reason: isCanonical ? "active_matrix" : "duplicate_title",
     });
   }

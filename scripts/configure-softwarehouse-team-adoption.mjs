@@ -26,7 +26,11 @@ const archiveRoutineTitles = new Set([
   "00 General - v1 Draft Paused - Controlled Activation Dry Run",
 ]);
 
-const preservedPausedRoutineTitles = new Set([
+// These routines remain available as historical/audit definitions, but the
+// current eight-routine operating model does not schedule them. Keep them
+// archived so a repeatable team-adoption reconciliation cannot resurrect the
+// older paused-library model or add inactive dashboard noise.
+const preservedArchivedRoutineTitles = new Set([
   "00 General: Owner Direction and Proposal Review",
   "06 People: Agent Hiring and Governance Review",
   "07 Finance: Cost, Quota, and Budget Review",
@@ -57,7 +61,15 @@ function required(map, key, kind) {
 
 const changes = [];
 for (const [from, to] of routineRenames) {
-  const routine = byRoutineTitle.get(from) ?? byRoutineTitle.get(to);
+  const legacyRoutine = byRoutineTitle.get(from);
+  const canonicalRoutine = byRoutineTitle.get(to);
+  if (canonicalRoutine) {
+    if (legacyRoutine && legacyRoutine.status !== "archived") {
+      changes.push({ kind: "routine_archive", id: legacyRoutine.id, title: legacyRoutine.title });
+    }
+    continue;
+  }
+  const routine = legacyRoutine;
   if (!routine) throw new Error(`Routine to normalize was not found: ${from}`);
   if (routine.title !== to) changes.push({ kind: "routine_rename", id: routine.id, from: routine.title, to });
 }
@@ -65,9 +77,9 @@ for (const title of archiveRoutineTitles) {
   const routine = required(byRoutineTitle, title, "routine");
   if (routine.status !== "archived") changes.push({ kind: "routine_archive", id: routine.id, title });
 }
-for (const title of preservedPausedRoutineTitles) {
+for (const title of preservedArchivedRoutineTitles) {
   const routine = required(byRoutineTitle, title, "routine");
-  if (routine.status !== "paused") throw new Error(`Routine must remain paused but is ${routine.status}: ${title}`);
+  if (routine.status !== "archived") changes.push({ kind: "routine_archive", id: routine.id, title });
 }
 for (const [from, to] of goalRenames) {
   const goal = goals.find((candidate) => candidate.title === from || candidate.title === to);
@@ -181,7 +193,7 @@ console.log(JSON.stringify({
   mode: apply ? "apply" : "dry-run",
   companyId,
   changes,
-  preservedPausedRoutines: Array.from(preservedPausedRoutineTitles),
+  preservedArchivedRoutines: Array.from(preservedArchivedRoutineTitles),
   teamInstalls: teamInstalls.map((entry) => ({ catalogId: entry.catalogId, ...entry.options })),
   previews,
 }, null, 2));
