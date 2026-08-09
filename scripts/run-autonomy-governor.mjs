@@ -327,7 +327,7 @@ try {
     apiBase,
     company: { id: company.id, source: company.source },
     decision: "api_scan_degraded",
-    recommendedAction: "Restore local Paperclip API issue-list responsiveness, then rerun node scripts/run-autonomy-governor.mjs or pnpm softwarehouse:control-tick.",
+    recommendedAction: "Restore local Paperclip API issue-list responsiveness, then rerun node scripts/run-autonomy-governor.mjs or node scripts/run-softwarehouse-control-tick.mjs.",
     operatingPosture: "control_tick_failed",
     candidateScanStatus: "timed_out",
     requestTimeoutMs,

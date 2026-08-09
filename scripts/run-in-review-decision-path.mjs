@@ -64,7 +64,7 @@ try {
     actions: [{
       action: "skip_in_review_decision_path_candidate_scan_timeout",
       status: "degraded",
-      ownerAction: "Restore local Paperclip API issue-list responsiveness, then rerun node scripts/run-in-review-decision-path.mjs --apply or pnpm softwarehouse:control-tick.",
+      ownerAction: "Restore local Paperclip API issue-list responsiveness, then rerun node scripts/run-in-review-decision-path.mjs --apply or node scripts/run-softwarehouse-control-tick.mjs.",
     }],
     suppressed: [],
     applied: [],

@@ -2,6 +2,7 @@ import {
   softwarehousePilotActiveRoutineTitles,
   softwarehousePilotRoutineScheduleLabels,
 } from "./lib/softwarehouse-active-routines.mjs";
+import { withSoftwarehouseRoutineExecutionPolicy } from "./lib/softwarehouse-routine-execution-policy.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyNames = [
@@ -96,12 +97,15 @@ const activeRoutineSchedules = softwarehousePilotRoutineScheduleLabels;
 
 async function applySchedulePosture(routines) {
   const changes = [];
+  const canonicalRoutineIdsByTitle = canonicalRoutineIdsByTitleFor(routines);
   for (const routine of routines) {
     const detail = await request("GET", `/api/routines/${routine.id}`);
     const allowedLabel = activeRoutineSchedules.get(routine.title);
+    const isCanonicalActiveRoutine = activeRoutineTitles.has(routine.title)
+      && canonicalRoutineIdsByTitle.get(routine.title) === routine.id;
     for (const trigger of detail.triggers ?? []) {
       if (trigger.kind !== "schedule") continue;
-      const allowed = Boolean(allowedLabel && trigger.label === allowedLabel);
+      const allowed = Boolean(isCanonicalActiveRoutine && allowedLabel && trigger.label === allowedLabel);
       if (trigger.enabled === allowed) continue;
       await request("PATCH", `/api/routine-triggers/${trigger.id}`, {
         label: trigger.label,
@@ -156,7 +160,9 @@ async function main() {
   if (!operating || !soar) throw new Error("Required projects are missing. Run the softwarehouse bootstrap/configuration scripts first.");
   if (!governorOwner) throw new Error("No Portfolio/Innovation/CTO/Soar PM agent found.");
 
-  const description = [
+  /* Legacy detailed policy removed: its authoritative form lives in the
+     synchronized agent instruction bundle. Keep routine descriptions bounded. */
+  const legacyDetailedPolicyReference = [
     "Autonomous control loop for LuckySparrow Software House.",
     "",
     "This routine keeps the company moving through explicit queues, handoffs, and evidence-based closure instead of uncontrolled wakeups.",
@@ -164,7 +170,7 @@ async function main() {
     "Execution policy: Paperclip may run independent lanes in parallel according to agent/runtime limits. One agent may execute one lane at a time. Project Managers may keep many lanes planned, but they must queue work behind busy specialists and never mix project contexts inside one run.",
     "",
     "Mandatory loop:",
-    "1. Run `pnpm softwarehouse:control-tick` first and treat its `controlDecision`, `nextControlActions`, `effectiveOperatingPosture`, `operatingPosture`, `readinessOperatingPosture`, `readinessOperatingConstraints`, `allowedWhileBlocked`, and `forbiddenWhileBlocked` as the control-loop contract. It refreshes janitor/gate/unblock/source-control/readiness/governor/audit context before any mutation. Supervise live work and only wake additional lanes when ownership is idle and dependencies are independent.",
+    "1. Run `node scripts/run-softwarehouse-control-tick.mjs` first and treat its `controlDecision`, `nextControlActions`, `effectiveOperatingPosture`, `operatingPosture`, `readinessOperatingPosture`, `readinessOperatingConstraints`, `allowedWhileBlocked`, and `forbiddenWhileBlocked` as the control-loop contract. It refreshes janitor/gate/unblock/source-control/readiness/governor/audit context before any mutation. Supervise live work and only wake additional lanes when ownership is idle and dependencies are independent.",
     "2. Keep Soar as the active takeover project until its current target is fully known, verified, explicitly deferred, or blocked by a named external decision.",
     "3. Use the Soar Project Manager as the bridge between the user, Paperclip, and the Soar project chat.",
     "4. Work top-down, then bottom-up: read project/goal/issue status, choose the next narrow lane that should move, assign one accountable owner, and require evidence.",
@@ -226,6 +232,14 @@ async function main() {
     "- owner, scope, evidence contract, queue/dependency decision, release-governor result, and push/deploy decision for the lane;",
     "- any architecture awareness/docs/status drift that must become the next narrow issue.",
   ].join("\n");
+  const description = withSoftwarehouseRoutineExecutionPolicy([
+    "Run `node scripts/run-softwarehouse-control-tick.mjs` before any narrative investigation.",
+    "Treat its control decision, next legal actions, effective posture, allowed actions, and forbidden actions as the complete scope for this cycle.",
+    "Execute or route at most one concrete next action; do not create activity-count work, duplicate blockers, or broad status/documentation fan-out.",
+    "Use the detailed governance contract from the agent instruction bundle only when the control brief is ambiguous.",
+    "Finish with one explicit disposition and inspectable evidence, then stop.",
+  ].join("\n"));
+  void legacyDetailedPolicyReference;
 
   const routinesByTitle = new Map(routines.map((routine) => [routine.title, routine]));
   const governor = await ensureRoutine(company.id, routinesByTitle, {

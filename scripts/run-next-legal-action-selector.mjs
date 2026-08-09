@@ -377,7 +377,7 @@ export function pickAction(
     return {
       decision: "supervise_active_runs",
       reason: "Live work exists and no additional runnable lane is currently reported; supervise without creating duplicates.",
-      command: "pnpm softwarehouse:control-tick",
+      command: "node scripts/run-softwarehouse-control-tick.mjs",
       allowed: ["supervise live run", "close stale tails", "refresh reports"],
       forbidden: ["start duplicate owner lane", "push", "deploy", "restart"],
     };
@@ -406,7 +406,7 @@ export function pickAction(
     return {
       decision: "refresh_control_tick",
       reason: "The Paperclip operating repo has local changes; refresh control evidence and close OS source-control before starting delivery work.",
-      command: "pnpm softwarehouse:control-tick",
+      command: "node scripts/run-softwarehouse-control-tick.mjs",
       target: freshOperatingDirtyRepo.name,
       allowed: ["refresh reports", "classify operating repo changes", "commit or explicitly close OS source-control state"],
       forbidden: ["start duplicate owner lane", "push", "deploy", "restart"],
@@ -570,7 +570,7 @@ export function pickAction(
   return {
     decision: "refresh_control_tick",
     reason: "No more specific safe action was selected.",
-    command: "pnpm softwarehouse:control-tick",
+    command: "node scripts/run-softwarehouse-control-tick.mjs",
     allowed: ["refresh reports", "monitor"],
     forbidden: ["invent broad work without evidence"],
   };

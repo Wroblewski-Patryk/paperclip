@@ -2,6 +2,7 @@ import {
   softwarehousePilotActiveRoutineTitles,
   softwarehousePilotRoutineScheduleLabels,
 } from "./lib/softwarehouse-active-routines.mjs";
+import { withSoftwarehouseRoutineExecutionPolicy } from "./lib/softwarehouse-routine-execution-policy.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyNames = ["LuckySparrow", "LuckySparrow Software House"];
@@ -9,17 +10,6 @@ const companyId = process.env.PAPERCLIP_COMPANY_ID ?? null;
 
 const activeRoutineTitles = softwarehousePilotActiveRoutineTitles;
 const canonicalScheduleByRoutineTitle = softwarehousePilotRoutineScheduleLabels;
-
-const parallelExecutionPolicy = [
-  "",
-  "",
-  "Parallel execution policy: Paperclip may run independent lanes in parallel according to agent/runtime limits.",
-  "Keep one active execution lane per agent and serialize conflicting work in the same project workspace.",
-  "Pending interactions and protected operator gates stay fail-closed; they never authorize push, deploy, restart, secret access, or destructive changes.",
-  "Use the current control brief and next legal actions as the execution contract; detailed policy remains in agent instructions, not duplicated in every routine.",
-  "Status synchronization is not work. Finish each cycle with one explicit disposition and inspectable evidence.",
-  "Done issues stay done unless explicit reopen/resume intent moves them through todo before live checkout.",
-].join("\n");
 
 async function request(method, route, body) {
   const response = await fetch(`${apiBase}${route}`, {
@@ -31,14 +21,6 @@ async function request(method, route, body) {
   const data = text ? JSON.parse(text) : null;
   if (!response.ok) throw new Error(`${method} ${route} failed with ${response.status}: ${text}`);
   return data;
-}
-
-function withParallelExecutionPolicy(description) {
-  const text = description ?? "";
-  const withoutOldPolicy = text
-    .replace(/\n\nCapacity governor:[\s\S]*?Done issues stay done unless explicit reopen\/resume intent moves them through todo before live checkout\./g, "")
-    .replace(/\n\nParallel execution policy:[\s\S]*?Done issues stay done unless explicit reopen\/resume intent moves them through todo before live checkout\./g, "");
-  return `${withoutOldPolicy}${parallelExecutionPolicy}`.trim();
 }
 
 async function resolveCompany() {
@@ -72,7 +54,7 @@ for (const routine of routines) {
   const patch = {};
   if (routine.status !== nextStatus) patch.status = nextStatus;
   if (shouldBeActive) {
-    const nextDescription = withParallelExecutionPolicy(routine.description);
+    const nextDescription = withSoftwarehouseRoutineExecutionPolicy(routine.description);
     if (nextDescription !== (routine.description ?? "")) patch.description = nextDescription;
   }
 

@@ -412,7 +412,7 @@ async function resolveCompany() {
 }
 
 function ownerActionForApiFailure() {
-  return "Restore local Paperclip API issue-list/live-run responsiveness, then rerun node scripts/run-local-repair-lane-starter.mjs or pnpm softwarehouse:control-tick.";
+  return "Restore local Paperclip API issue-list/live-run responsiveness, then rerun node scripts/run-local-repair-lane-starter.mjs or node scripts/run-softwarehouse-control-tick.mjs.";
 }
 
 function isIssueAuthorizationBoundaryError(error) {

@@ -240,7 +240,7 @@ function nextBootstrapActionsFor({ checks, controlTickSummary, paperclipRepo }) 
     actions.push("Wire the self-improvement loop so each cycle emits Improvement Proposals, Architecture Suggestions, and Missing Capabilities.");
   }
   if (failed.has("controlTickHealthy")) {
-    actions.push("Repair `pnpm softwarehouse:control-tick` before starting new delivery lanes; the local Codex supervisor must fail closed when Paperclip cannot report its operating posture.");
+    actions.push("Repair `node scripts/run-softwarehouse-control-tick.mjs` before starting new delivery lanes; the local Codex supervisor must fail closed when Paperclip cannot report its operating posture.");
   }
 
   if (actions.length === 0) {

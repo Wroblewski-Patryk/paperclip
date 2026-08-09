@@ -824,8 +824,7 @@ test("softwarehouse doctor and team adoption share the canonical routine title r
 });
 
 test("routine governor keeps shared execution policy bounded and out of task context", async () => {
-  const governor = await readFile("scripts/enforce-softwarehouse-routine-governor.mjs", "utf8");
-  const policy = governor.match(/const parallelExecutionPolicy = \[[\s\S]*?\]\.join\("\\n"\);/)?.[0] ?? "";
+  const policy = await readFile("scripts/lib/softwarehouse-routine-execution-policy.mjs", "utf8");
 
   assert.ok(policy.length > 0 && policy.length < 2_000, `routine policy is too large: ${policy.length}`);
   assert.match(policy, /one active execution lane per agent/);
@@ -1509,6 +1508,8 @@ test("autonomy governor configurator uses the central active routine matrix", as
   assert.match(source, /const activeRoutineTitles = softwarehousePilotActiveRoutineTitles/);
   assert.match(source, /const activeRoutineSchedules = softwarehousePilotRoutineScheduleLabels/);
   assert.match(source, /const shouldBeActive = activeRoutineTitles\.has\(routine\.title\)/);
+  assert.match(source, /const isCanonicalActiveRoutine = activeRoutineTitles\.has\(routine\.title\)/);
+  assert.match(source, /const allowed = Boolean\(isCanonicalActiveRoutine && allowedLabel && trigger\.label === allowedLabel\)/);
   assert.match(source, /status: shouldBeActive \? "active" : "archived"/);
   assert.doesNotMatch(source, /status: shouldBeActive \? "active" : "paused"/);
   assert.match(source, /const autonomyScheduleCron = "2,32 \* \* \* \*"/);
@@ -1517,6 +1518,27 @@ test("autonomy governor configurator uses the central active routine matrix", as
   assert.match(source, /"11 Innovation: Soar"/);
   assert.match(source, /cronExpression: autonomyScheduleCron/);
   assert.doesNotMatch(source, /const activeRoutineSchedules = new Map\(\[/);
+});
+
+test("autonomous control instructions bypass the sandbox pnpm install preflight", async () => {
+  const files = [
+    "scripts/audit-luckysparrow-softwarehouse.mjs",
+    "scripts/configure-autonomy-governor.mjs",
+    "scripts/run-codex-bootstrap-supervisor.mjs",
+    "scripts/run-autonomy-governor.mjs",
+    "scripts/run-in-review-decision-path.mjs",
+    "scripts/run-next-legal-action-selector.mjs",
+    "scripts/run-local-repair-lane-starter.mjs",
+    "scripts/run-safe-architecture-planning-seeder.mjs",
+    "scripts/run-softwarehouse-learning-loop.mjs",
+    "softwarehouse/instructions/shared/90-pipeline-and-supervision.md",
+  ];
+
+  for (const file of files) {
+    const source = await readFile(file, "utf8");
+    assert.match(source, /node scripts\/run-softwarehouse-control-tick\.mjs/, file);
+    assert.doesNotMatch(source, /pnpm softwarehouse:control-tick/, file);
+  }
 });
 
 test("recurring softwarehouse configurators reuse canonical issues instead of creating issue churn", async () => {

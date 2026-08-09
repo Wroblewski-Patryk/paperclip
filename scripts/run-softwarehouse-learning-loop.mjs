@@ -176,7 +176,7 @@ try {
       action: "skip_learning_loop_candidate_scan_timeout",
       status: "degraded",
       reason: "candidate_scan_timeout",
-      ownerAction: "Restore local Paperclip API issue-list responsiveness, then rerun node scripts/run-softwarehouse-learning-loop.mjs --apply or pnpm softwarehouse:control-tick.",
+      ownerAction: "Restore local Paperclip API issue-list responsiveness, then rerun node scripts/run-softwarehouse-learning-loop.mjs --apply or node scripts/run-softwarehouse-control-tick.mjs.",
     }],
   }, null, 2));
   process.exit(0);

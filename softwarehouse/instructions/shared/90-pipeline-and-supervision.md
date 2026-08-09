@@ -338,7 +338,7 @@ update and avoid ordinary comments that can wake a continuation. Use a separate
 fresh operator approval comment only when the issue is intentionally allowed to
 run one narrow gate recheck.
 
-When `pnpm softwarehouse:control-tick` exposes
+When `node scripts/run-softwarehouse-control-tick.mjs` exposes
 `operatorActionPacket.status=operator_input_or_gate_evidence_needed`, do not
 invent filler work. Surface the redacted packet as the operator-facing unblock
 summary, keep monitoring fresh, and wait for one accepted fresh fact before

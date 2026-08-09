@@ -1284,7 +1284,7 @@ if (blockedIssues.length > 0 && unblockPacketStatus.markdownExists && unblockPac
 if (!runningInsideControlTick && !controlTickStatus.jsonExists) findings.push({
   severity: "warn",
   area: "control-loop",
-  message: "Latest softwarehouse control tick report is missing; run pnpm softwarehouse:control-tick before trusting autonomy posture.",
+  message: "Latest softwarehouse control tick report is missing; run node scripts/run-softwarehouse-control-tick.mjs before trusting autonomy posture.",
   items: controlTickStatus,
 });
 if (!runningInsideControlTick && controlTickStatus.jsonExists && controlTickStatus.stale) findings.push({

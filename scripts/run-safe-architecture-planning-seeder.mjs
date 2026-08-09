@@ -174,7 +174,7 @@ try {
     actions: [{
       action: "skip_safe_architecture_planning_candidate_scan_timeout",
       status: "degraded",
-      ownerAction: "Restore local Paperclip API issue-list responsiveness, then rerun node scripts/run-safe-architecture-planning-seeder.mjs or pnpm softwarehouse:control-tick.",
+      ownerAction: "Restore local Paperclip API issue-list responsiveness, then rerun node scripts/run-safe-architecture-planning-seeder.mjs or node scripts/run-softwarehouse-control-tick.mjs.",
     }],
   }, null, 2));
   process.exit(0);
