@@ -16,6 +16,8 @@ export const persistentCompletionParentIdentifierByProject = Object.freeze({
   Featherly: "LUC-1899",
 });
 
+export const projectTruthRolloverParentMarker = "softwarehouse-project-truth-rollover-parent:v1";
+
 function identifierNumber(identifier) {
   const match = String(identifier ?? "").match(/(\d+)$/);
   return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
@@ -83,6 +85,29 @@ export function selectReusableProjectTruthGapIssue(issues, completionParentId) {
 export function isProblemAgentCapError(error) {
   return error?.status === 422
     && /maximum\s+4\s+distinct\s+agents/i.test(String(error?.body ?? error?.message ?? ""));
+}
+
+export function isParentChildCapError(error) {
+  return error?.status === 422
+    && /maximum\s+8\s+child\s+issues/i.test(String(error?.body ?? error?.message ?? ""));
+}
+
+export function isProjectTruthRolloverParent(issue, projectName) {
+  return !issue?.hiddenAt
+    && !defaultTerminalStatuses.has(issue?.status)
+    && String(issue?.description ?? "").includes(projectTruthRolloverParentMarker)
+    && String(issue?.description ?? "").includes(`project: ${projectName}`);
+}
+
+export function selectProjectTruthCompletionParent({ projectName, issues, canonicalParents }) {
+  const rollover = (issues ?? [])
+    .filter((issue) => isProjectTruthRolloverParent(issue, projectName))
+    .sort((left, right) =>
+      String(right.createdAt ?? "").localeCompare(String(left.createdAt ?? ""))
+      || identifierNumber(right.identifier) - identifierNumber(left.identifier)
+    )
+    .at(0);
+  return rollover ?? persistentCompletionParentForProject({ projectName, issues: canonicalParents });
 }
 
 export function admissionHoldForDispatcherWake(error) {

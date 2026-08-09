@@ -5,12 +5,15 @@ import {
   admissionHoldForDispatcherWake,
   activeProjectTruthTrackIssues,
   blockingAdmissionControl,
+  isParentChildCapError,
+  isProjectTruthRolloverParent,
   isReusableProjectTruthGapIssue,
   isProblemAgentCapError,
   parseProjectTruthSourceItemId,
   persistentCompletionParentForProject,
   runtimeOwnerNamesForGap,
   selectProblemParticipantFallback,
+  selectProjectTruthCompletionParent,
   selectReusableProjectTruthGapIssue,
 } from "./lib/project-truth-gap-dispatcher.mjs";
 
@@ -54,6 +57,39 @@ test("admissionHoldForDispatcherWake rejects unrelated conflicts and malformed b
     status: 409,
     body: JSON.stringify({ error: "Work was not admitted", details: { disposition: "rejected_as_duplicate" } }),
   }), null);
+});
+
+test("parent child-cap errors are recognized without swallowing other validation failures", () => {
+  assert.equal(isParentChildCapError({
+    status: 422,
+    body: '{"error":"Parent issue already has the maximum 8 child issues for this helper"}',
+  }), true);
+  assert.equal(isParentChildCapError({ status: 422, body: '{"error":"other"}' }), false);
+});
+
+test("latest live rollover parent supersedes the canonical history anchor", () => {
+  const canonical = { id: "canonical", identifier: "LUC-27", status: "backlog", createdAt: "2026-01-01T00:00:00Z" };
+  const older = {
+    id: "rollover-1",
+    identifier: "LUC-100",
+    status: "backlog",
+    createdAt: "2026-02-01T00:00:00Z",
+    description: "softwarehouse-project-truth-rollover-parent:v1\nproject: Soar",
+  };
+  const newer = {
+    id: "rollover-2",
+    identifier: "LUC-101",
+    status: "backlog",
+    createdAt: "2026-03-01T00:00:00Z",
+    description: "softwarehouse-project-truth-rollover-parent:v1\nproject: Soar",
+  };
+
+  assert.equal(isProjectTruthRolloverParent(newer, "Soar"), true);
+  assert.equal(selectProjectTruthCompletionParent({
+    projectName: "Soar",
+    issues: [older, newer],
+    canonicalParents: [canonical],
+  }).id, "rollover-2");
 });
 
 test("activeProjectTruthTrackIssues returns active lanes for one track in identifier order", () => {

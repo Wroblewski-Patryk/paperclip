@@ -8,13 +8,15 @@ import {
   activeProjectTruthTrackIssues,
   blockingAdmissionControl,
   isMonitorEnvironmentGap,
+  isParentChildCapError,
   isProblemAgentCapError,
   isReusableProjectTruthGapIssue,
   parseProjectTruthSourceItemId,
-  persistentCompletionParentForProject,
   persistentCompletionParentIdentifierByProject,
+  projectTruthRolloverParentMarker,
   runtimeOwnerNamesForGap,
   selectProblemParticipantFallback,
+  selectProjectTruthCompletionParent,
   selectReusableProjectTruthGapIssue,
 } from "./lib/project-truth-gap-dispatcher.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
@@ -701,9 +703,10 @@ for (const projectGapSet of gapsToDispatch) {
     });
     continue;
   }
-  const completionParent = persistentCompletionParentForProject({
+  let completionParent = selectProjectTruthCompletionParent({
     projectName,
-    issues: completionParents,
+    issues,
+    canonicalParents: completionParents,
   });
   if (!completionParent) {
     const action = {
@@ -868,33 +871,64 @@ for (const projectGapSet of gapsToDispatch) {
       try {
         created = await request("POST", `/api/issues/${completionParent.id}/children`, createBody);
       } catch (error) {
-        if (!isProblemAgentCapError(error)) throw error;
-        const fallback = selectProblemParticipantFallback({
-          completionParent,
-          agents,
-          preferredAssigneeId: assignee.id,
-        });
-        if (!fallback || fallback.id === assignee.id) {
-          dispatchAction.action = "noop_problem_agent_cap";
-          dispatchAction.error = "Problem already uses the maximum 4 distinct agents and no active existing participant can own this gap.";
-          missingDepthReasons.push({ reason: "problem_agent_cap", title });
-          continue;
-        }
-        try {
-          created = await request("POST", `/api/issues/${completionParent.id}/children`, {
-            ...createBody,
-            assigneeAgentId: fallback.id,
+        let creationError = error;
+        if (isParentChildCapError(creationError)) {
+          const rolloverNumber = (issues ?? []).filter((issue) =>
+            String(issue?.description ?? "").includes(projectTruthRolloverParentMarker)
+            && String(issue?.description ?? "").includes(`project: ${projectName}`)
+          ).length + 1;
+          const rollover = await request("POST", `/api/companies/${company.id}/issues`, {
+            title: `[${projectName}] Project truth continuation #${rolloverNumber}`,
+            description: `${projectTruthRolloverParentMarker}\nproject: ${projectName}\n\nDurable backlog coordination parent created because the prior parent reached the bounded eight-child history limit. Keep implementation in owner-scoped children and preserve admission-control WIP limits.`,
+            status: "backlog",
+            priority: "high",
+            projectId: project.id,
+            goalId: goal?.id ?? null,
+            requestDepth: 1,
           });
-        } catch (fallbackError) {
-          if (!isProblemAgentCapError(fallbackError)) throw fallbackError;
-          dispatchAction.action = "noop_problem_agent_cap";
-          dispatchAction.error = "Problem agent participation changed during dispatch; the bounded retry stayed within the cap and no issue was created.";
-          missingDepthReasons.push({ reason: "problem_agent_cap_race", title });
-          continue;
+          issues.push(rollover);
+          completionParent = rollover;
+          dispatchAction.parentIdentifier = rollover.identifier;
+          dispatchAction.parentRollover = {
+            identifier: rollover.identifier,
+            reason: "parent_child_limit",
+          };
+          try {
+            created = await request("POST", `/api/issues/${completionParent.id}/children`, createBody);
+          } catch (rolloverError) {
+            creationError = rolloverError;
+          }
         }
-        dispatchAction.preferredAssignee = assignee.name;
-        dispatchAction.assignee = fallback.name;
-        dispatchAction.assigneeFallbackReason = "problem_agent_cap";
+
+        if (!created) {
+          if (!isProblemAgentCapError(creationError)) throw creationError;
+          const fallback = selectProblemParticipantFallback({
+            completionParent,
+            agents,
+            preferredAssigneeId: assignee.id,
+          });
+          if (!fallback || fallback.id === assignee.id) {
+            dispatchAction.action = "noop_problem_agent_cap";
+            dispatchAction.error = "Problem already uses the maximum 4 distinct agents and no active existing participant can own this gap.";
+            missingDepthReasons.push({ reason: "problem_agent_cap", title });
+            continue;
+          }
+          try {
+            created = await request("POST", `/api/issues/${completionParent.id}/children`, {
+              ...createBody,
+              assigneeAgentId: fallback.id,
+            });
+          } catch (fallbackError) {
+            if (!isProblemAgentCapError(fallbackError)) throw fallbackError;
+            dispatchAction.action = "noop_problem_agent_cap";
+            dispatchAction.error = "Problem agent participation changed during dispatch; the bounded retry stayed within the cap and no issue was created.";
+            missingDepthReasons.push({ reason: "problem_agent_cap_race", title });
+            continue;
+          }
+          dispatchAction.preferredAssignee = assignee.name;
+          dispatchAction.assignee = fallback.name;
+          dispatchAction.assigneeFallbackReason = "problem_agent_cap";
+        }
       }
       const wakeBlocker = activeConflictForCreatedIssue(created, wip);
       const wakeBoundary = directWakeBoundaryForAgent(created.assigneeAgentId);
