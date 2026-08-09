@@ -399,6 +399,239 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     expect(noActiveRuns).toBe(true);
   });
 
+  it("does not let a cancelled blocker starve the next work-aware timer candidate", async () => {
+    const companyId = randomUUID();
+    const agentId = randomUUID();
+    const cancelledBlockerId = randomUUID();
+    const blockedReviewId = randomUUID();
+    const readyReviewId = randomUUID();
+    let finishTimerRun!: () => void;
+    const timerRunCanFinish = new Promise<void>((resolve) => {
+      finishTimerRun = resolve;
+    });
+    mockAdapterExecute.mockImplementationOnce(async () => {
+      await timerRunCanFinish;
+      return {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        errorMessage: null,
+        summary: "Independent ready review completed.",
+        provider: "test",
+        model: "test-model",
+      };
+    });
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "TimerReviewer",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {
+        heartbeat: {
+          enabled: true,
+          intervalSec: 30,
+          wakeOnDemand: true,
+          workAware: true,
+          reviewFirst: true,
+          maxConcurrentRuns: 1,
+        },
+      },
+      permissions: {},
+      lastHeartbeatAt: new Date("2026-06-03T23:00:00Z"),
+    });
+    await db.insert(issues).values([
+      {
+        id: cancelledBlockerId,
+        companyId,
+        title: "Cancelled recovery attempt",
+        status: "cancelled",
+        priority: "critical",
+      },
+      {
+        id: blockedReviewId,
+        companyId,
+        title: "Review still blocked by cancelled recovery",
+        status: "in_review",
+        priority: "critical",
+        assigneeAgentId: agentId,
+      },
+      {
+        id: readyReviewId,
+        companyId,
+        title: "Independent ready review",
+        status: "in_review",
+        priority: "high",
+        assigneeAgentId: agentId,
+      },
+    ]);
+    await db.insert(issueRelations).values({
+      companyId,
+      issueId: cancelledBlockerId,
+      relatedIssueId: blockedReviewId,
+      type: "blocks",
+    });
+
+    const result = await heartbeat.tickTimers(new Date("2026-06-04T00:10:00Z"));
+
+    expect(result.enqueued).toBe(1);
+    const timerRun = await db
+      .select({ id: heartbeatRuns.id, contextSnapshot: heartbeatRuns.contextSnapshot })
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.agentId, agentId))
+      .orderBy(heartbeatRuns.createdAt)
+      .then((rows) => rows[0] ?? null);
+    expect(timerRun?.contextSnapshot).toMatchObject({
+      issueId: readyReviewId,
+      reason: "assigned_review_available",
+      workType: "review",
+    });
+
+    const blockedTimerAttempts = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(agentWakeupRequests)
+      .where(
+        and(
+          eq(agentWakeupRequests.source, "timer"),
+          sql`${agentWakeupRequests.payload} ->> 'issueId' = ${blockedReviewId}`,
+        ),
+      )
+      .then((rows) => rows[0]?.count ?? 0);
+    expect(blockedTimerAttempts).toBe(0);
+
+    await db.update(issues).set({ status: "done" }).where(eq(issues.id, readyReviewId));
+    finishTimerRun();
+    const timerRunFinished = await waitForCondition(async () => {
+      if (!timerRun) return false;
+      const run = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, timerRun.id))
+        .then((rows) => rows[0] ?? null);
+      return run?.status === "succeeded";
+    });
+    expect(timerRunFinished).toBe(true);
+  });
+
+  it("does not let a review with a cancelled blocker suppress independent implementation work", async () => {
+    const companyId = randomUUID();
+    const agentId = randomUUID();
+    const cancelledBlockerId = randomUUID();
+    const blockedReviewId = randomUUID();
+    const readyImplementationId = randomUUID();
+    let finishTimerRun!: () => void;
+    const timerRunCanFinish = new Promise<void>((resolve) => {
+      finishTimerRun = resolve;
+    });
+    mockAdapterExecute.mockImplementationOnce(async () => {
+      await timerRunCanFinish;
+      return {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        errorMessage: null,
+        summary: "Independent implementation completed.",
+        provider: "test",
+        model: "test-model",
+      };
+    });
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "TimerImplementer",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {
+        heartbeat: {
+          enabled: true,
+          intervalSec: 30,
+          wakeOnDemand: true,
+          workAware: true,
+          reviewFirst: true,
+          maxConcurrentRuns: 1,
+        },
+      },
+      permissions: {},
+      lastHeartbeatAt: new Date("2026-06-03T23:00:00Z"),
+    });
+    await db.insert(issues).values([
+      {
+        id: cancelledBlockerId,
+        companyId,
+        title: "Cancelled review recovery",
+        status: "cancelled",
+        priority: "critical",
+      },
+      {
+        id: blockedReviewId,
+        companyId,
+        title: "Review awaiting blocker replacement",
+        status: "in_review",
+        priority: "critical",
+      },
+      {
+        id: readyImplementationId,
+        companyId,
+        title: "Independent implementation",
+        status: "todo",
+        priority: "high",
+        assigneeAgentId: agentId,
+      },
+    ]);
+    await db.insert(issueRelations).values({
+      companyId,
+      issueId: cancelledBlockerId,
+      relatedIssueId: blockedReviewId,
+      type: "blocks",
+    });
+
+    const result = await heartbeat.tickTimers(new Date("2026-06-04T00:10:00Z"));
+
+    expect(result.enqueued).toBe(1);
+    const timerRun = await db
+      .select({ id: heartbeatRuns.id, contextSnapshot: heartbeatRuns.contextSnapshot })
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.agentId, agentId))
+      .orderBy(heartbeatRuns.createdAt)
+      .then((rows) => rows[0] ?? null);
+    expect(timerRun?.contextSnapshot).toMatchObject({
+      issueId: readyImplementationId,
+      reason: "assigned_work_available",
+      workType: "implementation",
+    });
+
+    await db.update(issues).set({ status: "done" }).where(eq(issues.id, readyImplementationId));
+    finishTimerRun();
+    const timerRunFinished = await waitForCondition(async () => {
+      if (!timerRun) return false;
+      const run = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, timerRun.id))
+        .then((rows) => rows[0] ?? null);
+      return run?.status === "succeeded";
+    });
+    expect(timerRunFinished).toBe(true);
+  });
+
   it("honors maxConcurrentRuns 1 by leaving a second assignment wake queued", async () => {
     const companyId = randomUUID();
     const agentId = randomUUID();

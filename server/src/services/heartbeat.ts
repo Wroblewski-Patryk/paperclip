@@ -6718,7 +6718,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           where relation.company_id=${agent.companyId}
             and relation.related_issue_id=${issues.id}
             and relation.type='blocks'
-            and blocker.status not in ('done','cancelled')
+            and blocker.status <> 'done'
             and blocker.hidden_at is null
         )`,
         sql`not exists (
@@ -6787,7 +6787,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             where review_blocker_relation.company_id=review_issue.company_id
               and review_blocker_relation.related_issue_id=review_issue.id
               and review_blocker_relation.type='blocks'
-              and review_blocker.status not in ('done','cancelled')
+              and review_blocker.status <> 'done'
               and review_blocker.hidden_at is null
           )
           and not exists (
