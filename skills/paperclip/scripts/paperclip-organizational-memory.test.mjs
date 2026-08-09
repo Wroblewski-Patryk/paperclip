@@ -29,12 +29,12 @@ function runScript(args, env) {
 test("creates an enriched observation once and returns it on a repeated dedupe key", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "paperclip-memory-helper-"));
   const inputFile = path.join(tempDir, "learning.json");
-  await writeFile(inputFile, JSON.stringify({
+  await writeFile(inputFile, `\uFEFF${JSON.stringify({
     kind: "learning",
     title: "Bounded test learning",
     summary: "The helper keeps one durable entry.",
     sourceClass: "helper_test",
-  }), "utf8");
+  })}`, "utf8");
 
   const observations = [];
   let postCount = 0;
@@ -102,4 +102,3 @@ test("creates an enriched observation once and returns it on a repeated dedupe k
     await rm(tempDir, { recursive: true, force: true });
   }
 });
-

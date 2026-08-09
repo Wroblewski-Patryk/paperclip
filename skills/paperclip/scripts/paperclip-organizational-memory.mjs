@@ -88,7 +88,8 @@ export async function runOrganizationalMemoryCli(args = process.argv.slice(2)) {
   const runId = process.env.PAPERCLIP_RUN_ID ?? "";
   const agentId = process.env.PAPERCLIP_AGENT_ID ?? "";
   const timeoutMs = Number(process.env.PAPERCLIP_MEMORY_REQUEST_TIMEOUT_MS ?? 30_000);
-  const input = JSON.parse(await readFile(options.inputFile, "utf8"));
+  const inputText = await readFile(options.inputFile, "utf8");
+  const input = JSON.parse(inputText.replace(/^\uFEFF/, ""));
   const requestOptions = { apiBase, apiKey, runId, timeoutMs };
 
   let issue = null;
@@ -145,4 +146,3 @@ if (isDirectRun) {
     process.exitCode = 1;
   });
 }
-

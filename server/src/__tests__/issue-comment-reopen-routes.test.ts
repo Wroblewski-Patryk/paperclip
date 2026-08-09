@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockIssueService = vi.hoisted(() => ({
   getById: vi.fn(),
+  list: vi.fn(),
   assertCheckoutOwner: vi.fn(),
   update: vi.fn(),
   addComment: vi.fn(),
@@ -118,6 +119,8 @@ vi.mock("../services/routines.js", () => ({
 }));
 
 vi.mock("../services/index.js", () => ({
+  assignmentProposalService: () => ({}),
+  delegationFlowService: () => ({}),
   companyService: () => ({
     getById: vi.fn(async () => ({ id: "company-1", attachmentMaxBytes: 10 * 1024 * 1024 })),
   }),
@@ -125,6 +128,7 @@ vi.mock("../services/index.js", () => ({
   agentService: () => mockAgentService,
   documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
   documentService: () => ({}),
+  companySearchService: () => ({}),
   executionWorkspaceService: () => ({}),
   feedbackService: () => mockFeedbackService,
   goalService: () => ({}),
@@ -227,6 +231,7 @@ describe.sequential("issue comment reopen routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIssueService.getById.mockReset();
+    mockIssueService.list.mockReset();
     mockIssueService.assertCheckoutOwner.mockReset();
     mockIssueService.update.mockReset();
     mockIssueService.addComment.mockReset();
@@ -301,6 +306,7 @@ describe.sequential("issue comment reopen routes", () => {
       authorAgentId: null,
       authorUserId: "local-board",
     });
+    mockIssueService.list.mockResolvedValue([]);
     mockIssueService.findMentionedAgents.mockResolvedValue([]);
     mockIssueService.getDependencyReadiness.mockResolvedValue({
       issueId: "11111111-1111-4111-8111-111111111111",
@@ -547,6 +553,83 @@ describe.sequential("issue comment reopen routes", () => {
     expect(mockIssueService.update).not.toHaveBeenCalled();
     expect(mockIssueService.addComment).not.toHaveBeenCalled();
     expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
+  });
+
+  it("allows a child assignee to return a plain evidence comment to its direct parent", async () => {
+    const parent = {
+      ...makeIssue("in_progress"),
+      projectId: "project-1",
+      parentId: null,
+    };
+    const childAssigneeId = "33333333-3333-4333-8333-333333333333";
+    mockIssueService.getById.mockResolvedValue(parent);
+    mockIssueService.list.mockResolvedValue([{
+      ...makeIssue("in_review"),
+      id: "child-1",
+      projectId: "project-1",
+      parentId: parent.id,
+      assigneeAgentId: childAssigneeId,
+    }]);
+    mockIssueService.addComment.mockResolvedValue({
+      id: "comment-1",
+      issueId: parent.id,
+      companyId: "company-1",
+      body: "Independent TLS evidence is attached on the child.",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      authorAgentId: childAssigneeId,
+      authorUserId: null,
+    });
+    mockAccessService.decide.mockResolvedValue({
+      allowed: false,
+      action: "issue:mutate",
+      reason: "deny_scope",
+      explanation: "Agent does not own the parent issue.",
+    });
+
+    const res = await request(await installActor(createApp(), agentActor(childAssigneeId)))
+      .post(`/api/issues/${parent.id}/comments`)
+      .send({ body: "Independent TLS evidence is attached on the child." });
+
+    expect(res.status).toBe(201);
+    expect(mockIssueService.list).toHaveBeenCalledWith("company-1", expect.objectContaining({
+      parentId: parent.id,
+      assigneeAgentId: childAssigneeId,
+      status: "backlog,todo,in_progress,in_review,blocked",
+    }));
+    expect(mockIssueService.addComment).toHaveBeenCalled();
+    expect(mockIssueService.update).not.toHaveBeenCalled();
+  });
+
+  it("does not let a child assignee reopen or control its direct parent", async () => {
+    const parent = {
+      ...makeIssue("done"),
+      projectId: "project-1",
+      parentId: null,
+    };
+    const childAssigneeId = "33333333-3333-4333-8333-333333333333";
+    mockIssueService.getById.mockResolvedValue(parent);
+    mockIssueService.list.mockResolvedValue([{
+      ...makeIssue("in_review"),
+      id: "child-1",
+      projectId: "project-1",
+      parentId: parent.id,
+      assigneeAgentId: childAssigneeId,
+    }]);
+    mockAccessService.decide.mockResolvedValue({
+      allowed: false,
+      action: "issue:mutate",
+      reason: "deny_scope",
+      explanation: "Agent does not own the parent issue.",
+    });
+
+    const res = await request(await installActor(createApp(), agentActor(childAssigneeId)))
+      .post(`/api/issues/${parent.id}/comments`)
+      .send({ body: "Reopen parent", reopen: true });
+
+    expect(res.status).toBe(403);
+    expect(mockIssueService.addComment).not.toHaveBeenCalled();
+    expect(mockIssueService.update).not.toHaveBeenCalled();
   });
 
   it("moves assigned blocked issues back to todo via POST comments", async () => {

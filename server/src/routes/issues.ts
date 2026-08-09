@@ -1897,6 +1897,39 @@ export function issueRoutes(
     return true;
   }
 
+  async function assertAgentIssueCommentAllowed(
+    req: Request,
+    res: Response,
+    issue: Parameters<typeof decideIssueAccess>[1],
+    input: { reopen?: boolean; resume?: boolean; interrupt?: boolean; presentation?: unknown; metadata?: unknown },
+  ) {
+    if (req.actor.type !== "agent") return true;
+    const actorAgentId = req.actor.agentId;
+    const plainEvidenceComment =
+      input.reopen !== true &&
+      input.resume !== true &&
+      input.interrupt !== true &&
+      input.presentation == null &&
+      input.metadata == null;
+
+    if (actorAgentId && plainEvidenceComment && issue.assigneeAgentId !== actorAgentId) {
+      const activeDirectChildren = await svc.list(issue.companyId, {
+        parentId: issue.id,
+        assigneeAgentId: actorAgentId,
+        status: "backlog,todo,in_progress,in_review,blocked",
+        limit: 2,
+      });
+      const ownsActiveDirectChild = activeDirectChildren.some((child) =>
+        child.parentId === issue.id &&
+        child.assigneeAgentId === actorAgentId &&
+        child.projectId === issue.projectId
+      );
+      if (ownsActiveDirectChild) return true;
+    }
+
+    return assertAgentIssueMutationAllowed(req, res, issue);
+  }
+
   function isStatusOnlyCheapRecoveryContext(contextSnapshot: unknown) {
     if (!contextSnapshot || typeof contextSnapshot !== "object" || Array.isArray(contextSnapshot)) return false;
     const context = contextSnapshot as Record<string, unknown>;
@@ -6738,7 +6771,7 @@ export function issueRoutes(
       return;
     }
     assertCompanyAccess(req, issue.companyId);
-    if (!(await assertAgentIssueMutationAllowed(req, res, issue))) return;
+    if (!(await assertAgentIssueCommentAllowed(req, res, issue, req.body))) return;
     if (!assertStructuredCommentFieldsAllowed(req, res, {
       presentation: req.body.presentation,
       metadata: req.body.metadata,
