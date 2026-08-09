@@ -268,10 +268,6 @@ test("agent-cap fallback reuses an active engineering participant instead of add
         { id: "old-engineering", assigneeAgentId: "engineer" },
       ],
     },
-    issues: [
-      { id: "child", parentId: "parent", assigneeAgentId: "cto" },
-      { id: "grandchild", parentId: "child", assigneeAgentId: "engineer" },
-    ],
     agents: [
       { id: "preferred-qa", name: "Test Automation Engineer", role: "qa", status: "idle" },
       { id: "pm", name: "Product Manager", role: "pm", status: "idle" },
@@ -291,7 +287,6 @@ test("agent-cap fallback never selects a paused participant", () => {
       id: "parent",
       blockedBy: [{ id: "child", assigneeAgentId: "paused-engineer" }],
     },
-    issues: [],
     agents: [{ id: "paused-engineer", name: "Engineer", role: "engineer", status: "paused" }],
   });
 

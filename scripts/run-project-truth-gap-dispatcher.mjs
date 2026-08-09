@@ -870,7 +870,6 @@ for (const projectGapSet of gapsToDispatch) {
         if (!isProblemAgentCapError(error)) throw error;
         const fallback = selectProblemParticipantFallback({
           completionParent,
-          issues,
           agents,
           preferredAssigneeId: assignee.id,
         });

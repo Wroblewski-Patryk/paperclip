@@ -87,7 +87,6 @@ export function isProblemAgentCapError(error) {
 
 export function selectProblemParticipantFallback({
   completionParent,
-  issues,
   agents,
   preferredAssigneeId = null,
 }) {
@@ -98,25 +97,6 @@ export function selectProblemParticipantFallback({
 
   for (const child of completionParent.blockedBy ?? []) {
     if (child?.assigneeAgentId) participantIds.add(child.assigneeAgentId);
-  }
-
-  const descendantsByParent = new Map();
-  for (const issue of issues ?? []) {
-    if (!issue?.parentId) continue;
-    const descendants = descendantsByParent.get(issue.parentId) ?? [];
-    descendants.push(issue);
-    descendantsByParent.set(issue.parentId, descendants);
-  }
-  const pendingParentIds = [completionParent.id];
-  const visitedParentIds = new Set();
-  while (pendingParentIds.length > 0) {
-    const parentId = pendingParentIds.shift();
-    if (!parentId || visitedParentIds.has(parentId)) continue;
-    visitedParentIds.add(parentId);
-    for (const child of descendantsByParent.get(parentId) ?? []) {
-      if (child.assigneeAgentId) participantIds.add(child.assigneeAgentId);
-      if (child.id) pendingParentIds.push(child.id);
-    }
   }
 
   if (preferredAssigneeId && participantIds.has(preferredAssigneeId)) {
