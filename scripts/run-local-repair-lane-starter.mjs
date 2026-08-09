@@ -422,6 +422,13 @@ function isIssueAuthorizationBoundaryError(error) {
       .test(error?.body ?? error?.message ?? "");
 }
 
+function isActiveSubtreePauseHoldError(error) {
+  return error?.name === "HttpRequestError"
+    && error?.status === 409
+    && /Issue follow-up blocked by active subtree pause hold/i
+      .test(error?.body ?? error?.message ?? "");
+}
+
 function apiFailureOutput(error) {
   const timedOut = isRequestTimeoutError(error);
   return {
@@ -834,6 +841,12 @@ if (activeRunCount > 0 && candidates.length === 0
         actions.at(-1).statusCode = error.status ?? null;
         actions.at(-1).ownerAction = "Read back the existing owner-path issue and let its assigned owner perform the mutation; do not retry from this actor.";
         actions.at(-1).requiredReadback = "Confirm an open owner-path issue already exists for the target, or create one assigned to the owning role before rerunning apply.";
+      } else if (isActiveSubtreePauseHoldError(error)) {
+        actions.at(-1).action = "skipped_active_subtree_pause_hold";
+        actions.at(-1).route = error.route ?? null;
+        actions.at(-1).statusCode = error.status ?? null;
+        actions.at(-1).ownerAction = "Preserve the active subtree pause hold and let the hold owner resume or replace this lane through the governed tree-control path.";
+        actions.at(-1).requiredReadback = "Read back the issue tree-control state before considering this candidate in a later control tick.";
       } else {
         throw error;
       }

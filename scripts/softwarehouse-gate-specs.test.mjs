@@ -3164,6 +3164,16 @@ test("local repair lane starter treats cross-boundary patch denial as routed ski
   assert.match(source, /if \(updated && isBacklogWake && updated\.assigneeAgentId\)/);
 });
 
+test("local repair lane starter preserves active subtree pause holds without failing the control tick", async () => {
+  const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+
+  assert.match(source, /function isActiveSubtreePauseHoldError\(error\)/);
+  assert.match(source, /error\?\.status === 409/);
+  assert.match(source, /Issue follow-up blocked by active subtree pause hold/);
+  assert.match(source, /action = "skipped_active_subtree_pause_hold"/);
+  assert.match(source, /Preserve the active subtree pause hold/);
+});
+
 test("local repair lane starter matches controlled project aliases before waking backlog", async () => {
   const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
 
