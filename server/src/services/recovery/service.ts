@@ -124,6 +124,40 @@ type SuccessfulRunHandoffRecoveryEvidence = {
   maxHandoffAttempts: number;
 };
 
+export function classifyAutomaticRecoveryPolicyHold(run: LatestIssueRun) {
+  if (!run) return null;
+  const context = parseObject(run.contextSnapshot);
+  const executionQuota = parseObject(context.executionQuota);
+  if (
+    /issue execution quota hard hold/i.test(run.error ?? "") ||
+    executionQuota.admitted === false && executionQuota.reason === "raw_input_quota_exceeded"
+  ) {
+    return {
+      code: "issue_execution_quota_hold",
+      nextAction: "A board owner must reset the reusable execution window, raise the issue quota, or cancel the obsolete work. Automatic recovery cannot spend through a hard quota.",
+    } as const;
+  }
+  return null;
+}
+
+export function resolveSourceScopedRecoveryAttemptLimit(input: {
+  kind: string;
+  maxAttempts: number | null;
+  evidence: unknown;
+  latestRun: LatestIssueRun;
+}) {
+  if (typeof input.maxAttempts === "number" && Number.isFinite(input.maxAttempts)) {
+    return Math.max(0, Math.floor(input.maxAttempts));
+  }
+  if (input.kind === "missing_disposition") {
+    return Math.max(
+      1,
+      Math.floor(asNumber(parseObject(input.evidence).maxHandoffAttempts, DEFAULT_MAX_SUCCESSFUL_RUN_HANDOFF_ATTEMPTS)),
+    );
+  }
+  return classifyContinuationFailure(input.latestRun).maxAttempts;
+}
+
 type WatchdogDecisionActor =
   | { type: "board"; userId?: string | null; runId?: string | null }
   | { type: "agent"; agentId?: string | null; runId?: string | null }
@@ -2348,7 +2382,9 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
           reason: "no_invokable_recovery_owner",
         },
       monitorPolicy: null,
-      maxAttempts: null,
+      maxAttempts: recoveryCause === SUCCESSFUL_RUN_MISSING_STATE_REASON
+        ? input.successfulRunHandoffEvidence?.maxHandoffAttempts ?? DEFAULT_MAX_SUCCESSFUL_RUN_HANDOFF_ATTEMPTS
+        : classifyContinuationFailure(input.latestRun).maxAttempts,
       lastAttemptAt: now,
     });
 
@@ -2482,6 +2518,39 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         result.skipped += 1;
         continue;
       }
+
+      const latestRun = await getLatestIssueRun(row.issue.companyId, row.issue.id);
+      const attemptLimit = resolveSourceScopedRecoveryAttemptLimit({
+        kind: row.action.kind,
+        maxAttempts: row.action.maxAttempts,
+        evidence: row.action.evidence,
+        latestRun,
+      });
+      if (row.action.attemptCount >= attemptLimit) {
+        await db
+          .update(issueRecoveryActions)
+          .set({
+            status: "escalated",
+            ownerType: "board",
+            ownerAgentId: null,
+            wakePolicy: { type: "board_escalation", reason: "automatic_recovery_attempts_exhausted" },
+            nextAction: `Automatic recovery exhausted after ${row.action.attemptCount} attempt(s). A board owner must record the disposition, repair the execution path, or cancel obsolete work.`,
+            maxAttempts: attemptLimit,
+            evidence: {
+              ...parseObject(row.action.evidence),
+              automaticRecoverySuppressed: true,
+              suppressionCode: "automatic_recovery_attempts_exhausted",
+              latestRunId: latestRun?.id ?? null,
+            },
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(issueRecoveryActions.id, row.action.id),
+            inArray(issueRecoveryActions.status, ["active", "escalated"]),
+          ));
+        result.skipped += 1;
+        continue;
+      }
       if (!row.action.ownerAgentId || !isAgentInvokable(row.owner)) {
         result.skipped += 1;
         continue;
@@ -2507,6 +2576,33 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       }
 
       if (await isAutomaticRecoverySuppressedByPauseHold(db, row.issue.companyId, row.issue.id, treeControlSvc)) {
+        result.skipped += 1;
+        continue;
+      }
+
+      const policyHold = classifyAutomaticRecoveryPolicyHold(latestRun);
+      if (policyHold) {
+        await db
+          .update(issueRecoveryActions)
+          .set({
+            status: "escalated",
+            ownerType: "board",
+            ownerAgentId: null,
+            wakePolicy: { type: "board_escalation", reason: policyHold.code },
+            nextAction: policyHold.nextAction,
+            maxAttempts: row.action.attemptCount,
+            evidence: {
+              ...parseObject(row.action.evidence),
+              automaticRecoverySuppressed: true,
+              suppressionCode: policyHold.code,
+              latestRunId: latestRun?.id ?? null,
+            },
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(issueRecoveryActions.id, row.action.id),
+            inArray(issueRecoveryActions.status, ["active", "escalated"]),
+          ));
         result.skipped += 1;
         continue;
       }

@@ -70,6 +70,8 @@ evidence above as part of the broader operating flow, not just the close route.
 
 Contract marker: `protected-access-lane-entry:v1`.
 
+Credential/account contract marker: `protected-credential-proof:v1`.
+
 A lane is production-bound when its planned work can require deploy-status or
 production readback beyond public unauthenticated health, protected smoke or
 test-account proof, restore proof against protected runtime resources, or
@@ -95,6 +97,25 @@ protected smoke:
 An incomplete packet is a lane-entry defect. Do not fan out deploy, restore,
 governor, or protected-smoke execution work until the missing prerequisite has
 an owner-scoped issue and the production-bound parent is blocked on it.
+
+Before protected convergence, recovery, observability, or release-proof work
+starts, record one task-scoped credential/account proof preflight. Do not
+request or store secret values. The record must contain:
+
+- `taskRef` and `protectedAction`;
+- `credentialProofOwner` and `environment`;
+- `credentialOrAccountAlias` by name only and the exact `accessScope`;
+- `proofStatus` (`cleared`, `blocked`, or justified `not_applicable`) and a
+  value-free `proofRef` when cleared;
+- `expiryOrRotationPath`; and
+- `leastPrivilegeUnblockAction`.
+
+When proof is unavailable, set `proofStatus` to `blocked`, record the exact
+`missingProof`, create or link one owner-scoped `blockerIssue`, and keep the
+exact `blockedTask` blocked on it. A retry, broader credential, or prose warning
+is not an unblock path. Run
+`pnpm softwarehouse:credential-proof-preflight -- <proof-record.json>` to check
+a task record before protected work begins.
 
 ## Status Vocabulary
 
@@ -125,6 +146,17 @@ An unhealthy protected resource may remain visible as a blocker while its one-ac
 waits for an explicit owner decision. Once that recovery issue already exists, the continuation
 controller must preserve the gate and select a separate safe runnable lane; repeatedly invoking a
 seeder that can only return `noop_existing_recovery_issue` is not constructive progress.
+
+The same rule applies to execution-policy holds. Exceeding an issue or routine-run execution quota
+must create a durable board-owned escalation with the reset/raise/cancel decision, not an automatic
+wake loop. Reusable daily or weekly routine issues receive a fresh quota epoch from each routine run,
+so successful reuse does not accumulate an unbounded historical penalty. Adapter crashes and lost
+processes remain eligible for bounded automatic recovery because they are transient execution
+failures rather than governance decisions.
+
+All source-scoped recovery actions are bounded. A missing-disposition handoff receives one corrective
+attempt by default; transient adapter recovery receives at most its classified retry allowance.
+Exhausted actions retain their evidence and move to board-owned escalation instead of being re-armed.
 
 ## Agent Improvement Flywheel
 

@@ -5,7 +5,9 @@ import path from "node:path";
 import process from "node:process";
 import {
   auditProtectedAccessLaneEntryDocuments,
+  auditProtectedCredentialProofDocuments,
   protectedAccessLaneEntryDocPaths,
+  protectedCredentialProofDocPaths,
 } from "./lib/protected-access-lane-entry-contract.mjs";
 
 const repoRoot = process.cwd();
@@ -189,6 +191,14 @@ const protectedAccessLaneEntryDocuments = Object.fromEntries(
   ]),
 );
 findings.push(...auditProtectedAccessLaneEntryDocuments(protectedAccessLaneEntryDocuments));
+
+const protectedCredentialProofDocuments = Object.fromEntries(
+  protectedCredentialProofDocPaths.map((relativePath) => [
+    relativePath,
+    readIfExists(path.join(repoRoot, relativePath)),
+  ]),
+);
+findings.push(...auditProtectedCredentialProofDocuments(protectedCredentialProofDocuments));
 
 let rosterAgentCount = 0;
 let sourceRoleFilesExpected = 0;
@@ -402,6 +412,7 @@ const result = {
   requiredProcessDocs: requiredProcessDocs.length,
   requiredProcessTerms: requiredProcessTerms.length,
   protectedAccessLaneEntryDocs: protectedAccessLaneEntryDocPaths.length,
+  protectedCredentialProofDocs: protectedCredentialProofDocPaths.length,
   requiredSharedFiles: sharedFiles.length,
   rosterAgentCount,
   sourceRoleFilesExpected,

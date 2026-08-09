@@ -34,6 +34,53 @@ function Wait-PaperclipHealth {
   return Test-PaperclipHealth
 }
 
+function Test-ProcessDescendsFrom {
+  param(
+    [int]$ProcessId,
+    [int]$RootProcessId
+  )
+
+  $cursor = $ProcessId
+  for ($depth = 0; $depth -lt 24 -and $cursor -gt 0; $depth++) {
+    if ($cursor -eq $RootProcessId) { return $true }
+    $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $cursor" -ErrorAction SilentlyContinue
+    if (-not $processInfo) { return $false }
+    $cursor = [int]$processInfo.ParentProcessId
+  }
+  return $false
+}
+
+function Test-PaperclipOwnedHealth {
+  param(
+    [int]$RootProcessId
+  )
+
+  if (-not (Test-PaperclipHealth)) { return $false }
+  foreach ($listener in @(Get-NetTCPConnection -LocalPort 3200 -State Listen -ErrorAction SilentlyContinue)) {
+    if (Test-ProcessDescendsFrom -ProcessId ([int]$listener.OwningProcess) -RootProcessId $RootProcessId) {
+      return $true
+    }
+  }
+  return $false
+}
+
+function Wait-PaperclipOwnedHealth {
+  param(
+    [int]$RootProcessId,
+    [int]$TimeoutSeconds = $StartupTimeoutSeconds
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  do {
+    if (Test-PaperclipOwnedHealth -RootProcessId $RootProcessId) { return $true }
+    $rootProcess = Get-Process -Id $RootProcessId -ErrorAction SilentlyContinue
+    if (-not $rootProcess) { return $false }
+    Start-Sleep -Seconds 2
+  } while ((Get-Date) -lt $deadline)
+
+  return Test-PaperclipOwnedHealth -RootProcessId $RootProcessId
+}
+
 New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $Root '.paperclip') -Force | Out-Null
 
@@ -104,7 +151,9 @@ Set-Location '$Root'
 `$env:HEARTBEAT_SCHEDULER_INTERVAL_MS = '30000'
 `$env:PAPERCLIP_MIGRATION_AUTO_APPLY = 'true'
 `$env:PAPERCLIP_MIGRATION_PROMPT = 'never'
-pnpm dev:watch
+# The autonomous control plane must not restart while its own agents edit this
+# checkout. Apply validated changes through an explicit controlled restart.
+pnpm dev:once
 "@
 
 $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
@@ -120,8 +169,8 @@ $process = Start-Process `
 Start-Sleep -Seconds 3
 $servicePid = $process.Id
 Set-Content -LiteralPath $PidPath -Value $servicePid
-if (-not (Wait-PaperclipHealth)) {
-  throw "LuckySparrow Software House did not become healthy on strict port 3200 within $StartupTimeoutSeconds seconds. Inspect $OutPath and $ErrPath."
+if (-not (Wait-PaperclipOwnedHealth -RootProcessId $process.Id)) {
+  throw "LuckySparrow Software House process $($process.Id) did not own a healthy descendant on strict port 3200 within $StartupTimeoutSeconds seconds. Inspect $OutPath and $ErrPath."
 }
 
 if (Test-Path -LiteralPath $ServiceDir) {

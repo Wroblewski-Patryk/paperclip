@@ -529,7 +529,8 @@ test("Windows Softwarehouse lifecycle uses one registered process tree", async (
     readFile("scripts/stop-luckysparrow-softwarehouse.ps1", "utf8"),
   ]);
 
-  assert.match(starter, /pnpm dev:watch/);
+  assert.match(starter, /pnpm dev:once/);
+  assert.doesNotMatch(starter, /pnpm dev:watch/);
   assert.match(starter, /Test-PaperclipHealth/);
   assert.match(starter, /-WindowStyle Hidden/);
   assert.match(stopper, /dev-service\.ts stop/);
@@ -631,7 +632,7 @@ test("readiness and control brief preserve hard-delivery protected gates", async
   assert.match(blockerGraph, /knownGateRootIdentifiers/);
 });
 
-test("Windows startup removes only orphaned embedded Postgres io workers", async () => {
+test("Windows startup removes bounded orphaned embedded Postgres workers and ghost-listener children", async () => {
   const cleanup = await readFile("scripts/cleanup-orphaned-embedded-postgres.ps1", "utf8");
   const startup = await readFile("scripts/start-luckysparrow-softwarehouse.ps1", "utf8");
 
@@ -641,10 +642,16 @@ test("Windows startup removes only orphaned embedded Postgres io workers", async
   assert.match(cleanup, /Contains\(\$RootNeedle\)/);
   assert.match(cleanup, /\$parent\.Name -eq 'postgres\.exe'/);
   assert.match(cleanup, /if \(\$hasManagedPostgresParent\) \{ continue \}/);
+  assert.match(cleanup, /Get-NetTCPConnection -State Listen -LocalPort \$CanonicalPort/);
+  assert.match(cleanup, /if \(Get-Process -Id \$ownerPid[^\n]+\) \{ continue \}/);
+  assert.match(cleanup, /ParentProcessId = \$ownerPid/);
+  assert.match(cleanup, /canonical_orphan_child/);
   assert.match(cleanup, /Stop-Process -Id \$candidate\.processId/);
   assert.doesNotMatch(cleanup, /Stop-Process -Name postgres/);
   assert.match(startup, /cleanup-orphaned-embedded-postgres\.ps1/);
   assert.match(startup, /& \$OrphanCleanupScript -Apply/);
+  assert.match(startup, /Test-ProcessDescendsFrom/);
+  assert.match(startup, /Wait-PaperclipOwnedHealth -RootProcessId \$process\.Id/);
 });
 
 test("reused continuation cycles execute before interpreting their own issue lock", async () => {
@@ -863,6 +870,19 @@ test("heartbeat scheduler gates codex_local starts on provider quota pressure", 
   assert.match(source, /status: "scheduled_retry"/);
   assert.match(source, /deferred_issue_execution/);
   assert.match(source, /providerQuotaHold/);
+});
+
+test("work-aware heartbeat admission preserves useful parallelism without empty timer runs", async () => {
+  const heartbeat = await readFile("server/src/services/heartbeat.ts", "utf8");
+  const sync = await readFile("scripts/sync-luckysparrow-agent-instructions.mjs", "utf8");
+
+  assert.match(heartbeat, /findWorkAwareTimerCandidate/);
+  assert.match(heartbeat, /hasLiveRunForTimerProject/);
+  assert.match(heartbeat, /workAwareDispatch: true/);
+  assert.match(heartbeat, /serializeByProject/);
+  assert.match(sync, /workAware: true/);
+  assert.match(sync, /serializeByProject: true/);
+  assert.match(sync, /maxConcurrentRuns: 1/);
 });
 
 test("dashboard surfaces provider quota separately from dollar spend", async () => {

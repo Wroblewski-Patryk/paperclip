@@ -1,5 +1,37 @@
 export type ExecutionQuotaState = "normal" | "warning" | "throttle" | "hold" | "emergency";
 
+export type ExecutionQuotaScope = {
+  scopeType: "issue" | "routine_run";
+  scopeId: string;
+  windowStart: Date | null;
+};
+
+export function resolveExecutionQuotaScope(input: {
+  issueId: string;
+  originKind?: string | null;
+  originRunId?: string | null;
+  routineTriggeredAt?: Date | null;
+}): ExecutionQuotaScope {
+  if (
+    input.originKind === "routine_execution" &&
+    input.originRunId &&
+    input.routineTriggeredAt instanceof Date &&
+    Number.isFinite(input.routineTriggeredAt.getTime())
+  ) {
+    return {
+      scopeType: "routine_run",
+      scopeId: input.originRunId,
+      windowStart: input.routineTriggeredAt,
+    };
+  }
+
+  return {
+    scopeType: "issue",
+    scopeId: input.issueId,
+    windowStart: null,
+  };
+}
+
 export function evaluateExecutionQuota(input: {
   observedRawInputTokens: number;
   hardRawInputTokenLimit: number;

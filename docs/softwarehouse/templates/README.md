@@ -19,6 +19,8 @@ Every new delivery issue should include:
 - risk and constraints
 - verification or proof method
 - receiver, reviewer, or next owner
+- the `protected-credential-proof:v1` preflight when convergence, recovery,
+  observability, or release proof may require protected access
 
 If the request is incomplete, keep the issue in intake or discovery and fill the
 missing fields from local docs before delegating implementation.

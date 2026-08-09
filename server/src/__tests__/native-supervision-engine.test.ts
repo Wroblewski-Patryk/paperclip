@@ -358,6 +358,7 @@ describeEmbedded("native supervision engine", () => {
     const detected = await engine.runWatchdog(refs.companyId, new Date("2026-08-04T03:01:00Z"));
 
     expect(detected.checks.find((check) => check.key === "dispatch_capacity")).toMatchObject({ status: "failed", count: 1 });
+    expect(detected.checks.find((check) => check.key === "review_bottleneck")).toMatchObject({ status: "failed", count: 1 });
     expect(detected.reviewDispatch).toMatchObject({ status: "dispatched", issueId: review.id, ownerAgentId: refs.ownerId });
     expect(enqueueWakeup).toHaveBeenCalledWith(refs.ownerId, expect.objectContaining({
       reason: "supervision_review_bottleneck_dispatch",
@@ -421,7 +422,7 @@ describeEmbedded("native supervision engine", () => {
       status: "in_progress", result: expect.objectContaining({ contextRetryCount: 1, contextRetryRunId: retryRunId }),
     }));
     expect(await db.select().from(supervisionFindings)).toContainEqual(expect.objectContaining({
-      problemClass: "dispatch_capacity_gap", rootCauseId: expect.any(String),
+      problemClass: "review_bottleneck", rootCauseId: expect.any(String),
     }));
   });
 

@@ -79,6 +79,20 @@ admission; missing Doctor capacity produces a visible `no_doctor` state rather t
 External Codex automations are read-only owner assurance: they compare fingerprints through the
 shadow-comparison API and cannot create a second backlog or mutate native policy.
 
+Agent timers use work-aware admission. A timer is allowed to start a paid agent run only when that
+agent owns an executable `backlog` or `todo` issue with no unresolved blocker, active issue run,
+active tree hold, or accepted-outcome conflict. Timers preserve per-agent WIP=1 and serialize writers
+by project, while independent projects may proceed in parallel. Reusable routine issues scope their
+execution quota to the current routine-run epoch; ordinary issues retain issue-lifetime quota. A
+quota hard hold is a policy decision, not a transient adapter failure: recovery escalates it to the
+board and does not re-arm the same run every few minutes. Native stale-review consumption remains
+active even when agent timers are enabled and admits at most one review lane per supervision cycle.
+
+The canonical local Softwarehouse service runs without source hot reload. Agents may edit the
+Paperclip checkout, but validated control-plane changes enter the running instance only through an
+explicit restart. This prevents a source edit from restarting Paperclip underneath the heartbeat
+process that made the edit and turning successful engineering work into a `process_lost` loop.
+
 Task, delivery, and outcome are deliberately separate state machines. Closing an issue records only
 the executor's task state. It cannot advance a delivery, and neither a commit, local SHA, review,
 nor local test can mark an outcome achieved. The delivery API enforces the sequence `proposed ->

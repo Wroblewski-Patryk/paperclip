@@ -28,9 +28,29 @@
 
 ## Env / secrets check
 
+Contract marker: `protected-credential-proof:v1`.
+
+Do not request or store secret values. For protected release proof, run
+`pnpm softwarehouse:credential-proof-preflight -- <proof-record.json>` and
+record:
+
 - Required env vars / secret refs checked:
 - Secret values exposed: no
 - Missing or blocked bindings:
+- `taskRef`:
+- `protectedAction`: release proof
+- `credentialProofOwner`:
+- `environment`:
+- `credentialOrAccountAlias`: name only
+- `accessScope`:
+- `proofStatus`: cleared / blocked / not_applicable
+- `proofRef`: value-free evidence reference and observation time; required when cleared
+- `expiryOrRotationPath`:
+- `leastPrivilegeUnblockAction`:
+- `missingProof`: required when blocked
+- `blockerIssue`: required when blocked
+- `blockedTask`: exact dependent task; required when blocked
+- `notApplicableReason`: required when not applicable
 
 ## Migration impact
 

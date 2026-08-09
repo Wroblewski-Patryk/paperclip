@@ -288,7 +288,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       ["runnable_dispatch", "Dispatch-eligible assigned work has no active owner lane", "runnable_dispatch_gap", runnableDispatchGap, "high", "dispatch_flow", "Assigned backlog or todo work passes local scheduler exclusions, but its owner has no scheduler heartbeat or live run; priority and dependency readiness still require diagnosis."],
     ];
     return specs
-      .filter(([key]) => expanded || ["admission_coverage", "runaway_retry", "stalled_ready_work", "active_findings_guard", "orphan_execution_locks", "completion_evidence", "outcome_predicates", "task_outcome_reconciliation", "cost_telemetry", "external_shadow_gap", "dispatch_capacity", "runnable_dispatch"].includes(key))
+      .filter(([key]) => expanded || ["admission_coverage", "runaway_retry", "stalled_ready_work", "review_bottleneck", "active_findings_guard", "orphan_execution_locks", "completion_evidence", "outcome_predicates", "task_outcome_reconciliation", "cost_telemetry", "external_shadow_gap", "dispatch_capacity", "runnable_dispatch"].includes(key))
       .map(([key, title, problemClass, count, severity, classification, summary]) => ({ key, title, problemClass, count, severity, classification, summary, status: count === 0 ? "passed" : severity === "warning" ? "warning" : "failed", requiresDiagnosis: ["admission_gap", "runaway_loop", "stalled_ready_work", "review_bottleneck", "deployment_bottleneck", "orphan_execution_lock", "evidence_completeness", "outcome_acceptance_gap", "task_outcome_state_gap", "cost_telemetry_gap", "external_assurance_gap"].includes(problemClass) }));
   }
 
@@ -307,7 +307,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
         and i.hidden_at is null
         and i.origin_kind <> 'routine_execution'
         and i.updated_at < ${old24h.toISOString()}::timestamptz
-        and a.status in ('idle','running')
+        and a.status in ('active','idle','running')
         and not exists (
           select 1 from heartbeat_runs r
           where r.company_id=i.company_id and r.agent_id=a.id and r.status in ('queued','running','scheduled_retry')
@@ -485,7 +485,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const recentOrActive = await db.select({ id: supervisionInterventions.id }).from(supervisionInterventions).where(and(
       eq(supervisionInterventions.companyId, companyId),
       eq(supervisionInterventions.kind, "dispatch_stale_review"),
-      sql`(${supervisionInterventions.status} in ('authorized','in_progress') or ${supervisionInterventions.createdAt} >= ${new Date(now.getTime() - 60 * 60 * 1000).toISOString()}::timestamptz)`,
+      sql`(${supervisionInterventions.status} in ('authorized','in_progress') or ${supervisionInterventions.createdAt} >= ${new Date(now.getTime() - 10 * 60 * 1000).toISOString()}::timestamptz)`,
     )).limit(1).then((rows) => rows[0] ?? null);
     if (recentOrActive) return { status: "cooldown" as const };
     const candidate = await collectReviewDispatchCandidate(companyId, now);
@@ -499,11 +499,11 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     });
     if (!decision.admitted) return { status: decision.disposition, admissionDecisionId: decision.decisionId };
     const root = (await registry.createRootCause(companyId, {
-      fingerprint: `root:dispatch-capacity-review:${companyId}`,
-      problemClass: "dispatch_capacity_gap", status: "confirmed",
-      title: "Assigned review work has no active dispatch path",
-      summary: "Available owners have assigned review work, but scheduler heartbeats are disabled and no live run exists.",
-      hypothesis: "Operational execution was paused at the dispatch layer while review inventory remained open.",
+      fingerprint: `root:stale-review-decision-path:${companyId}`,
+      problemClass: "review_bottleneck", status: "confirmed",
+      title: "Stale review work has no active decision path",
+      summary: "Available owners have assigned review work, but no live run or structured decision interaction exists.",
+      hypothesis: "Review inventory was left without a periodic decision consumer after the original execution event ended.",
       ownerAgentId: candidate.ownerAgentId, ownerUserId: null, projectId: candidate.projectId, issueId: candidate.issueId,
     })).rootCause;
     await registry.linkFindingRootCause(finding.id, root.id);
@@ -970,8 +970,11 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const stalledReadyDispatches = await persistAndDispatchStalledReady(companyId, now, started.cycle.id);
     const orphanLockRecoveries = await recoverOrphanExecutionLocks(companyId, now);
     const orphanTaskRoutes = await routeOrphanTasks(companyId, now);
-    const reviewDispatch = findingByProblemClass.has("dispatch_capacity_gap")
-      ? await dispatchOneStaleReview(companyId, findingByProblemClass.get("dispatch_capacity_gap")!, started.cycle.id, now)
+    const reviewDispatchFindingId = findingByProblemClass.get("review_bottleneck")
+      ?? findingByProblemClass.get("dispatch_capacity_gap")
+      ?? null;
+    const reviewDispatch = reviewDispatchFindingId
+      ? await dispatchOneStaleReview(companyId, reviewDispatchFindingId, started.cycle.id, now)
       : { status: "not_required" as const };
     findings.push(...stalledReadyDispatches.map((item) => String(item.findingId)));
     const failed = checks.filter((check) => check.status === "failed").length;

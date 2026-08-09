@@ -31,6 +31,10 @@ const requestedInstructionFiles = new Set(
     .filter(Boolean),
 );
 const incrementalFileSync = requestedInstructionFiles.size > 0;
+const workAwareHeartbeatIntervalSec = Math.max(
+  30,
+  Number.parseInt(process.env.SOFTWAREHOUSE_WORK_AWARE_HEARTBEAT_INTERVAL_SEC ?? "300", 10) || 300,
+);
 
 async function request(method, route, body) {
   const response = await fetch(`${apiBase}${route}`, {
@@ -97,6 +101,11 @@ async function syncAgentRuntime(agent, definition) {
     ...(agent.runtimeConfig ?? {}),
     heartbeat: {
       ...(agent.runtimeConfig?.heartbeat ?? {}),
+      enabled: true,
+      intervalSec: workAwareHeartbeatIntervalSec,
+      wakeOnDemand: true,
+      workAware: true,
+      serializeByProject: true,
       maxConcurrentRuns: 1,
     },
     modelProfiles: {

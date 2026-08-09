@@ -38,6 +38,8 @@ describe("resolveServerDevWatchIgnorePaths", () => {
     expect(ignorePaths).toContain(path.join(worktreeUiRoot, "dist"));
     expect(ignorePaths).toContain(fs.realpathSync(path.join(sharedUiRoot, "dist")));
     expect(ignorePaths).toContain("**/{node_modules,bower_components,vendor}/**");
+    expect(ignorePaths).toContain("**/dist/**");
     expect(ignorePaths).toContain("**/.vite-temp/**");
+    expect(ignorePaths).toContain(path.resolve(serverRoot, "../node_modules"));
   });
 });

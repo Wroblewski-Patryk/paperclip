@@ -3,7 +3,7 @@ import path from "node:path";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { createHash, randomUUID } from "node:crypto";
-import { and, asc, desc, eq, getTableColumns, gt, inArray, isNull, lt, lte, ne, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, gt, gte, inArray, isNull, lt, lte, ne, notInArray, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   AGENT_DEFAULT_MAX_CONCURRENT_RUNS,
@@ -92,7 +92,7 @@ import {
   type ContextManifestSource,
 } from "./context-admission.js";
 import { supervisionRegistryService } from "./supervision-registry.js";
-import { evaluateExecutionQuota } from "./execution-quota.js";
+import { evaluateExecutionQuota, resolveExecutionQuotaScope } from "./execution-quota.js";
 import {
   emptySessionRuntimeUsage,
   evaluateSessionRuntimeBudget,
@@ -6677,7 +6677,98 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       intervalSec: Math.max(0, asNumber(heartbeat.intervalSec, 0)),
       wakeOnDemand: asBoolean(heartbeat.wakeOnDemand ?? heartbeat.wakeOnAssignment ?? heartbeat.wakeOnOnDemand ?? heartbeat.wakeOnAutomation, true),
       maxConcurrentRuns: normalizeMaxConcurrentRuns(heartbeat.maxConcurrentRuns),
+      workAware: asBoolean(heartbeat.workAware, false),
+      serializeByProject: asBoolean(heartbeat.serializeByProject, true),
     };
+  }
+
+  async function findWorkAwareTimerCandidate(agent: typeof agents.$inferSelect) {
+    return db
+      .select({
+        id: issues.id,
+        projectId: issues.projectId,
+        priority: issues.priority,
+        updatedAt: issues.updatedAt,
+      })
+      .from(issues)
+      .where(and(
+        eq(issues.companyId, agent.companyId),
+        eq(issues.assigneeAgentId, agent.id),
+        inArray(issues.status, ["backlog", "todo"]),
+        isNull(issues.hiddenAt),
+        or(isNull(issues.originKind), ne(issues.originKind, "routine_execution")),
+        sql`not exists (
+          select 1
+          from issue_relations relation
+          join issues blocker
+            on blocker.id=relation.issue_id
+           and blocker.company_id=relation.company_id
+          where relation.company_id=${agent.companyId}
+            and relation.related_issue_id=${issues.id}
+            and relation.type='blocks'
+            and blocker.status not in ('done','cancelled')
+            and blocker.hidden_at is null
+        )`,
+        sql`not exists (
+          select 1
+          from heartbeat_runs active_run
+          where active_run.company_id=${agent.companyId}
+            and active_run.status in ('queued','running','scheduled_retry')
+            and active_run.context_snapshot->>'issueId'=${issues.id}::text
+        )`,
+        sql`not exists (
+          select 1
+          from issue_tree_hold_members hold_member
+          join issue_tree_holds hold_gate
+            on hold_gate.id=hold_member.hold_id
+           and hold_gate.company_id=hold_member.company_id
+          where hold_member.company_id=${agent.companyId}
+            and hold_member.issue_id=${issues.id}
+            and hold_gate.status='active'
+        )`,
+        sql`not exists (
+          select 1
+          from delivery_tasks delivery_task
+          join product_deliveries delivery
+            on delivery.id=delivery_task.delivery_id
+           and delivery.company_id=delivery_task.company_id
+          join product_outcomes outcome
+            on outcome.delivery_id=delivery.id
+           and outcome.company_id=delivery.company_id
+          where delivery_task.company_id=${agent.companyId}
+            and delivery_task.issue_id=${issues.id}
+            and delivery.stage='outcome_accepted'
+            and outcome.status in ('accepted','accepted_with_risk')
+        )`,
+      ))
+      .orderBy(
+        sql`case ${issues.priority}
+          when 'critical' then 0
+          when 'high' then 1
+          when 'medium' then 2
+          when 'low' then 3
+          else 4
+        end`,
+        asc(issues.updatedAt),
+      )
+      .limit(1)
+      .then((rows) => rows[0] ?? null);
+  }
+
+  async function hasLiveRunForTimerProject(companyId: string, projectId: string | null) {
+    return db
+      .execute<{ id: string }>(sql`
+        select active_run.id
+        from heartbeat_runs active_run
+        left join issues active_issue
+          on active_issue.company_id=active_run.company_id
+         and active_issue.id::text=active_run.context_snapshot->>'issueId'
+        where active_run.company_id=${companyId}
+          and active_run.status in ('queued','running','scheduled_retry')
+          and coalesce(active_run.context_snapshot->>'projectId', active_issue.project_id::text, '')=${projectId ?? ''}
+        limit 1
+      `)
+      .then((rows) => rows.length > 0);
   }
 
   function parseMaxTurnContinuationPolicy(agent: typeof agents.$inferSelect): MaxTurnContinuationPolicy {
@@ -8379,6 +8470,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           projectWorkspaceId: issueContext.projectWorkspaceId,
           executionWorkspaceId: issueContext.executionWorkspaceId,
           executionWorkspacePreference: issueContext.executionWorkspacePreference,
+          originKind: issueContext.originKind,
+          originRunId: issueContext.originRunId,
         }
       : null;
     const skipContinuationSummary = context.skipContinuationSummary === true;
@@ -9308,10 +9401,32 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         const issueExecutionLimit = explicitIssueExecutionLimit > 0
           ? Math.floor(explicitIssueExecutionLimit)
           : Math.max(1_000_000, effectiveHardTokenLimit * 500);
+        const routineTriggeredAt = issueId && issueRef?.originKind === "routine_execution" && issueRef.originRunId
+          ? await db
+              .select({ triggeredAt: routineRuns.triggeredAt })
+              .from(routineRuns)
+              .where(and(
+                eq(routineRuns.companyId, agent.companyId),
+                eq(routineRuns.id, issueRef.originRunId),
+              ))
+              .limit(1)
+              .then((rows) => rows[0]?.triggeredAt ?? null)
+          : null;
+        const executionQuotaScope = issueId
+          ? resolveExecutionQuotaScope({
+              issueId,
+              originKind: issueRef?.originKind,
+              originRunId: issueRef?.originRunId,
+              routineTriggeredAt,
+            })
+          : null;
         const priorIssueRuns = issueId ? await db.select({ usageJson: heartbeatRuns.usageJson }).from(heartbeatRuns).where(and(
           eq(heartbeatRuns.companyId, agent.companyId),
           ne(heartbeatRuns.id, run.id),
           sql`${heartbeatRuns.contextSnapshot}->>'issueId'=${issueId}`,
+          executionQuotaScope?.windowStart
+            ? gte(heartbeatRuns.createdAt, executionQuotaScope.windowStart)
+            : undefined,
         )) : [];
         const observedRawInputTokens = priorIssueRuns.reduce((total, prior) => {
           const usage = parseObject(prior.usageJson);
@@ -9325,11 +9440,17 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             sql`coalesce((${productDeliveries.decisionContract}->>'criticalCloseout')::boolean, false)=true`,
           )).limit(1).then((rows) => rows.length > 0) : false;
         const executionQuota = evaluateExecutionQuota({ observedRawInputTokens, hardRawInputTokenLimit: issueExecutionLimit, criticalCloseout });
-        context.executionQuota = { ...executionQuota, scopeType: "issue", scopeId: issueId, evaluatedAt: new Date().toISOString() };
+        context.executionQuota = {
+          ...executionQuota,
+          scopeType: executionQuotaScope?.scopeType ?? "issue",
+          scopeId: executionQuotaScope?.scopeId ?? issueId,
+          windowStart: executionQuotaScope?.windowStart?.toISOString() ?? null,
+          evaluatedAt: new Date().toISOString(),
+        };
         if (!executionQuota.admitted) {
           await db.update(heartbeatRuns).set({ contextSnapshot: context, updatedAt: new Date() }).where(eq(heartbeatRuns.id, run.id));
           await supervisionRegistry.upsertFinding(agent.companyId, {
-            fingerprint: `quota_bottleneck:issue:${issueId}`, problemClass: "execution_quota_exceeded", severity: executionQuota.state === "emergency" ? "critical" : "high",
+            fingerprint: `quota_bottleneck:${executionQuotaScope?.scopeType ?? "issue"}:${executionQuotaScope?.scopeId ?? issueId}`, problemClass: "execution_quota_exceeded", severity: executionQuota.state === "emergency" ? "critical" : "high",
             status: "needs_decision", classification: "quota_bottleneck", sourceKind: "native_watchdog", sourceRef: `heartbeat_runs:${run.id}`,
             title: `Execution quota held issue ${issueId}`, summary: `Issue raw input usage ${observedRawInputTokens}/${issueExecutionLimit} exceeded its dedicated execution limit.`,
             affectedComponent: "heartbeat.execution_quota", projectId: issueRef?.projectId ?? null, issueId, deliveryId: null, deliveryTaskId: null,
@@ -9339,7 +9460,13 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             bottleneckStage: "pre_invocation", dependency: "Owner quota decision or derived critical closeout is required.", slaDueAt: null,
             nextAllowedAction: "Hold all agents for this issue until quota is raised or closeout is authorized.", escalationCondition: "Owner approval required.",
             cooldownUntil: null, evidence: [{ sourceKind: "heartbeat_run", sourceRef: run.id, label: "issue-scoped hard quota", metadata: executionQuota }],
-            recurrenceEvidence: { issueId, observedRawInputTokens }, runId: run.id, cycleId: null,
+            recurrenceEvidence: {
+              issueId,
+              quotaScopeType: executionQuotaScope?.scopeType ?? "issue",
+              quotaScopeId: executionQuotaScope?.scopeId ?? issueId,
+              windowStart: executionQuotaScope?.windowStart?.toISOString() ?? null,
+              observedRawInputTokens,
+            }, runId: run.id, cycleId: null,
           });
           throw unprocessable("Issue execution quota hard hold", executionQuota);
         }
@@ -12116,6 +12243,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       let checked = 0;
       let enqueued = 0;
       let skipped = 0;
+      const claimedProjectLanes = new Set<string>();
 
       for (const agent of allAgents) {
         if (agent.status === "paused" || agent.status === "terminated" || agent.status === "pending_approval") continue;
@@ -12127,6 +12255,27 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         const elapsedMs = now.getTime() - baseline;
         if (elapsedMs < policy.intervalSec * 1000) continue;
 
+        const timerCandidate = policy.workAware
+          ? await findWorkAwareTimerCandidate(agent)
+          : null;
+        if (policy.workAware && !timerCandidate) {
+          skipped += 1;
+          continue;
+        }
+
+        const projectLaneKey = timerCandidate?.projectId ?? `${agent.companyId}:unscoped`;
+        if (
+          policy.workAware &&
+          policy.serializeByProject &&
+          (
+            claimedProjectLanes.has(projectLaneKey) ||
+            await hasLiveRunForTimerProject(agent.companyId, timerCandidate?.projectId ?? null)
+          )
+        ) {
+          skipped += 1;
+          continue;
+        }
+
         const run = await enqueueWakeup(agent.id, {
           source: "timer",
           triggerDetail: "system",
@@ -12135,12 +12284,23 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           requestedByActorId: "heartbeat_scheduler",
           contextSnapshot: {
             source: "scheduler",
-            reason: "interval_elapsed",
+            reason: timerCandidate ? "assigned_work_available" : "interval_elapsed",
             now: now.toISOString(),
+            ...(timerCandidate
+              ? {
+                  issueId: timerCandidate.id,
+                  taskId: timerCandidate.id,
+                  projectId: timerCandidate.projectId,
+                  wakeReason: "heartbeat_timer",
+                  workAwareDispatch: true,
+                }
+              : {}),
           },
         });
-        if (run) enqueued += 1;
-        else skipped += 1;
+        if (run) {
+          enqueued += 1;
+          if (policy.workAware && policy.serializeByProject) claimedProjectLanes.add(projectLaneKey);
+        } else skipped += 1;
       }
 
       const issueMonitors = await tickDueIssueMonitors(now);
