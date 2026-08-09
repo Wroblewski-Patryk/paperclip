@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ensureSoftwarehouseRuntimeDependencies } from "./ensure-softwarehouse-runtime-dependencies.mjs";
+import { softwarehousePilotActiveRoutineTitles } from "./lib/softwarehouse-active-routines.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = process.env.SOFTWAREHOUSE_COMPANY_NAME ?? "LuckySparrow";
@@ -271,10 +272,6 @@ function projectMatchesTarget(project, targetName) {
 
 function findActiveProjectByTarget(projects, targetName) {
   return projects.find((project) => !project.archivedAt && projectMatchesTarget(project, targetName)) ?? null;
-}
-
-function hasActiveRoutine(activeRoutineTitles, aliases) {
-  return aliases.some((title) => activeRoutineTitles.has(title));
 }
 
 async function searchIssues(companyId, query) {
@@ -594,54 +591,12 @@ if (apiReachable) {
   }
 
   const activeRoutineTitles = new Set(routines.filter((routine) => routine.status === "active").map((routine) => routine.title));
-  for (const routineCoverage of [
-    {
-      label: "autonomy and liveness governance",
-      aliases: [
-        "[Softwarehouse] Autonomy governor",
-        "11 Innovation: Autonomy Governor",
-        "00 General: Owner Direction and Proposal Review",
-        "00 General: Softwarehouse Liveness and Active Work Review",
-      ],
-    },
-    {
-      label: "board/project truth hygiene",
-      aliases: [
-        "[Softwarehouse] Stale board janitor",
-        "09 Technology: Stale Board Janitor",
-        "04 Operations: Portfolio Truth and Workspace Boundary Review",
-      ],
-    },
-    {
-      label: "agent health and model governance",
-      aliases: [
-        "[Softwarehouse] Agent health and model governance",
-        "09 Technology: Agent Health and Model Governance",
-        "06 People: Agent Hiring and Governance Review",
-      ],
-    },
-    {
-      label: "docs, memory, and learning loop",
-      aliases: [
-        "[Softwarehouse] Docs and memory loop",
-        "[Softwarehouse] Organizational learning loop",
-        "04 Operations: Organizational Learning Loop",
-        "04 Operations: PDCA Learning and Company Memory Review",
-      ],
-    },
-    {
-      label: "AI-agent development review",
-      aliases: [
-        "[Softwarehouse] AI-agent development review",
-        "06 People: AI-Agent Development Review",
-      ],
-    },
-  ]) {
-    if (!hasActiveRoutine(activeRoutineTitles, routineCoverage.aliases)) {
-      pushFinding(findings, "warn", "routines", `Core routine coverage is not active: ${routineCoverage.label}`, {
-        acceptableTitles: routineCoverage.aliases,
-      });
-    }
+  const missingCanonicalRoutineTitles = [...softwarehousePilotActiveRoutineTitles]
+    .filter((title) => !activeRoutineTitles.has(title));
+  if (missingCanonicalRoutineTitles.length > 0) {
+    pushFinding(findings, "warn", "routines", "Canonical routine coverage is not active.", {
+      missingTitles: missingCanonicalRoutineTitles,
+    });
   }
 
   const snapshot = runNodeScript("scripts/export-softwarehouse-longevity-snapshot.mjs");

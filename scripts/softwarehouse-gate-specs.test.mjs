@@ -26,6 +26,7 @@ import {
   mergeProtectedDeliveryGates,
 } from "./lib/delivery-blocker-graph.mjs";
 import {
+  softwarehousePilotActiveRoutineTitles,
   softwarehousePilotActiveRuntimeRoutineTitles,
   softwarehouseRoutineTitleRenames,
 } from "./lib/softwarehouse-active-routines.mjs";
@@ -769,18 +770,14 @@ test("longevity watchdog covers autonomous softwarehouse contract checks", async
   assert.doesNotMatch(configurator, /agent operating records|task\/run\/event evidence|process-improvement loops/);
 });
 
-test("longevity doctor recognizes the current team-adoption routine titles", async () => {
+test("longevity doctor checks the single canonical active routine catalog", async () => {
   const doctor = await readFile("scripts/run-softwarehouse-longevity-doctor.mjs", "utf8");
 
-  for (const title of [
-    "11 Innovation: Autonomy Governor",
-    "09 Technology: Stale Board Janitor",
-    "09 Technology: Agent Health and Model Governance",
-    "04 Operations: Organizational Learning Loop",
-    "06 People: AI-Agent Development Review",
-  ]) {
-    assert.equal(doctor.includes(title), true, `missing current routine title: ${title}`);
-  }
+  assert.match(doctor, /softwarehousePilotActiveRoutineTitles/);
+  assert.match(doctor, /missingCanonicalRoutineTitles/);
+  assert.match(doctor, /Canonical routine coverage is not active/);
+  assert.doesNotMatch(doctor, /Core routine coverage is not active/);
+  assert.equal(softwarehousePilotActiveRoutineTitles.size, 8);
 });
 
 test("softwarehouse doctor and team adoption share the canonical routine title registry", async () => {
