@@ -2271,7 +2271,7 @@ test("project truth dispatcher does not treat terminal issues as active gap cove
   assert.match(source, /"kept_existing_project_truth_gap_issue"/);
 });
 
-test("project truth dispatcher reuses blocked and backlog gaps instead of creating duplicates", () => {
+test("project truth dispatcher excludes blocked and backlog gaps from reusable coverage", () => {
   const completionParentId = "parent-1";
   const base = {
     parentId: completionParentId,
@@ -2285,12 +2285,12 @@ test("project truth dispatcher reuses blocked and backlog gaps instead of creati
   const backlog = { ...base, id: "backlog-1", identifier: "LUC-2568", status: "backlog" };
   const done = { ...base, id: "done-1", identifier: "LUC-2500", status: "done" };
 
-  assert.equal(isReusableProjectTruthGapIssue(blocked, completionParentId), true);
-  assert.equal(isReusableProjectTruthGapIssue(backlog, completionParentId), true);
+  assert.equal(isReusableProjectTruthGapIssue(blocked, completionParentId), false);
+  assert.equal(isReusableProjectTruthGapIssue(backlog, completionParentId), false);
   assert.equal(isReusableProjectTruthGapIssue(done, completionParentId), false);
   assert.equal(
-    selectReusableProjectTruthGapIssue([done, blocked, backlog], completionParentId)?.id,
-    "blocked-1",
+    selectReusableProjectTruthGapIssue([done, blocked, backlog], completionParentId),
+    null,
   );
   assert.deepEqual(
     activeProjectTruthTrackIssues({
@@ -2300,7 +2300,7 @@ test("project truth dispatcher reuses blocked and backlog gaps instead of creati
       marker: "softwarehouse-project-truth-gap-dispatcher:v1",
       completionParentId,
     }).map((issue) => issue.id),
-    ["blocked-1"],
+    [],
   );
 });
 
@@ -2700,6 +2700,7 @@ test("project truth probes cover web and API readiness", async () => {
 test("control tick surfaces project truth gaps as routing work", async () => {
   const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
   const dispatcher = await readFile("scripts/run-project-truth-gap-dispatcher.mjs", "utf8");
+  const dispatcherLibrary = await readFile("scripts/lib/project-truth-gap-dispatcher.mjs", "utf8");
   const controlBrief = await readFile("scripts/lib/softwarehouse-control-brief.mjs", "utf8");
   const cycle = await readFile("scripts/run-autonomous-development-cycle.mjs", "utf8");
 
@@ -2715,7 +2716,7 @@ test("control tick surfaces project truth gaps as routing work", async () => {
   assert.match(source, /Active app truth indexes show unresolved routing gaps/);
   assert.match(dispatcher, /softwarehouse-project-truth-gap-dispatcher:v1/);
   assert.match(dispatcher, /Required autonomous chain:/);
-  assert.match(dispatcher, /Deployment & Reliability Engineer/);
+  assert.match(dispatcherLibrary, /Deployment & Reliability Engineer/);
   assert.match(dispatcher, /indexedOwnerCandidates/);
   assert.match(dispatcher, /const projectManagerName = canonicalSoftwarehouseProject\(gap\.project\)\?\.managerName/);
   assert.match(dispatcher, /\.\.\.indexedOwnerCandidates, projectManagerName/);

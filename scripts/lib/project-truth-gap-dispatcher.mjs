@@ -3,7 +3,10 @@ import {
   workerBacklogTrackForIssue,
 } from "./softwarehouse-worker-backlog-tracks.mjs";
 
-const activeDispatchStatuses = new Set(["backlog", "todo", "in_progress", "in_review", "blocked"]);
+// Only runnable lanes contribute to dispatch depth or reusable issue selection.
+// Backlog is inventory and blocked work needs an explicit unblock path; neither
+// should suppress a fresh runnable gap.
+const activeDispatchStatuses = new Set(["todo", "in_progress", "in_review"]);
 const defaultTerminalStatuses = new Set(["done", "cancelled"]);
 const admissionBlockingStates = new Set(["draining", "maintenance", "reopening"]);
 
