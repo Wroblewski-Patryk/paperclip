@@ -17,8 +17,17 @@ export type CodexRuntimeProgressDelta = {
   outputTokens: number;
   toolReads: number;
   referencedFiles: number;
+  referencedPaths: string[];
   iterations: number;
 };
+
+export function mergeCodexRuntimeReferencedPaths(
+  accumulated: Set<string>,
+  paths: readonly string[],
+) {
+  for (const referencedPath of paths) accumulated.add(referencedPath);
+  return accumulated.size;
+}
 
 export function parseCodexRuntimeProgressLine(rawLine: string): CodexRuntimeProgressDelta | null {
   const event = parseJson(rawLine.trim());
@@ -32,6 +41,7 @@ export function parseCodexRuntimeProgressLine(rawLine: string): CodexRuntimeProg
       outputTokens: asNumber(usage.output_tokens, 0),
       toolReads: 0,
       referencedFiles: 0,
+      referencedPaths: [],
       iterations: 1,
     };
   }
@@ -41,12 +51,14 @@ export function parseCodexRuntimeProgressLine(rawLine: string): CodexRuntimeProg
   const command = asString(item.command, "");
   const readLike = /(?:^|\s)(?:rg|grep|findstr|Get-Content|type|cat|sed|head|tail)(?:\s|$)/i.test(command);
   const pathMentions = command.match(/(?:[A-Za-z]:[\\/]|\.\.?[\\/])[^\s"']+|[\w.-]+[\\/][\w./\\-]+/g) ?? [];
+  const referencedPaths = [...new Set(pathMentions)];
   return {
     inputTokens: 0,
     cachedInputTokens: 0,
     outputTokens: 0,
     toolReads: readLike ? 1 : 0,
-    referencedFiles: new Set(pathMentions).size,
+    referencedFiles: referencedPaths.length,
+    referencedPaths,
     iterations: 0,
   };
 }

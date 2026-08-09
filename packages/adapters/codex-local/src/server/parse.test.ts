@@ -3,7 +3,9 @@ import {
   extractCodexRetryNotBefore,
   isCodexTransientUpstreamError,
   isCodexUnknownSessionError,
+  mergeCodexRuntimeReferencedPaths,
   parseCodexJsonl,
+  parseCodexRuntimeProgressLine,
 } from "./parse.js";
 
 describe("parseCodexJsonl", () => {
@@ -91,6 +93,30 @@ describe("parseCodexJsonl", () => {
       outputChars: 8,
       estimatedTokens: 2,
     });
+  });
+});
+
+describe("parseCodexRuntimeProgressLine", () => {
+  it("returns stable unique paths so repeated command references are not charged repeatedly", () => {
+    const line = JSON.stringify({
+      type: "item.completed",
+      item: {
+        type: "command_execution",
+        command: "rg -n TODO src/alpha.ts src/alpha.ts src/beta.ts",
+      },
+    });
+
+    expect(parseCodexRuntimeProgressLine(line)).toMatchObject({
+      referencedFiles: 2,
+      referencedPaths: ["src/alpha.ts", "src/beta.ts"],
+    });
+  });
+
+  it("deduplicates the same path across separate command events", () => {
+    const accumulated = new Set<string>();
+
+    expect(mergeCodexRuntimeReferencedPaths(accumulated, ["src/alpha.ts", "src/beta.ts"])).toBe(2);
+    expect(mergeCodexRuntimeReferencedPaths(accumulated, ["src/alpha.ts", "src/gamma.ts"])).toBe(3);
   });
 });
 

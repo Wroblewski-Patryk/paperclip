@@ -41,6 +41,7 @@ import {
 import {
   parseCodexJsonl,
   parseCodexRuntimeProgressLine,
+  mergeCodexRuntimeReferencedPaths,
   extractCodexRetryNotBefore,
   isCodexTransientUpstreamError,
   isCodexUnknownSessionError,
@@ -797,6 +798,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       referencedFiles: 0,
       iterations: 0,
     };
+    const runtimeReferencedPaths = new Set<string>();
     let progressBuffer = "";
     let controlledStopReason: string | null = null;
     const inspectProgress = async (chunk: string) => {
@@ -811,7 +813,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         runtimeProgress.cachedInputTokens = Math.max(runtimeProgress.cachedInputTokens, delta.cachedInputTokens);
         runtimeProgress.outputTokens = Math.max(runtimeProgress.outputTokens, delta.outputTokens);
         runtimeProgress.toolReads += delta.toolReads;
-        runtimeProgress.referencedFiles += delta.referencedFiles;
+        runtimeProgress.referencedFiles = mergeCodexRuntimeReferencedPaths(
+          runtimeReferencedPaths,
+          delta.referencedPaths,
+        );
         runtimeProgress.iterations += delta.iterations;
         const control = await onProgress({ ...runtimeProgress, elapsedMs: Date.now() - progressStartedAt });
         if (control.action === "stop") {
