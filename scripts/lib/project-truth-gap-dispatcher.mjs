@@ -29,6 +29,20 @@ export function parseProjectTruthSourceItemId(issue) {
   return match?.[1]?.trim() ?? null;
 }
 
+export function isMonitorEnvironmentGap(gap) {
+  return gap?.kind === "monitor_environment_error" || gap?.classification === "monitor_environment";
+}
+
+export function runtimeOwnerNamesForGap(gap, indexedOwnerCandidates = []) {
+  if (isMonitorEnvironmentGap(gap)) {
+    return [...indexedOwnerCandidates, "Runtime and Adapter Engineer", "Runtime & Adapter Engineer", "Engineering Delivery Lead"];
+  }
+  if (gap?.kind === "runtime_error" && gap?.severity === "critical") {
+    return [...indexedOwnerCandidates, "Deployment & Reliability Engineer", "Deployment and Reliability Engineer", "Ops Release Lead", "CTO Architect"];
+  }
+  return null;
+}
+
 export function blockingAdmissionControl(controls) {
   return (controls ?? []).find((control) => admissionBlockingStates.has(control?.state)) ?? null;
 }

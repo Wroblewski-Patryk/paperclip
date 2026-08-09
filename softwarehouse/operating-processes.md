@@ -157,7 +157,11 @@ issue is in DISCOVERY until Product/PM/Portfolio can classify it.
   indexes are the first source of truth for whether agents know enough to work:
   event chains map each user flow across frontend, backend, workers, data,
   tests, and docs; runtime-error records failing probes and blocked functional
-  items; operational-readiness records production/local parity gates; and
+  items. Public probes classify target non-2xx or target fetch failure with a
+  healthy HTTPS control as production failure, while target and control fetch
+  failure is `inconclusive` monitor-environment evidence routed to Runtime and
+  Adapter Engineering rather than a claim that the application is down.
+  Operational-readiness records production/local parity gates; and
   project-truth names the first gap, owner, and next action. App-completion
   proof risks such as missing browser/clickthrough proof, missing test links,
   missing docs links, or implemented-without-fresh-proof are project-truth gaps,

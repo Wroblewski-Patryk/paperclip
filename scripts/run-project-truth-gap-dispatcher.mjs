@@ -6,10 +6,12 @@ import { agentWipBlockerFor, fetchAgentWipState } from "./lib/agent-wip-guard.mj
 import {
   activeProjectTruthTrackIssues,
   blockingAdmissionControl,
+  isMonitorEnvironmentGap,
   isReusableProjectTruthGapIssue,
   parseProjectTruthSourceItemId,
   persistentCompletionParentForProject,
   persistentCompletionParentIdentifierByProject,
+  runtimeOwnerNamesForGap,
   selectReusableProjectTruthGapIssue,
 } from "./lib/project-truth-gap-dispatcher.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
@@ -200,6 +202,9 @@ function sourceItemSlug(gap) {
 
 function issueTitleForGap(gap) {
   const project = gap.project ?? "Project";
+  if (isMonitorEnvironmentGap(gap)) {
+    return `[${project}][Project Truth][Monitor Environment] Restore runner egress for ${slugFor(gap.userFlow ?? gap.summary ?? "public-probe")}`;
+  }
   if (gap.kind === "runtime_error" && gap.severity === "critical") {
     return `[${project}][Project Truth][Critical Runtime] Restore production runtime for ${slugFor(gap.userFlow ?? gap.summary ?? "public-probe")}`;
   }
@@ -221,9 +226,8 @@ function ownerNamesForGap(gap) {
       .map((name) => name.trim())
       .filter(Boolean)
     : [];
-  if (gap.kind === "runtime_error" && gap.severity === "critical") {
-    return [...indexedOwnerCandidates, "Deployment & Reliability Engineer", "Deployment and Reliability Engineer", "Ops Release Lead", "CTO Architect"];
-  }
+  const runtimeOwnerNames = runtimeOwnerNamesForGap(gap, indexedOwnerCandidates);
+  if (runtimeOwnerNames) return runtimeOwnerNames;
   if (gap.kind === "event_chain_gap") {
     return [...indexedOwnerCandidates, projectManagerName, "Technical Solution Architect", "Engineering Delivery Lead"];
   }

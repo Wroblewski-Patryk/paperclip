@@ -7,6 +7,7 @@ import {
   isReusableProjectTruthGapIssue,
   parseProjectTruthSourceItemId,
   persistentCompletionParentForProject,
+  runtimeOwnerNamesForGap,
   selectReusableProjectTruthGapIssue,
 } from "./lib/project-truth-gap-dispatcher.mjs";
 
@@ -100,6 +101,24 @@ test("parseProjectTruthSourceItemId extracts the indexed source item id", () => 
   assert.equal(parseProjectTruthSourceItemId({
     description: `${marker}\n\nGap:\n- source item: function:mergegoogledriveconfig:814153a3bb`,
   }), "function:mergegoogledriveconfig:814153a3bb");
+});
+
+test("runtime gap routing separates monitor egress from production outage owners", () => {
+  const monitorOwners = runtimeOwnerNamesForGap({
+    kind: "monitor_environment_error",
+    classification: "monitor_environment",
+    severity: "high",
+  });
+  assert.equal(monitorOwners[0], "Runtime and Adapter Engineer");
+  assert.equal(monitorOwners.includes("Deployment & Reliability Engineer"), false);
+
+  const productionOwners = runtimeOwnerNamesForGap({
+    kind: "runtime_error",
+    classification: "production_outage",
+    severity: "critical",
+  });
+  assert.equal(productionOwners[0], "Deployment & Reliability Engineer");
+  assert.equal(productionOwners.includes("Ops Release Lead"), true);
 });
 
 test("blockingAdmissionControl recognizes native no-start states", () => {

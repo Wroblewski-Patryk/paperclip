@@ -2689,6 +2689,8 @@ test("project truth probes cover web and API readiness", async () => {
   assert.match(source, /https:\/\/api\.soar\.luckysparrow\.ch/);
   assert.match(source, /https:\/\/roost\.luckysparrow\.ch/);
   assert.match(source, /https:\/\/api\.roost\.luckysparrow\.ch/);
+  assert.match(source, /https:\/\/test\.wroblewskipatryk\.pl/);
+  assert.doesNotMatch(source, /web: "https:\/\/wroblewskipatryk\.pl"/);
   assert.match(source, /web_build_info/);
   assert.match(source, /api_health/);
   assert.match(source, /api_ready/);

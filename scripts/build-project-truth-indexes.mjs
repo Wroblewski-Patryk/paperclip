@@ -2,6 +2,10 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { hasExchangeIntent, hasTradingIntent } from "./lib/product-flow-classifier.mjs";
+import {
+  runPublicRuntimeProbe,
+  runtimeFindingForPublicProbe,
+} from "./lib/project-truth-public-probe.mjs";
 
 function argValue(name, fallback = null) {
   const index = process.argv.indexOf(name);
@@ -76,18 +80,6 @@ function repositorySnapshot() {
     /^(?:docs?|history|\.agents|\.codex)(?:\/|$)|^(?:README|AGENTS)\.md$/i.test(file)
   );
   return { headSha, upstreamSha, behind, ahead, aheadPaths, controlPlaneOnlyAhead, releaseSha: controlPlaneOnlyAhead ? upstreamSha : headSha };
-}
-
-function deploymentShaFrom(value) {
-  if (!value || typeof value !== "object") return null;
-  for (const key of ["sha", "commit", "commitSha", "gitSha", "buildSha", "revision"]) {
-    if (typeof value[key] === "string" && /^[0-9a-f]{7,40}$/i.test(value[key])) return value[key];
-  }
-  for (const nested of Object.values(value)) {
-    const found = deploymentShaFrom(nested);
-    if (found) return found;
-  }
-  return null;
 }
 
 function entityText(entity) {
@@ -231,18 +223,8 @@ function entitySummary(entity) {
 
 function buildRuntimeErrorIndex({ appCompletion, publicProbe }) {
   const items = [];
-  if (publicProbe?.status === "failed") {
-    items.push({
-      id: "production-public-probe",
-      severity: "critical",
-      layer: "production",
-      status: "failing",
-      summary: publicProbe.summary,
-      evidence: publicProbe.evidence,
-      nextOwner: "Deployment Reliability Engineer + Ops Release Lead",
-      nextAction: "Create or resume a release mutation permit for read-only diagnosis, then rollback/restart/redeploy only with named resource, SHA/image, rollback, and smoke proof.",
-    });
-  }
+  const publicProbeFinding = runtimeFindingForPublicProbe(publicProbe);
+  if (publicProbeFinding) items.push(publicProbeFinding);
   for (const item of appCompletion.priorityReviewItems ?? []) {
     if (item.risk === "blocked") {
       items.push({
@@ -444,7 +426,8 @@ function buildProjectTruthIndex({ eventChainIndex, runtimeErrorIndex, appComplet
         nextAction: chain.nextAction,
       })),
     ...runtimeErrorIndex.findings.map((finding) => ({
-      kind: "runtime_error",
+      kind: finding.kind ?? "runtime_error",
+      classification: finding.classification ?? null,
       severity: finding.severity,
       userFlow: null,
       summary: finding.summary,
@@ -454,11 +437,20 @@ function buildProjectTruthIndex({ eventChainIndex, runtimeErrorIndex, appComplet
     ...appCompletionGapIndex.gaps,
     ...operationalGateGaps
       .map((gate) => ({
-        kind: "operational_gate_gap",
+        kind: gate.gate === "public_runtime_probe" && publicProbe?.status === "inconclusive"
+          ? "monitor_environment_error"
+          : "operational_gate_gap",
+        classification: gate.gate === "public_runtime_probe" && publicProbe?.status === "inconclusive"
+          ? "monitor_environment"
+          : null,
         severity: gate.status === "critical_findings" ? "critical" : "high",
         userFlow: null,
         summary: `${gate.gate}: ${gate.status}`,
-        nextOwner: gate.gate === "public_runtime_probe" ? "Deployment Reliability Engineer" : "Project Manager",
+        nextOwner: gate.gate === "public_runtime_probe" && publicProbe?.status === "inconclusive"
+          ? "Runtime and Adapter Engineer"
+          : gate.gate === "public_runtime_probe"
+            ? "Deployment Reliability Engineer"
+            : "Project Manager",
         nextAction: `Restore ${gate.requiredFor}.`,
       })),
   ];
@@ -608,7 +600,7 @@ async function publicProbeForProject() {
       api: "https://api.roost.luckysparrow.ch",
     },
     featherly: {
-      web: "https://wroblewskipatryk.pl",
+      web: "https://test.wroblewskipatryk.pl",
       requireBuildInfo: false,
     },
   };
@@ -624,46 +616,7 @@ async function publicProbeForProject() {
     apiUrl ? { name: "api_ready", url: new URL("/ready", apiUrl).toString(), required: true } : null,
   ].filter(Boolean);
 
-  const results = [];
-  for (const check of checks) {
-    try {
-      const response = await fetch(check.url, {
-        signal: AbortSignal.timeout(15_000),
-        headers: { "Cache-Control": "no-cache" },
-      });
-      const body = await response.text();
-      const bodyPrefix = response.ok ? "" : body.slice(0, 120);
-      let responseData = null;
-      if (check.name === "web_build_info" && response.ok) {
-        try { responseData = JSON.parse(body); } catch { responseData = null; }
-      }
-      results.push({
-        ...check,
-        status: response.ok ? "pass" : "failed",
-        httpStatus: response.status,
-        summary: `${check.name} ${check.url} returned ${response.status}${bodyPrefix ? `: ${bodyPrefix}` : ""}`,
-        deployedSha: deploymentShaFrom(responseData),
-      });
-    } catch (error) {
-      results.push({
-        ...check,
-        status: "failed",
-        summary: `${check.name} ${check.url} probe failed: ${error?.message ?? String(error)}`,
-      });
-    }
-  }
-
-  const failed = results.filter((result) => result.required && result.status !== "pass");
-  const deployedSha = results.find((result) => result.name === "web_build_info")?.deployedSha ?? null;
-  return {
-    status: failed.length === 0 ? "pass" : "failed",
-    summary: failed.length === 0
-      ? `All public runtime probes passed: ${results.map((result) => result.name).join(", ")}.`
-      : failed.map((result) => result.summary).join("; "),
-    evidence: results.map((result) => result.url),
-    checks: results,
-    deployedSha,
-  };
+  return runPublicRuntimeProbe({ checks });
 }
 
 const [graph, appCompletion, publicProbe] = await Promise.all([
