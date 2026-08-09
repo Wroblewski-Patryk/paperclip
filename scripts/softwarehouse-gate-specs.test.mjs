@@ -1981,6 +1981,25 @@ test("shared contracts promote transcript secret exposure into a protected crede
   assert.match(workflow, /rediscovering\s+the same credential pattern/i);
 });
 
+test("credential incidents use one value-free owner interaction and one typed root gate", async () => {
+  const credentials = await readFile("softwarehouse/instructions/shared/30-credentials-and-accounts.md", "utf8");
+  const security = await readFile("docs/softwarehouse/07-security-standard.md", "utf8");
+  const workflow = await readFile("docs/softwarehouse/03-delivery-workflow.md", "utf8");
+
+  for (const source of [credentials, security]) {
+    assert.match(source, /security-credential-owner-gate:v1/);
+    assert.match(source, /ask_user_questions/);
+    assert.match(source, /continuationPolicy:\s*`?wake_assignee`?/);
+    assert.match(source, /blockedByIssueIds/);
+    assert.match(source, /credential values, tokens, alert payloads, message contents,\s+addresses,\s+personal data/i);
+  }
+  assert.match(credentials, /idempotencyKey/);
+  assert.match(credentials, /single-select questions and categorical options only/i);
+  assert.match(credentials, /unavailable.*blocked_owner_action/is);
+  assert.match(workflow, /canonical value-free\s+`ask_user_questions` owner interaction/i);
+  assert.match(workflow, /do not duplicate owner\s+questionnaires or proof-category gates/i);
+});
+
 test("local source-control sidecars preserve parallelism across independent projects and agents", async () => {
   const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
 

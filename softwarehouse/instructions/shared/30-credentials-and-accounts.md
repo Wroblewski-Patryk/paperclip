@@ -50,6 +50,113 @@ repo files, issue comments, screenshots, generated artifacts, or logs.
   the exact denied operation, preserve redacted evidence, and route one narrow
   unblock issue for the least-privilege write-capable owner path.
 
+## Security-Credential Owner-Evidence Intake
+
+Contract marker: `security-credential-owner-gate:v1`.
+
+At creation of a security-credential incident, create or reuse exactly one root
+incident issue. The incident issue is the owner-evidence gate; do not create a
+separate gate for each proof category. Before opening downstream remediation,
+release, recovery, provenance, or documentation work:
+
+1. Identify only the categorical evidence that an authorized owner must supply
+   for the next safe transition. For every category, record the named owner and
+   the exact action required if that evidence is unavailable.
+2. On the root incident, immediately open one `ask_user_questions` interaction
+   with `continuationPolicy: wake_assignee` and a stable idempotency key such as
+   `security-credential-owner-gate:<incident-issue-id>:v1`.
+3. Use required, single-select questions and categorical options only. Do not
+   offer free-text inputs. State in the title, summary, and each help text that
+   credential values, tokens, alert payloads, message contents, addresses,
+   personal data, and broader account access must not be entered.
+4. Keep the root incident `in_review` while the interaction is pending. Every
+   dependent issue must be `blocked` with `blockedByIssueIds` containing the
+   root incident id. A dependent issue must not duplicate the questionnaire,
+   credential handling, or a proof-category blocker.
+
+Create the interaction with this API shape, replacing the sample question with
+only the applicable catalog entries:
+
+```json
+{
+  "kind": "ask_user_questions",
+  "continuationPolicy": "wake_assignee",
+  "idempotencyKey": "security-credential-owner-gate:<incident-issue-id>:v1",
+  "title": "Value-free credential incident intake",
+  "summary": "Select outcome categories only. Do not enter credentials, tokens, alert payloads, message contents, addresses, personal data, or secret values.",
+  "payload": {
+    "version": 1,
+    "submitLabel": "Record safe outcomes",
+    "questions": [
+      {
+        "id": "provider_activity_review",
+        "prompt": "What is the provider activity-review outcome?",
+        "helpText": "Select an outcome only; do not paste logs, addresses, message contents, credentials, or tokens.",
+        "selectionMode": "single",
+        "required": true,
+        "options": [
+          { "id": "completed_benign", "label": "Completed - no suspected misuse" },
+          { "id": "completed_suspected", "label": "Completed - suspected misuse" },
+          { "id": "unavailable", "label": "Not completed or unavailable" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Select only applicable questions from this value-free catalog and remove any
+category already established by authoritative evidence:
+
+- `credential_control_state`: invalidated or rotated / already invalid / not
+  completed or unavailable;
+- `provider_activity_review`: completed with no suspected misuse / completed
+  with suspected misuse / not completed or unavailable;
+- `external_alert_state`: resolved with no reachable exposure / unresolved /
+  not authenticated or unavailable;
+- `destructive_change_disposition`: no protected mutation occurred / an exact
+  separately approved mutation occurred / unknown or unavailable.
+
+Store the gate record on the incident using this value-free shape:
+
+```json
+{
+  "contract": "security-credential-owner-gate:v1",
+  "rootGateIssue": "LUC-1900",
+  "interactionId": "<ask_user_questions interaction id>",
+  "state": "pending_owner_response",
+  "proofCategories": [
+    {
+      "category": "provider_activity_review",
+      "owner": "Featherly mail-provider owner",
+      "status": "pending",
+      "unavailableAction": "review the bounded provider activity window and select benign or suspected misuse"
+    }
+  ],
+  "downstreamBlockerContract": {
+    "blockedByIssueIds": ["<root incident issue UUID>"],
+    "resolveOn": "root incident reaches done"
+  }
+}
+```
+
+Response handling is fail-closed:
+
+- an unavailable, unresolved, unknown, or unauthenticated answer changes the
+  root gate to `blocked_owner_action`; record the category's named owner and
+  exact next action, without opening duplicate downstream questionnaires;
+- a suspected-misuse or unsafe outcome keeps the root gate open and routes the
+  bounded incident-response work through the protected security lane;
+- only authoritative categorical outcomes that satisfy every required category
+  change the gate to `cleared`; then close the root incident with evidence so
+  Paperclip can auto-resume issues that block on it;
+- absence of an alert, an unauthenticated `404`, a failed connector, or silence
+  is `unavailable`, never cleared evidence.
+
+Retire the interaction when the root incident reaches a terminal state. Do not
+copy incident-specific learning or questionnaires into downstream issues after
+this canonical gate exists.
+
 ## Protected Delivery Credential-Proof Preflight
 
 Contract marker: `protected-credential-proof:v1`.

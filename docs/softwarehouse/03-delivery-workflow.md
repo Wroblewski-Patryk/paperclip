@@ -58,6 +58,12 @@ or exposes waste.
   one protected credential incident lane and block downstream implementation,
   deploy, provenance, or review issues on that lane instead of rediscovering
   the same credential pattern.
+- At credential-incident creation, open the canonical value-free
+  `ask_user_questions` owner interaction on that root issue. Downstream issues
+  use the root incident id in `blockedByIssueIds`; they do not duplicate owner
+  questionnaires or proof-category gates. A pending interaction keeps the root
+  in review, unavailable proof records its named owner and exact action, and a
+  completed root gate lets Paperclip auto-resume its dependents.
 
 ## PDCA Flow
 

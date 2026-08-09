@@ -62,6 +62,47 @@ Least-privilege boundary:
   provider rotation/invalidation they did not perform through the authorized
   lane.
 
+### Owner-evidence intake gate
+
+Contract marker: `security-credential-owner-gate:v1`.
+
+At incident creation, the protected credential incident issue is the single
+root gate for owner-only evidence. The incident owner must immediately create
+one `ask_user_questions` interaction on that issue with
+`continuationPolicy: wake_assignee` and a stable idempotency key. The
+interaction must contain only required, single-select, categorical questions
+that are necessary for the next safe transition; free-text input is forbidden.
+
+Permitted question categories are credential-control state, provider activity
+review outcome, authenticated external-alert state, and the disposition of an
+approval-gated destructive change. Include only applicable categories and omit
+facts already established by authoritative evidence. Every question must say
+not to enter credential values, tokens, alert payloads, message contents,
+addresses, personal data, or broader account access.
+
+The incident record must include a value-free typed gate:
+
+- `contract`: `security-credential-owner-gate:v1`;
+- `rootGateIssue` and `interactionId`;
+- `state`: `pending_owner_response`, `blocked_owner_action`, `escalated`, or
+  `cleared`;
+- `proofCategories`: category, categorical status, named owner, and exact
+  action if unavailable;
+- `downstreamBlockerContract`: the root incident UUID in
+  `blockedByIssueIds`, resolving only when the root incident reaches `done`.
+
+Keep the root incident `in_review` while its interaction is pending. An
+unavailable, unresolved, unknown, or unauthenticated answer fails closed: move
+the gate to `blocked_owner_action` and record the named owner and exact next
+action. Suspected misuse routes protected incident-response work and keeps the
+gate open. Close the root incident only after every required category has an
+authoritative acceptable outcome. Downstream work blocks on the root incident,
+never on duplicated credential questionnaires or proof-category issues; normal
+blocker resolution then wakes the downstream assignees automatically.
+
+The full interaction catalog, typed record example, and response rules live in
+`softwarehouse/instructions/shared/30-credentials-and-accounts.md`.
+
 Baseline runbook reference:
 
 - `doc/SECRETS-AWS-PROVIDER.md` -> `Incident Response Runbook`
