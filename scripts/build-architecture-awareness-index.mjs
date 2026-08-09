@@ -120,6 +120,9 @@ const modelNamePattern = /(schema|model|entity|types?)\.(ts|tsx|js|mjs|py)$/i;
 const routeSegmentPattern = /(^|[\\/])(app|pages|routes|router|api)([\\/]|$)/i;
 const apiEndpointPattern = /\b(?:app|router)\.(get|post|put|patch|delete|use)\s*\(\s*["'`]([^"'`]+)["'`]/g;
 const laravelEndpointPattern = /\bRoute::(get|post|put|patch|delete|options|any|match)\s*\(\s*["']([^"']+)["']/g;
+const laravelNamedRouteCallPattern = /\broute\s*\(\s*["']([^"']+)["']/g;
+const laravelTestLiteralRequestPattern = /(?:->|(?:^|[^\w:>]))(getJson|postJson|putJson|patchJson|deleteJson|options|get|post|put|patch|delete)\s*\(\s*["']([^"']+)["']/gim;
+const laravelTestJsonRequestPattern = /->\s*json\s*\(\s*["'](GET|POST|PUT|PATCH|DELETE|OPTIONS)["']\s*,\s*["']([^"']+)["']/gi;
 const importPattern = /(?:import\s+(?:[^"'`]*?\s+from\s+)?|export\s+[^"'`]*?\s+from\s+|require\s*\()\s*["'`]([^"'`]+)["'`]/g;
 const functionPattern = /(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)|(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g;
 const classPattern = /(?:export\s+)?class\s+([A-Za-z_$][\w$]*)/g;
@@ -614,6 +617,85 @@ function pathLooksLikeMigration(relativePath) {
   return /(^|[\\/])(migrations?|db[\\/]migrations)([\\/]|$)/i.test(relativePath);
 }
 
+function laravelRouteNameAfter(text, endpointMatch) {
+  const tail = text.slice(endpointMatch.index + endpointMatch[0].length, endpointMatch.index + endpointMatch[0].length + 1200);
+  const nextRouteIndex = tail.search(/\bRoute::(?:get|post|put|patch|delete|options|any|match)\s*\(/);
+  const routeTail = nextRouteIndex >= 0 ? tail.slice(0, nextRouteIndex) : tail;
+  return routeTail.match(/->\s*name\s*\(\s*["']([^"']+)["']\s*\)/)?.[1] ?? "";
+}
+
+function matchingBraceIndex(text, openIndex) {
+  let depth = 0;
+  for (let index = openIndex; index < text.length; index += 1) {
+    if (text[index] === "{") depth += 1;
+    if (text[index] === "}") depth -= 1;
+    if (depth === 0) return index;
+  }
+  return text.length;
+}
+
+function extractLaravelStaticRouteGroups(text) {
+  const groups = [];
+  const groupPattern = /Route::(?:(?!;\s*(?:\r?\n|$))[\s\S]){0,500}?->\s*group\s*\(\s*function[^\{]*\{/g;
+  for (const match of text.matchAll(groupPattern)) {
+    const openIndex = match.index + match[0].lastIndexOf("{");
+    const declaration = match[0];
+    const namePrefix = declaration.match(/(?:Route::|->\s*)name\s*\(\s*["']([^"']+)["']\s*\)/)?.[1] ?? "";
+    const pathPrefix = declaration.match(/(?:Route::|->\s*)prefix\s*\(\s*["']([^"']+)["']\s*\)/)?.[1] ?? "";
+    if (!namePrefix && !pathPrefix) continue;
+    groups.push({
+      start: openIndex + 1,
+      end: matchingBraceIndex(text, openIndex),
+      namePrefix,
+      pathPrefix,
+    });
+  }
+  return groups;
+}
+
+function laravelRouteContext(groups, endpointIndex) {
+  const active = groups
+    .filter((group) => group.start <= endpointIndex && endpointIndex < group.end)
+    .sort((a, b) => a.start - b.start);
+  return {
+    namePrefix: active.map((group) => group.namePrefix).join(""),
+    pathPrefix: active.map((group) => group.pathPrefix).filter(Boolean).join("/"),
+  };
+}
+
+function normalizeLaravelRequestMethod(value) {
+  return String(value ?? "").replace(/Json$/i, "").toLowerCase();
+}
+
+function normalizeLaravelRoutePath(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/^https?:\/\/[^/]+/i, "")
+    .split(/[?#]/, 1)[0]
+    .replace(/^\/+|\/+$/g, "");
+}
+
+function joinLaravelRoutePath(prefix, routePath) {
+  const joined = [normalizeLaravelRoutePath(prefix), normalizeLaravelRoutePath(routePath)].filter(Boolean).join("/");
+  return joined || "/";
+}
+
+function laravelRoutePathMatches(routePath, requestPath, { suffix = false } = {}) {
+  const routeSegments = normalizeLaravelRoutePath(routePath).split("/").filter(Boolean);
+  const requestSegments = normalizeLaravelRoutePath(requestPath).split("/").filter(Boolean);
+  if (suffix && !routeSegments.some((segment) => !/^\{[^}]+\??\}$/.test(segment))) return false;
+  if (suffix ? requestSegments.length < routeSegments.length : requestSegments.length !== routeSegments.length) return false;
+  const offset = suffix ? requestSegments.length - routeSegments.length : 0;
+  return routeSegments.every((segment, index) =>
+    /^\{[^}]+\??\}$/.test(segment) || segment === requestSegments[index + offset]
+  );
+}
+
+function uniqueLaravelRouteCandidate(candidates) {
+  const unique = new Map(candidates.map((candidate) => [candidate.entity.id, candidate]));
+  return unique.size === 1 ? [...unique.values()][0] : null;
+}
+
 function moduleNameFor(relativePath) {
   const parts = relativePath.split("/");
   const index = parts.findIndex((part) => ["apps", "packages", "libs", "src"].includes(part));
@@ -821,6 +903,8 @@ const entities = new Map();
 const relations = new Map();
 const fileEntityByPath = new Map();
 const moduleEntityByName = new Map();
+const testSourceTextByEntityId = new Map();
+const laravelRouteCandidates = [];
 const overrideStats = {
   excludedFiles: 0,
   excludedFilesByPrefix: 0,
@@ -965,6 +1049,7 @@ for (const file of files) {
     evidence: [relativePath],
   });
   fileEntityByPath.set(relativePath, entity);
+  if (isTest && ext === ".php") testSourceTextByEntityId.set(entity.id, text);
   addRelation(relations, moduleEntity, entity, type === "document" ? "documents" : "implements", relativePath);
 
   if (isDoc) addRelation(relations, entity, moduleEntity, "documents", relativePath);
@@ -990,16 +1075,38 @@ for (const file of files) {
         addRelation(relations, entity, endpoint, "implements", relativePath);
         addRelation(relations, endpoint, moduleEntity, "connected_to", relativePath);
       }
-      for (const match of text.matchAll(laravelEndpointPattern)) {
+      const laravelEndpointMatches = [...text.matchAll(laravelEndpointPattern)];
+      const laravelRouteGroups = extractLaravelStaticRouteGroups(text);
+      const laravelEndpointSignatureCounts = new Map();
+      for (const match of laravelEndpointMatches) {
+        const routeContext = laravelRouteContext(laravelRouteGroups, match.index);
+        const fullPath = joinLaravelRoutePath(routeContext.pathPrefix, match[2]);
+        const signature = `${match[1].toLowerCase()} ${fullPath}`;
+        laravelEndpointSignatureCounts.set(signature, (laravelEndpointSignatureCounts.get(signature) ?? 0) + 1);
+      }
+      for (const match of laravelEndpointMatches) {
+        const routeContext = laravelRouteContext(laravelRouteGroups, match.index);
+        const fullPath = joinLaravelRoutePath(routeContext.pathPrefix, match[2]);
+        const routeName = `${routeContext.namePrefix}${laravelRouteNameAfter(text, match)}`;
+        const signature = `${match[1].toLowerCase()} ${fullPath}`;
+        const discriminator = (laravelEndpointSignatureCounts.get(signature) ?? 0) > 1
+          ? `@${routeName || `offset-${match.index}`}`
+          : "";
         const endpoint = addEntity(entities, {
           type: "api_endpoint",
-          name: `${match[1].toUpperCase()} ${match[2]}`,
-          path: `${relativePath}#${match[2]}`,
+          name: `${match[1].toUpperCase()} ${fullPath}`,
+          path: `${relativePath}#${fullPath}${discriminator}`,
           description: "Laravel endpoint inferred from route registration.",
           status: "implemented",
           evidence: [relativePath],
         });
         fileEntityByPath.set(endpoint.path, endpoint);
+        laravelRouteCandidates.push({
+          entity: endpoint,
+          method: match[1].toLowerCase(),
+          path: fullPath,
+          routeName,
+        });
         addRelation(relations, entity, endpoint, "implements", relativePath);
         addRelation(relations, endpoint, moduleEntity, "connected_to", relativePath);
       }
@@ -1145,9 +1252,64 @@ progress("resolve_dependencies_complete", { entities: entities.size, relations: 
 
 const testEntities = [...entities.values()].filter((entity) => entity.type === "test");
 progress("infer_test_links_start", { testEntities: testEntities.length });
+
+for (const testEntity of testEntities) {
+  const testSource = testSourceTextByEntityId.get(testEntity.id);
+  if (!testSource) continue;
+
+  const linkCandidate = (candidate, evidence) => {
+    if (candidate) addRelation(relations, testEntity, candidate.entity, "tests", `${testEntity.path}#${evidence}`);
+  };
+
+  for (const match of testSource.matchAll(laravelTestLiteralRequestPattern)) {
+    const method = normalizeLaravelRequestMethod(match[1]);
+    const requestPath = match[2];
+    const methodCandidates = laravelRouteCandidates.filter((candidate) =>
+      candidate.method === "any" || candidate.method === method
+    );
+    const exact = uniqueLaravelRouteCandidate(
+      methodCandidates.filter((candidate) => laravelRoutePathMatches(candidate.path, requestPath)),
+    );
+    const suffix = exact ?? uniqueLaravelRouteCandidate(
+      methodCandidates.filter((candidate) => laravelRoutePathMatches(candidate.path, requestPath, { suffix: true })),
+    );
+    linkCandidate(suffix, `laravel-request:${method.toUpperCase()} ${requestPath}`);
+  }
+
+  for (const match of testSource.matchAll(laravelTestJsonRequestPattern)) {
+    const method = normalizeLaravelRequestMethod(match[1]);
+    const requestPath = match[2];
+    const methodCandidates = laravelRouteCandidates.filter((candidate) =>
+      candidate.method === "any" || candidate.method === method
+    );
+    const exact = uniqueLaravelRouteCandidate(
+      methodCandidates.filter((candidate) => laravelRoutePathMatches(candidate.path, requestPath)),
+    );
+    const suffix = exact ?? uniqueLaravelRouteCandidate(
+      methodCandidates.filter((candidate) => laravelRoutePathMatches(candidate.path, requestPath, { suffix: true })),
+    );
+    linkCandidate(suffix, `laravel-request:${method.toUpperCase()} ${requestPath}`);
+  }
+
+  for (const match of testSource.matchAll(laravelNamedRouteCallPattern)) {
+    const requestedName = match[1];
+    const exact = uniqueLaravelRouteCandidate(
+      laravelRouteCandidates.filter((candidate) => candidate.routeName === requestedName),
+    );
+    const suffix = exact ?? uniqueLaravelRouteCandidate(
+      laravelRouteCandidates.filter((candidate) =>
+        candidate.routeName && (
+          requestedName.endsWith(`.${candidate.routeName}`) || candidate.routeName.endsWith(`.${requestedName}`)
+        )
+      ),
+    );
+    linkCandidate(suffix, `laravel-route:${requestedName}`);
+  }
+}
+
 const testTargetCandidatesByBase = new Map();
 for (const entity of entities.values()) {
-  if (entity.type === "test" || !entity.path) continue;
+  if (entity.type === "test" || !entity.path || pathLooksLikeTest(entity.path)) continue;
   const baseName = path.basename(entity.path).toLowerCase();
   if (!baseName) continue;
   for (const token of new Set(baseName.split(/[^a-z0-9]+/i).filter((part) => part.length >= 3))) {

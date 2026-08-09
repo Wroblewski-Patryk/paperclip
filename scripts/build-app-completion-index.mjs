@@ -105,9 +105,14 @@ function hasLinkedType(entity, relationsByFrom, relationsByTo, entitiesById, typ
     || relationSources.some((sourceId) => entitiesById.get(sourceId)?.type === type);
 }
 
-function evidenceState(entity, relationsByFrom, relationsByTo, entitiesById) {
-  const hasTest = hasLinkedType(entity, relationsByFrom, relationsByTo, entitiesById, "test")
-    || includesAny(entityText(entity), ["test", "spec", "playwright", "vitest"]);
+function isTestScopedEntity(entity) {
+  const normalizedPath = String(entity?.path ?? "").replaceAll("\\", "/");
+  return /(^|\/)(__tests__|tests?|specs?)(\/|$)/i.test(normalizedPath)
+    || /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs|py|php)(?:#|$)/i.test(normalizedPath);
+}
+
+function evidenceState(entity, relationsByFrom, relationsByTo, entitiesById, testedProductionTargets) {
+  const hasTest = testedProductionTargets.has(entity.id);
   const hasDoc = hasLinkedType(entity, relationsByFrom, relationsByTo, entitiesById, "document")
     || includesAny(entityText(entity), ["docs/", "readme", "architecture"]);
   const needsBrowserProof = routeKind(entity) === "screen_or_route";
@@ -142,6 +147,7 @@ const relations = graph.relations ?? [];
 const entitiesById = new Map(entities.map((entity) => [entity.id, entity]));
 const relationsByFrom = new Map();
 const relationsByTo = new Map();
+const testedProductionTargets = new Set();
 for (const relation of relations) {
   const fromList = relationsByFrom.get(relation.from) ?? [];
   fromList.push(relation.to);
@@ -150,6 +156,17 @@ for (const relation of relations) {
   const toList = relationsByTo.get(relation.to) ?? [];
   toList.push(relation.from);
   relationsByTo.set(relation.to, toList);
+
+  if (["tests", "tested_by"].includes(relation.type)) {
+    const fromType = entitiesById.get(relation.from)?.type;
+    const toType = entitiesById.get(relation.to)?.type;
+    if (fromType === "test" && toType && toType !== "test" && !isTestScopedEntity(entitiesById.get(relation.to))) {
+      testedProductionTargets.add(relation.to);
+    }
+    if (toType === "test" && fromType && fromType !== "test" && !isTestScopedEntity(entitiesById.get(relation.from))) {
+      testedProductionTargets.add(relation.from);
+    }
+  }
 }
 
 const items = entities
@@ -161,7 +178,7 @@ const items = entities
       ? userFlowName(entity)
       : null;
     if (!userFlow) return null;
-    const evidence = evidenceState(entity, relationsByFrom, relationsByTo, entitiesById);
+    const evidence = evidenceState(entity, relationsByFrom, relationsByTo, entitiesById, testedProductionTargets);
     const item = {
       id: entity.id,
       type: entity.type,

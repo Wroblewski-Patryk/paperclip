@@ -95,6 +95,58 @@ test("keeps implemented API endpoints without proof links in missing evidence bu
   assert.equal(summary.priorityReviewItems[0].risk, "missing_test_link");
 });
 
+test("requires an explicit tests relation from a test entity for production proof", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "app-completion-index-"));
+  const docsDir = path.join(root, "docs");
+  await mkdir(path.join(docsDir, "graphs"), { recursive: true });
+
+  const graph = {
+    entities: [
+      {
+        id: "api_endpoint:get-test-preview",
+        type: "api_endpoint",
+        name: "GET /test-preview",
+        path: "routes/api.php#/test-preview",
+        status: "implemented",
+      },
+      {
+        id: "test:preview-feature",
+        type: "test",
+        name: "PreviewFeatureTest.php",
+        path: "tests/Feature/PreviewFeatureTest.php",
+        status: "tested",
+      },
+      {
+        id: "api_endpoint:test-helper",
+        type: "api_endpoint",
+        name: "GET /test-helper",
+        path: "tests/Support/routes.php#/test-helper",
+        status: "tested",
+      },
+    ],
+    relations: [
+      { from: "test:preview-feature", to: "api_endpoint:get-test-preview", type: "implements" },
+      { from: "test:preview-feature", to: "api_endpoint:test-helper", type: "tests" },
+    ],
+  };
+
+  await writeFile(path.join(docsDir, "graphs", "architecture-awareness.json"), `${JSON.stringify(graph)}\n`);
+  const result = spawnSync(
+    process.execPath,
+    [scriptPath, "--project", "Fixture", "--root", root, "--out", docsDir],
+    { encoding: "utf8" },
+  );
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const summary = JSON.parse(await readFile(path.join(docsDir, "status", "app-completion-index.json"), "utf8"));
+  const item = summary.priorityReviewItems.find((candidate) => candidate.id === "api_endpoint:get-test-preview");
+  assert.equal(item.evidence.hasTest, false);
+  assert.equal(item.risk, "missing_test_link");
+  const testOnlyItem = summary.priorityReviewItems.find((candidate) => candidate.id === "api_endpoint:test-helper");
+  assert.equal(testOnlyItem.evidence.hasTest, false);
+  assert.equal(testOnlyItem.risk, "missing_test_link");
+});
+
 test("treats inbound document links as documentation proof for verified API endpoints", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "app-completion-index-"));
   const docsDir = path.join(root, "docs");

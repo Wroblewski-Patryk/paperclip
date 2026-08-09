@@ -165,3 +165,95 @@ test("build-architecture-awareness-index excludes repo-local .tmp content", asyn
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("Laravel feature tests link to production endpoints by request path and route name", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "paperclip-awareness-laravel-tests-"));
+  try {
+    await mkdir(path.join(root, "routes"), { recursive: true });
+    await mkdir(path.join(root, "tests", "Feature"), { recursive: true });
+
+    await writeFile(
+      path.join(root, "routes", "web.php"),
+      `<?php
+Route::get('/login', LoginController::class)->name('login');
+Route::get('/', HomeController::class)->name('home');
+Route::post('/install', InstallController::class)->name('install.store');
+Route::get('/admin/pages/{page}', PageController::class)->name('pages.show');
+Route::delete('/admin/control/{control}', ControlController::class)->name('controls.destroy');
+Route::get('/shared', CoveredController::class)->name('shared.covered');
+Route::get('/shared', ControlController::class)->name('shared.control');
+`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(root, "tests", "Feature", "AccountAccessFeatureTest.php"),
+      `<?php
+class AccountAccessFeatureTest {
+  public function login_is_available() { $this->get('/login'); }
+  public function install_can_be_submitted() { $this->post(route('install.store'), []); }
+  public function unknown_path_does_not_prove_home() { $this->get('/not-a-route'); }
+  public function named_duplicate_links_only_its_route() { $this->get(route('shared.covered')); }
+}
+`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(root, "tests", "Feature", "AdminPagesFeatureTest.php"),
+      `<?php
+class AdminPagesFeatureTest {
+  public function page_is_visible() { $this->get(route('admin.pages.show', ['page' => 42])); }
+}
+`,
+      "utf8",
+    );
+
+    execFileSync(process.execPath, [scriptPath, "--project", "LaravelFixture", "--root", root], { encoding: "utf8" });
+    execFileSync(process.execPath, [appCompletionScriptPath, "--project", "LaravelFixture", "--root", root], { encoding: "utf8" });
+
+    const graph = JSON.parse(await readFile(path.join(root, "docs", "graphs", "architecture-awareness.json"), "utf8"));
+    const entityByPath = new Map(graph.entities.map((entity) => [entity.path, entity]));
+    const entityById = new Map(graph.entities.map((entity) => [entity.id, entity]));
+    const login = entityByPath.get("routes/web.php#login");
+    const home = entityByPath.get("routes/web.php#/");
+    const install = entityByPath.get("routes/web.php#install");
+    const adminPage = entityByPath.get("routes/web.php#admin/pages/{page}");
+    const control = entityByPath.get("routes/web.php#admin/control/{control}");
+    const sharedCovered = entityByPath.get("routes/web.php#shared@shared.covered");
+    const sharedControl = entityByPath.get("routes/web.php#shared@shared.control");
+    assert.ok(
+      login && home && install && adminPage && control && sharedCovered && sharedControl,
+      JSON.stringify(graph.entities.filter((entity) => entity.type === "api_endpoint").map((entity) => entity.path)),
+    );
+
+    const testedTargets = new Set(
+      graph.relations
+        .filter((relation) => relation.type === "tests" && entityById.get(relation.from)?.type === "test")
+        .map((relation) => relation.to),
+    );
+    assert.equal(testedTargets.has(login.id), true);
+    assert.equal(testedTargets.has(install.id), true);
+    assert.equal(testedTargets.has(adminPage.id), true);
+    assert.equal(testedTargets.has(home.id), false);
+    assert.equal(testedTargets.has(control.id), false);
+    assert.equal(testedTargets.has(sharedCovered.id), true);
+    assert.equal(testedTargets.has(sharedControl.id), false);
+    assert.equal(
+      graph.relations.some((relation) =>
+        relation.type === "tests" &&
+        entityById.get(relation.from)?.type === "test" &&
+        ["test", "function", "model"].includes(entityById.get(relation.to)?.type)
+      ),
+      false,
+    );
+
+    const completion = JSON.parse(await readFile(path.join(root, "docs", "status", "app-completion-index.json"), "utf8"));
+    const completionById = new Map(completion.priorityReviewItems.map((item) => [item.id, item]));
+    assert.equal(completionById.get(login.id).evidence.hasTest, true);
+    assert.equal(completionById.get(install.id).evidence.hasTest, true);
+    assert.equal(completionById.get(adminPage.id).evidence.hasTest, true);
+    assert.equal(completionById.get(control.id).evidence.hasTest, false);
+    assert.equal(completionById.get(control.id).risk, "missing_test_link");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
