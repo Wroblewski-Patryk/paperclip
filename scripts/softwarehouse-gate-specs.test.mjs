@@ -3283,7 +3283,7 @@ test("project truth indexes route app-completion proof gaps instead of treating 
   assert.match(dispatcher, /evidenceTargetSlug/);
   assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_PER_TRACK_DEPTH \?\? 1/);
   assert.match(dispatcher, /SOFTWAREHOUSE_PROJECT_TRUTH_DISPATCH_MAX_GAPS \?\? \(perTrackDispatchDepth \* 2\)/);
-  assert.match(dispatcher, /persistentCompletionParentForProject/);
+  assert.match(dispatcher, /selectProjectTruthCompletionParent/);
   assert.match(dispatcher, /isReusableProjectTruthGapIssue/);
   assert.match(dispatcher, /findExistingIssueForGap\([\s\S]*completionParent\.id/);
   assert.match(dispatcher, /noop_persistent_completion_parent_missing/);

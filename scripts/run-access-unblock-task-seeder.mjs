@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 import { agentWipBlockerFor, fetchAgentWipState } from "./lib/agent-wip-guard.mjs";
 import { isRunnableAgent } from "./lib/softwarehouse-agent-resolver.mjs";
+import { projectByNameOrUrlKey } from "./lib/softwarehouse-project-selector.mjs";
 
 const apply = process.argv.includes("--apply");
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
@@ -64,10 +65,6 @@ function ownerAgentForPlan(agents, ownerName) {
     return byNameOrRosterKey(agents, ownerName, ["qa-verification-engineer", "test-automation-engineer", "qa-lead"]);
   }
   return byName(agents, ownerName);
-}
-
-function projectByNameOrUrlKey(items, names, urlKeys = []) {
-  return items.find((item) => names.includes(item.name) || urlKeys.includes(item.urlKey));
 }
 
 async function primaryWorkspaceForProject(projectId) {
