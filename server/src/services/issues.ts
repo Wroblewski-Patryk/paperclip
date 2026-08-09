@@ -5346,6 +5346,17 @@ export function issueService(db: Db) {
       }),
 
     checkout: async (id: string, agentId: string, expectedStatuses: string[], checkoutRunId: string | null) => {
+      const terminalExpectedStatuses = expectedStatuses.filter(
+        (status) => status === "done" || status === "cancelled",
+      );
+      if (terminalExpectedStatuses.length > 0) {
+        throw conflict("Terminal issues require explicit resume before checkout", {
+          issueId: id,
+          terminalExpectedStatuses,
+          supportedResumePath: "PATCH or comment with resume=true before checkout",
+        });
+      }
+
       const issueCompany = await db
         .select({ companyId: issues.companyId })
         .from(issues)

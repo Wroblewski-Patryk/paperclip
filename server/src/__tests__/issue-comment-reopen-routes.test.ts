@@ -386,6 +386,30 @@ describe.sequential("issue comment reopen routes", () => {
     );
   });
 
+  it("preserves completed issues with evidence unless reopen intent is explicit", async () => {
+    const existing = {
+      ...makeIssue("done"),
+      completionEvidence: {
+        summary: "The completed issue already has durable closeout evidence.",
+        riskLevel: "standard",
+        testEvidence: { summary: "Completion tests passed.", refs: [] },
+        reviewEvidence: { summary: "Completion review passed.", refs: [] },
+        documentationEvidence: { summary: "Completion documentation exists.", refs: [] },
+      },
+    };
+    mockIssueService.getById.mockResolvedValue(existing);
+    mockIssueService.update.mockResolvedValue({ ...existing, status: "backlog" });
+
+    const app = await installActor(createApp());
+    const res = await request(app)
+      .patch(`/api/issues/${existing.id}`)
+      .send({ status: "backlog" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain("explicit resume");
+    expect(mockIssueService.update).not.toHaveBeenCalled();
+  });
+
   it("implicitly reopens closed issues via the PATCH comment path when reassigning to an agent", async () => {
     mockIssueService.getById.mockResolvedValue(makeIssue("done"));
     mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
@@ -1148,7 +1172,7 @@ describe.sequential("issue comment reopen routes", () => {
     ));
   });
 
-  it("wakes the assignee when an assigned done issue moves back to todo", async () => {
+  it("wakes the assignee when an assigned done issue is explicitly reopened to todo", async () => {
     const issue = makeIssue("done");
     mockIssueService.getById.mockResolvedValue(issue);
     mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
@@ -1159,7 +1183,7 @@ describe.sequential("issue comment reopen routes", () => {
 
     const res = await request(await installActor(createApp()))
       .patch("/api/issues/11111111-1111-4111-8111-111111111111")
-      .send({ status: "todo" });
+      .send({ status: "todo", reopen: true });
 
     expect(res.status).toBe(200);
     expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(

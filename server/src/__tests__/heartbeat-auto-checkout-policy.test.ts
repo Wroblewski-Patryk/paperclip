@@ -23,6 +23,16 @@ describe("heartbeat auto-checkout policy", () => {
     expect(shouldAutoCheckoutIssueForWake(baseInput)).toBe(true);
   });
 
+  it("does not auto-checkout completed timer-scoped wakes", () => {
+    expect(
+      shouldAutoCheckoutIssueForWake({
+        ...baseInput,
+        contextSnapshot: { wakeReason: "heartbeat_timer" },
+        issueStatus: "done",
+      }),
+    ).toBe(false);
+  });
+
   it("auto-checkouts a completed issue explicitly reopened for a deferred user comment", () => {
     expect(
       shouldAutoCheckoutIssueForWake({

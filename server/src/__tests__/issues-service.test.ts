@@ -697,6 +697,55 @@ describeEmbeddedPostgres("issueService.list participantAgentId", () => {
     );
   });
 
+  it("does not checkout a completed issue even when the caller expects done", async () => {
+    const companyId = randomUUID();
+    const agentId = randomUUID();
+    const issueId = randomUUID();
+    const completionEvidence = {
+      summary: "The completed issue already has durable closeout evidence.",
+      riskLevel: "standard" as const,
+      testEvidence: { summary: "Passed before checkout.", refs: [] },
+      reviewEvidence: { summary: "Reviewed before checkout.", refs: [] },
+      documentationEvidence: { summary: "Documented before checkout.", refs: [] },
+    };
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "Runtime engineer",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    });
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      title: "Completed heartbeat issue",
+      status: "done",
+      priority: "high",
+      assigneeAgentId: agentId,
+      completionEvidence,
+      completedAt: new Date(),
+    });
+
+    await expect(svc.checkout(issueId, agentId, ["done"], randomUUID()))
+      .rejects.toMatchObject({ status: 409 });
+
+    await expect(svc.getById(issueId)).resolves.toEqual(expect.objectContaining({
+      status: "done",
+      completionEvidence,
+    }));
+  });
+
   it("filters issues by execution workspace id", async () => {
     const companyId = randomUUID();
     const projectId = randomUUID();

@@ -665,9 +665,12 @@ All endpoints are under `/api` and return JSON.
 
 Server behavior:
 
-1. single SQL update with `WHERE id = ? AND status IN (?) AND (assignee_agent_id IS NULL OR assignee_agent_id = :agentId)`
-2. if updated row count is 0, return `409` with current owner/status
-3. successful checkout sets `assignee_agent_id`, `status = in_progress`, and `started_at`
+1. Reject `done` and `cancelled` in `expectedStatuses`; terminal issues must first use the structured `resume: true` (or legacy explicit `reopen: true`) issue/comment mutation path.
+2. single SQL update with `WHERE id = ? AND status IN (?) AND (assignee_agent_id IS NULL OR assignee_agent_id = :agentId)`
+3. if updated row count is 0, return `409` with current owner/status
+4. successful checkout sets `assignee_agent_id`, `status = in_progress`, and `started_at`
+
+Compatibility note (2026-08): callers that previously moved a terminal issue directly to an open status or included a terminal status in checkout `expectedStatuses` now receive `409`. They must send explicit structured resume/reopen intent first. This preserves completion evidence and prevents timer/scoped-wake claims from silently reopening finished work.
 
 `POST /issues/:issueId/admin/force-release` is an operator recovery endpoint for stale harness locks. It requires board access to the issue company, clears checkout and execution run lock fields, and may clear the agent assignee when `clearAssignee=true` is passed. The route must write an `issue.admin_force_release` activity log entry containing the previous checkout and execution run IDs.
 

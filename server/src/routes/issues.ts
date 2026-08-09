@@ -4997,6 +4997,27 @@ export function issueRoutes(
       hiddenAt: hiddenAtRaw,
       ...updateFields
     } = req.body;
+    const directTerminalReopenRequested =
+      isClosed &&
+      typeof updateFields.status === "string" &&
+      !isClosedIssueStatus(updateFields.status) &&
+      updateFields.status !== existing.status;
+    if (
+      directTerminalReopenRequested &&
+      reopenRequested !== true &&
+      resumeRequested !== true
+    ) {
+      res.status(409).json({
+        error: "Closed issues require explicit resume or reopen intent before returning to active work",
+        details: {
+          issueId: existing.id,
+          currentStatus: existing.status,
+          requestedStatus: updateFields.status,
+          supportedSignals: [{ resume: true }, { reopen: true }],
+        },
+      });
+      return;
+    }
     const shouldCancelActiveRunForCancelledStatus =
       existing.status !== "cancelled" && updateFields.status === "cancelled";
     if (resumeRequested === true && !commentBody) {

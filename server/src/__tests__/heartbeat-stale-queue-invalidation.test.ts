@@ -361,9 +361,16 @@ describeEmbeddedPostgres("heartbeat stale queued-run invalidation", () => {
     expect(countExecuteCallsForRun(runId)).toBe(0);
   });
 
-  it("cancels queued runs when the issue reaches a terminal status before the run starts", async () => {
+  it("cancels timer-scoped runs when a completed issue with evidence is claimed", async () => {
     const { companyId, agentId } = await seedCompanyAndAgent();
     const issueId = randomUUID();
+    const completionEvidence = {
+      summary: "Existing closeout evidence must survive later timer wakes.",
+      riskLevel: "standard",
+      testEvidence: { summary: "Completion tests passed.", refs: [] },
+      reviewEvidence: { summary: "Completion review passed.", refs: [] },
+      documentationEvidence: { summary: "Completion documentation exists.", refs: [] },
+    };
     await db.insert(issues).values({
       id: issueId,
       companyId,
@@ -371,13 +378,15 @@ describeEmbeddedPostgres("heartbeat stale queued-run invalidation", () => {
       status: "done",
       priority: "medium",
       assigneeAgentId: agentId,
+      completionEvidence,
+      completedAt: new Date(),
     });
 
     const { runId, wakeupRequestId } = await seedQueuedRun({
       companyId,
       agentId,
       issueId,
-      wakeReason: "issue_assigned",
+      wakeReason: "heartbeat_timer",
     });
 
     await heartbeat.resumeQueuedRuns();
@@ -408,6 +417,12 @@ describeEmbeddedPostgres("heartbeat stale queued-run invalidation", () => {
     expect(run?.errorCode).toBe("issue_terminal_status");
     expect(wakeup?.status).toBe("skipped");
     expect(countExecuteCallsForRun(runId)).toBe(0);
+    await expect(
+      db.select({ status: issues.status, completionEvidence: issues.completionEvidence })
+        .from(issues)
+        .where(eq(issues.id, issueId))
+        .then((rows) => rows[0] ?? null),
+    ).resolves.toEqual({ status: "done", completionEvidence });
   });
 
   it("cancels queued max-turn continuations when the issue is no longer in_progress before the run starts", async () => {

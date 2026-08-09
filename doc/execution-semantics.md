@@ -138,6 +138,7 @@ This is why `in_progress` can be strict for agents without forcing the same runt
 Checkout is the bridge from issue ownership to active agent execution.
 
 - checkout is required to move an issue into agent-owned `in_progress`
+- checkout cannot reopen `done` or `cancelled`; a caller must first record explicit structured resume/reopen intent through the issue or comment mutation API
 - `checkoutRunId` represents issue-ownership lock for the current agent run
 - `executionRunId` represents the currently active execution path for the issue
 
