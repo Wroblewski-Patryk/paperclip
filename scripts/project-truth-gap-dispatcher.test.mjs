@@ -6,6 +6,7 @@ import {
   activeProjectTruthTrackIssues,
   blockingAdmissionControl,
   isParentChildCapError,
+  isProjectTruthRolloverContainer,
   isProjectTruthRolloverParent,
   isReusableProjectTruthGapIssue,
   isProblemAgentCapError,
@@ -65,6 +66,21 @@ test("parent child-cap errors are recognized without swallowing other validation
     body: '{"error":"Parent issue already has the maximum 8 child issues for this helper"}',
   }), true);
   assert.equal(isParentChildCapError({ status: 422, body: '{"error":"other"}' }), false);
+});
+
+test("rollover containers are identifiable without treating ordinary ownerless work as routing infrastructure", () => {
+  assert.equal(isProjectTruthRolloverContainer({
+    status: "backlog",
+    description: "softwarehouse-project-truth-rollover-parent:v1\nproject: Featherly",
+  }), true);
+  assert.equal(isProjectTruthRolloverContainer({
+    status: "backlog",
+    description: "Implement a normal project truth repair.",
+  }), false);
+  assert.equal(isProjectTruthRolloverContainer({
+    status: "done",
+    description: "softwarehouse-project-truth-rollover-parent:v1\nproject: Featherly",
+  }), false);
 });
 
 test("latest live rollover parent supersedes the canonical history anchor", () => {

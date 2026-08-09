@@ -6,6 +6,7 @@ import { rootBlockerIdentifierFor, terminalBlockersFor } from "./lib/issue-block
 import { normalizeKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
 import { softwarehouseActiveApplicationProjectNames } from "./lib/softwarehouse-project-registry.mjs";
+import { isProjectTruthRolloverContainer } from "./lib/project-truth-gap-dispatcher.mjs";
 import {
   approvalRows,
   hasPendingIssueApproval,
@@ -553,8 +554,17 @@ const activeProjectsWithoutPm = activeProjects.filter((project) => {
   return !projectManagers.some((agent) => project.leadAgentId === agent.id);
 });
 
-const openIssuesWithoutAssignee = openIssues.filter((issue) => !issue.assigneeAgentId && !issue.assigneeUserId);
-const blockedIssuesWithoutOwner = openIssues.filter((issue) => issue.status === "blocked" && !issue.assigneeAgentId && !issue.assigneeUserId);
+const openIssuesWithoutAssignee = openIssues.filter((issue) =>
+  !issue.assigneeAgentId
+  && !issue.assigneeUserId
+  && !isProjectTruthRolloverContainer(issue)
+);
+const blockedIssuesWithoutOwner = openIssues.filter((issue) =>
+  issue.status === "blocked"
+  && !issue.assigneeAgentId
+  && !issue.assigneeUserId
+  && !isProjectTruthRolloverContainer(issue)
+);
 const projectsWithActiveIssueStatusDrift = activeProjects.filter((project) =>
   project.status !== "in_progress"
   && openIssues.some((issue) =>

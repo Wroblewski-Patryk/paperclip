@@ -93,10 +93,14 @@ export function isParentChildCapError(error) {
 }
 
 export function isProjectTruthRolloverParent(issue, projectName) {
+  return isProjectTruthRolloverContainer(issue)
+    && String(issue?.description ?? "").includes(`project: ${projectName}`);
+}
+
+export function isProjectTruthRolloverContainer(issue) {
   return !issue?.hiddenAt
     && !defaultTerminalStatuses.has(issue?.status)
-    && String(issue?.description ?? "").includes(projectTruthRolloverParentMarker)
-    && String(issue?.description ?? "").includes(`project: ${projectName}`);
+    && String(issue?.description ?? "").includes(projectTruthRolloverParentMarker);
 }
 
 export function selectProjectTruthCompletionParent({ projectName, issues, canonicalParents }) {
