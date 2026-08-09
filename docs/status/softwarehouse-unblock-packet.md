@@ -10,7 +10,7 @@ This packet is generated from the local Paperclip API. It intentionally redacts 
 | --- | --- |
 | API base | http://127.0.0.1:3200 |
 | Company | ae26bb8b-8f5f-4a85-b341-78d4e1985975 |
-| restartRequired |  |
+| restartRequired | false |
 | activeRunCount | state-stable; run pnpm softwarehouse:control-tick for live runtime counts |
 | liveRunCount | state-stable; run pnpm softwarehouse:control-tick for live runtime counts |
 
