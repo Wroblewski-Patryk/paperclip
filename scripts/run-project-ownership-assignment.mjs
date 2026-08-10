@@ -310,7 +310,11 @@ if (activeRunCount > 0) {
 if (runnableUnowned.length === 0) {
   actions.push({ action: "noop_no_unowned_runnable_controlled_issue" });
 } else {
-  const issue = runnableUnowned[0];
+  const issue = runnableUnowned.find((candidate) => {
+    const candidatePmName = projectManagerByProject.get(candidate.controlledProject) ?? "Portfolio Director";
+    const candidateAgent = findAgentByNameOrAlias(activeAgents, candidatePmName) ?? portfolio;
+    return !candidateAgent?.id || (liveRunsByAgentId.get(candidateAgent.id) ?? []).length === 0;
+  }) ?? runnableUnowned[0];
   const pmName = projectManagerByProject.get(issue.controlledProject) ?? "Portfolio Director";
   let agent = findAgentByNameOrAlias(activeAgents, pmName);
   const rosterKey = rosterKeyByProject.get(issue.controlledProject);
