@@ -137,6 +137,16 @@ function statusRank(status) {
   return { todo: 0, backlog: 1 }[status] ?? 2;
 }
 
+function ownerNameForIssue(issue) {
+  const title = String(issue.title ?? "");
+  if (/\[Source Control(?: Closure)?\]/i.test(title)) return "Code Review Specialist";
+  if (/\[Runtime\]/i.test(title)) return "Runtime and Adapter Engineer";
+  if (/\[(?:Project Truth|Docs?)\]/i.test(title)) return "Documentation Steward";
+  if (/\[(?:Test|QA)\]/i.test(title)) return "Test Automation Engineer";
+  if (/\[Frontend\]/i.test(title)) return "Frontend Web Engineer";
+  return projectManagerByProject.get(issue.controlledProject) ?? "Portfolio Director";
+}
+
 function canonicalProjectName(project) {
   for (const name of controlledProjectNames) {
     const aliases = projectAliases.get(name) ?? [name];
@@ -223,7 +233,7 @@ function assignmentComment(issue, agent, controlledProject) {
   return [
     "softwarehouse-ownership-assignment:v1",
     "",
-    `Assigned ${issue.identifier} to ${agent.name} as the project PM for ${controlledProject}.`,
+    `Assigned ${issue.identifier} to ${agent.name} as the smallest matching owner for ${controlledProject}.`,
     "",
     "Scope:",
     "- own the known-state/takeover baseline;",
@@ -311,12 +321,12 @@ if (runnableUnowned.length === 0) {
   actions.push({ action: "noop_no_unowned_runnable_controlled_issue" });
 } else {
   const issue = runnableUnowned.find((candidate) => {
-    const candidatePmName = projectManagerByProject.get(candidate.controlledProject) ?? "Portfolio Director";
-    const candidateAgent = findAgentByNameOrAlias(activeAgents, candidatePmName) ?? portfolio;
+    const candidateOwnerName = ownerNameForIssue(candidate);
+    const candidateAgent = findAgentByNameOrAlias(activeAgents, candidateOwnerName) ?? portfolio;
     return !candidateAgent?.id || (liveRunsByAgentId.get(candidateAgent.id) ?? []).length === 0;
   }) ?? runnableUnowned[0];
-  const pmName = projectManagerByProject.get(issue.controlledProject) ?? "Portfolio Director";
-  let agent = findAgentByNameOrAlias(activeAgents, pmName);
+  const ownerName = ownerNameForIssue(issue);
+  let agent = findAgentByNameOrAlias(activeAgents, ownerName);
   const rosterKey = rosterKeyByProject.get(issue.controlledProject);
   let agentAction = "noop_existing_project_pm";
 
@@ -352,7 +362,7 @@ if (runnableUnowned.length === 0) {
       identifier: issue.identifier,
       project: issue.project.name,
       controlledProject: issue.controlledProject,
-      assigneeName: agent?.name ?? pmName,
+      assigneeName: agent?.name ?? ownerName,
     });
   } else if (apply) {
     const updated = await request("PATCH", `/api/issues/${issue.id}`, {

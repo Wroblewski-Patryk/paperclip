@@ -2537,6 +2537,10 @@ test("project ownership assignment ignores project-truth rollover routing contai
   assert.match(source, /!String\(issue\.description \?\? ""\)\.includes\(projectTruthRolloverParentMarker\)/);
   assert.match(source, /runnableUnowned\.find\(\(candidate\) =>/);
   assert.match(source, /liveRunsByAgentId\.get\(candidateAgent\.id\)/);
+  assert.match(source, /Source Control/);
+  assert.match(source, /return "Code Review Specialist"/);
+  assert.match(source, /return "Runtime and Adapter Engineer"/);
+  assert.match(source, /return "Documentation Steward"/);
 });
 
 test("live-run janitor falls back to API reads when direct database is unavailable", async () => {
