@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildInReviewDecisionInteraction,
   classifyInReviewDecisionAuthority,
+  classifyInteractionDecisionAuthority,
   findPendingStructuredDecisionInteraction,
   hasStructuredInReviewDecisionPath,
   isMisroutedTechnicalInteraction,
@@ -37,6 +38,24 @@ test("board-owned in_review issue without typed path is not treated as structure
   assert.match(interaction.payload.detailsMarkdown, /Next-check expectation:/);
   assert.match(interaction.payload.detailsMarkdown, /Next owner after decision:/);
   assert.equal(interaction.payload.target?.href, "/LUC/issues/LUC-1236");
+});
+
+test("generic governor issue routes a local dirty-worktree commit question to technical review", () => {
+  const issue = { title: "Autonomy Governor", status: "in_review" };
+  const interaction = {
+    status: "pending",
+    createdByAgentId: "55555555-5555-4555-8555-555555555555",
+    kind: "ask_user_questions",
+    payload: { questions: [{ question: "Should this dirty change be committed after targeted validation?" }] },
+  };
+  assert.equal(classifyInteractionDecisionAuthority(issue, interaction), "technical_reviewer");
+  assert.equal(isMisroutedTechnicalInteraction(issue, interaction), true);
+});
+
+test("interaction-level production or push request remains owner-gated", () => {
+  const issue = { title: "Autonomy Governor", status: "in_review" };
+  const interaction = { status: "pending", payload: { prompt: "Push and deploy this commit to production?" } };
+  assert.equal(classifyInteractionDecisionAuthority(issue, interaction), "owner");
 });
 
 test("pending typed interaction suppresses duplicate in_review wait repair", () => {

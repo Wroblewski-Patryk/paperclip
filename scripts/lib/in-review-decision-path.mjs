@@ -7,7 +7,7 @@ import {
 export { reviewInteractionKinds };
 
 const ownerDecisionPattern = /\b(owner decision|board decision|owner qa|acceptance|approve|authorization|provision|production|deploy(?:ment)?|push|secret|credential|rotate|security incident|protected session|payment|billing|legal|finance|destructive|live account|real[- ]money|public release)\b/i;
-const technicalReviewPattern = /\b(source control|runtime|project truth|test|regression|documentation|docs|frontend|backend|qa|typecheck|lint|local commit|fixture|architecture baseline)\b/i;
+const technicalReviewPattern = /\b(source control|runtime|project truth|test|regression|documentation|docs|frontend|backend|qa|typecheck|lint|local commit|commit(?:ted)?|dirty change|worktree|fixture|architecture baseline)\b/i;
 
 export function classifyInReviewDecisionAuthority(issue) {
   if (issue?.assigneeUserId || issue?.reviewerUserId) return "owner";
@@ -22,9 +22,21 @@ export function classifyInReviewDecisionAuthority(issue) {
   return "owner";
 }
 
+export function classifyInteractionDecisionAuthority(issue, interaction) {
+  if (issue?.assigneeUserId || issue?.reviewerUserId) return "owner";
+  if (ownerDecisionPattern.test(String(issue?.title ?? ""))) return "owner";
+  const interactionText = [interaction?.title, interaction?.summary, interaction?.payload]
+    .filter(Boolean)
+    .map((value) => typeof value === "string" ? value : JSON.stringify(value))
+    .join("\n");
+  if (ownerDecisionPattern.test(interactionText)) return "owner";
+  if (technicalReviewPattern.test(interactionText)) return "technical_reviewer";
+  return classifyInReviewDecisionAuthority(issue);
+}
+
 export function isMisroutedTechnicalInteraction(issue, interaction) {
   if (!interaction || interaction.status !== "pending") return false;
-  if (classifyInReviewDecisionAuthority(issue) !== "technical_reviewer") return false;
+  if (classifyInteractionDecisionAuthority(issue, interaction) !== "technical_reviewer") return false;
   return Boolean(interaction.createdByAgentId)
     || String(interaction.idempotencyKey ?? "").startsWith("softwarehouse-in-review-decision-path:");
 }

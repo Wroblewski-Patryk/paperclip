@@ -317,6 +317,25 @@ if (activeRunCount > 0) {
   });
 }
 
+for (const project of projects) {
+  const controlledProject = !project.archivedAt ? canonicalProjectName(project) : null;
+  if (!controlledProject) continue;
+  const managerName = projectManagerByProject.get(controlledProject);
+  const manager = managerName ? findAgentByNameOrAlias(activeAgents, managerName) : null;
+  if (!manager?.id || (project.leadAgentId ?? null) === manager.id) continue;
+  if (apply) {
+    await request("PATCH", `/api/projects/${project.id}`, { leadAgentId: manager.id });
+  }
+  actions.push({
+    action: apply ? "repaired_canonical_project_lead" : "would_repair_canonical_project_lead",
+    project: project.name,
+    controlledProject,
+    previousLeadAgentId: project.leadAgentId ?? null,
+    leadAgentId: manager.id,
+    leadAgentName: manager.name,
+  });
+}
+
 if (runnableUnowned.length === 0) {
   actions.push({ action: "noop_no_unowned_runnable_controlled_issue" });
 } else {
@@ -367,18 +386,13 @@ if (runnableUnowned.length === 0) {
   } else if (apply) {
     const updated = await request("PATCH", `/api/issues/${issue.id}`, {
       assigneeAgentId: agent.id,
-      status: issue.status,
+      status: "todo",
     });
     await request("POST", `/api/issues/${issue.id}/comments`, {
       body: assignmentComment(issue, agent, issue.controlledProject),
     });
-    if ((issue.project.leadAgentId ?? null) !== agent.id) {
-      await request("PATCH", `/api/projects/${issue.project.id}`, {
-        leadAgentId: agent.id,
-      });
-    }
     actions.push({
-      action: "assigned_issue_to_project_pm",
+      action: "assigned_issue_to_smallest_matching_owner",
       identifier: updated.identifier,
       status: updated.status,
       project: issue.project.name,
@@ -388,9 +402,9 @@ if (runnableUnowned.length === 0) {
     });
   } else {
     actions.push({
-      action: "would_assign_issue_to_project_pm",
+      action: "would_assign_issue_to_smallest_matching_owner",
       identifier: issue.identifier,
-      status: issue.status,
+      status: "todo",
       project: issue.project.name,
       controlledProject: issue.controlledProject,
       assigneeName: agent.name,

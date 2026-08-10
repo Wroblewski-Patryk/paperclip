@@ -128,6 +128,49 @@ ConvertTo-Json -InputObject @($rows) -Compress
   return Array.isArray(parsed) ? parsed : [parsed];
 }
 
+function readWindowsStrictPortListeners(port) {
+  if (process.platform !== "win32") return [];
+  const escapedRoot = repoRoot.replaceAll("'", "''");
+  const source = `
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+$root = '${escapedRoot}'
+$rows = @()
+$connections = Get-NetTCPConnection -State Listen -LocalPort ${port} -ErrorAction Stop
+foreach ($connection in $connections) {
+  $process = Get-CimInstance Win32_Process -Filter "ProcessId = $($connection.OwningProcess)" -ErrorAction SilentlyContinue
+  if (-not $process) { continue }
+  $ancestorPids = @()
+  $parentId = [int]$process.ParentProcessId
+  $guard = 0
+  while ($parentId -gt 0 -and $guard -lt 64) {
+    $ancestorPids += $parentId
+    $parent = Get-CimInstance Win32_Process -Filter "ProcessId = $parentId" -ErrorAction SilentlyContinue
+    if (-not $parent) { break }
+    $parentId = [int]$parent.ParentProcessId
+    $guard += 1
+  }
+  $commandLine = [string]$process.CommandLine
+  $rows += [pscustomobject]@{
+    pid = [int]$process.ProcessId
+    commandLine = $commandLine
+    matchesCanonicalServer = $commandLine -like "*$root*" -and $commandLine -match 'src[\\\\/]index\\.ts'
+    ancestorPids = $ancestorPids
+  }
+}
+ConvertTo-Json -InputObject @($rows) -Compress
+`;
+  const encoded = Buffer.from(source, "utf16le").toString("base64");
+  const output = execFileSync(
+    "powershell.exe",
+    ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
+    { encoding: "utf8", windowsHide: true, maxBuffer: 1024 * 1024 },
+  ).trim();
+  if (!output) return [];
+  const parsed = JSON.parse(output);
+  return Array.isArray(parsed) ? parsed : [parsed];
+}
+
 const failures = [];
 const warnings = [];
 const config = JSON.parse(await readFile(path.join(repoRoot, ".paperclip", "config.json"), "utf8"));
@@ -192,7 +235,7 @@ if (await isPaperclipHealthAt("http://127.0.0.1:3201")) {
 }
 
 const devServices = await readDevServiceRecords();
-const liveDevServices = devServices.filter((record) => {
+let liveDevServices = devServices.filter((record) => {
   try {
     process.kill(record.pid, 0);
     return true;
@@ -200,6 +243,32 @@ const liveDevServices = devServices.filter((record) => {
     return false;
   }
 });
+let reconciledListener = null;
+if (liveDevServices.length === 0 && devServices.length === 1 && health?.status === "ok") {
+  try {
+    const listeners = readWindowsStrictPortListeners(3200);
+    if (listeners.length === 1 && listeners[0].matchesCanonicalServer === true) {
+      reconciledListener = listeners[0];
+      liveDevServices = [{
+        ...devServices[0],
+        pid: reconciledListener.pid,
+        port: 3200,
+        reconciledFromStalePid: devServices[0].pid,
+        registeredTreePids: [reconciledListener.pid, ...(reconciledListener.ancestorPids ?? [])],
+      }];
+      warnings.push({
+        code: "stale_paperclip_dev_service_pid_reconciled",
+        stalePid: devServices[0].pid,
+        listenerPid: reconciledListener.pid,
+      });
+    }
+  } catch (error) {
+    warnings.push({
+      code: "strict_port_listener_inventory_unavailable",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 if (liveDevServices.length !== 1) {
   failures.push({ code: "paperclip_dev_service_count", count: liveDevServices.length, pids: liveDevServices.map((record) => record.pid) });
 }
@@ -207,7 +276,9 @@ if (liveDevServices.length !== 1) {
 let paperclipWatchers = [];
 try {
   paperclipWatchers = readWindowsPaperclipWatchers();
-  const registeredServicePids = new Set(liveDevServices.map((record) => Number(record.pid)));
+  const registeredServicePids = new Set(liveDevServices.flatMap((record) =>
+    (record.registeredTreePids ?? [record.pid]).map(Number)
+  ));
   const unregisteredWatchers = paperclipWatchers.filter((watcher) => {
     const treePids = [Number(watcher.pid), ...(watcher.ancestorPids ?? []).map(Number)];
     return !treePids.some((pid) => registeredServicePids.has(pid));

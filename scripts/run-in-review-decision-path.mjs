@@ -8,6 +8,7 @@ import {
 import {
   buildInReviewDecisionInteraction,
   classifyInReviewDecisionAuthority,
+  classifyInteractionDecisionAuthority,
   findPendingStructuredDecisionInteraction,
   hasStructuredInReviewDecisionPath,
   isMisroutedTechnicalInteraction,
@@ -95,7 +96,9 @@ for (const issue of issues) {
       .catch(() => []),
   ]);
   const pendingInteraction = findPendingStructuredDecisionInteraction(interactions);
-  const decisionAuthority = classifyInReviewDecisionAuthority(issue);
+  const decisionAuthority = pendingInteraction
+    ? classifyInteractionDecisionAuthority(issue, pendingInteraction)
+    : classifyInReviewDecisionAuthority(issue);
   if (!liveIssueIds.has(issue.id) && isMisroutedTechnicalInteraction(issue, pendingInteraction)) {
     if (!reserveTechnicalReviewRecovery(issue, technicalRecoveryState)) {
       suppressed.push({
