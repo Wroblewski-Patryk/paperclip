@@ -7,7 +7,15 @@ import {
 export { reviewInteractionKinds };
 
 const ownerDecisionPattern = /\b(owner decision|board decision|owner qa|acceptance|approve|authorization|provision|production|deploy(?:ment)?|push|secret|credential|rotate|security incident|protected session|payment|billing|legal|finance|destructive|live account|real[- ]money|public release)\b/i;
+const interactionOwnerDecisionPattern = /\b(owner decision|board decision|owner qa|owner acceptance|production|deploy(?:ment)?|push|secret|credential|rotate|security incident|protected session|payment|billing|legal|finance|destructive|live account|real[- ]money|public release)\b/i;
 const technicalReviewPattern = /\b(source control|runtime|project truth|test|regression|documentation|docs|frontend|backend|qa|typecheck|lint|local commit|commit(?:ted)?|dirty change|worktree|fixture|architecture baseline)\b/i;
+
+function withoutNegatedProtectedTerms(value) {
+  return String(value ?? "").replace(
+    /\b(?:no|not|never|without|do not|does not|is not|are not|must not|cannot|can't)\b[^.!?\n]{0,160}\b(?:production|deploy(?:ment)?|push|secret|credential|rotate|protected session|payment|billing|legal|finance|destructive|live account|real[- ]money|public release)\b[^.!?\n]*/gi,
+    "",
+  );
+}
 
 export function classifyInReviewDecisionAuthority(issue) {
   if (issue?.assigneeUserId || issue?.reviewerUserId) return "owner";
@@ -29,7 +37,7 @@ export function classifyInteractionDecisionAuthority(issue, interaction) {
     .filter(Boolean)
     .map((value) => typeof value === "string" ? value : JSON.stringify(value))
     .join("\n");
-  if (ownerDecisionPattern.test(interactionText)) return "owner";
+  if (interactionOwnerDecisionPattern.test(withoutNegatedProtectedTerms(interactionText))) return "owner";
   if (technicalReviewPattern.test(interactionText)) return "technical_reviewer";
   return classifyInReviewDecisionAuthority(issue);
 }
@@ -51,6 +59,15 @@ export function reserveTechnicalReviewRecovery(issue, state, { maxRecoveries = 3
   state.count += 1;
   state.projectKeys.add(projectKey);
   return true;
+}
+
+export function technicalReviewRecoveryPriority(issue) {
+  const title = String(issue?.title ?? "");
+  if (issue?.originKind === "routine_execution" || /\b(?:Continuation Watchdog|Autonomy Governor|Longevity Doctor)\b/i.test(title)) return 0;
+  if (/\bSource Control(?: Closure)?\b/i.test(title)) return 1;
+  if (/\b(?:runtime|test|qa|project truth|architecture|frontend|backend|documentation|docs)\b/i.test(title)) return 2;
+  if (/\bReview productivity\b/i.test(title)) return 4;
+  return 3;
 }
 
 function issueHref(issue) {

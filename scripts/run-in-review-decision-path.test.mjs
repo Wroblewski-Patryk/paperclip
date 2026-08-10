@@ -9,6 +9,7 @@ import {
   isMisroutedTechnicalInteraction,
   resolutionActionForTechnicalInteraction,
   reserveTechnicalReviewRecovery,
+  technicalReviewRecoveryPriority,
 } from "./lib/in-review-decision-path.mjs";
 
 test("board-owned in_review issue without typed path is not treated as structured", () => {
@@ -56,6 +57,30 @@ test("interaction-level production or push request remains owner-gated", () => {
   const issue = { title: "Autonomy Governor", status: "in_review" };
   const interaction = { status: "pending", payload: { prompt: "Push and deploy this commit to production?" } };
   assert.equal(classifyInteractionDecisionAuthority(issue, interaction), "owner");
+});
+
+test("generic approve labels do not turn a technical local commit into an owner decision", () => {
+  const issue = { title: "11 Innovation: Continuation Watchdog", originKind: "routine_execution" };
+  const interaction = {
+    status: "pending",
+    createdByAgentId: "55555555-5555-4555-8555-555555555555",
+    title: "Review completion-evidence fix",
+    payload: { prompt: "Review the focused regression test and local commit.", acceptLabel: "Approve" },
+  };
+  assert.equal(classifyInteractionDecisionAuthority(issue, interaction), "technical_reviewer");
+  assert.equal(isMisroutedTechnicalInteraction(issue, interaction), true);
+});
+
+test("negative protected-action boilerplate does not block a local source-control review", () => {
+  const issue = { title: "[Featherly][Source Control] Commit focused logout coverage test" };
+  const interaction = {
+    status: "pending",
+    createdByAgentId: "55555555-5555-4555-8555-555555555555",
+    title: "Approve focused logout-test commit",
+    payload: { detailsMarkdown: "Focused Laravel tests passed. No push or deployment is requested." },
+  };
+  assert.equal(classifyInteractionDecisionAuthority(issue, interaction), "technical_reviewer");
+  assert.equal(isMisroutedTechnicalInteraction(issue, interaction), true);
 });
 
 test("pending typed interaction suppresses duplicate in_review wait repair", () => {
@@ -127,4 +152,11 @@ test("technical recovery is bounded to one issue per project and three projects 
   assert.equal(reserveTechnicalReviewRecovery({ id: "c", projectId: "p2" }, state), true);
   assert.equal(reserveTechnicalReviewRecovery({ id: "d", projectId: "p3" }, state), true);
   assert.equal(reserveTechnicalReviewRecovery({ id: "e", projectId: "p4" }, state), false);
+});
+
+test("technical recovery prioritizes stuck control routines and source-control closure over generic reviews", () => {
+  assert.equal(technicalReviewRecoveryPriority({ title: "11 Innovation: Continuation Watchdog", originKind: "routine_execution" }), 0);
+  assert.equal(technicalReviewRecoveryPriority({ title: "[Featherly][Source Control] Commit focused test" }), 1);
+  assert.equal(technicalReviewRecoveryPriority({ title: "[Soar][QA] Verify route" }), 2);
+  assert.equal(technicalReviewRecoveryPriority({ title: "Review productivity for LUC-1" }), 4);
 });

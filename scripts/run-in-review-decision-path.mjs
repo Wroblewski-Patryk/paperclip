@@ -14,6 +14,7 @@ import {
   isMisroutedTechnicalInteraction,
   resolutionActionForTechnicalInteraction,
   reserveTechnicalReviewRecovery,
+  technicalReviewRecoveryPriority,
 } from "./lib/in-review-decision-path.mjs";
 import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
 
@@ -82,7 +83,13 @@ const candidates = [];
 const suppressed = [];
 const technicalRecoveryState = { count: 0, projectKeys: new Set() };
 
-for (const issue of issues) {
+const prioritizedIssues = [...issues].sort((left, right) =>
+  technicalReviewRecoveryPriority(left) - technicalReviewRecoveryPriority(right)
+  || Date.parse(right.updatedAt ?? 0) - Date.parse(left.updatedAt ?? 0)
+  || String(left.identifier ?? "").localeCompare(String(right.identifier ?? ""), undefined, { numeric: true })
+);
+
+for (const issue of prioritizedIssues) {
   if (terminalStatuses.has(issue.status) || issue.status !== "in_review") continue;
   const [comments, interactions, approvals] = await Promise.all([
     request("GET", `/api/issues/${issue.id}/comments?order=desc&limit=24`)
