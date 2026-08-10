@@ -7,8 +7,12 @@ import {
 } from "./lib/softwarehouse-routine-gates.mjs";
 import {
   buildInReviewDecisionInteraction,
+  classifyInReviewDecisionAuthority,
   findPendingStructuredDecisionInteraction,
   hasStructuredInReviewDecisionPath,
+  isMisroutedTechnicalInteraction,
+  resolutionActionForTechnicalInteraction,
+  reserveTechnicalReviewRecovery,
 } from "./lib/in-review-decision-path.mjs";
 import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
 
@@ -75,6 +79,7 @@ try {
 const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean));
 const candidates = [];
 const suppressed = [];
+const technicalRecoveryState = { count: 0, projectKeys: new Set() };
 
 for (const issue of issues) {
   if (terminalStatuses.has(issue.status) || issue.status !== "in_review") continue;
@@ -89,8 +94,32 @@ for (const issue of issues) {
       .then(approvalRows)
       .catch(() => []),
   ]);
+  const pendingInteraction = findPendingStructuredDecisionInteraction(interactions);
+  const decisionAuthority = classifyInReviewDecisionAuthority(issue);
+  if (!liveIssueIds.has(issue.id) && isMisroutedTechnicalInteraction(issue, pendingInteraction)) {
+    if (!reserveTechnicalReviewRecovery(issue, technicalRecoveryState)) {
+      suppressed.push({
+        action: "suppressed_bounded_technical_recovery",
+        identifier: issue.identifier,
+        issueId: issue.id,
+        title: issue.title,
+        projectId: issue.projectId ?? null,
+      });
+      continue;
+    }
+    candidates.push({
+      action: apply ? "cancel_misrouted_technical_interaction" : "would_cancel_misrouted_technical_interaction",
+      identifier: issue.identifier,
+      issueId: issue.id,
+      title: issue.title,
+      decisionAuthority,
+      interactionId: pendingInteraction.id,
+      interactionKind: pendingInteraction.kind,
+      nextStatus: "todo",
+    });
+    continue;
+  }
   if (hasStructuredInReviewDecisionPath(issue, { liveIssueIds, interactions, approvals })) {
-    const pendingInteraction = findPendingStructuredDecisionInteraction(interactions);
     if (approvals.some((approval) => approval.status === "pending")) {
       const pendingApproval = approvals.find((approval) => approval.status === "pending");
       suppressed.push({
@@ -124,6 +153,27 @@ for (const issue of issues) {
     });
     continue;
   }
+  if (decisionAuthority === "technical_reviewer") {
+    if (!reserveTechnicalReviewRecovery(issue, technicalRecoveryState)) {
+      suppressed.push({
+        action: "suppressed_bounded_technical_recovery",
+        identifier: issue.identifier,
+        issueId: issue.id,
+        title: issue.title,
+        projectId: issue.projectId ?? null,
+      });
+      continue;
+    }
+    candidates.push({
+      action: apply ? "return_technical_review_to_todo" : "would_return_technical_review_to_todo",
+      identifier: issue.identifier,
+      issueId: issue.id,
+      title: issue.title,
+      decisionAuthority,
+      nextStatus: "todo",
+    });
+    continue;
+  }
   const interaction = buildInReviewDecisionInteraction(issue);
   candidates.push({
     action: apply ? "create_request_confirmation_interaction" : "would_create_request_confirmation_interaction",
@@ -143,6 +193,20 @@ const applied = [];
 if (apply) {
   for (const candidate of candidates) {
     try {
+      if (["cancel_misrouted_technical_interaction", "return_technical_review_to_todo"].includes(candidate.action)) {
+        if (candidate.interactionId) {
+          const resolutionAction = resolutionActionForTechnicalInteraction(candidate.interactionKind);
+          await request("POST", `/api/issues/${candidate.issueId}/interactions/${candidate.interactionId}/${resolutionAction}`, {
+            reason: "Technical, reversible review was misrouted to the board. Return it to the autonomous specialist/reviewer lane; owner gates remain fail-closed.",
+          });
+        }
+        const updated = await request("PATCH", `/api/issues/${candidate.issueId}`, { status: candidate.nextStatus });
+        applied.push({
+          ...candidate,
+          resultingStatus: updated?.status ?? candidate.nextStatus,
+        });
+        continue;
+      }
       const created = await request("POST", `/api/issues/${candidate.issueId}/interactions`, candidate.interactionRequest);
       applied.push({
         ...candidate,

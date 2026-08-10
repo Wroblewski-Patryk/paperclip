@@ -64,6 +64,21 @@ or exposes waste.
   questionnaires or proof-category gates. A pending interaction keeps the root
   in review, unavailable proof records its named owner and exact action, and a
   completed root gate lets Paperclip auto-resume its dependents.
+- Missing PHP, Node, package-manager, database, browser, or container runtime
+  is first a self-service environment prerequisite. Use the canonical project
+  runtime preflight and start Docker Desktop on demand when containers are
+  required. Ask the owner only when installation/elevation, licensing, paid
+  resources, protected credentials, production, destructive action, or a
+  material product choice is actually required.
+- Codex-sandboxed agents parse the runtime preflight JSON and invoke its exact
+  executable from their approved shell. They must not use a nested Node child
+  process to launch the runtime, because the sandbox can reject that with
+  `EPERM` even when the executable itself is permitted.
+- Reversible local runtime selection, focused testing, documentation review,
+  and local commit classification belong to the technical specialist/reviewer
+  lane. Do not convert them into board interactions. Push, deployment,
+  credential rotation, production mutation, destructive changes, and owner
+  acceptance remain fail-closed.
 
 ## PDCA Flow
 

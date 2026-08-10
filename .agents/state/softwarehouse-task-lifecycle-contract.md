@@ -1,6 +1,6 @@
 # Softwarehouse Task Lifecycle Contract
 
-Last updated: 2026-07-10
+Last updated: 2026-08-10
 
 Purpose: define how agents should create, update, decompose, close, and learn
 from Paperclip tasks/issues in the context of the whole organization.
@@ -73,7 +73,8 @@ text. The expected primitive depends on the situation:
 | Need to know current work | List/get issue, read parent/children/comments/documents/work products. |
 | Starting assigned executable work | Checkout the issue so `in_progress` reflects a real active run. |
 | Need a specialist slice | Create a child issue with parent, goal/project, assignee, expected evidence, and return condition. |
-| Need owner/AIA choice | Create an interaction (`suggest_tasks`, `ask_user_questions`, or `request_confirmation`) rather than blocking silently. |
+| Need a reversible technical choice | Resolve from repository/runtime evidence or route a specialist/reviewer; do not create a board interaction. |
+| Need a material owner/AIA choice | Create an interaction (`suggest_tasks`, `ask_user_questions`, or `request_confirmation`) rather than blocking silently. |
 | Need to report progress | Add a concise issue comment with facts, evidence links, and next step. |
 | Need durable plan/proof | Upsert an issue document or attach a work product/artifact. |
 | Need review/acceptance | Move to `in_review` only with a structured handoff packet and a real Paperclip waiting primitive. |
@@ -91,6 +92,40 @@ bounded, safe, and requires no protected mutation, credential, budget, or owner
 choice, create the child directly through the permitted reporting route. Use a
 typed interaction only when the board or owner must make a real decision that
 changes scope or authority.
+
+## Runtime Self-Service And Decision Authority
+
+Missing local tooling is an operational prerequisite, not automatically an
+owner decision. Before asking the board which runtime to use, an agent must:
+
+1. inspect the project contract and installed capabilities;
+2. run `node scripts/ensure-project-runtime-capabilities.mjs` from the
+   Softwarehouse root with the assigned project root and required capability,
+   parse its JSON result, and invoke the returned executable directly from the
+   agent shell;
+3. prefer an installed direct runtime when sufficient;
+4. when the project requires containers, use `--require-docker --start-docker`
+   so Docker Desktop is started on demand, then verify the daemon by readback;
+5. escalate only when installation, elevation, licensing, paid resources,
+   secrets, production mutation, or another genuinely protected action is
+   required.
+
+Examples:
+
+- PHP missing from inherited `PATH` but installed through WinGet: discover and
+  use the exact executable autonomously. In a Codex sandbox, do not ask the
+  Node helper to spawn PHP; use PowerShell `& $runtime.phpExecutable ...` so
+  the approved shell launches it directly;
+- Docker CLI present and daemon stopped: start Docker Desktop on demand and
+  wait for `docker info` to succeed;
+- focused local test/commit classification: technical reviewer decision;
+- push, deploy, credential rotation, destructive cleanup, material product
+  behavior, money, privacy, legal, or owner acceptance: owner decision.
+
+An agent-created interaction for a clearly reversible technical review is a
+misroute. The in-review decision-path janitor may cancel that interaction and
+return the issue to `todo` for autonomous specialist handling. It must never do
+this for a board-owned or protected decision.
 
 ## Structured `in_review` Handoff Packet
 

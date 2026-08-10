@@ -972,3 +972,37 @@ Current evidence:
   the shared packet while Teachar was still reviewing/editing it. Future
   maintenance closure must reserve the repository writer before staging and
   read back the exact committed diff before reopening.
+
+## 2026-08-10 - Technical choices misrouted to the board stall the factory
+
+Observed pattern: agents converted missing PHP, stopped Docker, focused local
+tests, project-truth review, and local commit classification into owner
+interactions. The generic in-review janitor then treated every pending
+interaction as a valid human wait path, so dozens of reversible technical
+choices became permanent board bottlenecks.
+
+Standing rule:
+
+- Missing local tooling is first a self-service runtime prerequisite. Discover
+  installed runtimes outside inherited `PATH`; start Docker Desktop on demand
+  only when containers are required and prove daemon readiness by readback.
+- Reversible local runtime, test, docs/project-truth, QA, and local commit
+  choices belong to a technical specialist/reviewer.
+- Only material product scope, push/deploy, secrets or credential rotation,
+  production/live accounts, destructive changes, money/legal/privacy, and
+  owner acceptance become owner interactions.
+- The in-review janitor may resolve agent-created technical misroutes and
+  return the issue to `todo`; it must preserve board-owned and protected gates.
+
+Current evidence:
+
+- Managed PHP 8.4.24 with Laravel/PHPUnit extensions is available inside the
+  ignored Paperclip runtime area, independently of the removed Laragon
+  environment and executable from agent sandboxes.
+- `ensure-project-runtime-capabilities.mjs` prefers managed PHP, discovers
+  WinGet PHP without PATH inheritance as fallback, and supports bounded Docker
+  Desktop start/readback.
+- The Featherly Platform Manager used the managed runtime and passed the exact
+  AdminLoginTest: 3 tests, 18 assertions, with no application source mutation.
+- Decision-authority and runtime tests pass; the entry instruction was synced
+  to all 39 agents.

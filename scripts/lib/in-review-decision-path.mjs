@@ -6,6 +6,41 @@ import {
 
 export { reviewInteractionKinds };
 
+const ownerDecisionPattern = /\b(owner decision|board decision|owner qa|acceptance|approve|authorization|provision|production|deploy(?:ment)?|push|secret|credential|rotate|security incident|protected session|payment|billing|legal|finance|destructive|live account|real[- ]money|public release)\b/i;
+const technicalReviewPattern = /\b(source control|runtime|project truth|test|regression|documentation|docs|frontend|backend|qa|typecheck|lint|local commit|fixture|architecture baseline)\b/i;
+
+export function classifyInReviewDecisionAuthority(issue) {
+  if (issue?.assigneeUserId || issue?.reviewerUserId) return "owner";
+  const title = String(issue?.title ?? "");
+  if (ownerDecisionPattern.test(title)) return "owner";
+  if (technicalReviewPattern.test(title)) return "technical_reviewer";
+  const text = [issue?.description, issue?.expectedOutcome]
+    .filter(Boolean)
+    .join("\n");
+  if (ownerDecisionPattern.test(text)) return "owner";
+  if (technicalReviewPattern.test(text)) return "technical_reviewer";
+  return "owner";
+}
+
+export function isMisroutedTechnicalInteraction(issue, interaction) {
+  if (!interaction || interaction.status !== "pending") return false;
+  if (classifyInReviewDecisionAuthority(issue) !== "technical_reviewer") return false;
+  return Boolean(interaction.createdByAgentId)
+    || String(interaction.idempotencyKey ?? "").startsWith("softwarehouse-in-review-decision-path:");
+}
+
+export function resolutionActionForTechnicalInteraction(kind) {
+  return kind === "ask_user_questions" ? "cancel" : "reject";
+}
+
+export function reserveTechnicalReviewRecovery(issue, state, { maxRecoveries = 3 } = {}) {
+  const projectKey = issue?.projectId ?? `issue:${issue?.id ?? "unknown"}`;
+  if (state.count >= maxRecoveries || state.projectKeys.has(projectKey)) return false;
+  state.count += 1;
+  state.projectKeys.add(projectKey);
+  return true;
+}
+
 function issueHref(issue) {
   if (!issue?.identifier) return null;
   return `/LUC/issues/${issue.identifier}`;
@@ -35,6 +70,9 @@ export function findPendingStructuredDecisionInteraction(interactions) {
 }
 
 export function buildInReviewDecisionInteraction(issue) {
+  if (classifyInReviewDecisionAuthority(issue) !== "owner") {
+    throw new Error("Technical review must be routed to an agent reviewer, not converted into a board interaction.");
+  }
   const identifier = issue.identifier ?? issue.id;
   const decisionOwner = issue.assigneeUserId
     ? `board user \`${issue.assigneeUserId}\``

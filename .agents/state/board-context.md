@@ -1,6 +1,17 @@
 # Board Context
 
-Last updated: 2026-08-08
+Last updated: 2026-08-10
+
+## 2026-08-10 Runtime Self-Service And Paperclip Ownership
+
+The owner clarified that missing local development tooling must not become a
+routine owner question. Paperclip agents should discover installed runtimes,
+start Docker Desktop on demand when an assigned application genuinely needs
+containers, verify readiness by readback, and continue the application task.
+Codex may repair the Softwarehouse capability and policy, but should not perform
+the application's test, commit, or delivery work in place of a capable
+Paperclip agent. Protected production, secrets, destructive, financial, legal,
+privacy, and material product decisions remain owner-gated.
 
 ## 2026-08-08 Stabilization Before Further Scale
 

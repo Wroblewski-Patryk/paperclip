@@ -1,6 +1,6 @@
 # Paperclip Project Journal
 
-Last updated: 2026-08-08
+Last updated: 2026-08-10
 
 This is the active journal of durable conversation decisions and meaningful
 operating-memory changes. It is not a transcript, live dashboard, issue log,
@@ -18,6 +18,26 @@ cannot override current truth, decisions, product contracts, or fresh live
 evidence.
 
 ## Entries
+
+### 2026-08-10 - Runtime self-service and technical decision routing
+
+- Conversation decision: Codex repairs Paperclip's reusable capability, while
+  Paperclip agents retain ownership of application tests, commits, and delivery.
+- Laragon removal explained the missing PHP runtime: Composer remained, but its
+  launcher referenced a nonexistent `php`. A managed PHP 8.4.24 CLI with the
+  Laravel/PHPUnit extensions now lives inside Paperclip's ignored runtime area,
+  independently of Laragon and inherited `PATH`.
+- A project-runtime helper prefers that sandbox-executable managed PHP,
+  discovers WinGet PHP as fallback, and can start Docker Desktop on demand with
+  bounded daemon readback.
+- Paperclip itself proved the repaired Featherly lane: the exact AdminLoginTest
+  passed 3 tests and 18 assertions with a process-scoped, non-persisted APP_KEY.
+- The in-review decision path now distinguishes reversible technical review
+  from protected owner decisions. Agent-created technical interactions are
+  returned to autonomous specialist handling; push/deploy, secrets,
+  production, destructive action, money/legal/privacy, material product scope,
+  and owner acceptance remain fail-closed.
+- The updated bootstrap instruction was synchronized to all 39 managed agents.
 
 ### 2026-08-08 - Stabilization program and first repairs
 
