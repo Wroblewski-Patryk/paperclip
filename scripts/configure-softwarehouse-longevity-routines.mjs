@@ -119,6 +119,8 @@ const specs = [
       "Run `node scripts/run-softwarehouse-longevity-doctor.mjs --apply` before any narrative investigation.",
       "Treat its structured findings and repair actions as the complete scope for this cycle; do not perform a broad repository or documentation audit.",
       "Fix at most one concrete control-plane cause, verify it narrowly, record the disposition, and stop.",
+      "The recurring Doctor issue is a reusable scheduler envelope, not the parent of long-lived repair work. Route any unresolved repair as a separate linked issue, but never add it to this routine issue's blockedByIssueIds.",
+      "After each cycle, return the recurring Doctor issue to `todo` with the cycle disposition so the next hourly run can reuse it; do not leave it `blocked` or `in_review` behind a follow-up.",
       "If the API is unreachable or restartRequired is true, only preserve the generated safe restart request; never restart production apps or access secrets.",
       "Command: `node scripts/run-softwarehouse-longevity-doctor.mjs --apply`.",
     ].join("\n"),
