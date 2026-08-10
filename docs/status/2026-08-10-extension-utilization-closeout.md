@@ -28,7 +28,7 @@ capabilities with an average utilization score of 100%:
 | Native supervision | active | persisted cycles, findings, safeguards, evidence references, and 16 shadow comparisons |
 | Autonomy decision engine | calibrating | 25 decisions, RECOMMEND envelope, active constraint, 22 distinct samples, one evaluator class |
 | ProductDelivery ledger | active | 5 deliveries; 4 outcome-accepted and 1 review-accepted |
-| Roost portfolio bridge | active | versioned projection available, non-stale, conflict-free, with 3 items |
+| Roost portfolio bridge | active | versioned projection available, non-stale, and conflict-free; an earlier healthy source snapshot projected 3 items |
 | Team catalog | active | 5 installed catalog entries |
 | Company artifacts | active | task-grouped board view has live stacks and pagination |
 | Architecture/project truth | active | graph and project-truth pipeline is wired into control operation |
@@ -43,6 +43,12 @@ execution requires a bounded canary authorization or later evidence-based
 graduation. Zero ungated executions is therefore correct fail-closed behavior,
 while decisions, constraints, evaluator samples, and reconciliation paths prove
 that the mechanism is used.
+
+The bridge utilization gate intentionally does not require a non-empty `items`
+array: that array is derived from the previous control-tick snapshot, so using
+it to admit the next control tick would create a circular failure after any
+fail-closed tick. ProductDelivery separately proves live product data; the
+bridge gate proves source availability, freshness, and conflict state.
 
 Supervision shadow comparisons currently include `attention_required` results.
 Those are retained as evidence of disagreement and work for the supervision

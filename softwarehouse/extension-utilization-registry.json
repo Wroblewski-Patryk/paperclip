@@ -59,7 +59,7 @@
       "lifecycle": "active",
       "requiredFiles": ["server/src/services/roost-bridge-portfolio.ts", "server/src/services/roost-product-map-publisher.ts", "server/src/services/roost-product-map-outbox.ts", "scripts/bootstrap-roost-product-map-publisher.ts"],
       "integrationChecks": [{"file": "server/src/index.ts", "patterns": ["roost-product-map-publisher", "portfolio-projection/v1"]}],
-      "runtimeProbes": [{"path": "/api/companies/{companyId}/softwarehouse/portfolio-projection/v1", "shape": "object", "equals": {"stale": false, "conflictState": "none", "sourceState": "available"}, "pathMinimums": {"items.length": 1}}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/softwarehouse/portfolio-projection/v1", "shape": "object", "equals": {"stale": false, "conflictState": "none", "sourceState": "available"}}],
       "proofFiles": ["server/src/__tests__/roost-product-map-publisher.test.ts", "server/src/__tests__/roost-product-map-outbox.test.ts", "scripts/verify-roost-product-map-contract.ts"]
     },
     {

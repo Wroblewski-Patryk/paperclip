@@ -33,4 +33,7 @@ test("the registry and recurring control tick enforce complete capabilities", as
   assert.ok(registry.capabilities.length >= 10);
   assert.match(controlTick, /name: "extensionUtilization"/);
   assert.match(controlTick, /scripts\/audit-extension-utilization\.mjs/);
+  const bridge = registry.capabilities.find((capability) => capability.id === "roost_portfolio_bridge");
+  assert.equal(bridge.runtimeProbes[0].pathMinimums, undefined,
+    "The bridge utilization probe must not depend on items derived from the previous control tick");
 });
