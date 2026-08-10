@@ -74,6 +74,8 @@
     "softwarehouse:autonomy-graduation": "node scripts/evaluate-autonomy-graduation.mjs",
     "softwarehouse:autonomous-cycle": "node scripts/run-autonomous-development-cycle.mjs",
     "softwarehouse:autonomy-governor": "node scripts/configure-autonomy-governor.mjs",
+    "softwarehouse:goal-alignment": "node scripts/audit-softwarehouse-goal-alignment.mjs",
+    "softwarehouse:goal-alignment:apply": "node scripts/audit-softwarehouse-goal-alignment.mjs --apply",
     "softwarehouse:control-loop": "node scripts/run-autonomy-governor.mjs",
     "softwarehouse:control-tick": "node scripts/run-softwarehouse-control-tick.mjs",
     "softwarehouse:queue-reconciler": "node scripts/run-issue-queue-reconciler.mjs",

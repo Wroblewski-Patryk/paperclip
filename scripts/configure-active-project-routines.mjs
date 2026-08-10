@@ -153,6 +153,7 @@ if (apply && activeRunCount > 0 && !allowActiveRuns) {
 
 const goalsByTitle = new Map(goals.map((goal) => [goal.title, goal]));
 const routinesByTitle = new Map(routines.map((routine) => [routine.title, routine]));
+const portfolioGoal = goalsByTitle.get("11 Innovation: Portfolio Delivery and Promotion to Products & Services");
 const configured = [];
 const skipped = [];
 
@@ -181,8 +182,17 @@ for (const projectName of softwarehouseActiveApplicationProjectNames) {
     ].join("\n"),
     level: "team",
     status: "active",
+    parentId: portfolioGoal?.id ?? null,
     ownerAgentId: pm?.id ?? project.leadAgentId ?? null,
   });
+
+  const maturationGoal = goalsByTitle.get(`11 Innovation: ${projectName} Product Maturation and Sale Readiness`);
+  const desiredGoalIds = [goal.id, maturationGoal?.id].filter(Boolean);
+  const currentGoalIds = project.goalIds ?? (project.goalId ? [project.goalId] : []);
+  if (currentGoalIds.length !== desiredGoalIds.length || currentGoalIds.some((id) => !desiredGoalIds.includes(id))) {
+    if (apply) await request("PATCH", `/api/projects/${project.id}`, { goalIds: desiredGoalIds });
+    configured.push({ project: projectName, projectGoalIds: desiredGoalIds, applied: apply });
+  }
 
   const specs = activeApplicationRoutineSpecs.filter((routine) => routine.title.startsWith(`[${projectName}]`));
   for (const spec of specs) {

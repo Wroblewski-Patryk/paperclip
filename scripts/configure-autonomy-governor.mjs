@@ -155,7 +155,8 @@ async function main() {
   const cto = byNameAlias(agents, ["CTO Architect", "09 CTO (Chief Technology Officer)"]);
   const soarPm = byNameAlias(agents, ["Soar Project Manager", "11 SPM (Soar Product Manager)"]);
   const governorOwner = portfolio ?? innovations ?? cto ?? soarPm ?? agents.find((agent) => agent.role === "pm") ?? null;
-  const goal = byTitle(goals, "Softwarehouse operating cadence")
+  const goal = byTitle(goals, "11 Innovation: Softwarehouse Long-Term Autonomy and Self-Maintenance")
+    ?? byTitle(goals, "Softwarehouse operating cadence")
     ?? byTitle(goals, "Soar: sellable or personally excellent product");
   if (!operating || !soar) throw new Error("Required projects are missing. Run the softwarehouse bootstrap/configuration scripts first.");
   if (!governorOwner) throw new Error("No Portfolio/Innovation/CTO/Soar PM agent found.");

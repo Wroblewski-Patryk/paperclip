@@ -77,6 +77,18 @@ const stepOutputMaxBufferBytes = Number(
 
 const steps = [
   {
+    name: "goalAlignment",
+    command: ["scripts/audit-softwarehouse-goal-alignment.mjs"],
+    summary: (data) => ({
+      activeRunCount: data.activeRunCount ?? null,
+      missingGoals: data.counts?.missingGoals ?? null,
+      projectUpdatesNeeded: data.counts?.projectUpdates ?? null,
+      routineUpdatesNeeded: data.counts?.routineUpdates ?? null,
+      issueUpdatesNeeded: data.counts?.issueUpdates ?? null,
+      duplicateGoalUpdatesNeeded: data.counts?.goalUpdates ?? null,
+    }),
+  },
+  {
     name: "liveRunJanitor",
     command: ["scripts/run-live-run-janitor.mjs", "--apply"],
     timeoutMs: liveRunJanitorStepTimeoutMs,

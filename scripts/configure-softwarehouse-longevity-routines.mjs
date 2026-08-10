@@ -99,7 +99,7 @@ const aiAgentDevelopment = byName(agents, "06 AID (AI Agent Development Partner)
 
 const goalsByTitle = new Map(goals.map((goal) => [goal.title, goal]));
 const longevityGoal = await ensureGoal(company.id, goalsByTitle, {
-  title: "Softwarehouse long-term autonomy and self-maintenance",
+  title: "11 Innovation: Softwarehouse Long-Term Autonomy and Self-Maintenance",
   description: [
     "Keep the local LuckySparrow Software House alive for years: snapshots, doctor/watchdog checks, learning loop, project lifecycle hygiene, and upgrade-drift awareness.",
     "This goal does not permit production mutation, secret disclosure, paid account changes, or destructive repository actions.",
