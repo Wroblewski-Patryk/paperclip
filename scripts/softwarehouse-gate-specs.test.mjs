@@ -2530,6 +2530,13 @@ test("autonomy governor excludes runnable issues held by active subtree pause co
   assert.match(source, /heldRunnableIssues: activeTreeHoldByRunnableIssueId\.size/);
 });
 
+test("project ownership assignment ignores project-truth rollover routing containers", async () => {
+  const source = await readFile("scripts/run-project-ownership-assignment.mjs", "utf8");
+
+  assert.match(source, /projectTruthRolloverParentMarker/);
+  assert.match(source, /!String\(issue\.description \?\? ""\)\.includes\(projectTruthRolloverParentMarker\)/);
+});
+
 test("live-run janitor falls back to API reads when direct database is unavailable", async () => {
   const source = await readFile("scripts/run-live-run-janitor.mjs", "utf8");
 

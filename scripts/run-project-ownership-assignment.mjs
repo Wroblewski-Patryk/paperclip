@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 import { resolveLocalCodexCommand } from "./lib/local-codex-command.mjs";
+import { projectTruthRolloverParentMarker } from "./lib/project-truth-gap-dispatcher.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -293,6 +294,7 @@ const runnableUnowned = issues
     && !terminalStatuses.has(issue.status)
     && !issue.assigneeAgentId
     && !issue.assigneeUserId
+    && !String(issue.description ?? "").includes(projectTruthRolloverParentMarker)
   )
   .sort(sortIssues);
 
