@@ -1,12 +1,16 @@
 {
+  "observedAt": "2026-08-10T03:29:58.013Z",
   "generatedAt": "2026-08-03T14:48:09.744Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "repository": {
-    "headSha": "7a3b4c941342079ed651212df3944aecd86e1b91",
+    "headSha": "7dead1c7826f7185e199909af9de7df5cd1d6337",
     "upstreamSha": null,
     "behind": null,
-    "ahead": null
+    "ahead": null,
+    "aheadPaths": [],
+    "controlPlaneOnlyAhead": false,
+    "releaseSha": "7dead1c7826f7185e199909af9de7df5cd1d6337"
   },
   "deployment": {
     "deployedSha": null,
@@ -16,7 +20,7 @@
   "gates": [
     {
       "gate": "source_freshness",
-      "status": "fresh",
+      "status": "stale",
       "evidence": "2026-08-03T14:48:09.744Z",
       "requiredFor": "current project truth rather than historical evidence"
     },
@@ -24,10 +28,13 @@
       "gate": "release_branch_alignment",
       "status": "unknown",
       "evidence": {
-        "headSha": "7a3b4c941342079ed651212df3944aecd86e1b91",
+        "headSha": "7dead1c7826f7185e199909af9de7df5cd1d6337",
         "upstreamSha": null,
         "behind": null,
-        "ahead": null
+        "ahead": null,
+        "aheadPaths": [],
+        "controlPlaneOnlyAhead": false,
+        "releaseSha": "7dead1c7826f7185e199909af9de7df5cd1d6337"
       },
       "requiredFor": "an exact source release candidate"
     },
@@ -35,7 +42,8 @@
       "gate": "deployment_identity",
       "status": "unknown",
       "evidence": {
-        "sourceSha": "7a3b4c941342079ed651212df3944aecd86e1b91",
+        "sourceSha": "7dead1c7826f7185e199909af9de7df5cd1d6337",
+        "releaseSha": "7dead1c7826f7185e199909af9de7df5cd1d6337",
         "deployedSha": null
       },
       "requiredFor": "proof that the owner-visible runtime matches source"

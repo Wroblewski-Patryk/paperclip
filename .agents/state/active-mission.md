@@ -1,5 +1,26 @@
 # Active Mission
 
+## 2026-08-10 - Quota-Hold Readiness Hardened
+
+- Provider quota is exhausted, so the active posture is fail-closed read-only
+  supervision: no new Paperclip issues and no agent dispatch during this
+  maintenance pass.
+- Paperclip `0.3.1` is healthy after a controlled restart on strict ports
+  `3200`/`54329`. Extension utilization is 12/12 at 100%; settings,
+  instructions, goals, boundaries, product intent, and documentation audits
+  pass.
+- Quota holds now leave failed-run evidence but return agents to `idle` rather
+  than false `error`. Subscription telemetry with zero billed cost is accepted
+  when a linked cost event exists. Windows strict-port inspection no longer
+  requires privileged CIM.
+- The fresh quota-hold snapshot preserves Soar/Roost/Featherly truth and Roost
+  projection with zero task creation and zero dispatch. A normal control tick
+  must replace it after quota recovery.
+- Do not claim graduation: 11/125 recent completions still lack typed evidence,
+  5 supervision findings remain active, and the productive-cycle freshness
+  check is not green. See
+  `docs/status/2026-08-10-holistic-readiness-hardening.md`.
+
 ## 2026-08-08 - Stabilize And Restart Constructive Delivery
 
 - The active mission is stabilization before scale: no upstream Paperclip

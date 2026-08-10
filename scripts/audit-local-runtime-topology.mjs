@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { listCanonicalComposeOneoffs } from "./lib/docker-compose-oneoffs.mjs";
+import { readWindowsStrictPortListeners } from "./lib/windows-runtime-inventory.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const appsRoot = path.resolve(repoRoot, "..");
@@ -85,18 +86,24 @@ async function readDevServiceRecords() {
 }
 
 function readWindowsPaperclipWatchers() {
-  if (process.platform !== "win32") return [];
+  if (process.platform !== "win32") return { available: true, rows: [] };
   const escapedRoot = repoRoot.replaceAll("'", "''");
   const source = `
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $root = '${escapedRoot}'
 $rows = @()
-$candidates = Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" |
-  Where-Object {
-    $_.CommandLine -like "*$root*" -and
-    ($_.CommandLine -match 'dev-watch\\.ts' -or $_.CommandLine -match 'tsx.*watch.*src[\\\\/]index\\.ts')
-  }
+try {
+  $candidates = Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction Stop |
+    Where-Object {
+      $_.CommandLine -like "*$root*" -and
+      ($_.CommandLine -match 'dev-watch\\.ts' -or $_.CommandLine -match 'tsx.*watch.*src[\\\\/]index\\.ts')
+    }
+} catch {
+  [pscustomobject]@{ available = $false; reason = $_.Exception.Message; rows = @() } |
+    ConvertTo-Json -Depth 4 -Compress
+  exit 0
+}
 foreach ($candidate in $candidates) {
   $ancestorPids = @()
   $parentId = [int]$candidate.ParentProcessId
@@ -115,7 +122,8 @@ foreach ($candidate in $candidates) {
     ancestorPids = $ancestorPids
   }
 }
-ConvertTo-Json -InputObject @($rows) -Compress
+[pscustomobject]@{ available = $true; reason = $null; rows = @($rows) } |
+  ConvertTo-Json -Depth 6 -Compress
 `;
   const encoded = Buffer.from(source, "utf16le").toString("base64");
   const output = execFileSync(
@@ -123,52 +131,13 @@ ConvertTo-Json -InputObject @($rows) -Compress
     ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
     { encoding: "utf8", windowsHide: true, maxBuffer: 1024 * 1024 },
   ).trim();
-  if (!output) return [];
+  if (!output) return { available: false, reason: "empty process inventory response", rows: [] };
   const parsed = JSON.parse(output);
-  return Array.isArray(parsed) ? parsed : [parsed];
-}
-
-function readWindowsStrictPortListeners(port) {
-  if (process.platform !== "win32") return [];
-  const escapedRoot = repoRoot.replaceAll("'", "''");
-  const source = `
-$ErrorActionPreference = 'Stop'
-$ProgressPreference = 'SilentlyContinue'
-$root = '${escapedRoot}'
-$rows = @()
-$connections = Get-NetTCPConnection -State Listen -LocalPort ${port} -ErrorAction Stop
-foreach ($connection in $connections) {
-  $process = Get-CimInstance Win32_Process -Filter "ProcessId = $($connection.OwningProcess)" -ErrorAction SilentlyContinue
-  if (-not $process) { continue }
-  $ancestorPids = @()
-  $parentId = [int]$process.ParentProcessId
-  $guard = 0
-  while ($parentId -gt 0 -and $guard -lt 64) {
-    $ancestorPids += $parentId
-    $parent = Get-CimInstance Win32_Process -Filter "ProcessId = $parentId" -ErrorAction SilentlyContinue
-    if (-not $parent) { break }
-    $parentId = [int]$parent.ParentProcessId
-    $guard += 1
-  }
-  $commandLine = [string]$process.CommandLine
-  $rows += [pscustomobject]@{
-    pid = [int]$process.ProcessId
-    commandLine = $commandLine
-    matchesCanonicalServer = $commandLine -like "*$root*" -and $commandLine -match 'src[\\\\/]index\\.ts'
-    ancestorPids = $ancestorPids
-  }
-}
-ConvertTo-Json -InputObject @($rows) -Compress
-`;
-  const encoded = Buffer.from(source, "utf16le").toString("base64");
-  const output = execFileSync(
-    "powershell.exe",
-    ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
-    { encoding: "utf8", windowsHide: true, maxBuffer: 1024 * 1024 },
-  ).trim();
-  if (!output) return [];
-  const parsed = JSON.parse(output);
-  return Array.isArray(parsed) ? parsed : [parsed];
+  return {
+    available: parsed?.available === true,
+    reason: typeof parsed?.reason === "string" ? parsed.reason : null,
+    rows: Array.isArray(parsed?.rows) ? parsed.rows : parsed?.rows ? [parsed.rows] : [],
+  };
 }
 
 const failures = [];
@@ -247,7 +216,14 @@ let reconciledListener = null;
 if (liveDevServices.length === 0 && devServices.length === 1 && health?.status === "ok") {
   try {
     const listeners = readWindowsStrictPortListeners(3200);
-    if (listeners.length === 1 && listeners[0].matchesCanonicalServer === true) {
+    const registeredAt = Date.parse(devServices[0].startedAt ?? "");
+    const healthStartedAt = Date.parse(health?.devServer?.lastRestartAt ?? "");
+    const registryMatchesHealth = Number.isFinite(registeredAt)
+      && Number.isFinite(healthStartedAt)
+      && registeredAt === healthStartedAt
+      && Number(devServices[0].port) === 3200
+      && normalized(devServices[0].cwd) === normalized(repoRoot);
+    if (listeners.length === 1 && listeners[0].imageName?.toLowerCase() === "node.exe" && registryMatchesHealth) {
       reconciledListener = listeners[0];
       liveDevServices = [{
         ...devServices[0],
@@ -260,6 +236,7 @@ if (liveDevServices.length === 0 && devServices.length === 1 && health?.status =
         code: "stale_paperclip_dev_service_pid_reconciled",
         stalePid: devServices[0].pid,
         listenerPid: reconciledListener.pid,
+        evidence: "unique_node_listener_plus_health_registry_start_match",
       });
     }
   } catch (error) {
@@ -275,7 +252,14 @@ if (liveDevServices.length !== 1) {
 
 let paperclipWatchers = [];
 try {
-  paperclipWatchers = readWindowsPaperclipWatchers();
+  const watcherInventory = readWindowsPaperclipWatchers();
+  paperclipWatchers = watcherInventory.rows;
+  if (!watcherInventory.available) {
+    warnings.push({
+      code: "paperclip_watcher_inventory_unavailable",
+      message: watcherInventory.reason ?? "process command-line inventory unavailable",
+    });
+  }
   const registeredServicePids = new Set(liveDevServices.flatMap((record) =>
     (record.registeredTreePids ?? [record.pid]).map(Number)
   ));

@@ -297,6 +297,62 @@ describeEmbedded("native supervision engine", () => {
     }));
   });
 
+  it("accepts zero-cost subscription telemetry when it is linked to the delivery issue", async () => {
+    const refs = await seed();
+    const [task] = await db.insert(issues).values({
+      companyId: refs.companyId,
+      projectId: refs.projectId,
+      title: "Subscription-funded delivery task",
+      status: "done",
+      originKind: "manual",
+      assigneeAgentId: refs.ownerId,
+    }).returning();
+    const [delivery] = await db.insert(productDeliveries).values({
+      companyId: refs.companyId,
+      projectId: refs.projectId,
+      title: "Subscription-funded accepted delivery",
+      problemStatement: "Zero billed cost must not erase token telemetry.",
+      decisionContract: {},
+      stage: "outcome_accepted",
+      ownerAgentId: refs.ownerId,
+    }).returning();
+    await db.insert(deliveryTasks).values({
+      companyId: refs.companyId,
+      deliveryId: delivery.id,
+      issueId: task.id,
+      role: "implementation",
+    });
+    await db.insert(productOutcomes).values({
+      companyId: refs.companyId,
+      deliveryId: delivery.id,
+      status: "accepted",
+      statement: "The subscription-funded outcome was accepted.",
+    });
+    await db.insert(costEvents).values({
+      companyId: refs.companyId,
+      agentId: refs.ownerId,
+      issueId: task.id,
+      projectId: refs.projectId,
+      provider: "openai",
+      biller: "chatgpt",
+      billingType: "subscription",
+      model: "test-model",
+      inputTokens: 1_000,
+      costCents: 0,
+      occurredAt: new Date("2026-08-04T02:00:00Z"),
+    });
+
+    const result = await nativeSupervisionEngine(db).runWatchdog(
+      refs.companyId,
+      new Date("2026-08-04T03:00:00Z"),
+    );
+
+    expect(result.checks.find((check) => check.key === "cost_telemetry")).toMatchObject({
+      count: 0,
+      status: "passed",
+    });
+  });
+
   it("reports assigned runnable work as a diagnosis constraint without auto-dispatching it", async () => {
     const refs = await seed();
     await db.insert(issues).values({

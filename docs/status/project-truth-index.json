@@ -1,12 +1,16 @@
 {
+  "observedAt": "2026-08-10T03:29:58.013Z",
   "generatedAt": "2026-08-03T14:48:09.744Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "repository": {
-    "headSha": "7a3b4c941342079ed651212df3944aecd86e1b91",
+    "headSha": "7dead1c7826f7185e199909af9de7df5cd1d6337",
     "upstreamSha": null,
     "behind": null,
-    "ahead": null
+    "ahead": null,
+    "aheadPaths": [],
+    "controlPlaneOnlyAhead": false,
+    "releaseSha": "7dead1c7826f7185e199909af9de7df5cd1d6337"
   },
   "deployment": {
     "deployedSha": null,
@@ -16,18 +20,18 @@
   "status": "gaps_require_routing",
   "counts": {
     "appCompletionItems": 492,
-    "eventChains": 8,
-    "incompleteEventChains": 1,
+    "eventChains": 7,
+    "incompleteEventChains": 2,
     "runtimeFindings": 0,
     "criticalRuntimeFindings": 0,
-    "appCompletionGaps": 461,
-    "indexedAppCompletionGaps": 200,
+    "appCompletionGaps": 10,
+    "indexedAppCompletionGaps": 10,
     "knownAppCompletionRiskItems": 461,
     "appCompletionPriorityReviewItems": 200,
     "appCompletionPriorityReviewTruncated": true,
-    "operationalGateGaps": 4,
-    "indexedGaps": 205,
-    "totalGaps": 466
+    "operationalGateGaps": 5,
+    "indexedGaps": 17,
+    "totalGaps": 17
   },
   "firstGap": {
     "kind": "event_chain_gap",
@@ -47,2607 +51,426 @@
       "nextAction": "Map frontend entities into this flow before claiming holistic status."
     },
     {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Account access",
-      "summary": "Account access: POST /agents/:id/claude-login has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/claude-login"
-      ],
-      "sourceItemId": "api_endpoint:post-agents-id-claude-login:8b13b9757d",
-      "risk": "missing_doc_link"
+      "kind": "event_chain_gap",
+      "severity": "high",
+      "userFlow": "Trading operation",
+      "summary": "Missing frontend, backend, worker layer(s) in event chain.",
+      "nextOwner": "CTO Architect + Engineering Delivery Lead",
+      "nextAction": "Map frontend, backend, worker entities into this flow before claiming holistic status."
     },
     {
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Account access",
-      "summary": "Account access: POST /agents/:id/runtime-state/reset-session has app-completion risk missing_doc_link.",
+      "summary": "Account access has 3 item(s) with app-completion risk missing_doc_link.",
       "nextOwner": "Docs Memory Lead + Project Manager",
       "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
       "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/runtime-state/reset-session"
-      ],
-      "sourceItemId": "api_endpoint:post-agents-id-runtime-state-reset-session:4f9efc9d6c",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Account access",
-      "summary": "Account access: GET /agents/:id/task-sessions has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
+        "server/src/routes/agents.ts#/agents/:id/claude-login",
+        "server/src/routes/agents.ts#/agents/:id/runtime-state/reset-session",
         "server/src/routes/agents.ts#/agents/:id/task-sessions"
       ],
-      "sourceItemId": "api_endpoint:get-agents-id-task-sessions:326fbda0b5",
-      "risk": "missing_doc_link"
+      "sourceItemId": "api_endpoint:post-agents-id-claude-login:8b13b9757d",
+      "risk": "missing_doc_link",
+      "sourceItemIds": [
+        "api_endpoint:post-agents-id-claude-login:8b13b9757d",
+        "api_endpoint:post-agents-id-runtime-state-reset-session:4f9efc9d6c",
+        "api_endpoint:get-agents-id-task-sessions:326fbda0b5"
+      ],
+      "affectedItemCount": 3
     },
     {
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Account access",
-      "summary": "Account access: GET /profile has app-completion risk missing_test_link.",
+      "summary": "Account access has 1 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
         "server/src/routes/auth.ts#/profile"
       ],
       "sourceItemId": "api_endpoint:get-profile:13548266f1",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "high",
-      "userFlow": "Account access",
-      "summary": "Account access: Auth.tsx has app-completion risk needs_browser_review.",
-      "nextOwner": "QA Regression Lead + Frontend Experience Lead",
-      "nextAction": "Capture browser/clickthrough proof or create the smallest Frontend/UX repair lane for this visible flow.",
-      "evidence": [
-        "ui/src/pages/Auth.tsx"
+      "risk": "missing_test_link",
+      "sourceItemIds": [
+        "api_endpoint:get-profile:13548266f1"
       ],
-      "sourceItemId": "route:auth-tsx:c56aa37d8b",
-      "risk": "needs_browser_review"
+      "affectedItemCount": 1
     },
     {
       "kind": "app_completion_gap",
       "severity": "high",
       "userFlow": "Account access",
-      "summary": "Account access: CliAuth.tsx has app-completion risk needs_browser_review.",
+      "summary": "Account access has 2 item(s) with app-completion risk needs_browser_review.",
       "nextOwner": "QA Regression Lead + Frontend Experience Lead",
       "nextAction": "Capture browser/clickthrough proof or create the smallest Frontend/UX repair lane for this visible flow.",
       "evidence": [
+        "ui/src/pages/Auth.tsx",
         "ui/src/pages/CliAuth.tsx"
       ],
-      "sourceItemId": "route:cliauth-tsx:a6f8065d9d",
-      "risk": "needs_browser_review"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Admin operation",
-      "summary": "Admin operation: POST /admin/users/:userId/demote-instance-admin has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/admin/users/:userId/demote-instance-admin"
+      "sourceItemId": "route:auth-tsx:c56aa37d8b",
+      "risk": "needs_browser_review",
+      "sourceItemIds": [
+        "route:auth-tsx:c56aa37d8b",
+        "route:cliauth-tsx:a6f8065d9d"
       ],
-      "sourceItemId": "api_endpoint:post-admin-users-userid-demote-instance-admin:3a7867c655",
-      "risk": "missing_test_link"
+      "affectedItemCount": 2
     },
     {
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Admin operation",
-      "summary": "Admin operation: POST /admin/users/:userId/promote-instance-admin has app-completion risk missing_test_link.",
+      "summary": "Admin operation has 3 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
-        "server/src/routes/access.ts#/admin/users/:userId/promote-instance-admin"
-      ],
-      "sourceItemId": "api_endpoint:post-admin-users-userid-promote-instance-admin:9efb5ddd30",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Admin operation",
-      "summary": "Admin operation: POST /issues/:id/admin/force-release has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
+        "server/src/routes/access.ts#/admin/users/:userId/demote-instance-admin",
+        "server/src/routes/access.ts#/admin/users/:userId/promote-instance-admin",
         "server/src/routes/issues.ts#/issues/:id/admin/force-release"
       ],
-      "sourceItemId": "api_endpoint:post-issues-id-admin-force-release:af6e61c341",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Dashboard overview",
-      "summary": "Dashboard overview: GET /companies/:companyId/budgets/overview has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/budgets/overview"
+      "sourceItemId": "api_endpoint:post-admin-users-userid-demote-instance-admin:3a7867c655",
+      "risk": "missing_test_link",
+      "sourceItemIds": [
+        "api_endpoint:post-admin-users-userid-demote-instance-admin:3a7867c655",
+        "api_endpoint:post-admin-users-userid-promote-instance-admin:9efb5ddd30",
+        "api_endpoint:post-issues-id-admin-force-release:af6e61c341"
       ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-budgets-overview:0c07689cee",
-      "risk": "missing_test_link"
+      "affectedItemCount": 3
     },
     {
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Dashboard overview",
-      "summary": "Dashboard overview: GET /companies/:companyId/dashboard has app-completion risk missing_test_link.",
+      "summary": "Dashboard overview has 4 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
-        "server/src/routes/dashboard.ts#/companies/:companyId/dashboard"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-dashboard:a3b85af771",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Dashboard overview",
-      "summary": "Dashboard overview: GET /companies/:companyId/situation has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/dashboard.ts#/companies/:companyId/situation"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-situation:782e7df67f",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Dashboard overview",
-      "summary": "Dashboard overview: GET /plugins/:pluginId/dashboard has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
+        "server/src/routes/costs.ts#/companies/:companyId/budgets/overview",
+        "server/src/routes/dashboard.ts#/companies/:companyId/dashboard",
+        "server/src/routes/dashboard.ts#/companies/:companyId/situation",
         "server/src/routes/plugins.ts#/plugins/:pluginId/dashboard"
       ],
-      "sourceItemId": "api_endpoint:get-plugins-pluginid-dashboard:f2d3c46c6d",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "high",
-      "userFlow": "Dashboard overview",
-      "summary": "Dashboard overview: ProjectDeliveryOverview.tsx has app-completion risk needs_browser_review.",
-      "nextOwner": "QA Regression Lead + Frontend Experience Lead",
-      "nextAction": "Capture browser/clickthrough proof or create the smallest Frontend/UX repair lane for this visible flow.",
-      "evidence": [
-        "ui/src/components/ProjectDeliveryOverview.tsx"
+      "sourceItemId": "api_endpoint:get-companies-companyid-budgets-overview:0c07689cee",
+      "risk": "missing_test_link",
+      "sourceItemIds": [
+        "api_endpoint:get-companies-companyid-budgets-overview:0c07689cee",
+        "api_endpoint:get-companies-companyid-dashboard:a3b85af771",
+        "api_endpoint:get-companies-companyid-situation:782e7df67f",
+        "api_endpoint:get-plugins-pluginid-dashboard:f2d3c46c6d"
       ],
-      "sourceItemId": "component:projectdeliveryoverview-tsx:b811de6685",
-      "risk": "needs_browser_review"
+      "affectedItemCount": 4
     },
     {
       "kind": "app_completion_gap",
       "severity": "high",
       "userFlow": "Dashboard overview",
-      "summary": "Dashboard overview: Dashboard.tsx has app-completion risk needs_browser_review.",
+      "summary": "Dashboard overview has 3 item(s) with app-completion risk needs_browser_review.",
       "nextOwner": "QA Regression Lead + Frontend Experience Lead",
       "nextAction": "Capture browser/clickthrough proof or create the smallest Frontend/UX repair lane for this visible flow.",
       "evidence": [
-        "ui/src/pages/Dashboard.tsx"
-      ],
-      "sourceItemId": "route:dashboard-tsx:f52edef52c",
-      "risk": "needs_browser_review"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "high",
-      "userFlow": "Dashboard overview",
-      "summary": "Dashboard overview: DashboardLive.tsx has app-completion risk needs_browser_review.",
-      "nextOwner": "QA Regression Lead + Frontend Experience Lead",
-      "nextAction": "Capture browser/clickthrough proof or create the smallest Frontend/UX repair lane for this visible flow.",
-      "evidence": [
+        "ui/src/components/ProjectDeliveryOverview.tsx",
+        "ui/src/pages/Dashboard.tsx",
         "ui/src/pages/DashboardLive.tsx"
       ],
-      "sourceItemId": "route:dashboardlive-tsx:e910b0a38f",
-      "risk": "needs_browser_review"
+      "sourceItemId": "component:projectdeliveryoverview-tsx:b811de6685",
+      "risk": "needs_browser_review",
+      "sourceItemIds": [
+        "component:projectdeliveryoverview-tsx:b811de6685",
+        "route:dashboard-tsx:f52edef52c",
+        "route:dashboardlive-tsx:e910b0a38f"
+      ],
+      "affectedItemCount": 3
     },
     {
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Subscription and entitlement",
-      "summary": "Subscription and entitlement: POST /issues/:id/checkout has app-completion risk missing_test_link.",
+      "summary": "Subscription and entitlement has 1 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
         "server/src/routes/issues.ts#/issues/:id/checkout"
       ],
       "sourceItemId": "api_endpoint:post-issues-id-checkout:cbb5f7ff93",
-      "risk": "missing_test_link"
+      "risk": "missing_test_link",
+      "sourceItemIds": [
+        "api_endpoint:post-issues-id-checkout:cbb5f7ff93"
+      ],
+      "affectedItemCount": 1
     },
     {
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Trading operation",
-      "summary": "Trading operation: GET /issues/:id/accepted-plan-decompositions has app-completion risk missing_test_link.",
+      "summary": "Trading operation has 2 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
         "server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions"
       ],
       "sourceItemId": "api_endpoint:get-issues-id-accepted-plan-decompositions:e68952a4d0",
-      "risk": "missing_test_link"
+      "risk": "missing_test_link",
+      "sourceItemIds": [
+        "api_endpoint:get-issues-id-accepted-plan-decompositions:e68952a4d0",
+        "api_endpoint:post-issues-id-accepted-plan-decompositions:91e9e43603"
+      ],
+      "affectedItemCount": 2
     },
     {
       "kind": "app_completion_gap",
       "severity": "medium",
-      "userFlow": "Trading operation",
-      "summary": "Trading operation: POST /issues/:id/accepted-plan-decompositions has app-completion risk missing_test_link.",
+      "userFlow": "Unclassified user workflow",
+      "summary": "Unclassified user workflow has 167 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
-        "server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions"
-      ],
-      "sourceItemId": "api_endpoint:post-issues-id-accepted-plan-decompositions:91e9e43603",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: USE /assets has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/app.ts#/assets"
-      ],
-      "sourceItemId": "api_endpoint:use-assets:c2ba42d242",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /bootstrap/claim has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/bootstrap/claim"
-      ],
-      "sourceItemId": "api_endpoint:post-bootstrap-claim:8055e4b75b",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/join-requests/:requestId/approve has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/companies/:companyId/join-requests/:requestId/approve"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-join-requests-requestid-approve:699471a98d",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/join-requests/:requestId/reject has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/companies/:companyId/join-requests/:requestId/reject"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-join-requests-requestid-reject:0f793bb2f6",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/members/:memberId/archive has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/companies/:companyId/members/:memberId/archive"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-members-memberid-archive:0c0c5b3bf5",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /companies/:companyId/members/:memberId/permissions has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/companies/:companyId/members/:memberId/permissions"
-      ],
-      "sourceItemId": "api_endpoint:patch-companies-companyid-members-memberid-permissions:c6f459b1e3",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /companies/:companyId/members/:memberId/role-and-grants has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/companies/:companyId/members/:memberId/role-and-grants"
-      ],
-      "sourceItemId": "api_endpoint:patch-companies-companyid-members-memberid-role-and-grants:c4579dea85",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /invites/:inviteId/revoke has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/invites/:inviteId/revoke"
-      ],
-      "sourceItemId": "api_endpoint:post-invites-inviteid-revoke:15c81b70e1",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /invites/:token/skills/:skillName has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/invites/:token/skills/:skillName"
-      ],
-      "sourceItemId": "api_endpoint:get-invites-token-skills-skillname:798eb6ec7a",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /invites/:token/skills/index has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/invites/:token/skills/index"
-      ],
-      "sourceItemId": "api_endpoint:get-invites-token-skills-index:d6fa5a337c",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /skills/available has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/access.ts#/skills/available"
-      ],
-      "sourceItemId": "api_endpoint:get-skills-available:22c9c8ab43",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/activity has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/activity.ts#/companies/:companyId/activity"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-activity:8a8290c529",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/activity has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/activity.ts#/companies/:companyId/activity"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-activity:553426d5a8",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /heartbeat-runs/:runId/issues has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/activity.ts#/heartbeat-runs/:runId/issues"
-      ],
-      "sourceItemId": "api_endpoint:get-heartbeat-runs-runid-issues:9f825c252e",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /issues/:id/activity has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/activity.ts#/issues/:id/activity"
-      ],
-      "sourceItemId": "api_endpoint:get-issues-id-activity:392a36c1ad",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /issues/:id/recovery-run-evidence has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/activity.ts#/issues/:id/recovery-run-evidence"
-      ],
-      "sourceItemId": "api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /issues/:id/runs has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/activity.ts#/issues/:id/runs"
-      ],
-      "sourceItemId": "api_endpoint:get-issues-id-runs:99852dc332",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /adapters has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/adapters.ts#/adapters"
-      ],
-      "sourceItemId": "api_endpoint:get-adapters:fef3859e41",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: DELETE /adapters/:type has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/adapters.ts#/adapters/:type"
-      ],
-      "sourceItemId": "api_endpoint:delete-adapters-type:261ac82c9d",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /adapters/:type has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/adapters.ts#/adapters/:type"
-      ],
-      "sourceItemId": "api_endpoint:patch-adapters-type:41c5b8dd7f",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /adapters/:type/override has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/adapters.ts#/adapters/:type/override"
-      ],
-      "sourceItemId": "api_endpoint:patch-adapters-type-override:c14c9ac392",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /adapters/:type/reinstall has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/adapters.ts#/adapters/:type/reinstall"
-      ],
-      "sourceItemId": "api_endpoint:post-adapters-type-reinstall:8642263b64",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /adapters/:type/reload has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
+        "server/src/app.ts#/assets",
+        "server/src/routes/access.ts#/bootstrap/claim",
+        "server/src/routes/access.ts#/companies/:companyId/join-requests/:requestId/approve",
+        "server/src/routes/access.ts#/companies/:companyId/join-requests/:requestId/reject",
+        "server/src/routes/access.ts#/companies/:companyId/members/:memberId/archive",
+        "server/src/routes/access.ts#/companies/:companyId/members/:memberId/permissions",
+        "server/src/routes/access.ts#/companies/:companyId/members/:memberId/role-and-grants",
+        "server/src/routes/access.ts#/invites/:inviteId/revoke",
+        "server/src/routes/access.ts#/invites/:token/skills/:skillName",
+        "server/src/routes/access.ts#/invites/:token/skills/index",
+        "server/src/routes/access.ts#/skills/available",
+        "server/src/routes/activity.ts#/companies/:companyId/activity",
+        "server/src/routes/activity.ts#/issues/:id/activity",
+        "server/src/routes/activity.ts#/issues/:id/recovery-run-evidence",
+        "server/src/routes/activity.ts#/issues/:id/runs",
+        "server/src/routes/adapters.ts#/adapters",
+        "server/src/routes/adapters.ts#/adapters/:type",
+        "server/src/routes/adapters.ts#/adapters/:type/override",
+        "server/src/routes/adapters.ts#/adapters/:type/reinstall",
         "server/src/routes/adapters.ts#/adapters/:type/reload"
       ],
-      "sourceItemId": "api_endpoint:post-adapters-type-reload:2228ac8fa5",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /adapters/:type/ui-parser.js has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/adapters.ts#/adapters/:type/ui-parser.js"
+      "sourceItemId": "api_endpoint:use-assets:c2ba42d242",
+      "risk": "missing_test_link",
+      "sourceItemIds": [
+        "api_endpoint:use-assets:c2ba42d242",
+        "api_endpoint:post-bootstrap-claim:8055e4b75b",
+        "api_endpoint:post-companies-companyid-join-requests-requestid-approve:699471a98d",
+        "api_endpoint:post-companies-companyid-join-requests-requestid-reject:0f793bb2f6",
+        "api_endpoint:post-companies-companyid-members-memberid-archive:0c0c5b3bf5",
+        "api_endpoint:patch-companies-companyid-members-memberid-permissions:c6f459b1e3",
+        "api_endpoint:patch-companies-companyid-members-memberid-role-and-grants:c4579dea85",
+        "api_endpoint:post-invites-inviteid-revoke:15c81b70e1",
+        "api_endpoint:get-invites-token-skills-skillname:798eb6ec7a",
+        "api_endpoint:get-invites-token-skills-index:d6fa5a337c",
+        "api_endpoint:get-skills-available:22c9c8ab43",
+        "api_endpoint:get-companies-companyid-activity:8a8290c529",
+        "api_endpoint:get-issues-id-activity:392a36c1ad",
+        "api_endpoint:get-issues-id-recovery-run-evidence:3d22a9149d",
+        "api_endpoint:get-issues-id-runs:99852dc332",
+        "api_endpoint:get-adapters:fef3859e41",
+        "api_endpoint:delete-adapters-type:261ac82c9d",
+        "api_endpoint:patch-adapters-type:41c5b8dd7f",
+        "api_endpoint:patch-adapters-type-override:c14c9ac392",
+        "api_endpoint:post-adapters-type-reinstall:8642263b64",
+        "api_endpoint:post-adapters-type-reload:2228ac8fa5",
+        "api_endpoint:get-adapters-type-ui-parser-js:4ce075592a",
+        "api_endpoint:post-adapters-install:950e22d07a",
+        "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
+        "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
+        "api_endpoint:delete-agents-id:c6de105f68",
+        "api_endpoint:get-agents-id:b7553c57f5",
+        "api_endpoint:patch-agents-id:94857b88e1",
+        "api_endpoint:post-agents-id-approve:0cd86fce15",
+        "api_endpoint:post-agents-id-heartbeat-invoke:a462051032",
+        "api_endpoint:get-agents-id-instructions-bundle:391b7f7844",
+        "api_endpoint:patch-agents-id-instructions-bundle:91c9921d29",
+        "api_endpoint:delete-agents-id-instructions-bundle-file:9723d64054",
+        "api_endpoint:get-agents-id-instructions-bundle-file:142fa16360",
+        "api_endpoint:put-agents-id-instructions-bundle-file:5c60f0be4d",
+        "api_endpoint:patch-agents-id-instructions-path:6a9884631e",
+        "api_endpoint:get-agents-id-keys:d1e979567e",
+        "api_endpoint:post-agents-id-keys:da479a1e90",
+        "api_endpoint:delete-agents-id-keys-keyid:6bf2a864ac",
+        "api_endpoint:post-agents-id-pause:f05fb62282",
+        "api_endpoint:patch-agents-id-permissions:898943b4bc",
+        "api_endpoint:post-agents-id-resume:192eabd6c5",
+        "api_endpoint:get-agents-id-skills:bb743efba9",
+        "api_endpoint:post-agents-id-skills-sync:e961fcf232",
+        "api_endpoint:post-agents-id-terminate:bb72e95318",
+        "api_endpoint:post-agents-id-wakeup:8df876e077",
+        "api_endpoint:get-agents-me:e9cba0d6e9",
+        "api_endpoint:get-agents-me-inbox-lite:95dcd630e9",
+        "api_endpoint:get-agents-me-inbox-mine:3607fb9817",
+        "api_endpoint:get-companies-companyid-adapters-type-detect-model:ce6f62715c",
+        "api_endpoint:get-companies-companyid-adapters-type-models:a19b916b35",
+        "api_endpoint:post-companies-companyid-agent-hires:cea9f95e37",
+        "api_endpoint:get-companies-companyid-agents:d019714997",
+        "api_endpoint:post-companies-companyid-agents:2957bd6d18",
+        "api_endpoint:get-companies-companyid-heartbeat-runs:d255fe604d",
+        "api_endpoint:get-companies-companyid-live-runs:6caa7bf8d9",
+        "api_endpoint:get-companies-companyid-org:1972369169",
+        "api_endpoint:get-companies-companyid-org-png:e2b0a62a36",
+        "api_endpoint:get-companies-companyid-org-svg:757b161560",
+        "api_endpoint:get-heartbeat-runs-runid:d0dd3fb197",
+        "api_endpoint:post-heartbeat-runs-runid-cancel:f7e5dea4ec",
+        "api_endpoint:get-heartbeat-runs-runid-events:72b2905a17",
+        "api_endpoint:get-heartbeat-runs-runid-log:36370e2e5f",
+        "api_endpoint:post-heartbeat-runs-runid-watchdog-decisions:21702beb45",
+        "api_endpoint:get-heartbeat-runs-runid-workspace-operations:e03957ac78",
+        "api_endpoint:get-issues-issueid-active-run:a891bbec94",
+        "api_endpoint:get-issues-issueid-live-runs:33b259691b",
+        "api_endpoint:get-workspace-operations-operationid-log:ee0dc83a19",
+        "api_endpoint:get-approvals-id:5ef46e391d",
+        "api_endpoint:post-approvals-id-approve:e59f5d01d4",
+        "api_endpoint:get-approvals-id-comments:d1c42a0ff7",
+        "api_endpoint:post-approvals-id-comments:574efa6f4b",
+        "api_endpoint:post-approvals-id-reject:a63c8944a0",
+        "api_endpoint:post-approvals-id-request-revision:42bffdccb7",
+        "api_endpoint:post-approvals-id-resubmit:b200b29c54",
+        "api_endpoint:get-companies-companyid-approvals:c48c0d67dc",
+        "api_endpoint:post-companies-companyid-approvals:c2dfa7d6a7",
+        "api_endpoint:get-assets-assetid-content:40c445f6a0",
+        "api_endpoint:post-companies-companyid-assets-images:f2f2e79bf4",
+        "api_endpoint:post-companies-companyid-logo:99357095f8",
+        "api_endpoint:post-cloud-upstreams-connectionid-push-runs:70a106dae3",
+        "api_endpoint:get-cloud-upstreams-connectionid-push-runs-runid:d809f897df",
+        "api_endpoint:post-cloud-upstreams-connectionid-push-runs-runid-activation:bb09f87962",
+        "api_endpoint:post-cloud-upstreams-connectionid-push-runs-runid-cancel:77b67319c1",
+        "api_endpoint:post-cloud-upstreams-connectionid-push-runs-preview:a4e3a58a0b",
+        "api_endpoint:post-cloud-upstreams-connect-finish:e3e149a9e2",
+        "api_endpoint:post-cloud-upstreams-connect-start:345a38d521",
+        "api_endpoint:get:8eccc9c964",
+        "api_endpoint:post:2b152fcb8e",
+        "api_endpoint:delete-companyid:fa9018b8ee",
+        "api_endpoint:get-companyid:6575a2d654",
+        "api_endpoint:patch-companyid:4f2eaf7359",
+        "api_endpoint:post-companyid-archive:e24dd1b757",
+        "api_endpoint:patch-companyid-branding:63e7d834a0",
+        "api_endpoint:post-companyid-export:b95d732d6a",
+        "api_endpoint:post-companyid-exports:de19679713",
+        "api_endpoint:post-companyid-exports-preview:f5706e9e1e",
+        "api_endpoint:get-companyid-feedback-traces:022db1d66e",
+        "api_endpoint:post-companyid-imports-apply:e32f3b7b86",
+        "api_endpoint:post-companyid-imports-preview:bf845be5d5",
+        "api_endpoint:get-import-jobs-jobid:ecdba4676b",
+        "api_endpoint:post-import-preview:48f6c52046",
+        "api_endpoint:get-stats:0796a498cf",
+        "api_endpoint:get-companies-companyid-skills:936e7dcc51",
+        "api_endpoint:post-companies-companyid-skills:f08e80bc2d",
+        "api_endpoint:delete-companies-companyid-skills-skillid:e7012699de",
+        "api_endpoint:get-companies-companyid-skills-skillid:5caa9c49a1",
+        "api_endpoint:post-companies-companyid-skills-skillid-audit:6708632596",
+        "api_endpoint:get-companies-companyid-skills-skillid-files:2bb8de60d9",
+        "api_endpoint:patch-companies-companyid-skills-skillid-files:58f148d5ff",
+        "api_endpoint:post-companies-companyid-skills-skillid-install-update:b248091857",
+        "api_endpoint:post-companies-companyid-skills-skillid-reset:e5ace138d7",
+        "api_endpoint:get-companies-companyid-skills-skillid-update-status:ec7b242ca5",
+        "api_endpoint:post-companies-companyid-skills-import:efdbce96b6",
+        "api_endpoint:post-companies-companyid-skills-install-catalog:b3f897bcd0",
+        "api_endpoint:get-skills-catalog:08dc76d7c2",
+        "api_endpoint:get-skills-catalog-catalogid:275ccb0fad",
+        "api_endpoint:get-skills-catalog-catalogid-files:aae3e8d848",
+        "api_endpoint:patch-agents-agentid-budgets:b984034495",
+        "api_endpoint:post-companies-companyid-budget-incidents-incidentid-resolve:69ac426dd0",
+        "api_endpoint:patch-companies-companyid-budgets:505a046daf",
+        "api_endpoint:post-companies-companyid-budgets-policies:1a5497206f",
+        "api_endpoint:post-companies-companyid-cost-events:0b7985783b",
+        "api_endpoint:get-companies-companyid-costs-by-agent:2f81a3d772",
+        "api_endpoint:get-companies-companyid-costs-by-agent-model:7e7c96901d",
+        "api_endpoint:get-companies-companyid-costs-by-biller:23ede2b60e",
+        "api_endpoint:get-companies-companyid-costs-by-project:c6ae4b6cf7",
+        "api_endpoint:get-companies-companyid-costs-by-provider:416dc7583e",
+        "api_endpoint:get-companies-companyid-costs-finance-by-biller:18c0f34105",
+        "api_endpoint:get-companies-companyid-costs-finance-by-kind:cd7b8a5569",
+        "api_endpoint:get-companies-companyid-costs-finance-events:e3b9d969a1",
+        "api_endpoint:get-companies-companyid-costs-finance-summary:17508ef4d3",
+        "api_endpoint:get-companies-companyid-costs-summary:86652e5a51",
+        "api_endpoint:get-companies-companyid-costs-window-spend:d19c064103",
+        "api_endpoint:post-companies-companyid-finance-events:b2a9880193",
+        "api_endpoint:get-issues-id-cost-summary:0593bc8a8f",
+        "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
+        "api_endpoint:post-companies-companyid-deliveries:295187fbac",
+        "api_endpoint:get-deliveries-id:14cdad6d18",
+        "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
+        "api_endpoint:post-deliveries-id-transition:d97a50341f",
+        "api_endpoint:get-companies-companyid-environments:ac6e4c8a72",
+        "api_endpoint:post-companies-companyid-environments:641573a90a",
+        "api_endpoint:get-companies-companyid-environments-capabilities:3cf50e822b",
+        "api_endpoint:get-environment-leases-leaseid:581bf1fb7c",
+        "api_endpoint:delete-environments-id:3083c8cd96",
+        "api_endpoint:get-environments-id:d85fd35295",
+        "api_endpoint:patch-environments-id:7fdc1ee34d",
+        "api_endpoint:get-environments-id-leases:aa82420d24",
+        "api_endpoint:post-environments-id-probe:a240da1ea8",
+        "api_endpoint:get-execution-workspaces-id:cfa7051bc9",
+        "api_endpoint:patch-execution-workspaces-id:414e9e82c4",
+        "api_endpoint:get-execution-workspaces-id-close-readiness:290891b565",
+        "api_endpoint:post-execution-workspaces-id-runtime-commands-action:29e6f890b7",
+        "api_endpoint:post-execution-workspaces-id-runtime-services-action:da155089d0",
+        "api_endpoint:get-execution-workspaces-id-workspace-operations:017ded6929",
+        "api_endpoint:get-issues-issueid-file-resources-content:f3d13abf65",
+        "api_endpoint:get-issues-issueid-file-resources-list:2166c68a83",
+        "api_endpoint:get-issues-issueid-file-resources-resolve:553be5442e",
+        "api_endpoint:get-companies-companyid-goals:9613e9d197",
+        "api_endpoint:post-companies-companyid-goals:e9fd068118",
+        "api_endpoint:delete-goals-id:20eb55dd6f",
+        "api_endpoint:get-goals-id:48ea40de41",
+        "api_endpoint:patch-goals-id:326c8d903a",
+        "api_endpoint:get:8bfb6330f8",
+        "api_endpoint:post-dev-server-restart:8ce723f667",
+        "api_endpoint:post-instance-database-backups:e8b3c6e8ff"
       ],
-      "sourceItemId": "api_endpoint:get-adapters-type-ui-parser-js:4ce075592a",
-      "risk": "missing_test_link"
+      "affectedItemCount": 167
     },
     {
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /adapters/install has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/adapters.ts#/adapters/install"
-      ],
-      "sourceItemId": "api_endpoint:post-adapters-install:950e22d07a",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/admission-controls has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/admission-controls/transition has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: DELETE /agents/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id"
-      ],
-      "sourceItemId": "api_endpoint:delete-agents-id:c6de105f68",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /agents/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id"
-      ],
-      "sourceItemId": "api_endpoint:get-agents-id:b7553c57f5",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /agents/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id"
-      ],
-      "sourceItemId": "api_endpoint:patch-agents-id:94857b88e1",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /agents/:id/approve has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/approve"
-      ],
-      "sourceItemId": "api_endpoint:post-agents-id-approve:0cd86fce15",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /agents/:id/heartbeat/invoke has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/heartbeat/invoke"
-      ],
-      "sourceItemId": "api_endpoint:post-agents-id-heartbeat-invoke:a462051032",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /agents/:id/instructions-bundle has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/instructions-bundle"
-      ],
-      "sourceItemId": "api_endpoint:get-agents-id-instructions-bundle:391b7f7844",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /agents/:id/instructions-bundle has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/instructions-bundle"
-      ],
-      "sourceItemId": "api_endpoint:patch-agents-id-instructions-bundle:91c9921d29",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: DELETE /agents/:id/instructions-bundle/file has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/instructions-bundle/file"
-      ],
-      "sourceItemId": "api_endpoint:delete-agents-id-instructions-bundle-file:9723d64054",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /agents/:id/instructions-bundle/file has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/instructions-bundle/file"
-      ],
-      "sourceItemId": "api_endpoint:get-agents-id-instructions-bundle-file:142fa16360",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PUT /agents/:id/instructions-bundle/file has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/instructions-bundle/file"
-      ],
-      "sourceItemId": "api_endpoint:put-agents-id-instructions-bundle-file:5c60f0be4d",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /agents/:id/instructions-path has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/instructions-path"
-      ],
-      "sourceItemId": "api_endpoint:patch-agents-id-instructions-path:6a9884631e",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /agents/:id/keys has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/keys"
-      ],
-      "sourceItemId": "api_endpoint:get-agents-id-keys:d1e979567e",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /agents/:id/keys has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/keys"
-      ],
-      "sourceItemId": "api_endpoint:post-agents-id-keys:da479a1e90",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: DELETE /agents/:id/keys/:keyId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/keys/:keyId"
-      ],
-      "sourceItemId": "api_endpoint:delete-agents-id-keys-keyid:6bf2a864ac",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /agents/:id/pause has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/pause"
-      ],
-      "sourceItemId": "api_endpoint:post-agents-id-pause:f05fb62282",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /agents/:id/permissions has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/permissions"
-      ],
-      "sourceItemId": "api_endpoint:patch-agents-id-permissions:898943b4bc",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /agents/:id/resume has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/resume"
-      ],
-      "sourceItemId": "api_endpoint:post-agents-id-resume:192eabd6c5",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /agents/:id/runtime-state has app-completion risk missing_doc_link.",
+      "summary": "Unclassified user workflow has 14 item(s) with app-completion risk missing_doc_link.",
       "nextOwner": "Docs Memory Lead + Project Manager",
       "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
       "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/runtime-state"
-      ],
-      "sourceItemId": "api_endpoint:get-agents-id-runtime-state:901571eae9",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /agents/:id/skills has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/skills"
-      ],
-      "sourceItemId": "api_endpoint:get-agents-id-skills:bb743efba9",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /agents/:id/skills/sync has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/skills/sync"
-      ],
-      "sourceItemId": "api_endpoint:post-agents-id-skills-sync:e961fcf232",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /agents/:id/terminate has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/terminate"
-      ],
-      "sourceItemId": "api_endpoint:post-agents-id-terminate:bb72e95318",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /agents/:id/wakeup has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/:id/wakeup"
-      ],
-      "sourceItemId": "api_endpoint:post-agents-id-wakeup:8df876e077",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /agents/me has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/me"
-      ],
-      "sourceItemId": "api_endpoint:get-agents-me:e9cba0d6e9",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /agents/me/inbox-lite has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/me/inbox-lite"
-      ],
-      "sourceItemId": "api_endpoint:get-agents-me-inbox-lite:95dcd630e9",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /agents/me/inbox/mine has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/agents/me/inbox/mine"
-      ],
-      "sourceItemId": "api_endpoint:get-agents-me-inbox-mine:3607fb9817",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/adapters/:type/detect-model has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/adapters/:type/detect-model"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-adapters-type-detect-model:ce6f62715c",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/adapters/:type/models has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/adapters/:type/models"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-adapters-type-models:a19b916b35",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/adapters/:type/test-environment has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/adapters/:type/test-environment"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-adapters-type-test-environment:aab9a34e43",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/agent-hires has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/agent-hires"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-agent-hires:cea9f95e37",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/agents has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/agents"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-agents:d019714997",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/agents has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/agents"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-agents:2957bd6d18",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/heartbeat-runs has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/heartbeat-runs"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-heartbeat-runs:d255fe604d",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/live-runs has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/live-runs"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-live-runs:6caa7bf8d9",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/org has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/org"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-org:1972369169",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/org.png has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/org.png"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-org-png:e2b0a62a36",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/org.svg has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/companies/:companyId/org.svg"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-org-svg:757b161560",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /heartbeat-runs/:runId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/heartbeat-runs/:runId"
-      ],
-      "sourceItemId": "api_endpoint:get-heartbeat-runs-runid:d0dd3fb197",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /heartbeat-runs/:runId/cancel has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/heartbeat-runs/:runId/cancel"
-      ],
-      "sourceItemId": "api_endpoint:post-heartbeat-runs-runid-cancel:f7e5dea4ec",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /heartbeat-runs/:runId/events has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/heartbeat-runs/:runId/events"
-      ],
-      "sourceItemId": "api_endpoint:get-heartbeat-runs-runid-events:72b2905a17",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /heartbeat-runs/:runId/log has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/heartbeat-runs/:runId/log"
-      ],
-      "sourceItemId": "api_endpoint:get-heartbeat-runs-runid-log:36370e2e5f",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /heartbeat-runs/:runId/watchdog-decisions has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/heartbeat-runs/:runId/watchdog-decisions"
-      ],
-      "sourceItemId": "api_endpoint:post-heartbeat-runs-runid-watchdog-decisions:21702beb45",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /heartbeat-runs/:runId/workspace-operations has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/heartbeat-runs/:runId/workspace-operations"
-      ],
-      "sourceItemId": "api_endpoint:get-heartbeat-runs-runid-workspace-operations:e03957ac78",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /instance/scheduler-heartbeats has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/agents.ts#/instance/scheduler-heartbeats"
-      ],
-      "sourceItemId": "api_endpoint:get-instance-scheduler-heartbeats:0614a006b4",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /issues/:issueId/active-run has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/issues/:issueId/active-run"
-      ],
-      "sourceItemId": "api_endpoint:get-issues-issueid-active-run:a891bbec94",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /issues/:issueId/live-runs has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/issues/:issueId/live-runs"
-      ],
-      "sourceItemId": "api_endpoint:get-issues-issueid-live-runs:33b259691b",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /workspace-operations/:operationId/log has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/agents.ts#/workspace-operations/:operationId/log"
-      ],
-      "sourceItemId": "api_endpoint:get-workspace-operations-operationid-log:ee0dc83a19",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /approvals/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/approvals.ts#/approvals/:id"
-      ],
-      "sourceItemId": "api_endpoint:get-approvals-id:5ef46e391d",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /approvals/:id/approve has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/approvals.ts#/approvals/:id/approve"
-      ],
-      "sourceItemId": "api_endpoint:post-approvals-id-approve:e59f5d01d4",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /approvals/:id/comments has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/approvals.ts#/approvals/:id/comments"
-      ],
-      "sourceItemId": "api_endpoint:get-approvals-id-comments:d1c42a0ff7",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /approvals/:id/comments has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/approvals.ts#/approvals/:id/comments"
-      ],
-      "sourceItemId": "api_endpoint:post-approvals-id-comments:574efa6f4b",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /approvals/:id/issues has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/approvals.ts#/approvals/:id/issues"
-      ],
-      "sourceItemId": "api_endpoint:get-approvals-id-issues:6c6b090d8c",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /approvals/:id/reject has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/approvals.ts#/approvals/:id/reject"
-      ],
-      "sourceItemId": "api_endpoint:post-approvals-id-reject:a63c8944a0",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /approvals/:id/request-revision has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/approvals.ts#/approvals/:id/request-revision"
-      ],
-      "sourceItemId": "api_endpoint:post-approvals-id-request-revision:42bffdccb7",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /approvals/:id/resubmit has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/approvals.ts#/approvals/:id/resubmit"
-      ],
-      "sourceItemId": "api_endpoint:post-approvals-id-resubmit:b200b29c54",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/approvals has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/approvals.ts#/companies/:companyId/approvals"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-approvals:c48c0d67dc",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/approvals has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/approvals.ts#/companies/:companyId/approvals"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-approvals:c2dfa7d6a7",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /assets/:assetId/content has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/assets.ts#/assets/:assetId/content"
-      ],
-      "sourceItemId": "api_endpoint:get-assets-assetid-content:40c445f6a0",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/assets/images has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/assets.ts#/companies/:companyId/assets/images"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-assets-images:f2f2e79bf4",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/logo has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/assets.ts#/companies/:companyId/logo"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-logo:99357095f8",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /cloud-upstreams has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/cloud-upstreams.ts#/cloud-upstreams"
-      ],
-      "sourceItemId": "api_endpoint:get-cloud-upstreams:e681f2d029",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /cloud-upstreams/:connectionId/push-runs has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/cloud-upstreams.ts#/cloud-upstreams/:connectionId/push-runs"
-      ],
-      "sourceItemId": "api_endpoint:post-cloud-upstreams-connectionid-push-runs:70a106dae3",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /cloud-upstreams/:connectionId/push-runs/:runId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/cloud-upstreams.ts#/cloud-upstreams/:connectionId/push-runs/:runId"
-      ],
-      "sourceItemId": "api_endpoint:get-cloud-upstreams-connectionid-push-runs-runid:d809f897df",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /cloud-upstreams/:connectionId/push-runs/:runId/activation has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/cloud-upstreams.ts#/cloud-upstreams/:connectionId/push-runs/:runId/activation"
-      ],
-      "sourceItemId": "api_endpoint:post-cloud-upstreams-connectionid-push-runs-runid-activation:bb09f87962",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /cloud-upstreams/:connectionId/push-runs/:runId/cancel has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/cloud-upstreams.ts#/cloud-upstreams/:connectionId/push-runs/:runId/cancel"
-      ],
-      "sourceItemId": "api_endpoint:post-cloud-upstreams-connectionid-push-runs-runid-cancel:77b67319c1",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /cloud-upstreams/:connectionId/push-runs/preview has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/cloud-upstreams.ts#/cloud-upstreams/:connectionId/push-runs/preview"
-      ],
-      "sourceItemId": "api_endpoint:post-cloud-upstreams-connectionid-push-runs-preview:a4e3a58a0b",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /cloud-upstreams/connect/finish has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/cloud-upstreams.ts#/cloud-upstreams/connect/finish"
-      ],
-      "sourceItemId": "api_endpoint:post-cloud-upstreams-connect-finish:e3e149a9e2",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /cloud-upstreams/connect/start has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/cloud-upstreams.ts#/cloud-upstreams/connect/start"
-      ],
-      "sourceItemId": "api_endpoint:post-cloud-upstreams-connect-start:345a38d521",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET / has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/"
-      ],
-      "sourceItemId": "api_endpoint:get:8eccc9c964",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST / has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/"
-      ],
-      "sourceItemId": "api_endpoint:post:2b152fcb8e",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: DELETE /:companyId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId"
-      ],
-      "sourceItemId": "api_endpoint:delete-companyid:fa9018b8ee",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /:companyId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId"
-      ],
-      "sourceItemId": "api_endpoint:get-companyid:6575a2d654",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /:companyId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId"
-      ],
-      "sourceItemId": "api_endpoint:patch-companyid:4f2eaf7359",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /:companyId/archive has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId/archive"
-      ],
-      "sourceItemId": "api_endpoint:post-companyid-archive:e24dd1b757",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /:companyId/artifacts has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId/artifacts"
-      ],
-      "sourceItemId": "api_endpoint:get-companyid-artifacts:05894db53f",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /:companyId/branding has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId/branding"
-      ],
-      "sourceItemId": "api_endpoint:patch-companyid-branding:63e7d834a0",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /:companyId/export has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId/export"
-      ],
-      "sourceItemId": "api_endpoint:post-companyid-export:b95d732d6a",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /:companyId/exports has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId/exports"
-      ],
-      "sourceItemId": "api_endpoint:post-companyid-exports:de19679713",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /:companyId/exports/preview has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId/exports/preview"
-      ],
-      "sourceItemId": "api_endpoint:post-companyid-exports-preview:f5706e9e1e",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /:companyId/feedback-traces has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId/feedback-traces"
-      ],
-      "sourceItemId": "api_endpoint:get-companyid-feedback-traces:022db1d66e",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /:companyId/imports/apply has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId/imports/apply"
-      ],
-      "sourceItemId": "api_endpoint:post-companyid-imports-apply:e32f3b7b86",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /:companyId/imports/preview has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/:companyId/imports/preview"
-      ],
-      "sourceItemId": "api_endpoint:post-companyid-imports-preview:bf845be5d5",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /import/jobs/:jobId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/import/jobs/:jobId"
-      ],
-      "sourceItemId": "api_endpoint:get-import-jobs-jobid:ecdba4676b",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /import/preview has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/import/preview"
-      ],
-      "sourceItemId": "api_endpoint:post-import-preview:48f6c52046",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /issues has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/companies.ts#/issues"
-      ],
-      "sourceItemId": "api_endpoint:get-issues:35e084a6d4",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /stats has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/companies.ts#/stats"
-      ],
-      "sourceItemId": "api_endpoint:get-stats:0796a498cf",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/skills has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-skills:936e7dcc51",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/skills has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-skills:f08e80bc2d",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: DELETE /companies/:companyId/skills/:skillId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/:skillId"
-      ],
-      "sourceItemId": "api_endpoint:delete-companies-companyid-skills-skillid:e7012699de",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/skills/:skillId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/:skillId"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-skills-skillid:5caa9c49a1",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/skills/:skillId/audit has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/:skillId/audit"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-skills-skillid-audit:6708632596",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/skills/:skillId/files has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/:skillId/files"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-skills-skillid-files:2bb8de60d9",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /companies/:companyId/skills/:skillId/files has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/:skillId/files"
-      ],
-      "sourceItemId": "api_endpoint:patch-companies-companyid-skills-skillid-files:58f148d5ff",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/skills/:skillId/install-update has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/:skillId/install-update"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-skills-skillid-install-update:b248091857",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/skills/:skillId/reset has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/:skillId/reset"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-skills-skillid-reset:e5ace138d7",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/skills/:skillId/update-status has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/:skillId/update-status"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-skills-skillid-update-status:ec7b242ca5",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/skills/import has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/import"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-skills-import:efdbce96b6",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/skills/install-catalog has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/install-catalog"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-skills-install-catalog:b3f897bcd0",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/skills/scan-projects has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/companies/:companyId/skills/scan-projects"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-skills-scan-projects:358b598911",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /skills/catalog has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/skills/catalog"
-      ],
-      "sourceItemId": "api_endpoint:get-skills-catalog:08dc76d7c2",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /skills/catalog/:catalogId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/skills/catalog/:catalogId"
-      ],
-      "sourceItemId": "api_endpoint:get-skills-catalog-catalogid:275ccb0fad",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /skills/catalog/:catalogId/files has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/company-skills.ts#/skills/catalog/:catalogId/files"
-      ],
-      "sourceItemId": "api_endpoint:get-skills-catalog-catalogid-files:aae3e8d848",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /agents/:agentId/budgets has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/agents/:agentId/budgets"
-      ],
-      "sourceItemId": "api_endpoint:patch-agents-agentid-budgets:b984034495",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/budget-incidents/:incidentId/resolve has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/budget-incidents/:incidentId/resolve"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-budget-incidents-incidentid-resolve:69ac426dd0",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /companies/:companyId/budgets has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/budgets"
-      ],
-      "sourceItemId": "api_endpoint:patch-companies-companyid-budgets:505a046daf",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/budgets/policies has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/budgets/policies"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-budgets-policies:1a5497206f",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/cost-events has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/cost-events"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-cost-events:0b7985783b",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/by-agent has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/by-agent"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-by-agent:2f81a3d772",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/by-agent-model has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/by-agent-model"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-by-agent-model:7e7c96901d",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/by-biller has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/by-biller"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-by-biller:23ede2b60e",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/by-project has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/by-project"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-by-project:c6ae4b6cf7",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/by-provider has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/by-provider"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-by-provider:416dc7583e",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/finance-by-biller has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/finance-by-biller"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-finance-by-biller:18c0f34105",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/finance-by-kind has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/finance-by-kind"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-finance-by-kind:cd7b8a5569",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/finance-events has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/finance-events"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-finance-events:e3b9d969a1",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/finance-summary has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/finance-summary"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-finance-summary:17508ef4d3",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/quota-windows has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/quota-windows"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-quota-windows:4ef8d8f2f9",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/summary has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/summary"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-summary:86652e5a51",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/costs/window-spend has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/costs/window-spend"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-costs-window-spend:d19c064103",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/finance-events has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/companies/:companyId/finance-events"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-finance-events:b2a9880193",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /issues/:id/cost-summary has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/costs.ts#/issues/:id/cost-summary"
-      ],
-      "sourceItemId": "api_endpoint:get-issues-id-cost-summary:0593bc8a8f",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/deliveries has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/deliveries.ts#/companies/:companyId/deliveries"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/deliveries has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/deliveries.ts#/companies/:companyId/deliveries"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-deliveries:295187fbac",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /deliveries/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/deliveries.ts#/deliveries/:id"
-      ],
-      "sourceItemId": "api_endpoint:get-deliveries-id:14cdad6d18",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /deliveries/:id/outcome has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/deliveries.ts#/deliveries/:id/outcome"
-      ],
-      "sourceItemId": "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /deliveries/:id/transition has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/deliveries.ts#/deliveries/:id/transition"
-      ],
-      "sourceItemId": "api_endpoint:post-deliveries-id-transition:d97a50341f",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/environments has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/environments.ts#/companies/:companyId/environments"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-environments:ac6e4c8a72",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/environments has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/environments.ts#/companies/:companyId/environments"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-environments:641573a90a",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/environments/capabilities has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/environments.ts#/companies/:companyId/environments/capabilities"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-environments-capabilities:3cf50e822b",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /environment-leases/:leaseId has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/environments.ts#/environment-leases/:leaseId"
-      ],
-      "sourceItemId": "api_endpoint:get-environment-leases-leaseid:581bf1fb7c",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: DELETE /environments/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/environments.ts#/environments/:id"
-      ],
-      "sourceItemId": "api_endpoint:delete-environments-id:3083c8cd96",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /environments/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/environments.ts#/environments/:id"
-      ],
-      "sourceItemId": "api_endpoint:get-environments-id:d85fd35295",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /environments/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/environments.ts#/environments/:id"
-      ],
-      "sourceItemId": "api_endpoint:patch-environments-id:7fdc1ee34d",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /environments/:id/leases has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/environments.ts#/environments/:id/leases"
-      ],
-      "sourceItemId": "api_endpoint:get-environments-id-leases:aa82420d24",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /environments/:id/probe has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/environments.ts#/environments/:id/probe"
-      ],
-      "sourceItemId": "api_endpoint:post-environments-id-probe:a240da1ea8",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/execution-workspaces has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-execution-workspaces:e228eb46e6",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /execution-workspaces/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/execution-workspaces.ts#/execution-workspaces/:id"
-      ],
-      "sourceItemId": "api_endpoint:get-execution-workspaces-id:cfa7051bc9",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /execution-workspaces/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/execution-workspaces.ts#/execution-workspaces/:id"
-      ],
-      "sourceItemId": "api_endpoint:patch-execution-workspaces-id:414e9e82c4",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /execution-workspaces/:id/close-readiness has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/execution-workspaces.ts#/execution-workspaces/:id/close-readiness"
-      ],
-      "sourceItemId": "api_endpoint:get-execution-workspaces-id-close-readiness:290891b565",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /execution-workspaces/:id/runtime-commands/:action has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/execution-workspaces.ts#/execution-workspaces/:id/runtime-commands/:action"
-      ],
-      "sourceItemId": "api_endpoint:post-execution-workspaces-id-runtime-commands-action:29e6f890b7",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /execution-workspaces/:id/runtime-services/:action has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/execution-workspaces.ts#/execution-workspaces/:id/runtime-services/:action"
-      ],
-      "sourceItemId": "api_endpoint:post-execution-workspaces-id-runtime-services-action:da155089d0",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /execution-workspaces/:id/workspace-operations has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/execution-workspaces.ts#/execution-workspaces/:id/workspace-operations"
-      ],
-      "sourceItemId": "api_endpoint:get-execution-workspaces-id-workspace-operations:017ded6929",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /issues/:issueId/file-resources/content has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/file-resources.ts#/issues/:issueId/file-resources/content"
-      ],
-      "sourceItemId": "api_endpoint:get-issues-issueid-file-resources-content:f3d13abf65",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /issues/:issueId/file-resources/list has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/file-resources.ts#/issues/:issueId/file-resources/list"
-      ],
-      "sourceItemId": "api_endpoint:get-issues-issueid-file-resources-list:2166c68a83",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /issues/:issueId/file-resources/resolve has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/file-resources.ts#/issues/:issueId/file-resources/resolve"
-      ],
-      "sourceItemId": "api_endpoint:get-issues-issueid-file-resources-resolve:553be5442e",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/goals has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/goals.ts#/companies/:companyId/goals"
-      ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-goals:9613e9d197",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/goals has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/goals.ts#/companies/:companyId/goals"
-      ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-goals:e9fd068118",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: DELETE /goals/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/goals.ts#/goals/:id"
-      ],
-      "sourceItemId": "api_endpoint:delete-goals-id:20eb55dd6f",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /goals/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/goals.ts#/goals/:id"
-      ],
-      "sourceItemId": "api_endpoint:get-goals-id:48ea40de41",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: PATCH /goals/:id has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/goals.ts#/goals/:id"
-      ],
-      "sourceItemId": "api_endpoint:patch-goals-id:326c8d903a",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET / has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/health.ts#/"
-      ],
-      "sourceItemId": "api_endpoint:get:8bfb6330f8",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /dev-server/restart has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/health.ts#/dev-server/restart"
-      ],
-      "sourceItemId": "api_endpoint:post-dev-server-restart:8ce723f667",
-      "risk": "missing_test_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: GET /companies/:companyId/inbox-dismissals has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
+        "server/src/routes/activity.ts#/companies/:companyId/activity",
+        "server/src/routes/activity.ts#/heartbeat-runs/:runId/issues",
+        "server/src/routes/agents.ts#/agents/:id/runtime-state",
+        "server/src/routes/agents.ts#/companies/:companyId/adapters/:type/test-environment",
+        "server/src/routes/agents.ts#/instance/scheduler-heartbeats",
+        "server/src/routes/approvals.ts#/approvals/:id/issues",
+        "server/src/routes/cloud-upstreams.ts#/cloud-upstreams",
+        "server/src/routes/companies.ts#/:companyId/artifacts",
+        "server/src/routes/companies.ts#/issues",
+        "server/src/routes/company-skills.ts#/companies/:companyId/skills/scan-projects",
+        "server/src/routes/costs.ts#/companies/:companyId/costs/quota-windows",
+        "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces",
         "server/src/routes/inbox-dismissals.ts#/companies/:companyId/inbox-dismissals"
       ],
-      "sourceItemId": "api_endpoint:get-companies-companyid-inbox-dismissals:656da7ce6f",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /companies/:companyId/inbox-dismissals has app-completion risk missing_doc_link.",
-      "nextOwner": "Docs Memory Lead + Project Manager",
-      "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
-      "evidence": [
-        "server/src/routes/inbox-dismissals.ts#/companies/:companyId/inbox-dismissals"
+      "sourceItemId": "api_endpoint:post-companies-companyid-activity:553426d5a8",
+      "risk": "missing_doc_link",
+      "sourceItemIds": [
+        "api_endpoint:post-companies-companyid-activity:553426d5a8",
+        "api_endpoint:get-heartbeat-runs-runid-issues:9f825c252e",
+        "api_endpoint:get-agents-id-runtime-state:901571eae9",
+        "api_endpoint:post-companies-companyid-adapters-type-test-environment:aab9a34e43",
+        "api_endpoint:get-instance-scheduler-heartbeats:0614a006b4",
+        "api_endpoint:get-approvals-id-issues:6c6b090d8c",
+        "api_endpoint:get-cloud-upstreams:e681f2d029",
+        "api_endpoint:get-companyid-artifacts:05894db53f",
+        "api_endpoint:get-issues:35e084a6d4",
+        "api_endpoint:post-companies-companyid-skills-scan-projects:358b598911",
+        "api_endpoint:get-companies-companyid-costs-quota-windows:4ef8d8f2f9",
+        "api_endpoint:get-companies-companyid-execution-workspaces:e228eb46e6",
+        "api_endpoint:get-companies-companyid-inbox-dismissals:656da7ce6f",
+        "api_endpoint:post-companies-companyid-inbox-dismissals:3dcb9a9d1c"
       ],
-      "sourceItemId": "api_endpoint:post-companies-companyid-inbox-dismissals:3dcb9a9d1c",
-      "risk": "missing_doc_link"
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
-      "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow: POST /instance/database-backups has app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/instance-database-backups.ts#/instance/database-backups"
-      ],
-      "sourceItemId": "api_endpoint:post-instance-database-backups:e8b3c6e8ff",
-      "risk": "missing_test_link"
+      "affectedItemCount": 14
     },
     {
       "kind": "operational_gate_gap",
+      "classification": null,
+      "severity": "high",
+      "userFlow": null,
+      "summary": "source_freshness: stale",
+      "nextOwner": "Project Manager",
+      "nextAction": "Restore current project truth rather than historical evidence."
+    },
+    {
+      "kind": "operational_gate_gap",
+      "classification": null,
       "severity": "high",
       "userFlow": null,
       "summary": "release_branch_alignment: unknown",
@@ -2656,6 +479,7 @@
     },
     {
       "kind": "operational_gate_gap",
+      "classification": null,
       "severity": "high",
       "userFlow": null,
       "summary": "deployment_identity: unknown",
@@ -2664,6 +488,7 @@
     },
     {
       "kind": "operational_gate_gap",
+      "classification": null,
       "severity": "high",
       "userFlow": null,
       "summary": "event_chain_index: incomplete",
@@ -2672,6 +497,7 @@
     },
     {
       "kind": "operational_gate_gap",
+      "classification": null,
       "severity": "high",
       "userFlow": null,
       "summary": "public_runtime_probe: unknown",

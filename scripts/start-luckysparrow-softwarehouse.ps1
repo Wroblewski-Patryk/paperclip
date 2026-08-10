@@ -9,7 +9,17 @@ $ConfigPath = Join-Path $Root '.paperclip\config.json'
 $EnvPath = Join-Path $Root '.paperclip\.env'
 $ServiceDir = Join-Path $Root '.paperclip\runtime\home\instances\default\runtime-services'
 $OrphanCleanupScript = Join-Path $PSScriptRoot 'cleanup-orphaned-embedded-postgres.ps1'
+$RuntimeInventoryScript = Join-Path $PSScriptRoot 'lib\windows-runtime-inventory.mjs'
 $StartupTimeoutSeconds = 180
+
+function Get-StrictPortListeners {
+  param([int]$Port)
+  $json = & node $RuntimeInventoryScript --port $Port
+  if ($LASTEXITCODE -ne 0) { throw "Could not inventory strict port $Port." }
+  $parsed = $json | ConvertFrom-Json
+  if ($null -eq $parsed) { return @() }
+  return @($parsed)
+}
 
 function Test-PaperclipHealth {
   try {
@@ -34,34 +44,16 @@ function Wait-PaperclipHealth {
   return Test-PaperclipHealth
 }
 
-function Test-ProcessDescendsFrom {
-  param(
-    [int]$ProcessId,
-    [int]$RootProcessId
-  )
-
-  $cursor = $ProcessId
-  for ($depth = 0; $depth -lt 24 -and $cursor -gt 0; $depth++) {
-    if ($cursor -eq $RootProcessId) { return $true }
-    $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $cursor" -ErrorAction SilentlyContinue
-    if (-not $processInfo) { return $false }
-    $cursor = [int]$processInfo.ParentProcessId
-  }
-  return $false
-}
-
 function Test-PaperclipOwnedHealth {
   param(
     [int]$RootProcessId
   )
 
   if (-not (Test-PaperclipHealth)) { return $false }
-  foreach ($listener in @(Get-NetTCPConnection -LocalPort 3200 -State Listen -ErrorAction SilentlyContinue)) {
-    if (Test-ProcessDescendsFrom -ProcessId ([int]$listener.OwningProcess) -RootProcessId $RootProcessId) {
-      return $true
-    }
-  }
-  return $false
+  $rootProcess = Get-Process -Id $RootProcessId -ErrorAction SilentlyContinue
+  if (-not $rootProcess) { return $false }
+  $listeners = @(Get-StrictPortListeners -Port 3200)
+  return $listeners.Count -eq 1 -and $listeners[0].imageName -eq 'node.exe'
 }
 
 function Wait-PaperclipOwnedHealth {
@@ -134,12 +126,10 @@ if (Test-Path -LiteralPath $ServiceDir) {
   }
 }
 
-$listeners = Get-NetTCPConnection -LocalPort 3200,3201 -State Listen -ErrorAction SilentlyContinue
-foreach ($listener in $listeners) {
-  $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $($listener.OwningProcess)" -ErrorAction SilentlyContinue
-  if ($processInfo -and $processInfo.CommandLine -like "*$Root*") {
-    throw "LuckySparrow Software House already has a listener on port $($listener.LocalPort) as PID $($listener.OwningProcess). Run scripts/stop-luckysparrow-softwarehouse.ps1 first."
-  }
+$listeners = @((Get-StrictPortListeners -Port 3200)) + @((Get-StrictPortListeners -Port 3201))
+if ($listeners.Count -gt 0) {
+  $listenerSummary = ($listeners | ForEach-Object { "PID $($_.pid) ($($_.imageName))" }) -join ', '
+  throw "A listener already occupies strict Paperclip port 3200/3201: $listenerSummary. Run scripts/stop-luckysparrow-softwarehouse.ps1 first."
 }
 
 & node (Join-Path $Root 'scripts\ensure-softwarehouse-runtime-dependencies.mjs')

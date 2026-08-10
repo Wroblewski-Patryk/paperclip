@@ -1,9 +1,10 @@
 # Project Truth Index
 
 Generated: 2026-08-03T14:48:09.744Z
+Observed: 2026-08-10T03:29:58.013Z
 Project: Paperclip
 Status: gaps_require_routing
-Source HEAD: 7a3b4c941342079ed651212df3944aecd86e1b91
+Source HEAD: 7dead1c7826f7185e199909af9de7df5cd1d6337
 Source ahead/behind: unknown/unknown
 Deployed SHA: unknown
 
@@ -12,18 +13,18 @@ This is the routing surface agents should use before guessing whether an app wor
 | Metric | Count |
 | --- | ---: |
 | appCompletionItems | 492 |
-| eventChains | 8 |
-| incompleteEventChains | 1 |
+| eventChains | 7 |
+| incompleteEventChains | 2 |
 | runtimeFindings | 0 |
 | criticalRuntimeFindings | 0 |
-| appCompletionGaps | 461 |
-| indexedAppCompletionGaps | 200 |
+| appCompletionGaps | 10 |
+| indexedAppCompletionGaps | 10 |
 | knownAppCompletionRiskItems | 461 |
 | appCompletionPriorityReviewItems | 200 |
 | appCompletionPriorityReviewTruncated | true |
-| operationalGateGaps | 4 |
-| indexedGaps | 205 |
-| totalGaps | 466 |
+| operationalGateGaps | 5 |
+| indexedGaps | 17 |
+| totalGaps | 17 |
 
 ## First Gap
 
@@ -36,82 +37,19 @@ This is the routing surface agents should use before guessing whether an app wor
 | Severity | Kind | Flow | Summary | Next owner |
 | --- | --- | --- | --- | --- |
 | high | event_chain_gap | Admin operation | Missing frontend layer(s) in event chain. | CTO Architect + Engineering Delivery Lead |
-| medium | app_completion_gap | Account access | Account access: POST /agents/:id/claude-login has app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
-| medium | app_completion_gap | Account access | Account access: POST /agents/:id/runtime-state/reset-session has app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
-| medium | app_completion_gap | Account access | Account access: GET /agents/:id/task-sessions has app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
-| medium | app_completion_gap | Account access | Account access: GET /profile has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| high | app_completion_gap | Account access | Account access: Auth.tsx has app-completion risk needs_browser_review. | QA Regression Lead + Frontend Experience Lead |
-| high | app_completion_gap | Account access | Account access: CliAuth.tsx has app-completion risk needs_browser_review. | QA Regression Lead + Frontend Experience Lead |
-| medium | app_completion_gap | Admin operation | Admin operation: POST /admin/users/:userId/demote-instance-admin has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Admin operation | Admin operation: POST /admin/users/:userId/promote-instance-admin has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Admin operation | Admin operation: POST /issues/:id/admin/force-release has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Dashboard overview | Dashboard overview: GET /companies/:companyId/budgets/overview has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Dashboard overview | Dashboard overview: GET /companies/:companyId/dashboard has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Dashboard overview | Dashboard overview: GET /companies/:companyId/situation has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Dashboard overview | Dashboard overview: GET /plugins/:pluginId/dashboard has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| high | app_completion_gap | Dashboard overview | Dashboard overview: ProjectDeliveryOverview.tsx has app-completion risk needs_browser_review. | QA Regression Lead + Frontend Experience Lead |
-| high | app_completion_gap | Dashboard overview | Dashboard overview: Dashboard.tsx has app-completion risk needs_browser_review. | QA Regression Lead + Frontend Experience Lead |
-| high | app_completion_gap | Dashboard overview | Dashboard overview: DashboardLive.tsx has app-completion risk needs_browser_review. | QA Regression Lead + Frontend Experience Lead |
-| medium | app_completion_gap | Subscription and entitlement | Subscription and entitlement: POST /issues/:id/checkout has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Trading operation | Trading operation: GET /issues/:id/accepted-plan-decompositions has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Trading operation | Trading operation: POST /issues/:id/accepted-plan-decompositions has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: USE /assets has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /bootstrap/claim has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/join-requests/:requestId/approve has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/join-requests/:requestId/reject has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/members/:memberId/archive has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: PATCH /companies/:companyId/members/:memberId/permissions has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: PATCH /companies/:companyId/members/:memberId/role-and-grants has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /invites/:inviteId/revoke has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /invites/:token/skills/:skillName has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /invites/:token/skills/index has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /skills/available has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/activity has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/activity has app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /heartbeat-runs/:runId/issues has app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /issues/:id/activity has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /issues/:id/recovery-run-evidence has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /issues/:id/runs has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /adapters has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: DELETE /adapters/:type has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: PATCH /adapters/:type has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: PATCH /adapters/:type/override has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /adapters/:type/reinstall has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /adapters/:type/reload has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /adapters/:type/ui-parser.js has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /adapters/install has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/admission-controls has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/admission-controls/transition has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: DELETE /agents/:id has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /agents/:id has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: PATCH /agents/:id has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /agents/:id/approve has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /agents/:id/heartbeat/invoke has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /agents/:id/instructions-bundle has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: PATCH /agents/:id/instructions-bundle has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: DELETE /agents/:id/instructions-bundle/file has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /agents/:id/instructions-bundle/file has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: PUT /agents/:id/instructions-bundle/file has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: PATCH /agents/:id/instructions-path has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /agents/:id/keys has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /agents/:id/keys has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: DELETE /agents/:id/keys/:keyId has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /agents/:id/pause has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: PATCH /agents/:id/permissions has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /agents/:id/resume has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /agents/:id/runtime-state has app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /agents/:id/skills has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /agents/:id/skills/sync has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /agents/:id/terminate has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /agents/:id/wakeup has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /agents/me has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /agents/me/inbox-lite has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /agents/me/inbox/mine has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/adapters/:type/detect-model has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/adapters/:type/models has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/adapters/:type/test-environment has app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/agent-hires has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/agents has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: POST /companies/:companyId/agents has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/heartbeat-runs has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow: GET /companies/:companyId/live-runs has app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| high | event_chain_gap | Trading operation | Missing frontend, backend, worker layer(s) in event chain. | CTO Architect + Engineering Delivery Lead |
+| medium | app_completion_gap | Account access | Account access has 3 item(s) with app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
+| medium | app_completion_gap | Account access | Account access has 1 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| high | app_completion_gap | Account access | Account access has 2 item(s) with app-completion risk needs_browser_review. | QA Regression Lead + Frontend Experience Lead |
+| medium | app_completion_gap | Admin operation | Admin operation has 3 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Dashboard overview | Dashboard overview has 4 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| high | app_completion_gap | Dashboard overview | Dashboard overview has 3 item(s) with app-completion risk needs_browser_review. | QA Regression Lead + Frontend Experience Lead |
+| medium | app_completion_gap | Subscription and entitlement | Subscription and entitlement has 1 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Trading operation | Trading operation has 2 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow has 167 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow has 14 item(s) with app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
+| high | operational_gate_gap | - | source_freshness: stale | Project Manager |
+| high | operational_gate_gap | - | release_branch_alignment: unknown | Project Manager |
+| high | operational_gate_gap | - | deployment_identity: unknown | Project Manager |
+| high | operational_gate_gap | - | event_chain_index: incomplete | Project Manager |
+| high | operational_gate_gap | - | public_runtime_probe: unknown | Deployment Reliability Engineer |

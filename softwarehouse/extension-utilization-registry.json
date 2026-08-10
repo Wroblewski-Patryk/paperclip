@@ -114,7 +114,7 @@
       "requiredFiles": ["scripts/audit-softwarehouse-workspace-boundaries.mjs", "scripts/audit-local-runtime-topology.mjs", "scripts/audit-cross-project-isolation.mjs", "scripts/ensure-project-runtime-capabilities.mjs"],
       "integrationChecks": [{"file": "package.json", "patterns": ["softwarehouse:workspace-boundary-audit", "softwarehouse:runtime-topology-audit", "softwarehouse:cross-project-isolation-audit", "softwarehouse:project-runtime"]}],
       "runtimeProbes": [{"path": "/api/health", "shape": "object", "equals": {"status": "ok"}}],
-      "proofFiles": ["scripts/ensure-project-runtime-capabilities.test.mjs", "scripts/cross-project-isolation-audit.test.mjs", "AGENTS.md"]
+      "proofFiles": ["scripts/ensure-project-runtime-capabilities.test.mjs", "scripts/cross-project-isolation-audit.test.mjs", "scripts/lib/windows-runtime-inventory.test.mjs", "AGENTS.md"]
     }
   ]
 }

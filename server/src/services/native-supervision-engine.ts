@@ -223,14 +223,19 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
           and o.status in ('accepted','accepted_with_risk')
       `),
       scalar(companyId, sql`
-        select case
-          when count(*) > 0 and coalesce((select sum(c.cost_cents) from cost_events c where c.company_id=${companyId}),0) = 0
-            then count(*)::int
-          else 0
-        end as count
+        select count(*)::int
         from product_outcomes o
         where o.company_id=${companyId}
           and o.status in ('accepted','accepted_with_risk')
+          and not exists (
+            select 1
+            from delivery_tasks dt
+            join cost_events c
+              on c.company_id=dt.company_id
+             and c.issue_id=dt.issue_id
+            where dt.company_id=o.company_id
+              and dt.delivery_id=o.delivery_id
+          )
       `),
       scalar(companyId, sql`
         select coalesce(jsonb_array_length(only_external),0)::int as count

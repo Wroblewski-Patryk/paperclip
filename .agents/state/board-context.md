@@ -2,6 +2,14 @@
 
 Last updated: 2026-08-10
 
+## 2026-08-10 Provider Quota Maintenance Boundary
+
+When the Paperclip provider token limit is exhausted, Codex may audit and
+repair the control plane but must not create replacement Paperclip tasks or
+dispatch agents merely to show activity. The safe posture is current read-only
+truth, explicit quota hold, zero new lanes, and automatic return to the normal
+governed control tick only after quota recovery.
+
 ## 2026-08-10 Runtime Self-Service And Paperclip Ownership
 
 The owner clarified that missing local development tooling must not become a

@@ -1,10 +1,35 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildQuotaHoldReadOnlyPacket,
   buildSnapshot,
   renderMarkdown,
   resolveSnapshotFreshness,
 } from "./lib/softwarehouse-readiness-snapshot.mjs";
+
+test("builds a fail-closed quota-hold packet with current project truth and no dispatch", () => {
+  const packet = buildQuotaHoldReadOnlyPacket({
+    generatedAt: "2026-08-10T03:00:00.000Z",
+    activeRunCount: 0,
+    projectTruth: {
+      projectNames: ["Soar"],
+      summary: { projectCount: 1, projectsWithGaps: 1, totalGaps: 2 },
+      projects: [{
+        name: "Soar",
+        ok: true,
+        publicProbe: { status: "pass" },
+        projectTruth: { status: "gaps_require_routing", counts: { totalGaps: 2 }, firstGap: { summary: "proof gap" } },
+      }],
+    },
+  });
+
+  assert.equal(packet.controlDecision, "provider_quota_hold");
+  assert.equal(packet.controlBrief.deliveryPermission.canStartNewLane, false);
+  assert.equal(packet.supervisionReady, false);
+  assert.equal(packet.activeRunCount, 0);
+  assert.equal(packet.projectTruthAudit.projectCount, 1);
+  assert.equal(packet.projectTruthAudit.projects[0].totalGaps, 2);
+});
 
 const now = new Date("2026-07-23T01:30:00.000Z");
 

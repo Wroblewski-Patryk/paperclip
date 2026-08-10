@@ -2212,6 +2212,10 @@ function isCheckoutConflictError(error: unknown): boolean {
   return error instanceof HttpError && error.status === 409 && error.message === "Issue checkout conflict";
 }
 
+export function isIssueExecutionQuotaHoldError(error: unknown): boolean {
+  return error instanceof Error && /issue execution quota hard hold/i.test(error.message);
+}
+
 function deriveCommentId(
   contextSnapshot: Record<string, unknown> | null | undefined,
   payload: Record<string, unknown> | null | undefined,
@@ -10177,12 +10181,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         logger.warn({ err: flushErr, runId }, "failed to flush run output progress after error");
       });
 
+      const issueExecutionQuotaHold = isIssueExecutionQuotaHoldError(err);
+      const failureErrorCode = issueExecutionQuotaHold ? "issue_execution_quota_hold" : "adapter_failed";
       const failedRun = await setRunStatus(run.id, "failed", {
         error: message,
-        errorCode: "adapter_failed",
+        errorCode: failureErrorCode,
         finishedAt: new Date(),
         resultJson: mergeRunStopMetadataForAgent(agent, "failed", {
-          errorCode: "adapter_failed",
+          errorCode: failureErrorCode,
           errorMessage: message,
         }),
         stdoutExcerpt,
@@ -10200,7 +10206,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         await appendRunEvent(failedRun, seq++, {
           eventType: "error",
           stream: "system",
-          level: "error",
+          level: issueExecutionQuotaHold ? "warn" : "error",
           message,
         });
         const livenessRun = await classifyAndPersistRunLiveness(failedRun) ?? failedRun;
@@ -10231,7 +10237,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         }
       }
 
-      await finalizeAgentStatus(agent.id, "failed");
+      // A per-issue hard quota is a deliberate policy stop, not an adapter or
+      // agent-health failure. Keep the run as evidence, but leave the worker
+      // available for unrelated work.
+      await finalizeAgentStatus(agent.id, issueExecutionQuotaHold ? "cancelled" : "failed");
     }
     } catch (outerErr) {
           // Setup code before adapter.execute threw (e.g. ensureRuntimeState, resolveWorkspaceForRun).

@@ -19,6 +19,22 @@ evidence.
 
 ## Entries
 
+### 2026-08-10 - Holistic quota-hold hardening
+
+- Owner directive: use the provider-token outage to repair the Softwarehouse
+  holistically, but create no Paperclip tasks and dispatch no agents.
+- The live instance was safely restarted on strict `3200`/`54329`; false agent
+  errors from policy quota holds, zero-cost subscription telemetry, and
+  non-privileged Windows runtime ownership were repaired and regression-tested.
+- A dedicated read-only quota-hold snapshot now keeps all three application
+  truth sources and the Roost bridge fresh while forbidding lane creation,
+  mutation, protected delivery, and dispatch. It reports 0 created tasks and 0
+  dispatched runs.
+- Extension utilization passes 12/12 at 100%. Outcome integrity and autonomy
+  graduation remain honestly fail-closed; no missing historical evidence or
+  acceptance was fabricated. Durable report:
+  `docs/status/2026-08-10-holistic-readiness-hardening.md`.
+
 ### 2026-08-10 - End-to-end completion gate for additional capabilities
 
 - Owner directive: inspect all additional Paperclip solutions for actual use,

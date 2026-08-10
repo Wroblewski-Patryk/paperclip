@@ -1,5 +1,95 @@
 export const DEFAULT_MAX_SOURCE_AGE_MS = 15 * 60 * 1_000;
 
+export function summarizeProjectTruthAudit(data = {}) {
+  return {
+    projectNames: data.projectNames ?? [],
+    projectCount: data.summary?.projectCount ?? null,
+    failedProjectCount: data.summary?.failedProjectCount ?? null,
+    projectsWithGaps: data.summary?.projectsWithGaps ?? null,
+    incompleteEventChains: data.summary?.incompleteEventChains ?? null,
+    criticalRuntimeFindings: data.summary?.criticalRuntimeFindings ?? null,
+    totalGaps: data.summary?.totalGaps ?? null,
+    firstGap: data.firstGap ?? null,
+    projects: data.projects?.map((project) => ({
+      name: project.name,
+      ok: project.ok,
+      publicProbeStatus: project.publicProbe?.status ?? null,
+      projectTruthStatus: project.projectTruth?.status ?? null,
+      totalGaps: project.projectTruth?.counts?.totalGaps ?? null,
+      firstGap: project.projectTruth?.firstGap ?? null,
+    })) ?? [],
+  };
+}
+
+export function buildQuotaHoldReadOnlyPacket({
+  projectTruth,
+  activeRunCount = 0,
+  generatedAt = new Date().toISOString(),
+} = {}) {
+  const projectTruthAudit = summarizeProjectTruthAudit(projectTruth);
+  const totalGaps = Number(projectTruthAudit.totalGaps ?? 0);
+  const primaryNextAction = totalGaps > 0
+    ? "Resume the normal control tick after provider quota recovers; until then preserve the indexed project gaps without dispatching work."
+    : "Resume the normal control tick after provider quota recovers. No agent work is dispatched by this read-only snapshot.";
+  return {
+    generatedAt,
+    ok: true,
+    auditOverall: "read_only_quota_hold",
+    controlDecision: "provider_quota_hold",
+    effectiveOperatingPosture: "read_only_supervision",
+    // The snapshot is safe to inspect, but it cannot prove productive native
+    // supervision while provider execution is unavailable.
+    supervisionReady: false,
+    twoProjectFullDeliveryReady: false,
+    activeRunCount,
+    liveRunCount: activeRunCount,
+    operatorActionPacket: {
+      status: "no_operator_action_needed",
+      blockedGates: [],
+      sourceControlGates: [],
+      dirtyProjects: [],
+    },
+    controlBrief: {
+      mode: "provider_quota_hold",
+      autonomyDisposition: "read_only_supervision",
+      headline: "Provider quota hold is active; current project truth remains available without dispatching agent work.",
+      decision: "provider_quota_hold",
+      deliveryPermission: {
+        protectedDeliveryAllowed: false,
+        projectRepoMutationAllowed: false,
+        canStartNewLane: false,
+        allowedLaneTypes: [],
+        reason: "Provider quota is unavailable; this snapshot is read-only and intentionally dispatches no work.",
+      },
+      primaryNextAction,
+      blockedGateCount: 0,
+      staleBlockedGateCount: 0,
+      dirtyProjectCount: 0,
+      blockedGates: [],
+      staleBlockedGates: [],
+      dirtyProjects: [],
+      allowed: ["read-only audits", "project-truth refresh", "runtime health checks"],
+      forbidden: ["agent dispatch", "new work lanes", "protected delivery"],
+      requiredBeforeFullDelivery: ["provider quota recovery", "fresh normal control tick"],
+    },
+    recommendedAction: primaryNextAction,
+    allowedWhileBlocked: ["read-only audits", "project-truth refresh", "runtime health checks"],
+    forbiddenWhileBlocked: ["agent dispatch", "new work lanes", "protected delivery"],
+    requiredBeforeFullDelivery: ["provider quota recovery", "fresh normal control tick"],
+    nextControlActions: [primaryNextAction],
+    projectTruthAudit,
+    steps: [{
+      name: "quotaHoldReadOnlyProjectTruth",
+      ok: true,
+      summary: {
+        projectCount: projectTruthAudit.projectCount,
+        projectsWithGaps: projectTruthAudit.projectsWithGaps,
+        totalGaps: projectTruthAudit.totalGaps,
+      },
+    }],
+  };
+}
+
 function list(items) {
   return items.length > 0 ? items.map((item) => `- ${item}`).join("\n") : "- none";
 }

@@ -60,6 +60,8 @@
     "softwarehouse:project-truth-dispatch": "node scripts/run-project-truth-gap-dispatcher.mjs",
     "softwarehouse:project-truth-dispatch:apply": "node scripts/run-project-truth-gap-dispatcher.mjs --apply",
     "softwarehouse:documentation-hygiene": "node scripts/run-documentation-hygiene-audit.mjs",
+    "softwarehouse:readiness-quota-hold": "node scripts/refresh-softwarehouse-readiness-quota-hold.mjs",
+    "softwarehouse:readiness-quota-hold:apply": "node scripts/refresh-softwarehouse-readiness-quota-hold.mjs --apply",
     "softwarehouse:documentation-hygiene:strict": "node scripts/run-documentation-hygiene-audit.mjs --strict",
     "softwarehouse:outcome-integrity": "node scripts/run-outcome-integrity-audit.mjs",
     "softwarehouse:outcome-integrity:strict": "node scripts/run-outcome-integrity-audit.mjs --strict",
