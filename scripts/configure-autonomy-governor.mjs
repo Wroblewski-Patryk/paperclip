@@ -236,6 +236,7 @@ async function main() {
     "Run `node scripts/run-softwarehouse-control-tick.mjs` before any narrative investigation.",
     "Treat its control decision, next legal actions, effective posture, allowed actions, and forbidden actions as the complete scope for this cycle.",
     "Execute or route at most one concrete next action; do not create activity-count work, duplicate blockers, or broad status/documentation fan-out.",
+    "Never ask the board to confirm a reversible local test, dirty-worktree classification, or local commit already authorized by the control packet; route it directly to the technical owner/reviewer. Reserve interactions for protected owner decisions such as push/deploy, production, secrets, destructive actions, money/legal/privacy, or owner acceptance.",
     "Use the detailed governance contract from the agent instruction bundle only when the control brief is ambiguous.",
     "Finish with one explicit disposition and inspectable evidence, then stop.",
   ].join("\n"));
