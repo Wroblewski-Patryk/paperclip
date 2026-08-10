@@ -48,6 +48,7 @@ describeEmbeddedPostgres("organizational record service", () => {
       evidence: [],
     }, { agentId: ownerAgentId });
     expect(created).toMatchObject({ companyId, kind: "commitment", status: "proposed", ownerAgentId });
+    expect(created.reviewAt).toBeInstanceOf(Date);
 
     const active = await svc.update(created.id, { status: "active" });
     expect(active?.status).toBe("active");
@@ -63,6 +64,17 @@ describeEmbeddedPostgres("organizational record service", () => {
       statement: "This must fail.",
       ownerAgentId: otherAgentId,
     }, { agentId: ownerAgentId })).rejects.toMatchObject({ status: 400 });
+
+    const assumption = await svc.create(companyId, {
+      kind: "assumption",
+      status: "active",
+      title: "Time-bounded premise",
+      statement: "This premise must be revisited rather than becoming permanent truth.",
+      ownerAgentId,
+    }, { agentId: ownerAgentId });
+    expect(assumption.reviewAt).toBeInstanceOf(Date);
+    expect(assumption.expiresAt).toBeInstanceOf(Date);
+    expect(assumption.expiresAt!.getTime()).toBeGreaterThan(assumption.reviewAt!.getTime());
   });
 
   it("supersedes a predecessor of the same kind atomically", async () => {

@@ -691,6 +691,22 @@ const steps = [
     }),
   },
   {
+    name: "organizationalOrientation",
+    command: ["scripts/run-organizational-orientation-maintainer.mjs", "--apply"],
+    summary: (data) => ({
+      memoryTotal: data.memory?.total ?? null,
+      missingReviewAt: data.memory?.missingReviewAt ?? null,
+      learningTotal: data.learning?.total ?? null,
+      promotionCandidateCount: data.learning?.promotionCandidateCount ?? null,
+      promotionResults: data.learning?.promotionResults?.map((result) => ({
+        id: result.id,
+        disposition: result.disposition ?? null,
+        reasons: result.reasons ?? [],
+        transitions: result.transitions ?? [],
+      })) ?? [],
+    }),
+  },
+  {
     name: "workerLaneNormalizer",
     command: ["scripts/run-worker-lane-normalizer.mjs", "--apply"],
     summary: (data) => ({

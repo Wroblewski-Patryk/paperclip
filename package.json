@@ -92,6 +92,8 @@
     "softwarehouse:worktree-retention-inventory": "node scripts/run-worktree-retention-inventory.mjs",
     "softwarehouse:learning-loop": "node scripts/run-softwarehouse-learning-loop.mjs",
     "softwarehouse:learning-loop:apply": "node scripts/run-softwarehouse-learning-loop.mjs --apply",
+    "softwarehouse:orientation-maintainer": "node scripts/run-organizational-orientation-maintainer.mjs",
+    "softwarehouse:orientation-maintainer:apply": "node scripts/run-organizational-orientation-maintainer.mjs --apply",
     "softwarehouse:configure-longevity": "node scripts/configure-softwarehouse-longevity-routines.mjs",
     "softwarehouse:readiness-snapshot": "node scripts/export-softwarehouse-readiness-snapshot.mjs",
     "softwarehouse:executive-health": "node scripts/check-softwarehouse-executive-health.mjs",

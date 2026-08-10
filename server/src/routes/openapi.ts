@@ -2956,6 +2956,15 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
+  path: "/api/organizational-observations/{id}/evaluate-promotion",
+  tags: ["dashboard"],
+  summary: "Evaluate a learning observation against evidence-backed promotion gates",
+  request: { params: z.object({ id: z.string() }) },
+  responses: { 200: r.ok(), 400: r.badRequest, 401: r.unauthorized, 403: r.forbidden, 404: r.notFound },
+});
+
+registry.registerPath({
+  method: "post",
   path: "/api/heartbeat-runs/{runId}/watchdog-decisions",
   tags: ["runs"],
   summary: "Submit watchdog decisions for a run",

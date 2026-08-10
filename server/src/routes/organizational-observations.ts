@@ -71,5 +71,23 @@ export function organizationalObservationRoutes(db: Db) {
     res.json(observation);
   });
 
+  router.post("/organizational-observations/:id/evaluate-promotion", async (req, res) => {
+    const id = req.params.id as string;
+    const existing = await svc.getById(id);
+    if (!existing) { res.status(404).json({ error: "Organizational observation not found" }); return; }
+    assertCompanyAccess(req, existing.companyId);
+    const actor = getActorInfo(req);
+    if (actor.actorType === "agent" && existing.createdByAgentId !== actor.agentId && existing.agentId !== actor.agentId) {
+      throw forbidden("Agents may only evaluate learning observations they created or own");
+    }
+    const result = await svc.evaluateLearningPromotion(id);
+    await logActivity(db, {
+      companyId: existing.companyId, actorType: actor.actorType, actorId: actor.actorId, agentId: actor.agentId, runId: actor.runId,
+      action: "organizational_observation.learning.promotion_evaluated", entityType: "organizational_observation", entityId: id,
+      details: { disposition: result?.disposition, reasons: result?.reasons, transitions: result?.transitions },
+    });
+    res.json(result);
+  });
+
   return router;
 }

@@ -14,6 +14,13 @@ When a verification command fails, record the command, failure, and next step.
 
 ## Project Memory Sources
 
+Every assigned issue heartbeat includes a bounded `companyOrientation` projection
+by default. Read it before choosing the next action: it contains current goals,
+capacity, governance, due decisions/commitments, learning candidates, and external
+signal pressure scoped toward the current issue/project. Request the full
+`companySituation` only when the bounded projection is insufficient; do not omit
+orientation merely to save tokens without an explicit reason.
+
 Read these Softwarehouse control-plane files before broad coordination,
 automation, deploy, or project takeover work:
 
@@ -104,6 +111,14 @@ agents should avoid or retry the path.
 If the event changes what future agents should trust, state the promotion path:
 `current truth updated`, `decision recorded`, `evidence attached only`,
 `lesson promoted`, `archived as historical`, or `no knowledge change`.
+
+Learning is not policy merely because it was observed repeatedly. A promotion
+candidate needs a concrete target, confidence of at least 80, two distinct
+provenance references, and—outside the native verified-supervision path—an
+evidence-backed completed issue. The organizational orientation maintainer may
+advance eligible candidates, but it must hold candidates that fail any gate.
+Unresolved memory records receive a review date; assumptions also expire unless
+renewed with fresh evidence.
 
 ## Trace Minimum
 

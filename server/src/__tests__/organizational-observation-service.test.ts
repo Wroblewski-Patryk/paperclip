@@ -83,4 +83,30 @@ describeEmbeddedPostgres("organizational observation service", () => {
     expect(result?.reasons).toContain("insufficient_independent_evidence");
     expect((await svc.getById(learning.id))?.status).toBe("proposed");
   });
+
+  it("holds non-supervision learning until durable issue evidence is complete", async () => {
+    const companyId = randomUUID();
+    await db.insert(companies).values({ id: companyId, name: "LuckySparrow", issuePrefix: "LSP", requireBoardApprovalForNewAgents: false });
+    const svc = organizationalObservationService(db);
+    const learning = await svc.create(companyId, {
+      kind: "learning",
+      status: "proposed",
+      title: "Do not confuse repetition with verified policy",
+      summary: "Two observations still require an evidence-backed completed issue before promotion.",
+      sourceClass: "retrospective",
+      provenance: [
+        { kind: "metric", ref: "metric:first" },
+        { kind: "other", ref: "review:second" },
+      ],
+      confidence: 95,
+      observedAt: new Date().toISOString(),
+      promotionTarget: { kind: "policy", ref: "policy/durable-only" },
+    }, { userId: "board" });
+
+    const result = await svc.evaluateLearningPromotion(learning.id);
+
+    expect(result).toMatchObject({ disposition: "held" });
+    expect(result?.reasons).toContain("no_evidence_backed_completed_source_issue");
+    expect((await svc.getById(learning.id))?.status).toBe("proposed");
+  });
 });

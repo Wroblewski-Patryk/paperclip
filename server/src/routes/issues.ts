@@ -69,6 +69,7 @@ import { getTelemetryClient } from "../telemetry.js";
 import type { StorageService } from "../storage/types.js";
 import { validate } from "../middleware/validate.js";
 import * as serviceIndex from "../services/index.js";
+import { buildCompanyOrientation } from "../services/company-orientation.js";
 import {
   accessService,
   assignmentProposalService,
@@ -2739,7 +2740,11 @@ export function issueRoutes(
       typeof req.query.wakeCommentId === "string" && req.query.wakeCommentId.trim().length > 0
         ? req.query.wakeCommentId.trim()
         : null;
-    const includeCompanySituation = req.query.includeCompanySituation === "true";
+    const companySituationMode = typeof req.query.includeCompanySituation === "string"
+      ? req.query.includeCompanySituation
+      : "summary";
+    const includeCompanyOrientation = !["false", "none"].includes(companySituationMode);
+    const includeCompanySituation = ["true", "full"].includes(companySituationMode);
 
     const currentExecutionWorkspacePromise = issue.executionWorkspaceId
       ? executionWorkspacesSvc.getById(issue.executionWorkspaceId)
@@ -2772,7 +2777,7 @@ export function issueRoutes(
         documentsSvc.getIssueDocumentByKey(issue.id, ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY),
         currentExecutionWorkspacePromise,
         recoveryActionsSvc.getActiveForIssue(issue.companyId, issue.id),
-        includeCompanySituation && companySituationSvc
+        (includeCompanyOrientation || includeCompanySituation) && companySituationSvc
           ? companySituationSvc.get(issue.companyId)
           : Promise.resolve(null),
       ]);
@@ -2873,7 +2878,13 @@ export function issueRoutes(
           }
         : null,
       currentExecutionWorkspace,
-      companySituation,
+      companySituation: includeCompanySituation ? companySituation : null,
+      companyOrientation: companySituation && includeCompanyOrientation
+        ? buildCompanyOrientation(companySituation, {
+            projectId: issue.projectId,
+            issueId: issue.id,
+          })
+        : null,
       companySituationRef: companySituationSvc
         ? `/api/companies/${issue.companyId}/situation`
         : null,

@@ -307,15 +307,31 @@ describe.sequential("issue goal context routes", () => {
     });
   });
 
-  it("keeps the full company situation on demand in heartbeat context", async () => {
+  it("includes bounded company orientation by default and keeps the full situation opt-in", async () => {
     const res = await request(createApp()).get(
       "/api/issues/11111111-1111-4111-8111-111111111111/heartbeat-context",
     );
 
     expect(res.status).toBe(200);
+    expect(mockCompanySituationService.get).toHaveBeenCalledWith("company-1");
+    expect(res.body.companySituation).toBeNull();
+    expect(res.body.companyOrientation).toMatchObject({
+      schemaVersion: 1,
+      basis: "bounded_company_situation_v1",
+      scope: { projectId: "22222222-2222-4222-8222-222222222222", issueId: "11111111-1111-4111-8111-111111111111" },
+    });
+    expect(res.body.companySituationRef).toBe("/api/companies/company-1/situation");
+  });
+
+  it("allows callers to explicitly omit company orientation", async () => {
+    mockCompanySituationService.get.mockClear();
+    const res = await request(createApp()).get(
+      "/api/issues/11111111-1111-4111-8111-111111111111/heartbeat-context?includeCompanySituation=none",
+    );
+    expect(res.status).toBe(200);
     expect(mockCompanySituationService.get).not.toHaveBeenCalled();
     expect(res.body.companySituation).toBeNull();
-    expect(res.body.companySituationRef).toBe("/api/companies/company-1/situation");
+    expect(res.body.companyOrientation).toBeNull();
   });
 
   it("preserves direct continuation summary lookup in GET /issues/:id/heartbeat-context", async () => {

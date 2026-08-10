@@ -726,6 +726,26 @@ export async function loadSoftwarehouseControlStatus(
     },
   };
 
+  const controlSnapshotFailed = [
+    response.auditOverall,
+    response.controlDecision,
+    response.effectiveOperatingPosture,
+  ].some((value) => typeof value === "string" && /(^|_)failed($|_)/i.test(value));
+  if (response.stale || controlSnapshotFailed) {
+    const reason = response.stale
+      ? "The control snapshot is stale; lane admission is fail-closed until a fresh control tick succeeds."
+      : "The latest control tick failed; lane admission is fail-closed until the failing control step is repaired and rerun.";
+    response.fullDeliveryReady = false;
+    response.deliveryPermission = {
+      protectedDeliveryAllowed: false,
+      projectRepoMutationAllowed: false,
+      canStartNewLane: false,
+      allowedLaneTypes: [],
+      reason,
+    };
+    response.headline = reason;
+  }
+
   return softwarehouseControlStatusResponseSchema.parse(response);
 }
 

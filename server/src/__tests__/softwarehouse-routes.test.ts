@@ -618,4 +618,43 @@ describe("softwarehouse control status", () => {
       await fs.rm(root, { recursive: true, force: true });
     }
   });
+
+  it("fails lane admission closed when the latest control tick failed", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-softwarehouse-status-failed-"));
+    const reportDir = path.join(root, "report");
+    await fs.mkdir(reportDir, { recursive: true });
+    await fs.writeFile(path.join(reportDir, "softwarehouse-readiness-snapshot.latest.json"), JSON.stringify({
+      generatedAt: "2026-07-18T11:59:00.000Z",
+      auditOverall: "failed",
+      controlDecision: "control_tick_failed",
+      effectiveOperatingPosture: "control_tick_failed",
+      twoProjectFullDeliveryReady: true,
+      controlBrief: {
+        headline: "Incorrectly optimistic snapshot",
+        deliveryPermission: {
+          protectedDeliveryAllowed: true,
+          projectRepoMutationAllowed: true,
+          canStartNewLane: true,
+          allowedLaneTypes: ["local_validation"],
+          reason: "Old optimistic projection",
+        },
+      },
+      projectTruthAudit: { projects: [] },
+    }), "utf8");
+
+    try {
+      const status = await loadSoftwarehouseControlStatus(root, new Date("2026-07-18T12:00:00.000Z"));
+      expect(status.stale).toBe(false);
+      expect(status.fullDeliveryReady).toBe(false);
+      expect(status.deliveryPermission).toMatchObject({
+        protectedDeliveryAllowed: false,
+        projectRepoMutationAllowed: false,
+        canStartNewLane: false,
+        allowedLaneTypes: [],
+      });
+      expect(status.deliveryPermission.reason).toContain("control tick failed");
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
 });

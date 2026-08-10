@@ -172,6 +172,36 @@ export function organizationalObservationService(db: Db) {
       if (existing.validUntil && existing.validUntil <= now) reasons.push("evidence_expired");
       if (["rejected", "superseded"].includes(existing.status)) reasons.push(`terminal_status:${existing.status}`);
 
+      if (existing.sourceClass !== "native_supervision_verified_intervention") {
+        const issueRefs = existing.provenance.filter((item) => item.kind === "issue").map((item) => item.ref);
+        const uuidRefs = issueRefs.filter((ref) => /^[0-9a-f-]{36}$/i.test(ref));
+        const identifierRefs = issueRefs.filter((ref) => !uuidRefs.includes(ref));
+        const referencedIssues = issueRefs.length > 0
+          ? await db.select({
+              id: issues.id,
+              identifier: issues.identifier,
+              status: issues.status,
+              completionEvidence: issues.completionEvidence,
+            }).from(issues).where(and(
+              eq(issues.companyId, existing.companyId),
+              or(
+                uuidRefs.length > 0 ? inArray(issues.id, uuidRefs) : undefined,
+                identifierRefs.length > 0 ? inArray(issues.identifier, identifierRefs) : undefined,
+              ),
+            ))
+          : [];
+        const evidenceBackedDone = referencedIssues.filter((issue) => issue.status === "done" && issue.completionEvidence !== null);
+        const target = existing.promotionTarget;
+        const targetIssue = target?.kind === "issue"
+          ? referencedIssues.find((issue) => issue.id === target.ref || issue.identifier === target.ref)
+          : null;
+        if (target?.kind === "issue" && (!targetIssue || targetIssue.status !== "done" || targetIssue.completionEvidence === null)) {
+          reasons.push("promotion_target_issue_not_evidence_backed_done");
+        } else if (target?.kind !== "issue" && evidenceBackedDone.length === 0) {
+          reasons.push("no_evidence_backed_completed_source_issue");
+        }
+      }
+
       if (reasons.length > 0) {
         return { disposition: "held" as const, observation: existing, reasons, transitions: [] as string[] };
       }

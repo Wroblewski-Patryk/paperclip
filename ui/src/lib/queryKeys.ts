@@ -2,6 +2,9 @@ export const queryKeys = {
   organizationalRecords: {
     list: (companyId: string, kind?: string) => ["organizational-records", companyId, kind ?? "all"] as const,
   },
+  organizationalObservations: {
+    list: (companyId: string, kind?: string) => ["organizational-observations", companyId, kind ?? "all"] as const,
+  },
   companies: {
     all: ["companies"] as const,
     detail: (id: string) => ["companies", id] as const,

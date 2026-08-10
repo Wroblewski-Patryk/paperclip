@@ -138,7 +138,7 @@ export function OrganizationalLearning() {
   useEffect(() => setBreadcrumbs([{ label: "Evidence & learning" }]), [setBreadcrumbs]);
 
   const query = useQuery({
-    queryKey: queryKeys.organizationalRecords.list(selectedCompanyId ?? ""),
+    queryKey: queryKeys.organizationalObservations.list(selectedCompanyId ?? ""),
     queryFn: () => organizationalObservationsApi.list(selectedCompanyId!),
     enabled: Boolean(selectedCompanyId),
   });

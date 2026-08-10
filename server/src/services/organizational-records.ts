@@ -137,15 +137,22 @@ export function organizationalRecordService(db: Db) {
 
       return db.transaction(async (tx) => {
         const { dueAt, reviewAt, expiresAt, ...recordData } = data;
+        const createdAt = new Date();
+        const defaultReviewAt = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const defaultAssumptionExpiry = new Date(createdAt.getTime() + 90 * 24 * 60 * 60 * 1000);
         const created = await tx.insert(organizationalRecords).values({
           ...recordData,
           dueAt: asDate(dueAt),
-          reviewAt: asDate(reviewAt),
-          expiresAt: asDate(expiresAt),
+          reviewAt: reviewAt == null && !RESOLVED_STATUSES.has(data.status)
+            ? defaultReviewAt
+            : asDate(reviewAt),
+          expiresAt: expiresAt == null && data.kind === "assumption"
+            ? defaultAssumptionExpiry
+            : asDate(expiresAt),
           companyId,
           createdByAgentId: actor.agentId ?? null,
           createdByUserId: actor.userId ?? null,
-          resolvedAt: RESOLVED_STATUSES.has(data.status) ? new Date() : null,
+          resolvedAt: RESOLVED_STATUSES.has(data.status) ? createdAt : null,
         }).returning().then((rows) => rows[0]);
         if (predecessor) {
           await tx.update(organizationalRecords).set({ status: "superseded", resolvedAt: new Date(), updatedAt: new Date() })

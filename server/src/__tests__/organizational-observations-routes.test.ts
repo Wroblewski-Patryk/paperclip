@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const observationService = vi.hoisted(() => ({
   getById: vi.fn(),
   update: vi.fn(),
+  evaluateLearningPromotion: vi.fn(),
 }));
 const logActivity = vi.hoisted(() => vi.fn());
 
@@ -53,6 +54,7 @@ describe.sequential("organizational observation route ownership", () => {
   beforeEach(() => {
     observationService.getById.mockReset();
     observationService.update.mockReset();
+    observationService.evaluateLearningPromotion.mockReset();
     logActivity.mockReset();
   });
 
@@ -93,5 +95,24 @@ describe.sequential("organizational observation route ownership", () => {
 
     expect(response.status).toBe(403);
     expect(observationService.update).not.toHaveBeenCalled();
+  });
+
+  it("allows the owning agent to request evidence-gated promotion evaluation", async () => {
+    const agentId = "44444444-4444-4444-8444-444444444444";
+    const existing = observation({ agentId });
+    observationService.getById.mockResolvedValue(existing);
+    observationService.evaluateLearningPromotion.mockResolvedValue({
+      disposition: "held",
+      observation: existing,
+      reasons: ["insufficient_independent_evidence"],
+      transitions: [],
+    });
+
+    const response = await request(await createApp(agentId))
+      .post(`/api/organizational-observations/${existing.id}/evaluate-promotion`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ disposition: "held" });
+    expect(observationService.evaluateLearningPromotion).toHaveBeenCalledWith(existing.id);
   });
 });
