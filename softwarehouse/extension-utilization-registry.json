@@ -68,8 +68,17 @@
       "lifecycle": "active",
       "requiredFiles": ["packages/teams-catalog/src/catalog-builder.ts", "server/src/services/teams-catalog.ts", "server/src/routes/teams-catalog.ts", "ui/src/pages/TeamCatalog.tsx"],
       "integrationChecks": [{"file": "server/src/app.ts", "patterns": ["teamsCatalogRoutes(db)"]}],
-      "runtimeProbes": [{"path": "/api/companies/{companyId}/teams/catalog/installed", "shape": "array", "minItems": 1}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/teams/catalog/installed", "shape": "array", "minItems": 1, "where": {"installationStatus": "installed", "outOfDate": false}, "minMatched": 4}],
       "proofFiles": ["ui/src/pages/TeamCatalog.test.tsx", "packages/teams-catalog/generated/catalog.json"]
+    },
+    {
+      "id": "cost_and_budget_governance",
+      "name": "Cost, subscription quota, and budget governance",
+      "lifecycle": "active",
+      "requiredFiles": ["server/src/services/costs.ts", "server/src/services/budgets.ts", "server/src/services/quota-windows.ts", "server/src/routes/costs.ts", "ui/src/pages/Costs.tsx", "ui/src/api/costs.ts", "ui/src/api/budgets.ts", "packages/db/src/schema/cost_events.ts", "packages/db/src/schema/budget_policies.ts", "packages/db/src/schema/budget_incidents.ts"],
+      "integrationChecks": [{"file": "server/src/app.ts", "patterns": ["costRoutes(db"]}, {"file": "server/src/services/heartbeat.ts", "patterns": ["budgets.getInvocationBlock", "getCodexLocalQuotaGateSettings", "getCachedProviderQuota", "buildProviderQuotaStartBlock"]}, {"file": "ui/src/App.tsx", "patterns": ["path=\"costs\"", "<Costs />"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/costs/summary", "shape": "object", "pathMinimums": {"subscriptionSpendCents": 1, "subscriptionBudgetCents": 1}}, {"path": "/api/companies/{companyId}/costs/quota-windows", "shape": "array", "minItems": 1, "where": {"provider": "openai", "ok": true, "windows.0.quotaLane": "codex_standard"}, "minMatched": 1}, {"path": "/api/companies/{companyId}/budgets/overview", "shape": "object", "pathMinimums": {"policies.length": 1}}, {"path": "/api/instance/settings/experimental", "shape": "object", "equals": {"codexLocalQuotaHoldEnabled": true}, "pathMinimums": {"codexLocalQuotaLongWindowHoldUsedPercent": 1}}],
+      "proofFiles": ["server/src/__tests__/costs-service.test.ts", "server/src/__tests__/budgets-service.test.ts", "server/src/__tests__/quota-windows-service.test.ts", "scripts/softwarehouse-gate-specs.test.mjs"]
     },
     {
       "id": "company_artifacts",
