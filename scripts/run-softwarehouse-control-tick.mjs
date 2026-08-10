@@ -77,6 +77,17 @@ const stepOutputMaxBufferBytes = Number(
 
 const steps = [
   {
+    name: "extensionUtilization",
+    command: ["scripts/audit-extension-utilization.mjs"],
+    summary: (data) => ({
+      passed: data.passed ?? false,
+      total: data.summary?.total ?? null,
+      passing: data.summary?.passing ?? null,
+      belowThreshold: data.summary?.belowThreshold ?? [],
+      averageUtilizationPercent: data.summary?.averageUtilizationPercent ?? null,
+    }),
+  },
+  {
     name: "goalAlignment",
     command: ["scripts/audit-softwarehouse-goal-alignment.mjs"],
     summary: (data) => ({

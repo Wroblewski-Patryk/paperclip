@@ -481,6 +481,14 @@ dependencies.
 
 ## Durable Policies
 
+- Additional Paperclip/Softwarehouse capabilities must be finished end to end,
+  not left as unused code, configuration, routes, screens, routines, or
+  placeholders. The completion gate is
+  `softwarehouse/extension-utilization-registry.json`: implementation,
+  integration with a real consumer, live evidence, and tests/docs must all pass
+  at 100%. A partial capability is repaired in the same lane or explicitly
+  retired and removed; it is never silently called done.
+
 - Department map and naming convention:
   `.agents/state/softwarehouse-departments.md`.
 - Secret requirements:

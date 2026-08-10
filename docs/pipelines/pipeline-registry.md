@@ -1,6 +1,6 @@
 # Pipeline Registry
 
-Last updated: 2026-05-26
+Last updated: 2026-08-10
 
 ## Purpose
 
@@ -19,6 +19,9 @@ project awareness to narrow work execution and back to updated global status.
 | Release/deploy governance | Deploy/cutover/recovery request | Ops / Security / CTO | SHA, Coolify model, secrets presence, approval gate | Smoke, readiness, rollback, no-secret evidence | active |
 | Memory and portfolio refresh | Any meaningful completion | Docs Memory / PM | Task evidence, project docs, root index | Updated docs/history/status and `/Aplikacje` index | active |
 | Blocker triage | Blocked issue without live run | PM / responsible lead | Comments, dependencies, evidence, current audit | Honest status, owner/action, next proof or closure | active |
+| ProductDelivery outcome loop | Admissible source-traceable product gap | Product Manager / Delivery Lead | Owner intent, product/architecture authority, observed gap | Persisted delivery transitions, independent review, outcome evidence | active |
+| Native supervision and learning | Scheduled native cycle or recurring finding | Portfolio Director / AID / responsible owner | Live state, recurrences, shadow comparison, accepted outcomes | Root cause, safeguard/intervention, observation window, or bounded no-action | active |
+| Extension utilization closure | Every control tick and every added capability | CTO / AID / Docs Memory | Capability registry, source wiring, live API evidence, tests/docs | Four-dimension utilization verdict; repair or explicit retirement | active |
 
 ## Operating Shape
 
@@ -43,17 +46,19 @@ portfolio status
   them stale and the issue is explicitly synchronized.
 - Production work requires explicit deploy/recovery scope, no-secret proof,
   rollback/cutover note, and SHA reconciliation.
+- A new capability is not complete when only its schema, route, page, script,
+  or configuration exists. It must pass implementation, integration, live-use,
+  and proof checks in `pnpm softwarehouse:extension-utilization`.
 
-## Current Soar Focus
+## Current Product Focus
 
-`LUC-99` is the active production-readiness blocker family. It requires:
-
-1. release-controller SHA reconciliation (`3fedb7a9...` vs production
-   `71b8d503...`);
-2. explicit `workers-market-stream` readiness proof or accepted deeper blocker;
-3. final parent closure/update for `LUC-98`, `LUC-47`, and dependent issues.
+Soar, Roost, and Featherly are active but isolated product lanes. The current
+control tick and ProductDelivery ledger, not historical issue identifiers in
+this document, determine the next legal action. Protected push, deployment,
+secret, destructive, and owner-acceptance actions remain gated.
 
 ## Maintenance Rule
 
-When a new routine or agent responsibility changes the path of work, update
-this registry and the matching role/shared instruction file.
+When a new routine, extension, or agent responsibility changes the path of
+work, update this registry, the capability map, the extension utilization
+registry, and the matching role/shared instruction file.

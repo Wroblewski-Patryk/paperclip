@@ -19,6 +19,22 @@ evidence.
 
 ## Entries
 
+### 2026-08-10 - End-to-end completion gate for additional capabilities
+
+- Owner directive: inspect all additional Paperclip solutions for actual use,
+  repair what is partial, and never leave newly created mechanisms unfinished.
+- The capability contract now requires four complete dimensions: implemented
+  contracts, a real operating consumer, live LuckySparrow evidence, and
+  inspectable tests/documentation. File, route, screen, routine, or endpoint
+  existence by itself is not completion.
+- `softwarehouse/extension-utilization-registry.json` inventories 11 major
+  extensions. `pnpm softwarehouse:extension-utilization` enforces 100% and is
+  part of every control tick. Partial entries fail closed until repaired or
+  explicitly retired.
+- The 2026-08-10 live audit found all registered extensions fully wired and
+  evidenced. Autonomy remains explicitly `calibrating`: its RECOMMEND envelope
+  and zero ungated executions are a safety state, not missing activity.
+
 ### 2026-08-10 - Runtime self-service and technical decision routing
 
 - Conversation decision: Codex repairs Paperclip's reusable capability, while

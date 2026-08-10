@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "minimumUtilizationPercent": 100,
+  "completionContract": {
+    "requiredDimensions": ["implementation", "integration", "runtime", "proof"],
+    "rule": "A capability is complete only when it is implemented, wired into a real consumer, exercised in the live company, and backed by inspectable tests or operating evidence.",
+    "partialDisposition": "repair_or_explicitly_retire",
+    "forbiddenClaim": "Do not call a route, page, schema, script, or configuration complete merely because it exists."
+  },
+  "capabilities": [
+    {
+      "id": "organizational_orientation",
+      "name": "Organizational memory and learning",
+      "lifecycle": "active",
+      "requiredFiles": ["server/src/services/company-situation.ts", "server/src/services/organizational-records.ts", "server/src/services/organizational-observations.ts", "ui/src/pages/OrganizationalMemory.tsx", "ui/src/pages/OrganizationalLearning.tsx", "scripts/run-organizational-orientation-maintainer.mjs"],
+      "integrationChecks": [{"file": "scripts/run-softwarehouse-control-tick.mjs", "patterns": ["organizationalOrientation", "run-organizational-orientation-maintainer.mjs"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/organizational-records?limit=200", "shape": "array", "minItems": 1}, {"path": "/api/companies/{companyId}/organizational-observations?limit=200", "shape": "array", "minItems": 1}],
+      "proofFiles": ["server/src/__tests__/company-situation-service.test.ts", "scripts/organizational-behavior-evals.test.mjs", "docs/product/capability-map.md"]
+    },
+    {
+      "id": "admission_control",
+      "name": "Evidence-gated admission control",
+      "lifecycle": "active",
+      "requiredFiles": ["server/src/services/admission-control.ts", "server/src/routes/admission-control.ts", "packages/db/src/schema/admission_controls.ts"],
+      "integrationChecks": [{"file": "server/src/services/heartbeat.ts", "patterns": ["admission.evaluate(", "admission.evaluateWork(", "replayDeferredAdmissionWakeups"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/admission-controls", "shape": "array", "minItems": 1, "where": {"scopeType": "company", "state": "open", "reopenResult": "completed"}, "minMatched": 1}],
+      "proofFiles": ["server/src/__tests__/admission-control-service.test.ts", "packages/db/src/admission-control-schema.test.ts", "docs/agent-policy-gates.md"]
+    },
+    {
+      "id": "native_supervision",
+      "name": "Native supervision and recurrence registry",
+      "lifecycle": "active",
+      "requiredFiles": ["server/src/services/native-supervision-engine.ts", "server/src/services/supervision-registry.ts", "server/src/routes/supervision.ts", "packages/db/src/schema/supervision.ts"],
+      "integrationChecks": [{"file": "server/src/index.ts", "patterns": ["nativeSupervision.runDue()", "periodic native supervision cycles failed"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/supervision/snapshot", "shape": "object", "pathMinimums": {"cycles.length": 1, "findings.length": 1, "nativeSafeguards.length": 1, "evidenceReferences.length": 1}}, {"path": "/api/companies/{companyId}/supervision/shadow-comparisons", "shape": "array", "minItems": 1}],
+      "proofFiles": ["server/src/__tests__/native-supervision-engine.test.ts", "scripts/softwarehouse-supervision-registry.test.mjs"]
+    },
+    {
+      "id": "autonomy_decision_engine",
+      "name": "Calibrated autonomy decision engine",
+      "lifecycle": "calibrating",
+      "requiredFiles": ["server/src/services/autonomy-decision.ts", "packages/db/src/schema/autonomy.ts", "scripts/evaluate-autonomy-graduation.mjs"],
+      "integrationChecks": [{"file": "server/src/services/native-supervision-engine.ts", "patterns": ["recordDecision", "reconcileExecutions"]}, {"file": "server/src/routes/supervision.ts", "patterns": ["/autonomy/decisions/:id/evaluations", "/autonomy/decisions/:id/dispatch"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/autonomy/decisions", "shape": "array", "minItems": 1}, {"path": "/api/companies/{companyId}/autonomy/envelopes", "shape": "array", "minItems": 1}, {"path": "/api/companies/{companyId}/autonomy/constraints", "shape": "array", "minItems": 1, "where": {"status": "active"}, "minMatched": 1}, {"path": "/api/companies/{companyId}/autonomy/health", "shape": "object", "pathMinimums": {"decisionSamples.distinct": 1, "decisionSamples.evaluatorClasses": 1}}],
+      "proofFiles": ["server/src/__tests__/autonomy-decision.test.ts", "docs/status/2026-08-08-paperclip-autonomy-evolution-iteration-4-report.md"]
+    },
+    {
+      "id": "product_delivery_ledger",
+      "name": "ProductDelivery outcome ledger",
+      "lifecycle": "active",
+      "requiredFiles": ["server/src/services/deliveries.ts", "server/src/routes/deliveries.ts", "packages/db/src/schema/product_deliveries.ts", "scripts/run-autonomous-development-cycle.mjs"],
+      "integrationChecks": [{"file": "server/src/services/native-supervision-engine.ts", "patterns": ["productDeliveries", "Stalled admitted ProductDelivery"]}, {"file": "server/src/services/heartbeat.ts", "patterns": ["criticalCloseout", "productDeliveries"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/deliveries?limit=500", "shape": "array", "minItems": 2, "whereAny": [{"stage": "review_accepted"}, {"stage": "outcome_accepted"}], "minMatched": 1}],
+      "proofFiles": ["server/src/__tests__/deliveries-service.test.ts", "packages/db/src/delivery-schema.test.ts", "docs/softwarehouse-sdlc.md"]
+    },
+    {
+      "id": "roost_portfolio_bridge",
+      "name": "Versioned Paperclip-to-Roost portfolio bridge",
+      "lifecycle": "active",
+      "requiredFiles": ["server/src/services/roost-bridge-portfolio.ts", "server/src/services/roost-product-map-publisher.ts", "server/src/services/roost-product-map-outbox.ts", "scripts/bootstrap-roost-product-map-publisher.ts"],
+      "integrationChecks": [{"file": "server/src/index.ts", "patterns": ["roost-product-map-publisher", "portfolio-projection/v1"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/softwarehouse/portfolio-projection/v1", "shape": "object", "equals": {"stale": false, "conflictState": "none", "sourceState": "available"}, "pathMinimums": {"items.length": 1}}],
+      "proofFiles": ["server/src/__tests__/roost-product-map-publisher.test.ts", "server/src/__tests__/roost-product-map-outbox.test.ts", "scripts/verify-roost-product-map-contract.ts"]
+    },
+    {
+      "id": "team_catalog",
+      "name": "Reusable team catalog and installation",
+      "lifecycle": "active",
+      "requiredFiles": ["packages/teams-catalog/src/catalog-builder.ts", "server/src/services/teams-catalog.ts", "server/src/routes/teams-catalog.ts", "ui/src/pages/TeamCatalog.tsx"],
+      "integrationChecks": [{"file": "server/src/app.ts", "patterns": ["teamsCatalogRoutes(db)"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/teams/catalog/installed", "shape": "array", "minItems": 1}],
+      "proofFiles": ["ui/src/pages/TeamCatalog.test.tsx", "packages/teams-catalog/generated/catalog.json"]
+    },
+    {
+      "id": "company_artifacts",
+      "name": "Inspectable company artifacts and work products",
+      "lifecycle": "active",
+      "requiredFiles": ["server/src/services/company-artifacts.ts", "ui/src/pages/Artifacts.tsx", "ui/src/components/artifacts/ArtifactGroupCard.tsx", "packages/shared/src/validators/artifact.ts"],
+      "integrationChecks": [{"file": "ui/src/pages/Artifacts.tsx", "patterns": ["return \"task\"", "groupIssueId", "useInfiniteQuery"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/artifacts?groupBy=task&limit=30", "shape": "object", "pathMinimums": {"groups.length": 1}}],
+      "proofFiles": ["ui/src/pages/Artifacts.test.tsx", "doc/AGENT-ARTIFACTS.md"]
+    },
+    {
+      "id": "architecture_and_project_truth",
+      "name": "Architecture awareness and project-truth indexes",
+      "lifecycle": "active",
+      "requiredFiles": ["scripts/build-architecture-awareness-index.mjs", "scripts/check-architecture-awareness-lifecycle.mjs", "scripts/build-project-truth-indexes.mjs", "scripts/check-project-truth-indexes.mjs", "docs/graphs/architecture-awareness.json"],
+      "integrationChecks": [{"file": "scripts/run-softwarehouse-control-tick.mjs", "patterns": ["architectureLifecycle", "projectTruth"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/softwarehouse/knowledge", "shape": "object", "pathMinimums": {"graphFiles.length": 1}}],
+      "proofFiles": ["scripts/build-architecture-awareness-index.test.mjs", "docs/product/capability-map.md"]
+    },
+    {
+      "id": "autonomous_control_loop",
+      "name": "Fail-closed autonomous control tick",
+      "lifecycle": "active",
+      "requiredFiles": ["scripts/run-softwarehouse-control-tick.mjs", "scripts/run-autonomy-governor.mjs", "scripts/run-next-legal-action-selector.mjs", "scripts/run-issue-queue-reconciler.mjs"],
+      "integrationChecks": [{"file": "package.json", "patterns": ["softwarehouse:control-tick", "softwarehouse:autonomous-cycle"]}],
+      "runtimeProbes": [{"path": "/api/health", "shape": "object", "equals": {"status": "ok"}}, {"path": "/api/companies/{companyId}/softwarehouse/status", "shape": "object"}],
+      "proofFiles": ["scripts/control-tick-step-runner.test.mjs", "scripts/softwarehouse-gate-specs.test.mjs", "softwarehouse/autonomous-development-loop.md"]
+    },
+    {
+      "id": "workspace_runtime_and_isolation",
+      "name": "Workspace, runtime topology, and cross-project isolation",
+      "lifecycle": "active",
+      "requiredFiles": ["scripts/audit-softwarehouse-workspace-boundaries.mjs", "scripts/audit-local-runtime-topology.mjs", "scripts/audit-cross-project-isolation.mjs", "scripts/ensure-project-runtime-capabilities.mjs"],
+      "integrationChecks": [{"file": "package.json", "patterns": ["softwarehouse:workspace-boundary-audit", "softwarehouse:runtime-topology-audit", "softwarehouse:cross-project-isolation-audit", "softwarehouse:project-runtime"]}],
+      "runtimeProbes": [{"path": "/api/health", "shape": "object", "equals": {"status": "ok"}}],
+      "proofFiles": ["scripts/ensure-project-runtime-capabilities.test.mjs", "scripts/cross-project-isolation-audit.test.mjs", "AGENTS.md"]
+    }
+  ]
+}

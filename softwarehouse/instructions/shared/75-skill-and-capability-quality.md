@@ -25,6 +25,25 @@ skill body or an adjacent README/changelog, the smallest useful set of metadata:
 Do not promote a skill to shared use until at least one realistic test case or
 trial issue proves that another agent can use it without hidden context.
 
+## Extension Completion Contract
+
+Any added route, page, schema, service, script, routine, configuration layer,
+bridge, or autonomous policy remains incomplete until all of these are true:
+
+1. implementation exists across every affected contract layer;
+2. a named real consumer invokes it from the operating path;
+3. the live LuckySparrow company contains inspectable evidence that it ran and
+   produced its intended state or an explicit fail-closed decision;
+4. targeted tests and authoritative documentation prove expected behavior,
+   safety boundaries, and rollback or retirement behavior.
+
+Register material capabilities in
+`softwarehouse/extension-utilization-registry.json` and run
+`pnpm softwarehouse:extension-utilization`. Do not close the creating issue if
+the capability is absent from its consumer, has no live evidence, or relies on
+placeholder/synthetic activity. Repair it in the same lane or explicitly
+retire it and remove its dead configuration and navigation surface.
+
 ## Ownership
 
 - AID owns AI-agent skill/process improvement proposals.

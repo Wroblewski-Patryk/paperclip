@@ -66,6 +66,8 @@
     "softwarehouse:supervision-registry": "node scripts/softwarehouse-supervision-registry.mjs",
     "softwarehouse:supervision-registry:test": "node --test scripts/softwarehouse-supervision-registry.test.mjs",
     "softwarehouse:organizational-evals": "node --test scripts/organizational-behavior-evals.test.mjs scripts/outcome-integrity.test.mjs",
+    "softwarehouse:extension-utilization": "node scripts/audit-extension-utilization.mjs",
+    "softwarehouse:extension-utilization:test": "node --test scripts/extension-utilization.test.mjs",
     "softwarehouse:architecture-lifecycle": "node scripts/check-architecture-awareness-lifecycle.mjs",
     "softwarehouse:architecture-lifecycle:apply": "node scripts/check-architecture-awareness-lifecycle.mjs --apply",
     "softwarehouse:product-intent-traceability": "node scripts/audit-product-intent-traceability.mjs",
