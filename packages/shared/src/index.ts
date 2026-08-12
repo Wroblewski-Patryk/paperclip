@@ -6,8 +6,10 @@ export {
 } from "./validators/assignment-proposal.js";
 export {
   createWorkProposalSchema,
+  updateWorkProposalStatusSchema,
   createDelegationReportSchema,
   type CreateWorkProposal,
+  type UpdateWorkProposalStatus,
   type CreateDelegationReport,
 } from "./validators/delegation-flow.js";
 export * from "./validators/supervision.js";

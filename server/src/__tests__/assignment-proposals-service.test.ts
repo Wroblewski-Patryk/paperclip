@@ -151,4 +151,40 @@ describeEmbedded("governed assignment proposals and delegation limits", () => {
       idempotencyKey: "illegal-report",
     })).rejects.toMatchObject({ status: 403 });
   });
+
+  it("lets only the target parent disposition a submitted work proposal", async () => {
+    const refs = await seed("active");
+    await db.update(issues).set({ assigneeAgentId: refs.workerId }).where(sql`${issues.id} = ${refs.issueId}`);
+    const svc = delegationFlowService(db);
+    const proposal = await svc.createWorkProposal(refs.issueId, refs.workerId, {
+      targetParentAgentId: refs.proposerId,
+      title: "Route bounded work",
+      problemStatement: "A specialist lane is required.",
+      expectedOutcome: "The parent routes or rejects the work.",
+      scopeContract: { projectId: refs.projectId },
+      evidence: [],
+      idempotencyKey: "upward-work-disposition-1",
+    });
+
+    await expect(svc.updateWorkProposalStatus(
+      refs.issueId,
+      proposal.id,
+      refs.reviewerId,
+      { status: "acknowledged" },
+    )).rejects.toMatchObject({ status: 403 });
+
+    await expect(svc.updateWorkProposalStatus(
+      refs.issueId,
+      proposal.id,
+      refs.proposerId,
+      { status: "converted" },
+    )).resolves.toMatchObject({ status: "converted" });
+
+    await expect(svc.updateWorkProposalStatus(
+      refs.issueId,
+      proposal.id,
+      refs.proposerId,
+      { status: "rejected" },
+    )).rejects.toMatchObject({ status: 409 });
+  });
 });

@@ -22,6 +22,7 @@ import {
   issueTreeHolds,
   issues,
   supervisionFindings,
+  workProposals,
   workspaceOperations,
 } from "@paperclipai/db";
 import {
@@ -135,6 +136,7 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     await db.delete(documentRevisions);
     await db.delete(documents);
     await db.delete(supervisionFindings);
+    await db.delete(workProposals);
     await db.delete(issueRelations);
     await db.delete(issueTreeHolds);
     await db.delete(issues);
@@ -756,6 +758,118 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
       return run?.status === "succeeded";
     });
     expect(timerRunFinished).toBe(true);
+  });
+
+  it("creates and wakes one idempotent review task for a submitted work proposal", async () => {
+    const companyId = randomUUID();
+    const proposerId = randomUUID();
+    const targetParentId = randomUUID();
+    const sourceIssueId = randomUUID();
+    const proposalId = randomUUID();
+    let finishReviewRun!: () => void;
+    const reviewRunCanFinish = new Promise<void>((resolve) => {
+      finishReviewRun = resolve;
+    });
+    mockAdapterExecute.mockImplementationOnce(async () => {
+      await reviewRunCanFinish;
+      return {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        errorMessage: null,
+        summary: "Work proposal review completed.",
+        provider: "test",
+        model: "test-model",
+      };
+    });
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values([
+      {
+        id: targetParentId,
+        companyId,
+        name: "TargetParent",
+        role: "manager",
+        status: "active",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: { heartbeat: { enabled: false, maxConcurrentRuns: 1 } },
+        permissions: {},
+      },
+      {
+        id: proposerId,
+        companyId,
+        name: "Proposer",
+        role: "engineer",
+        status: "active",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: { heartbeat: { enabled: false, maxConcurrentRuns: 1 } },
+        permissions: {},
+        reportsTo: targetParentId,
+      },
+    ]);
+    await db.insert(issues).values({
+      id: sourceIssueId,
+      companyId,
+      title: "Source implementation",
+      status: "in_review",
+      priority: "high",
+      assigneeAgentId: proposerId,
+    });
+    await db.insert(workProposals).values({
+      id: proposalId,
+      companyId,
+      sourceIssueId,
+      proposedByAgentId: proposerId,
+      targetParentAgentId: targetParentId,
+      title: "Route source implementation",
+      problemStatement: "The source needs a governed specialist lane.",
+      expectedOutcome: "The parent routes or rejects the proposal.",
+      idempotencyKey: "proposal-review-dispatch-1",
+    });
+
+    const firstTick = await heartbeat.tickTimers(new Date("2026-06-04T00:10:00Z"));
+    expect(firstTick.enqueued).toBe(1);
+    const reviewIssue = await db.select().from(issues).where(and(
+      eq(issues.originKind, "work_proposal_review"),
+      eq(issues.originId, proposalId),
+    )).then((rows) => rows[0] ?? null);
+    expect(reviewIssue).toMatchObject({
+      parentId: sourceIssueId,
+      assigneeAgentId: targetParentId,
+    });
+
+    const reviewRun = await db.select().from(heartbeatRuns).where(eq(
+      heartbeatRuns.agentId,
+      targetParentId,
+    )).then((rows) => rows[0] ?? null);
+    expect(reviewRun?.contextSnapshot).toMatchObject({
+      issueId: reviewIssue?.id,
+      sourceIssueId,
+      workProposalId: proposalId,
+      wakeReason: "work_proposal_submitted",
+    });
+
+    const secondTick = await heartbeat.tickTimers(new Date("2026-06-04T00:11:00Z"));
+    expect(secondTick.enqueued).toBe(0);
+    expect(await db.select().from(issues).where(and(
+      eq(issues.originKind, "work_proposal_review"),
+      eq(issues.originId, proposalId),
+    ))).toHaveLength(1);
+
+    finishReviewRun();
+    expect(await waitForCondition(async () => {
+      if (!reviewRun) return false;
+      return db.select({ status: heartbeatRuns.status }).from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, reviewRun.id))
+        .then((rows) => rows[0]?.status === "succeeded");
+    })).toBe(true);
   });
 
   it("honors maxConcurrentRuns 1 by leaving a second assignment wake queued", async () => {

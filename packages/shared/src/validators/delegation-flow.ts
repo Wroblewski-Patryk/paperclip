@@ -10,6 +10,10 @@ export const createWorkProposalSchema = z.object({
   idempotencyKey: z.string().trim().min(1).max(300),
 }).strict();
 
+export const updateWorkProposalStatusSchema = z.object({
+  status: z.enum(["acknowledged", "converted", "rejected"]),
+}).strict();
+
 export const createDelegationReportSchema = z.object({
   toParentAgentId: z.string().uuid(),
   kind: z.enum(["result", "evidence", "status", "blocker", "risk", "budget", "review", "outcome"]),
@@ -19,4 +23,5 @@ export const createDelegationReportSchema = z.object({
 }).strict();
 
 export type CreateWorkProposal = z.infer<typeof createWorkProposalSchema>;
+export type UpdateWorkProposalStatus = z.infer<typeof updateWorkProposalStatusSchema>;
 export type CreateDelegationReport = z.infer<typeof createDelegationReportSchema>;

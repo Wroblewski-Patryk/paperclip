@@ -58,6 +58,7 @@ import {
   routineRevisions,
   routineRuns,
   routines,
+  workProposals,
   workspaceOperations,
 } from "@paperclipai/db";
 import { conflict, HttpError, notFound, unprocessable } from "../errors.js";
@@ -6783,6 +6784,130 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       .then((rows) => rows[0] ?? null);
   }
 
+  async function reconcileSubmittedWorkProposalReviews(now: Date) {
+    const submitted = await db
+      .select({
+        proposal: workProposals,
+        sourceIssue: {
+          id: issues.id,
+          identifier: issues.identifier,
+          title: issues.title,
+          status: issues.status,
+          priority: issues.priority,
+          projectId: issues.projectId,
+          goalId: issues.goalId,
+          requestDepth: issues.requestDepth,
+        },
+        targetStatus: agents.status,
+      })
+      .from(workProposals)
+      .innerJoin(issues, and(
+        eq(issues.id, workProposals.sourceIssueId),
+        eq(issues.companyId, workProposals.companyId),
+      ))
+      .innerJoin(agents, and(
+        eq(agents.id, workProposals.targetParentAgentId),
+        eq(agents.companyId, workProposals.companyId),
+      ))
+      .innerJoin(companies, and(
+        eq(companies.id, workProposals.companyId),
+        eq(companies.status, "active"),
+      ))
+      .where(and(
+        eq(workProposals.status, "submitted"),
+        inArray(issues.status, ["backlog", "todo", "in_progress", "in_review", "blocked"]),
+        isNull(issues.hiddenAt),
+      ))
+      .orderBy(asc(workProposals.createdAt), asc(workProposals.id))
+      .limit(10);
+
+    let created = 0;
+    let enqueued = 0;
+    let skipped = 0;
+
+    for (const row of submitted) {
+      const existingReview = await db
+        .select({ id: issues.id })
+        .from(issues)
+        .where(and(
+          eq(issues.companyId, row.proposal.companyId),
+          eq(issues.originKind, "work_proposal_review"),
+          eq(issues.originId, row.proposal.id),
+          isNull(issues.hiddenAt),
+        ))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
+      if (existingReview) {
+        skipped += 1;
+        continue;
+      }
+
+      const reviewIssue = await issuesSvc.create(row.proposal.companyId, {
+        title: `[Work Proposal] ${row.proposal.title}`,
+        description: [
+          "Review and disposition an upward work proposal through the governed hierarchy.",
+          "",
+          `- Source issue: ${row.sourceIssue.identifier ?? row.sourceIssue.id} — ${row.sourceIssue.title}`,
+          `- Proposal ID: ${row.proposal.id}`,
+          `- Proposed by agent: ${row.proposal.proposedByAgentId}`,
+          "",
+          "## Problem",
+          row.proposal.problemStatement,
+          "",
+          "## Expected outcome",
+          row.proposal.expectedOutcome,
+          "",
+          "## Required disposition",
+          "1. Inspect the proposal and its source issue.",
+          "2. Route admitted work through a governed assignment or ProductDelivery path, or reject it with a concrete replacement route.",
+          `3. Record the proposal state with POST /api/issues/${row.sourceIssue.id}/work-proposals/${row.proposal.id}/status using acknowledged, converted, or rejected.`,
+          "4. Close this review issue only after the source issue has an explicit next action.",
+          "",
+          "Do not implement the source application change in this managerial review task.",
+        ].join("\n"),
+        status: "todo",
+        priority: row.sourceIssue.priority === "critical" ? "critical" : "high",
+        assigneeAgentId: row.proposal.targetParentAgentId,
+        projectId: row.sourceIssue.projectId,
+        goalId: row.sourceIssue.goalId,
+        parentId: row.sourceIssue.id,
+        requestDepth: row.sourceIssue.requestDepth + 1,
+        createdByAgentId: row.proposal.proposedByAgentId,
+        originKind: "work_proposal_review",
+        originId: row.proposal.id,
+        originFingerprint: row.proposal.idempotencyKey,
+      });
+      created += 1;
+
+      const run = await enqueueWakeup(row.proposal.targetParentAgentId, {
+        source: "assignment",
+        triggerDetail: "system",
+        reason: "work_proposal_submitted",
+        payload: {
+          issueId: reviewIssue.id,
+          sourceIssueId: row.sourceIssue.id,
+          workProposalId: row.proposal.id,
+          mutation: "work_proposal_review_created",
+        },
+        requestedByActorType: "system",
+        requestedByActorId: "work-proposal-reconciler",
+        contextSnapshot: {
+          issueId: reviewIssue.id,
+          taskId: reviewIssue.id,
+          sourceIssueId: row.sourceIssue.id,
+          workProposalId: row.proposal.id,
+          wakeReason: "work_proposal_submitted",
+          source: "work_proposal.reconcile",
+          reconciledAt: now.toISOString(),
+        },
+      });
+      if (run) enqueued += 1;
+      else if (row.targetStatus === "paused" || row.targetStatus === "terminated" || row.targetStatus === "pending_approval") skipped += 1;
+    }
+
+    return { checked: submitted.length, created, enqueued, skipped };
+  }
+
   async function hasUnresolvedProjectReviewPressure(companyId: string, projectId: string | null) {
     return db
       .execute<{ id: string }>(sql`
@@ -12403,12 +12528,13 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         } else skipped += 1;
       }
 
+      const proposalReviews = await reconcileSubmittedWorkProposalReviews(now);
       const issueMonitors = await tickDueIssueMonitors(now);
 
       return {
-        checked: checked + issueMonitors.checked,
-        enqueued: enqueued + issueMonitors.triggered,
-        skipped: skipped + issueMonitors.skipped,
+        checked: checked + proposalReviews.checked + issueMonitors.checked,
+        enqueued: enqueued + proposalReviews.enqueued + issueMonitors.triggered,
+        skipped: skipped + proposalReviews.skipped + issueMonitors.skipped,
       };
     },
 

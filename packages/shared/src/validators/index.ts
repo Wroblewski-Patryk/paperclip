@@ -4,8 +4,10 @@ export {
 } from "./assignment-proposal.js";
 export {
   createWorkProposalSchema,
+  updateWorkProposalStatusSchema,
   createDelegationReportSchema,
   type CreateWorkProposal,
+  type UpdateWorkProposalStatus,
   type CreateDelegationReport,
 } from "./delegation-flow.js";
 export * from "./supervision.js";

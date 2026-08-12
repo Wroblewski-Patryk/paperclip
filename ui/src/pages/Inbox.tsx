@@ -182,6 +182,11 @@ function runFailureMessage(run: HeartbeatRun): string {
   return firstNonEmptyLine(run.error) ?? firstNonEmptyLine(run.stderrExcerpt) ?? "Run exited with an error.";
 }
 
+function isIssueExecutionQuotaHold(run: HeartbeatRun): boolean {
+  return run.errorCode === "issue_execution_quota_hold"
+    || firstNonEmptyLine(run.error) === "Issue execution quota hard hold";
+}
+
 function approvalStatusLabel(status: Approval["status"]): string {
   return status.replaceAll("_", " ");
 }
@@ -267,6 +272,7 @@ export function FailedRunInboxRow({
   const issueId = readIssueIdFromRun(run);
   const issue = issueId ? issueById.get(issueId) ?? null : null;
   const displayError = runFailureMessage(run);
+  const retryBlockedByQuotaHold = isIssueExecutionQuotaHold(run);
   const showUnreadSlot = unreadState !== null;
   const showUnreadDot = unreadState === "visible" || unreadState === "fading";
 
@@ -343,17 +349,23 @@ export function FailedRunInboxRow({
           </span>
         </Link>
         <div className="hidden shrink-0 items-center gap-2 sm:flex">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 shrink-0 px-2.5"
-            onClick={onRetry}
-            disabled={isRetrying}
-          >
-            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-            {isRetrying ? "Retrying…" : "Retry"}
-          </Button>
+          {retryBlockedByQuotaHold ? (
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+              Decision required
+            </span>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 px-2.5"
+              onClick={onRetry}
+              disabled={isRetrying}
+            >
+              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+              {isRetrying ? "Retrying…" : "Retry"}
+            </Button>
+          )}
           {!showUnreadSlot && (
             <button
               type="button"
@@ -367,17 +379,23 @@ export function FailedRunInboxRow({
         </div>
       </div>
       <div className="mt-3 flex gap-2 sm:hidden">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 shrink-0 px-2.5"
-          onClick={onRetry}
-          disabled={isRetrying}
-        >
-          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-          {isRetrying ? "Retrying…" : "Retry"}
-        </Button>
+        {retryBlockedByQuotaHold ? (
+          <span className="inline-flex h-8 items-center text-xs font-medium text-amber-700 dark:text-amber-300">
+            Decision required
+          </span>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 shrink-0 px-2.5"
+            onClick={onRetry}
+            disabled={isRetrying}
+          >
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            {isRetrying ? "Retrying…" : "Retry"}
+          </Button>
+        )}
         {!showUnreadSlot && (
           <button
             type="button"

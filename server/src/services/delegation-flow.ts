@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import { agents, delegationReports, issues, workProposals } from "@paperclipai/db";
-import type { CreateDelegationReport, CreateWorkProposal } from "@paperclipai/shared";
-import { forbidden, notFound } from "../errors.js";
+import type { CreateDelegationReport, CreateWorkProposal, UpdateWorkProposalStatus } from "@paperclipai/shared";
+import { conflict, forbidden, notFound } from "../errors.js";
 
 export function delegationFlowService(db: Db) {
   async function ownedIssue(issueId: string, actorAgentId: string) {
@@ -40,6 +40,36 @@ export function delegationFlowService(db: Db) {
         proposedByAgentId: actor.id,
         ...data,
       }).returning().then((rows) => rows[0]);
+    },
+    async updateWorkProposalStatus(
+      issueId: string,
+      proposalId: string,
+      actorAgentId: string,
+      data: UpdateWorkProposalStatus,
+    ) {
+      const proposal = await db.select().from(workProposals).where(and(
+        eq(workProposals.id, proposalId),
+        eq(workProposals.sourceIssueId, issueId),
+      )).then((rows) => rows[0] ?? null);
+      if (!proposal) throw notFound("Work proposal not found");
+      if (proposal.targetParentAgentId !== actorAgentId) {
+        throw forbidden("Only the target parent may disposition a work proposal");
+      }
+      if (proposal.status === data.status) return proposal;
+      if (proposal.status === "converted" || proposal.status === "rejected") {
+        throw conflict("Terminal work proposal disposition cannot be changed", {
+          proposalId,
+          currentStatus: proposal.status,
+          requestedStatus: data.status,
+        });
+      }
+      return db.update(workProposals).set({
+        status: data.status,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(workProposals.id, proposalId),
+        eq(workProposals.sourceIssueId, issueId),
+      )).returning().then((rows) => rows[0]);
     },
     listReports(issueId: string) {
       return db.select().from(delegationReports).where(eq(delegationReports.issueId, issueId));

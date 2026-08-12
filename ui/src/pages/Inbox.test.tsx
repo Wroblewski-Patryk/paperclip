@@ -4,7 +4,7 @@ import { act } from "react";
 import type { ComponentProps } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { Issue } from "@paperclipai/shared";
+import type { HeartbeatRun, Issue } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompanyJoinRequest } from "../api/access";
 
@@ -434,6 +434,44 @@ describe("FailedRunInboxRow", () => {
     expect(link).not.toBeNull();
     expect(link?.className).toContain("hover:bg-transparent");
     expect(link?.className).not.toContain("hover:bg-accent/50");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("does not offer a futile retry for an issue execution quota hold", () => {
+    const root = createRoot(container);
+    const run = {
+      id: "run-quota-hold",
+      companyId: "company-1",
+      agentId: "agent-1",
+      invocationSource: "assignment",
+      triggerDetail: null,
+      status: "failed",
+      error: "Issue execution quota hard hold",
+      errorCode: "adapter_failed",
+      contextSnapshot: null,
+      createdAt: new Date("2026-08-13T00:00:00.000Z"),
+      updatedAt: new Date("2026-08-13T00:00:00.000Z"),
+    } as unknown as HeartbeatRun;
+
+    act(() => {
+      root.render(
+        <FailedRunInboxRow
+          run={run}
+          issueById={new Map()}
+          agentName="Agent"
+          issueLinkState={null}
+          onDismiss={() => {}}
+          onRetry={() => {}}
+          isRetrying={false}
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain("Decision required");
+    expect(Array.from(container.querySelectorAll("button")).some((button) => button.textContent === "Retry")).toBe(false);
 
     act(() => {
       root.unmount();

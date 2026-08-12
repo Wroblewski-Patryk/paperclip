@@ -34,6 +34,7 @@ import {
   createChildIssueSchema,
   createIssueSchema,
   createWorkProposalSchema,
+  updateWorkProposalStatusSchema,
   createDelegationReportSchema,
   proposeAssignmentSchema,
   resolveCreateIssueStatusDefault,
@@ -4436,6 +4437,35 @@ export function issueRoutes(
     });
     res.status(201).json(proposal);
   });
+
+  router.post(
+    "/issues/:id/work-proposals/:proposalId/status",
+    validate(updateWorkProposalStatusSchema),
+    async (req, res) => {
+      const issue = await svc.getById(req.params.id as string);
+      if (!issue) { res.status(404).json({ error: "Issue not found" }); return; }
+      if (req.actor.type !== "agent" || !req.actor.agentId) throw forbidden("Agent identity is required");
+      assertCompanyAccess(req, issue.companyId);
+      const proposal = await delegationFlowSvc.updateWorkProposalStatus(
+        issue.id,
+        req.params.proposalId as string,
+        req.actor.agentId,
+        req.body,
+      );
+      await logActivity(db, {
+        companyId: issue.companyId,
+        actorType: "agent",
+        actorId: req.actor.agentId,
+        agentId: req.actor.agentId,
+        runId: req.actor.runId,
+        action: `work_proposal.${proposal.status}`,
+        entityType: "issue",
+        entityId: issue.id,
+        details: { proposalId: proposal.id, targetParentAgentId: proposal.targetParentAgentId },
+      });
+      res.json(proposal);
+    },
+  );
 
   router.get("/issues/:id/delegation-reports", async (req, res) => {
     const issue = await svc.getById(req.params.id as string);
