@@ -6744,6 +6744,17 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         )`,
         sql`not exists (
           select 1
+          from supervision_findings quota_hold
+          where quota_hold.company_id=${agent.companyId}
+            and quota_hold.issue_id=${issues.id}
+            and quota_hold.problem_class='execution_quota_exceeded'
+            and quota_hold.recovery_state='blocked'
+            and quota_hold.closed_at is null
+            and quota_hold.archived_at is null
+            and quota_hold.status not in ('resolved','closed','no_action','duplicate','accepted_risk','not_worth_doing','archived')
+        )`,
+        sql`not exists (
+          select 1
           from delivery_tasks delivery_task
           join product_deliveries delivery
             on delivery.id=delivery_task.delivery_id
@@ -6807,6 +6818,17 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             where review_run.company_id=review_issue.company_id
               and review_run.status in ('queued','running','scheduled_retry')
               and review_run.context_snapshot->>'issueId'=review_issue.id::text
+          )
+          and not exists (
+            select 1
+            from supervision_findings quota_hold
+            where quota_hold.company_id=review_issue.company_id
+              and quota_hold.issue_id=review_issue.id
+              and quota_hold.problem_class='execution_quota_exceeded'
+              and quota_hold.recovery_state='blocked'
+              and quota_hold.closed_at is null
+              and quota_hold.archived_at is null
+              and quota_hold.status not in ('resolved','closed','no_action','duplicate','accepted_risk','not_worth_doing','archived')
           )
         limit 1
       `)

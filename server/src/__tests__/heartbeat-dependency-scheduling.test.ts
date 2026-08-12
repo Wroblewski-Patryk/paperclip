@@ -21,6 +21,7 @@ import {
   issueRelations,
   issueTreeHolds,
   issues,
+  supervisionFindings,
   workspaceOperations,
 } from "@paperclipai/db";
 import {
@@ -133,6 +134,7 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     await db.delete(issueDocuments);
     await db.delete(documentRevisions);
     await db.delete(documents);
+    await db.delete(supervisionFindings);
     await db.delete(issueRelations);
     await db.delete(issueTreeHolds);
     await db.delete(issues);
@@ -617,6 +619,130 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
       reason: "assigned_work_available",
       workType: "implementation",
     });
+
+    await db.update(issues).set({ status: "done" }).where(eq(issues.id, readyImplementationId));
+    finishTimerRun();
+    const timerRunFinished = await waitForCondition(async () => {
+      if (!timerRun) return false;
+      const run = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, timerRun.id))
+        .then((rows) => rows[0] ?? null);
+      return run?.status === "succeeded";
+    });
+    expect(timerRunFinished).toBe(true);
+  });
+
+  it("skips an issue-scoped execution quota hold without suppressing independent work", async () => {
+    const companyId = randomUUID();
+    const agentId = randomUUID();
+    const heldReviewId = randomUUID();
+    const readyImplementationId = randomUUID();
+    let finishTimerRun!: () => void;
+    const timerRunCanFinish = new Promise<void>((resolve) => {
+      finishTimerRun = resolve;
+    });
+    mockAdapterExecute.mockImplementationOnce(async () => {
+      await timerRunCanFinish;
+      return {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        errorMessage: null,
+        summary: "Independent implementation completed while quota-held review stayed idle.",
+        provider: "test",
+        model: "test-model",
+      };
+    });
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "QuotaAwareTimer",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {
+        heartbeat: {
+          enabled: true,
+          intervalSec: 30,
+          wakeOnDemand: true,
+          workAware: true,
+          reviewFirst: true,
+          maxConcurrentRuns: 1,
+        },
+      },
+      permissions: {},
+      lastHeartbeatAt: new Date("2026-06-03T23:00:00Z"),
+    });
+    await db.insert(issues).values([
+      {
+        id: heldReviewId,
+        companyId,
+        title: "Review held by its execution quota",
+        status: "in_review",
+        priority: "critical",
+        assigneeAgentId: agentId,
+      },
+      {
+        id: readyImplementationId,
+        companyId,
+        title: "Independent implementation",
+        status: "todo",
+        priority: "high",
+        assigneeAgentId: agentId,
+      },
+    ]);
+    await db.insert(supervisionFindings).values({
+      companyId,
+      fingerprint: `quota_bottleneck:issue:${heldReviewId}`,
+      problemClass: "execution_quota_exceeded",
+      severity: "critical",
+      status: "needs_decision",
+      classification: "quota_bottleneck",
+      sourceKind: "native_watchdog",
+      title: `Execution quota held issue ${heldReviewId}`,
+      summary: "Issue exceeded its dedicated execution limit.",
+      issueId: heldReviewId,
+      affectedAgentId: agentId,
+      recoveryState: "blocked",
+      bottleneckType: "quota_bottleneck",
+    });
+
+    const result = await heartbeat.tickTimers(new Date("2026-06-04T00:10:00Z"));
+
+    expect(result.enqueued).toBe(1);
+    const timerRun = await db
+      .select({ id: heartbeatRuns.id, contextSnapshot: heartbeatRuns.contextSnapshot })
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.agentId, agentId))
+      .orderBy(heartbeatRuns.createdAt)
+      .then((rows) => rows[0] ?? null);
+    expect(timerRun?.contextSnapshot).toMatchObject({
+      issueId: readyImplementationId,
+      reason: "assigned_work_available",
+      workType: "implementation",
+    });
+
+    const heldTimerAttempts = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(agentWakeupRequests)
+      .where(
+        and(
+          eq(agentWakeupRequests.source, "timer"),
+          sql`${agentWakeupRequests.payload} ->> 'issueId' = ${heldReviewId}`,
+        ),
+      )
+      .then((rows) => rows[0]?.count ?? 0);
+    expect(heldTimerAttempts).toBe(0);
 
     await db.update(issues).set({ status: "done" }).where(eq(issues.id, readyImplementationId));
     finishTimerRun();
