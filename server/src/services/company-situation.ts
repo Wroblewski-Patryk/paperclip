@@ -465,7 +465,6 @@ export function companySituationService(db: Db) {
             : null,
         }));
       const actionableBottleneckStages = new Set<CompanySituationFlowStage["stage"]>([
-        "execution",
         "external_wait",
         "blocked_conflict",
         "blocked_unknown",

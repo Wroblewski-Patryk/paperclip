@@ -491,4 +491,40 @@ describeEmbeddedPostgres("company situation service", () => {
     expect(situation.attention.map((signal) => signal.kind)).not.toContain("blocked_work");
     expect(situation.attention.map((signal) => signal.kind)).not.toContain("capacity_bottleneck");
   });
+
+  it("does not report fresh active execution as a capacity bottleneck", async () => {
+    const companyId = randomUUID();
+    const agentId = randomUUID();
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Actively executing company",
+      issuePrefix: "AEC",
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "Active engineer",
+      role: "engineer",
+      status: "running",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    });
+    await db.insert(issues).values([
+      { companyId, title: "Active work one", status: "in_progress", assigneeAgentId: agentId },
+      { companyId, title: "Active work two", status: "in_progress", assigneeAgentId: agentId },
+    ]);
+
+    const situation = await companySituationService(db).get(companyId, {
+      now: new Date(),
+    });
+
+    expect(situation.capacity.flow).toContainEqual(expect.objectContaining({
+      stage: "execution",
+      count: 2,
+    }));
+    expect(situation.attention.map((signal) => signal.kind)).not.toContain("capacity_bottleneck");
+  });
 });
