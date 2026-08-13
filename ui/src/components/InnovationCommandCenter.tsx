@@ -23,6 +23,18 @@ import { cn, formatCents, relativeTime } from "@/lib/utils";
 
 const OPEN_STATUSES = new Set<Issue["status"]>(["backlog", "todo", "in_progress", "in_review", "blocked"]);
 const COMMAND_SURFACE_CLASS = "paperclip-surface overflow-hidden";
+const OWNER_DECISION_SIGNAL_KINDS = new Set<CompanySituation["attention"][number]["kind"]>([
+  "assumption_contradicted",
+  "commitment_breached",
+  "commitment_overdue",
+  "outcome_state_conflict",
+  "external_signal_contradicted",
+  "outcome_failure",
+]);
+
+export function hasOwnerDecisionSignal(situation: CompanySituation | null | undefined) {
+  return situation?.attention.some((signal) => OWNER_DECISION_SIGNAL_KINDS.has(signal.kind)) ?? false;
+}
 
 function normalizeProjectName(value: string) {
   return value
@@ -100,11 +112,7 @@ export function InnovationCommandCenter({
   const budgetIncidents = dashboard.budgets.activeIncidents;
   const blocked = dashboard.tasks.blocked;
   const observedLabel = status?.observedAt ? relativeTime(status.observedAt) : "unknown";
-  const hasUnresolvedOwnerDecision = situation?.attention.some((signal) =>
-    signal.severity === "critical"
-    && signal.kind !== "budget_incident"
-    && signal.kind !== "pending_approval",
-  ) ?? false;
+  const hasUnresolvedOwnerDecision = hasOwnerDecisionSignal(situation);
 
   return (
     <div className="space-y-3">

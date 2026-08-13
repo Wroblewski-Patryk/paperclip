@@ -165,7 +165,6 @@ export function companySituationService(db: Db) {
         unassignedRunnableCount,
         pendingApprovalCount,
         errorAgentSamples,
-        blockedIssueSamples,
         unassignedIssueSamples,
         pendingApprovalSamples,
         budgetOverview,
@@ -320,12 +319,6 @@ export function companySituationService(db: Db) {
         db
           .select({ id: issues.id, updatedAt: issues.updatedAt })
           .from(issues)
-          .where(and(eq(issues.companyId, companyId), OPEN_WORK_CONDITION, eq(issues.status, "blocked")))
-          .orderBy(desc(issues.updatedAt))
-          .limit(MAX_SAMPLE_SOURCES),
-        db
-          .select({ id: issues.id, updatedAt: issues.updatedAt })
-          .from(issues)
           .where(
             and(
               eq(issues.companyId, companyId),
@@ -471,7 +464,13 @@ export function companySituationService(db: Db) {
             ? Math.max(...rows.map((row) => hoursSince(row.updatedAt ?? row.createdAt, now)))
             : null,
         }));
-      const bottleneck = flow.filter((stage) => stage.count > 0)
+      const actionableBottleneckStages = new Set<CompanySituationFlowStage["stage"]>([
+        "execution",
+        "external_wait",
+        "blocked_conflict",
+        "blocked_unknown",
+      ]);
+      const bottleneck = flow.filter((stage) => stage.count > 0 && actionableBottleneckStages.has(stage.stage))
         .sort((left, right) => right.count - left.count || (right.oldestHours ?? 0) - (left.oldestHours ?? 0))[0] ?? null;
       const wipByAgent = new Map<string, number>();
       for (const row of openFlowRows.filter((item) => item.status === "in_progress" && item.assigneeAgentId)) {
@@ -634,15 +633,19 @@ export function companySituationService(db: Db) {
           sources: pendingApprovalSamples.map((row) => sourceRef("approval", row.id, row.updatedAt)),
         });
       }
-      if (blocked > 0) {
+      const blockedAttentionRows = [
+        ...stageRows.blocked_conflict,
+        ...stageRows.blocked_unknown,
+      ];
+      if (blockedAttentionRows.length > 0) {
         attention.push({
           id: "blocked-work",
           kind: "blocked_work",
           severity: "warning",
-          title: `${blocked} blocked issue${blocked === 1 ? "" : "s"}`,
-          summary: "Blocked work needs an explicit unblock owner, waiting condition, or recovery path.",
-          suggestedAction: "Review blocker attention and prioritize root blockers that unlock downstream work.",
-          sources: blockedIssueSamples.map((row) => sourceRef("issue", row.id, row.updatedAt)),
+          title: `${blockedAttentionRows.length} blocked issue${blockedAttentionRows.length === 1 ? " lacks" : "s lack"} a normal dependency path`,
+          summary: "These blocked items are classified as conflict, reconciliation, or unknown state rather than an ordinary owned dependency wait.",
+          suggestedAction: "Repair the conflicting or missing blocker contract; ordinary dependency queues remain visible in flow metrics without being reported as an incident.",
+          sources: blockedAttentionRows.slice(0, MAX_SAMPLE_SOURCES).map((row) => sourceRef("issue", row.id, row.updatedAt)),
         });
       }
       if (runnable > 0 && availableAgents + runningAgents === 0) {
@@ -712,15 +715,16 @@ export function companySituationService(db: Db) {
         });
       }
       const projectsWithoutTargets = activeProjects.length - projectTargets.length;
-      if (activeProjects.length > 0 && projectsWithoutTargets === activeProjects.length) {
+      if (projectTargets.length > 0 && projectsWithoutTargets > 0) {
         attention.push({
           id: "project-targets-missing",
           kind: "project_target_missing",
           severity: "info",
-          title: "Active projects have no target dates",
-          summary: "Paperclip can report execution state but cannot provide temporal orientation for these projects.",
+          title: `${projectsWithoutTargets} active project${projectsWithoutTargets === 1 ? " has" : "s have"} no target date`,
+          summary: "Some active projects use target-date coordination while these projects do not.",
           suggestedAction: "Add targets only where they improve coordination; do not invent artificial deadlines.",
           sources: activeProjects
+            .filter((project) => !project.targetDate)
             .slice(0, MAX_SAMPLE_SOURCES)
             .map((project) => sourceRef("project", project.id, project.updatedAt)),
         });

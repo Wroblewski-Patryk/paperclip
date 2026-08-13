@@ -760,6 +760,82 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     expect(timerRunFinished).toBe(true);
   });
 
+  it("restores an agent after a session budget stop when the source issue is already terminal", async () => {
+    const companyId = randomUUID();
+    const recoveredAgentId = randomUUID();
+    const heldAgentId = randomUUID();
+    const doneIssueId = randomUUID();
+    const openIssueId = randomUUID();
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Terminal budget recovery",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values([
+      {
+        id: recoveredAgentId,
+        companyId,
+        name: "Recovered tester",
+        role: "engineer",
+        status: "error",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      },
+      {
+        id: heldAgentId,
+        companyId,
+        name: "Held tester",
+        role: "engineer",
+        status: "error",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      },
+    ]);
+    await db.insert(issues).values([
+      { id: doneIssueId, companyId, title: "Completed proof", status: "done", assigneeAgentId: recoveredAgentId },
+      { id: openIssueId, companyId, title: "Incomplete proof", status: "todo", assigneeAgentId: heldAgentId },
+    ]);
+    await db.insert(heartbeatRuns).values([
+      {
+        companyId,
+        agentId: recoveredAgentId,
+        invocationSource: "assignment",
+        status: "failed",
+        errorCode: "SESSION_BUDGET_EXHAUSTED",
+        error: "Stopped by session runtime budget",
+        contextSnapshot: { issueId: doneIssueId },
+        finishedAt: new Date("2026-08-13T00:00:00Z"),
+      },
+      {
+        companyId,
+        agentId: heldAgentId,
+        invocationSource: "assignment",
+        status: "failed",
+        errorCode: "SESSION_BUDGET_EXHAUSTED",
+        error: "Stopped by session runtime budget",
+        contextSnapshot: { issueId: openIssueId },
+        finishedAt: new Date("2026-08-13T00:00:00Z"),
+      },
+    ]);
+
+    const result = await heartbeat.tickTimers(new Date("2026-08-13T01:00:00Z"));
+    const [recovered, held] = await Promise.all([
+      db.select({ status: agents.status }).from(agents).where(eq(agents.id, recoveredAgentId)).then((rows) => rows[0]),
+      db.select({ status: agents.status }).from(agents).where(eq(agents.id, heldAgentId)).then((rows) => rows[0]),
+    ]);
+
+    expect(result.reconciledSessionBudgetAgentErrors).toBe(1);
+    expect(result.reconciledSessionBudgetAgentIds).toEqual([recoveredAgentId]);
+    expect(recovered?.status).toBe("idle");
+    expect(held?.status).toBe("error");
+  });
+
   it("creates and wakes one idempotent review task for a submitted work proposal", async () => {
     const companyId = randomUUID();
     const proposerId = randomUUID();

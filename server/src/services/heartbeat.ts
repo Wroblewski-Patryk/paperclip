@@ -7819,6 +7819,93 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     }
   }
 
+  async function issueIsTerminal(issueId: string | null | undefined) {
+    if (!issueId) return false;
+    return db
+      .select({ status: issues.status })
+      .from(issues)
+      .where(eq(issues.id, issueId))
+      .limit(1)
+      .then((rows) => rows[0]?.status === "done" || rows[0]?.status === "cancelled");
+  }
+
+  async function reconcileTerminalIssueSessionBudgetAgentErrors(now: Date) {
+    const errorAgents = await db
+      .select({ id: agents.id, companyId: agents.companyId })
+      .from(agents)
+      .innerJoin(companies, and(eq(companies.id, agents.companyId), eq(companies.status, "active")))
+      .where(eq(agents.status, "error"));
+    const reconciledAgentIds: string[] = [];
+
+    for (const errorAgent of errorAgents) {
+      const latestRun = await db
+        .select({
+          id: heartbeatRuns.id,
+          status: heartbeatRuns.status,
+          errorCode: heartbeatRuns.errorCode,
+          contextSnapshot: heartbeatRuns.contextSnapshot,
+        })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.agentId, errorAgent.id))
+        .orderBy(desc(heartbeatRuns.createdAt))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
+      if (
+        latestRun?.status !== "failed" ||
+        latestRun.errorCode !== "SESSION_BUDGET_EXHAUSTED"
+      ) continue;
+
+      const issueId = issueIdFromRunContext(latestRun.contextSnapshot);
+      if (!await issueIsTerminal(issueId)) continue;
+
+      const updated = await db
+        .update(agents)
+        .set({ status: "idle", updatedAt: now })
+        .where(and(
+          eq(agents.id, errorAgent.id),
+          eq(agents.status, "error"),
+          sql`not exists (
+            select 1 from ${heartbeatRuns}
+            where ${heartbeatRuns.agentId} = ${errorAgent.id}
+              and ${heartbeatRuns.status} in ('queued', 'running', 'scheduled_retry')
+          )`,
+        ))
+        .returning({ id: agents.id, companyId: agents.companyId, status: agents.status })
+        .then((rows) => rows[0] ?? null);
+      if (!updated) continue;
+
+      reconciledAgentIds.push(updated.id);
+      await logActivity(db, {
+        companyId: updated.companyId,
+        actorType: "system",
+        actorId: "heartbeat_scheduler",
+        agentId: updated.id,
+        action: "agent.terminal_session_budget_error_reconciled",
+        entityType: "agent",
+        entityId: updated.id,
+        details: {
+          previousStatus: "error",
+          status: "idle",
+          runId: latestRun.id,
+          issueId,
+          errorCode: latestRun.errorCode,
+        },
+      });
+      publishLiveEvent({
+        companyId: updated.companyId,
+        type: "agent.status",
+        payload: {
+          agentId: updated.id,
+          status: updated.status,
+          reconciled: true,
+          reason: "terminal_issue_session_budget_stop",
+        },
+      });
+    }
+
+    return reconciledAgentIds;
+  }
+
   function mergeRunStopMetadataForAgent(
     agent: Pick<typeof agents.$inferSelect, "adapterType" | "adapterConfig">,
     outcome: "succeeded" | "failed" | "cancelled" | "timed_out",
@@ -10304,7 +10391,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           }
         }
       }
-      await finalizeAgentStatus(agent.id, outcome);
+      const terminalIssueSessionBudgetStop =
+        outcome === "failed" &&
+        runErrorCode === "SESSION_BUDGET_EXHAUSTED" &&
+        await issueIsTerminal(issueId);
+      await finalizeAgentStatus(agent.id, terminalIssueSessionBudgetStop ? "cancelled" : outcome);
     } catch (err) {
       const message = redactCurrentUserText(
         err instanceof Error ? err.message : "Unknown adapter failure",
@@ -12445,6 +12536,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     buildRunOutputSilence,
 
     tickTimers: async (now = new Date()) => {
+      const reconciledSessionBudgetAgentIds = await reconcileTerminalIssueSessionBudgetAgentErrors(now);
       const allAgents = await db
         .select({ agent: agents })
         .from(agents)
@@ -12535,6 +12627,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         checked: checked + proposalReviews.checked + issueMonitors.checked,
         enqueued: enqueued + proposalReviews.enqueued + issueMonitors.triggered,
         skipped: skipped + proposalReviews.skipped + issueMonitors.skipped,
+        reconciledSessionBudgetAgentErrors: reconciledSessionBudgetAgentIds.length,
+        reconciledSessionBudgetAgentIds,
       };
     },
 

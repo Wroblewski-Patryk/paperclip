@@ -8,6 +8,7 @@ import {
   deliveryTasks,
   goals,
   issueThreadInteractions,
+  issueRelations,
   issues,
   organizationalObservations,
   organizationalRecords,
@@ -78,6 +79,7 @@ describeEmbeddedPostgres("company situation service", () => {
     await db.delete(organizationalRecords);
     await db.delete(approvals);
     await db.delete(issueThreadInteractions);
+    await db.delete(issueRelations);
     await db.delete(deliveryTasks);
     await db.delete(productOutcomes);
     await db.delete(productDeliveries);
@@ -418,5 +420,75 @@ describeEmbeddedPostgres("company situation service", () => {
     });
     expect(situation.attention.map((signal) => signal.kind)).toContain("outcome_state_conflict");
     expect(situation.attention.map((signal) => signal.kind)).not.toContain("dispatch_capacity_disabled");
+  });
+
+  it("does not report missing target dates when the company intentionally uses forecast-only planning", async () => {
+    const companyId = randomUUID();
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Forecast-only company",
+      issuePrefix: "FTC",
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(projects).values([
+      { companyId, name: "Soar", status: "in_progress" },
+      { companyId, name: "Roost", status: "planned" },
+    ]);
+
+    const situation = await companySituationService(db).get(companyId, {
+      now: new Date("2026-08-13T12:00:00Z"),
+    });
+
+    expect(situation.temporal).toMatchObject({
+      activeProjects: 2,
+      projectsWithTargets: 0,
+      projectsWithoutTargets: 2,
+    });
+    expect(situation.attention.map((signal) => signal.kind)).not.toContain("project_target_missing");
+  });
+
+  it("keeps ordinary owned dependency waits in flow metrics without reporting them as broken work", async () => {
+    const companyId = randomUUID();
+    const agentId = randomUUID();
+    const blockerId = randomUUID();
+    const dependentId = randomUUID();
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Dependency-aware company",
+      issuePrefix: "DPC",
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "Dependency owner",
+      role: "engineer",
+      status: "idle",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    });
+    await db.insert(issues).values([
+      { id: blockerId, companyId, title: "Root work", status: "todo", assigneeAgentId: agentId },
+      { id: dependentId, companyId, title: "Dependent work", status: "blocked", assigneeAgentId: agentId },
+    ]);
+    await db.insert(issueRelations).values({
+      companyId,
+      issueId: blockerId,
+      relatedIssueId: dependentId,
+      type: "blocks",
+    });
+
+    const situation = await companySituationService(db).get(companyId, {
+      now: new Date("2026-08-13T12:00:00Z"),
+    });
+
+    expect(situation.capacity.flow).toContainEqual(expect.objectContaining({
+      stage: "blocked_dependency",
+      count: 1,
+    }));
+    expect(situation.attention.map((signal) => signal.kind)).not.toContain("blocked_work");
+    expect(situation.attention.map((signal) => signal.kind)).not.toContain("capacity_bottleneck");
   });
 });
