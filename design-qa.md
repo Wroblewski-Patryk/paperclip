@@ -83,3 +83,78 @@ No P3 item is required for handoff.
 - Technical runtime state still does not imply sale readiness: Soar remains `NO-GO`, and Roost remains `Guided pilot only`.
 
 final result: passed
+
+---
+
+# Dashboard Mission Control — Design QA
+
+Date: 2026-08-14
+
+## Compared surfaces
+
+- Source: `docs/dashboard-redesign-options/03-mission-control.png` (normalized to 1440 × 1024)
+- Implementation: `docs/dashboard-mission-control-implemented.png` (1440 × 1024)
+- Side-by-side evidence: `docs/design-qa-dashboard-comparison.png`
+- Responsive evidence: `docs/dashboard-mission-control-tablet.png` and `docs/dashboard-mission-control-mobile.png`
+
+## Assessment
+
+- **Hierarchy and layout:** The implementation preserves the reference order and decision hierarchy: system statement, workflow state, operating picture and immediate action, agents and constraints, performance and capacity, then innovation portfolio. Paperclip's existing global breadcrumb consumes additional vertical space, so the lower analytics start slightly farther below the fold than in the isolated mockup.
+- **Typography and spacing:** Existing Paperclip typography and compact control-plane density are retained. Section headings, metadata, table rows, and action affordances follow the reference proportions closely.
+- **Color and surfaces:** Shared Paperclip surface tokens are used throughout. Teal remains the primary operational accent; green, amber, and red are reserved for semantic health and risk states.
+- **Content fidelity:** Every major mockup element is backed by available live data. Activity is filtered and de-duplicated, constraints are ranked, the 14-day chart distinguishes no-run days from failed runs, and capacity/portfolio data use current company state.
+- **Assets and icons:** The reference contains no bespoke image assets. Existing Lucide icons are used consistently; the performance graphic is an accessible live-data chart, not decorative replacement art.
+- **Interactions:** Agent tabs, agent admission toggle, primary constraint action, navigation links, and innovation portfolio expansion were exercised in the running app.
+- **Responsive behavior:** Desktop, 1024 px tablet, and 390 px mobile layouts were checked. The mobile workflow prioritizes Execution, Review, and Blocked, and no page-level horizontal overflow was observed.
+- **Accessibility:** Regions and headings are semantic; tabs, switch, links, and buttons keep keyboard semantics; the chart includes a title, description, and screen-reader summary; visible focus styles inherit the shared design system.
+
+## Findings
+
+- No remaining P0, P1, or P2 visual defects.
+- Accepted P3 difference: the persistent Paperclip application shell moves the portfolio below the first desktop viewport compared with the shell-light reference image.
+
+final result: passed
+
+---
+
+# Dashboard Mission Control — Operational polish QA
+
+Date: 2026-08-14
+
+## Compared surfaces
+
+- Source: `docs/dashboard-redesign-options/03-mission-control.png` at 1440 × 1024.
+- Polished implementation: `docs/dashboard-mission-control-polished.png` at 1440 × 1024.
+- Side-by-side evidence: `docs/design-qa-dashboard-polished-comparison.png`.
+- Narrow evidence: `docs/dashboard-mission-control-polished-mobile.png` at 390 × 844.
+
+## Findings
+
+- The workflow ribbon retains the reference hierarchy while adding compact, source-backed aging for active stages.
+- The dispatch explanation resolves the visible contradiction between runnable work, idle agents, and zero execution without introducing another dashboard module.
+- Control evidence freshness is now explicit in the existing health row; no new visual hierarchy competes with the primary action.
+- Run failures, other outcomes, and the weakest observed day are exposed in the existing performance chart summary. No retry claim is made because the dashboard source does not provide retry counts.
+- Paperclip-recorded budget and provider-reported quota are labelled as separate measurement systems.
+- At 390 px, Execution, Review, Blocked, the short dispatch reason, and its action remain visible without page-level horizontal overflow.
+- No remaining P0, P1, or P2 visual defects were found. The persistent application shell still places lower analytics below the first desktop viewport; this remains an accepted P3 difference from the shell-light mockup.
+
+final result: passed
+
+---
+
+# Dashboard Mission Control — Final publish gate
+
+Date: 2026-08-14
+
+## Evidence and result
+
+- Final report: `docs/dashboard-final-audit/report.md`.
+- Desktop, agent-filter, keyboard-focus, tablet, mobile, and light-theme evidence: `docs/dashboard-final-audit/`.
+- Final source-to-implementation comparison: `docs/design-qa-dashboard-final-comparison.png`.
+- Live interaction checks covered the agent filter, agent admission control, portfolio disclosure, and primary drill-down routes.
+- Semantic checks confirmed one page-level heading, named regions, pressed-button filter semantics, accessible status text, and two labelled progress bars.
+- No remaining P0, P1, or P2 UX/UI defects were found within the tested dashboard surface.
+
+The release gate does not claim formal WCAG certification; a full manual screen-reader pass, OS-level high-contrast testing, and 200% zoom certification remain separate specialist checks.
+
+final result: passed

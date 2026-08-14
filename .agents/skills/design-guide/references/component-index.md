@@ -118,6 +118,28 @@ Wrap multiple EntityRows in a `border border-border rounded-md` container.
 
 Always use in a responsive grid: `grid md:grid-cols-2 xl:grid-cols-4 gap-4`.
 
+### AgentAvailabilityControl
+
+**File:** `AgentAvailabilityControl.tsx`
+
+**Props:** `availability`, `loading?`, `pending?`, `error?`, `onChange`, `variant?: "panel" | "compact"`
+
+**Usage:** Durable agent-admission control. Use `panel` when the transition reason and deferred work need explanation; use `compact` in dense operator headers where the state remains visible without dominating the page.
+
+```tsx
+<AgentAvailabilityControl
+  variant="compact"
+  availability={availability}
+  onChange={setEnabled}
+/>
+```
+
+### MissionControlDashboard
+
+**File:** `MissionControlDashboard.tsx`
+
+**Usage:** Dashboard composition for system health, flow, control-plane activity, constraints, agent capacity, performance, cost, and portfolio evidence. It consumes existing deterministic projections, explains idle dispatch, exposes queue age and evidence freshness, and keeps drill-down links action-ready.
+
 ### EmptyState
 
 **File:** `EmptyState.tsx`

@@ -8,6 +8,7 @@ interface AgentAvailabilityControlProps {
   pending?: boolean;
   error?: string | null;
   onChange: (enabled: boolean) => void;
+  variant?: "panel" | "compact";
 }
 
 function formatChangedAt(value: string | undefined) {
@@ -28,6 +29,7 @@ export function AgentAvailabilityControl({
   pending = false,
   error = null,
   onChange,
+  variant = "panel",
 }: AgentAvailabilityControlProps) {
   const state = availability?.state ?? "off";
   const isOn = state === "on" || state === "reopening";
@@ -49,6 +51,56 @@ export function AgentAvailabilityControl({
   const actor = availability?.changedBy.actorId
     ? `${availability.changedBy.actorType ?? "actor"}: ${availability.changedBy.actorId}`
     : availability?.changedBy.actorType ?? "system";
+
+  const toggle = (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isOn}
+      aria-label="Allow agents to start new work"
+      disabled={loading || pending || !availability}
+      onClick={() => onChange(!isOn)}
+      className={cn(
+        "relative inline-flex shrink-0 items-center rounded-full border transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        variant === "compact" ? "h-6 w-11" : "h-8 w-14",
+        isOn
+          ? "border-emerald-500/40 bg-emerald-500"
+          : "border-border bg-muted",
+      )}
+    >
+      <span className={cn(
+        "inline-block rounded-full bg-background shadow-sm transition-transform",
+        variant === "compact" ? "h-4 w-4" : "h-6 w-6",
+        variant === "compact"
+          ? isOn ? "translate-x-6" : "translate-x-1"
+          : isOn ? "translate-x-7" : "translate-x-1",
+      )} />
+    </button>
+  );
+
+  if (variant === "compact") {
+    return (
+      <div
+        className="inline-flex min-w-0 items-center gap-2"
+        title={`${description} ${availability?.deferredWorkCount ?? 0} deferred.`}
+      >
+        <span className="text-xs font-medium text-muted-foreground">Agents</span>
+        <span className={cn(
+          "text-[11px] font-semibold tracking-wide",
+          state === "on" && "text-emerald-600 dark:text-emerald-400",
+          state === "draining" && "text-amber-600 dark:text-amber-400",
+          state === "off" && "text-muted-foreground",
+          state === "reopening" && "text-sky-600 dark:text-sky-400",
+        )}>
+          {loading ? "…" : stateLabel}
+        </span>
+        {toggle}
+        {error ? <span className="sr-only">{error}</span> : null}
+      </div>
+    );
+  }
 
   return (
     <section className="paperclip-surface px-4 py-4 sm:px-5" aria-labelledby="agent-availability-title">
@@ -84,27 +136,7 @@ export function AgentAvailabilityControl({
           </div>
         </div>
 
-        <button
-          type="button"
-          role="switch"
-          aria-checked={isOn}
-          aria-label="Allow agents to start new work"
-          disabled={loading || pending || !availability}
-          onClick={() => onChange(!isOn)}
-          className={cn(
-            "relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-            isOn
-              ? "border-emerald-500/40 bg-emerald-500"
-              : "border-border bg-muted",
-          )}
-        >
-          <span className={cn(
-            "inline-block h-6 w-6 rounded-full bg-background shadow-sm transition-transform",
-            isOn ? "translate-x-7" : "translate-x-1",
-          )} />
-        </button>
+        {toggle}
       </div>
     </section>
   );

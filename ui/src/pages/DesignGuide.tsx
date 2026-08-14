@@ -315,24 +315,49 @@ export function DesignGuide() {
           Domain switch for durable agent admission. OFF first drains active runs and defers new work;
           emergency cancellation remains a separate action.
         </p>
-        <AgentAvailabilityControl
-          availability={{
-            companyId: "design-guide",
-            state: agentAvailabilityOn ? "on" : "off",
-            controlState: agentAvailabilityOn ? "open" : "maintenance",
-            enabled: agentAvailabilityOn,
-            acceptsNewRuns: agentAvailabilityOn,
-            activeRunCount: 0,
-            deferredWorkCount: agentAvailabilityOn ? 0 : 4,
-            changedAt: "2026-08-14T12:00:00.000Z",
-            changedBy: { actorType: "user", actorId: "board" },
-            drainStartedAt: null,
-            offSince: agentAvailabilityOn ? null : "2026-08-14T12:00:00.000Z",
-            openedAt: agentAvailabilityOn ? "2026-08-14T12:00:00.000Z" : null,
-            replaySnapshot: null,
-          }}
-          onChange={setAgentAvailabilityOn}
-        />
+        <SubSection title="Panel">
+          <AgentAvailabilityControl
+            availability={{
+              companyId: "design-guide",
+              state: agentAvailabilityOn ? "on" : "off",
+              controlState: agentAvailabilityOn ? "open" : "maintenance",
+              enabled: agentAvailabilityOn,
+              acceptsNewRuns: agentAvailabilityOn,
+              activeRunCount: 0,
+              deferredWorkCount: agentAvailabilityOn ? 0 : 4,
+              changedAt: "2026-08-14T12:00:00.000Z",
+              changedBy: { actorType: "user", actorId: "board" },
+              drainStartedAt: null,
+              offSince: agentAvailabilityOn ? null : "2026-08-14T12:00:00.000Z",
+              openedAt: agentAvailabilityOn ? "2026-08-14T12:00:00.000Z" : null,
+              replaySnapshot: null,
+            }}
+            onChange={setAgentAvailabilityOn}
+          />
+        </SubSection>
+        <SubSection title="Compact dashboard control">
+          <div className="paperclip-surface flex items-center justify-end px-4 py-3">
+            <AgentAvailabilityControl
+              variant="compact"
+              availability={{
+                companyId: "design-guide",
+                state: agentAvailabilityOn ? "on" : "off",
+                controlState: agentAvailabilityOn ? "open" : "maintenance",
+                enabled: agentAvailabilityOn,
+                acceptsNewRuns: agentAvailabilityOn,
+                activeRunCount: 0,
+                deferredWorkCount: agentAvailabilityOn ? 0 : 4,
+                changedAt: "2026-08-14T12:00:00.000Z",
+                changedBy: { actorType: "user", actorId: "board" },
+                drainStartedAt: null,
+                offSince: agentAvailabilityOn ? null : "2026-08-14T12:00:00.000Z",
+                openedAt: agentAvailabilityOn ? "2026-08-14T12:00:00.000Z" : null,
+                replaySnapshot: null,
+              }}
+              onChange={setAgentAvailabilityOn}
+            />
+          </div>
+        </SubSection>
       </Section>
 
       {/* ============================================================ */}
