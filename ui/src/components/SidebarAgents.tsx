@@ -17,7 +17,6 @@ import { useSidebar } from "../context/SidebarContext";
 import { useToastActions } from "../context/ToastContext";
 import { agentsApi } from "../api/agents";
 import { authApi } from "../api/auth";
-import { heartbeatsApi } from "../api/heartbeats";
 import { SIDEBAR_SCROLL_RESET_STATE } from "../lib/navigation-scroll";
 import { queryKeys } from "../lib/queryKeys";
 import { cn, agentRouteRef, agentUrl } from "../lib/utils";
@@ -43,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Agent } from "@paperclipai/shared";
+import { useCompanyLiveRuns } from "../hooks/useCompanyLiveRuns";
 
 const AGENT_SORT_CHOICES: SidebarSectionRadioChoice[] = [
   { value: "top", label: "Top" },
@@ -108,6 +108,7 @@ function SidebarAgentItem({
   const isActive = activeAgentId === routeRef;
   const isPaused = agent.status === "paused";
   const isBudgetPaused = isPaused && agent.pauseReason === "budget";
+  const isLive = runCount > 0;
   const pauseResumeLabel = isPaused ? "Resume agent" : "Pause agent";
   const pauseResumeDisabled = disabled || agent.status === "pending_approval" || isBudgetPaused;
   const pauseResumeDisabledLabel = disabled
@@ -117,18 +118,20 @@ function SidebarAgentItem({
       : pauseResumeLabel;
 
   return (
-    <div className="group/agent relative flex items-center">
+    <div className="group/agent relative flex items-center" data-live={isLive ? "true" : undefined}>
       <NavLink
         to={href}
         state={SIDEBAR_SCROLL_RESET_STATE}
         onClick={() => {
           if (isMobile) setSidebarOpen(false);
         }}
+        aria-label={isLive ? `${agent.name}, ${runCount} live run${runCount === 1 ? "" : "s"}` : undefined}
         className={cn(
-          "flex min-w-0 flex-1 items-center gap-2.5 px-3 py-1.5 pointer-coarse:py-1 pr-8 text-[13px] font-medium transition-colors",
+          "relative flex min-w-0 flex-1 items-center gap-2.5 px-3 py-1.5 pointer-coarse:py-1 pr-8 text-[13px] font-medium outline-none transition-[background-color,box-shadow,color] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           isActive
             ? "bg-accent text-foreground"
-            : "text-foreground/80 hover:bg-accent/50 hover:text-foreground"
+            : "text-foreground/80 hover:bg-accent/50 hover:text-foreground",
+          isLive && "sidebar-agent-live",
         )}
       >
         <AgentIcon icon={agent.icon} className="shrink-0 h-3.5 w-3.5 text-muted-foreground" />
@@ -140,12 +143,12 @@ function SidebarAgentItem({
             ) : null}
             {runCount > 0 ? (
               <span className="relative flex h-2 w-2">
-                <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+                <span className="activity-live-ping absolute inline-flex h-full w-full rounded-full bg-[var(--status-live)]" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--status-live)]" />
               </span>
             ) : null}
             {runCount > 0 ? (
-              <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
+              <span className="text-[11px] font-semibold text-[var(--status-live-foreground)]">
                 {runCount} live
               </span>
             ) : null}
@@ -232,12 +235,7 @@ export function SidebarAgents() {
   const membershipsQuery = useResourceMemberships(selectedCompanyId);
   const membershipMutation = useResourceMembershipMutation(selectedCompanyId);
 
-  const { data: liveRuns } = useQuery({
-    queryKey: queryKeys.liveRuns(selectedCompanyId!),
-    queryFn: () => heartbeatsApi.liveRunsForCompany(selectedCompanyId!),
-    enabled: !!selectedCompanyId,
-    refetchInterval: 10_000,
-  });
+  const { data: liveRuns } = useCompanyLiveRuns(selectedCompanyId);
 
   const liveCountByAgent = useMemo(() => {
     const counts = new Map<string, number>();

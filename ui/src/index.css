@@ -426,6 +426,24 @@
   animation: dashboard-execution-breathe 2.8s ease-in-out infinite;
 }
 
+.sidebar-agent-live {
+  background-color: color-mix(in oklab, var(--status-live) 4%, transparent);
+}
+
+.sidebar-agent-live::before {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 2px;
+  content: "";
+  pointer-events: none;
+  background-color: color-mix(in oklab, var(--status-live) 58%, transparent);
+}
+
+.sidebar-agent-live:hover {
+  background-color: color-mix(in oklab, var(--status-live) 8%, transparent);
+}
+
 .activity-live-ping {
   animation: dashboard-live-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
 }

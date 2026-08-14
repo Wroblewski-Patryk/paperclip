@@ -27,9 +27,9 @@ import { SidebarProjects } from "./SidebarProjects";
 import { SidebarAgents } from "./SidebarAgents";
 import { useDialogActions } from "../context/DialogContext";
 import { useCompany } from "../context/CompanyContext";
-import { heartbeatsApi } from "../api/heartbeats";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { queryKeys } from "../lib/queryKeys";
+import { useCompanyLiveRuns } from "../hooks/useCompanyLiveRuns";
 import { useInboxBadge } from "../hooks/useInboxBadge";
 import { Button } from "@/components/ui/button";
 import { PluginSlotOutlet } from "@/plugins/slots";
@@ -59,12 +59,7 @@ export function Sidebar() {
     queryKey: queryKeys.instance.experimentalSettings,
     queryFn: () => instanceSettingsApi.getExperimental(),
   });
-  const { data: liveRuns } = useQuery({
-    queryKey: queryKeys.liveRuns(selectedCompanyId!),
-    queryFn: () => heartbeatsApi.liveRunsForCompany(selectedCompanyId!),
-    enabled: !!selectedCompanyId,
-    refetchInterval: 10_000,
-  });
+  const { data: liveRuns } = useCompanyLiveRuns(selectedCompanyId);
   const liveRunCount = liveRuns?.length ?? 0;
   const showWorkspacesLink = experimentalSettings?.enableIsolatedWorkspaces === true;
   const [openSections, setOpenSections] = useState(initialPrimarySections);

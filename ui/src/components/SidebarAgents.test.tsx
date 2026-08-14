@@ -276,6 +276,18 @@ describe("SidebarAgents", () => {
     expect(agentLinkLabels(container)).toEqual(["Bravo", "Alpha", "Charlie"]);
   });
 
+  it("uses the shared live treatment and accessible label for a running agent", async () => {
+    mockHeartbeatsApi.liveRunsForCompany.mockResolvedValue([{ id: "run-1", agentId: "agent-1" }]);
+
+    await renderSidebarAgents();
+
+    const liveLink = container.querySelector('a[aria-label="Alpha, 1 live run"]');
+    expect(liveLink).not.toBeNull();
+    expect(liveLink?.className).toContain("sidebar-agent-live");
+    expect(liveLink?.closest('[data-live="true"]')).not.toBeNull();
+    expect(liveLink?.textContent).toContain("1 live");
+  });
+
   it("uses the heading for section menu and the plus button for agent creation", async () => {
     await renderSidebarAgents();
 

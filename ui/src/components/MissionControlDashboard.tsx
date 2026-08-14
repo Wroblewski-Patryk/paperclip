@@ -201,6 +201,11 @@ function primaryActionLabel(signal: CompanySituationSignal | null, blockedCount:
   }
 }
 
+function completeActivityVerb(verb: string, hasEntity: boolean) {
+  if (hasEntity) return verb;
+  return verb.replace(/\s+(?:on|to)$/i, "");
+}
+
 function forecastDays(situation: CompanySituation | null | undefined) {
   const likely = toDate(situation?.forecast.projectedCompletion?.likelyAt);
   if (!likely) return null;
@@ -311,7 +316,7 @@ export function MissionControlDashboard({
           ? `${inProgressCount} issue${inProgressCount === 1 ? "" : "s"} in progress`
           : "agent run active",
         action: "View live work",
-        mobileAction: "Live",
+        mobileAction: "Open",
         href: "/dashboard/live",
         attention: false,
       }
@@ -454,7 +459,7 @@ export function MissionControlDashboard({
   const agentCounts = {
     running: agents.filter((agent) => agent.status === "running").length,
     paused: agents.filter((agent) => agent.status === "paused").length,
-    idle: agents.filter((agent) => agent.status !== "running" && agent.status !== "paused" && agent.status !== "error").length,
+    idle: agents.filter((agent) => agent.status === "idle").length,
   };
   const activeIssueByAgent = useMemo(() => {
     const map = new Map<string, Issue>();
@@ -479,7 +484,7 @@ export function MissionControlDashboard({
     });
     if (agentFilter === "running") return sorted.filter((agent) => agent.status === "running").slice(0, 5);
     if (agentFilter === "paused") return sorted.filter((agent) => agent.status === "paused").slice(0, 5);
-    if (agentFilter === "idle") return sorted.filter((agent) => agent.status !== "running" && agent.status !== "paused" && agent.status !== "error").slice(0, 5);
+    if (agentFilter === "idle") return sorted.filter((agent) => agent.status === "idle").slice(0, 5);
     return sorted.slice(0, 5);
   }, [activeIssueByAgent, agentFilter, agents]);
 
@@ -504,7 +509,7 @@ export function MissionControlDashboard({
         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" />{formatObservedAt(observedAt)}</span>
           <span className="hidden h-4 w-px bg-border sm:block" />
-          <span className="inline-flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" />Auto-refresh</span>
+          <span className="inline-flex items-center gap-1.5" title="Event-driven updates with a 5-second fallback refresh"><Zap className="h-3.5 w-3.5" /><span className="sm:hidden">Live ≤5s</span><span className="hidden sm:inline">Live updates · ≤5s</span></span>
           <span className="hidden h-4 w-px bg-border sm:block" />
           <AgentAvailabilityControl
             variant="compact"
@@ -611,6 +616,7 @@ export function MissionControlDashboard({
                 const project = event.entityType === "project" ? projectMap.get(event.entityId) : undefined;
                 const entity = issue?.identifier ?? project?.name ?? (event.entityType === "heartbeat_run" ? event.entityId.slice(0, 8) : null);
                 const verb = formatActivityVerb(event.action, event.details, { agentMap });
+                const completeVerb = completeActivityVerb(verb, Boolean(entity));
                 const href = activityHref(event, issueMap, projectMap);
                 const eventAge = Date.now() - new Date(event.createdAt).getTime();
                 const isFreshLiveEvent = category.tone === "active" && eventAge >= 0 && eventAge < 5 * 60_000;
@@ -628,7 +634,7 @@ export function MissionControlDashboard({
                       )} />
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-sm text-foreground"><span className="font-medium">{actor}</span> <span className="text-muted-foreground">{verb}</span>{entity ? ` ${entity}` : ""}</span>
+                      <span className="block truncate text-sm text-foreground"><span className="font-medium">{actor}</span> <span className="text-muted-foreground">{completeVerb}</span>{entity ? ` ${entity}` : ""}</span>
                       {issue?.title ? <span className="block truncate text-xs text-muted-foreground">{issue.title}</span> : null}
                     </span>
                     <span className={cn(
@@ -664,8 +670,8 @@ export function MissionControlDashboard({
             <NowRow icon={Gauge} label="Provider quota" value={quota.value} detail={quota.description} href="/costs" tone={quotaHealthy ? "active" : "warn"} />
           </div>
           <div className="border-t border-border p-3">
-            <Link to={primaryActionHref} className="group/action flex min-h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground no-underline transition-[background-color,box-shadow,transform] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:hover:-translate-y-px">
-              Resolve top constraint <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/action:translate-x-0.5" />
+            <Link to={primaryActionHref} title={primaryAction} className="group/action flex min-h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground no-underline transition-[background-color,box-shadow,transform] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:hover:-translate-y-px">
+              <span className="truncate">{primaryAction}</span><ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover/action:translate-x-0.5" />
             </Link>
           </div>
         </section>
@@ -716,7 +722,9 @@ export function MissionControlDashboard({
                         agent.status === "running" && "bg-cyan-500 animate-pulse",
                         agent.status === "paused" && "bg-amber-500",
                         agent.status === "error" && "bg-destructive",
-                        agent.status !== "running" && agent.status !== "paused" && agent.status !== "error" && "bg-emerald-500",
+                        agent.status === "active" && "bg-emerald-500",
+                        (agent.status === "idle" || agent.status === "pending_approval") && "bg-yellow-500",
+                        !["running", "paused", "error", "active", "idle", "pending_approval"].includes(agent.status) && "bg-muted-foreground/60",
                       )} title={agent.status} aria-hidden="true" />
                       <span className="sr-only">Status: {agent.status}</span>
                       <Identity name={agent.name} agentIcon={agent.icon} size="sm" className="min-w-0 [&>span:last-child]:truncate" />
@@ -838,8 +846,14 @@ function NowRow({
         tone === "bad" && "bg-destructive/10 text-destructive",
         tone === "active" && "bg-[var(--company-accent-subtle)] text-[var(--company-accent-strong)]",
       )}><Icon className="h-4 w-4" /></span>
-      <span className="min-w-0"><span className="block text-xs text-muted-foreground">{label}</span><span className="block truncate text-sm font-semibold" title={value}>{value}</span></span>
-      <span className="flex max-w-36 items-center gap-1 text-right text-[11px] text-muted-foreground"><span className="line-clamp-2">{detail}</span><ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover/now:translate-x-0.5" /></span>
+      <span className="min-w-0">
+        <span className="flex min-w-0 items-center justify-between gap-2">
+          <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
+          <span className="truncate text-right text-[11px] text-muted-foreground" title={detail}>{detail}</span>
+        </span>
+        <span className="mt-0.5 block truncate text-sm font-semibold" title={value}>{value}</span>
+      </span>
+      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover/now:translate-x-0.5" />
     </Link>
   );
 }

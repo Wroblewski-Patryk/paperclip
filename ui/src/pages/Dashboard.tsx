@@ -8,7 +8,6 @@ import { issuesApi } from "../api/issues";
 import { agentsApi } from "../api/agents";
 import { projectsApi } from "../api/projects";
 import { softwarehouseApi } from "../api/softwarehouse";
-import { heartbeatsApi } from "../api/heartbeats";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
@@ -18,6 +17,7 @@ import { MissionControlDashboard } from "../components/MissionControlDashboard";
 import { PageSkeleton } from "../components/PageSkeleton";
 import type { ProviderQuotaResult, QuotaWindow } from "@paperclipai/shared";
 import { PluginSlotOutlet } from "@/plugins/slots";
+import { useCompanyLiveRuns } from "../hooks/useCompanyLiveRuns";
 
 const DASHBOARD_ACTIVITY_LIMIT = 60;
 
@@ -94,13 +94,7 @@ export function Dashboard() {
     enabled: !!selectedCompanyId,
   });
 
-  const { data: liveRuns } = useQuery({
-    queryKey: queryKeys.liveRuns(selectedCompanyId!),
-    queryFn: () => heartbeatsApi.liveRunsForCompany(selectedCompanyId!),
-    enabled: !!selectedCompanyId,
-    refetchInterval: 5_000,
-    refetchIntervalInBackground: true,
-  });
+  const { data: liveRuns } = useCompanyLiveRuns(selectedCompanyId);
 
   const { data: agents } = useQuery({
     queryKey: queryKeys.agents.list(selectedCompanyId!),
