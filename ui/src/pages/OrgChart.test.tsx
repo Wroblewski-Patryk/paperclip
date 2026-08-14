@@ -216,7 +216,7 @@ describe("OrgChart mobile gestures", () => {
       viewport.dispatchEvent(createTouchEvent("touchend", []));
     });
 
-    expect(layer.style.transform).toBe("translate(50px, 105px) scale(1)");
+    expect(layer.style.transform).toBe("translate(50px, 33px) scale(1)");
   });
 
   it("suppresses card navigation after a touch pan", async () => {
@@ -260,6 +260,6 @@ describe("OrgChart mobile gestures", () => {
       viewport.dispatchEvent(createTouchEvent("touchend", []));
     });
 
-    expect(layer.style.transform).toBe("translate(-45px, 40px) scale(1.5)");
+    expect(layer.style.transform).toBe("translate(-45px, -68px) scale(1.5)");
   });
 });

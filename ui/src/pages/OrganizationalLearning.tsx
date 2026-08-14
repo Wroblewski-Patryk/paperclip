@@ -3,13 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { OrganizationalObservation, OrganizationalObservationKind } from "@paperclipai/shared";
 import {
   Activity,
+  AlertTriangle,
+  CalendarClock,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Clock3,
   ExternalLink,
   Plus,
   RefreshCw,
+  Search,
   ShieldCheck,
 } from "lucide-react";
 import { Link } from "@/lib/router";
@@ -39,12 +41,31 @@ const TRANSITIONS: Record<OrganizationalObservationKind, Record<string, string[]
 };
 const POSITIVE_STATUSES = new Set(["verified", "accepted", "validated", "promoted", "current"]);
 const ATTENTION_STATUSES = new Set(["disputed", "contradicted", "stale", "failure"]);
+type ObservationFilter = "all" | "attention" | "current";
 
 function observationFreshUntil(item: OrganizationalObservation) {
   return item.validUntil
     ?? (item.freshnessWindowHours
       ? new Date(new Date(item.observedAt).getTime() + item.freshnessWindowHours * 3_600_000)
       : null);
+}
+
+function observationNeedsAttention(item: OrganizationalObservation) {
+  if (ATTENTION_STATUSES.has(item.status)) return true;
+  const freshUntil = observationFreshUntil(item);
+  return Boolean(freshUntil && new Date(freshUntil).getTime() < Date.now());
+}
+
+function relativeDateLabel(value: Date | string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  const deltaDays = Math.round((date.getTime() - Date.now()) / 86_400_000);
+  if (deltaDays === 0) return "today";
+  if (deltaDays === 1) return "tomorrow";
+  if (deltaDays === -1) return "yesterday";
+  if (deltaDays > 1 && deltaDays < 30) return `in ${deltaDays}d`;
+  if (deltaDays < -1 && deltaDays > -30) return `${Math.abs(deltaDays)}d ago`;
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
 }
 
 function ObservationCard({
@@ -59,9 +80,12 @@ function ObservationCard({
   const [expanded, setExpanded] = useState(false);
   const staleAt = observationFreshUntil(item);
   const longSummary = item.summary.length > 280;
+  const attention = observationNeedsAttention(item);
 
   return (
-    <article className="paperclip-surface min-w-0 p-4">
+    <article className={cn("paperclip-surface operational-record-enter min-w-0 overflow-hidden transition-[border-color,background-color,transform] duration-200 motion-safe:hover:-translate-y-px hover:bg-accent/[0.025]", attention && "border-amber-500/30")}>
+      <div className={cn("h-0.5 w-full bg-transparent", attention && "bg-amber-500/70", POSITIVE_STATUSES.has(item.status) && !attention && "bg-emerald-500/45")} />
+      <div className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="font-medium">{item.title}</h3>
@@ -69,7 +93,7 @@ function ObservationCard({
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <span className={cn(
-            "rounded-full border px-2 py-0.5 text-xs",
+            "rounded-full border bg-background/60 px-2 py-0.5 text-xs font-medium",
             POSITIVE_STATUSES.has(item.status) && "border-emerald-500/30 text-emerald-600 dark:text-emerald-400",
             ATTENTION_STATUSES.has(item.status) && "border-amber-500/30 text-amber-600 dark:text-amber-400",
           )}>{item.status}</span>
@@ -116,6 +140,7 @@ function ObservationCard({
           ))}
         </div>
       ) : null}
+      </div>
     </article>
   );
 }
@@ -134,6 +159,8 @@ export function OrganizationalLearning() {
   const [variant, setVariant] = useState("output");
   const [result, setResult] = useState("neutral");
   const [freshness, setFreshness] = useState("24");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<ObservationFilter>("all");
 
   useEffect(() => setBreadcrumbs([{ label: "Evidence & learning" }]), [setBreadcrumbs]);
 
@@ -143,10 +170,32 @@ export function OrganizationalLearning() {
     enabled: Boolean(selectedCompanyId),
   });
   const records = useMemo(() => query.data ?? [], [query.data]);
-  const visibleRecords = useMemo(() => records.filter((item) => item.kind === kind), [kind, records]);
+  const kindRecords = useMemo(() => records.filter((item) => item.kind === kind), [kind, records]);
+  const visibleRecords = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return kindRecords
+      .filter((item) => {
+        if (filter === "attention" && !observationNeedsAttention(item)) return false;
+        if (filter === "current" && !POSITIVE_STATUSES.has(item.status)) return false;
+        if (!needle) return true;
+        return [item.title, item.summary, item.sourceClass, item.status, ...item.provenance.map((source) => source.ref)]
+          .join(" ")
+          .toLowerCase()
+          .includes(needle);
+      })
+      .sort((left, right) => {
+        const attentionDelta = Number(observationNeedsAttention(right)) - Number(observationNeedsAttention(left));
+        return attentionDelta || new Date(right.observedAt).getTime() - new Date(left.observedAt).getTime();
+      });
+  }, [filter, kindRecords, search]);
   const currentExternalSignals = records.filter((item) => item.kind === "external_signal" && item.status === "current").length;
   const validatedRecords = records.filter((item) => POSITIVE_STATUSES.has(item.status)).length;
   const promotedLearning = records.filter((item) => item.kind === "learning" && item.status === "promoted").length;
+  const attentionRecords = records.filter(observationNeedsAttention);
+  const latestObservation = records.reduce<Date | null>((latest, record) => {
+    const value = new Date(record.observedAt);
+    return !latest || value > latest ? value : latest;
+  }, null);
 
   useEffect(() => {
     if (!query.isSuccess || autoSelectedCompanyRef.current === selectedCompanyId) return;
@@ -205,39 +254,62 @@ export function OrganizationalLearning() {
         : [];
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold">Evidence & learning</h1>
-          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">Source-backed outcomes, causal findings, external reality and validated improvements. Learning must be validated before it becomes operating infrastructure.</p>
+    <div className="space-y-3">
+      <header className="flex flex-col gap-3 border-b border-border pb-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold">Evidence & learning</h1>
+          <p className="mt-1 flex max-w-3xl items-start gap-2 text-sm text-muted-foreground" aria-live="polite">
+            <span className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", attentionRecords.length > 0 ? "bg-amber-500" : records.length > 0 ? "bg-emerald-500" : "bg-muted-foreground")} />
+            <span>{attentionRecords.length > 0 ? `${attentionRecords.length} ${attentionRecords.length === 1 ? "observation needs" : "observations need"} review or refreshed evidence.` : "Source-backed outcomes, causal findings, external reality and validated improvements."}</span>
+          </p>
         </div>
-        <Button size="sm" onClick={() => setShowForm((value) => !value)}><Plus className="mr-1 h-4 w-4" />New observation</Button>
-      </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-start">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            {latestObservation ? <span className="inline-flex items-center gap-1.5"><CalendarClock className="h-3.5 w-3.5" />Observed {relativeDateLabel(latestObservation)}</span> : null}
+            <span className="hidden h-4 w-px bg-border sm:block" />
+            <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />{validatedRecords} validated/current</span>
+          </div>
+          <Button size="sm" onClick={() => setShowForm((value) => !value)}><Plus className="mr-1 h-4 w-4" />New observation</Button>
+        </div>
+      </header>
 
       <section className="paperclip-surface grid grid-cols-2 overflow-hidden md:grid-cols-4" aria-label="Evidence summary">
         <LearningMetric icon={Activity} label="All observations" value={records.length} />
         <LearningMetric icon={ShieldCheck} label="Validated/current" value={validatedRecords} />
-        <LearningMetric icon={Clock3} label="Current external" value={currentExternalSignals} />
+        <LearningMetric icon={AlertTriangle} label="Needs attention" value={attentionRecords.length} tone={attentionRecords.length > 0 ? "attention" : "default"} />
         <LearningMetric icon={CheckCircle2} label="Promoted learning" value={promotedLearning} />
       </section>
 
-      <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/20 p-1" role="tablist" aria-label="Evidence record type">
+      <nav className="paperclip-surface overflow-hidden" aria-label="Evidence record type">
+      <div className="grid grid-cols-2 divide-x divide-y divide-border md:grid-cols-4 md:divide-y-0" role="tablist">
         {KINDS.map((item) => (
-          <Button
+          <button
             key={item}
-            size="sm"
-            variant={kind === item ? "secondary" : "ghost"}
+            type="button"
             role="tab"
             aria-selected={kind === item}
+            className={cn(
+              "group flex min-w-0 items-center justify-between gap-2 px-4 py-3 text-left outline-none transition-[background-color,box-shadow] hover:bg-accent/40 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+              kind === item && "bg-[var(--company-accent-subtle)]",
+            )}
             onClick={() => {
               setKind(item);
+              setSearch("");
+              setFilter("all");
               setVariant(item === "outcome" ? "output" : item === "causal" ? "symptom" : item === "external_signal" ? "production" : "");
             }}
           >
-            {LABELS[item]} <span className="ml-1 text-muted-foreground">{records.filter((record) => record.kind === item).length}</span>
-          </Button>
+            <span className="truncate text-xs font-medium text-muted-foreground">{LABELS[item]}</span>
+            <span className="text-base font-semibold tabular-nums">{records.filter((record) => record.kind === item).length}</span>
+          </button>
         ))}
       </div>
+      <div className={cn("flex min-h-9 items-center gap-2 border-t border-border px-4 py-2 text-xs", attentionRecords.length > 0 ? "bg-amber-500/[0.04]" : "bg-muted/10")}>
+        {attentionRecords.length > 0 ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" /> : <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+        <span className="min-w-0 flex-1 truncate text-muted-foreground">{attentionRecords.length > 0 ? `${attentionRecords.length} ${attentionRecords.length === 1 ? "record is" : "records are"} disputed, stale, contradicted, or past freshness.` : "Evidence is current and no observation requires attention."}</span>
+        <span className="hidden shrink-0 font-medium text-muted-foreground sm:inline">{currentExternalSignals} current external</span>
+      </div>
+      </nav>
 
       {showForm ? (
         <form className="paperclip-surface space-y-3 p-4" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
@@ -259,25 +331,49 @@ export function OrganizationalLearning() {
       ) : null}
 
       {update.error ? <p className="text-sm text-destructive">{update.error.message}</p> : null}
+      <section className="paperclip-surface overflow-hidden" aria-labelledby="learning-records-title">
+        <header className="paperclip-surface-header flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 id="learning-records-title" className="text-sm font-semibold">{LABELS[kind]}</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">{visibleRecords.length} shown · attention first · newest next</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 sm:w-64">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${LABELS[kind].toLowerCase()}`} className="h-8 pl-8" />
+            </div>
+            <div className="flex rounded-md border border-border bg-background p-0.5" role="group" aria-label="Filter evidence by state">
+              {(["all", "attention", "current"] as const).map((value) => (
+                <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={cn("rounded-sm px-2.5 py-1 text-xs capitalize text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring", filter === value && "bg-accent text-foreground")}>{value}</button>
+              ))}
+            </div>
+          </div>
+        </header>
+        <div className="p-3">
       {visibleRecords.length === 0
         ? <EmptyState
             icon={Activity}
-            title={`No ${LABELS[kind].toLowerCase()} recorded`}
-            message="Record an observation with its source so the company can learn from evidence instead of anecdotes."
+            title={kindRecords.length === 0 ? `No ${LABELS[kind].toLowerCase()} recorded` : "No observations match these filters"}
+            message={kindRecords.length === 0 ? "Record an observation with its source so the company can learn from evidence instead of anecdotes." : "Adjust the search or state filter to return to the full evidence set."}
             examples={["Outcome", "Causal signal", "External evidence"]}
-            action="Record observation"
-            onAction={() => setShowForm(true)}
+            action={kindRecords.length === 0 ? "Record observation" : "Clear filters"}
+            onAction={() => {
+              if (kindRecords.length === 0) setShowForm(true);
+              else { setSearch(""); setFilter("all"); }
+            }}
           />
         : <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">{visibleRecords.map((item) => <ObservationCard key={item.id} item={item} pending={update.isPending} onTransition={(record, status) => update.mutate({ item: record, status })} />)}</div>}
+        </div>
+      </section>
     </div>
   );
 }
 
-function LearningMetric({ icon: Icon, label, value }: { icon: typeof Activity; label: string; value: number }) {
+function LearningMetric({ icon: Icon, label, value, tone = "default" }: { icon: typeof Activity; label: string; value: number; tone?: "default" | "attention" }) {
   return (
-    <div className="border-r border-border px-4 py-3 last:border-r-0">
-      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><Icon className="h-3 w-3" aria-hidden />{label}</div>
-      <p className="mt-1 text-lg font-semibold">{value}</p>
+    <div className={cn("border-r border-border px-4 py-3 last:border-r-0", tone === "attention" && "bg-amber-500/[0.035]")}>
+      <div className={cn("flex items-center gap-1.5 text-[11px] text-muted-foreground", tone === "attention" && "text-amber-600 dark:text-amber-400")}><Icon className="h-3 w-3" aria-hidden />{label}</div>
+      <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
     </div>
   );
 }

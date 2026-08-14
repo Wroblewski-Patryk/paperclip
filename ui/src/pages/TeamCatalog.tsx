@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "@/lib/router";
+import { Link, useNavigate, useParams, useSearchParams } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Agent,
@@ -698,7 +698,7 @@ export function TeamDetailPane({
     <div className="flex-1 overflow-auto">
       <div className="space-y-5 p-5">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-1.5">
             <h2 className="text-base font-semibold">{team.name}</h2>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -724,7 +724,7 @@ export function TeamDetailPane({
               )}
             </div>
           </div>
-          {invalid ? (
+          <div className="shrink-0 [&>button]:w-full sm:[&>button]:w-auto">{invalid ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span tabIndex={0}>{installButton}</span>
@@ -740,10 +740,31 @@ export function TeamDetailPane({
             </Tooltip>
           ) : (
             installButton
-          )}
+          )}</div>
         </div>
 
         <RiskBanner team={team} />
+
+        {isInstalled ? (
+          <section className={cn("paperclip-surface overflow-hidden", outOfDate && "border-amber-500/30")} aria-label={`${team.name} installation status`}>
+            <div className={cn("flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between", outOfDate ? "bg-amber-500/[0.04]" : "bg-emerald-500/[0.035]")}>
+              <div className="flex min-w-0 items-start gap-3">
+                <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", outOfDate ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400")}>
+                  {outOfDate ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold">{outOfDate ? "Installed team needs an update" : isStaged ? "Team is staged" : "Team is active in this company"}</h3>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{outOfDate ? "Review and re-install the latest catalog version to keep its operating package aligned." : "Open the imported resources to inspect how this team is operating."}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <Link to="/agents/all" className="rounded-md border border-border bg-background px-2.5 py-1.5 font-medium text-foreground no-underline transition-colors hover:bg-accent">Agents</Link>
+                <Link to="/projects" className="rounded-md border border-border bg-background px-2.5 py-1.5 font-medium text-foreground no-underline transition-colors hover:bg-accent">Projects</Link>
+                <Link to="/routines" className="rounded-md border border-border bg-background px-2.5 py-1.5 font-medium text-foreground no-underline transition-colors hover:bg-accent">Routines</Link>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {/* Description */}
         {team.description && (
@@ -2192,8 +2213,8 @@ export function TeamRow({
       type="button"
       onClick={onSelect}
       className={cn(
-        "flex w-full flex-col gap-1 border-b border-border/60 px-3 py-2.5 text-left transition-colors hover:bg-accent/30",
-        selected && "bg-accent/40",
+        "relative flex w-full flex-col gap-1 border-b border-border/60 px-3 py-2.5 text-left outline-none transition-[background-color,box-shadow,color] hover:bg-accent/30 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        selected && "bg-[var(--company-accent-subtle)] text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-[var(--company-accent)]",
       )}
     >
       <div className="flex items-center gap-2">
@@ -2459,8 +2480,9 @@ export function TeamCatalog() {
   return (
     <div className="flex h-full flex-col">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-3">
+      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-5 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/85">
         <h1 className="text-lg font-semibold">Teams</h1>
+        <span className="mr-1 hidden text-xs text-muted-foreground xl:inline" aria-live="polite">{installedById.size} installed · {teams.length} available</span>
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input

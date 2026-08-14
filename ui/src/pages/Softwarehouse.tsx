@@ -19,7 +19,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
 import { softwarehouseApi, type SoftwarehouseDoc, type SoftwarehouseFileStatus } from "../api/softwarehouse";
 import { queryKeys } from "../lib/queryKeys";
-import { cn } from "../lib/utils";
+import { cn, relativeTime } from "../lib/utils";
 import { Link } from "@/lib/router";
 
 type Tab = "knowledge" | "tools" | "runtime" | "backlog";
@@ -75,32 +75,47 @@ export function Softwarehouse() {
   const existingGraphs = knowledge?.graphFiles.filter((file) => file.exists).length ?? 0;
   const commandCount = tools?.commandCatalog.rows.length ?? 0;
   const unknownRuntime = tools?.runtimeLedger.unknownVerifications ?? 0;
+  const refreshing = statusQuery.isFetching || knowledgeQuery.isFetching || toolsQuery.isFetching || backlogQuery.isFetching;
+  const hasError = statusQuery.isError || knowledgeQuery.isError || toolsQuery.isError || backlogQuery.isError;
+  const observedLabel = statusQuery.data?.observedAt ? relativeTime(statusQuery.data.observedAt) : null;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-      <header className="border-b border-border pb-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <header className="border-b border-border pb-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-medium uppercase text-muted-foreground">
               {selectedCompany?.name ?? "Company"} local control plane
             </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">Softwarehouse</h1>
+            <h1 className="mt-1 text-xl font-bold">Softwarehouse</h1>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Operations cockpit for control sources, command safety, runtime truth, and governed integration state. Product phase and sale-readiness live in Projects; Roost owns the aggregate product map.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={refreshAll}>
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-            Refresh
-          </Button>
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-start">
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
+              <Clock3 className="h-3.5 w-3.5" />{observedLabel ? `Control snapshot ${observedLabel}` : "Waiting for control snapshot"}
+            </span>
+            <Button variant="outline" size="sm" onClick={refreshAll} disabled={refreshing}>
+              <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", refreshing && "animate-spin")} />
+              {refreshing ? "Refreshing" : "Refresh"}
+            </Button>
+          </div>
         </div>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-4">
-        <Metric icon={BookOpen} label="Control docs" value={String(knowledge?.controlDocs.filter((doc) => doc.exists).length ?? 0)} />
-        <Metric icon={Database} label="Graph exports" value={`${existingGraphs}/${knowledge?.graphFiles.length ?? 0}`} />
-        <Metric icon={Wrench} label="Cataloged commands" value={String(commandCount)} />
-        <Metric icon={ShieldCheck} label="Runtime unknowns" value={String(unknownRuntime)} tone={unknownRuntime > 0 ? "warn" : "good"} />
+      {hasError ? (
+        <div role="alert" className="flex items-center justify-between gap-3 border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+          <span>Some Softwarehouse sources could not be refreshed. The last confirmed values remain visible.</span>
+          <Button size="xs" variant="outline" onClick={refreshAll}>Retry</Button>
+        </div>
+      ) : null}
+
+      <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Softwarehouse source summary">
+        <Metric icon={BookOpen} label="Control docs" value={knowledge ? String(knowledge.controlDocs.filter((doc) => doc.exists).length) : "—"} loading={knowledgeQuery.isLoading} />
+        <Metric icon={Database} label="Graph exports" value={knowledge ? `${existingGraphs}/${knowledge.graphFiles.length}` : "—"} loading={knowledgeQuery.isLoading} />
+        <Metric icon={Wrench} label="Cataloged commands" value={tools ? String(commandCount) : "—"} loading={toolsQuery.isLoading} />
+        <Metric icon={ShieldCheck} label="Runtime unknowns" value={tools ? String(unknownRuntime) : "—"} tone={unknownRuntime > 0 ? "warn" : "good"} loading={toolsQuery.isLoading} />
       </section>
 
       <SoftwarehouseControlPanel status={statusQuery.data} loading={statusQuery.isLoading} />
@@ -114,7 +129,7 @@ export function Softwarehouse() {
         </Link>
       </div>
 
-      <nav className="flex flex-wrap gap-1 border-b border-border" role="tablist" aria-label="Softwarehouse views">
+      <nav className="paperclip-surface flex gap-1 overflow-x-auto p-1" role="tablist" aria-label="Softwarehouse views">
         <TabButton active={tab === "knowledge"} onClick={() => setTab("knowledge")} icon={BookOpen} label="Control sources" />
         <TabButton active={tab === "tools"} onClick={() => setTab("tools")} icon={Wrench} label="Tools" />
         <TabButton active={tab === "runtime"} onClick={() => setTab("runtime")} icon={Database} label="Runtime" />
@@ -152,19 +167,21 @@ function Metric({
   label,
   value,
   tone = "muted",
+  loading = false,
 }: {
   icon: typeof BookOpen;
   label: string;
   value: string;
   tone?: "muted" | "good" | "warn";
+  loading?: boolean;
 }) {
   return (
-    <div className="paperclip-surface p-3">
+    <div className={cn("paperclip-surface p-3 transition-colors hover:bg-accent/[0.025]", tone === "warn" && "border-amber-500/25 bg-amber-500/[0.025]")}>
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-medium uppercase text-muted-foreground">{label}</span>
         <Icon className={cn("h-4 w-4", tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-amber-600" : "text-[var(--company-accent-strong)]")} />
       </div>
-      <div className="mt-2 text-2xl font-semibold">{value}</div>
+      <div className={cn("mt-2 text-xl font-semibold tabular-nums sm:text-2xl", loading && "animate-pulse text-muted-foreground")}>{value}</div>
     </div>
   );
 }
@@ -186,10 +203,10 @@ function TabButton({
       role="tab"
       aria-selected={active}
       className={cn(
-        "inline-flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition",
+        "inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium outline-none transition-[background-color,box-shadow,color] focus-visible:ring-2 focus-visible:ring-ring",
         active
-          ? "border-[var(--company-accent)] text-foreground"
-          : "border-transparent text-muted-foreground hover:text-foreground",
+          ? "bg-[var(--company-accent-subtle)] text-[var(--company-accent-strong)]"
+          : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
       )}
       onClick={onClick}
     >

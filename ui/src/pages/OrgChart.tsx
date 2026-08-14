@@ -262,17 +262,25 @@ export function OrgChart() {
     const scaleX = (containerW - 40) / bounds.width;
     const scaleY = (containerH - 40) / bounds.height;
     const fitZoom = Math.min(scaleX, scaleY, 1);
+    // Start on the root and the first operating layers at a readable scale.
+    // The dedicated fit control remains the overview path for very wide orgs.
     const initialZoom = Math.max(fitZoom, MIN_INITIAL_ZOOM);
 
     const chartW = bounds.width * initialZoom;
     const chartH = bounds.height * initialZoom;
 
     setZoom(initialZoom);
-    setPan({
-      x: (containerW - chartW) / 2,
-      y: initialZoom > fitZoom ? 24 : (containerH - chartH) / 2,
-    });
-  }, [allNodes, bounds]);
+    const primaryRoot = layout[0];
+    setPan(primaryRoot
+      ? {
+          x: containerW / 2 - (primaryRoot.x + CARD_W / 2) * initialZoom,
+          y: 48 - primaryRoot.y * initialZoom,
+        }
+      : {
+          x: (containerW - chartW) / 2,
+          y: (containerH - chartH) / 2,
+        });
+  }, [allNodes, bounds, layout]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
