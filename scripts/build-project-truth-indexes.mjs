@@ -437,16 +437,23 @@ function buildProjectTruthIndex({ eventChainIndex, runtimeErrorIndex, appComplet
     ...appCompletionGapIndex.gaps,
     ...operationalGateGaps
       .map((gate) => ({
-        kind: gate.gate === "public_runtime_probe" && publicProbe?.status === "inconclusive"
-          ? "monitor_environment_error"
-          : "operational_gate_gap",
-        classification: gate.gate === "public_runtime_probe" && publicProbe?.status === "inconclusive"
-          ? "monitor_environment"
-          : null,
+        kind: gate.gate === "public_runtime_probe" && publicProbe?.classification === "governance_policy_denied"
+          ? "monitor_governance_error"
+          : gate.gate === "public_runtime_probe" && publicProbe?.status === "inconclusive"
+            ? "monitor_environment_error"
+            : "operational_gate_gap",
+        classification: gate.gate === "public_runtime_probe" && publicProbe?.classification === "governance_policy_denied"
+          ? "governance_policy_denied"
+          : gate.gate === "public_runtime_probe" && publicProbe?.status === "inconclusive"
+            ? "monitor_environment"
+            : null,
         severity: gate.status === "critical_findings" ? "critical" : "high",
         userFlow: null,
         summary: `${gate.gate}: ${gate.status}`,
-        nextOwner: gate.gate === "public_runtime_probe" && publicProbe?.status === "inconclusive"
+        nextOwner: gate.gate === "public_runtime_probe" && (
+          publicProbe?.status === "inconclusive"
+          || publicProbe?.classification === "governance_policy_denied"
+        )
           ? "Runtime and Adapter Engineer"
           : gate.gate === "public_runtime_probe"
             ? "Deployment Reliability Engineer"

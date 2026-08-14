@@ -132,6 +132,16 @@ describe("next legal action contract", () => {
     });
   });
 
+  it("does not let unrelated unknown work hide an eligible non-implementation lane", () => {
+    const review = evaluate({ row: issue({ status: "in_review" }) });
+    const unknown = evaluate({ row: issue({ id: "issue-2", status: "blocked", updatedAt: new Date("2026-08-01T00:00:00.000Z") }), fact: fact({ issue_id: "issue-2" }) });
+    expect(selectShadowDispatch([review, unknown], now)).toMatchObject({
+      outcome: "healthy_no_op",
+      reasonCode: "NO_EXECUTION_CANDIDATE",
+      confidence: "high",
+    });
+  });
+
   it("preserves explainable priority dimensions without a magic score", () => {
     const action = evaluate({ fact: fact({ unblocks_count: 8 }) });
     expect(action.priority).toMatchObject({ declaredPriority: "high", unblockValue: 8, goalImportance: "linked" });

@@ -36,4 +36,6 @@ test("the registry and recurring control tick enforce complete capabilities", as
   const bridge = registry.capabilities.find((capability) => capability.id === "roost_portfolio_bridge");
   assert.equal(bridge.runtimeProbes[0].pathMinimums, undefined,
     "The bridge utilization probe must not depend on items derived from the previous control tick");
+  assert.equal(bridge.runtimeProbes[0].equals?.stale, undefined,
+    "The bridge utilization probe must not require freshness derived from the control tick it gates");
 });

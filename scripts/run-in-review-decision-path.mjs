@@ -6,12 +6,14 @@ import {
   routineCommentMarkers,
 } from "./lib/softwarehouse-routine-gates.mjs";
 import {
+  activeExecutionQuotaHoldIssueIds,
   buildInReviewDecisionInteraction,
   classifyInReviewDecisionAuthority,
   classifyInteractionDecisionAuthority,
   findPendingStructuredDecisionInteraction,
   hasStructuredInReviewDecisionPath,
   isMisroutedTechnicalInteraction,
+  nextInReviewDecisionInteractionRevision,
   resolutionActionForTechnicalInteraction,
   reserveTechnicalReviewRecovery,
   technicalReviewRecoveryPriority,
@@ -52,10 +54,12 @@ const company = await resolveCompany();
 
 let issues;
 let liveRuns;
+let supervisionSnapshot;
 try {
-  [issues, liveRuns] = await Promise.all([
+  [issues, liveRuns, supervisionSnapshot] = await Promise.all([
     request("GET", `/api/companies/${company.id}/issues?limit=2000`),
     request("GET", `/api/companies/${company.id}/live-runs`),
+    request("GET", `/api/companies/${company.id}/supervision/snapshot`),
   ]);
 } catch (error) {
   if (!isRequestTimeoutError(error)) throw error;
@@ -79,6 +83,7 @@ try {
 }
 
 const liveIssueIds = new Set(liveRuns.map((run) => run.issueId).filter(Boolean));
+const quotaHeldIssueIds = activeExecutionQuotaHoldIssueIds(supervisionSnapshot?.findings);
 const candidates = [];
 const suppressed = [];
 const technicalRecoveryState = { count: 0, projectKeys: new Set() };
@@ -106,6 +111,15 @@ for (const issue of prioritizedIssues) {
   const decisionAuthority = pendingInteraction
     ? classifyInteractionDecisionAuthority(issue, pendingInteraction)
     : classifyInReviewDecisionAuthority(issue);
+  if (decisionAuthority === "technical_reviewer" && quotaHeldIssueIds.has(issue.id)) {
+    suppressed.push({
+      action: "suppressed_active_issue_execution_quota_hold",
+      identifier: issue.identifier,
+      issueId: issue.id,
+      title: issue.title,
+    });
+    continue;
+  }
   if (!liveIssueIds.has(issue.id) && isMisroutedTechnicalInteraction(issue, pendingInteraction)) {
     if (!reserveTechnicalReviewRecovery(issue, technicalRecoveryState)) {
       suppressed.push({
@@ -184,7 +198,9 @@ for (const issue of prioritizedIssues) {
     });
     continue;
   }
-  const interaction = buildInReviewDecisionInteraction(issue);
+  const interaction = buildInReviewDecisionInteraction(issue, {
+    revisionNumber: nextInReviewDecisionInteractionRevision(issue, interactions),
+  });
   candidates.push({
     action: apply ? "create_request_confirmation_interaction" : "would_create_request_confirmation_interaction",
     identifier: issue.identifier,

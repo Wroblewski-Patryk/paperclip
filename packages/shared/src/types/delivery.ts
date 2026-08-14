@@ -1,7 +1,7 @@
 export const DELIVERY_STAGES = [
   "proposed", "admitted", "implementing", "evidence_complete", "review_rejected",
   "review_accepted", "integrated", "push_ready", "deployed", "observed_healthy",
-  "rolled_back", "outcome_accepted",
+  "rolled_back", "outcome_accepted", "outcome_rejected",
 ] as const;
 export type DeliveryStage = (typeof DELIVERY_STAGES)[number];
 

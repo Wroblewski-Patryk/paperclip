@@ -6,6 +6,7 @@ import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "./dev-runner-output.ts";
+import { resolveChildTreeTermination, resolvePnpmInvocation } from "./dev-runner-command.mjs";
 import { collectWatchedSnapshot as collectDevServerWatchedSnapshot, diffSnapshots } from "./dev-runner-snapshot.mjs";
 import { createDevServiceIdentity, repoRoot, resolveDevRunnerPort } from "./dev-service-profile.ts";
 import { bootstrapDevRunnerWorktreeEnv } from "../server/src/dev-runner-worktree.ts";
@@ -208,7 +209,6 @@ if (existingRunner) {
   process.exit(0);
 }
 
-const pnpmBin = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 let previousSnapshot = collectWatchedSnapshot();
 let dirtyPaths = new Set<string>();
 let pendingMigrations: string[] = [];
@@ -344,12 +344,13 @@ async function runPnpm(args: string[], options: {
   env?: NodeJS.ProcessEnv;
   cwd?: string;
 } = {}) {
+  const invocation = resolvePnpmInvocation(args);
   return await new Promise<{ code: number; signal: NodeJS.Signals | null; stdout: string; stderr: string }>((resolve, reject) => {
-    const spawned = spawn(pnpmBin, args, {
+    const spawned = spawn(invocation.command, invocation.args, {
       stdio: options.stdio ?? ["ignore", "pipe", "pipe"],
       env: options.env ?? process.env,
       cwd: options.cwd,
-      shell: process.platform === "win32",
+      shell: invocation.shell,
     });
 
     const stdoutBuffer = createCapturedOutputBuffer();
@@ -538,7 +539,28 @@ async function waitForChildExit() {
 async function stopChildForRestart() {
   if (!child) return { code: 0, signal: null };
   childExitWasExpected = true;
-  child.kill("SIGTERM");
+  const childPid = child.pid;
+  const treeTermination = childPid
+    ? resolveChildTreeTermination(childPid)
+    : null;
+  if (treeTermination) {
+    await new Promise<void>((resolve, reject) => {
+      const terminator = spawn(treeTermination.command, treeTermination.args, {
+        stdio: "ignore",
+        windowsHide: true,
+      });
+      terminator.on("error", reject);
+      terminator.on("exit", (code) => {
+        if (code === 0 || !child) {
+          resolve();
+          return;
+        }
+        reject(new Error(`Windows child-tree termination failed for PID ${childPid} with exit code ${code}`));
+      });
+    });
+  } else {
+    child.kill("SIGTERM");
+  }
   const killTimer = setTimeout(() => {
     if (child) {
       child.kill("SIGKILL");
@@ -555,10 +577,16 @@ async function startServerChild() {
   await buildPluginSdk();
 
   const serverScript = mode === "watch" ? "dev:watch" : "dev";
+  const invocation = resolvePnpmInvocation([
+    "--filter",
+    "@paperclipai/server",
+    serverScript,
+    ...forwardedArgs,
+  ]);
   child = spawn(
-    pnpmBin,
-    ["--filter", "@paperclipai/server", serverScript, ...forwardedArgs],
-    { stdio: "inherit", env, shell: process.platform === "win32" },
+    invocation.command,
+    invocation.args,
+    { stdio: "inherit", env, shell: invocation.shell },
   );
 
   childExitPromise = new Promise((resolve, reject) => {

@@ -56,6 +56,7 @@ export function buildCodexExecArgs(
     resumeSessionId?: string | null;
     skipGitRepoCheck?: boolean;
     readOnly?: boolean;
+    localWindowsSandbox?: boolean;
   } = {},
 ): BuildCodexExecArgsResult {
   const record = asRecord(config);
@@ -87,6 +88,15 @@ export function buildCodexExecArgs(
     args.push("-c", 'service_tier="fast"', "-c", "features.fast_mode=true");
   }
   if (extraArgs.length > 0) args.push(...extraArgs);
+  // Paperclip heartbeats are non-interactive. On Windows, inheriting an
+  // operator's `windows.sandbox = "elevated"` preference can launch the
+  // privileged sandbox installer once per agent process when the helper is
+  // missing or unhealthy. Keep autonomous runs isolated without allowing an
+  // interactive setup loop; explicit bypass runs already skip the sandbox.
+  const localWindowsSandbox = options.localWindowsSandbox ?? process.platform === "win32";
+  if (localWindowsSandbox && !bypass) {
+    args.push("-c", 'windows.sandbox="unelevated"');
+  }
   if (options.readOnly) {
     args.push("--sandbox", "read-only", "--ephemeral", "--ignore-user-config");
   }

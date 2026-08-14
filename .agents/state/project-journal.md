@@ -1,6 +1,6 @@
 # Paperclip Project Journal
 
-Last updated: 2026-08-10
+Last updated: 2026-08-14
 
 This is the active journal of durable conversation decisions and meaningful
 operating-memory changes. It is not a transcript, live dashboard, issue log,
@@ -18,6 +18,52 @@ cannot override current truth, decisions, product contracts, or fresh live
 evidence.
 
 ## Entries
+
+### 2026-08-14 - Persistent dashboard agent availability implemented
+
+- The 2026-08-13 owner requirement is now implemented on the live local
+  Paperclip instance without an upstream upgrade or database migration.
+- Dashboard `Agent availability` projects the existing durable company
+  admission controller as `ON`, `DRAINING`, `OFF`, and `REOPENING`. OFF admits
+  no new runs, lets current runs persist their final handoff, automatically
+  settles to restart-safe maintenance, and records deferred work. ON follows
+  the evidence-gated reopen path and replays only still-eligible wakes.
+- Live readback at completion remained `ON/open` with zero active and zero
+  deferred runs; the implementation did not turn the company off or create an
+  application task. Shared/server/UI typechecks, admission tests `11/11`, UI
+  tests `2/2`, browser verification, workspace-boundary audit, and strict
+  runtime-topology audit pass.
+- The broad OpenAPI route parity test still reports pre-existing unrelated
+  route debt in concurrent supervision, deliveries, assignment proposal, and
+  project-truth changes. The new availability and admission-control paths are
+  documented and were not among its missing routes.
+
+### 2026-08-13 - Persistent dashboard agent-availability switch requested
+
+- Conversation requirement: implement an owner-facing dashboard switch suited
+  to a laptop that is routinely shut down before work.
+- The required semantics are graceful and persistent: OFF lets current runs
+  finish and lets them persist outcomes/follow-up task definitions, but forbids
+  all new run starts. ON revalidates and safely replays only still-eligible
+  deferred work. OFF survives Windows and Paperclip restarts.
+- This is recorded for later implementation; no live admission state was
+  changed and no Paperclip issue or agent run was created in this capture.
+
+### 2026-08-13 - Project-neutral dispatch and systemic repair rule
+
+- Owner directive: every observed failure requires both immediate lane recovery
+  and repair of the reusable cause, with regression prevention where practical.
+- Roost does not require a bespoke implementation starter. The canonical local
+  starter already evaluates Soar, Roost, and Featherly through one shared
+  eligibility path; a report that Roost had no valid non-routine starter meant
+  its live issue inventory contained no eligible assigned `todo`/`backlog`
+  candidate at that moment, not that Roost needed different orchestration.
+- The current repair removed the dirty-Paperclip global mutex, made review
+  dispatch project-scoped, and immediately retires a review intervention when
+  its selected issue hits an execution-quota hold so another issue/project can
+  be selected. Regression evidence: native supervision 19/19 and adapter
+  authorization 7/7; live evidence includes Featherly commit `fb37765`, Roost
+  commit `846cd319`, and admitted Soar implementation run for `LUC-2588`.
 
 ### 2026-08-10 - Holistic quota-hold hardening
 

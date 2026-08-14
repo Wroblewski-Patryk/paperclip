@@ -131,6 +131,23 @@ export const softwarehouseControlStatusResponseSchema = z.object({
   }),
 });
 
+export const softwarehouseProjectTruthProbeRequestSchema = z.object({
+  url: z.string().url().max(2_048),
+}).strict();
+
+export const softwarehouseProjectTruthProbeResponseSchema = z.object({
+  outcome: z.enum(["response", "network_error"]),
+  url: z.string().url().max(240),
+  httpStatus: z.number().int().min(100).max(599).nullable(),
+  contentType: z.string().max(120).nullable(),
+  body: z.string().max(32_768).nullable(),
+  error: z.object({
+    name: z.string().max(80),
+    message: z.string().max(240),
+    code: z.string().max(80).nullable(),
+  }).strict().nullable(),
+}).strict();
+
 export const roostBridgePortfolioSchemaVersion = "1.0" as const;
 export const roostBridgePortfolioRouteVersion = "v1" as const;
 export const roostBridgePortfolioSourceVersion = "softwarehouse-status-v1" as const;
@@ -251,6 +268,8 @@ export type SoftwarehouseControlGate = z.infer<typeof softwarehouseControlGateSc
 export type SoftwarehouseProjectTruthGap = z.infer<typeof softwarehouseProjectTruthGapSchema>;
 export type SoftwarehouseProjectTruthStatus = z.infer<typeof softwarehouseProjectTruthStatusSchema>;
 export type SoftwarehouseControlStatusResponse = z.infer<typeof softwarehouseControlStatusResponseSchema>;
+export type SoftwarehouseProjectTruthProbeRequest = z.infer<typeof softwarehouseProjectTruthProbeRequestSchema>;
+export type SoftwarehouseProjectTruthProbeResponse = z.infer<typeof softwarehouseProjectTruthProbeResponseSchema>;
 export type RoostBridgePortfolioAggregate = z.infer<typeof roostBridgePortfolioAggregateSchema>;
 export type RoostBridgePortfolioItem = z.infer<typeof roostBridgePortfolioItemSchema>;
 export type RoostBridgePortfolioProjection = z.infer<typeof roostBridgePortfolioProjectionSchema>;

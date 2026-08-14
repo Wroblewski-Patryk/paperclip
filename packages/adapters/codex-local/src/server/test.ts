@@ -315,7 +315,10 @@ export async function testEnvironment(
     } else {
       const execArgs = buildCodexExecArgs(
         { ...config, fastMode: false },
-        { skipGitRepoCheck: targetIsSandbox },
+        {
+          skipGitRepoCheck: targetIsSandbox,
+          localWindowsSandbox: process.platform === "win32" && !targetIsRemote,
+        },
       );
       const args = execArgs.args;
       if (execArgs.fastModeIgnoredReason) {

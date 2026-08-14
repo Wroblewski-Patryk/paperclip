@@ -137,6 +137,7 @@ Operational fields:
 Notes:
 - Prompts are piped via stdin (Codex receives "-" prompt argument).
 - Status-only recovery runs ignore configured bypass/write-directory flags and always use a fresh ephemeral Codex session with "--sandbox read-only".
+- Local Windows runs force Codex's restricted-token (\`windows.sandbox="unelevated"\`) backend so non-interactive heartbeats cannot inherit an operator's elevated sandbox preference and open repeated setup windows. This override is not forwarded to remote targets and does not disable sandboxing.
 - Oversized command output is clipped in the stored transcript and resultJson while final agent messages and the full in-process stdout used for parsing remain intact.
 - If instructionsFilePath is configured, Paperclip prepends that file's contents to the stdin prompt on every run.
 - Codex exec automatically applies repo-scoped AGENTS.md instructions from the active workspace. Paperclip cannot suppress that discovery in exec mode, so repo AGENTS.md files may still apply even when you only configured an explicit instructionsFilePath.

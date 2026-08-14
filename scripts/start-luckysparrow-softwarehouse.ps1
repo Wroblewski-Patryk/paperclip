@@ -30,6 +30,28 @@ function Test-PaperclipHealth {
   }
 }
 
+function Test-ProcessDescendsFrom {
+  param(
+    [int]$ProcessId,
+    [int]$AncestorProcessId
+  )
+
+  # The listener can be a pnpm/node descendant rather than the PowerShell
+  # launcher itself. Walk only its verified PID ancestry so an unrelated Node
+  # process on the strict port cannot satisfy the startup ownership check.
+  $seen = [System.Collections.Generic.HashSet[int]]::new()
+  $currentProcessId = $ProcessId
+  for ($depth = 0; $depth -lt 32 -and $currentProcessId -gt 0; $depth++) {
+    if ($currentProcessId -eq $AncestorProcessId) { return $true }
+    if (-not $seen.Add($currentProcessId)) { return $false }
+    $current = Get-CimInstance Win32_Process -Filter "ProcessId = $currentProcessId" -ErrorAction SilentlyContinue
+    if (-not $current) { return $false }
+    $currentProcessId = [int]$current.ParentProcessId
+  }
+
+  return $false
+}
+
 function Wait-PaperclipHealth {
   param(
     [int]$TimeoutSeconds = $StartupTimeoutSeconds
@@ -53,7 +75,9 @@ function Test-PaperclipOwnedHealth {
   $rootProcess = Get-Process -Id $RootProcessId -ErrorAction SilentlyContinue
   if (-not $rootProcess) { return $false }
   $listeners = @(Get-StrictPortListeners -Port 3200)
-  return $listeners.Count -eq 1 -and $listeners[0].imageName -eq 'node.exe'
+  return $listeners.Count -eq 1 -and
+    $listeners[0].imageName -eq 'node.exe' -and
+    (Test-ProcessDescendsFrom -ProcessId $listeners[0].pid -AncestorProcessId $RootProcessId)
 }
 
 function Wait-PaperclipOwnedHealth {

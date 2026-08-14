@@ -27,13 +27,14 @@ const transitions: Record<DeliveryStage, readonly DeliveryStage[]> = {
   implementing: ["evidence_complete"],
   evidence_complete: ["review_rejected", "review_accepted"],
   review_rejected: ["implementing"],
-  review_accepted: ["integrated"],
+  review_accepted: ["integrated", "outcome_rejected"],
   integrated: ["push_ready"],
   push_ready: ["deployed"],
   deployed: ["observed_healthy", "rolled_back"],
   observed_healthy: ["outcome_accepted", "rolled_back"],
   rolled_back: ["implementing"],
   outcome_accepted: ["observed_healthy"],
+  outcome_rejected: [],
 };
 
 const outcomeTransitions: Record<ProductOutcomeStatus, readonly ProductOutcomeStatus[]> = {
@@ -49,7 +50,7 @@ const outcomeTransitions: Record<ProductOutcomeStatus, readonly ProductOutcomeSt
 };
 
 function requireEvidence(toStage: DeliveryStage, evidence: Array<Record<string, unknown>>) {
-  if (["evidence_complete", "review_rejected", "review_accepted", "deployed", "observed_healthy", "rolled_back", "outcome_accepted"].includes(toStage) && evidence.length === 0) {
+  if (["evidence_complete", "review_rejected", "review_accepted", "deployed", "observed_healthy", "rolled_back", "outcome_accepted", "outcome_rejected"].includes(toStage) && evidence.length === 0) {
     throw unprocessable(`Delivery transition to '${toStage}' requires inspectable evidence`);
   }
 }
@@ -241,6 +242,14 @@ export function deliveryService(db: Db) {
       }
       if (data.toStage === "outcome_accepted" && !["accepted", "accepted_with_risk"].includes(outcome?.status ?? "")) {
         throw unprocessable("Delivery cannot reach outcome_accepted until its outcome is accepted independently");
+      }
+      if (data.toStage === "outcome_rejected") {
+        if (outcome?.status !== "rejected") {
+          throw unprocessable("Delivery can only be outcome-rejected after its product outcome is rejected");
+        }
+        if (data.integrationSha ?? existing.integrationSha) {
+          throw unprocessable("Outcome-rejected delivery cannot have an integration SHA");
+        }
       }
       if (
         (data.toStage === "review_accepted" || data.toStage === "review_rejected")

@@ -1,6 +1,15 @@
 # Next Steps
 
-Last updated: 2026-07-28
+Last updated: 2026-08-14
+
+## Recently Completed
+
+- The persistent Dashboard agent-availability switch is implemented and live.
+  It projects `ON`, `DRAINING`, `OFF`, and `REOPENING` over the canonical
+  company admission control, preserves running work during drain, defers new
+  wakes, settles OFF automatically, survives restart, and revalidates deferred
+  work on ON. Targeted service/UI tests, live API/UI smoke, topology, and
+  workspace-boundary audits pass. Emergency cancellation remains separate.
 
 ## Canonical Portfolio Execution Ladder
 

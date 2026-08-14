@@ -1,0 +1,49 @@
+{
+  "sourceIssue": "LUC-2627",
+  "observedReferences": [
+    "LUC-2059",
+    "LUC-2283",
+    "LUC-2345",
+    "LUC-2357",
+    "LUC-2356",
+    "LUC-2317",
+    "LUC-2297",
+    "LUC-2300",
+    "LUC-2194"
+  ],
+  "closurePacket": {
+    "contractVersion": "release-blocker-closure:v1",
+    "blockerRef": "LUC-2359",
+    "candidateSha": "54339cab56f611e12eff62fe2b34d930c88a0df9",
+    "candidateParentSha": "150aa127e713c2424e861ccd085c2613a67ef2e7",
+    "sourceRepository": "https://github.com/Wroblewski-Patryk/Soar.git",
+    "sourceBranch": "main",
+    "targetEnvironment": "Soar production",
+    "lineageEvidenceRef": "git rev-parse candidate and parent evidence captured for the LUC-2359 chain",
+    "unblockOwner": "09 DRE (Deployment & Reliability Engineer)",
+    "protectedGateContract": "Soar exact-SHA release, protected access, rollback, and smoke gate",
+    "protectedGateStatus": "blocked",
+    "protectedGateEvidenceRef": "LUC-2359 review evidence",
+    "rollbackPath": "Redeploy parent SHA 150aa127e713c2424e861ccd085c2613a67ef2e7 and repeat smoke",
+    "rollbackOwner": "09 DRE (Deployment & Reliability Engineer)",
+    "freshVerificationEvidence": "Exact-candidate policy, identity, and lineage verification attached to LUC-2359",
+    "verifiedCandidateSha": "54339cab56f611e12eff62fe2b34d930c88a0df9",
+    "verifiedAt": "2026-08-10T01:27:15.753Z",
+    "verificationMaxAgeHours": 24,
+    "dependentLaneRefs": [
+      "LUC-2059",
+      "LUC-2283",
+      "LUC-2345",
+      "LUC-2357",
+      "LUC-2356",
+      "LUC-2317",
+      "LUC-2297",
+      "LUC-2300",
+      "LUC-2194"
+    ]
+  },
+  "retirement": {
+    "referenceDispositions": [],
+    "subsequentReleaseCycles": []
+  }
+}

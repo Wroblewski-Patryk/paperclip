@@ -777,6 +777,8 @@ test("longevity watchdog covers autonomous softwarehouse contract checks", async
   assert.match(doctor, /created_repair_issue/);
   assert.match(doctor, /requestJson\("POST", `\/api\/issues\/\$\{existingRepairIssue\.id\}\/comments`/);
   assert.match(doctor, /requestJson\("POST", `\/api\/companies\/\$\{company\.id\}\/issues`/);
+  assert.doesNotMatch(doctor, /parentId: currentIssueContext\?\.id/);
+  assert.match(doctor, /Repair work must\s+\/\/ remain independently actionable/);
   assert.match(doctor, /runtimeBindingGaps/);
   assert.match(doctor, /loadedSecretKeys/);
 
@@ -1932,7 +1934,9 @@ test("local source-control starter can close safe Paperclip operating docs", asy
   assert.match(source, /\["Softwarehouse Operating System", "LUC-545"\]/);
   assert.match(source, /operatingSourceControlSafe/);
   assert.match(source, /operatingSourceControlClosureRequested/);
-  assert.match(source, /projectPriority\.length === 1/);
+  assert.match(source, /governorDecision\.decision === "operating_source_control_closure_needed"/);
+  assert.match(source, /sourceControlPacket\.operatingRepoClean === false/);
+  assert.match(source, /const sourceControlProjectOrder = operatingSourceControlClosureRequested\s+\? \["Softwarehouse Operating System"\]\s+: projectPriority/);
   assert.match(source, /!dedicatedSourceControlClosureRequested \|\| isSourceControlClosureTitle\(issue\.title\)/);
   assert.match(source, /safeSourceControlGroups/);
   assert.match(source, /const currentIssueId = process\.env\.PAPERCLIP_ISSUE_ID \?\? process\.env\.PAPERCLIP_TASK_ID \?\? null/);
@@ -2625,6 +2629,14 @@ test("known-state harvester does not create lanes while Paperclip OS is dirty", 
   assert.match(source, /process\.exit\(0\)/);
 });
 
+test("local repair lanes do not treat a dirty Paperclip OS checkout as a cross-project mutex", async () => {
+  const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+
+  assert.match(source, /controlledProjectNameFor\(issue\.projectName\).*Softwarehouse Operating System/s);
+  assert.doesNotMatch(source, /action: "noop_operating_repo_dirty"/);
+  assert.match(source, /isSourceControlClosureTitle\(issue\.title\)[\s\S]*sourceControlClosureAssigneeName/);
+});
+
 test("known-state harvester defers heavy scans while active runs exist", async () => {
   const source = await readFile("scripts/run-project-known-state-harvester.mjs", "utf8");
 
@@ -3241,7 +3253,8 @@ test("mixed source-control packets route to technical review instead of PM-only 
 
   assert.match(source, /specialistSourceControlGroups = new Set\(\["product-code", "scripts", "dependencies", "other"\]\)/);
   assert.match(source, /canonicalProjectName = controlledProjectNameFor\(projectName\) \?\? projectName/);
-  assert.match(source, /candidate\.name === canonicalProjectName/);
+  assert.match(source, /const repositoryName = sourceControlRepoNameByProject\.get\(canonicalProjectName\) \?\? canonicalProjectName/);
+  assert.match(source, /candidate\.name === repositoryName/);
   assert.match(source, /return "09 CRS \(Code Review Specialist\)"/);
   assert.match(source, /sourceControlClosureAssigneeName\(issue\.projectName, sourceControlPacket\)/);
   assert.match(source, /CRS owner must inspect that diff, run the smallest relevant validation/);

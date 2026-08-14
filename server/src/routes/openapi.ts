@@ -2849,6 +2849,84 @@ registry.registerPath({
   responses: { 200: r.ok(), 401: r.unauthorized },
 });
 
+const AgentAvailabilitySchema = z.object({
+  companyId: z.string(),
+  state: z.enum(["on", "draining", "off", "reopening"]),
+  controlState: z.enum(["open", "draining", "maintenance", "reopening"]),
+  enabled: z.boolean(),
+  acceptsNewRuns: z.boolean(),
+  activeRunCount: z.number(),
+  deferredWorkCount: z.number(),
+  changedAt: z.string(),
+  changedBy: z.object({ actorType: z.string().nullable(), actorId: z.string().nullable() }),
+  drainStartedAt: z.string().nullable(),
+  offSince: z.string().nullable(),
+  openedAt: z.string().nullable(),
+  replaySnapshot: z.record(z.number()).nullable(),
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/companies/{companyId}/agent-availability",
+  tags: ["dashboard"],
+  summary: "Get durable agent work availability",
+  request: { params: z.object({ companyId: z.string() }) },
+  responses: { 200: r.ok(AgentAvailabilitySchema), 401: r.unauthorized, 403: r.forbidden },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/api/companies/{companyId}/agent-availability",
+  tags: ["dashboard"],
+  summary: "Enable or gracefully drain agent work",
+  request: {
+    params: z.object({ companyId: z.string() }),
+    body: jsonBody(z.object({ enabled: z.boolean(), idempotencyKey: z.string().min(1) })),
+  },
+  responses: {
+    200: r.ok(AgentAvailabilitySchema),
+    400: r.badRequest,
+    401: r.unauthorized,
+    403: r.forbidden,
+    409: r.conflict,
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/companies/{companyId}/admission-controls",
+  tags: ["dashboard"],
+  summary: "List admission controls",
+  request: { params: z.object({ companyId: z.string() }) },
+  responses: { 200: r.ok(z.array(z.record(z.unknown()))), 401: r.unauthorized, 403: r.forbidden },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/companies/{companyId}/admission-controls/transition",
+  tags: ["dashboard"],
+  summary: "Apply an advanced admission-control transition",
+  request: {
+    params: z.object({ companyId: z.string() }),
+    body: jsonBody(z.object({
+      toState: z.enum(["open", "draining", "maintenance", "reopening"]),
+      idempotencyKey: z.string().min(1),
+      scopeType: z.enum(["company", "project"]).optional(),
+      scopeId: z.string().optional(),
+      reason: z.string().optional(),
+      evidence: z.array(z.record(z.unknown())).optional(),
+    })),
+  },
+  responses: {
+    200: r.ok(),
+    400: r.badRequest,
+    401: r.unauthorized,
+    403: r.forbidden,
+    409: r.conflict,
+    422: r.unprocessable,
+  },
+});
+
 registry.registerPath({
   method: "get",
   path: "/api/issues/{id}/recovery-run-evidence",

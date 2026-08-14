@@ -6,6 +6,27 @@ export interface DashboardRunActivityDay {
   total: number;
 }
 
+export type AgentAvailabilityState = "on" | "draining" | "off" | "reopening";
+
+export interface AgentAvailability {
+  companyId: string;
+  state: AgentAvailabilityState;
+  controlState: "open" | "draining" | "maintenance" | "reopening";
+  enabled: boolean;
+  acceptsNewRuns: boolean;
+  activeRunCount: number;
+  deferredWorkCount: number;
+  changedAt: string;
+  changedBy: {
+    actorType: string | null;
+    actorId: string | null;
+  };
+  drainStartedAt: string | null;
+  offSince: string | null;
+  openedAt: string | null;
+  replaySnapshot: Record<string, number> | null;
+}
+
 export interface DashboardSummary {
   companyId: string;
   agents: {

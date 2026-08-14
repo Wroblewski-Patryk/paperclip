@@ -5,9 +5,12 @@ import {
   roostBridgePortfolioRouteVersion,
   softwarehouseControlStatusResponseSchema,
   softwarehouseIssueTemplateCatalogResponseSchema,
+  softwarehouseProjectTruthProbeRequestSchema,
+  softwarehouseProjectTruthProbeResponseSchema,
   type SoftwarehouseControlStatusResponse,
   type SoftwarehouseIssueTemplate,
   type SoftwarehouseIssueTemplateCatalogResponse,
+  type SoftwarehouseProjectTruthProbeResponse,
 } from "@paperclipai/shared";
 import { Router } from "express";
 import { HttpError, unprocessable } from "../errors.js";
@@ -17,7 +20,11 @@ import {
   createRoostBridgePortfolioRepository,
 } from "../services/roost-bridge-portfolio.js";
 import { assertCompanyAccess } from "./authz.js";
+import { getActorInfo } from "./authz.js";
 import { hierarchyHealthService } from "../services/hierarchy-health.js";
+import { probeSoftwarehouseProjectTruthHttps } from "../services/softwarehouse-project-truth-probe.js";
+import { logActivity } from "../services/activity-log.js";
+import { validate } from "../middleware/validate.js";
 
 function resolveWorkspaceRoot() {
   const cwd = process.cwd();
@@ -859,6 +866,12 @@ export interface SoftwarehouseRoutesOptions {
   /** @deprecated Use sourceOwnerCompanyId. */
   portfolioSourceOwnerCompanyId?: string | null;
   sourceLoaders?: Partial<SoftwarehouseRouteSourceLoaders>;
+  projectTruthProbe?: (url: string) => Promise<SoftwarehouseProjectTruthProbeResponse>;
+  recordProjectTruthProbeActivity?: (input: {
+    companyId: string;
+    actor: ReturnType<typeof getActorInfo>;
+    result: SoftwarehouseProjectTruthProbeResponse;
+  }) => Promise<void>;
 }
 
 function isCanonicalSourceOwnerCompanyId(value: unknown): value is string {
@@ -895,6 +908,26 @@ export function softwarehouseRoutes(db?: Db, options: SoftwarehouseRoutesOptions
     issueTemplates: () => readIssueTemplateCatalog(),
     ...options.sourceLoaders,
   };
+  const projectTruthProbe = options.projectTruthProbe ?? ((url: string) => probeSoftwarehouseProjectTruthHttps(url));
+  const recordProjectTruthProbeActivity = options.recordProjectTruthProbeActivity ?? (async ({ companyId, actor, result }) => {
+    if (!db) throw new HttpError(503, "Project-truth probe audit storage is unavailable");
+    await logActivity(db, {
+      companyId,
+      actorType: actor.actorType,
+      actorId: actor.actorId,
+      agentId: actor.agentId,
+      runId: actor.runId,
+      action: "softwarehouse.project_truth_probe",
+      entityType: "runtime_probe",
+      entityId: companyId,
+      details: {
+        url: result.url,
+        outcome: result.outcome,
+        httpStatus: result.httpStatus,
+        errorCode: result.error?.code ?? null,
+      },
+    });
+  });
 
   function ownsSoftwarehouseSource(companyId: string): boolean {
     return Boolean(sourceOwnerCompanyId && companyId === sourceOwnerCompanyId);
@@ -973,6 +1006,25 @@ export function softwarehouseRoutes(db?: Db, options: SoftwarehouseRoutesOptions
     };
     res.json(softwarehouseIssueTemplateCatalogResponseSchema.parse(response));
   });
+
+  router.post(
+    "/companies/:companyId/softwarehouse/project-truth-probe",
+    validate(softwarehouseProjectTruthProbeRequestSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertCompanyAccess(req, companyId);
+      requireSoftwarehouseSourceOwner(companyId);
+      const result = softwarehouseProjectTruthProbeResponseSchema.parse(
+        await projectTruthProbe(req.body.url),
+      );
+      await recordProjectTruthProbeActivity({
+        companyId,
+        actor: getActorInfo(req),
+        result,
+      });
+      res.json(result);
+    },
+  );
 
   return router;
 }

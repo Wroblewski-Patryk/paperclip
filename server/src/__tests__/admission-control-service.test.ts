@@ -170,6 +170,53 @@ describeEmbeddedPostgres("native admission control", () => {
     expect((await db.select().from(companies))[0].status).toBe("active");
   });
 
+  it("finishes active work before automatically settling draining to durable maintenance", async () => {
+    const { companyId, agentId } = await seed("active");
+    const admission = admissionControlService(db);
+    await admission.ensureCompanyControl(companyId);
+    const runId = randomUUID();
+    await db.insert(heartbeatRuns).values({
+      id: runId,
+      companyId,
+      agentId,
+      status: "running",
+      startedAt: new Date(),
+    });
+    await admission.transition({
+      companyId,
+      toState: "draining",
+      idempotencyKey: "availability-off",
+      actorType: "user",
+      actorId: "owner",
+      reason: "owner_requested_agent_off",
+    });
+
+    const active = await admission.settleDraining(companyId);
+    expect(active.completed).toBe(false);
+    expect(active.availability).toMatchObject({
+      state: "draining",
+      activeRunCount: 1,
+      acceptsNewRuns: false,
+    });
+    expect((await db.select().from(companies))[0].status).toBe("active");
+
+    await db.update(heartbeatRuns).set({
+      status: "succeeded",
+      finishedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(heartbeatRuns.id, runId));
+    const settled = await admission.settleDraining(companyId);
+
+    expect(settled.completed).toBe(true);
+    expect(settled.availability).toMatchObject({
+      state: "off",
+      activeRunCount: 0,
+      acceptsNewRuns: false,
+    });
+    expect((await db.select().from(companies))[0].status).toBe("paused");
+    expect((await admission.list(companyId))[0]?.drainSnapshot).toMatchObject({ activeRunCount: 0 });
+  });
+
   it("persists reopen replay evidence on the exact open control version", async () => {
     const { companyId } = await seed("paused");
     const admission = admissionControlService(db);

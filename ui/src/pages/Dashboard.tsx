@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/lib/router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { dashboardApi } from "../api/dashboard";
 import { activityApi } from "../api/activity";
 import { accessApi } from "../api/access";
@@ -23,6 +23,7 @@ import { timeAgo } from "../lib/timeAgo";
 import { cn } from "../lib/utils";
 import { Bot, LayoutDashboard } from "lucide-react";
 import { ActiveAgentsPanel } from "../components/ActiveAgentsPanel";
+import { AgentAvailabilityControl } from "../components/AgentAvailabilityControl";
 import { CompanySituationPanel } from "../components/CompanySituationPanel";
 import { InnovationCommandCenter } from "../components/InnovationCommandCenter";
 import { ChartCard, RunActivityChart, PriorityChart, IssueStatusChart, SuccessRateChart } from "../components/ActivityCharts";
@@ -106,6 +107,7 @@ export function Dashboard() {
   const { openOnboarding } = useDialogActions();
   const { setBreadcrumbs } = useBreadcrumbs();
   const [animatedActivityIds, setAnimatedActivityIds] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
   const seenActivityIdsRef = useRef<Set<string>>(new Set());
   const hydratedActivityRef = useRef(false);
   const activityAnimationTimersRef = useRef<number[]>([]);
@@ -124,6 +126,31 @@ export function Dashboard() {
     queryKey: queryKeys.dashboard(selectedCompanyId!),
     queryFn: () => dashboardApi.summary(selectedCompanyId!),
     enabled: !!selectedCompanyId,
+  });
+
+  const {
+    data: agentAvailability,
+    isLoading: isAgentAvailabilityLoading,
+    error: agentAvailabilityError,
+  } = useQuery({
+    queryKey: queryKeys.agentAvailability(selectedCompanyId!),
+    queryFn: () => dashboardApi.agentAvailability(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+    refetchInterval: (query) => query.state.data?.state === "draining" ? 5_000 : 30_000,
+  });
+
+  const agentAvailabilityMutation = useMutation({
+    mutationFn: (enabled: boolean) => dashboardApi.setAgentAvailability(
+      selectedCompanyId!,
+      enabled,
+      crypto.randomUUID(),
+    ),
+    onSuccess: (availability) => {
+      queryClient.setQueryData(queryKeys.agentAvailability(selectedCompanyId!), availability);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(selectedCompanyId!) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.liveRuns(selectedCompanyId!) });
+    },
   });
 
   const { data: companySituation, error: companySituationError } = useQuery({
@@ -303,6 +330,14 @@ export function Dashboard() {
           </button>
         </div>
       )}
+
+      <AgentAvailabilityControl
+        availability={agentAvailability}
+        loading={isAgentAvailabilityLoading}
+        pending={agentAvailabilityMutation.isPending}
+        error={agentAvailabilityMutation.error?.message ?? agentAvailabilityError?.message ?? null}
+        onChange={(enabled) => agentAvailabilityMutation.mutate(enabled)}
+      />
 
       {data ? (
         <InnovationCommandCenter

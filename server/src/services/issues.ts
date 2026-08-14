@@ -678,6 +678,7 @@ async function listIssueDependencyReadinessMap(
       and(
         eq(issueRelations.companyId, companyId),
         eq(issueRelations.type, "blocks"),
+        eq(issueRelations.status, "active"),
         inArray(issueRelations.relatedIssueId, uniqueIssueIds),
       ),
     );

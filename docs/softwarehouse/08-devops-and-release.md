@@ -35,6 +35,30 @@ Use `docs/softwarehouse/templates/release-checklist-template.md` for release
 gate reports. Use `docs/softwarehouse/release-dora-evidence.md` for DORA field
 definitions, dry-run examples, and release evidence records.
 
+## Release Blocker Closure Preflight
+
+Contract marker: `release-blocker-closure:v1`.
+
+Before dependent implementation or QA lanes open, run
+`pnpm softwarehouse:release-blocker-preflight -- <closure-packet.json>`. The
+gate must fail closed and leave those lanes blocked unless one packet names:
+
+- `blockerRef`, the single accountable `unblockOwner`, and exact
+  `dependentLaneRefs`;
+- full `candidateSha`, distinct `candidateParentSha`, `sourceRepository`,
+  `sourceBranch`, `targetEnvironment`, and value-free `lineageEvidenceRef`;
+- `protectedGateContract`, `protectedGateStatus`, and
+  `protectedGateEvidenceRef`;
+- `rollbackPath` and `rollbackOwner`; and
+- `freshVerificationEvidence`, matching `verifiedCandidateSha`, `verifiedAt`,
+  and positive `verificationMaxAgeHours`.
+
+Only `mayOpenDependentLanes: true` admits fan-out. A missing field, abbreviated
+SHA, mismatched candidate, stale proof, or uncleared protected gate is a
+blocking result. Retire a systemic prevention record only when all observed
+references are closed or superseded and two later release cycles pass this
+gate.
+
 ## DORA Metrics
 
 Start by recording structure in logs and reports:

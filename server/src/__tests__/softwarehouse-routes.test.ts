@@ -26,6 +26,7 @@ function createAppWithExactOptions(
   options: Parameters<typeof softwarehouseRoutes>[1] = {},
 ) {
   const app = express();
+  app.use(express.json());
   app.use((req, _res, next) => {
     req.actor = actor;
     next();
@@ -34,6 +35,90 @@ function createAppWithExactOptions(
   app.use(errorHandler);
   return app;
 }
+
+describe("governed project-truth probe route", () => {
+  const response = {
+    outcome: "response" as const,
+    url: "https://example.com/",
+    httpStatus: 200,
+    contentType: "text/html",
+    body: null,
+    error: null,
+  };
+
+  it("allows an authenticated same-company agent and records bounded audit evidence", async () => {
+    const projectTruthProbe = vi.fn(async () => response);
+    const recordProjectTruthProbeActivity = vi.fn(async () => {});
+    const app = createApp({
+      type: "agent",
+      source: "agent_jwt",
+      agentId: "agent-1",
+      companyId: "company-1",
+      runId: "run-1",
+    }, {
+      projectTruthProbe,
+      recordProjectTruthProbeActivity,
+    });
+
+    const result = await request(app)
+      .post("/api/companies/company-1/softwarehouse/project-truth-probe")
+      .send({ url: "https://example.com/" });
+
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual(response);
+    expect(projectTruthProbe).toHaveBeenCalledWith("https://example.com/");
+    expect(recordProjectTruthProbeActivity).toHaveBeenCalledWith(expect.objectContaining({
+      companyId: "company-1",
+      actor: expect.objectContaining({ actorType: "agent", actorId: "agent-1", runId: "run-1" }),
+      result: response,
+    }));
+  });
+
+  it("fails closed before probing for a company that does not own the Softwarehouse source", async () => {
+    const projectTruthProbe = vi.fn(async () => response);
+    const app = createAppWithExactOptions(companyTwoActor, {
+      sourceOwnerCompanyId: "company-1",
+      projectTruthProbe,
+      recordProjectTruthProbeActivity: vi.fn(async () => {}),
+    });
+
+    const result = await request(app)
+      .post("/api/companies/company-2/softwarehouse/project-truth-probe")
+      .send({ url: "https://example.com/" });
+
+    expect(result.status).toBe(404);
+    expect(result.body).toEqual({ error: "Softwarehouse source is unavailable" });
+    expect(projectTruthProbe).not.toHaveBeenCalled();
+  });
+
+  it("rejects cross-company agents and invalid request contracts before probing", async () => {
+    const projectTruthProbe = vi.fn(async () => response);
+    const crossCompanyApp = createApp({
+      type: "agent",
+      source: "agent_jwt",
+      agentId: "agent-2",
+      companyId: "company-2",
+    }, {
+      projectTruthProbe,
+      recordProjectTruthProbeActivity: vi.fn(async () => {}),
+    });
+    const sameCompanyApp = createApp(companyOneActor, {
+      projectTruthProbe,
+      recordProjectTruthProbeActivity: vi.fn(async () => {}),
+    });
+
+    const crossCompany = await request(crossCompanyApp)
+      .post("/api/companies/company-1/softwarehouse/project-truth-probe")
+      .send({ url: "https://example.com/" });
+    const invalid = await request(sameCompanyApp)
+      .post("/api/companies/company-1/softwarehouse/project-truth-probe")
+      .send({ url: "not-a-url" });
+
+    expect(crossCompany.status).toBe(403);
+    expect(invalid.status).toBe(400);
+    expect(projectTruthProbe).not.toHaveBeenCalled();
+  });
+});
 
 const companyOneActor: Express.Request["actor"] = {
   type: "board",

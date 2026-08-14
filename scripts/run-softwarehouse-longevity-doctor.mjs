@@ -826,7 +826,9 @@ if (apiReachable) {
           await requestJson("PATCH", `/api/issues/${existingRepairIssue.id}`, {
             description: repairBody,
             projectId: softwarehouseProject?.id ?? existingRepairIssue.projectId ?? null,
-            parentId: currentIssueContext?.id ?? existingRepairIssue.parentId ?? null,
+            // The recurring Doctor issue is a scheduler envelope. Repair work must
+            // remain independently actionable when that envelope returns to todo.
+            parentId: null,
             goalId: currentIssueContext?.goalId ?? existingRepairIssue.goalId ?? null,
             assigneeAgentId: nextAssigneeAgentId,
             priority: findings.some((finding) => finding.severity === "critical") ? "critical" : "high",
@@ -852,7 +854,7 @@ if (apiReachable) {
           status: "todo",
           priority: findings.some((finding) => finding.severity === "critical") ? "critical" : "high",
           projectId: softwarehouseProject?.id ?? null,
-          parentId: currentIssueContext?.id ?? null,
+          parentId: null,
           goalId: currentIssueContext?.goalId ?? null,
           assigneeAgentId: repairOwner?.id ?? null,
         });

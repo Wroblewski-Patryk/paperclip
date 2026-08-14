@@ -26,6 +26,123 @@ export function admissionControlRoutes(db: Db, deps?: Parameters<typeof heartbea
     res.json(await svc.list(companyId));
   });
 
+  router.get("/companies/:companyId/agent-availability", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    assertBoard(req);
+    res.json(await svc.getAvailability(companyId));
+  });
+
+  router.put("/companies/:companyId/agent-availability", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    assertBoard(req);
+    const body = req.body as Record<string, unknown>;
+    if (typeof body.enabled !== "boolean") throw badRequest("enabled must be a boolean");
+    if (typeof body.idempotencyKey !== "string" || !body.idempotencyKey.trim()) {
+      throw badRequest("idempotencyKey is required");
+    }
+    const actor = getActorInfo(req);
+    const key = body.idempotencyKey.trim();
+    let current = await svc.getAvailability(companyId);
+    let replay: Record<string, number> | null = null;
+
+    if (!body.enabled) {
+      if (current.controlState === "open") {
+        await svc.transition({
+          companyId,
+          toState: "draining",
+          idempotencyKey: `${key}:draining`,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          reason: "owner_requested_agent_off",
+        });
+      } else if (current.controlState === "reopening") {
+        await svc.transition({
+          companyId,
+          toState: "maintenance",
+          idempotencyKey: `${key}:cancel-reopening`,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          reason: "owner_requested_agent_off",
+        });
+      }
+      current = (await svc.settleDraining(companyId)).availability;
+    } else {
+      if (current.controlState === "draining") {
+        await svc.transition({
+          companyId,
+          toState: "maintenance",
+          idempotencyKey: `${key}:cancel-drain`,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          reason: "owner_requested_agent_on",
+        });
+        current = await svc.getAvailability(companyId);
+      }
+
+      const safetyEvidence = [{
+        kind: "owner_availability_request",
+        result: "pass",
+        requestedState: "on",
+        activeRunCount: current.activeRunCount,
+        deferredWorkCount: current.deferredWorkCount,
+        observedAt: new Date().toISOString(),
+      }];
+      if (current.controlState === "maintenance") {
+        await svc.transition({
+          companyId,
+          toState: "reopening",
+          idempotencyKey: `${key}:reopening`,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          reason: "owner_requested_agent_on",
+          evidence: safetyEvidence,
+        });
+        current = await svc.getAvailability(companyId);
+      }
+      if (current.controlState === "reopening") {
+        const opened = await svc.transition({
+          companyId,
+          toState: "open",
+          idempotencyKey: `${key}:open`,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          reason: "owner_requested_agent_on",
+          evidence: safetyEvidence,
+        });
+        if (!opened.idempotent) {
+          replay = await heartbeat.replayDeferredAdmissionWakeups(companyId);
+          await svc.recordReopenReplay({
+            companyId,
+            controlId: opened.control.id,
+            controlVersion: opened.control.version,
+            reopenAttemptId: opened.transition.id,
+            replay,
+          });
+        }
+      }
+      current = await svc.getAvailability(companyId);
+    }
+
+    await logActivity(db, {
+      companyId,
+      actorType: actor.actorType,
+      actorId: actor.actorId,
+      action: "agent_availability.changed",
+      entityType: "admission_control",
+      entityId: companyId,
+      details: {
+        requestedEnabled: body.enabled,
+        state: current.state,
+        activeRunCount: current.activeRunCount,
+        deferredWorkCount: current.deferredWorkCount,
+        replay,
+      },
+    });
+    res.json(current);
+  });
+
   router.post("/companies/:companyId/admission-controls/transition", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);

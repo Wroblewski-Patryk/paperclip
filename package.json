@@ -87,6 +87,7 @@
     "softwarehouse:agent-settings-audit": "node scripts/audit-luckysparrow-agent-settings.mjs",
     "softwarehouse:operating-standard-audit": "node scripts/audit-softwarehouse-operating-standard.mjs",
     "softwarehouse:credential-proof-preflight": "node scripts/check-protected-credential-proof.mjs",
+    "softwarehouse:release-blocker-preflight": "node scripts/check-release-blocker-closure.mjs",
     "softwarehouse:operating-standard-configure": "node scripts/configure-softwarehouse-operating-standard.mjs",
     "softwarehouse:operating-docs": "node scripts/validate-softwarehouse-operating-docs.mjs",
     "softwarehouse:company-os": "node scripts/configure-softwarehouse-company-os.mjs",

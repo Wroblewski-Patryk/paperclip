@@ -161,6 +161,18 @@ issue is in DISCOVERY until Product/PM/Portfolio can classify it.
   healthy HTTPS control as production failure, while target and control fetch
   failure is `inconclusive` monitor-environment evidence routed to Runtime and
   Adapter Engineering rather than a claim that the application is down.
+  Sandboxed Codex runs use the authenticated Paperclip host as a governed
+  fallback only after direct HTTPS fails. The host route accepts only exact
+  configured public HTTPS targets, performs GET without following redirects,
+  bounds time and response bytes, records an activity event, and never receives
+  caller-supplied headers. The runner must have loopback `PAPERCLIP_API_URL`
+  plus its injected `PAPERCLIP_COMPANY_ID`, `PAPERCLIP_API_KEY`, and
+  `PAPERCLIP_RUN_ID`; the canonical Paperclip service must be running the same
+  source version and bind `SOFTWAREHOUSE_COMPANY_ID` to the owning company.
+  Rerun the canonical Soar probe from the Softwarehouse root with:
+  `node scripts/build-project-truth-indexes.mjs --project Soar --root
+  'C:\Personal\Projekty\Aplikacje\Soar'`. This is a dry run; add `--apply` only
+  in an issue explicitly authorized to update Soar's generated truth files.
   Operational-readiness records production/local parity gates; and
   project-truth names the first gap, owner, and next action. App-completion
   proof risks such as missing browser/clickthrough proof, missing test links,

@@ -17,7 +17,6 @@ describe("autonomy decision safety contract", () => {
   it.each([
     { name: "stale evidence", staleHours: 25, confidence: 0.9, riskLevel: "low" as const, costCoverage: "NONZERO" as const },
     { name: "medium risk", staleHours: 1, confidence: 0.9, riskLevel: "medium" as const, costCoverage: "NONZERO" as const },
-    { name: "unknown cost", staleHours: 1, confidence: 0.9, riskLevel: "low" as const, costCoverage: "UNKNOWN" as const },
     { name: "low confidence", staleHours: 1, confidence: 0.7, riskLevel: "low" as const, costCoverage: "NONZERO" as const },
   ])("fails closed for $name", ({ staleHours, confidence, riskLevel, costCoverage }) => {
     expect(determineAutonomyDisposition({ hasCandidate: true, goalStatus: "active", staleHours, confidence, riskLevel, costCoverage, mode: "LIMITED_AUTO" })).toBe("GATHER_EVIDENCE");
@@ -46,6 +45,7 @@ describe("autonomy decision safety contract", () => {
     const base = { hasCandidate: true, goalStatus: "active", intentStatus: "ACTIVE", staleHours: 1, confidence: 0.9, riskLevel: "low" as const, costCoverage: "UNKNOWN" as const };
     expect(determineAutonomyDisposition({ ...base, mode: "SHADOW" })).toBe("RECOMMEND");
     expect(determineAutonomyDisposition({ ...base, mode: "LIMITED_AUTO" })).toBe("GATHER_EVIDENCE");
+    expect(determineAutonomyDisposition({ ...base, mode: "LIMITED_AUTO", boundedCostAuthority: true })).toBe("AUTHORIZE");
   });
 
   it("uses hybrid graduation thresholds", () => {

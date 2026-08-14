@@ -216,6 +216,77 @@ describeEmbedded("task, delivery, and outcome separation", () => {
       .rejects.toMatchObject({ status: 422 });
   });
 
+  it("releases a review-accepted delivery after a rejected outcome without inventing an integration SHA", async () => {
+    const refs = await seed();
+    const svc = deliveryService(db);
+    const created = await svc.create(refs.companyId, {
+      projectId: refs.projectId,
+      title: "Rejected product outcome",
+      problemStatement: "A reviewed change is not integrated when its product outcome is rejected.",
+      decisionContract: { expected: "governed rejection disposition", rollback: "no integration" },
+      outcomeStatement: "The product result satisfies its acceptance contract.",
+      acceptanceCriteria: [{ kind: "outcome_predicate", expected: "pass" }],
+      taskIssueIds: [refs.issueId],
+    });
+    const board = { actorType: "user", actorId: "board" };
+    await svc.transition(created.id, { toStage: "admitted", idempotencyKey: "release-1", evidence: [] }, board);
+    await svc.transition(created.id, { toStage: "implementing", idempotencyKey: "release-2", evidence: [] }, board);
+    await svc.transition(created.id, { toStage: "evidence_complete", idempotencyKey: "release-3", evidence: [{ kind: "test", result: "pass" }] }, board);
+    await svc.transition(created.id, {
+      toStage: "review_accepted",
+      idempotencyKey: "release-4",
+      evidence: [{ kind: "review", result: "accepted" }],
+      reviewVerdict: {
+        verdict: "ACCEPTED", reviewerAgentId: refs.reviewerAgentId, executorAgentId: refs.ownerAgentId,
+        finding: "Implementation evidence is complete; product outcome remains independently evaluated.",
+        evidenceRefs: ["review:accepted"], correctionIteration: 0,
+      },
+    }, { actorType: "agent", actorId: refs.reviewerAgentId });
+    await svc.updateOutcome(created.id, {
+      status: "rejected",
+      evidence: [{ kind: "outcome_predicate", result: "fail" }],
+      predicateResults: [{ key: "criterion_1", passed: false, actual: "failed", evidenceRefs: ["outcome:rejected"], checkedAt: new Date().toISOString() }],
+    }, { userId: "board" });
+
+    const released = await svc.transition(created.id, {
+      toStage: "outcome_rejected", idempotencyKey: "release-5", evidence: [{ kind: "outcome", result: "rejected" }],
+    }, board);
+    expect(released.delivery).toMatchObject({ stage: "outcome_rejected", integrationSha: null });
+    expect(released.transition).toMatchObject({ fromStage: "review_accepted", toStage: "outcome_rejected" });
+
+    await expect(svc.transition(created.id, {
+      toStage: "integrated", idempotencyKey: "release-6", evidence: [], integrationSha: "1234567",
+    }, board)).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("refuses the rejection disposition without a rejected outcome or with an integration SHA", async () => {
+    const refs = await seed();
+    const svc = deliveryService(db);
+    const created = await svc.create(refs.companyId, {
+      projectId: refs.projectId, title: "Illegal rejection release", problemStatement: "The release guard must fail closed.",
+      decisionContract: { expected: "guarded release" }, outcomeStatement: "A rejected outcome has evidence.",
+      acceptanceCriteria: [{ kind: "outcome_predicate" }], taskIssueIds: [refs.issueId],
+    });
+    const board = { actorType: "user", actorId: "board" };
+    await svc.transition(created.id, { toStage: "admitted", idempotencyKey: "guard-1", evidence: [] }, board);
+    await svc.transition(created.id, { toStage: "implementing", idempotencyKey: "guard-2", evidence: [] }, board);
+    await svc.transition(created.id, { toStage: "evidence_complete", idempotencyKey: "guard-3", evidence: [{ kind: "test" }] }, board);
+    await svc.transition(created.id, {
+      toStage: "review_accepted", idempotencyKey: "guard-4", evidence: [{ kind: "review" }],
+      reviewVerdict: { verdict: "ACCEPTED", reviewerAgentId: refs.reviewerAgentId, executorAgentId: refs.ownerAgentId, finding: "Review accepted the implementation evidence independently.", evidenceRefs: ["review:accepted"], correctionIteration: 0 },
+    }, { actorType: "agent", actorId: refs.reviewerAgentId });
+    await expect(svc.transition(created.id, {
+      toStage: "outcome_rejected", idempotencyKey: "guard-5", evidence: [{ kind: "outcome" }],
+    }, board)).rejects.toMatchObject({ status: 422 });
+    await svc.updateOutcome(created.id, {
+      status: "rejected", evidence: [{ kind: "outcome_predicate", result: "fail" }],
+      predicateResults: [{ key: "criterion_1", passed: false, actual: "failed", evidenceRefs: ["outcome:rejected"], checkedAt: new Date().toISOString() }],
+    }, { userId: "board" });
+    await expect(svc.transition(created.id, {
+      toStage: "outcome_rejected", idempotencyKey: "guard-6", evidence: [{ kind: "outcome" }], integrationSha: "1234567",
+    }, board)).rejects.toMatchObject({ status: 422 });
+  });
+
   it("rejects self-review and self-acceptance by the delivery owner", async () => {
     const refs = await seed();
     const svc = deliveryService(db);

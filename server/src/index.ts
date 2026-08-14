@@ -32,6 +32,7 @@ import { createRestoreCoupledSnapshot } from "./restore-coupled-snapshot.js";
 import { setupLiveEventsWebSocketServer } from "./realtime/live-events-ws.js";
 import {
   feedbackService,
+  admissionControlService,
   backfillPrincipalAccessCompatibility,
   heartbeatService,
   nativeSupervisionEngine,
@@ -766,6 +767,7 @@ export async function startServer(): Promise<StartedServer> {
   
   if (config.heartbeatSchedulerEnabled) {
     const heartbeat = heartbeatService(db as any, { pluginWorkerManager });
+    const admission = admissionControlService(db as any);
     const nativeSupervision = nativeSupervisionEngine(db as any, {
       enqueueWakeup: (agentId, options) => heartbeat.wakeup(agentId, options),
     });
@@ -775,7 +777,10 @@ export async function startServer(): Promise<StartedServer> {
     // then resume any persisted queued runs that were waiting on the previous process.
     void heartbeat
       .reapOrphanedRuns()
-      .then(() => heartbeat.promoteDueScheduledRetries())
+      .then(async () => {
+        await admission.settleAllDraining();
+        return heartbeat.promoteDueScheduledRetries();
+      })
       .then(async (promotion) => {
         await heartbeat.resumeQueuedRuns();
         const reconciled = await heartbeat.reconcileStrandedAssignedIssues();
@@ -846,7 +851,10 @@ export async function startServer(): Promise<StartedServer> {
       // persisted queued work is still being driven forward.
       void heartbeat
         .reapOrphanedRuns({ staleThresholdMs: 5 * 60 * 1000 })
-        .then(() => heartbeat.promoteDueScheduledRetries())
+        .then(async () => {
+          await admission.settleAllDraining();
+          return heartbeat.promoteDueScheduledRetries();
+        })
         .then(async (promotion) => {
           await heartbeat.resumeQueuedRuns();
           const reconciled = await heartbeat.reconcileStrandedAssignedIssues();

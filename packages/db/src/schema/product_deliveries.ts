@@ -27,5 +27,5 @@ export const productDeliveries = pgTable("product_deliveries", {
 }, (table) => ({
   companyStageIdx: index("product_deliveries_company_stage_idx").on(table.companyId, table.stage),
   projectStageIdx: index("product_deliveries_project_stage_idx").on(table.projectId, table.stage),
-  stageCheck: check("product_deliveries_stage_check", sql`${table.stage} in ('proposed', 'admitted', 'implementing', 'evidence_complete', 'review_rejected', 'review_accepted', 'integrated', 'push_ready', 'deployed', 'observed_healthy', 'rolled_back', 'outcome_accepted')`),
+  stageCheck: check("product_deliveries_stage_check", sql`${table.stage} in ('proposed', 'admitted', 'implementing', 'evidence_complete', 'review_rejected', 'review_accepted', 'integrated', 'push_ready', 'deployed', 'observed_healthy', 'rolled_back', 'outcome_accepted', 'outcome_rejected')`),
 }));

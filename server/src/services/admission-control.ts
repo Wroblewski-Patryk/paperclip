@@ -6,6 +6,7 @@ import {
   admissionDecisions,
   companies,
 } from "@paperclipai/db";
+import type { AgentAvailability } from "@paperclipai/shared";
 import { conflict, notFound, unprocessable } from "../errors.js";
 
 export const ADMISSION_CONTROL_STATES = ["open", "draining", "maintenance", "reopening"] as const;
@@ -165,6 +166,98 @@ export function admissionControlService(db: Db) {
       .select()
       .from(admissionControls)
       .where(eq(admissionControls.companyId, companyId));
+  }
+
+  async function getAvailability(companyId: string): Promise<AgentAvailability> {
+    const control = await ensureCompanyControl(companyId);
+    const [counts] = await db.execute<{
+      active_run_count: number | string;
+      deferred_work_count: number | string;
+    }>(sql`
+      select
+        (select count(*) from heartbeat_runs
+          where company_id = ${companyId} and status = 'running') as active_run_count,
+        (select count(*) from agent_wakeup_requests
+          where company_id = ${companyId} and status = 'deferred_by_maintenance') as deferred_work_count
+    `);
+    const state = control.state as AdmissionControlState;
+    const publicState = state === "open"
+      ? "on"
+      : state === "maintenance"
+        ? "off"
+        : state;
+    return {
+      companyId,
+      state: publicState,
+      controlState: state,
+      enabled: state === "open",
+      acceptsNewRuns: state === "open",
+      activeRunCount: Number(counts?.active_run_count ?? 0),
+      deferredWorkCount: Number(counts?.deferred_work_count ?? 0),
+      changedAt: control.updatedAt.toISOString(),
+      changedBy: {
+        actorType: control.initiatorActorType ?? null,
+        actorId: control.initiatorActorId ?? null,
+      },
+      drainStartedAt: control.drainStartedAt?.toISOString() ?? null,
+      offSince: control.maintenanceStartedAt?.toISOString() ?? null,
+      openedAt: control.openedAt?.toISOString() ?? null,
+      replaySnapshot: control.replaySnapshot ?? null,
+    };
+  }
+
+  async function settleDraining(companyId: string) {
+    const availability = await getAvailability(companyId);
+    if (availability.controlState !== "draining" || availability.activeRunCount > 0) {
+      return { completed: false, availability };
+    }
+
+    const control = await ensureCompanyControl(companyId);
+    try {
+      await transition({
+        companyId,
+        toState: "maintenance",
+        idempotencyKey: `agent-availability-drain-complete:${control.id}:${control.version}`,
+        actorType: "system",
+        reason: "agent_availability_drain_complete",
+        evidence: [{
+          kind: "drain_snapshot",
+          result: "pass",
+          activeRunCount: 0,
+          deferredWorkCount: availability.deferredWorkCount,
+        }],
+      });
+      await db.update(admissionControls).set({
+        drainSnapshot: {
+          activeRunCount: 0,
+          deferredWorkCount: availability.deferredWorkCount,
+        },
+        updatedAt: new Date(),
+      }).where(and(
+        eq(admissionControls.id, control.id),
+        eq(admissionControls.state, "maintenance"),
+      ));
+      return { completed: true, availability: await getAvailability(companyId) };
+    } catch (error) {
+      const current = await getAvailability(companyId);
+      if (current.controlState === "maintenance") {
+        return { completed: true, availability: current };
+      }
+      throw error;
+    }
+  }
+
+  async function settleAllDraining() {
+    const rows = await db
+      .select({ companyId: admissionControls.companyId })
+      .from(admissionControls)
+      .where(and(
+        eq(admissionControls.scopeType, "company"),
+        eq(admissionControls.state, "draining"),
+      ));
+    const results = [];
+    for (const row of rows) results.push(await settleDraining(row.companyId));
+    return results;
   }
 
   async function evaluate(companyId: string, projectId?: string | null): Promise<AdmissionDecision> {
@@ -522,5 +615,15 @@ export function admissionControlService(db: Db) {
     return updated;
   }
 
-  return { ensureCompanyControl, list, evaluate, evaluateWork, transition, recordReopenReplay };
+  return {
+    ensureCompanyControl,
+    list,
+    getAvailability,
+    settleDraining,
+    settleAllDraining,
+    evaluate,
+    evaluateWork,
+    transition,
+    recordReopenReplay,
+  };
 }

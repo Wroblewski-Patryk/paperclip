@@ -715,6 +715,8 @@ Allowed states are `joined` and `left`. Endpoints require a concrete board user 
 
 - `GET /companies/:companyId/activity`
 - `GET /companies/:companyId/dashboard`
+- `GET /companies/:companyId/agent-availability`
+- `PUT /companies/:companyId/agent-availability`
 - `GET /companies/:companyId/situation`
 - `GET /companies/:companyId/organizational-records`
 - `POST /companies/:companyId/organizational-records`
@@ -731,6 +733,14 @@ Dashboard payload must include:
 - open/in-progress/blocked/done issue counts
 - month-to-date spend and budget utilization
 - pending approvals count
+
+Dashboard must expose a persistent agent-availability switch with four observable
+states: `ON`, `DRAINING`, `OFF`, and `REOPENING`. OFF blocks creation and claiming of
+new runs but does not cancel executions that were already running. Their follow-up
+wakes are durably deferred, and the control becomes OFF automatically after the last
+active run finishes. The state survives server and workstation restart. ON performs
+the governed reopen sequence and replays only deferred work that is still eligible.
+Emergency cancellation remains a separate operator action.
 
 ## 10.10 Error Semantics
 
@@ -1098,6 +1108,11 @@ session during execution, not merely after the process exits.
 
 ProductDelivery acceptance uses typed predicate definitions and timestamped
 results. Required missing, failed, stale, or expired evidence fails closed.
+When independent review is accepted but the product outcome is rejected before
+integration, an evidence-bearing `outcome_rejected` terminal delivery
+disposition releases the project delivery lane. It requires the rejected
+outcome and forbids an integration SHA; an implementation retry remains a new
+admission path rather than a fabricated integration claim.
 The outcome vocabulary is `unachieved`, `observing`, `achieved`, `accepted`,
 `accepted_with_risk`, `partial`, `rejected`, `rolled_back`, and `unknown`.
 Only an identified board owner can create a time-bounded

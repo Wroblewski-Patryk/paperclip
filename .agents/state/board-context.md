@@ -583,3 +583,29 @@ persist implementation evidence, independent review, exact source/integration/
 origin/deployed SHA, deployment URL, observed production health, and an
 independent owner-visible outcome acceptance. A delivery owner may not approve
 their own review or accept their own outcome.
+
+# 2026-08-13 Owner directive: repair the symptom and its systemic cause
+
+When a Paperclip failure is observed, restore the affected lane and also repair
+the reusable mechanism that allowed the failure. Add a bounded regression test
+or deterministic safeguard where practical. Do not treat a manual status
+change, one-off wake, reassignment, or owner answer as completion if the same
+unchanged condition can block another project later. Application dispatch must
+remain project-neutral: Soar, Roost, and Featherly use the same eligibility,
+admission, concurrency, review, and source-control contracts; project-specific
+configuration supplies identity and workspace facts, not bespoke orchestration.
+
+# 2026-08-13 Owner directive: dashboard availability switch for laptop shutdown
+
+Add a persistent `Agents ON/OFF` switch to the Paperclip dashboard for the
+owner's laptop operating constraint. `OFF` means controlled drain, not process
+cancellation: already running agents may finish their current task, record
+evidence, and create or update follow-up tasks, but Paperclip must admit and
+start no new agent runs from assignments, timers, routines, recovery,
+supervision, callbacks, or manual automation. The OFF state must survive a
+Paperclip or Windows restart. `ON` reopens admission and revalidates deferred
+work against current issue status, dependencies, authority, budgets, project
+WIP, and deduplication before starting anything. The dashboard must expose the
+current state, drain progress, active-run count, deferred-work count, last
+change time, and changing actor. Emergency cancellation remains a separate
+control and is not implied by OFF.

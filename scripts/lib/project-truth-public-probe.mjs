@@ -47,6 +47,13 @@ function errorSummary(error) {
   return chain.join(" caused by ");
 }
 
+function errorEvidenceHasCode(error, expectedCode) {
+  for (let current = error; current; current = current.cause) {
+    if (current.code === expectedCode) return true;
+  }
+  return false;
+}
+
 export function deploymentShaFrom(value) {
   if (!value || typeof value !== "object") return null;
   for (const key of ["sha", "commit", "commitSha", "gitSha", "buildSha", "revision"]) {
@@ -79,6 +86,106 @@ async function readBoundedResponseText(response, maxBytes = 32_768) {
     await reader.cancel().catch(() => {});
   }
   return text + decoder.decode();
+}
+
+function governedProbeConfig(env = process.env) {
+  const apiUrl = env.PAPERCLIP_API_URL;
+  const companyId = env.PAPERCLIP_COMPANY_ID;
+  const apiKey = env.PAPERCLIP_API_KEY;
+  if (!apiUrl || !companyId || !apiKey) return null;
+  try {
+    const parsed = new URL(apiUrl);
+    const loopbackHosts = new Set(["127.0.0.1", "localhost", "[::1]"]);
+    if (
+      !["http:", "https:"].includes(parsed.protocol)
+      || !loopbackHosts.has(parsed.hostname)
+      || parsed.username
+      || parsed.password
+      || parsed.search
+      || parsed.hash
+    ) {
+      return null;
+    }
+    return {
+      endpoint: `${parsed.origin}/api/companies/${encodeURIComponent(companyId)}/softwarehouse/project-truth-probe`,
+      apiKey,
+      runId: env.PAPERCLIP_RUN_ID ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function governedProbeFailure(message, code, cause = null) {
+  const error = new TypeError(message);
+  error.cause = Object.assign(new Error(message), { code, cause });
+  return error;
+}
+
+export function createGovernedProjectTruthFetch({
+  directFetch = globalThis.fetch,
+  bridgeFetch = globalThis.fetch,
+  env = process.env,
+} = {}) {
+  const config = governedProbeConfig(env);
+  return async (url, init = {}) => {
+    try {
+      return await directFetch(url, init);
+    } catch (directError) {
+      if (!config) throw directError;
+
+      let bridgeResponse;
+      try {
+        const headers = {
+          Authorization: `Bearer ${config.apiKey}`,
+          "Content-Type": "application/json",
+        };
+        if (config.runId) headers["X-Paperclip-Run-Id"] = config.runId;
+        bridgeResponse = await bridgeFetch(config.endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ url: String(url) }),
+          signal: AbortSignal.timeout(17_000),
+        });
+      } catch (bridgeError) {
+        throw governedProbeFailure(
+          "Direct HTTPS and the governed Paperclip probe route both failed",
+          "GOVERNED_HTTPS_PROBE_UNAVAILABLE",
+          { directError: safeErrorCause(directError), bridgeError: safeErrorCause(bridgeError) },
+        );
+      }
+
+      if (!bridgeResponse.ok) {
+        throw governedProbeFailure(
+          `Governed Paperclip probe route returned HTTP ${bridgeResponse.status}`,
+          bridgeResponse.status === 403 ? "GOVERNED_HTTPS_POLICY_DENIED" : "GOVERNED_HTTPS_PROBE_UNAVAILABLE",
+          safeErrorCause(directError),
+        );
+      }
+
+      const result = await bridgeResponse.json();
+      if (result?.outcome === "network_error") {
+        throw governedProbeFailure(
+          result.error?.message || "Governed Paperclip HTTPS request failed",
+          result.error?.code || "GOVERNED_HTTPS_NETWORK_ERROR",
+          safeErrorCause(directError),
+        );
+      }
+      if (result?.outcome !== "response" || !Number.isInteger(result.httpStatus)) {
+        throw governedProbeFailure(
+          "Governed Paperclip probe returned an invalid response contract",
+          "GOVERNED_HTTPS_INVALID_RESPONSE",
+          safeErrorCause(directError),
+        );
+      }
+
+      const responseHeaders = result.contentType ? { "Content-Type": result.contentType } : undefined;
+      return new Response(result.body ?? null, {
+        status: result.httpStatus,
+        headers: responseHeaders,
+      });
+    }
+  };
 }
 
 async function probeTarget(check, { fetchImpl, timeoutMs, timeoutSignal }) {
@@ -163,28 +270,39 @@ export async function runPublicRuntimeProbe({
   controlTimeoutMs = 8_000,
   timeoutSignal = (milliseconds) => AbortSignal.timeout(milliseconds),
 }) {
+  const effectiveFetch = fetchImpl === globalThis.fetch
+    ? createGovernedProjectTruthFetch({ directFetch: fetchImpl })
+    : fetchImpl;
   const results = [];
   for (const check of checks) {
-    results.push(await probeTarget(check, { fetchImpl, timeoutMs, timeoutSignal }));
+    results.push(await probeTarget(check, { fetchImpl: effectiveFetch, timeoutMs, timeoutSignal }));
   }
 
   const failed = results.filter((result) => result.required && result.status !== "pass");
   const httpFailures = failed.filter((result) => result.failureType === "http_response");
   const networkFailures = failed.filter((result) => result.failureType === "network_error");
+  const policyDenials = failed.filter((result) =>
+    errorEvidenceHasCode(result.error, "GOVERNED_HTTPS_POLICY_DENIED")
+  );
   const controlProbe = networkFailures.length > 0
-    ? await probeControl({ fetchImpl, controlUrl, timeoutMs: controlTimeoutMs, timeoutSignal })
+    ? await probeControl({ fetchImpl: effectiveFetch, controlUrl, timeoutMs: controlTimeoutMs, timeoutSignal })
     : null;
   const runnerEgressFailed = networkFailures.length > 0 && controlProbe?.status === "failed";
+  const governedPolicyDenied = failed.length > 0 && policyDenials.length === failed.length;
   const status = failed.length === 0
     ? "pass"
     : httpFailures.length === 0 && runnerEgressFailed
       ? "inconclusive"
-      : "failed";
+      : governedPolicyDenied
+        ? "inconclusive"
+        : "failed";
   const classification = status === "pass"
     ? "healthy"
-    : status === "inconclusive"
+    : httpFailures.length === 0 && runnerEgressFailed
       ? "monitor_environment"
-      : "production_outage";
+      : governedPolicyDenied
+        ? "governance_policy_denied"
+        : "production_outage";
   const deployedSha = results.find((result) => result.name === "web_build_info")?.deployedSha ?? null;
 
   return {
@@ -203,6 +321,20 @@ export async function runPublicRuntimeProbe({
 }
 
 export function runtimeFindingForPublicProbe(publicProbe) {
+  if (publicProbe?.classification === "governance_policy_denied") {
+    return {
+      id: "governed-policy-public-probe",
+      kind: "monitor_governance_error",
+      classification: "governance_policy_denied",
+      severity: "high",
+      layer: "governance",
+      status: "inconclusive",
+      summary: publicProbe.summary,
+      evidence: publicProbe.evidence,
+      nextOwner: "Runtime and Adapter Engineer",
+      nextAction: "Review the governed HTTPS allowlist and probe policy, then rerun the bounded target and neutral control probes before asserting production health.",
+    };
+  }
   if (publicProbe?.status === "failed") {
     return {
       id: "production-public-probe",

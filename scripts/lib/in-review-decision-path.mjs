@@ -70,6 +70,18 @@ export function technicalReviewRecoveryPriority(issue) {
   return 3;
 }
 
+const terminalFindingStatuses = new Set([
+  "resolved", "closed", "no_action", "duplicate", "accepted_risk", "not_worth_doing", "archived",
+]);
+
+export function activeExecutionQuotaHoldIssueIds(findings = []) {
+  return new Set(findings
+    .filter((finding) => finding?.problemClass === "execution_quota_exceeded"
+      && finding.issueId
+      && !terminalFindingStatuses.has(finding.status))
+    .map((finding) => finding.issueId));
+}
+
 function issueHref(issue) {
   if (!issue?.identifier) return null;
   return `/LUC/issues/${issue.identifier}`;
@@ -98,7 +110,17 @@ export function findPendingStructuredDecisionInteraction(interactions) {
   ) ?? null;
 }
 
-export function buildInReviewDecisionInteraction(issue) {
+export function nextInReviewDecisionInteractionRevision(issue, interactions = []) {
+  const prefix = `softwarehouse-in-review-decision-path:${issue.id}:v`;
+  const used = interactions
+    .map((interaction) => String(interaction?.idempotencyKey ?? ""))
+    .filter((key) => key.startsWith(prefix))
+    .map((key) => Number(key.slice(prefix.length)))
+    .filter((revision) => Number.isInteger(revision) && revision > 0);
+  return Math.max(0, ...used) + 1;
+}
+
+export function buildInReviewDecisionInteraction(issue, { revisionNumber = 1 } = {}) {
   if (classifyInReviewDecisionAuthority(issue) !== "owner") {
     throw new Error("Technical review must be routed to an agent reviewer, not converted into a board interaction.");
   }
@@ -132,7 +154,7 @@ export function buildInReviewDecisionInteraction(issue) {
 
   return {
     kind: "request_confirmation",
-    idempotencyKey: `softwarehouse-in-review-decision-path:${issue.id}:v1`,
+    idempotencyKey: `softwarehouse-in-review-decision-path:${issue.id}:v${revisionNumber}`,
     title,
     summary,
     continuationPolicy: "wake_assignee",
@@ -148,8 +170,8 @@ export function buildInReviewDecisionInteraction(issue) {
       target: {
         type: "custom",
         key: `softwarehouse-in-review-decision-path:${issue.id}`,
-        revisionId: "v1",
-        revisionNumber: 1,
+        revisionId: `v${revisionNumber}`,
+        revisionNumber,
         label: title,
         href: issueHref(issue),
       },

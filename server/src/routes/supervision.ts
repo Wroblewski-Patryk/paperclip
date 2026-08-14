@@ -61,6 +61,16 @@ export function supervisionRoutes(db: Db) {
     rationale: z.string().trim().min(1).max(4000),
     stopConditions: z.array(z.string().trim().min(1).max(200)).max(30).optional(),
   }).strict();
+  const envelopeStageSchema = z.object({
+    stage: z.enum(["RECOMMEND", "LIMITED_AUTO"]),
+    rationale: z.string().trim().min(1).max(4000),
+  }).strict();
+  const envelopeCapacitySchema = z.object({
+    maxActive: z.number().int().min(1).max(3),
+    maxRuns: z.number().int().min(1).max(3),
+    maxCostCents: z.number().int().min(1).max(10_000),
+    rationale: z.string().trim().min(1).max(4000),
+  }).strict();
   const interruptSchema = z.object({
     severity: z.enum(["info", "warning", "critical"]),
     scope: z.record(z.string(), z.unknown()),
@@ -274,6 +284,34 @@ export function supervisionRoutes(db: Db) {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
     res.json(await autonomy.listEnvelopes(companyId));
+  });
+
+  router.patch("/companies/:companyId/autonomy/envelope-stage", validate(envelopeStageSchema), async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId); requireBoard(req);
+    const actor = getActorInfo(req);
+    const envelope = await autonomy.setEnvelopeStage(companyId, {
+      stage: req.body.stage,
+      rationale: req.body.rationale,
+      actorId: actor.actorId ?? "board",
+    });
+    if (!envelope) throw notFound("Autonomy envelope not found");
+    res.json(envelope);
+  });
+
+  router.patch("/companies/:companyId/autonomy/envelope-capacity", validate(envelopeCapacitySchema), async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId); requireBoard(req);
+    const actor = getActorInfo(req);
+    const envelope = await autonomy.setEnvelopeCapacity(companyId, {
+      maxActive: req.body.maxActive,
+      maxRuns: req.body.maxRuns,
+      maxCostCents: req.body.maxCostCents,
+      rationale: req.body.rationale,
+      actorId: actor.actorId ?? "board",
+    });
+    if (!envelope) throw notFound("Autonomy envelope not found");
+    res.json(envelope);
   });
 
   router.get("/companies/:companyId/autonomy/constraints", async (req, res) => {

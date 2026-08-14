@@ -137,6 +137,36 @@ export function selectOpenAiApiKey(
   return usableOpenAiApiKey(inheritedValue);
 }
 
+const LOCAL_SOFTWAREHOUSE_ROOTS = [
+  "C:\\Personal\\Projekty\\Aplikacje\\Paperclip_Softwarehouse",
+  "C:\\Personal\\Projekty\\Aplikacje\\Soar",
+  "C:\\Personal\\Projekty\\Aplikacje\\Roost",
+  "C:\\Personal\\Projekty\\Aplikacje\\Featherly",
+];
+
+export function shouldUseNativeSourceControlExecution(
+  context: Record<string, unknown>,
+  cwd: string,
+): boolean {
+  if (process.platform !== "win32") return false;
+  const resolvedCwd = path.resolve(cwd).toLowerCase();
+  const insideApprovedRoot = LOCAL_SOFTWAREHOUSE_ROOTS.some((root) => {
+    const resolvedRoot = path.resolve(root).toLowerCase();
+    return resolvedCwd === resolvedRoot || resolvedCwd.startsWith(`${resolvedRoot}${path.sep}`);
+  });
+  if (!insideApprovedRoot) return false;
+
+  const nativeTask = parseObject(parseObject(context.nativeContext).task);
+  const taskText = [nativeTask.problem, nativeTask.expectedOutcome]
+    .filter((value): value is string => typeof value === "string")
+    .join("\n");
+  const isSourceControlClosure = /\bsource[- ]control\b/i.test(taskText)
+    && /\b(local )?commit\b/i.test(taskText);
+  const protectedActionsRemainForbidden = /\b(?:do not|must not|forbidden)[^\n]{0,120}\bpush\b/i.test(taskText)
+    && /\b(?:do not|must not|forbidden)[^\n]{0,120}\bdeploy\b/i.test(taskText);
+  return isSourceControlClosure && protectedActionsRemainForbidden;
+}
+
 function resolveCodexBillingType(env: Record<string, string>): "api" | "subscription" {
   // Codex uses API-key auth when OPENAI_API_KEY is present; otherwise rely on local login/session auth.
   return usableOpenAiApiKey(env.OPENAI_API_KEY) ? "api" : "subscription";
@@ -776,6 +806,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     repoAgentsChars: repoAgentInstructions.bytes,
   };
   const statusOnlyRecovery = isStatusOnlyRecoveryContext(context);
+  const nativeSourceControlExecution = !statusOnlyRecovery
+    && !executionTargetIsRemote
+    && shouldUseNativeSourceControlExecution(context, effectiveExecutionCwd);
   const transcriptCommandOutputMaxChars = normalizeCodexTranscriptCommandOutputMaxChars(
     config.transcriptCommandOutputMaxChars,
   );
@@ -827,12 +860,18 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       return controlledStopReason;
     };
     const transcriptLimiter = createCodexTranscriptLimiter(transcriptCommandOutputMaxChars);
+    const effectiveConfig = {
+      ...config,
+      ...(forceSaferInvocation ? { fastMode: false } : {}),
+      ...(nativeSourceControlExecution ? { dangerouslyBypassApprovalsAndSandbox: true } : {}),
+    };
     const execArgs = buildCodexExecArgs(
-      forceSaferInvocation ? { ...config, fastMode: false } : config,
+      effectiveConfig,
       {
         resumeSessionId: statusOnlyRecovery ? null : resumeSessionId,
         skipGitRepoCheck: executionTargetIsSandbox,
         readOnly: statusOnlyRecovery,
+        localWindowsSandbox: process.platform === "win32" && !executionTargetIsRemote,
       },
     );
     const args = execArgs.args;

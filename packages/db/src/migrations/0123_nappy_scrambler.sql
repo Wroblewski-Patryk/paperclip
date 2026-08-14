@@ -1,0 +1,2 @@
+ALTER TABLE "product_deliveries" DROP CONSTRAINT "product_deliveries_stage_check";--> statement-breakpoint
+ALTER TABLE "product_deliveries" ADD CONSTRAINT "product_deliveries_stage_check" CHECK ("product_deliveries"."stage" in ('proposed', 'admitted', 'implementing', 'evidence_complete', 'review_rejected', 'review_accepted', 'integrated', 'push_ready', 'deployed', 'observed_healthy', 'rolled_back', 'outcome_accepted', 'outcome_rejected'));

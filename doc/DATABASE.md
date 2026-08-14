@@ -305,6 +305,15 @@ The legal company path is `open -> draining -> maintenance -> reopening -> open`
 reopening and opening require an evidence array. Returning to `open` synchronizes the
 legacy company status, but should only be requested after the safety suite passes.
 
+The Dashboard exposes the owner-facing projection through
+`GET /api/companies/{companyId}/agent-availability` and changes it idempotently with
+`PUT /api/companies/{companyId}/agent-availability`. Switching OFF enters `draining`:
+running executions may finish and persist their handoff, while every new wake is
+deferred. The server automatically advances an idle drain to durable `maintenance`,
+including after restart. Switching ON follows the evidence-gated reopen path and
+replays only deferred wakes that remain eligible. Emergency run cancellation is not
+part of this switch.
+
 ## Autonomous decision persistence
 
 Migration `0119_sad_kitty_pryde` adds five company-scoped control tables:

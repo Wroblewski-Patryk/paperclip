@@ -64,6 +64,9 @@ const projectAliases = new Map([
   ["Softwarehouse Operating System", ["Softwarehouse Operating System", "00 General: Softwarehouse"]],
   ["Aviary", ["Aviary", "Personality"]],
 ]);
+const sourceControlRepoNameByProject = new Map([
+  ["Softwarehouse Operating System", "Paperclip_Softwarehouse"],
+]);
 const projectPriority = (process.env.SOFTWAREHOUSE_LOCAL_REPAIR_PROJECTS ?? "Soar,Roost,Featherly,Softwarehouse Operating System")
   .split(",")
   .map((name) => name.trim())
@@ -289,8 +292,9 @@ function sourceControlClosureTitlePrefix(projectName) {
 
 function sourceControlClosureAssigneeName(projectName, sourceControlPacket) {
   const canonicalProjectName = controlledProjectNameFor(projectName) ?? projectName;
+  const repositoryName = sourceControlRepoNameByProject.get(canonicalProjectName) ?? canonicalProjectName;
   const repo = (sourceControlPacket.repos ?? [])
-    .find((candidate) => candidate.name === canonicalProjectName);
+    .find((candidate) => candidate.name === repositoryName);
   const needsTechnicalReview = (repo?.dirtyGroups ?? [])
     .some((group) => specialistSourceControlGroups.has(group.group));
   if (needsTechnicalReview) return "09 CRS (Code Review Specialist)";
@@ -307,7 +311,7 @@ function sourceControlClosureAllowed(governorDecision, sourceControlPacket) {
   if (sourceControlPacket.sourceControlPacketVerified !== true) return false;
   if (!localRepairCompatibleGovernorDecisions.has(governorDecision.decision)) return false;
   return (sourceControlPacket.dirtyProjectNames?.length ?? 0) > 0
-    || sourceControlPacket.operatingSourceControlSafe === true;
+    || sourceControlPacket.operatingRepoClean === false;
 }
 
 function issueRefsFromPaths(paths) {
@@ -330,7 +334,8 @@ function sourceControlTargetLabel(refs, fallbackIdentifier) {
 }
 
 function sourceControlSidecarSpec({ projectName, issues, sourceControlPacket }) {
-  const repo = (sourceControlPacket.repos ?? []).find((candidate) => candidate.name === projectName) ?? null;
+  const repositoryName = sourceControlRepoNameByProject.get(projectName) ?? projectName;
+  const repo = (sourceControlPacket.repos ?? []).find((candidate) => candidate.name === repositoryName) ?? null;
   const refs = issueRefsFromPaths(repo?.dirtyPaths ?? repo?.sample?.map((item) => item.path));
   const linkedIssues = refs
     .map((identifier) => issues.find((issue) => issue.identifier === identifier))
@@ -480,9 +485,8 @@ try {
 const sourceControlPacket = await readSourceControlPacket();
 const dirtyProjectNames = new Set(sourceControlPacket.dirtyProjectNames ?? []);
 const operatingSourceControlClosureRequested =
-  sourceControlPacket.operatingSourceControlSafe === true
-  && projectPriority.length === 1
-  && projectPriority[0] === "Softwarehouse Operating System";
+  governorDecision.decision === "operating_source_control_closure_needed"
+  && sourceControlPacket.operatingRepoClean === false;
 const projectSourceControlClosureRequested =
   governorDecision.decision === "project_source_control_closure_needed"
   && dirtyProjectNames.size > 0;
@@ -513,6 +517,9 @@ let candidates = issues
     if (!isSourceControlClosureTitle(issue.title)) return true;
     const project = projectById.get(issue.projectId);
     const controlledProjectName = controlledProjectNameFor(project?.name) ?? project?.name;
+    if (operatingSourceControlClosureRequested) {
+      return controlledProjectName === "Softwarehouse Operating System";
+    }
     return Boolean(controlledProjectName && dirtyProjectNames.has(controlledProjectName));
   })
   .filter((issue) => !issueHasActiveConflict(issue, liveProjectIds, busyAgentIds, unknownActiveRunCount))
@@ -520,15 +527,24 @@ let candidates = issues
     ...issue,
     projectName: projectById.get(issue.projectId)?.name ?? null,
   }))
+  // A dirty Paperclip operating-system checkout must not become a global
+  // mutex for independent application repositories. Preserve the OS closure
+  // gate only for candidates that actually target that checkout.
+  .filter((issue) => sourceControlPacket.operatingRepoClean !== false
+    || operatingSourceControlClosureRequested
+    || (controlledProjectNameFor(issue.projectName) ?? issue.projectName) !== "Softwarehouse Operating System")
   .sort(issueSort);
 
 const sidecarCreations = [];
 if (sourceControlClosureAllowed(governorDecision, sourceControlPacket)) {
   const dirtyProjectNames = new Set(sourceControlPacket.dirtyProjectNames ?? []);
-  if (sourceControlPacket.operatingSourceControlSafe) {
+  if (sourceControlPacket.operatingRepoClean === false) {
     dirtyProjectNames.add("Softwarehouse Operating System");
   }
-  for (const projectName of projectPriority) {
+  const sourceControlProjectOrder = operatingSourceControlClosureRequested
+    ? ["Softwarehouse Operating System"]
+    : projectPriority;
+  for (const projectName of sourceControlProjectOrder) {
     if (dirtyProjectNames.size > 0 && !dirtyProjectNames.has(projectName)) continue;
     const { refs, linkedIssues, targetIssue, title, fallbackIdentifier } = sourceControlSidecarSpec({
       projectName,
@@ -582,11 +598,6 @@ if (activeRunCount > 0 && candidates.length === 0
     action: "noop_governor_decision_not_runnable_work",
     governorDecision: governorDecision.decision,
     operatingPosture: governorDecision.operatingPosture,
-  });
-} else if (sourceControlPacket.operatingRepoClean === false && !operatingSourceControlClosureRequested) {
-  actions.push({
-    action: "noop_operating_repo_dirty",
-    operatingDirtyCount: sourceControlPacket.operatingDirtyCount,
   });
 } else if (candidates.length === 0 && availableSidecarCreations.length === 0) {
   actions.push({
@@ -792,7 +803,9 @@ if (activeRunCount > 0 && candidates.length === 0
   });
 
   if (apply) {
-    const targetAssigneeName = sourceControlClosureAssigneeName(issue.projectName, sourceControlPacket);
+    const targetAssigneeName = isSourceControlClosureTitle(issue.title)
+      ? sourceControlClosureAssigneeName(issue.projectName, sourceControlPacket)
+      : null;
     const targetAssignee = targetAssigneeName ? byName(agents, targetAssigneeName) : null;
     const isBacklogWake = issue.status === "backlog";
     const input = {

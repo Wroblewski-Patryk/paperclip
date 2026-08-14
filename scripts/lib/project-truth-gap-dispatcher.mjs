@@ -35,7 +35,10 @@ export function parseProjectTruthSourceItemId(issue) {
 }
 
 export function isMonitorEnvironmentGap(gap) {
-  return gap?.kind === "monitor_environment_error" || gap?.classification === "monitor_environment";
+  return gap?.kind === "monitor_environment_error"
+    || gap?.classification === "monitor_environment"
+    || gap?.kind === "monitor_governance_error"
+    || gap?.classification === "governance_policy_denied";
 }
 
 export function runtimeOwnerNamesForGap(gap, indexedOwnerCandidates = []) {

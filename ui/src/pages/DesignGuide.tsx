@@ -23,6 +23,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AgentAvailabilityControl } from "@/components/AgentAvailabilityControl";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -251,6 +252,7 @@ export function DesignGuide() {
   const [selectValue, setSelectValue] = useState("in_progress");
   const [menuChecked, setMenuChecked] = useState(true);
   const [collapsibleOpen, setCollapsibleOpen] = useState(false);
+  const [agentAvailabilityOn, setAgentAvailabilityOn] = useState(true);
   const [inlineText, setInlineText] = useState("Click to edit this text");
   const [inlineTitle, setInlineTitle] = useState("Editable Title");
   const [inlineDesc, setInlineDesc] = useState(
@@ -297,7 +299,7 @@ export function DesignGuide() {
               {[
                 "StatusBadge", "StatusIcon", "PriorityIcon", "EntityRow", "EmptyState", "MetricCard",
                 "FilterBar", "InlineEditor", "PageSkeleton", "Identity", "CommentThread", "MarkdownEditor",
-                "PropertiesPanel", "Sidebar", "CommandPalette",
+                "PropertiesPanel", "Sidebar", "CommandPalette", "AgentAvailabilityControl",
               ].map((name) => (
                 <Badge key={name} variant="ghost" className="font-mono text-[10px]">
                   {name}
@@ -306,6 +308,31 @@ export function DesignGuide() {
             </div>
           </SubSection>
         </div>
+      </Section>
+
+      <Section title="Agent admission control">
+        <p className="text-sm text-muted-foreground">
+          Domain switch for durable agent admission. OFF first drains active runs and defers new work;
+          emergency cancellation remains a separate action.
+        </p>
+        <AgentAvailabilityControl
+          availability={{
+            companyId: "design-guide",
+            state: agentAvailabilityOn ? "on" : "off",
+            controlState: agentAvailabilityOn ? "open" : "maintenance",
+            enabled: agentAvailabilityOn,
+            acceptsNewRuns: agentAvailabilityOn,
+            activeRunCount: 0,
+            deferredWorkCount: agentAvailabilityOn ? 0 : 4,
+            changedAt: "2026-08-14T12:00:00.000Z",
+            changedBy: { actorType: "user", actorId: "board" },
+            drainStartedAt: null,
+            offSince: agentAvailabilityOn ? null : "2026-08-14T12:00:00.000Z",
+            openedAt: agentAvailabilityOn ? "2026-08-14T12:00:00.000Z" : null,
+            replaySnapshot: null,
+          }}
+          onChange={setAgentAvailabilityOn}
+        />
       </Section>
 
       {/* ============================================================ */}

@@ -117,6 +117,33 @@ is not an unblock path. Run
 `pnpm softwarehouse:credential-proof-preflight -- <proof-record.json>` to check
 a task record before protected work begins.
 
+## Release Blocker Closure Gate
+
+Contract marker: `release-blocker-closure:v1`.
+
+Before dependent implementation or QA lanes open behind a release/deploy
+blocker, the release owner must attach one closure packet and run
+`pnpm softwarehouse:release-blocker-preflight -- <closure-packet.json>`. The
+gate must fail closed unless the packet contains:
+
+- `blockerRef` and one accountable `unblockOwner`;
+- exact source identity: full `candidateSha`, distinct `candidateParentSha`,
+  `sourceRepository`, `sourceBranch`, and `targetEnvironment`;
+- value-free `lineageEvidenceRef` proving the candidate and parent relationship;
+- the named `protectedGateContract`, its `protectedGateStatus`, and
+  `protectedGateEvidenceRef`;
+- an executable `rollbackPath` and `rollbackOwner`;
+- `freshVerificationEvidence`, matching `verifiedCandidateSha`, `verifiedAt`,
+  and a positive `verificationMaxAgeHours`; and
+- exact `dependentLaneRefs` that remain closed until the command returns
+  `mayOpenDependentLanes: true`.
+
+Missing, abbreviated, mismatched, future-dated, or stale identity/lineage proof
+is a blocker, not a warning. Keep every dependent lane blocked on the one named
+unblock owner. Retire this prevention only after all originally observed
+references are closed or explicitly superseded and two subsequent release
+cycles pass the same gate.
+
 ## Status Vocabulary
 
 Paperclip's canonical issue statuses remain `backlog`, `todo`, `in_progress`, `in_review`, `done`,

@@ -41,6 +41,17 @@ Current environment model:
   temporary emergency exception and the exception is recorded.
 - Before deploy: confirm source commit, target environment, migration risk,
   required secrets, rollback path, and smoke plan.
+- Contract marker: `release-blocker-closure:v1`. Before dependent implementation
+  or QA lanes open behind a release/deploy blocker, run
+  `pnpm softwarehouse:release-blocker-preflight -- <closure-packet.json>`. The
+  gate must fail closed unless one packet contains `blockerRef`, full
+  `candidateSha`, distinct `candidateParentSha`, `sourceRepository`,
+  `sourceBranch`, `targetEnvironment`, `lineageEvidenceRef`, exactly one
+  `unblockOwner`, `protectedGateContract`, `protectedGateStatus`,
+  `protectedGateEvidenceRef`, `rollbackPath`, `rollbackOwner`,
+  `freshVerificationEvidence`, matching `verifiedCandidateSha`, `verifiedAt`,
+  positive `verificationMaxAgeHours`, and exact `dependentLaneRefs`. Only
+  `mayOpenDependentLanes: true` admits fan-out.
 - When the project uses Coolify auto-redeploy, a push can be the production
   mutation trigger. Treat that push as a production-impacting action and record
   the expected Coolify redeploy/readiness check before pushing.

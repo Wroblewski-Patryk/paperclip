@@ -80,6 +80,9 @@ export const transitionDeliverySchema = z.object({
   } else if (value.reviewVerdict) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["reviewVerdict"], message: "reviewVerdict is only allowed on review transitions" });
   }
+  if (value.toStage === "outcome_rejected" && value.integrationSha) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["integrationSha"], message: "Outcome-rejected delivery cannot supply an integration SHA" });
+  }
 });
 
 export const dispatchDeliverySchema = z.object({

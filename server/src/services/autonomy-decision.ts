@@ -24,6 +24,7 @@ import type {
   NextLegalActionProjection,
 } from "@paperclipai/shared";
 import { nextLegalActionService } from "./next-legal-action.js";
+import { logActivity } from "./activity-log.js";
 
 const DEFAULT_ACTION_CLASS = "dispatch_existing_issue";
 const DECISION_MODEL_VERSION = "work-selection-v2.1";
@@ -39,6 +40,7 @@ export function determineAutonomyDisposition(input: {
   costCoverage: "KNOWN_ZERO" | "NONZERO" | "PARTIAL" | "UNKNOWN";
   mode: AutonomyDecisionMode;
   intentStatus?: string | null;
+  boundedCostAuthority?: boolean;
 }) {
   if (!input.hasCandidate) return "NO_ACTION" as const;
   if (
@@ -46,7 +48,7 @@ export function determineAutonomyDisposition(input: {
     (input.staleHours > 24 && input.intentStatus !== "ACTIVE") ||
     input.confidence < 0.75 ||
     input.riskLevel !== "low" ||
-    (input.costCoverage === "UNKNOWN" && (input.mode === "LIMITED_AUTO" || input.mode === "AUTO"))
+    (input.costCoverage === "UNKNOWN" && (input.mode === "LIMITED_AUTO" || input.mode === "AUTO") && !input.boundedCostAuthority)
   ) return "GATHER_EVIDENCE" as const;
   return input.mode === "LIMITED_AUTO" || input.mode === "AUTO" ? "AUTHORIZE" as const : "RECOMMEND" as const;
 }
@@ -187,6 +189,73 @@ export function autonomyDecisionService(db: Db, deps: { enqueueWakeup?: WakeExis
     }).where(eq(autonomyEnvelopes.id, envelope.id)).returning().then((rows) => rows[0]!);
   }
 
+  async function setEnvelopeStage(companyId: string, input: {
+    stage: "RECOMMEND" | "LIMITED_AUTO";
+    rationale: string;
+    actorId: string;
+  }) {
+    const envelope = await ensureEnvelope(companyId);
+    if (envelope.stage === "AUTO" && input.stage !== "LIMITED_AUTO") {
+      throw new Error("An AUTO envelope may only be reduced to LIMITED_AUTO through this bounded operator route");
+    }
+    const now = new Date();
+    const [updated] = await db.update(autonomyEnvelopes).set({
+      stage: input.stage,
+      version: envelope.version + 1,
+      downgradeReason: input.stage === "RECOMMEND" ? `operator:${input.rationale}` : null,
+      ...(input.stage === "LIMITED_AUTO" ? { graduatedAt: now } : { downgradedAt: now }),
+      updatedAt: now,
+    }).where(and(eq(autonomyEnvelopes.id, envelope.id), eq(autonomyEnvelopes.companyId, companyId))).returning();
+    if (!updated) return null;
+    await logActivity(db, {
+      companyId,
+      actorType: "user",
+      actorId: input.actorId,
+      action: "autonomy.envelope.stage_set",
+      entityType: "autonomy_envelope",
+      entityId: updated.id,
+      details: { previousStage: envelope.stage, nextStage: input.stage, rationale: input.rationale, bounded: true },
+    });
+    return updated;
+  }
+
+  async function setEnvelopeCapacity(companyId: string, input: {
+    maxActive: number;
+    maxRuns: number;
+    maxCostCents: number;
+    rationale: string;
+    actorId: string;
+  }) {
+    const envelope = await ensureEnvelope(companyId);
+    const previousBudget = envelope.budget as Record<string, unknown>;
+    const previousConcurrency = envelope.concurrency as Record<string, unknown>;
+    const [updated] = await db.update(autonomyEnvelopes).set({
+      budget: { ...previousBudget, maxRuns: input.maxRuns, maxCostCents: input.maxCostCents },
+      concurrency: { ...previousConcurrency, maxActive: input.maxActive },
+      version: envelope.version + 1,
+      updatedAt: new Date(),
+    }).where(and(
+      eq(autonomyEnvelopes.id, envelope.id),
+      eq(autonomyEnvelopes.companyId, companyId),
+    )).returning();
+    if (!updated) return null;
+    await logActivity(db, {
+      companyId,
+      actorType: "user",
+      actorId: input.actorId,
+      action: "autonomy.envelope.capacity_set",
+      entityType: "autonomy_envelope",
+      entityId: updated.id,
+      details: {
+        previous: { budget: envelope.budget, concurrency: envelope.concurrency },
+        next: { budget: updated.budget, concurrency: updated.concurrency },
+        rationale: input.rationale,
+        projectSerialized: true,
+      },
+    });
+    return updated;
+  }
+
   async function persistConstraint(companyId: string, projection: NextLegalActionProjection) {
     const constraint = projection.currentConstraint;
     const key = `readiness:${constraint.kind}`;
@@ -308,7 +377,13 @@ export function autonomyDecisionService(db: Db, deps: { enqueueWakeup?: WakeExis
     };
     const evidenceFreshUntil = new Date(now.getTime() + 5 * 60_000);
     const mode = envelope.stage as AutonomyDecisionMode;
-    const disposition = determineAutonomyDisposition({ hasCandidate: Boolean(selected), goalStatus: context?.goalStatus ?? null, staleHours, confidence, riskLevel: risk.level, costCoverage, mode, intentStatus: context?.intentStatus ?? selected?.intent.status ?? null });
+    const envelopeBudget = envelope.budget as Record<string, unknown>;
+    const boundedCostAuthority = Number(envelopeBudget.maxRuns ?? 0) >= 1
+      && Number(envelopeBudget.maxRuns ?? 0) <= 3
+      && Number(envelopeBudget.maxCostCents ?? 0) > 0
+      && Number((envelope.concurrency as Record<string, unknown>).maxActive ?? 0) >= 1
+      && Number((envelope.concurrency as Record<string, unknown>).maxActive ?? 0) <= 3;
+    const disposition = determineAutonomyDisposition({ hasCandidate: Boolean(selected), goalStatus: context?.goalStatus ?? null, staleHours, confidence, riskLevel: risk.level, costCoverage, mode, intentStatus: context?.intentStatus ?? selected?.intent.status ?? null, boundedCostAuthority });
     const needsEvidence = disposition === "GATHER_EVIDENCE";
     const candidates = projection.shadowDispatch.consideredIssueIds.map((issueId) => {
       const action = projection.actions.find((item) => item.issueId === issueId)!;
@@ -575,7 +650,7 @@ export function autonomyDecisionService(db: Db, deps: { enqueueWakeup?: WakeExis
           and not exists (
             select 1 from issue_relations rel
             join issues blocker on blocker.id=rel.issue_id and blocker.company_id=rel.company_id
-            where rel.company_id=i.company_id and rel.related_issue_id=i.id and rel.type='blocks'
+            where rel.company_id=i.company_id and rel.related_issue_id=i.id and rel.type='blocks' and rel.status='active'
               and blocker.status not in ('done','cancelled')
           )
           and not exists (
@@ -584,7 +659,7 @@ export function autonomyDecisionService(db: Db, deps: { enqueueWakeup?: WakeExis
             join delivery_tasks blocker_task on blocker_task.issue_id=blocker.id and blocker_task.company_id=blocker.company_id
             join product_deliveries blocker_delivery on blocker_delivery.id=blocker_task.delivery_id and blocker_delivery.company_id=blocker_task.company_id
             join product_outcomes blocker_outcome on blocker_outcome.delivery_id=blocker_delivery.id and blocker_outcome.company_id=blocker_delivery.company_id
-            where rel.company_id=i.company_id and rel.related_issue_id=i.id and rel.type='blocks'
+            where rel.company_id=i.company_id and rel.related_issue_id=i.id and rel.type='blocks' and rel.status='active'
               and blocker.status='done' and blocker_outcome.status not in ('accepted','accepted_with_risk')
           )
           and not exists (
@@ -604,6 +679,14 @@ export function autonomyDecisionService(db: Db, deps: { enqueueWakeup?: WakeExis
             where dt.company_id=i.company_id and dt.issue_id=i.id and d.stage='outcome_accepted' and o.status in ('accepted','accepted_with_risk')
           )
           and (select count(*) from autonomy_executions execution where execution.company_id=i.company_id and execution.status in ('PENDING','ACCEPTED','RUNNING')) < ${maxActive}
+          and not exists (
+            select 1
+            from autonomy_executions active_execution
+            join issues active_issue on active_issue.id=active_execution.issue_id and active_issue.company_id=active_execution.company_id
+            where active_execution.company_id=i.company_id
+              and active_execution.status in ('PENDING','ACCEPTED','RUNNING')
+              and active_issue.project_id is not distinct from i.project_id
+          )
         for update of i
       `);
       if (!issue?.assignee_agent_id) return { issue: null, execution: null };
@@ -803,6 +886,8 @@ export function autonomyDecisionService(db: Db, deps: { enqueueWakeup?: WakeExis
   return {
     ensureEnvelope,
     evaluateGraduation,
+    setEnvelopeStage,
+    setEnvelopeCapacity,
     persistConstraint,
     recordDecision,
     evaluateDecision,

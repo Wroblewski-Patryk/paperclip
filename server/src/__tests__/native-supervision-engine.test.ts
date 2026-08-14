@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { agents, companies, costEvents, createDb, deliveryTasks, heartbeatRuns, issueRelations, issueThreadInteractions, issues, nativeSafeguards, organizationalObservations, productDeliveries, productOutcomes, projects, supervisionFindings, supervisionInterventions, supervisionObservationWindows, supervisionRootCauses } from "@paperclipai/db";
 import { classifyNativeRemediation, nativeSupervisionEngine } from "../services/native-supervision-engine.js";
@@ -37,6 +37,37 @@ describeEmbedded("native supervision engine", () => {
     expect(result.checks.every((check) => check.status === "passed")).toBe(true);
     expect(result.findings).toEqual([]);
     expect(result.cycle?.metrics).toMatchObject({ llmCalls: 0, failed: 0 });
+  });
+
+  it("revalidates legacy dependency evidence deterministically instead of blocking the queue on missing metadata", async () => {
+    const refs = await seed();
+    const blockerId = randomUUID();
+    const dependentId = randomUUID();
+    await db.insert(issues).values([
+      { id: blockerId, companyId: refs.companyId, projectId: refs.projectId, title: "Active blocker", status: "todo", assigneeAgentId: refs.ownerId, priority: "high" },
+      { id: dependentId, companyId: refs.companyId, projectId: refs.projectId, title: "Dependent", status: "blocked", assigneeAgentId: refs.ownerId, priority: "high" },
+    ]);
+    await db.insert(issueRelations).values({
+      companyId: refs.companyId,
+      issueId: blockerId,
+      relatedIssueId: dependentId,
+      type: "blocks",
+      status: "active",
+    });
+
+    const now = new Date("2026-08-04T03:00:00Z");
+    const result = await nativeSupervisionEngine(db).runWatchdog(refs.companyId, now);
+    const [relation] = await db.select().from(issueRelations);
+
+    expect(result.cycle?.metrics).toMatchObject({ reconciledDependencyEvidence: 1 });
+    expect(relation).toMatchObject({
+      ownerAgentId: refs.ownerId,
+      blockingCondition: expect.any(String),
+      expectedResolvingOutcome: expect.objectContaining({ workspaceFinalized: true }),
+    });
+    expect(relation.lastVerifiedAt?.toISOString()).toBe(now.toISOString());
+    expect(relation.staleAfter?.getTime()).toBeGreaterThan(now.getTime());
+    expect(relation.resolutionEvidence).toEqual(expect.arrayContaining([expect.objectContaining({ kind: "native_dependency_readback", blockerIssueId: blockerId })]));
   });
 
   it("refuses a false-green watchdog result while a severe finding remains active", async () => {
@@ -474,6 +505,41 @@ describeEmbedded("native supervision engine", () => {
     expect(await db.select().from(organizationalObservations)).toContainEqual(expect.objectContaining({ kind: "learning", status: "promoted" }));
   });
 
+  it("dispatches one stale review per project instead of using a company-wide review mutex", async () => {
+    const refs = await seed();
+    const secondProjectId = randomUUID();
+    const secondOwnerId = randomUUID();
+    await db.insert(agents).values({
+      id: secondOwnerId,
+      companyId: refs.companyId,
+      name: "Second review owner",
+      role: "manager",
+      permissions: {},
+    });
+    await db.insert(projects).values({
+      id: secondProjectId,
+      companyId: refs.companyId,
+      name: "Second observed project",
+      status: "in_progress",
+      leadAgentId: secondOwnerId,
+    });
+    const staleAt = new Date("2026-08-01T00:00:00Z");
+    const reviews = await db.insert(issues).values([
+      { companyId: refs.companyId, projectId: refs.projectId, title: "First project review", status: "in_review", assigneeAgentId: refs.ownerId, updatedAt: staleAt },
+      { companyId: refs.companyId, projectId: secondProjectId, title: "Second project review", status: "in_review", assigneeAgentId: secondOwnerId, updatedAt: staleAt },
+    ]).returning();
+    const enqueueWakeup = vi.fn(async () => ({ accepted: true }));
+
+    const result = await nativeSupervisionEngine(db, { enqueueWakeup })
+      .runWatchdog(refs.companyId, new Date("2026-08-04T03:01:00Z"));
+
+    expect(result.reviewDispatches).toHaveLength(2);
+    expect(result.reviewDispatches).toEqual(expect.arrayContaining(reviews.map((review) =>
+      expect.objectContaining({ status: "dispatched", issueId: review.id }),
+    )));
+    expect(enqueueWakeup).toHaveBeenCalledTimes(2);
+  });
+
   it("retries a review dispatch once when final-context admission is the measured failure", async () => {
     const refs = await seed();
     await db.insert(issues).values({
@@ -509,6 +575,51 @@ describeEmbedded("native supervision engine", () => {
     expect(await db.select().from(supervisionFindings)).toContainEqual(expect.objectContaining({
       problemClass: "review_bottleneck", rootCauseId: expect.any(String),
     }));
+  });
+
+  it("releases a project review lane immediately when the dispatched issue hits its execution quota", async () => {
+    const refs = await seed();
+    await db.insert(issues).values({
+      companyId: refs.companyId, projectId: refs.projectId, title: "Review held by issue quota",
+      status: "in_review", assigneeAgentId: refs.ownerId, updatedAt: new Date("2026-08-01T00:00:00Z"),
+    });
+    const failedRunId = randomUUID();
+    const enqueueWakeup = vi.fn().mockResolvedValueOnce({ id: failedRunId, status: "queued" });
+    const engine = nativeSupervisionEngine(db, { enqueueWakeup });
+    await engine.runWatchdog(refs.companyId, new Date("2026-08-04T03:01:00Z"));
+    await db.insert(heartbeatRuns).values({
+      id: failedRunId, companyId: refs.companyId, agentId: refs.ownerId, status: "failed",
+      error: "Issue execution quota hard hold", errorCode: "issue_execution_quota_hold",
+      startedAt: new Date("2026-08-04T03:02:00Z"), finishedAt: new Date("2026-08-04T03:03:00Z"),
+    });
+
+    const reconciled = await engine.runWatchdog(refs.companyId, new Date("2026-08-04T03:11:00Z"));
+
+    expect(reconciled.verifiedReviewInterventions).toContainEqual(expect.objectContaining({
+      status: "policy_hold_failed", priorRunId: failedRunId,
+    }));
+    expect(await db.select().from(supervisionInterventions)).toContainEqual(expect.objectContaining({
+      status: "failed", result: expect.objectContaining({ reason: "issue_execution_quota_hold" }),
+    }));
+    expect(enqueueWakeup).toHaveBeenCalledTimes(1);
+
+    await db.insert(supervisionFindings).values({
+      companyId: refs.companyId,
+      fingerprint: `quota_bottleneck:issue:${(await db.select({ id: issues.id }).from(issues).where(eq(issues.title, "Review held by issue quota")))[0]!.id}`,
+      problemClass: "execution_quota_exceeded",
+      severity: "high",
+      status: "needs_decision",
+      classification: "quota_bottleneck",
+      sourceKind: "native_watchdog",
+      title: "Execution quota held review issue",
+      summary: "The issue reached its dedicated execution quota.",
+      recoveryState: "blocked",
+    });
+
+    await engine.runWatchdog(refs.companyId, new Date("2026-08-04T03:31:00Z"));
+
+    expect(enqueueWakeup).toHaveBeenCalledTimes(1);
+    expect(await db.select().from(supervisionInterventions)).toHaveLength(1);
   });
 
   it("admits and dispatches Doctor from a finding with a bounded context packet", async () => {

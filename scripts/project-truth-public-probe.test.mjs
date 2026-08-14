@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createGovernedProjectTruthFetch,
   runPublicRuntimeProbe,
   runtimeFindingForPublicProbe,
   safeErrorCause,
@@ -78,6 +79,52 @@ test("target and control fetch failures are inconclusive and route to the monito
   assert.equal(finding.nextOwner, "Runtime and Adapter Engineer");
 });
 
+test("governed target policy denial with a passing neutral control routes to monitor governance", async () => {
+  const fetchImpl = createGovernedProjectTruthFetch({
+    env: {
+      PAPERCLIP_API_URL: "http://localhost:3200",
+      PAPERCLIP_COMPANY_ID: "company-1",
+      PAPERCLIP_API_KEY: "run-secret",
+    },
+    directFetch: async () => { throw Object.assign(new TypeError("fetch failed"), { cause: { code: "EACCES" } }); },
+    bridgeFetch: async (_url, init) => {
+      const { url } = JSON.parse(init.body);
+      if (url === checks[0].url) {
+        return new Response(JSON.stringify({ error: "HTTPS probe target is not allowlisted" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({
+        outcome: "response",
+        url,
+        httpStatus: 204,
+        contentType: null,
+        body: null,
+        error: null,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    },
+  });
+
+  const result = await runPublicRuntimeProbe({
+    checks,
+    controlUrl: "https://control.example.test/",
+    timeoutSignal: noTimeout,
+    fetchImpl,
+  });
+
+  assert.equal(result.status, "inconclusive");
+  assert.equal(result.classification, "governance_policy_denied");
+  assert.equal(result.checks[0].error.cause.code, "GOVERNED_HTTPS_POLICY_DENIED");
+  assert.equal(result.controlProbe.status, "pass");
+  const finding = runtimeFindingForPublicProbe(result);
+  assert.equal(finding.kind, "monitor_governance_error");
+  assert.equal(finding.severity, "high");
+  assert.equal(finding.layer, "governance");
+  assert.equal(finding.nextOwner, "Runtime and Adapter Engineer");
+  assert.doesNotMatch(finding.nextAction, /rollback|restart|redeploy|release mutation permit/i);
+});
+
 test("target non-2xx remains a production failure and never records a response body", async () => {
   const result = await runPublicRuntimeProbe({
     checks,
@@ -127,4 +174,78 @@ test("safe error evidence fully redacts compound authorization and cookie header
 
   assert.doesNotMatch(JSON.stringify(authorization), /dXNlcjpzdXBlcnNlY3JldA/);
   assert.doesNotMatch(JSON.stringify(cookie), /first-secret|second-secret|session=|auth=/);
+});
+
+test("governed fallback routes a denied direct HTTPS request through the loopback Paperclip API", async () => {
+  const calls = [];
+  const fetchImpl = createGovernedProjectTruthFetch({
+    env: {
+      PAPERCLIP_API_URL: "http://127.0.0.1:3200",
+      PAPERCLIP_COMPANY_ID: "company-1",
+      PAPERCLIP_API_KEY: "run-secret",
+      PAPERCLIP_RUN_ID: "run-1",
+    },
+    directFetch: async () => {
+      throw Object.assign(new TypeError("fetch failed"), { cause: { code: "EACCES" } });
+    },
+    bridgeFetch: async (url, init) => {
+      calls.push({ url, init });
+      return new Response(JSON.stringify({
+        outcome: "response",
+        url: "https://soar.luckysparrow.ch/",
+        httpStatus: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ sha: "abcdef1234567" }),
+        error: null,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    },
+  });
+
+  const result = await fetchImpl("https://soar.luckysparrow.ch/api/build-info");
+  assert.equal(result.status, 200);
+  assert.deepEqual(await result.json(), { sha: "abcdef1234567" });
+  assert.equal(calls[0].url, "http://127.0.0.1:3200/api/companies/company-1/softwarehouse/project-truth-probe");
+  assert.equal(calls[0].init.headers.Authorization, "Bearer run-secret");
+  assert.equal(calls[0].init.headers["X-Paperclip-Run-Id"], "run-1");
+  assert.deepEqual(JSON.parse(calls[0].init.body), { url: "https://soar.luckysparrow.ch/api/build-info" });
+});
+
+test("governed fallback never sends the run token to a non-loopback API URL", async () => {
+  let bridgeCalled = false;
+  const directFailure = Object.assign(new TypeError("fetch failed"), { cause: { code: "EACCES" } });
+  const fetchImpl = createGovernedProjectTruthFetch({
+    env: {
+      PAPERCLIP_API_URL: "https://paperclip.example.test",
+      PAPERCLIP_COMPANY_ID: "company-1",
+      PAPERCLIP_API_KEY: "run-secret",
+    },
+    directFetch: async () => { throw directFailure; },
+    bridgeFetch: async () => {
+      bridgeCalled = true;
+      return response(200);
+    },
+  });
+
+  await assert.rejects(() => fetchImpl("https://soar.luckysparrow.ch/"), (error) => error === directFailure);
+  assert.equal(bridgeCalled, false);
+});
+
+test("governed fallback preserves fail-closed policy denial classification", async () => {
+  const fetchImpl = createGovernedProjectTruthFetch({
+    env: {
+      PAPERCLIP_API_URL: "http://localhost:3200",
+      PAPERCLIP_COMPANY_ID: "company-1",
+      PAPERCLIP_API_KEY: "run-secret",
+    },
+    directFetch: async () => { throw new TypeError("fetch failed"); },
+    bridgeFetch: async () => new Response(JSON.stringify({ error: "HTTPS probe target is not allowlisted" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    }),
+  });
+
+  await assert.rejects(
+    () => fetchImpl("https://not-allowlisted.example/"),
+    (error) => error.cause?.code === "GOVERNED_HTTPS_POLICY_DENIED",
+  );
 });

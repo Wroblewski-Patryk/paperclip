@@ -263,16 +263,19 @@ export function selectShadowDispatch(actions: NextLegalAction[], now: Date): Sha
     });
   const candidate = candidates[0] ?? null;
   const unknown = actions.filter((action) => action.eligibility === "unknown").length;
+  const eligibleNonExecution = actions.filter((action) => action.eligibility === "eligible").length;
   if (!candidate) {
     return {
       mode: "shadow",
-      outcome: unknown > 0 ? "insufficient_evidence" : "healthy_no_op",
-      reasonCode: unknown > 0 ? "INSUFFICIENT_EVIDENCE" : "NO_ELIGIBLE_WORK",
+      outcome: unknown > 0 && eligibleNonExecution === 0 ? "insufficient_evidence" : "healthy_no_op",
+      reasonCode: unknown > 0 && eligibleNonExecution === 0 ? "INSUFFICIENT_EVIDENCE" : eligibleNonExecution > 0 ? "NO_EXECUTION_CANDIDATE" : "NO_ELIGIBLE_WORK",
       candidateIssueId: null,
       consideredIssueIds: [],
       rejectedAlternatives: [],
-      confidence: unknown > 0 ? "low" : "high",
-      expectedOutcome: "No dispatch; preserve safety until a typed eligible action exists.",
+      confidence: unknown > 0 && eligibleNonExecution === 0 ? "low" : "high",
+      expectedOutcome: eligibleNonExecution > 0
+        ? "No implementation dispatch; another typed lane is eligible and must be handled by its bounded native dispatcher."
+        : "No dispatch; preserve safety until a typed eligible action exists.",
       observedAt: now.toISOString(),
     };
   }
@@ -344,19 +347,24 @@ function alignPriorityToConstraint(actions: NextLegalAction[]): {
   const currentConstraint: NextLegalActionProjection["currentConstraint"] = leading && leading.count > 0
     ? { kind: leading.kind, count: leading.count, rationale: `${leading.count} open issue(s) are concentrated in the ${leading.kind} readiness lane.` }
     : { kind: "none", count: 0, rationale: "No material readiness queue is currently observed." };
+  const helpsCurrentConstraint = (action: NextLegalAction) => currentConstraint.kind === "dependency"
+    ? action.priority.unblockValue > 0
+    : currentConstraint.kind === "review"
+      ? action.actionClass === "READY_FOR_REVIEW"
+      : currentConstraint.kind === "reconciliation"
+        ? action.actionClass === "READY_FOR_REVIEW"
+        : currentConstraint.kind === "ownership"
+          ? action.priority.unblockValue > 0
+          : currentConstraint.kind === "liveness" || currentConstraint.kind === "none";
+  const hasEligibleConstraintAction = actions.some((action) => action.eligibility === "eligible" && helpsCurrentConstraint(action));
   return {
     currentConstraint,
     actions: actions.map((action): NextLegalAction => {
       if (action.eligibility !== "eligible") return action;
-      const helps = currentConstraint.kind === "dependency"
-        ? action.priority.unblockValue > 0
-        : currentConstraint.kind === "review"
-          ? action.actionClass === "READY_FOR_REVIEW"
-          : currentConstraint.kind === "reconciliation"
-            ? action.actionClass === "READY_FOR_REVIEW"
-            : currentConstraint.kind === "ownership"
-              ? action.priority.unblockValue > 0
-              : currentConstraint.kind === "liveness" || currentConstraint.kind === "none";
+      // A constraint is a ranking preference, not a global stop. If no eligible
+      // action can directly improve it, keep bounded runnable work valuable so
+      // the organization does not report a false healthy no-op.
+      const helps = helpsCurrentConstraint(action) || (!hasEligibleConstraintAction && action.actionClass === "READY_FOR_EXECUTION");
       return {
         ...action,
         priority: {
@@ -420,8 +428,8 @@ export function nextLegalActionService(db: Db) {
           (select o.id from delivery_tasks dt join product_deliveries d on d.id=dt.delivery_id and d.company_id=dt.company_id join product_outcomes o on o.delivery_id=d.id and o.company_id=d.company_id where dt.company_id=i.company_id and dt.issue_id=i.id and d.stage='outcome_accepted' and o.status in ('accepted','accepted_with_risk') order by o.updated_at desc limit 1) as accepted_outcome_id,
           coalesce((select jsonb_array_length(o.evidence) from delivery_tasks dt join product_deliveries d on d.id=dt.delivery_id and d.company_id=dt.company_id join product_outcomes o on o.delivery_id=d.id and o.company_id=d.company_id where dt.company_id=i.company_id and dt.issue_id=i.id and d.stage='outcome_accepted' and o.status in ('accepted','accepted_with_risk') order by o.updated_at desc limit 1),0)::int as accepted_outcome_evidence_count,
           (select r.id from heartbeat_runs r where r.company_id=i.company_id and r.agent_id=i.assignee_agent_id and r.status in ('queued','running','scheduled_retry') and (r.context_snapshot->>'issueId'=i.id::text or r.context_snapshot->>'taskId'=i.id::text) order by r.created_at desc limit 1) as live_run_id,
-          (select count(*)::int from issue_relations rel where rel.company_id=i.company_id and rel.issue_id=i.id and rel.type='blocks') as unblocks_count,
-          coalesce((select array_agg(distinct blocker.id::text) from issue_relations rel join issues blocker on blocker.id=rel.issue_id and blocker.company_id=rel.company_id join delivery_tasks dt on dt.issue_id=blocker.id and dt.company_id=blocker.company_id join product_deliveries d on d.id=dt.delivery_id and d.company_id=dt.company_id join product_outcomes o on o.delivery_id=d.id and o.company_id=d.company_id where rel.company_id=i.company_id and rel.related_issue_id=i.id and rel.type='blocks' and blocker.status='done' and o.status not in ('accepted','accepted_with_risk')), array[]::text[]) as dependency_outcome_gap_ids
+          (select count(*)::int from issue_relations rel where rel.company_id=i.company_id and rel.issue_id=i.id and rel.type='blocks' and rel.status='active') as unblocks_count,
+          coalesce((select array_agg(distinct blocker.id::text) from issue_relations rel join issues blocker on blocker.id=rel.issue_id and blocker.company_id=rel.company_id join delivery_tasks dt on dt.issue_id=blocker.id and dt.company_id=blocker.company_id join product_deliveries d on d.id=dt.delivery_id and d.company_id=dt.company_id join product_outcomes o on o.delivery_id=d.id and o.company_id=d.company_id where rel.company_id=i.company_id and rel.related_issue_id=i.id and rel.type='blocks' and rel.status='active' and blocker.status='done' and o.status not in ('accepted','accepted_with_risk')), array[]::text[]) as dependency_outcome_gap_ids
           ,coalesce((select array_agg(rel.id::text) from issue_relations rel where rel.company_id=i.company_id and rel.related_issue_id=i.id and rel.type='blocks' and rel.status='active' and (rel.last_verified_at is null or rel.stale_after is null or rel.stale_after <= now())), array[]::text[]) as stale_dependency_ids
         from issues i
         where i.company_id=${companyId}

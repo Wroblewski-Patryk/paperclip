@@ -22,6 +22,8 @@ describe("buildCodexExecArgs", () => {
       'service_tier="fast"',
       "-c",
       "features.fast_mode=true",
+      "-c",
+      'windows.sandbox="unelevated"',
       "-",
     ]);
   });
@@ -44,6 +46,8 @@ describe("buildCodexExecArgs", () => {
       'service_tier="fast"',
       "-c",
       "features.fast_mode=true",
+      "-c",
+      'windows.sandbox="unelevated"',
       "-",
     ]);
   });
@@ -64,6 +68,8 @@ describe("buildCodexExecArgs", () => {
       "--json",
       "--model",
       "gpt-5.5",
+      "-c",
+      'windows.sandbox="unelevated"',
       "-",
     ]);
   });
@@ -82,6 +88,8 @@ describe("buildCodexExecArgs", () => {
       "--skip-git-repo-check",
       "--model",
       "gpt-5.3-codex",
+      "-c",
+      'windows.sandbox="unelevated"',
       "-",
     ]);
   });
@@ -119,10 +127,36 @@ describe("buildCodexExecArgs", () => {
       "gpt-5.4-mini",
       "--color",
       "never",
+      "-c",
+      'windows.sandbox="unelevated"',
       "--sandbox",
       "read-only",
       "--ephemeral",
       "--ignore-user-config",
+      "-",
+    ]);
+  });
+
+  it("does not add a Windows sandbox setup override when sandboxing is explicitly bypassed", () => {
+    const result = buildCodexExecArgs({
+      model: "gpt-5.4-mini",
+      dangerouslyBypassApprovalsAndSandbox: true,
+    });
+
+    expect(result.args).toContain("--dangerously-bypass-approvals-and-sandbox");
+    expect(result.args).not.toContain('windows.sandbox="unelevated"');
+  });
+
+  it("does not forward the local Windows sandbox override to remote targets", () => {
+    const result = buildCodexExecArgs({ model: "gpt-5.4-mini" }, {
+      localWindowsSandbox: false,
+    });
+
+    expect(result.args).toEqual([
+      "exec",
+      "--json",
+      "--model",
+      "gpt-5.4-mini",
       "-",
     ]);
   });

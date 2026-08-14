@@ -1,16 +1,39 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  activeExecutionQuotaHoldIssueIds,
   buildInReviewDecisionInteraction,
   classifyInReviewDecisionAuthority,
   classifyInteractionDecisionAuthority,
   findPendingStructuredDecisionInteraction,
   hasStructuredInReviewDecisionPath,
   isMisroutedTechnicalInteraction,
+  nextInReviewDecisionInteractionRevision,
   resolutionActionForTechnicalInteraction,
   reserveTechnicalReviewRecovery,
   technicalReviewRecoveryPriority,
 } from "./lib/in-review-decision-path.mjs";
+
+test("active execution quota findings suppress technical review recovery until disposition", () => {
+  const issueId = "11111111-1111-4111-8111-111111111111";
+  const held = activeExecutionQuotaHoldIssueIds([
+    { issueId, problemClass: "execution_quota_exceeded", status: "needs_decision" },
+    { issueId: "resolved", problemClass: "execution_quota_exceeded", status: "resolved" },
+    { issueId: "other", problemClass: "review_bottleneck", status: "needs_decision" },
+  ]);
+  assert.deepEqual([...held], [issueId]);
+});
+
+test("expired decision interactions advance the idempotency revision", () => {
+  const issue = { id: "11111111-1111-4111-8111-111111111111" };
+  const revisionNumber = nextInReviewDecisionInteractionRevision(issue, [
+    { idempotencyKey: `softwarehouse-in-review-decision-path:${issue.id}:v1`, status: "expired" },
+    { idempotencyKey: `softwarehouse-in-review-decision-path:${issue.id}:v3`, status: "rejected" },
+  ]);
+  assert.equal(revisionNumber, 4);
+  assert.equal(buildInReviewDecisionInteraction({ ...issue, identifier: "LUC-1" }, { revisionNumber }).idempotencyKey,
+    `softwarehouse-in-review-decision-path:${issue.id}:v4`);
+});
 
 test("board-owned in_review issue without typed path is not treated as structured", () => {
   const issue = {

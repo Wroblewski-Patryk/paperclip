@@ -206,6 +206,14 @@ test("runtime gap routing separates monitor egress from production outage owners
   assert.equal(monitorOwners[0], "Runtime and Adapter Engineer");
   assert.equal(monitorOwners.includes("Deployment & Reliability Engineer"), false);
 
+  const governanceOwners = runtimeOwnerNamesForGap({
+    kind: "monitor_governance_error",
+    classification: "governance_policy_denied",
+    severity: "high",
+  });
+  assert.equal(governanceOwners[0], "Runtime and Adapter Engineer");
+  assert.equal(governanceOwners.includes("Deployment & Reliability Engineer"), false);
+
   const productionOwners = runtimeOwnerNamesForGap({
     kind: "runtime_error",
     classification: "production_outage",

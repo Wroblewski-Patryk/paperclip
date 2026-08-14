@@ -14,6 +14,34 @@
 - Push status: not needed / pending / pushed / blocked
 - Source ref available to deploy target: yes / no / not applicable
 
+## Release blocker closure preflight
+
+Contract marker: `release-blocker-closure:v1`.
+
+Complete and run this packet before dependent implementation or QA lanes open.
+The command is
+`pnpm softwarehouse:release-blocker-preflight -- <closure-packet.json>` and the
+gate must fail closed unless it returns `mayOpenDependentLanes: true`.
+
+- `blockerRef`:
+- `unblockOwner`: exactly one accountable owner
+- `candidateSha`: full exact Git SHA
+- `candidateParentSha`: full distinct parent SHA
+- `sourceRepository`:
+- `sourceBranch`:
+- `targetEnvironment`:
+- `lineageEvidenceRef`: value-free candidate/parent proof
+- `protectedGateContract`:
+- `protectedGateStatus`: cleared / blocked
+- `protectedGateEvidenceRef`:
+- `rollbackPath`:
+- `rollbackOwner`:
+- `freshVerificationEvidence`:
+- `verifiedCandidateSha`: must equal `candidateSha`
+- `verifiedAt`:
+- `verificationMaxAgeHours`:
+- `dependentLaneRefs`: exact implementation/QA issue references held by this gate
+
 ## Build result
 
 - Command:
