@@ -7,7 +7,26 @@ import {
   isNonFatalJanitorBulkRefusal,
   isNonFatalSoftwarehouseAuditTimeout,
   isNonFatalProjectMutationGuardBoardCancelDenied,
+  serializeLauncherError,
 } from "./lib/control-tick-step-runner.mjs";
+
+test("launcher failures retain structured spawn diagnostics", () => {
+  const error = Object.assign(new Error("spawn C:\\Program Files\\nodejs\\node.exe EPERM"), {
+    code: "EPERM",
+    errno: -4048,
+    syscall: "spawn C:\\Program Files\\nodejs\\node.exe",
+    path: "C:\\Program Files\\nodejs\\node.exe",
+  });
+
+  assert.deepEqual(serializeLauncherError(error), {
+    code: "EPERM",
+    message: "spawn C:\\Program Files\\nodejs\\node.exe EPERM",
+    errno: -4048,
+    syscall: "spawn C:\\Program Files\\nodejs\\node.exe",
+    path: "C:\\Program Files\\nodejs\\node.exe",
+  });
+  assert.equal(serializeLauncherError(null), null);
+});
 
 test("non-fatal janitor bulk refusal is detected only for liveRunJanitor", () => {
   const failure = {

@@ -20,6 +20,7 @@ import {
   isNonFatalLearningLoopTimeout,
   isNonFatalProjectMutationGuardBoardCancelDenied,
   isNonFatalSoftwarehouseAuditTimeout,
+  serializeLauncherError,
 } from "./lib/control-tick-step-runner.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
@@ -1004,6 +1005,7 @@ function runStep(step, options = {}) {
       timeoutMs,
       stderr: `Step timed out after ${timeoutMs}ms; inspect ${step.command.join(" ")} before continuing.`,
       stdout: stdout.trim().slice(0, 2000),
+      error: serializeLauncherError(result.error),
     };
   }
   if (result.status !== 0) {
@@ -1019,6 +1021,7 @@ function runStep(step, options = {}) {
       timeoutMs,
       stderr: stderr.trim(),
       stdout: stdout.trim().slice(0, 2000),
+      error: serializeLauncherError(result.error),
     };
   }
 

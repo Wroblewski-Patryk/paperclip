@@ -4,6 +4,17 @@ const janitorBoardCancelDeniedPattern =
 const projectMutationGuardBoardCancelDeniedPattern =
   /POST \/api\/heartbeat-runs\/[^/]+\/cancel failed with 403:.*Board access required/i;
 
+export function serializeLauncherError(error) {
+  if (!error) return null;
+  return {
+    code: error.code ?? null,
+    message: error.message ?? String(error),
+    errno: error.errno ?? null,
+    syscall: error.syscall ?? null,
+    path: error.path ?? null,
+  };
+}
+
 export function isNonFatalJanitorBulkRefusal(stepName, failure) {
   if (stepName !== "liveRunJanitor") return false;
   const stderr = `${failure?.stderr ?? ""}`;

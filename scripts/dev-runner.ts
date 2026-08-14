@@ -6,7 +6,11 @@ import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "./dev-runner-output.ts";
-import { resolveChildTreeTermination, resolvePnpmInvocation } from "./dev-runner-command.mjs";
+import {
+  resolveChildTreeTermination,
+  resolveHostControlTickPolicy,
+  resolvePnpmInvocation,
+} from "./dev-runner-command.mjs";
 import { collectWatchedSnapshot as collectDevServerWatchedSnapshot, diffSnapshots } from "./dev-runner-snapshot.mjs";
 import { createDevServiceIdentity, repoRoot, resolveDevRunnerPort } from "./dev-service-profile.ts";
 import { bootstrapDevRunnerWorktreeEnv } from "../server/src/dev-runner-worktree.ts";
@@ -222,6 +226,10 @@ let child: ReturnType<typeof spawn> | null = null;
 let childExitPromise: Promise<{ code: number; signal: NodeJS.Signals | null }> | null = null;
 let scanTimer: ReturnType<typeof setInterval> | null = null;
 let autoRestartTimer: ReturnType<typeof setInterval> | null = null;
+let hostControlTickTimer: ReturnType<typeof setInterval> | null = null;
+let hostControlTickInitialTimer: ReturnType<typeof setTimeout> | null = null;
+let hostControlTickChild: ReturnType<typeof spawn> | null = null;
+let hostControlTickInFlight = false;
 
 function toError(error: unknown, context = "Dev runner command failed") {
   if (error instanceof Error) return error;
@@ -621,7 +629,7 @@ async function startServerChild() {
 }
 
 async function maybeAutoRestartChild() {
-  if (mode !== "dev" || restartInFlight || !child) return;
+  if (mode !== "dev" || restartInFlight || hostControlTickInFlight || !child) return;
   const manualRestartRequested = consumeDevServerRestartRequest();
   if (!manualRestartRequested && dirtyPaths.size === 0 && pendingMigrations.length === 0) return;
 
@@ -665,15 +673,80 @@ async function maybeAutoRestartChild() {
   }
 }
 
-function installDevIntervals() {
-  if (mode !== "dev") return;
+const hostControlTickPolicy = resolveHostControlTickPolicy({ mode, port: serverPort, env });
 
-  scanTimer = setInterval(() => {
-    void scanForBackendChanges();
-  }, scanIntervalMs);
-  autoRestartTimer = setInterval(() => {
-    void maybeAutoRestartChild();
-  }, autoRestartPollIntervalMs);
+async function runHostControlTick() {
+  if (!hostControlTickPolicy.enabled || hostControlTickInFlight || restartInFlight || shuttingDown || !child) return;
+
+  try {
+    await getDevHealthPayload();
+  } catch {
+    return;
+  }
+
+  hostControlTickInFlight = true;
+  const stdoutBuffer = createCapturedOutputBuffer(512 * 1024);
+  const stderrBuffer = createCapturedOutputBuffer(256 * 1024);
+  const scriptPath = path.join(repoRoot, "scripts", "run-softwarehouse-control-tick.mjs");
+  console.log("[paperclip] host control tick starting");
+
+  await new Promise<void>((resolve) => {
+    const tickChild = spawn(process.execPath, [scriptPath], {
+      cwd: repoRoot,
+      env: {
+        ...env,
+        PAPERCLIP_API_URL: `http://127.0.0.1:${serverPort}`,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    hostControlTickChild = tickChild;
+    tickChild.stdout?.on("data", (chunk) => stdoutBuffer.append(chunk));
+    tickChild.stderr?.on("data", (chunk) => stderrBuffer.append(chunk));
+    tickChild.on("error", (error) => {
+      console.error(`[paperclip] host control tick failed to start: ${toError(error).message}`);
+      resolve();
+    });
+    tickChild.on("exit", (code, signal) => {
+      const stdoutResult = stdoutBuffer.finish();
+      const stderrResult = stderrBuffer.finish();
+      if (code === 0 && !signal) {
+        try {
+          const result = JSON.parse(stdoutResult.text);
+          console.log(`[paperclip] host control tick finished: ${result.controlDecision ?? "unknown"}; ${result.recommendedAction ?? "no recommendation"}`);
+        } catch {
+          console.log("[paperclip] host control tick finished successfully");
+        }
+      } else if (!shuttingDown) {
+        const detail = stderrResult.text.trim().slice(-2000) || stdoutResult.text.trim().slice(-2000);
+        console.error(`[paperclip] host control tick failed (code=${code ?? "null"}, signal=${signal ?? "none"})${detail ? `\n${detail}` : ""}`);
+      }
+      resolve();
+    });
+  });
+
+  hostControlTickChild = null;
+  hostControlTickInFlight = false;
+}
+
+function installDevIntervals() {
+  if (mode === "dev") {
+    scanTimer = setInterval(() => {
+      void scanForBackendChanges();
+    }, scanIntervalMs);
+    autoRestartTimer = setInterval(() => {
+      void maybeAutoRestartChild();
+    }, autoRestartPollIntervalMs);
+  }
+  if (hostControlTickPolicy.enabled) {
+    hostControlTickInitialTimer = setTimeout(() => {
+      void runHostControlTick();
+    }, hostControlTickPolicy.initialDelayMs);
+    hostControlTickTimer = setInterval(() => {
+      void runHostControlTick();
+    }, hostControlTickPolicy.intervalMs);
+    console.log(`[paperclip] host control tick enabled every ${hostControlTickPolicy.intervalMs}ms`);
+  }
 }
 
 function clearDevIntervals() {
@@ -685,6 +758,14 @@ function clearDevIntervals() {
     clearInterval(autoRestartTimer);
     autoRestartTimer = null;
   }
+  if (hostControlTickInitialTimer) {
+    clearTimeout(hostControlTickInitialTimer);
+    hostControlTickInitialTimer = null;
+  }
+  if (hostControlTickTimer) {
+    clearInterval(hostControlTickTimer);
+    hostControlTickTimer = null;
+  }
 }
 
 async function shutdown(signal: NodeJS.Signals) {
@@ -693,6 +774,19 @@ async function shutdown(signal: NodeJS.Signals) {
   clearDevIntervals();
   clearDevServerStatus();
   await removeLocalServiceRegistryRecord(devService.serviceKey);
+
+  if (hostControlTickChild?.pid) {
+    const termination = resolveChildTreeTermination(hostControlTickChild.pid);
+    if (termination) {
+      await new Promise<void>((resolve) => {
+        const terminator = spawn(termination.command, termination.args, { stdio: "ignore", windowsHide: true });
+        terminator.on("error", () => resolve());
+        terminator.on("exit", () => resolve());
+      });
+    } else {
+      hostControlTickChild.kill("SIGTERM");
+    }
+  }
 
   if (!child) {
     exitForSignal(signal);

@@ -30,6 +30,38 @@ export function parseTasklistImageName(output, pid) {
   return fields[0] || null;
 }
 
+export function parsePowerShellAncestorPids(output) {
+  const parsed = JSON.parse(String(output ?? "[]").trim() || "[]");
+  const values = Array.isArray(parsed) ? parsed : parsed === null ? [] : [parsed];
+  return values
+    .map(Number)
+    .filter((pid) => Number.isInteger(pid) && pid > 0);
+}
+
+function readWindowsAncestorPids(pid) {
+  const source = `
+$ErrorActionPreference = 'Stop'
+$ancestorPids = @()
+$parentId = [int](Get-CimInstance Win32_Process -Filter "ProcessId = ${pid}" -ErrorAction Stop).ParentProcessId
+$guard = 0
+while ($parentId -gt 0 -and $guard -lt 64) {
+  $ancestorPids += $parentId
+  $parent = Get-CimInstance Win32_Process -Filter "ProcessId = $parentId" -ErrorAction SilentlyContinue
+  if (-not $parent) { break }
+  $parentId = [int]$parent.ParentProcessId
+  $guard += 1
+}
+ConvertTo-Json -InputObject @($ancestorPids) -Compress
+`;
+  const encoded = Buffer.from(source, "utf16le").toString("base64");
+  const output = execFileSync(
+    "powershell.exe",
+    ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
+    { encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 },
+  );
+  return parsePowerShellAncestorPids(output);
+}
+
 export function readWindowsStrictPortListeners(port) {
   if (process.platform !== "win32") return [];
   const netstat = execFileSync("netstat.exe", ["-ano", "-p", "tcp"], {
@@ -39,6 +71,7 @@ export function readWindowsStrictPortListeners(port) {
   });
   return parseNetstatListeners(netstat, port).map((pid) => {
     let imageName = null;
+    let ancestorPids = [];
     try {
       const tasklist = execFileSync(
         "tasklist.exe",
@@ -50,7 +83,12 @@ export function readWindowsStrictPortListeners(port) {
       // A unique listener still remains useful evidence; the caller decides
       // whether missing process identity is sufficient for reconciliation.
     }
-    return { pid, imageName, source: "netstat", ancestorPids: [] };
+    try {
+      ancestorPids = readWindowsAncestorPids(pid);
+    } catch {
+      // Listener identity remains useful even when the bounded ancestry query fails.
+    }
+    return { pid, imageName, source: "netstat", ancestorPids };
   });
 }
 

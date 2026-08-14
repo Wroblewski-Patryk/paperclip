@@ -32,3 +32,18 @@ export function resolveChildTreeTermination(pid, platform = process.platform) {
     args: ["/PID", String(pid), "/T", "/F"],
   };
 }
+
+export function resolveHostControlTickPolicy({ mode, port, env = process.env }) {
+  const explicit = `${env.SOFTWAREHOUSE_HOST_CONTROL_TICK_ENABLED ?? ""}`.trim().toLowerCase();
+  const enabled = explicit
+    ? !["0", "false", "off", "no"].includes(explicit)
+    : ["dev", "watch"].includes(mode) && Number(port) === 3200;
+  const requestedIntervalMs = Number(env.SOFTWAREHOUSE_HOST_CONTROL_TICK_INTERVAL_MS ?? 300_000);
+  const requestedInitialDelayMs = Number(env.SOFTWAREHOUSE_HOST_CONTROL_TICK_INITIAL_DELAY_MS ?? 15_000);
+
+  return {
+    enabled,
+    intervalMs: Math.max(60_000, Number.isFinite(requestedIntervalMs) ? requestedIntervalMs : 300_000),
+    initialDelayMs: Math.max(5_000, Number.isFinite(requestedInitialDelayMs) ? requestedInitialDelayMs : 15_000),
+  };
+}

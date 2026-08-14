@@ -17,6 +17,7 @@ const roots = [
   { key: "featherly", cwd: path.join(appsRoot, "Featherly") },
 ];
 const apiBase = (process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200").replace(/\/$/, "");
+const devServerStatusFilePath = path.join(repoRoot, ".paperclip", "dev-server-status.json");
 
 function normalized(value) {
   return path.resolve(value).toLowerCase();
@@ -28,6 +29,14 @@ async function exists(value) {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function readOptionalJson(filePath) {
+  try {
+    return JSON.parse(await readFile(filePath, "utf8"));
+  } catch {
+    return null;
   }
 }
 
@@ -204,6 +213,7 @@ if (await isPaperclipHealthAt("http://127.0.0.1:3201")) {
 }
 
 const devServices = await readDevServiceRecords();
+const devServerStatus = await readOptionalJson(devServerStatusFilePath);
 let liveDevServices = devServices.filter((record) => {
   try {
     process.kill(record.pid, 0);
@@ -217,7 +227,9 @@ if (liveDevServices.length === 0 && devServices.length === 1 && health?.status =
   try {
     const listeners = readWindowsStrictPortListeners(3200);
     const registeredAt = Date.parse(devServices[0].startedAt ?? "");
-    const healthStartedAt = Date.parse(health?.devServer?.lastRestartAt ?? "");
+    const healthStartedAt = Date.parse(
+      health?.devServer?.lastRestartAt ?? devServerStatus?.lastRestartAt ?? "",
+    );
     const registryMatchesHealth = Number.isFinite(registeredAt)
       && Number.isFinite(healthStartedAt)
       && registeredAt === healthStartedAt
@@ -236,7 +248,9 @@ if (liveDevServices.length === 0 && devServices.length === 1 && health?.status =
         code: "stale_paperclip_dev_service_pid_reconciled",
         stalePid: devServices[0].pid,
         listenerPid: reconciledListener.pid,
-        evidence: "unique_node_listener_plus_health_registry_start_match",
+        evidence: health?.devServer?.lastRestartAt
+          ? "unique_node_listener_plus_health_registry_start_match"
+          : "unique_node_listener_plus_local_status_registry_start_match",
       });
     }
   } catch (error) {

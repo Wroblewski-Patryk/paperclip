@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseNetstatListeners, parseTasklistImageName } from "./windows-runtime-inventory.mjs";
+import {
+  parseNetstatListeners,
+  parsePowerShellAncestorPids,
+  parseTasklistImageName,
+} from "./windows-runtime-inventory.mjs";
 
 test("parses and deduplicates strict TCP listeners without privileged CIM access", () => {
   const output = [
@@ -18,4 +22,10 @@ test("extracts the exact tasklist image for the listener pid", () => {
     "node.exe",
   );
   assert.equal(parseTasklistImageName("INFO: No tasks are running", 39164), null);
+});
+
+test("normalizes the bounded PowerShell listener ancestry response", () => {
+  assert.deepEqual(parsePowerShellAncestorPids("[32596,15420,36768]"), [32596, 15420, 36768]);
+  assert.deepEqual(parsePowerShellAncestorPids("32596"), [32596]);
+  assert.deepEqual(parsePowerShellAncestorPids("null"), []);
 });

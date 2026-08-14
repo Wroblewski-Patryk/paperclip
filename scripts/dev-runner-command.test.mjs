@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import path from "node:path";
-import { resolveChildTreeTermination, resolvePnpmInvocation } from "./dev-runner-command.mjs";
+import {
+  resolveChildTreeTermination,
+  resolveHostControlTickPolicy,
+  resolvePnpmInvocation,
+} from "./dev-runner-command.mjs";
 
 test("uses the current pnpm JavaScript entrypoint without a Windows command shell", () => {
   const npmExecPath = path.resolve("managed", "pnpm.cjs");
@@ -29,4 +33,35 @@ test("terminates the exact Windows server-child tree during restart", () => {
   });
   assert.equal(resolveChildTreeTermination(4242, "linux"), null);
   assert.throws(() => resolveChildTreeTermination(0, "win32"), /Invalid child PID/);
+});
+
+test("enables the host control tick only for the canonical local softwarehouse by default", () => {
+  assert.deepEqual(resolveHostControlTickPolicy({ mode: "dev", port: 3200, env: {} }), {
+    enabled: true,
+    intervalMs: 300_000,
+    initialDelayMs: 15_000,
+  });
+  assert.equal(resolveHostControlTickPolicy({ mode: "dev", port: 3100, env: {} }).enabled, false);
+  assert.equal(resolveHostControlTickPolicy({ mode: "watch", port: 3200, env: {} }).enabled, true);
+});
+
+test("allows an explicit host control tick override and keeps bounded timings", () => {
+  assert.deepEqual(resolveHostControlTickPolicy({
+    mode: "watch",
+    port: 3100,
+    env: {
+      SOFTWAREHOUSE_HOST_CONTROL_TICK_ENABLED: "true",
+      SOFTWAREHOUSE_HOST_CONTROL_TICK_INTERVAL_MS: "1000",
+      SOFTWAREHOUSE_HOST_CONTROL_TICK_INITIAL_DELAY_MS: "1",
+    },
+  }), {
+    enabled: true,
+    intervalMs: 60_000,
+    initialDelayMs: 5_000,
+  });
+  assert.equal(resolveHostControlTickPolicy({
+    mode: "dev",
+    port: 3200,
+    env: { SOFTWAREHOUSE_HOST_CONTROL_TICK_ENABLED: "off" },
+  }).enabled, false);
 });
