@@ -19,18 +19,23 @@ function Invoke-ProjectTruthGit {
 }
 
 $headSha = (Invoke-ProjectTruthGit -GitArgs @('rev-parse', '--verify', 'HEAD')).ToLowerInvariant()
-$upstreamSha = (Invoke-ProjectTruthGit -GitArgs @('rev-parse', '--verify', '@{upstream}')).ToLowerInvariant()
-$divergence = Invoke-ProjectTruthGit -GitArgs @('rev-list', '--left-right', '--count', '@{upstream}...HEAD')
-$parts = @($divergence -split '\s+' | Where-Object { $_ })
-if ($parts.Count -ne 2 -or $parts[0] -notmatch '^\d+$' -or $parts[1] -notmatch '^\d+$') {
-  throw "Git discovery returned invalid divergence for '$resolvedRoot': $divergence"
-}
-$behind = [int]$parts[0]
-$ahead = [int]$parts[1]
+$upstreamOutput = & git -C $resolvedRoot rev-parse --verify '@{upstream}' 2>$null
+$upstreamSha = if ($LASTEXITCODE -eq 0) { (($upstreamOutput | Out-String).Trim()).ToLowerInvariant() } else { $null }
+$behind = $null
+$ahead = $null
 $aheadPaths = @()
-if ($ahead -gt 0) {
-  $aheadPathText = Invoke-ProjectTruthGit -GitArgs @('diff', '--name-only', '@{upstream}..HEAD')
-  $aheadPaths = @($aheadPathText -split '\r?\n' | Where-Object { $_ } | ForEach-Object { $_.Replace('\', '/') })
+if ($upstreamSha) {
+  $divergence = Invoke-ProjectTruthGit -GitArgs @('rev-list', '--left-right', '--count', '@{upstream}...HEAD')
+  $parts = @($divergence -split '\s+' | Where-Object { $_ })
+  if ($parts.Count -ne 2 -or $parts[0] -notmatch '^\d+$' -or $parts[1] -notmatch '^\d+$') {
+    throw "Git discovery returned invalid divergence for '$resolvedRoot': $divergence"
+  }
+  $behind = [int]$parts[0]
+  $ahead = [int]$parts[1]
+  if ($ahead -gt 0) {
+    $aheadPathText = Invoke-ProjectTruthGit -GitArgs @('diff', '--name-only', '@{upstream}..HEAD')
+    $aheadPaths = @($aheadPathText -split '\r?\n' | Where-Object { $_ } | ForEach-Object { $_.Replace('\', '/') })
+  }
 }
 
 $controlPlaneOnlyAhead = $aheadPaths.Count -gt 0

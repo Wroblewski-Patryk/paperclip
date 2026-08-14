@@ -42,6 +42,27 @@ test("captures repository identity from native Git output", () => {
   assert.deepEqual(snapshot, validSnapshot({ repositoryRoot: repositoryRoot.replaceAll("\\", "/") }));
 });
 
+test("captures a local candidate branch without an upstream", () => {
+  const snapshot = captureProjectTruthRepositorySnapshot({
+    repositoryRoot,
+    runGit: (args) => args.join(" ") === "rev-parse --verify HEAD"
+      ? { status: 0, stdout: headSha }
+      : { status: 128, stdout: "", stderr: "fatal: no upstream configured" },
+  });
+
+  assert.deepEqual(snapshot, {
+    schemaVersion: 1,
+    repositoryRoot: repositoryRoot.replaceAll("\\", "/"),
+    headSha,
+    upstreamSha: null,
+    behind: null,
+    ahead: null,
+    aheadPaths: [],
+    controlPlaneOnlyAhead: false,
+    releaseSha: headSha,
+  });
+});
+
 test("uses a validated supplied snapshot when sandbox Git spawn is denied", async () => {
   let gitCalled = false;
   const snapshot = await resolveProjectTruthRepositorySnapshot({
@@ -80,6 +101,10 @@ test("rejects snapshots with mismatched roots or derived release fields", () => 
   assert.throws(
     () => validateProjectTruthRepositorySnapshot(validSnapshot({ aheadPaths: ["C:/outside.txt"], controlPlaneOnlyAhead: false, releaseSha: headSha }), { expectedRepositoryRoot: repositoryRoot }),
     /repository-relative path/,
+  );
+  assert.throws(
+    () => validateProjectTruthRepositorySnapshot(validSnapshot({ upstreamSha: null }), { expectedRepositoryRoot: repositoryRoot }),
+    /behind and \.ahead must be null/,
   );
 });
 
