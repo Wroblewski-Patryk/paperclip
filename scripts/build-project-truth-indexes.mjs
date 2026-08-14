@@ -6,6 +6,7 @@ import {
   runPublicRuntimeProbe,
   runtimeFindingForPublicProbe,
 } from "./lib/project-truth-public-probe.mjs";
+import { resolveProjectTruthRepositorySnapshot } from "./lib/project-truth-repository-snapshot.mjs";
 
 function argValue(name, fallback = null) {
   const index = process.argv.indexOf(name);
@@ -63,23 +64,19 @@ function lower(value) {
   return String(value ?? "").toLowerCase();
 }
 
-function git(args) {
-  const result = spawnSync("git", ["-C", repoRoot, ...args], { encoding: "utf8" });
-  return result.status === 0 ? result.stdout.trim() : null;
-}
-
-function repositorySnapshot() {
-  const headSha = git(["rev-parse", "HEAD"]);
-  const upstreamSha = git(["rev-parse", "@{upstream}"]);
-  const divergence = upstreamSha ? git(["rev-list", "--left-right", "--count", "@{upstream}...HEAD"]) : null;
-  const [behind, ahead] = divergence?.split(/\s+/).map(Number) ?? [null, null];
-  const aheadPaths = upstreamSha && Number(ahead) > 0
-    ? (git(["diff", "--name-only", "@{upstream}..HEAD"]) ?? "").split(/\r?\n/).filter(Boolean)
-    : [];
-  const controlPlaneOnlyAhead = aheadPaths.length > 0 && aheadPaths.every((file) =>
-    /^(?:docs?|history|\.agents|\.codex)(?:\/|$)|^(?:README|AGENTS)\.md$/i.test(file)
-  );
-  return { headSha, upstreamSha, behind, ahead, aheadPaths, controlPlaneOnlyAhead, releaseSha: controlPlaneOnlyAhead ? upstreamSha : headSha };
+async function repositorySnapshot() {
+  const snapshotJsonArg = argValue("--repository-snapshot-json");
+  const snapshotFile = argValue("--repository-snapshot-file");
+  const snapshotJsonEnv = process.env.PROJECT_TRUTH_REPOSITORY_SNAPSHOT ?? null;
+  if (snapshotJsonEnv && snapshotJsonArg) {
+    throw new Error("Use only one of PROJECT_TRUTH_REPOSITORY_SNAPSHOT or --repository-snapshot-json.");
+  }
+  return resolveProjectTruthRepositorySnapshot({
+    repositoryRoot: repoRoot,
+    snapshotJson: snapshotJsonEnv ?? snapshotJsonArg,
+    snapshotFile,
+    runGit: (args) => spawnSync("git", ["-C", repoRoot, ...args], { encoding: "utf8" }),
+  });
 }
 
 function entityText(entity) {
@@ -645,7 +642,14 @@ generatedAt = [
 const missingInputs = [];
 if (!await fileExists(graphPath)) missingInputs.push(toPosix(path.relative(repoRoot, graphPath)));
 if (!await fileExists(appCompletionPath)) missingInputs.push(toPosix(path.relative(repoRoot, appCompletionPath)));
-const repository = repositorySnapshot();
+let repository;
+try {
+  repository = await repositorySnapshot();
+} catch (error) {
+  console.error(`[project-truth] ${error.message}`);
+  process.exitCode = 1;
+  process.exit();
+}
 
 const eventChainIndex = buildEventChainIndex({ graph, appCompletion });
 const runtimeErrorIndex = buildRuntimeErrorIndex({ appCompletion, publicProbe });

@@ -1,7 +1,7 @@
 # Documentation Standard
 
 Status: active baseline
-Date: 2026-06-03
+Date: 2026-08-14
 Owner: Docs Memory Lead
 
 Documentation is part of delivery. It should make future work faster and safer.
@@ -75,6 +75,28 @@ Run `pnpm softwarehouse:documentation-hygiene` for the fast portfolio audit.
 The audit must not report green when truth is stale, source is ahead of its
 release branch, production identity is unknown, or the default context exceeds
 budget.
+
+### Sandbox-safe project-truth refresh
+
+Daily project-status routines must capture Git identity in the PowerShell host
+and pass the validated snapshot to the Node builder. This avoids nested Git
+process creation, which managed Codex sandboxes can deny with `EPERM`:
+
+```powershell
+$snapshotScript = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'scripts/get-project-truth-repository-snapshot.ps1'
+$builder = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'scripts/build-project-truth-indexes.mjs'
+$env:PROJECT_TRUTH_REPOSITORY_SNAPSHOT = & $snapshotScript -RepositoryRoot (Get-Location).Path
+try {
+  node $builder --project Roost --root (Get-Location).Path --apply
+} finally {
+  Remove-Item Env:PROJECT_TRUTH_REPOSITORY_SNAPSHOT -ErrorAction SilentlyContinue
+}
+```
+
+Replace `Roost` with the current application name. The snapshot is bound to the
+resolved repository root and its SHA, divergence, changed-path, and release-SHA
+fields are cross-validated. If native Git is unavailable and no valid snapshot
+is supplied, the builder exits non-zero and does not rewrite truth indexes.
 
 ## ADR Requirement
 

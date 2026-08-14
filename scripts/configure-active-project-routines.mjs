@@ -81,6 +81,8 @@ function descriptionFor(projectName, kind) {
   }
   return [
     `Refresh ${projectName} project-manager status, target version, blockers, evidence ledger, next decisions, and specialist lane order.`,
+    `Sandbox-safe project-truth refresh (PowerShell from the ${projectName} repository root): $snapshotScript = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'scripts/get-project-truth-repository-snapshot.ps1'; $builder = Join-Path $env:LUCKYSPARROW_SOFTWAREHOUSE_ROOT 'scripts/build-project-truth-indexes.mjs'; $env:PROJECT_TRUTH_REPOSITORY_SNAPSHOT = & $snapshotScript -RepositoryRoot (Get-Location).Path; try { node $builder --project ${projectName} --root (Get-Location).Path --apply } finally { Remove-Item Env:PROJECT_TRUTH_REPOSITORY_SNAPSHOT -ErrorAction SilentlyContinue }`,
+    "Do not omit the snapshot when nested Git is denied: the builder now fails explicitly instead of emitting unknown repository identity.",
     "Keep the project active in Paperclip while preserving protected gates for production, secrets, paid/live accounts, and irreversible mutation.",
   ].join(" ");
 }

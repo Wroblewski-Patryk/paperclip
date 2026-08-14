@@ -10,6 +10,21 @@ const scriptPath = fileURLToPath(new URL("./build-architecture-awareness-index.m
 const appCompletionScriptPath = fileURLToPath(new URL("./build-app-completion-index.mjs", import.meta.url));
 const projectTruthScriptPath = fileURLToPath(new URL("./build-project-truth-indexes.mjs", import.meta.url));
 
+function fixtureRepositorySnapshot(root) {
+  const headSha = "a".repeat(40);
+  return JSON.stringify({
+    schemaVersion: 1,
+    repositoryRoot: path.resolve(root),
+    headSha,
+    upstreamSha: "b".repeat(40),
+    behind: 0,
+    ahead: 0,
+    aheadPaths: [],
+    controlPlaneOnlyAhead: false,
+    releaseSha: headSha,
+  });
+}
+
 test("build-architecture-awareness-index writes byte-identical graph exports when inputs do not change", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "paperclip-awareness-determinism-"));
     try {
@@ -25,6 +40,7 @@ test("build-architecture-awareness-index writes byte-identical graph exports whe
           ...process.env,
           ARCHITECTURE_AWARENESS_OBSERVED_AT: "2026-01-01T00:00:00.000Z",
           PROJECT_TRUTH_OBSERVED_AT: "2026-01-01T00:00:00.000Z",
+          PROJECT_TRUTH_REPOSITORY_SNAPSHOT: fixtureRepositorySnapshot(root),
         };
         execFileSync(process.execPath, [scriptPath, ...commonArgs], { encoding: "utf8", env });
         execFileSync(process.execPath, [appCompletionScriptPath, ...commonArgs], { encoding: "utf8" });
@@ -79,7 +95,10 @@ test("project truth aggregates symbol-level proof gaps into user-flow repair lan
       ],
     }));
 
-    execFileSync(process.execPath, [projectTruthScriptPath, "--project", "Fixture", "--root", root, "--apply"], { encoding: "utf8" });
+    execFileSync(process.execPath, [projectTruthScriptPath, "--project", "Fixture", "--root", root, "--apply"], {
+      encoding: "utf8",
+      env: { ...process.env, PROJECT_TRUTH_REPOSITORY_SNAPSHOT: fixtureRepositorySnapshot(root) },
+    });
     const truth = JSON.parse(await readFile(path.join(root, "docs", "status", "project-truth-index.json"), "utf8"));
     assert.equal(truth.counts.appCompletionGaps, 2);
     const accountGap = truth.gaps.find((gap) => gap.userFlow === "Account access" && gap.risk === "missing_test_link");
@@ -161,6 +180,59 @@ test("build-architecture-awareness-index excludes repo-local .tmp content", asyn
       ),
       false,
     );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("Prisma models are distinct from TypeScript classes, aggregate types, and Markdown proof documents", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "paperclip-awareness-prisma-models-"));
+  try {
+    await mkdir(path.join(root, "prisma"), { recursive: true });
+    await mkdir(path.join(root, "src"), { recursive: true });
+    await mkdir(path.join(root, "tests", "proof"), { recursive: true });
+    await mkdir(path.join(root, "docs", "architecture"), { recursive: true });
+
+    await writeFile(
+      path.join(root, "prisma", "schema.prisma"),
+      `generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id String @id
+}
+
+model ApiKey {
+  id String @id
+}
+`,
+      "utf8",
+    );
+    await writeFile(path.join(root, "src", "client.ts"), "export class ApiClient {}\n", "utf8");
+    await writeFile(path.join(root, "src", "types.ts"), "export type UserId = string;\n", "utf8");
+    await writeFile(path.join(root, "tests", "user.test.ts"), "export const verifiesUser = true;\n", "utf8");
+    await writeFile(path.join(root, "tests", "proof", "user.test.md"), "# User test proof\n", "utf8");
+    await writeFile(
+      path.join(root, "docs", "architecture", "scanner-overrides.json"),
+      JSON.stringify({
+        entityOverrides: [{ path: "tests/proof/user.test.md", type: "test", description: "Verified proof packet." }],
+      }),
+      "utf8",
+    );
+
+    execFileSync(process.execPath, [scriptPath, "--project", "PrismaFixture", "--root", root], { encoding: "utf8" });
+
+    const graph = JSON.parse(await readFile(path.join(root, "docs", "graphs", "architecture-awareness.json"), "utf8"));
+    const entityByPath = new Map(graph.entities.map((entity) => [entity.path, entity]));
+    const modelPaths = graph.entities.filter((entity) => entity.type === "model").map((entity) => entity.path).sort();
+
+    assert.deepEqual(modelPaths, ["prisma/schema.prisma#ApiKey", "prisma/schema.prisma#User"]);
+    assert.equal(entityByPath.get("src/client.ts#ApiClient")?.type, "feature");
+    assert.notEqual(entityByPath.get("src/types.ts")?.type, "model");
+    assert.equal(entityByPath.get("tests/user.test.ts")?.type, "test");
+    assert.equal(entityByPath.get("tests/proof/user.test.md")?.type, "document");
+    assert.equal(entityByPath.get("tests/proof/user.test.md")?.description, "Verified proof packet.");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

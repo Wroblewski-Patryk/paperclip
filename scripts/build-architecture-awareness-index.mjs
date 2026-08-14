@@ -60,6 +60,8 @@ const outputRoot = path.resolve(outputArg ?? path.join(repoRoot, "docs"));
 const overridesPath = path.resolve(overridesArg ?? path.join(repoRoot, "docs/architecture/scanner-overrides.json"));
 const graphsDir = path.join(outputRoot, "graphs");
 const statusDir = path.join(outputRoot, "status");
+const canonicalGraphsDir = path.join(repoRoot, "docs", "graphs");
+const canonicalStatusDir = path.join(repoRoot, "docs", "status");
 const curatedGraphPath = path.join(graphsDir, "architecture-graph.json");
 const startedAtMs = Date.now();
 const defaultUpdatedAt = "1970-01-01T00:00:00.000Z";
@@ -68,26 +70,26 @@ const statusOnly = hasFlag("--status-only");
 const maxElapsedMs = Math.max(0, intArg("--max-elapsed-ms", 0));
 const progressEveryFiles = Math.max(1, intArg("--progress-every", 250) || 250);
 const generatedOutputFiles = new Set([
-  path.join(graphsDir, "architecture-awareness.json"),
-  path.join(graphsDir, "architecture-awareness.csv"),
-  path.join(graphsDir, "architecture-proof-register.csv"),
-  path.join(graphsDir, "architecture-graph.md"),
-  path.join(graphsDir, "architecture-graph.mmd"),
-  path.join(graphsDir, "architecture-health.json"),
-  path.join(statusDir, "architecture-awareness-report.md"),
-  path.join(statusDir, "architecture-dependency-report.md"),
-  path.join(statusDir, "architecture-ownership-report.md"),
-  path.join(statusDir, "task-synchronization-report.md"),
-  path.join(statusDir, "app-completion-index.json"),
-  path.join(statusDir, "app-completion-index.md"),
-  path.join(statusDir, "event-chain-index.json"),
-  path.join(statusDir, "event-chain-index.md"),
-  path.join(statusDir, "operational-readiness-index.json"),
-  path.join(statusDir, "operational-readiness-index.md"),
-  path.join(statusDir, "project-truth-index.json"),
-  path.join(statusDir, "project-truth-index.md"),
-  path.join(statusDir, "runtime-error-index.json"),
-  path.join(statusDir, "runtime-error-index.md"),
+  path.join(canonicalGraphsDir, "architecture-awareness.json"),
+  path.join(canonicalGraphsDir, "architecture-awareness.csv"),
+  path.join(canonicalGraphsDir, "architecture-proof-register.csv"),
+  path.join(canonicalGraphsDir, "architecture-graph.md"),
+  path.join(canonicalGraphsDir, "architecture-graph.mmd"),
+  path.join(canonicalGraphsDir, "architecture-health.json"),
+  path.join(canonicalStatusDir, "architecture-awareness-report.md"),
+  path.join(canonicalStatusDir, "architecture-dependency-report.md"),
+  path.join(canonicalStatusDir, "architecture-ownership-report.md"),
+  path.join(canonicalStatusDir, "task-synchronization-report.md"),
+  path.join(canonicalStatusDir, "app-completion-index.json"),
+  path.join(canonicalStatusDir, "app-completion-index.md"),
+  path.join(canonicalStatusDir, "event-chain-index.json"),
+  path.join(canonicalStatusDir, "event-chain-index.md"),
+  path.join(canonicalStatusDir, "operational-readiness-index.json"),
+  path.join(canonicalStatusDir, "operational-readiness-index.md"),
+  path.join(canonicalStatusDir, "project-truth-index.json"),
+  path.join(canonicalStatusDir, "project-truth-index.md"),
+  path.join(canonicalStatusDir, "runtime-error-index.json"),
+  path.join(canonicalStatusDir, "runtime-error-index.md"),
 ]);
 
 const ignoredDirs = new Set([
@@ -114,9 +116,9 @@ const ignoredDirs = new Set([
 ]);
 const ignoredGeneratedPathPrefixes = ["storage/", "bootstrap/cache/"];
 
-const codeExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".php"]);
+const codeExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".php", ".prisma"]);
 const docExtensions = new Set([".md", ".mdx"]);
-const modelNamePattern = /(schema|model|entity|types?)\.(ts|tsx|js|mjs|py)$/i;
+const modelNamePattern = /(schema|model|entity)\.(ts|tsx|js|mjs|py)$/i;
 const routeSegmentPattern = /(^|[\\/])(app|pages|routes|router|api)([\\/]|$)/i;
 const apiEndpointPattern = /\b(?:app|router)\.(get|post|put|patch|delete|use)\s*\(\s*["'`]([^"'`]+)["'`]/g;
 const laravelEndpointPattern = /\bRoute::(get|post|put|patch|delete|options|any|match)\s*\(\s*["']([^"']+)["']/g;
@@ -126,6 +128,8 @@ const laravelTestJsonRequestPattern = /->\s*json\s*\(\s*["'](GET|POST|PUT|PATCH|
 const importPattern = /(?:import\s+(?:[^"'`]*?\s+from\s+)?|export\s+[^"'`]*?\s+from\s+|require\s*\()\s*["'`]([^"'`]+)["'`]/g;
 const functionPattern = /(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)|(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g;
 const classPattern = /(?:export\s+)?class\s+([A-Za-z_$][\w$]*)/g;
+const prismaModelPattern = /(?:^|\r?\n)\s*model\s+([A-Za-z_][\w]*)\s*\{/g;
+const runnableTestExtensionPattern = /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs|py|php)$/i;
 const ownerAttributionRules = [
   { prefix: "server/", owner: "Backend Platform Lead" },
   { prefix: "ui/", owner: "Frontend Experience Lead" },
@@ -594,6 +598,12 @@ function pathLooksLikeTest(relativePath) {
     /(^|[\\/])tests?[\\/].*Test\.php$/i.test(relativePath);
 }
 
+function pathLooksLikeRunnableTest(relativePath) {
+  return runnableTestExtensionPattern.test(relativePath) ||
+    /(^|[\\/])tests?[\\/].*Test\.php$/i.test(relativePath) ||
+    pathLooksLikeStructuredTestArtifact(relativePath);
+}
+
 function pathLooksLikeStructuredTestArtifact(relativePath) {
   return /(^|[\\/])history[\\/]artifacts[\\/][^\\/]*(browser-proof|smoke-e2e|api-smoke-e2e|test-proof)[^\\/]*\.json$/i.test(
     relativePath,
@@ -981,7 +991,7 @@ for (const file of files) {
   const isDoc = docExtensions.has(ext);
   const isCode = codeExtensions.has(ext);
   const isStructuredTestArtifact = pathLooksLikeStructuredTestArtifact(relativePath);
-  const isTest = pathLooksLikeTest(relativePath) || isStructuredTestArtifact;
+  const isTest = pathLooksLikeRunnableTest(relativePath);
   const isMigration = pathLooksLikeMigration(relativePath);
   const isAgent = /(^|[\\/])(\.agents|agents?|\.codex[\\/]agents)([\\/]|$)/i.test(relativePath) && isDoc;
   if (!isDoc && !isCode && !isMigration && !isStructuredTestArtifact) continue;
@@ -1019,7 +1029,7 @@ for (const file of files) {
   } else if (isMigration) {
     type = "migration";
     description = "Database migration artifact.";
-  } else if (modelNamePattern.test(relativePath)) {
+  } else if (modelNamePattern.test(relativePath) && ext !== ".prisma") {
     type = "model";
     description = "Model/schema/type artifact.";
   } else if (routeSegmentPattern.test(relativePath)) {
@@ -1128,15 +1138,29 @@ for (const file of files) {
 
     for (const match of text.matchAll(classPattern)) {
       const classEntity = addEntity(entities, {
-        type: "model",
+        type: "feature",
         name: match[1],
         path: `${relativePath}#${match[1]}`,
-        description: "Class/model inferred from source code.",
+        description: "Class inferred from source code.",
         status: "implemented",
         evidence: [relativePath],
       });
       fileEntityByPath.set(classEntity.path, classEntity);
       addRelation(relations, entity, classEntity, "implements", relativePath);
+    }
+    if (ext === ".prisma") {
+      for (const match of text.matchAll(prismaModelPattern)) {
+        const modelEntity = addEntity(entities, {
+          type: "model",
+          name: match[1],
+          path: `${relativePath}#${match[1]}`,
+          description: "Prisma model declaration.",
+          status: "implemented",
+          evidence: [relativePath],
+        });
+        fileEntityByPath.set(modelEntity.path, modelEntity);
+        addRelation(relations, entity, modelEntity, "implements", relativePath);
+      }
     }
   }
 }
@@ -1148,7 +1172,9 @@ for (const entry of overrides.entityOverrides) {
   if (!target) continue;
 
   let mutated = false;
-  if (entityTypes.has(entry.type) && entry.type !== target.type) {
+  const targetExtension = path.extname(target.path.split("#", 1)[0]).toLowerCase();
+  const promotesMarkdownProofToTest = docExtensions.has(targetExtension) && entry.type === "test";
+  if (entityTypes.has(entry.type) && entry.type !== target.type && !promotesMarkdownProofToTest) {
     target.type = entry.type;
     mutated = true;
   }
