@@ -813,6 +813,68 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
     expect(routineIssues[0]?.id).toBe(previousIssue.id);
   });
 
+  it("dispatches a fresh reusable cycle when an older blocked envelope has no live run", async () => {
+    const { agentId, companyId, issueSvc, routine, svc, wakeups } = await seedFixture();
+    await db
+      .update(routines)
+      .set({ concurrencyPolicy: "reuse_idle_issue" })
+      .where(eq(routines.id, routine.id));
+    const previousRunId = randomUUID();
+    const previousIssue = await issueSvc.create(companyId, {
+      projectId: routine.projectId,
+      title: routine.title,
+      description: routine.description,
+      status: "todo",
+      priority: routine.priority,
+      assigneeAgentId: routine.assigneeAgentId,
+      originKind: "routine_execution",
+      originId: routine.id,
+      originRunId: previousRunId,
+      originFingerprint: "older-schedule-tick",
+    });
+    const blockerIssue = await issueSvc.create(companyId, {
+      projectId: routine.projectId,
+      title: "Historical cycle blocker",
+      status: "todo",
+      priority: routine.priority,
+      assigneeAgentId: agentId,
+    });
+    await db.insert(issueRelations).values({
+      companyId,
+      issueId: blockerIssue.id,
+      relatedIssueId: previousIssue.id,
+      type: "blocks",
+    });
+    await db.update(issues).set({ status: "blocked" }).where(eq(issues.id, previousIssue.id));
+
+    await db.insert(routineRuns).values({
+      id: previousRunId,
+      companyId,
+      routineId: routine.id,
+      triggerId: null,
+      source: "manual",
+      status: "issue_created",
+      triggeredAt: new Date("2026-03-20T12:00:00.000Z"),
+      linkedIssueId: previousIssue.id,
+      dispatchFingerprint: "older-schedule-tick",
+    });
+
+    const run = await svc.runRoutine(routine.id, { source: "manual", payload: { tick: "new" } });
+    expect(run.status).toBe("issue_created");
+    expect(run.linkedIssueId).not.toBe(previousIssue.id);
+    expect(run.coalescedIntoRunId).toBeNull();
+    expect(wakeups).toHaveLength(1);
+
+    const routineIssues = await db
+      .select({ id: issues.id, status: issues.status })
+      .from(issues)
+      .where(eq(issues.originId, routine.id));
+
+    expect(routineIssues).toHaveLength(2);
+    expect(routineIssues).toContainEqual({ id: previousIssue.id, status: "blocked" });
+    expect(routineIssues).toContainEqual({ id: run.linkedIssueId, status: "todo" });
+  });
+
   it("touches a coalesced routine issue for the manual runner's inbox", async () => {
     const { agentId, companyId, issueSvc, routine, svc } = await seedFixture();
     const userId = randomUUID();

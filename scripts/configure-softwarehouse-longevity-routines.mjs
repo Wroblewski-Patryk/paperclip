@@ -1,3 +1,5 @@
+import { softwarehousePilotActiveRoutineTitles } from "./lib/softwarehouse-active-routines.mjs";
+
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyName = "LuckySparrow";
 const companyNames = ["LuckySparrow Software House", "LuckySparrow"];
@@ -142,6 +144,10 @@ const specs = [
       "Forbidden without a fresh accepted gate fact: push, deploy, restart, rollback, protected smoke, live account mutation, secret disclosure, or destructive repository changes.",
     ].join("\n"),
     schedule: ["Every 5 minutes continuation watchdog", "*/5 * * * *"],
+    // Native supervision now owns runnable-lane dispatch, while the local dev
+    // supervisor runs the deterministic control tick outside agent sandboxes.
+    // Keeping this token-consuming routine active would duplicate both paths
+    // and re-enter the managed-Windows nested-process EPERM loop.
   },
   {
     title: "04 Operations: Longevity Snapshot Backup",
@@ -180,6 +186,7 @@ const specs = [
 
 const results = [];
 for (const spec of specs) {
+  const shouldBeActive = softwarehousePilotActiveRoutineTitles.has(spec.title);
   const routine = await ensureRoutine(company.id, routinesByTitle, {
     title: spec.title,
     description: spec.description,
@@ -187,13 +194,13 @@ for (const spec of specs) {
     goalId: longevityGoal.id,
     assigneeAgentId: spec.assignee?.id ?? null,
     priority: spec.priority,
-    status: "active",
+    status: shouldBeActive ? "active" : "archived",
     concurrencyPolicy: "reuse_idle_issue",
     catchUpPolicy: "skip_missed",
   });
   await ensureScheduleTrigger(routine.id, {
     label: spec.schedule[0],
-    enabled: true,
+    enabled: shouldBeActive,
     cronExpression: spec.schedule[1],
     timezone: "Europe/Berlin",
   });

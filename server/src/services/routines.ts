@@ -180,6 +180,20 @@ export function shouldReuseIdleRoutineIssue(input: {
     && !input.hasLiveExecution;
 }
 
+export function shouldCoalesceOpenRoutineIssue(input: {
+  concurrencyPolicy: string;
+  hasOpenIssue: boolean;
+  hasLiveExecution: boolean;
+}) {
+  if (!input.hasOpenIssue || input.concurrencyPolicy === "always_enqueue") return false;
+  // A reusable routine envelope can be left blocked or in review by an old
+  // cycle. That historical issue must not absorb future schedule ticks when
+  // no execution is actually alive. Todo envelopes are reused above; other
+  // idle states are preserved as evidence while a fresh cycle is dispatched.
+  if (input.concurrencyPolicy === "reuse_idle_issue") return input.hasLiveExecution;
+  return true;
+}
+
 function normalizeWebhookTimestampMs(rawTimestamp: string) {
   const parsed = Number(rawTimestamp);
   if (!Number.isFinite(parsed)) return null;
@@ -1271,11 +1285,13 @@ export function routineService(
               kind: issueOriginKind,
               id: issueOriginId,
             }, title);
+        const liveIssue = activeIssue && input.routine.concurrencyPolicy === "reuse_idle_issue"
+          ? await findLiveExecutionIssue(input.routine, txDb, dispatchFingerprint, {
+              kind: issueOriginKind,
+              id: issueOriginId,
+            })
+          : null;
         if (activeIssue && input.routine.concurrencyPolicy === "reuse_idle_issue" && activeIssue.status === "todo") {
-          const liveIssue = await findLiveExecutionIssue(input.routine, txDb, dispatchFingerprint, {
-            kind: issueOriginKind,
-            id: issueOriginId,
-          });
           if (shouldReuseIdleRoutineIssue({
             concurrencyPolicy: input.routine.concurrencyPolicy,
             issueStatus: activeIssue.status,
@@ -1315,7 +1331,12 @@ export function routineService(
             return updated ?? createdRun;
           }
         }
-        if (activeIssue && input.routine.concurrencyPolicy !== "always_enqueue") {
+        if (shouldCoalesceOpenRoutineIssue({
+          concurrencyPolicy: input.routine.concurrencyPolicy,
+          hasOpenIssue: Boolean(activeIssue),
+          hasLiveExecution: Boolean(liveIssue),
+        })) {
+          if (!activeIssue) throw new Error("Routine coalescing requires an open execution issue");
           const status = input.routine.concurrencyPolicy === "skip_if_active" ? "skipped" : "coalesced";
           if (manualRunnerUserId) {
             await touchIssueForUserInbox(txDb, {

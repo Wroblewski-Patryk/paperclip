@@ -20,10 +20,10 @@ export const softwarehouseApplicationRoutineLibrarySpecs = softwarehouseActiveAp
   },
 ]);
 
-// Keep one low-frequency project truth refresh per active application. The
-// autonomy governor already owns queue dispatch, source-control classification,
-// and known-state refresh through the control tick, so scheduling the three
-// additional per-project controllers only duplicates work and comments.
+// Keep one low-frequency project truth refresh per active application. Native
+// supervision owns queue dispatch and the local host supervisor owns the
+// deterministic control tick, so agent-run queue controllers only duplicate
+// work, spend model budget, and cannot safely nest Windows process launches.
 export const activeApplicationRoutineSpecs = softwarehouseApplicationRoutineLibrarySpecs.filter(
   (routine) => routine.title.endsWith("Daily project status refresh"),
 );
@@ -41,7 +41,6 @@ export const softwarehouseRoutineTitleRenames = new Map([
 ]);
 
 const softwarehousePilotLegacyActiveRoutineTitles = new Set([
-  "[Softwarehouse] Autonomy governor",
   "[Softwarehouse] Agent health and model governance",
   "[Softwarehouse] Longevity doctor and watchdog",
   "[Softwarehouse] Longevity snapshot backup",
