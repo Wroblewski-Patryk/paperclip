@@ -378,10 +378,10 @@
 }
 
 @keyframes dashboard-execution-scan {
-  0%, 70% {
+  0% {
     transform: translateX(-105%);
   }
-  88%, 100% {
+  100% {
     transform: translateX(265%);
   }
 }
@@ -410,7 +410,7 @@
   content: "";
   pointer-events: none;
   background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--status-live) 8%, transparent), transparent);
-  animation: dashboard-execution-scan 5.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  animation: dashboard-execution-scan 4.8s ease-in-out infinite;
 }
 
 .workflow-stage-live::after {

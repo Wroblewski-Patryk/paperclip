@@ -8,6 +8,7 @@ import { issuesApi } from "../api/issues";
 import { agentsApi } from "../api/agents";
 import { projectsApi } from "../api/projects";
 import { softwarehouseApi } from "../api/softwarehouse";
+import { heartbeatsApi } from "../api/heartbeats";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
@@ -91,6 +92,14 @@ export function Dashboard() {
     queryKey: queryKeys.dashboard(selectedCompanyId!),
     queryFn: () => dashboardApi.summary(selectedCompanyId!),
     enabled: !!selectedCompanyId,
+  });
+
+  const { data: liveRuns } = useQuery({
+    queryKey: queryKeys.liveRuns(selectedCompanyId!),
+    queryFn: () => heartbeatsApi.liveRunsForCompany(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: true,
   });
 
   const { data: agents } = useQuery({
@@ -206,6 +215,7 @@ export function Dashboard() {
       {data ? (
         <MissionControlDashboard
           dashboard={data}
+          liveRunCount={liveRuns?.length ?? 0}
           situation={companySituation}
           status={softwarehouseStatus}
           agents={agents ?? []}

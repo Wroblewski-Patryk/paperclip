@@ -42,6 +42,7 @@ type AgentFilter = "noteworthy" | "running" | "paused" | "idle";
 
 interface MissionControlDashboardProps {
   dashboard: DashboardSummary;
+  liveRunCount: number;
   situation?: CompanySituation | null;
   status?: SoftwarehouseControlStatusResponse | null;
   agents: Agent[];
@@ -237,6 +238,7 @@ function evidenceFreshness(status: SoftwarehouseControlStatusResponse | null | u
 
 export function MissionControlDashboard({
   dashboard,
+  liveRunCount,
   situation,
   status,
   agents,
@@ -301,11 +303,13 @@ export function MissionControlDashboard({
     ?? agents.filter((agent) => agent.status !== "paused" && agent.status !== "error").length;
   const unassignedRunnableCount = situation?.work.unassignedRunnable ?? 0;
   const dispatchableCount = situation?.capacity.dispatchableRunnableIssues ?? readyCount;
-  const executionSignal = inProgressCount > 0
+  const executionSignal = liveRunCount > 0
     ? {
-        summary: `${inProgressCount} issue${inProgressCount === 1 ? " is" : "s are"} executing now.`,
-        mobileSummary: `${inProgressCount} active`,
-        short: oldestFlowAge(situation, ["execution"]) ?? "work in progress",
+        summary: `${liveRunCount} agent run${liveRunCount === 1 ? " is" : "s are"} live now.`,
+        mobileSummary: `${liveRunCount} live`,
+        short: inProgressCount > 0
+          ? `${inProgressCount} issue${inProgressCount === 1 ? "" : "s"} in progress`
+          : "agent run active",
         action: "View live work",
         mobileAction: "Live",
         href: "/dashboard/live",
@@ -321,6 +325,16 @@ export function MissionControlDashboard({
           href: "/agents",
           attention: true,
         }
+      : inProgressCount > 0
+        ? {
+            summary: `${inProgressCount} issue${inProgressCount === 1 ? " remains" : "s remain"} in progress without a live agent run.`,
+            mobileSummary: "No live run",
+            short: "no live run",
+            action: "Review in-progress work",
+            mobileAction: "Review",
+            href: "/issues?status=in_progress",
+            attention: true,
+          }
       : readyCount > 0 && unassignedRunnableCount >= readyCount
         ? {
             summary: `Execution is idle because all ${readyCount} runnable issue${readyCount === 1 ? " is" : "s are"} unassigned.`,
@@ -373,7 +387,7 @@ export function MissionControlDashboard({
 
   const flow = [
     { label: "Intake", value: readyCount, detail: "ready", context: oldestFlowAge(situation, ["assigned_queue"]), icon: Inbox, href: "/issues", tone: "intake", mobileSecondary: true },
-    { label: "Execution", value: inProgressCount, detail: "running", context: executionSignal.short, icon: Play, href: "/dashboard/live", tone: "execution" },
+    { label: "Execution", value: liveRunCount, detail: "live", context: executionSignal.short, icon: Play, href: "/dashboard/live", tone: "execution" },
     { label: "Review", value: reviewCount, detail: "in review", context: oldestFlowAge(situation, ["review", "human_gate"]), icon: Search, href: "/issues?status=in_review", tone: "review" },
     { label: "Delivery", value: recentDeliveryCount, detail: "last 24h", context: latestDeliveryAt ? `latest ${relativeTime(latestDeliveryAt)}` : "no recent delivery", icon: Upload, href: "/issues?status=done", tone: "delivery", mobileSecondary: true },
     { label: "Blocked", value: blockedCount, detail: "needs attention", context: oldestFlowAge(situation, ["blocked_dependency", "blocked_conflict", "blocked_unknown"]), icon: Ban, href: "/issues?status=blocked", tone: "blocked", attention: blockedCount > 0 },

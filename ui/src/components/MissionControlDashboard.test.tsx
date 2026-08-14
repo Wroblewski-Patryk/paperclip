@@ -80,6 +80,7 @@ describe("MissionControlDashboard", () => {
     render(
       <MissionControlDashboard
         dashboard={dashboard}
+        liveRunCount={0}
         status={status}
         situation={null}
         agents={[]}
@@ -137,6 +138,7 @@ describe("MissionControlDashboard", () => {
     render(
       <MissionControlDashboard
         dashboard={liveDashboard}
+        liveRunCount={2}
         status={status}
         situation={null}
         agents={[]}
@@ -155,12 +157,36 @@ describe("MissionControlDashboard", () => {
     expect(execution?.className).toContain("workflow-stage-live");
     expect(blocked?.getAttribute("data-active")).toBe("false");
     expect(blocked?.getAttribute("data-live")).toBeNull();
+    expect(execution?.textContent).toContain("2 live");
+  });
+
+  it("does not present an in-progress issue as a live run", () => {
+    render(
+      <MissionControlDashboard
+        dashboard={{ ...dashboard, tasks: { ...dashboard.tasks, inProgress: 3 } }}
+        liveRunCount={0}
+        status={status}
+        situation={null}
+        agents={[]}
+        issues={[]}
+        projects={[]}
+        activity={[]}
+        quota={{ value: "26%", description: "OpenAI weekly limit" }}
+        onAvailabilityChange={() => {}}
+      />,
+    );
+
+    const execution = container.querySelector('[data-workflow-stage="execution"]');
+    expect(execution?.getAttribute("data-live")).toBeNull();
+    expect(execution?.textContent).toContain("0 live");
+    expect(container.textContent).toContain("3 issues remain in progress without a live agent run.");
   });
 
   it("explains idle execution and exposes queue age, evidence age, and cost semantics", () => {
     render(
       <MissionControlDashboard
         dashboard={dashboard}
+        liveRunCount={0}
         status={status}
         situation={idleSituation}
         agents={[]}
