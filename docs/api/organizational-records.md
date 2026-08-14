@@ -28,7 +28,15 @@ Every record has one of three kinds:
 
 Records may link to a goal, project, issue, owner, evidence references, and a
 predecessor they supersede. References must belong to the same company. Creating
-a replacement atomically marks its same-kind predecessor as `superseded`.
+or updating a commitment without an owner is rejected. Agent-authenticated
+writes are always agent-owned and cannot be transferred to a board user; records
+created from the board default to the current board user as owner. Creating a
+replacement atomically marks its same-kind predecessor as `superseded`.
+
+Records are created explicitly through the board, API, or the deduplicating
+agent helper. Paperclip does not harvest free-form issue comments into durable
+memory: the executing agent captures a qualifying assumption or commitment when
+it has enough evidence and context to classify it safely.
 
 Board users with mutation access may manage company records. Agents may create
 records owned by themselves and update only records they own or created. Every

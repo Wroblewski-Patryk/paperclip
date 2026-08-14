@@ -14,7 +14,7 @@ describeEmbeddedPostgres("organizational record service", () => {
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("paperclip-organizational-records-");
     db = createDb(tempDb.connectionString);
-  }, 60_000);
+  }, 120_000);
 
   afterEach(async () => {
     await db.delete(organizationalRecords);
@@ -39,6 +39,13 @@ describeEmbeddedPostgres("organizational record service", () => {
     ]);
     const svc = organizationalRecordService(db);
 
+    await expect(svc.create(companyId, {
+      kind: "commitment",
+      status: "proposed",
+      title: "Ownerless promise",
+      statement: "This must fail instead of creating an unaccountable promise.",
+    }, { userId: "board" })).rejects.toMatchObject({ status: 400 });
+
     const created = await svc.create(companyId, {
       kind: "commitment",
       status: "proposed",
@@ -49,6 +56,7 @@ describeEmbeddedPostgres("organizational record service", () => {
     }, { agentId: ownerAgentId });
     expect(created).toMatchObject({ companyId, kind: "commitment", status: "proposed", ownerAgentId });
     expect(created.reviewAt).toBeInstanceOf(Date);
+    await expect(svc.update(created.id, { ownerAgentId: null })).rejects.toMatchObject({ status: 400 });
 
     const active = await svc.update(created.id, { status: "active" });
     expect(active?.status).toBe("active");

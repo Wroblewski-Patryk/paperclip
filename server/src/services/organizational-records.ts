@@ -58,6 +58,12 @@ function assertStatusForKind(kind: OrganizationalRecordKind, status: string) {
   }
 }
 
+function assertRecordQuality(data: Pick<CreateOrganizationalRecord, "kind" | "ownerAgentId" | "ownerUserId">) {
+  if (data.kind === "commitment" && !data.ownerAgentId && !data.ownerUserId) {
+    throw badRequest("Commitments require an owner");
+  }
+}
+
 function assertTransition(kind: OrganizationalRecordKind, from: string, to: string) {
   assertStatusForKind(kind, to);
   if (from === to) return;
@@ -127,6 +133,7 @@ export function organizationalRecordService(db: Db) {
       data: CreateOrganizationalRecord,
       actor: { agentId?: string | null; userId?: string | null },
     ) {
+      assertRecordQuality(data);
       await assertReferenceCompany(db, companyId, data);
       const predecessor = data.supersedesId
         ? await db.select().from(organizationalRecords).where(eq(organizationalRecords.id, data.supersedesId)).then((rows) => rows[0] ?? null)
@@ -166,6 +173,11 @@ export function organizationalRecordService(db: Db) {
       const existing = await this.getById(id);
       if (!existing) return null;
       if (data.status) assertTransition(existing.kind, existing.status, data.status);
+      assertRecordQuality({
+        kind: existing.kind,
+        ownerAgentId: data.ownerAgentId === undefined ? existing.ownerAgentId : data.ownerAgentId,
+        ownerUserId: data.ownerUserId === undefined ? existing.ownerUserId : data.ownerUserId,
+      });
       await assertReferenceCompany(db, existing.companyId, data);
       let predecessor: typeof existing | null = null;
       if (data.supersedesId) {

@@ -29,6 +29,19 @@ duplicate comments, secret values, credentials, or private payloads into these
 stores. Keep those in the issue, protected runtime metadata, or the narrowest
 existing evidence artifact.
 
+This capture rule is part of execution, not an optional documentation cleanup:
+
+- before relying on a material premise that remains unverified, write one
+  deduplicated `assumption` with confidence, evidence, and a review or expiry;
+- when accepting an explicit promise with an owner and condition or due date,
+  write one deduplicated `commitment` before closeout;
+- do not label routine controller outcomes or ordinary task completion as a
+  `decision` merely to populate the page.
+
+Paperclip intentionally does not mine free-form comments for records. Agents
+perform the classification at the point where they have the issue, evidence,
+owner, and scope needed to create a trustworthy record.
+
 ## Required Provenance And Deduplication
 
 Use the current issue as provenance and choose a stable, non-secret dedupe key.

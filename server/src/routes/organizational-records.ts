@@ -38,6 +38,9 @@ export function organizationalRecordRoutes(db: Db) {
       const companyId = req.params.companyId as string;
       assertCompanyAccess(req, companyId);
       const actor = getActorInfo(req);
+      if (actor.actorType === "agent" && req.body.ownerUserId) {
+        throw forbidden("Agents may not assign organizational records to board users");
+      }
       if (actor.actorType === "agent" && req.body.ownerAgentId && req.body.ownerAgentId !== actor.agentId) {
         throw forbidden("Agents may only create organizational records owned by themselves");
       }
@@ -46,6 +49,7 @@ export function organizationalRecordRoutes(db: Db) {
         {
           ...req.body,
           ownerAgentId: req.body.ownerAgentId ?? (actor.actorType === "agent" ? actor.agentId : null),
+          ownerUserId: req.body.ownerUserId ?? (actor.actorType === "user" ? actor.actorId : null),
         },
         {
           agentId: actor.agentId,
@@ -82,6 +86,9 @@ export function organizationalRecordRoutes(db: Db) {
       if (actor.actorType === "agent") {
         const ownsRecord = existing.ownerAgentId === actor.agentId || existing.createdByAgentId === actor.agentId;
         if (!ownsRecord) throw forbidden("Agents may only update organizational records they own or created");
+        if (req.body.ownerUserId !== undefined) {
+          throw forbidden("Agents may not transfer organizational records to board users");
+        }
         if (req.body.ownerAgentId && req.body.ownerAgentId !== actor.agentId) {
           throw forbidden("Agents may not transfer organizational record ownership");
         }
