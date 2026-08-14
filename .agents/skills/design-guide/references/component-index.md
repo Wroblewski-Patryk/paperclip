@@ -138,7 +138,7 @@ Always use in a responsive grid: `grid md:grid-cols-2 xl:grid-cols-4 gap-4`.
 
 **File:** `MissionControlDashboard.tsx`
 
-**Usage:** Dashboard composition for system health, flow, control-plane activity, constraints, agent capacity, performance, cost, and portfolio evidence. It consumes existing deterministic projections, explains idle dispatch, exposes queue age and evidence freshness, and keeps drill-down links action-ready.
+**Usage:** Dashboard composition for system health, flow, control-plane activity, constraints, agent capacity, performance, cost, and portfolio evidence. It consumes existing deterministic projections, explains idle dispatch, exposes queue age and evidence freshness, and keeps drill-down links action-ready. Workflow tiles use state-specific emphasis only when their count is non-zero; live execution adds restrained reduced-motion-safe animation. New activity rows enter progressively, while the performance chart supports pointer and keyboard day inspection without over-emphasizing cumulative failures.
 
 ### EmptyState
 

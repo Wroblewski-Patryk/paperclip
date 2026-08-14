@@ -13,6 +13,8 @@ import {
   LayoutDashboard,
   ListTodo,
   Mail,
+  Ban,
+  Play,
   Plus,
   Search,
   Settings,
@@ -1294,6 +1296,29 @@ export function DesignGuide() {
             <span className="text-xs">Jan 15, 2025</span>
           </div>
         </div>
+      </Section>
+
+      {/* ============================================================ */}
+      {/*  OPERATIONAL WORKFLOW MOTION                                  */}
+      {/* ============================================================ */}
+      <Section title="Operational Workflow States">
+        <SubSection title="Quiet, live, and attention states">
+          <div className="paperclip-surface grid max-w-3xl divide-y divide-border overflow-hidden sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <button type="button" className="group/workflow flex items-center gap-3 px-4 py-3 text-left outline-none transition-[background-color,transform] hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-safe:hover:-translate-y-px">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/40 text-muted-foreground transition-transform group-hover/workflow:scale-105"><Inbox className="h-4 w-4" /></span>
+              <span><span className="block text-xs text-muted-foreground">Intake</span><span className="text-base font-semibold">0 <span className="text-xs font-normal text-muted-foreground">ready</span></span></span>
+            </button>
+            <button type="button" className="workflow-stage-live group/workflow relative isolate flex items-center gap-3 overflow-hidden px-4 py-3 text-left outline-none transition-[background-color,transform] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-safe:hover:-translate-y-px">
+              <span className="workflow-stage-live-icon relative z-10 flex h-9 w-9 items-center justify-center rounded-full bg-cyan-500/10 text-[var(--status-live-foreground)]"><Play className="h-4 w-4" /></span>
+              <span className="relative z-10"><span className="flex items-center gap-1.5 text-xs text-muted-foreground">Execution <span className="h-1.5 w-1.5 rounded-full bg-[var(--status-live)]" /></span><span className="text-base font-semibold text-[var(--status-live-foreground)]">3 <span className="text-xs font-normal text-muted-foreground">running</span></span></span>
+            </button>
+            <button type="button" className="group/workflow flex items-center gap-3 bg-amber-500/[0.05] px-4 py-3 text-left outline-none transition-[background-color,transform] hover:bg-amber-500/[0.09] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-safe:hover:-translate-y-px">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 transition-transform group-hover/workflow:scale-105 dark:text-amber-400"><Ban className="h-4 w-4" /></span>
+              <span><span className="block text-xs text-muted-foreground">Blocked</span><span className="text-base font-semibold text-amber-600 dark:text-amber-400">7 <span className="text-xs font-normal text-muted-foreground">blocked</span></span></span>
+            </button>
+          </div>
+          <p className="max-w-3xl text-xs text-muted-foreground">Zero-value stages remain quiet. Non-zero stages receive semantic emphasis. Only live execution loops; all motion disables under reduced-motion preferences.</p>
+        </SubSection>
       </Section>
 
       {/* ============================================================ */}

@@ -123,8 +123,38 @@ describe("MissionControlDashboard", () => {
     expect(container.textContent).toContain("2026-08-13: 0 runs, no success-rate observation");
     expect(container.textContent).toContain("2026-08-14: 10 runs, 80% success");
     expect(container.textContent).not.toContain("2026-08-13: 0 runs, 0% success");
-    expect(container.textContent).toContain("2 failed (20%)");
-    expect(container.textContent).toContain("Lowest 08-14 · 80%");
+    expect(container.textContent).toContain("10 runs · 80% success");
+    expect(container.textContent).toContain("8 succeeded · 2 failed");
+    expect(container.textContent).toContain("14-day average · 80% success");
+    expect(container.querySelectorAll('[role="button"][aria-label*="runs"]')).toHaveLength(2);
+  });
+
+  it("marks only active workflow stages and gives live execution its distinct state", () => {
+    const liveDashboard = {
+      ...dashboard,
+      tasks: { ...dashboard.tasks, inProgress: 3, blocked: 0 },
+    };
+    render(
+      <MissionControlDashboard
+        dashboard={liveDashboard}
+        status={status}
+        situation={null}
+        agents={[]}
+        issues={[]}
+        projects={[]}
+        activity={[]}
+        quota={{ value: "26%", description: "OpenAI weekly limit" }}
+        onAvailabilityChange={() => {}}
+      />,
+    );
+
+    const execution = container.querySelector('[data-workflow-stage="execution"]');
+    const blocked = container.querySelector('[data-workflow-stage="blocked"]');
+    expect(execution?.getAttribute("data-active")).toBe("true");
+    expect(execution?.getAttribute("data-live")).toBe("true");
+    expect(execution?.className).toContain("workflow-stage-live");
+    expect(blocked?.getAttribute("data-active")).toBe("false");
+    expect(blocked?.getAttribute("data-live")).toBeNull();
   });
 
   it("explains idle execution and exposes queue age, evidence age, and cost semantics", () => {

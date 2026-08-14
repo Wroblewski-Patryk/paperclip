@@ -372,11 +372,11 @@ export function MissionControlDashboard({
                 };
 
   const flow = [
-    { label: "Intake", value: readyCount, detail: "ready", context: oldestFlowAge(situation, ["assigned_queue"]), icon: Inbox, href: "/issues", mobileSecondary: true },
-    { label: "Execution", value: inProgressCount, detail: "running", context: executionSignal.short, icon: Play, href: "/dashboard/live" },
-    { label: "Review", value: reviewCount, detail: "in review", context: oldestFlowAge(situation, ["review", "human_gate"]), icon: Search, href: "/issues?status=in_review" },
-    { label: "Delivery", value: recentDeliveryCount, detail: "last 24h", context: latestDeliveryAt ? `latest ${relativeTime(latestDeliveryAt)}` : "no recent delivery", icon: Upload, href: "/issues?status=done", mobileSecondary: true },
-    { label: "Blocked", value: blockedCount, detail: "needs attention", context: oldestFlowAge(situation, ["blocked_dependency", "blocked_conflict", "blocked_unknown"]), icon: Ban, href: "/issues?status=blocked", attention: blockedCount > 0 },
+    { label: "Intake", value: readyCount, detail: "ready", context: oldestFlowAge(situation, ["assigned_queue"]), icon: Inbox, href: "/issues", tone: "intake", mobileSecondary: true },
+    { label: "Execution", value: inProgressCount, detail: "running", context: executionSignal.short, icon: Play, href: "/dashboard/live", tone: "execution" },
+    { label: "Review", value: reviewCount, detail: "in review", context: oldestFlowAge(situation, ["review", "human_gate"]), icon: Search, href: "/issues?status=in_review", tone: "review" },
+    { label: "Delivery", value: recentDeliveryCount, detail: "last 24h", context: latestDeliveryAt ? `latest ${relativeTime(latestDeliveryAt)}` : "no recent delivery", icon: Upload, href: "/issues?status=done", tone: "delivery", mobileSecondary: true },
+    { label: "Blocked", value: blockedCount, detail: "needs attention", context: oldestFlowAge(situation, ["blocked_dependency", "blocked_conflict", "blocked_unknown"]), icon: Ban, href: "/issues?status=blocked", tone: "blocked", attention: blockedCount > 0 },
   ];
 
   const ownerDecisionCount = (situation?.attention ?? []).filter((signal) => OWNER_DECISION_KINDS.has(signal.kind)).length
@@ -507,24 +507,48 @@ export function MissionControlDashboard({
         <div className="grid grid-cols-3 items-stretch divide-x divide-border sm:flex sm:min-w-[700px]">
           {flow.map((stage, index) => {
             const Icon = stage.icon;
+            const active = stage.value > 0;
+            const liveExecution = stage.tone === "execution" && active;
             return (
               <div key={stage.label} className={cn("min-w-0 flex-1 items-center", stage.mobileSecondary ? "hidden sm:flex" : "flex")}>
                 <Link
                   to={stage.href}
+                  data-workflow-stage={stage.tone}
+                  data-active={active ? "true" : "false"}
+                  data-live={liveExecution ? "true" : undefined}
                   className={cn(
-                    "group flex min-w-0 flex-1 items-center gap-2 px-2 py-3 text-inherit no-underline transition-colors hover:bg-accent/40 sm:gap-3 sm:px-4",
-                    stage.attention && "bg-amber-500/[0.04]",
+                    "group/workflow relative isolate flex min-w-0 flex-1 items-center gap-2 overflow-hidden px-2 py-3 text-inherit no-underline outline-none transition-[background-color,box-shadow,transform] duration-200 hover:bg-accent/40 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:gap-3 sm:px-4",
+                    active && stage.tone === "intake" && "bg-sky-500/[0.035] hover:bg-sky-500/[0.075]",
+                    active && stage.tone === "review" && "bg-violet-500/[0.035] hover:bg-violet-500/[0.075]",
+                    active && stage.tone === "delivery" && "bg-emerald-500/[0.035] hover:bg-emerald-500/[0.075]",
+                    active && stage.tone === "blocked" && "bg-amber-500/[0.05] hover:bg-amber-500/[0.09]",
+                    liveExecution && "workflow-stage-live",
+                    "motion-safe:hover:-translate-y-px",
                   )}
                 >
                   <span className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--company-accent-subtle)] text-[var(--company-accent-strong)] sm:h-9 sm:w-9",
-                    stage.attention && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                    "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/40 text-muted-foreground transition-[background-color,color,transform] duration-200 group-hover/workflow:scale-105 sm:h-9 sm:w-9",
+                    active && stage.tone === "intake" && "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+                    active && stage.tone === "execution" && "workflow-stage-live-icon bg-cyan-500/10 text-[var(--status-live-foreground)]",
+                    active && stage.tone === "review" && "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+                    active && stage.tone === "delivery" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                    active && stage.tone === "blocked" && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
                   )}>
                     <Icon className="h-4 w-4" />
+                    {liveExecution ? <span className="sr-only">Live execution</span> : null}
                   </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-xs font-medium text-muted-foreground">{stage.label}</span>
-                    <span className={cn("block text-base font-semibold tabular-nums", stage.attention && "text-amber-600 dark:text-amber-400")}>
+                  <span className="relative z-10 min-w-0">
+                    <span className="flex items-center gap-1.5 truncate text-xs font-medium text-muted-foreground">
+                      {stage.label}
+                      {liveExecution ? <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--status-live)] shadow-[0_0_0_3px_color-mix(in_oklab,var(--status-live)_18%,transparent)]" /> : null}
+                    </span>
+                    <span className={cn(
+                      "block text-base font-semibold tabular-nums",
+                      active && stage.tone === "execution" && "text-[var(--status-live-foreground)]",
+                      active && stage.tone === "review" && "text-violet-600 dark:text-violet-400",
+                      active && stage.tone === "delivery" && "text-emerald-600 dark:text-emerald-400",
+                      active && stage.tone === "blocked" && "text-amber-600 dark:text-amber-400",
+                    )}>
                       {stage.value} <span className="text-xs font-normal text-muted-foreground">{stage.detail}</span>
                     </span>
                     {stage.context ? <span className="mt-0.5 block truncate text-[11px] text-muted-foreground/80">{stage.context}</span> : null}
@@ -566,7 +590,7 @@ export function MissionControlDashboard({
             <div className="paperclip-empty-state m-4 px-4 py-8 text-center text-sm text-muted-foreground">No material control-plane changes.</div>
           ) : (
             <ol className="divide-y divide-border">
-              {meaningfulActivity.slice(0, 5).map((event) => {
+              {meaningfulActivity.slice(0, 5).map((event, index) => {
                 const category = activityCategory(event);
                 const actor = event.actorType === "agent" ? agentMap.get(event.actorId)?.name ?? "Agent" : event.actorType === "system" ? "System" : "Board";
                 const issue = event.entityType === "issue" ? issueMap.get(event.entityId) : undefined;
@@ -574,16 +598,21 @@ export function MissionControlDashboard({
                 const entity = issue?.identifier ?? project?.name ?? (event.entityType === "heartbeat_run" ? event.entityId.slice(0, 8) : null);
                 const verb = formatActivityVerb(event.action, event.details, { agentMap });
                 const href = activityHref(event, issueMap, projectMap);
+                const eventAge = Date.now() - new Date(event.createdAt).getTime();
+                const isFreshLiveEvent = category.tone === "active" && eventAge >= 0 && eventAge < 5 * 60_000;
                 const row = (
-                  <div className="grid grid-cols-[3.25rem_1rem_minmax(0,1fr)_auto] items-center gap-2 px-4 py-2.5 text-xs">
+                  <div className="group/activity grid grid-cols-[3.25rem_1rem_minmax(0,1fr)_auto] items-center gap-2 px-4 py-2.5 text-xs transition-colors">
                     <time className="font-mono text-muted-foreground" dateTime={new Date(event.createdAt).toISOString()}>{timeOnly(event.createdAt)}</time>
-                    <span className={cn(
-                      "relative h-2 w-2 rounded-full ring-4 ring-background",
-                      category.tone === "bad" && "bg-destructive",
-                      category.tone === "warn" && "bg-amber-500",
-                      category.tone === "active" && "bg-[var(--company-accent)]",
-                      category.tone === "neutral" && "bg-muted-foreground/60",
-                    )} />
+                    <span className="relative flex h-2 w-2" aria-hidden="true">
+                      {isFreshLiveEvent ? <span className="activity-live-ping absolute inset-0 rounded-full bg-[var(--company-accent)]" /> : null}
+                      <span className={cn(
+                        "relative h-2 w-2 rounded-full ring-4 ring-background transition-transform duration-200 group-hover/activity:scale-125",
+                        category.tone === "bad" && "bg-destructive",
+                        category.tone === "warn" && "bg-amber-500",
+                        category.tone === "active" && "bg-[var(--company-accent)]",
+                        category.tone === "neutral" && "bg-muted-foreground/60",
+                      )} />
+                    </span>
                     <span className="min-w-0">
                       <span className="block truncate text-sm text-foreground"><span className="font-medium">{actor}</span> <span className="text-muted-foreground">{verb}</span>{entity ? ` ${entity}` : ""}</span>
                       {issue?.title ? <span className="block truncate text-xs text-muted-foreground">{issue.title}</span> : null}
@@ -597,7 +626,11 @@ export function MissionControlDashboard({
                     )}>{category.label}</span>
                   </div>
                 );
-                return <li key={event.id}>{href ? <Link to={href} className="block text-inherit no-underline transition-colors hover:bg-accent/40">{row}</Link> : row}</li>;
+                return (
+                  <li key={event.id} data-activity-entry={event.id} className="activity-row-enter" style={{ animationDelay: `${index * 45}ms` }}>
+                    {href ? <Link to={href} className="block text-inherit no-underline outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">{row}</Link> : row}
+                  </li>
+                );
               })}
             </ol>
           )}
@@ -617,8 +650,8 @@ export function MissionControlDashboard({
             <NowRow icon={Gauge} label="Provider quota" value={quota.value} detail={quota.description} href="/costs" tone={quotaHealthy ? "active" : "warn"} />
           </div>
           <div className="border-t border-border p-3">
-            <Link to={primaryActionHref} className="flex min-h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground no-underline hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              Resolve top constraint <ArrowRight className="h-3.5 w-3.5" />
+            <Link to={primaryActionHref} className="group/action flex min-h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground no-underline transition-[background-color,box-shadow,transform] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:hover:-translate-y-px">
+              Resolve top constraint <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/action:translate-x-0.5" />
             </Link>
           </div>
         </section>
@@ -662,7 +695,7 @@ export function MissionControlDashboard({
                 const assigned = activeIssueByAgent.get(agent.id);
                 const lastSignalAt = agent.lastHeartbeatAt ?? assigned?.lastActivityAt ?? assigned?.updatedAt ?? null;
                 return (
-                  <Link key={agent.id} to={`/agents/${agent.urlKey}`} className="grid grid-cols-[minmax(0,1.15fr)_5rem_minmax(6rem,0.8fr)] items-center gap-2 px-4 py-2 text-inherit no-underline transition-colors hover:bg-accent/40">
+                  <Link key={agent.id} to={`/agents/${agent.urlKey}`} className="grid grid-cols-[minmax(0,1.15fr)_5rem_minmax(6rem,0.8fr)] items-center gap-2 px-4 py-2 text-inherit no-underline outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-200">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className={cn(
                         "h-2 w-2 shrink-0 rounded-full",
@@ -699,9 +732,9 @@ export function MissionControlDashboard({
               ) : (
                 <div className="divide-y divide-border">
                   {constraints.map((constraint, index) => (
-                    <Link key={constraint.id} to={constraint.href} className="grid grid-cols-[1.5rem_minmax(10rem,1.5fr)_minmax(6rem,0.8fr)_4rem_4.5rem_5.5rem_minmax(6rem,0.8fr)] items-center px-4 py-2 text-xs text-inherit no-underline transition-colors hover:bg-accent/40">
+                    <Link key={constraint.id} to={constraint.href} className="group/constraint grid grid-cols-[1.5rem_minmax(10rem,1.5fr)_minmax(6rem,0.8fr)_4rem_4.5rem_5.5rem_minmax(6rem,0.8fr)] items-center px-4 py-2 text-xs text-inherit no-underline outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                       <span className="font-mono text-muted-foreground">{index + 1}</span>
-                      <span className="truncate font-medium" title={constraint.title}>{constraint.title}</span>
+                      <span className="truncate font-medium transition-transform group-hover/constraint:translate-x-0.5" title={constraint.title}>{constraint.title}</span>
                       <span className="truncate capitalize text-muted-foreground">{constraint.type}</span>
                       <span className={cn("font-medium", constraint.impact === "High" ? "text-destructive" : constraint.impact === "Medium" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>{constraint.impact}</span>
                       <span className="text-muted-foreground">{constraint.age}</span>
@@ -752,7 +785,7 @@ export function MissionControlDashboard({
           <span className="hidden items-center gap-1 text-xs text-muted-foreground sm:flex"><span className="text-[var(--company-accent-strong)]">Innovation</span><ArrowRight className="h-3 w-3" />Product<ArrowRight className="h-3 w-3" />Service</span>
           <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
         </summary>
-        <div className="border-t border-border">
+        <div className="border-t border-border motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200">
           {status?.projectTruth.projects.length ? status.projectTruth.projects.map((truth) => (
             <div key={truth.name} className="grid gap-2 border-b border-border px-4 py-3 text-xs last:border-b-0 sm:grid-cols-[minmax(10rem,1fr)_auto_auto] sm:items-center">
               <span className="font-medium">{truth.name}</span>
@@ -783,16 +816,16 @@ function NowRow({
   tone: "good" | "warn" | "bad" | "active";
 }) {
   return (
-    <Link to={href} className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 text-inherit no-underline transition-colors hover:bg-accent/40">
+    <Link to={href} className="group/now grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 text-inherit no-underline outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
       <span className={cn(
-        "flex h-9 w-9 items-center justify-center rounded-full",
+        "flex h-9 w-9 items-center justify-center rounded-full transition-transform duration-200 group-hover/now:scale-105",
         tone === "good" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
         tone === "warn" && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
         tone === "bad" && "bg-destructive/10 text-destructive",
         tone === "active" && "bg-[var(--company-accent-subtle)] text-[var(--company-accent-strong)]",
       )}><Icon className="h-4 w-4" /></span>
       <span className="min-w-0"><span className="block text-xs text-muted-foreground">{label}</span><span className="block truncate text-sm font-semibold" title={value}>{value}</span></span>
-      <span className="flex max-w-36 items-center gap-1 text-right text-[11px] text-muted-foreground"><span className="line-clamp-2">{detail}</span><ChevronRight className="h-3.5 w-3.5 shrink-0" /></span>
+      <span className="flex max-w-36 items-center gap-1 text-right text-[11px] text-muted-foreground"><span className="line-clamp-2">{detail}</span><ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover/now:translate-x-0.5" /></span>
     </Link>
   );
 }
@@ -818,11 +851,13 @@ function CapacityCell({ label, value, detail, percent, href }: { label: string; 
     </>
   );
   return href
-    ? <Link to={href} className="min-w-0 p-4 text-inherit no-underline transition-colors hover:bg-accent/40">{inner}</Link>
+    ? <Link to={href} className="min-w-0 p-4 text-inherit no-underline outline-none transition-[background-color,transform] hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-safe:hover:-translate-y-px">{inner}</Link>
     : <div className="min-w-0 p-4">{inner}</div>;
 }
 
 export function PerformanceTrendChart({ activity }: { activity: DashboardRunActivityDay[] }) {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
   if (!activity.some((day) => day.total > 0)) {
     return <div className="paperclip-empty-state py-10 text-center text-sm text-muted-foreground">No runs in the selected period.</div>;
   }
@@ -858,47 +893,93 @@ export function PerformanceTrendChart({ activity }: { activity: DashboardRunActi
   if (current.length > 1) segments.push(current.join(" "));
   const totalRuns = activity.reduce((sum, day) => sum + day.total, 0);
   const totalSucceeded = activity.reduce((sum, day) => sum + day.succeeded, 0);
-  const totalFailed = activity.reduce((sum, day) => sum + day.failed, 0);
-  const totalOther = activity.reduce((sum, day) => sum + day.other, 0);
   const averageRate = totalRuns > 0 ? Math.round(totalSucceeded / totalRuns * 100) : null;
-  const failureRate = totalRuns > 0 ? Math.round(totalFailed / totalRuns * 100) : null;
-  const weakestDay = activity
-    .filter((day) => day.total > 0)
-    .reduce<DashboardRunActivityDay | null>((weakest, day) => {
-      if (!weakest) return day;
-      return day.succeeded / day.total < weakest.succeeded / weakest.total ? day : weakest;
-    }, null);
-  const weakestDayRate = weakestDay ? Math.round(weakestDay.succeeded / weakestDay.total * 100) : null;
+  const observedPoints = points.filter((point) => point.day.total > 0);
+  const selectedPoint = points.find((point) => point.day.date === selectedDate) ?? observedPoints.at(-1) ?? points.at(-1)!;
+  const selectedRate = selectedPoint.day.total > 0 ? Math.round(selectedPoint.day.succeeded / selectedPoint.day.total * 100) : null;
+  const targetGap = selectedRate == null ? null : selectedRate - 80;
+  const selectedLabel = selectedPoint.day.date.slice(5);
+  const selectDay = (date: string) => setSelectedDate(date);
 
   return (
-    <div>
+    <div className="space-y-2">
+      <div className="paperclip-inset flex min-h-12 flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2" aria-live="polite">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Selected day · {selectedLabel}</span>
+        <span className="text-sm font-semibold tabular-nums">
+          {selectedPoint.day.total.toLocaleString()} runs · {selectedRate == null ? "no rate" : `${selectedRate}% success`}
+        </span>
+        <span className="text-[11px] text-muted-foreground">
+          {selectedPoint.day.succeeded.toLocaleString()} succeeded · {selectedPoint.day.failed.toLocaleString()} failed
+          {selectedPoint.day.other > 0 ? ` · ${selectedPoint.day.other.toLocaleString()} other` : ""}
+        </span>
+        <span className={cn(
+          "ml-auto text-[11px] font-medium",
+          targetGap != null && targetGap < 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400",
+        )}>
+          {targetGap == null ? "Target comparison unavailable" : targetGap >= 0 ? `${targetGap}pp above target` : `${Math.abs(targetGap)}pp below target`}
+        </span>
+      </div>
       <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-36 w-full" role="img" aria-labelledby="performance-chart-title performance-chart-desc">
         <title id="performance-chart-title">Run throughput and success rate over 14 days</title>
-        <desc id="performance-chart-desc">{totalRuns} runs. Average success rate {averageRate == null ? "not available" : `${averageRate}%`}. Days without runs are shown as gaps.</desc>
+        <desc id="performance-chart-desc">Interactive daily run trend. Focus or select a day to inspect its outcomes. The 14-day average success rate is {averageRate == null ? "not available" : `${averageRate}%`}. Days without runs are shown as gaps.</desc>
         {[0, 0.5, 0.8, 1].map((rate) => {
           const y = top + (1 - rate) * plotHeight;
           return <g key={rate}><line x1={left} x2={left + plotWidth} y1={y} y2={y} stroke="var(--border)" strokeDasharray={rate === 0.8 ? "5 4" : undefined} opacity={rate === 0.8 ? 0.9 : 0.45} /><text x="0" y={y + 3} fontSize="9" fill="var(--muted-foreground)">{Math.round(rate * 100)}%</text></g>;
         })}
+        <line x1={selectedPoint.x} x2={selectedPoint.x} y1={top} y2={top + plotHeight} stroke="var(--company-accent)" strokeWidth="1" strokeDasharray="2 3" opacity="0.5" />
         {points.map((point) => {
           const height = point.day.total / maxTotal * plotHeight;
-          return <rect key={point.day.date} x={point.x - barWidth / 2} y={top + plotHeight - height} width={barWidth} height={height} rx="2" fill="var(--muted-foreground)" opacity="0.2"><title>{point.day.date}: {point.day.total} runs</title></rect>;
+          const active = point.day.date === selectedPoint.day.date;
+          const ratePercent = point.rate == null ? null : Math.round(point.rate * 100);
+          const accessibleLabel = `${point.day.date}: ${point.day.total} runs${ratePercent == null ? ", no success-rate observation" : `, ${ratePercent}% success, ${point.day.failed} failed`}`;
+          return (
+            <g
+              key={point.day.date}
+              role="button"
+              tabIndex={0}
+              aria-label={accessibleLabel}
+              aria-pressed={active}
+              className="cursor-pointer outline-none"
+              onMouseEnter={() => selectDay(point.day.date)}
+              onFocus={() => selectDay(point.day.date)}
+              onClick={() => selectDay(point.day.date)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  selectDay(point.day.date);
+                }
+              }}
+            >
+              <rect x={point.x - step / 2} y={top} width={step} height={plotHeight} fill="transparent" />
+              <rect
+                x={point.x - barWidth / 2}
+                y={top + plotHeight - height}
+                width={barWidth}
+                height={height}
+                rx="2"
+                fill={active ? "var(--company-accent)" : "var(--muted-foreground)"}
+                opacity={active ? 0.24 : 0.14}
+                className="transition-[opacity,fill] duration-150"
+              />
+              {active ? <rect x={point.x - step / 2 + 1} y={top + 1} width={Math.max(1, step - 2)} height={Math.max(1, plotHeight - 2)} rx="3" fill="none" stroke="var(--ring)" strokeWidth="1.5" opacity="0.65" /> : null}
+              <title>{accessibleLabel}</title>
+            </g>
+          );
         })}
         {segments.map((segment, index) => <polyline key={index} points={segment} fill="none" stroke="var(--company-accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />)}
-        {points.filter((point) => point.y != null).map((point) => <circle key={`${point.day.date}-rate`} cx={point.x} cy={point.y ?? 0} r={point.rate != null && point.rate < 0.5 ? 3.5 : 2.5} fill={point.rate != null && point.rate < 0.5 ? "var(--destructive)" : "var(--company-accent)"}><title>{point.day.date}: {Math.round((point.rate ?? 0) * 100)}% success ({point.day.succeeded}/{point.day.total})</title></circle>)}
+        {points.filter((point) => point.y != null).map((point) => {
+          const active = point.day.date === selectedPoint.day.date;
+          return <circle key={`${point.day.date}-rate`} cx={point.x} cy={point.y ?? 0} r={active ? 4 : 2.5} fill="var(--company-accent)" stroke={active ? "var(--background)" : "none"} strokeWidth={active ? 2 : 0} className="pointer-events-none transition-[r] duration-150"><title>{point.day.date}: {Math.round((point.rate ?? 0) * 100)}% success ({point.day.succeeded}/{point.day.total})</title></circle>;
+        })}
         <text x={left} y={chartHeight - 4} fontSize="9" fill="var(--muted-foreground)">{activity[0]?.date.slice(5)}</text>
         <text x={left + plotWidth / 2} y={chartHeight - 4} textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">{activity[Math.floor(activity.length / 2)]?.date.slice(5)}</text>
         <text x={left + plotWidth} y={chartHeight - 4} textAnchor="end" fontSize="9" fill="var(--muted-foreground)">{activity.at(-1)?.date.slice(5)}</text>
       </svg>
       <p className="sr-only">{activity.map((day) => `${day.date}: ${day.total} runs, ${day.total > 0 ? `${Math.round(day.succeeded / day.total * 100)}% success` : "no success-rate observation"}`).join("; ")}</p>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 text-[11px] text-muted-foreground">
-        <span>{totalRuns.toLocaleString()} total runs</span>
-        <span>{averageRate == null ? "No observed success rate" : `${averageRate}% average success`}</span>
-        <span className={cn("inline-flex items-center gap-1", totalFailed > 0 && "text-destructive")}>
-          {totalFailed > 0 ? <AlertTriangle className="h-3 w-3" /> : null}
-          {failureRate == null ? "Failures unavailable" : `${totalFailed.toLocaleString()} failed (${failureRate}%)`}
-        </span>
-        {totalOther > 0 ? <span>{totalOther.toLocaleString()} other outcomes</span> : null}
-        {weakestDay && weakestDayRate != null ? <span className="ml-auto">Lowest {weakestDay.date.slice(5)} · {weakestDayRate}%</span> : null}
+        <span>{averageRate == null ? "14-day average unavailable" : `14-day average · ${averageRate}% success`}</span>
+        <span>{totalRuns.toLocaleString()} runs observed</span>
+        <span className="ml-auto">Hover, click, or focus a day to inspect it</span>
       </div>
     </div>
   );
