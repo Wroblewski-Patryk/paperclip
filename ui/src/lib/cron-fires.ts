@@ -137,7 +137,12 @@ interface ZonedParts {
   weekday: number;
 }
 
-function getZonedMinuteParts(date: Date, timeZone: string): ZonedParts {
+const zonedMinuteFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function getZonedMinuteFormatter(timeZone: string): Intl.DateTimeFormat {
+  const cached = zonedMinuteFormatters.get(timeZone);
+  if (cached) return cached;
+
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone,
     year: "numeric",
@@ -148,6 +153,12 @@ function getZonedMinuteParts(date: Date, timeZone: string): ZonedParts {
     weekday: "short",
     hourCycle: "h23",
   });
+  zonedMinuteFormatters.set(timeZone, formatter);
+  return formatter;
+}
+
+function getZonedMinuteParts(date: Date, timeZone: string): ZonedParts {
+  const formatter = getZonedMinuteFormatter(timeZone);
   const map: Record<string, string> = {};
   for (const part of formatter.formatToParts(date)) {
     if (part.type !== "literal") map[part.type] = part.value;
