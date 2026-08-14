@@ -524,7 +524,7 @@ export function MissionControlDashboard({
 
       <nav className="paperclip-surface overflow-x-auto" aria-label="Company work flow">
         <div className="grid grid-cols-3 items-stretch divide-x divide-border sm:flex sm:min-w-[700px]">
-          {flow.map((stage, index) => {
+          {flow.map((stage) => {
             const Icon = stage.icon;
             const active = stage.value > 0;
             const liveExecution = stage.tone === "execution" && active;
@@ -573,7 +573,6 @@ export function MissionControlDashboard({
                     {stage.context ? <span className="mt-0.5 block truncate text-[11px] text-muted-foreground/80">{stage.context}</span> : null}
                   </span>
                 </Link>
-                {index < flow.length - 1 ? <ChevronRight className="-mr-2 hidden h-4 w-4 shrink-0 text-muted-foreground/50 sm:block" /> : null}
               </div>
             );
           })}
