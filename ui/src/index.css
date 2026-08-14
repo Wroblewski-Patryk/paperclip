@@ -378,11 +378,11 @@
 }
 
 @keyframes dashboard-execution-scan {
-  0%, 70%, 100% {
-    transform: translateX(-115%);
+  0%, 70% {
+    transform: translateX(-105%);
   }
-  88% {
-    transform: translateX(115%);
+  88%, 100% {
+    transform: translateX(265%);
   }
 }
 
