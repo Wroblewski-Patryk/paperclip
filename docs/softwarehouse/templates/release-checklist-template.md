@@ -13,6 +13,23 @@
 - Exact source SHA:
 - Push status: not needed / pending / pushed / blocked
 - Source ref available to deploy target: yes / no / not applicable
+## Execution-ready preflight (fail closed)
+
+Before a release or deploy issue may enter execution-ready status, all four
+fields below are mandatory. An empty, abbreviated, stale, or unverifiable value
+keeps the issue blocked:
+
+- Exact candidate SHA: full immutable Git SHA (`candidateSha`)
+- Packet owner: exactly one accountable deploy/rollback owner (`unblockOwner`)
+- Protected-gate authorization: named contract, status, and evidence reference
+  (`protectedGateContract`, `protectedGateStatus`, `protectedGateEvidenceRef`)
+- Verification/monitoring path: executable fresh verification evidence tied to
+  the same candidate (`freshVerificationEvidence`, `verifiedCandidateSha`,
+  `verifiedAt`, `verificationMaxAgeHours`)
+
+This guardrail carries forward the closure lesson from LUC-2359. Run the
+release-blocker preflight before opening dependent implementation, QA, or deploy
+lanes; rejection is the expected result for an incomplete packet.
 
 ## Release blocker closure preflight
 

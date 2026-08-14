@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { determineAutonomyDisposition, determineAutonomyStage } from "../services/autonomy-decision.js";
+import {
+  autonomySqlTimestamp,
+  determineAutonomyDisposition,
+  determineAutonomyStage,
+} from "../services/autonomy-decision.js";
 
 describe("autonomy decision safety contract", () => {
+  it("serializes execution timestamps before interpolating them into raw SQL", () => {
+    expect(autonomySqlTimestamp(new Date("2026-08-14T03:50:38.696Z"))).toBe("2026-08-14T03:50:38.696Z");
+    expect(autonomySqlTimestamp("2026-08-14T03:50:38.696Z")).toBe("2026-08-14T03:50:38.696Z");
+    expect(() => autonomySqlTimestamp("not-a-date")).toThrow(/Invalid autonomy SQL timestamp/);
+  });
   it("requires evidence when the linked goal is already achieved", () => {
     expect(determineAutonomyDisposition({
       hasCandidate: true,

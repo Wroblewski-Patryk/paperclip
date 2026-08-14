@@ -31,6 +31,14 @@ const DECISION_MODEL_VERSION = "work-selection-v2.1";
 const CALIBRATION_COHORT = "work-selection-v2.1";
 const TERMINAL_ISSUE_STATES = ["done", "cancelled"];
 
+export function autonomySqlTimestamp(value: Date | string) {
+  const timestamp = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(timestamp.getTime())) {
+    throw new Error(`Invalid autonomy SQL timestamp: ${String(value)}`);
+  }
+  return timestamp.toISOString();
+}
+
 export function determineAutonomyDisposition(input: {
   hasCandidate: boolean;
   goalStatus: string | null;
@@ -754,6 +762,10 @@ export function autonomyDecisionService(db: Db, deps: { enqueueWakeup?: WakeExis
     ));
     const reconciled = [];
     for (const execution of rows) {
+      // postgres-js receives interpolated values here as text parameters. Passing
+      // Drizzle's Date object directly crashes its byte encoder and stalls the
+      // whole native supervision cycle before another issue can be dispatched.
+      const executionCreatedAt = autonomySqlTimestamp(execution.createdAt);
       const [state] = await db.execute<Record<string, unknown>>(sql`
         select i.status as issue_status,
           r.status as run_status,
@@ -766,7 +778,7 @@ export function autonomyDecisionService(db: Db, deps: { enqueueWakeup?: WakeExis
           (select count(*) from cost_events c where c.company_id=i.company_id and c.issue_id=i.id)::int as cost_event_count,
           (select coalesce(sum(c.cost_cents),0) from cost_events c where c.company_id=i.company_id and c.issue_id=i.id)::int as cost_cents,
           (select count(*) from issue_relations rel where rel.company_id=i.company_id and rel.issue_id=i.id and rel.type='blocks')::int as outgoing_edge_count,
-          (select count(*) from issue_relations rel where rel.company_id=i.company_id and rel.issue_id=i.id and rel.type='blocks' and rel.status='resolved' and rel.last_verified_at >= ${execution.createdAt} and jsonb_array_length(rel.resolution_evidence) > 0)::int as verified_resolved_edge_count
+          (select count(*) from issue_relations rel where rel.company_id=i.company_id and rel.issue_id=i.id and rel.type='blocks' and rel.status='resolved' and rel.last_verified_at >= ${executionCreatedAt} and jsonb_array_length(rel.resolution_evidence) > 0)::int as verified_resolved_edge_count
         from issues i
         left join heartbeat_runs r on r.id=${execution.runId}
         left join delivery_tasks dt on dt.issue_id=i.id and dt.company_id=i.company_id

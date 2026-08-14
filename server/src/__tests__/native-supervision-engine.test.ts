@@ -505,6 +505,47 @@ describeEmbedded("native supervision engine", () => {
     expect(await db.select().from(organizationalObservations)).toContainEqual(expect.objectContaining({ kind: "learning", status: "promoted" }));
   });
 
+  it("dispatches stale review recovery to the current participant rather than the original assignee", async () => {
+    const refs = await seed();
+    const reviewerId = randomUUID();
+    await db.insert(agents).values({
+      id: reviewerId,
+      companyId: refs.companyId,
+      name: "Current reviewer",
+      role: "manager",
+      status: "active",
+      permissions: {},
+    });
+    const [review] = await db.insert(issues).values({
+      companyId: refs.companyId,
+      projectId: refs.projectId,
+      title: "Review transferred after implementation",
+      status: "in_review",
+      assigneeAgentId: refs.ownerId,
+      executionState: {
+        status: "changes_requested",
+        currentParticipant: { type: "agent", agentId: reviewerId, userId: null },
+      },
+      updatedAt: new Date("2026-08-01T00:00:00Z"),
+    }).returning();
+    const enqueueWakeup = vi.fn(async () => ({ accepted: true }));
+
+    const result = await nativeSupervisionEngine(db, { enqueueWakeup }).runWatchdog(
+      refs.companyId,
+      new Date("2026-08-04T03:01:00Z"),
+    );
+
+    expect(result.reviewDispatch).toMatchObject({
+      status: "dispatched",
+      issueId: review.id,
+      ownerAgentId: reviewerId,
+    });
+    expect(enqueueWakeup).toHaveBeenCalledWith(reviewerId, expect.objectContaining({
+      reason: "supervision_review_bottleneck_dispatch",
+    }));
+    expect(enqueueWakeup).not.toHaveBeenCalledWith(refs.ownerId, expect.anything());
+  });
+
   it("dispatches one stale review per project instead of using a company-wide review mutex", async () => {
     const refs = await seed();
     const secondProjectId = randomUUID();

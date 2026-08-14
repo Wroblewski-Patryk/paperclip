@@ -157,6 +157,93 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     await tempDb?.cleanup();
   });
 
+  it("routes in-review timer work to the current participant instead of the stale assignee", async () => {
+    const companyId = randomUUID();
+    const assigneeAgentId = randomUUID();
+    const reviewerAgentId = randomUUID();
+    const reviewIssueId = randomUUID();
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    const heartbeatPolicy = {
+      heartbeat: {
+        enabled: true,
+        intervalSec: 30,
+        wakeOnDemand: true,
+        workAware: true,
+        reviewFirst: true,
+        maxConcurrentRuns: 1,
+      },
+    };
+    await db.insert(agents).values([
+      {
+        id: assigneeAgentId,
+        companyId,
+        name: "Original implementer",
+        role: "engineer",
+        status: "active",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: heartbeatPolicy,
+        permissions: {},
+        lastHeartbeatAt: new Date("2026-06-03T23:00:00Z"),
+      },
+      {
+        id: reviewerAgentId,
+        companyId,
+        name: "Current reviewer",
+        role: "manager",
+        status: "active",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: heartbeatPolicy,
+        permissions: {},
+        lastHeartbeatAt: new Date("2026-06-03T23:00:00Z"),
+      },
+    ]);
+    await db.insert(issues).values({
+      id: reviewIssueId,
+      companyId,
+      title: "Review transferred to a reviewer",
+      status: "in_review",
+      priority: "high",
+      assigneeAgentId,
+      executionState: {
+        status: "changes_requested",
+        currentParticipant: { type: "agent", agentId: reviewerAgentId, userId: null },
+      },
+    });
+
+    const result = await heartbeat.tickTimers(new Date("2026-06-04T00:10:00Z"));
+
+    expect(result.enqueued).toBe(1);
+    const timerRuns = await db
+      .select({ id: heartbeatRuns.id, agentId: heartbeatRuns.agentId, contextSnapshot: heartbeatRuns.contextSnapshot })
+      .from(heartbeatRuns);
+    expect(timerRuns).toHaveLength(1);
+    expect(timerRuns[0]).toMatchObject({
+      agentId: reviewerAgentId,
+      contextSnapshot: {
+        issueId: reviewIssueId,
+        reason: "assigned_review_available",
+        workType: "review",
+      },
+    });
+    const completedForReviewer = await waitForCondition(async () => {
+      const current = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, timerRuns[0]!.id))
+        .then((rows) => rows[0] ?? null);
+      return current?.status === "succeeded";
+    }, 10_000);
+    expect(completedForReviewer).toBe(true);
+  });
+
   it("keeps blocked descendants idle until their blockers resolve", async () => {
     const companyId = randomUUID();
     const agentId = randomUUID();

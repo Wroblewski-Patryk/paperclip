@@ -129,6 +129,7 @@ export function classifyAutomaticRecoveryPolicyHold(run: LatestIssueRun) {
   const context = parseObject(run.contextSnapshot);
   const executionQuota = parseObject(context.executionQuota);
   if (
+    run.errorCode === "issue_execution_quota_hold" ||
     /issue execution quota hard hold/i.test(run.error ?? "") ||
     executionQuota.admitted === false && executionQuota.reason === "raw_input_quota_exceeded"
   ) {
@@ -138,6 +139,48 @@ export function classifyAutomaticRecoveryPolicyHold(run: LatestIssueRun) {
     } as const;
   }
   return null;
+}
+
+export function buildQuotaHoldRecoveryActionUpdate(input: {
+  ownerAgentId: string | null;
+  hasInvokableOwner: boolean;
+  policyHold: NonNullable<ReturnType<typeof classifyAutomaticRecoveryPolicyHold>>;
+  attemptCount: number;
+  evidence: unknown;
+  latestRunId: string | null;
+}) {
+  const evidence = {
+    ...parseObject(input.evidence),
+    automaticRecoverySuppressed: true,
+    suppressionCode: input.policyHold.code,
+    latestRunId: input.latestRunId,
+  };
+
+  if (input.ownerAgentId && input.hasInvokableOwner) {
+    return {
+      status: "escalated" as const,
+      ownerType: "agent" as const,
+      ownerAgentId: input.ownerAgentId,
+      wakePolicy: {
+        type: "wake_owner" as const,
+        reason: input.policyHold.code,
+        ownerAgentId: input.ownerAgentId,
+      },
+      nextAction: "An invokable technical recovery owner must review the quota hold and record a safe disposition. Automatic recovery must not reset quota windows, raise quotas, or invoke adapters.",
+      maxAttempts: input.attemptCount,
+      evidence,
+    };
+  }
+
+  return {
+    status: "escalated" as const,
+    ownerType: "board" as const,
+    ownerAgentId: null,
+    wakePolicy: { type: "board_escalation" as const, reason: "no_invokable_recovery_owner" },
+    nextAction: input.policyHold.nextAction,
+    maxAttempts: input.attemptCount,
+    evidence,
+  };
 }
 
 export function resolveSourceScopedRecoveryAttemptLimit(input: {
@@ -2520,13 +2563,14 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       }
 
       const latestRun = await getLatestIssueRun(row.issue.companyId, row.issue.id);
+      const policyHold = classifyAutomaticRecoveryPolicyHold(latestRun);
       const attemptLimit = resolveSourceScopedRecoveryAttemptLimit({
         kind: row.action.kind,
         maxAttempts: row.action.maxAttempts,
         evidence: row.action.evidence,
         latestRun,
       });
-      if (row.action.attemptCount >= attemptLimit) {
+      if (!policyHold && row.action.attemptCount >= attemptLimit) {
         await db
           .update(issueRecoveryActions)
           .set({
@@ -2548,10 +2592,6 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
             eq(issueRecoveryActions.id, row.action.id),
             inArray(issueRecoveryActions.status, ["active", "escalated"]),
           ));
-        result.skipped += 1;
-        continue;
-      }
-      if (!row.action.ownerAgentId || !isAgentInvokable(row.owner)) {
         result.skipped += 1;
         continue;
       }
@@ -2580,29 +2620,29 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         continue;
       }
 
-      const policyHold = classifyAutomaticRecoveryPolicyHold(latestRun);
       if (policyHold) {
         await db
           .update(issueRecoveryActions)
           .set({
-            status: "escalated",
-            ownerType: "board",
-            ownerAgentId: null,
-            wakePolicy: { type: "board_escalation", reason: policyHold.code },
-            nextAction: policyHold.nextAction,
-            maxAttempts: row.action.attemptCount,
-            evidence: {
-              ...parseObject(row.action.evidence),
-              automaticRecoverySuppressed: true,
-              suppressionCode: policyHold.code,
+            ...buildQuotaHoldRecoveryActionUpdate({
+              ownerAgentId: row.action.ownerAgentId,
+              hasInvokableOwner: isAgentInvokable(row.owner),
+              policyHold,
+              attemptCount: row.action.attemptCount,
+              evidence: row.action.evidence,
               latestRunId: latestRun?.id ?? null,
-            },
+            }),
             updatedAt: new Date(),
           })
           .where(and(
             eq(issueRecoveryActions.id, row.action.id),
             inArray(issueRecoveryActions.status, ["active", "escalated"]),
           ));
+        result.skipped += 1;
+        continue;
+      }
+
+      if (!row.action.ownerAgentId || !isAgentInvokable(row.owner)) {
         result.skipped += 1;
         continue;
       }

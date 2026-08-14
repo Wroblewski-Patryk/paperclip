@@ -84,8 +84,10 @@ agent owns an executable `backlog` or `todo` issue with no unresolved blocker, a
 active tree hold, or accepted-outcome conflict. Timers preserve per-agent WIP=1 and serialize writers
 by project, while independent projects may proceed in parallel. Reusable routine issues scope their
 execution quota to the current routine-run epoch; ordinary issues retain issue-lifetime quota. A
-quota hard hold is a policy decision, not a transient adapter failure: recovery escalates it to the
-board and does not re-arm the same run every few minutes. Native stale-review consumption remains
+quota hard hold is a policy decision, not a transient adapter failure: recovery suppresses automatic
+execution and preserves an invokable recovery owner through a `wake_owner` technical-review policy.
+Board escalation is the fallback only when no invokable owner exists; neither path resets or raises
+the quota. Native stale-review consumption remains
 active even when agent timers are enabled and admits at most one review lane per supervision cycle.
 Work-aware timers are review-first: an assigned review is selected ahead of implementation, and a
 project with an unstructured review wait cannot admit another implementation timer until a review

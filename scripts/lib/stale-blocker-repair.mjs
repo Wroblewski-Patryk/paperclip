@@ -80,7 +80,12 @@ export function planResolvedBlockerRepair({ target, detailedTarget }) {
     // queue state. Resume its owner even when the issue was touched after the
     // dependency completed; the owner must link any still-real replacement
     // blocker explicitly instead of leaving work parked forever.
-    nextStatus: retainedBlockers.length === 0 ? "todo" : "blocked",
+    // An unassigned issue cannot legally enter an executable state. Preserve
+    // it as selectable backlog after removing resolved dependencies; native
+    // ownership admission can promote it later without failing the whole tick.
+    nextStatus: retainedBlockers.length === 0
+      ? target.assigneeAgentId ? "todo" : "backlog"
+      : "blocked",
     resolutionIsNewerThanTarget,
   };
 }

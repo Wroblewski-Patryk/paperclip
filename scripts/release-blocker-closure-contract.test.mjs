@@ -26,6 +26,12 @@ async function readObservedFixture() {
   );
 }
 
+async function readIncompletePreflightFixture() {
+  return JSON.parse(
+    await readFile("scripts/fixtures/luc-2671-incomplete-release-preflight.json", "utf8"),
+  );
+}
+
 test("canonical process, template, and operating instruction retain the release blocker gate", async () => {
   const documents = await readCanonicalDocuments();
   assert.deepEqual(auditReleaseBlockerClosureDocuments(documents), []);
@@ -103,6 +109,18 @@ test("the gate fails closed on abbreviated SHA, mismatched verification, missing
     assert.equal(report.mayOpenDependentLanes, false);
     assert.equal(report.unblockOwner, "09 DRE (Deployment & Reliability Engineer)");
   }
+});
+
+test("the LUC-2671 incomplete preflight remains blocked until candidate verification is supplied", async () => {
+  const fixture = await readIncompletePreflightFixture();
+  const report = evaluateReleaseBlockerClosureRecord(fixture.closurePacket, {
+    now: new Date("2026-08-14T12:00:00.000Z"),
+  });
+
+  assert.equal(report.ready, false);
+  assert.equal(report.mayOpenDependentLanes, false);
+  assert.equal(report.unblockOwner, "09 DRE (Deployment & Reliability Engineer)");
+  assert.deepEqual(report.missingFields.sort(), ["freshVerificationEvidence", "verifiedAt", "verifiedCandidateSha"]);
 });
 
 test("retirement requires all nine references closed or superseded and two later passing cycles", async () => {

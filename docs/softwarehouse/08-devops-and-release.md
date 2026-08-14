@@ -38,6 +38,10 @@ definitions, dry-run examples, and release evidence records.
 ## Release Blocker Closure Preflight
 
 Contract marker: `release-blocker-closure:v1`.
+This preflight is mandatory before a release/deploy issue is execution-ready.
+It requires the exact candidate SHA, one accountable packet owner, protected
+gate authorization, and a fresh verification/monitoring path; LUC-2359 is the
+prior closure reference for this control. Missing evidence remains blocked.
 
 Before dependent implementation or QA lanes open, run
 `pnpm softwarehouse:release-blocker-preflight -- <closure-packet.json>`. The

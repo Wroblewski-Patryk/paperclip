@@ -1,0 +1,15 @@
+{
+  "sourceIssue": "LUC-2671",
+  "closurePacket": {
+    "blockerRef": "LUC-2359",
+    "unblockOwner": "09 DRE (Deployment & Reliability Engineer)",
+    "candidateSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "candidateParentSha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "sourceRepository": "paperclip", "sourceBranch": "main", "targetEnvironment": "production",
+    "lineageEvidenceRef": "sha-lineage-proof:LUC-2671",
+    "protectedGateContract": "production-release:v1", "protectedGateStatus": "blocked", "protectedGateEvidenceRef": "gate-proof:LUC-2671",
+    "rollbackPath": "revert candidate and redeploy prior SHA", "rollbackOwner": "09 DRE (Deployment & Reliability Engineer)",
+    "freshVerificationEvidence": "", "verifiedCandidateSha": "", "verifiedAt": "", "verificationMaxAgeHours": 24,
+    "dependentLaneRefs": ["LUC-2671"]
+  }
+}

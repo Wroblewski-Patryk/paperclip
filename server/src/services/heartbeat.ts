@@ -100,6 +100,7 @@ import {
   resolveSessionRuntimeLimits,
   type SessionRuntimeUsage,
 } from "./session-runtime-budget.js";
+import { reconcileTerminalIssueSessionBudgetOutcome, type HeartbeatAdapterOutcome } from "./heartbeat-outcome.js";
 import { secretService } from "./secrets.js";
 import { resolveDefaultAgentWorkspaceDir, resolveManagedProjectWorkspaceDir } from "../home-paths.js";
 import {
@@ -6700,8 +6701,29 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       .from(issues)
       .where(and(
         eq(issues.companyId, agent.companyId),
-        eq(issues.assigneeAgentId, agent.id),
         inArray(issues.status, ["backlog", "todo", "in_review"]),
+        or(
+          and(
+            ne(issues.status, "in_review"),
+            eq(issues.assigneeAgentId, agent.id),
+          ),
+          and(
+            eq(issues.status, "in_review"),
+            sql`(
+              (
+                (
+                  ${issues.executionState}->'currentParticipant' is null
+                  or ${issues.executionState}->'currentParticipant' = 'null'::jsonb
+                )
+                and ${issues.assigneeAgentId}=${agent.id}
+              )
+              or (
+                ${issues.executionState}->'currentParticipant'->>'type'='agent'
+                and ${issues.executionState}->'currentParticipant'->>'agentId'=${agent.id}
+              )
+            )`,
+          ),
+        ),
         isNull(issues.hiddenAt),
         or(isNull(issues.originKind), ne(issues.originKind, "routine_execution")),
         sql`(
@@ -7640,7 +7662,19 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       }
     }
 
-    if (issue.assigneeAgentId !== run.agentId && !isInteractionWake) {
+    const reviewExecutionState = issue.status === "in_review"
+      ? parseIssueExecutionState(issue.executionState)
+      : null;
+    const currentReviewParticipant = reviewExecutionState?.currentParticipant ?? null;
+    const rawCurrentReviewParticipant = issue.status === "in_review"
+      ? parseObject(parseObject(issue.executionState).currentParticipant)
+      : {};
+    // Review ownership is transferred through executionState; assignee remains the implementation owner.
+    const runIsCurrentReviewParticipant =
+      (currentReviewParticipant?.type === "agent" && currentReviewParticipant.agentId === run.agentId) ||
+      (rawCurrentReviewParticipant.type === "agent" && rawCurrentReviewParticipant.agentId === run.agentId);
+
+    if (issue.assigneeAgentId !== run.agentId && !isInteractionWake && !runIsCurrentReviewParticipant) {
       return {
         stale: true,
         errorCode: "issue_assignee_changed",
@@ -7689,8 +7723,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     }
 
     if (issue.status === "in_review") {
-      const executionState = parseIssueExecutionState(issue.executionState);
-      const currentParticipant = executionState?.currentParticipant ?? null;
+      const executionState = reviewExecutionState;
+      const currentParticipant = currentReviewParticipant;
       if (currentParticipant) {
         const participantMatches =
           currentParticipant.type === "agent" && currentParticipant.agentId === run.agentId;
@@ -10113,7 +10147,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       });
       const normalizedUsage = sessionUsageResolution.normalizedUsage;
 
-      let outcome: "succeeded" | "failed" | "cancelled" | "timed_out";
+      let outcome: HeartbeatAdapterOutcome;
       const latestRun = await getRun(run.id);
       if (isHeartbeatRunTerminalStatus(latestRun?.status)) {
         outcome = latestRun.status;
@@ -10124,6 +10158,19 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       } else {
         outcome = "failed";
       }
+      const terminalIssueStatus = outcome === "failed" && adapterResult.errorCode === "SESSION_BUDGET_EXHAUSTED" && issueId
+        ? await db
+            .select({ status: issues.status })
+            .from(issues)
+            .where(eq(issues.id, issueId))
+            .limit(1)
+            .then((rows) => rows[0]?.status ?? null)
+        : null;
+      outcome = reconcileTerminalIssueSessionBudgetOutcome({
+        outcome,
+        errorCode: adapterResult.errorCode,
+        issueStatus: terminalIssueStatus,
+      });
       const runErrorMessage =
         outcome === "cancelled"
           ? (latestRun?.error ?? adapterResult.errorMessage ?? "Cancelled")

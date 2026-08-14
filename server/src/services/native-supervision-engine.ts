@@ -387,10 +387,19 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       issue_id: string; project_id: string | null; owner_agent_id: string;
       identifier: string | null; title: string; updated_at: Date;
     }>(sql`
-      select distinct on (i.project_id) i.id as issue_id, i.project_id, i.assignee_agent_id as owner_agent_id,
+      select distinct on (i.project_id) i.id as issue_id, i.project_id, a.id as owner_agent_id,
         i.identifier, i.title, i.updated_at
       from issues i
-      join agents a on a.id=i.assignee_agent_id and a.company_id=i.company_id
+      join agents a
+        on a.company_id=i.company_id
+       and a.id::text = case
+         when i.execution_state->'currentParticipant'->>'type'='agent'
+           then i.execution_state->'currentParticipant'->>'agentId'
+         when i.execution_state->'currentParticipant' is null
+           or i.execution_state->'currentParticipant' = 'null'::jsonb
+           then i.assignee_agent_id::text
+         else null
+       end
       where i.company_id=${companyId}
         and i.status='in_review'
         and i.hidden_at is null

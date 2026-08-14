@@ -488,6 +488,8 @@ test("runtime topology audit does not invent missing projects after a catalog ti
   assert.match(source, /projectCatalogChecked: projectsChecked/);
   assert.match(source, /if \(projectsChecked\) \{/);
   assert.match(source, /paperclip_project_catalog_unavailable/);
+  assert.match(source, /devServerStatus\?\.lastRestartAt/);
+  assert.match(source, /unique_node_listener_plus_local_status_registry_start_match/);
   assert.doesNotMatch(source, /paperclip_api_unhealthy/);
 });
 
@@ -795,7 +797,7 @@ test("longevity doctor checks the single canonical active routine catalog", asyn
   assert.match(doctor, /missingCanonicalRoutineTitles/);
   assert.match(doctor, /Canonical routine coverage is not active/);
   assert.doesNotMatch(doctor, /Core routine coverage is not active/);
-  assert.equal(softwarehousePilotActiveRoutineTitles.size, 8);
+  assert.equal(softwarehousePilotActiveRoutineTitles.size, 7);
 });
 
 test("softwarehouse doctor and team adoption share the canonical routine title registry", async () => {
@@ -812,7 +814,6 @@ test("softwarehouse doctor and team adoption share the canonical routine title r
   );
   for (const title of [
     "09 Technology: Agent Health and Model Governance",
-    "11 Innovation: Autonomy Governor",
     "09 Technology: Longevity Doctor and Watchdog",
     "04 Operations: Longevity Snapshot Backup",
     "04 Operations: Organizational Learning Loop",
@@ -827,6 +828,7 @@ test("softwarehouse doctor and team adoption share the canonical routine title r
     );
   }
   for (const title of [
+    "11 Innovation: Autonomy Governor",
     "11 Innovation: Continuation Watchdog",
     "04 Operations: Gate Freshness Watcher",
     "[Soar] Source-control closure sweep",
@@ -2938,6 +2940,38 @@ test("resolved blocker repair resumes an orphaned blocked issue even after a new
   });
 });
 
+test("resolved blocker repair returns unassigned work to backlog instead of illegal todo", () => {
+  const repair = planResolvedBlockerRepair({
+    target: {
+      id: "target-id",
+      identifier: "LUC-2710",
+      status: "blocked",
+      assigneeAgentId: null,
+      updatedAt: "2026-08-14T16:00:00.000Z",
+    },
+    detailedTarget: {
+      blockedBy: [
+        {
+          id: "done-id",
+          identifier: "LUC-2738",
+          status: "done",
+          completedAt: "2026-08-14T16:32:14.000Z",
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(repair, {
+    issueId: "target-id",
+    issueIdentifier: "LUC-2710",
+    assigneeAgentId: null,
+    resolvedBlockerIdentifiers: ["LUC-2738"],
+    blockedByIssueIds: [],
+    nextStatus: "backlog",
+    resolutionIsNewerThanTarget: true,
+  });
+});
+
 test("stalled todo wake is bounded to idle non-routine agent work and comments do not count as execution", () => {
   const issue = {
     id: "issue-id",
@@ -3429,7 +3463,7 @@ test("architecture awareness treats structured browser proof JSON as test eviden
 
   assert.match(source, /function pathLooksLikeStructuredTestArtifact/);
   assert.match(source, /browser-proof\|smoke-e2e\|api-smoke-e2e\|test-proof/);
-  assert.match(source, /pathLooksLikeTest\(relativePath\) \|\| isStructuredTestArtifact/);
+  assert.match(source, /const isTest = pathLooksLikeRunnableTest\(relativePath\)/);
   assert.match(source, /!isMigration && !isStructuredTestArtifact/);
 });
 
