@@ -103,6 +103,23 @@ function timeOnly(value: string | Date) {
   return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
+function isNoopPromotionEvaluation(event: ActivityEvent) {
+  if (!event.action.endsWith("promotion_evaluated")) return false;
+  const transitions = event.details?.transitions;
+  const disposition = event.details?.disposition;
+  return Array.isArray(transitions)
+    && transitions.length === 0
+    && (disposition === "held" || disposition === "already_promoted");
+}
+
+function oldestIssueAge(issueRows: Issue[]) {
+  const oldest = issueRows
+    .map((issue) => toDate(issue.lastActivityAt ?? issue.updatedAt ?? issue.createdAt))
+    .filter((value): value is Date => Boolean(value))
+    .sort((left, right) => left.getTime() - right.getTime())[0];
+  return oldest ? relativeTime(oldest) : "Unknown";
+}
+
 function issueHref(issue: Issue | undefined) {
   return issue ? `/issues/${issue.identifier ?? issue.id}` : "/issues";
 }
@@ -278,6 +295,9 @@ export function MissionControlDashboard({
   const healthyCount = healthChecks.filter(Boolean).length;
 
   const blockedCount = situation?.work.blocked ?? dashboard.tasks.blocked;
+  const blockedIssues = issues.filter((issue) => issue.status === "blocked");
+  const blockedAttentionIssues = blockedIssues.filter((issue) => issue.blockerAttention?.state === "needs_attention");
+  const hasBlockerAttentionData = blockedIssues.some((issue) => Boolean(issue.blockerAttention));
   const dispatchConstrained = (situation?.capacity.dispatchState ?? "healthy") !== "healthy";
   const overallTone = !status?.available || dashboard.agents.error > 0
     ? "bad"
@@ -395,7 +415,18 @@ export function MissionControlDashboard({
     { label: "Execution", value: liveRunCount, detail: "live", context: executionSignal.short, icon: Play, href: "/dashboard/live", tone: "execution" },
     { label: "Review", value: reviewCount, detail: "in review", context: oldestFlowAge(situation, ["review", "human_gate"]), icon: Search, href: "/issues?status=in_review", tone: "review" },
     { label: "Delivery", value: recentDeliveryCount, detail: "last 24h", context: latestDeliveryAt ? `latest ${relativeTime(latestDeliveryAt)}` : "no recent delivery", icon: Upload, href: "/issues?status=done", tone: "delivery", mobileSecondary: true },
-    { label: "Blocked", value: blockedCount, detail: "needs attention", context: oldestFlowAge(situation, ["blocked_dependency", "blocked_conflict", "blocked_unknown"]), icon: Ban, href: "/issues?status=blocked", tone: "blocked", attention: blockedCount > 0 },
+    {
+      label: "Blocked",
+      value: blockedCount,
+      detail: "blocked",
+      context: blockedAttentionIssues.length > 0
+        ? `${blockedAttentionIssues.length} need attention · ${oldestIssueAge(blockedAttentionIssues)}`
+        : oldestFlowAge(situation, ["blocked_dependency", "blocked_conflict", "blocked_unknown"]),
+      icon: Ban,
+      href: "/issues?status=blocked",
+      tone: "blocked",
+      attention: blockedAttentionIssues.length > 0,
+    },
   ];
 
   const ownerDecisionCount = (situation?.attention ?? []).filter((signal) => OWNER_DECISION_KINDS.has(signal.kind)).length
@@ -408,6 +439,7 @@ export function MissionControlDashboard({
     const seen = new Set<string>();
     return activity.filter((event) => {
       if (/(read_marked|viewed|opened|read$)/i.test(event.action)) return false;
+      if (isNoopPromotionEvaluation(event)) return false;
       const key = `${event.actorId}:${event.action}:${event.entityType}:${event.entityId}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -441,20 +473,30 @@ export function MissionControlDashboard({
     }
 
     if (blockedCount > 0 && !result.some((item) => item.type === "blocked work")) {
+      const attentionCount = blockedAttentionIssues.length;
+      const affectedIssues = attentionCount > 0 ? blockedAttentionIssues : blockedIssues;
       result.unshift({
         id: "blocked-work",
-        title: `${blockedCount} issues are blocked`,
+        title: attentionCount > 0
+          ? `${attentionCount} blocked issue${attentionCount === 1 ? " needs" : "s need"} attention`
+          : hasBlockerAttentionData
+            ? `${blockedCount} issue${blockedCount === 1 ? " is" : "s are"} waiting on covered dependencies`
+            : `${blockedCount} issue${blockedCount === 1 ? " is" : "s are"} blocked`,
         type: "dependency",
-        impact: "High",
-        age: situation?.capacity.bottleneck?.oldestHours != null ? `${Math.round(situation.capacity.bottleneck.oldestHours)}h` : "Unknown",
-        affected: `${blockedCount} issues`,
+        impact: attentionCount > 0 ? "High" : "Low",
+        age: affectedIssues.length > 0
+          ? oldestIssueAge(affectedIssues)
+          : situation?.capacity.bottleneck?.oldestHours != null
+            ? `${Math.round(situation.capacity.bottleneck.oldestHours)}h`
+            : "Unknown",
+        affected: `${attentionCount > 0 ? attentionCount : blockedCount} issues`,
         owner: "Issue owners",
         href: "/issues?status=blocked",
       });
     }
 
     return result.slice(0, 5);
-  }, [agentMap, blockedCount, projects.length, situation, status]);
+  }, [agentMap, blockedAttentionIssues, blockedCount, blockedIssues, hasBlockerAttentionData, projects.length, situation, status]);
 
   const agentCounts = {
     running: agents.filter((agent) => agent.status === "running").length,

@@ -114,5 +114,31 @@ describe.sequential("organizational observation route ownership", () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ disposition: "held" });
     expect(observationService.evaluateLearningPromotion).toHaveBeenCalledWith(existing.id);
+    expect(logActivity).not.toHaveBeenCalled();
+  });
+
+  it("records a promotion evaluation only when it changes learning state", async () => {
+    const agentId = "44444444-4444-4444-8444-444444444444";
+    const existing = observation({ agentId });
+    observationService.getById.mockResolvedValue(existing);
+    observationService.evaluateLearningPromotion.mockResolvedValue({
+      disposition: "promoted",
+      observation: { ...existing, status: "promoted" },
+      reasons: [],
+      transitions: ["validated", "promoted"],
+    });
+
+    const response = await request(await createApp(agentId))
+      .post(`/api/organizational-observations/${existing.id}/evaluate-promotion`);
+
+    expect(response.status).toBe(200);
+    expect(logActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "organizational_observation.learning.promotion_evaluated",
+        entityId: existing.id,
+        details: expect.objectContaining({ transitions: ["validated", "promoted"] }),
+      }),
+    );
   });
 });

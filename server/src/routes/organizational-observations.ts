@@ -81,11 +81,13 @@ export function organizationalObservationRoutes(db: Db) {
       throw forbidden("Agents may only evaluate learning observations they created or own");
     }
     const result = await svc.evaluateLearningPromotion(id);
-    await logActivity(db, {
-      companyId: existing.companyId, actorType: actor.actorType, actorId: actor.actorId, agentId: actor.agentId, runId: actor.runId,
-      action: "organizational_observation.learning.promotion_evaluated", entityType: "organizational_observation", entityId: id,
-      details: { disposition: result?.disposition, reasons: result?.reasons, transitions: result?.transitions },
-    });
+    if (result && (result.transitions.length > 0 || result.disposition === "promoted")) {
+      await logActivity(db, {
+        companyId: existing.companyId, actorType: actor.actorType, actorId: actor.actorId, agentId: actor.agentId, runId: actor.runId,
+        action: "organizational_observation.learning.promotion_evaluated", entityType: "organizational_observation", entityId: id,
+        details: { disposition: result.disposition, reasons: result.reasons, transitions: result.transitions },
+      });
+    }
     res.json(result);
   });
 

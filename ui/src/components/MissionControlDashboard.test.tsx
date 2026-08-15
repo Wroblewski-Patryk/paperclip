@@ -206,6 +206,101 @@ describe("MissionControlDashboard", () => {
     expect(container.textContent).toContain("Provider-reported quota");
   });
 
+  it("separates covered dependency waits from blocked issues that need attention", () => {
+    const issueBase = {
+      companyId: "company-1",
+      status: "blocked",
+      createdAt: "2026-08-01T10:00:00.000Z",
+      updatedAt: "2026-08-14T10:00:00.000Z",
+      lastActivityAt: "2026-08-14T10:00:00.000Z",
+    };
+    const issues = [
+      {
+        ...issueBase,
+        id: "blocked-covered",
+        identifier: "LUC-1",
+        title: "Covered dependency",
+        blockerAttention: {
+          state: "covered",
+          reason: "active_child",
+          unresolvedBlockerCount: 1,
+          coveredBlockerCount: 1,
+          stalledBlockerCount: 0,
+          attentionBlockerCount: 0,
+          sampleBlockerIdentifier: "LUC-2",
+          sampleStalledBlockerIdentifier: null,
+        },
+      },
+      {
+        ...issueBase,
+        id: "blocked-attention",
+        identifier: "LUC-3",
+        title: "Missing execution path",
+        blockerAttention: {
+          state: "needs_attention",
+          reason: "attention_required",
+          unresolvedBlockerCount: 1,
+          coveredBlockerCount: 0,
+          stalledBlockerCount: 0,
+          attentionBlockerCount: 1,
+          sampleBlockerIdentifier: "LUC-4",
+          sampleStalledBlockerIdentifier: null,
+        },
+      },
+    ] as unknown as Parameters<typeof MissionControlDashboard>[0]["issues"];
+
+    render(
+      <MissionControlDashboard
+        dashboard={{ ...dashboard, tasks: { ...dashboard.tasks, blocked: 2 } }}
+        liveRunCount={0}
+        status={status}
+        situation={{ ...idleSituation, work: { ...idleSituation.work, blocked: 2 } }}
+        agents={[]}
+        issues={issues}
+        projects={[]}
+        activity={[]}
+        quota={{ value: "26%", description: "OpenAI weekly limit" }}
+        onAvailabilityChange={() => {}}
+      />,
+    );
+
+    expect(container.textContent).toContain("1 blocked issue needs attention");
+    expect(container.textContent).toContain("2 blocked");
+    expect(container.textContent).not.toContain("2 issues are blocked");
+  });
+
+  it("keeps held learning reevaluations out of the meaningful activity feed", () => {
+    render(
+      <MissionControlDashboard
+        dashboard={dashboard}
+        liveRunCount={0}
+        status={status}
+        situation={idleSituation}
+        agents={[]}
+        issues={[]}
+        projects={[]}
+        activity={[{
+          id: "activity-1",
+          companyId: "company-1",
+          actorType: "user",
+          actorId: "local-board",
+          action: "organizational_observation.learning.promotion_evaluated",
+          entityType: "organizational_observation",
+          entityId: "observation-1",
+          agentId: null,
+          runId: null,
+          details: { disposition: "held", reasons: ["insufficient_independent_evidence"], transitions: [] },
+          createdAt: "2026-08-15T16:00:00.000Z",
+        }] as unknown as Parameters<typeof MissionControlDashboard>[0]["activity"]}
+        quota={{ value: "26%", description: "OpenAI weekly limit" }}
+        onAvailabilityChange={() => {}}
+      />,
+    );
+
+    expect(container.textContent).toContain("No material control-plane changes.");
+    expect(container.querySelector("[data-activity-entry]")).toBeNull();
+  });
+
   it("supports the compact agent admission control", () => {
     const onChange = vi.fn();
     render(
