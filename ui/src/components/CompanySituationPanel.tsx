@@ -5,6 +5,7 @@ import { cn } from "../lib/utils";
 import { timeAgo } from "../lib/timeAgo";
 
 function signalHref(signal: CompanySituationSignal): string {
+  if (signal.kind === "pending_owner_decision") return "/inbox/blocked";
   if (["assumption_contradicted", "assumption_expired", "commitment_breached", "commitment_overdue", "organizational_review_due"].includes(signal.kind)) return "/memory";
   if (["external_signal_stale", "external_signal_contradicted", "outcome_failure", "learning_ready_for_promotion"].includes(signal.kind)) return "/learning";
   if (signal.kind === "agent_error" || signal.kind === "no_available_agents") return "/agents";
@@ -27,7 +28,7 @@ function SignalIcon({ signal }: { signal: CompanySituationSignal }) {
 export function CompanySituationPanel({ situation }: { situation: CompanySituation }) {
   const primaryGoal = situation.mission.activeGoals[0] ?? null;
   const visibleSignals = situation.attention
-    .filter((signal) => !["budget_incident", "pending_approval", "blocked_work"].includes(signal.kind))
+    .filter((signal) => !["budget_incident", "pending_approval", "pending_owner_decision", "blocked_work"].includes(signal.kind))
     .slice(0, 6);
   const projectedCompletion = situation.forecast.projectedCompletion;
 

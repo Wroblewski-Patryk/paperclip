@@ -58,7 +58,7 @@ const situation: CompanySituation = {
     overdueProjects: [],
     dueSoonProjects: [],
   },
-  governance: { pendingApprovals: 0, activeBudgetIncidents: 0 },
+  governance: { pendingApprovals: 0, pendingOwnerDecisions: 0, activeBudgetIncidents: 0 },
   deliberation: { assumptions: [], commitments: [], decisions: [], dueReviews: 0, overdueCommitments: 0 },
   learning: { outcomes: [], causalFindings: [], candidates: [], promoted: 0 },
   externalGrounding: { currentSignals: [], staleSignals: [], contradictedSignals: [], coveredCategories: [] },

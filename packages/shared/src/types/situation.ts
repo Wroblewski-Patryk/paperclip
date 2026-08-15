@@ -4,6 +4,7 @@ export type CompanySituationSignalKind =
   | "agent_error"
   | "budget_incident"
   | "pending_approval"
+  | "pending_owner_decision"
   | "blocked_work"
   | "unassigned_runnable_work"
   | "no_available_agents"
@@ -26,7 +27,7 @@ export type CompanySituationSignalKind =
   | "learning_ready_for_promotion";
 
 export interface CompanySituationSourceRef {
-  entityType: "company" | "goal" | "project" | "issue" | "agent" | "approval" | "budget_incident" | "organizational_record" | "organizational_observation";
+  entityType: "company" | "goal" | "project" | "issue" | "agent" | "approval" | "issue_thread_interaction" | "budget_incident" | "organizational_record" | "organizational_observation";
   entityId: string;
   observedAt: string;
 }
@@ -159,6 +160,7 @@ export interface CompanySituation {
   };
   governance: {
     pendingApprovals: number;
+    pendingOwnerDecisions: number;
     activeBudgetIncidents: number;
   };
   deliberation: {

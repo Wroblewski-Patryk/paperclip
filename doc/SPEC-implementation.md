@@ -734,6 +734,12 @@ Dashboard payload must include:
 - month-to-date spend and budget utilization
 - pending approvals count
 
+The company situation governance projection must also count non-terminal
+`in_review` issues with pending structured issue-thread interactions as owner
+decisions. Dashboard owner-decision links route to the blocked inbox, where the
+board can inspect and answer the interaction; issue assignee filters remain a
+separate task-ownership concept.
+
 Dashboard must expose a persistent agent-availability switch with four observable
 states: `ON`, `DRAINING`, `OFF`, and `REOPENING`. OFF blocks creation and claiming of
 new runs but does not cancel executions that were already running. Their follow-up

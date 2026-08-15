@@ -70,6 +70,7 @@ interface ConstraintItem {
 
 const OWNER_DECISION_KINDS = new Set([
   "pending_approval",
+  "pending_owner_decision",
   "assumption_contradicted",
   "commitment_breached",
   "commitment_overdue",
@@ -125,6 +126,7 @@ function issueHref(issue: Issue | undefined) {
 }
 
 function signalHref(signal: CompanySituationSignal) {
+  if (signal.kind === "pending_owner_decision") return "/inbox/blocked";
   const issueSource = signal.sources.find((source) => source.entityType === "issue");
   const projectSource = signal.sources.find((source) => source.entityType === "project");
   const agentSource = signal.sources.find((source) => source.entityType === "agent");
@@ -159,6 +161,7 @@ function signalAffected(signal: CompanySituationSignal, situation: CompanySituat
     case "blocked_work": return `${situation?.work.blocked ?? 0} issues`;
     case "unassigned_runnable_work": return `${situation?.work.unassignedRunnable ?? 0} issues`;
     case "pending_approval": return `${situation?.governance.pendingApprovals ?? 0} approvals`;
+    case "pending_owner_decision": return `${situation?.governance.pendingOwnerDecisions ?? 0} decisions`;
     case "budget_incident": return `${situation?.governance.activeBudgetIncidents ?? 0} incidents`;
     case "capacity_bottleneck":
     case "parallel_wip": return `${situation?.capacity.agentsWithParallelWip ?? 0} agents`;
@@ -429,9 +432,16 @@ export function MissionControlDashboard({
     },
   ];
 
-  const ownerDecisionCount = (situation?.attention ?? []).filter((signal) => OWNER_DECISION_KINDS.has(signal.kind)).length
+  const pendingOwnerDecisionCount = situation?.governance.pendingOwnerDecisions ?? 0;
+  const ownerDecisionCount = pendingOwnerDecisionCount
+    + (situation?.attention ?? []).filter((signal) => OWNER_DECISION_KINDS.has(signal.kind) && signal.kind !== "pending_owner_decision").length
     + dashboard.pendingApprovals
     + dashboard.budgets.pendingApprovals;
+  const ownerDecisionHref = pendingOwnerDecisionCount > 0
+    ? "/inbox/blocked"
+    : dashboard.pendingApprovals + dashboard.budgets.pendingApprovals > 0
+      ? "/approvals"
+      : "/inbox";
   const primaryAttention = situation?.attention[0] ?? null;
   const primaryActionHref = primaryAttention ? signalHref(primaryAttention) : blockedCount > 0 ? "/issues?status=blocked" : "/softwarehouse";
   const primaryAction = primaryActionLabel(primaryAttention, blockedCount, status?.primaryNextAction);
@@ -707,7 +717,7 @@ export function MissionControlDashboard({
           <div className="divide-y divide-border">
             <NowRow icon={Network} label="System health" value={`${healthyCount} / ${healthChecks.length} healthy`} detail={evidenceFreshness(status)} href="/softwarehouse" tone={healthyCount === healthChecks.length ? "good" : "warn"} />
             <NowRow icon={CalendarClock} label="Next legal action" value={primaryAction} detail={primaryAttention?.summary ?? status?.recommendedAction ?? "No blocking action recorded"} href={primaryActionHref} tone={primaryAttention?.severity === "critical" ? "bad" : "active"} />
-            <NowRow icon={ShieldCheck} label="Owner decision required" value={String(ownerDecisionCount)} detail={ownerDecisionCount > 0 ? "Open the decision queue" : "No critical decision"} href="/inbox" tone={ownerDecisionCount > 0 ? "warn" : "good"} />
+            <NowRow icon={ShieldCheck} label="Owner decision required" value={String(ownerDecisionCount)} detail={ownerDecisionCount > 0 ? "Open the decision queue" : "No critical decision"} href={ownerDecisionHref} tone={ownerDecisionCount > 0 ? "warn" : "good"} />
             <NowRow icon={Gauge} label="Provider quota" value={quota.value} detail={quota.description} href="/costs" tone={quotaHealthy ? "active" : "warn"} />
           </div>
           <div className="border-t border-border p-3">

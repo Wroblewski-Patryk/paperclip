@@ -6,6 +6,7 @@ import {
   companies,
   goals,
   issueApprovals,
+  issueThreadInteractions,
   issues,
   organizationalObservations,
   organizationalRecords,
@@ -167,6 +168,7 @@ export function companySituationService(db: Db) {
         errorAgentSamples,
         unassignedIssueSamples,
         pendingApprovalSamples,
+        pendingOwnerDecisionSamples,
         budgetOverview,
         deliberationRows,
         completedIssueRows,
@@ -335,6 +337,19 @@ export function companySituationService(db: Db) {
           .from(approvals)
           .where(and(eq(approvals.companyId, companyId), eq(approvals.status, "pending")))
           .orderBy(desc(approvals.updatedAt))
+          .limit(MAX_SAMPLE_SOURCES),
+        db
+          .select({ id: issueThreadInteractions.id, createdAt: issueThreadInteractions.createdAt })
+          .from(issueThreadInteractions)
+          .innerJoin(issues, eq(issueThreadInteractions.issueId, issues.id))
+          .where(and(
+            eq(issueThreadInteractions.companyId, companyId),
+            eq(issueThreadInteractions.status, "pending"),
+            eq(issues.companyId, companyId),
+            eq(issues.status, "in_review"),
+            OPEN_WORK_CONDITION,
+          ))
+          .orderBy(desc(issueThreadInteractions.createdAt))
           .limit(MAX_SAMPLE_SOURCES),
         budgets.overview(companyId),
         db
@@ -632,6 +647,17 @@ export function companySituationService(db: Db) {
           sources: pendingApprovalSamples.map((row) => sourceRef("approval", row.id, row.updatedAt)),
         });
       }
+      if (structuredReviewIssueCount > 0) {
+        attention.push({
+          id: "pending-owner-decisions",
+          kind: "pending_owner_decision",
+          severity: "warning",
+          title: `${structuredReviewIssueCount} owner decision${structuredReviewIssueCount === 1 ? "" : "s"} awaiting response`,
+          summary: "Agent-owned review work has a pending structured interaction that only the board can answer.",
+          suggestedAction: "Open the blocked inbox and answer, reject, or supersede each structured decision request.",
+          sources: pendingOwnerDecisionSamples.map((row) => sourceRef("issue_thread_interaction", row.id, row.createdAt)),
+        });
+      }
       const blockedAttentionRows = [
         ...stageRows.blocked_conflict,
         ...stageRows.blocked_unknown,
@@ -845,6 +871,7 @@ export function companySituationService(db: Db) {
         },
         governance: {
           pendingApprovals: pendingApprovalCount,
+          pendingOwnerDecisions: structuredReviewIssueCount,
           activeBudgetIncidents: budgetOverview.activeIncidents.length,
         },
         deliberation: {

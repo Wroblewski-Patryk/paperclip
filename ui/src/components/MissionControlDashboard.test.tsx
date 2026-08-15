@@ -70,7 +70,7 @@ const idleSituation = {
     ],
     bottleneck: { stage: "blocked_dependency", count: 3, oldestHours: 52 },
   },
-  governance: { pendingApprovals: 0, activeBudgetIncidents: 0 },
+  governance: { pendingApprovals: 0, pendingOwnerDecisions: 0, activeBudgetIncidents: 0 },
   forecast: { projectedCompletion: null },
   attention: [],
 } as unknown as CompanySituation;
@@ -299,6 +299,40 @@ describe("MissionControlDashboard", () => {
 
     expect(container.textContent).toContain("No material control-plane changes.");
     expect(container.querySelector("[data-activity-entry]")).toBeNull();
+  });
+
+  it("routes pending structured owner decisions to the blocked inbox", () => {
+    render(
+      <MissionControlDashboard
+        dashboard={dashboard}
+        liveRunCount={0}
+        status={status}
+        situation={{
+          ...idleSituation,
+          governance: { ...idleSituation.governance, pendingOwnerDecisions: 46 },
+          attention: [{
+            id: "pending-owner-decisions",
+            kind: "pending_owner_decision",
+            severity: "warning",
+            title: "46 owner decisions awaiting response",
+            summary: "Structured review requests await the board.",
+            suggestedAction: "Open the blocked inbox.",
+            sources: [],
+          }],
+        }}
+        agents={[]}
+        issues={[]}
+        projects={[]}
+        activity={[]}
+        quota={{ value: "26%", description: "OpenAI weekly limit" }}
+        onAvailabilityChange={() => {}}
+      />,
+    );
+
+    const ownerDecisionRow = [...container.querySelectorAll("a")]
+      .find((link) => link.textContent?.includes("Owner decision required"));
+    expect(ownerDecisionRow?.textContent).toContain("46");
+    expect(ownerDecisionRow?.getAttribute("href")).toBe("/inbox/blocked");
   });
 
   it("supports the compact agent admission control", () => {

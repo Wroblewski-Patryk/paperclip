@@ -326,6 +326,7 @@ describeEmbeddedPostgres("company situation service", () => {
       },
       governance: {
         pendingApprovals: 1,
+        pendingOwnerDecisions: 0,
         activeBudgetIncidents: 0,
       },
       deliberation: {
@@ -418,6 +419,13 @@ describeEmbeddedPostgres("company situation service", () => {
       outcomeReconciliationIssues: 1,
       dispatchState: "degraded",
     });
+    expect(situation.governance.pendingOwnerDecisions).toBe(1);
+    expect(situation.attention).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "pending_owner_decision",
+        title: "1 owner decision awaiting response",
+      }),
+    ]));
     expect(situation.attention.map((signal) => signal.kind)).toContain("outcome_state_conflict");
     expect(situation.attention.map((signal) => signal.kind)).not.toContain("dispatch_capacity_disabled");
   });
