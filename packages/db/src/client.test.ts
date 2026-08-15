@@ -14,7 +14,7 @@ import {
 const cleanups: Array<() => Promise<void>> = [];
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
-const embeddedPostgresMigrationTimeout = process.platform === "win32" ? 60_000 : 20_000;
+const embeddedPostgresMigrationTimeout = process.platform === "win32" ? 120_000 : 20_000;
 
 async function createTempDatabase(): Promise<string> {
   const db = await startEmbeddedPostgresTestDatabase("paperclip-db-client-");
@@ -35,7 +35,7 @@ afterEach(async () => {
     const cleanup = cleanups.pop();
     await cleanup?.();
   }
-});
+}, embeddedPostgresMigrationTimeout);
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
