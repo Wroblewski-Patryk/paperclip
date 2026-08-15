@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import path from "node:path";
 import {
+  isChildTreeTerminationComplete,
   resolveChildTreeTermination,
   resolveHostControlTickPolicy,
   resolvePnpmInvocation,
@@ -33,6 +34,12 @@ test("terminates the exact Windows server-child tree during restart", () => {
   });
   assert.equal(resolveChildTreeTermination(4242, "linux"), null);
   assert.throws(() => resolveChildTreeTermination(0, "win32"), /Invalid child PID/);
+});
+
+test("accepts a Windows taskkill race only after the target process has already exited", () => {
+  assert.equal(isChildTreeTerminationComplete(0, true), true);
+  assert.equal(isChildTreeTerminationComplete(128, false), true);
+  assert.equal(isChildTreeTerminationComplete(128, true), false);
 });
 
 test("enables the host control tick only for the canonical local softwarehouse by default", () => {

@@ -696,6 +696,15 @@ test("Windows startup removes bounded orphaned embedded Postgres workers and gho
   assert.match(startup, /Wait-PaperclipOwnedHealth -RootProcessId \$process\.Id/);
 });
 
+test("Windows startup fails clearly when the canonical database port is OS-reserved", async () => {
+  const startup = await readFile("scripts/start-luckysparrow-softwarehouse.ps1", "utf8");
+
+  assert.match(startup, /CanonicalDatabasePort = 54329/);
+  assert.match(startup, /Get-WindowsExcludedTcpPortRange/);
+  assert.match(startup, /reserved by Windows/);
+  assert.match(startup, /Keep the strict port/);
+});
+
 test("reused continuation cycles execute before interpreting their own issue lock", async () => {
   const source = await readFile("scripts/configure-softwarehouse-longevity-routines.mjs", "utf8");
 

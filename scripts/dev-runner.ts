@@ -7,6 +7,7 @@ import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "./dev-runner-output.ts";
 import {
+  isChildTreeTerminationComplete,
   resolveChildTreeTermination,
   resolveHostControlTickPolicy,
   resolvePnpmInvocation,
@@ -544,6 +545,15 @@ async function waitForChildExit() {
   return await childExitPromise;
 }
 
+function isProcessAlive(pid: number) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
 async function stopChildForRestart() {
   if (!child) return { code: 0, signal: null };
   childExitWasExpected = true;
@@ -559,7 +569,8 @@ async function stopChildForRestart() {
       });
       terminator.on("error", reject);
       terminator.on("exit", (code) => {
-        if (code === 0 || !child) {
+        const targetAlive = childPid ? isProcessAlive(childPid) : false;
+        if (isChildTreeTerminationComplete(code, targetAlive) || !child) {
           resolve();
           return;
         }

@@ -33,6 +33,10 @@ export function resolveChildTreeTermination(pid, platform = process.platform) {
   };
 }
 
+export function isChildTreeTerminationComplete(exitCode, targetAlive) {
+  return exitCode === 0 || targetAlive === false;
+}
+
 export function resolveHostControlTickPolicy({ mode, port, env = process.env }) {
   const explicit = `${env.SOFTWAREHOUSE_HOST_CONTROL_TICK_ENABLED ?? ""}`.trim().toLowerCase();
   const enabled = explicit

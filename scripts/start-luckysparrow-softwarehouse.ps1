@@ -11,6 +11,25 @@ $ServiceDir = Join-Path $Root '.paperclip\runtime\home\instances\default\runtime
 $OrphanCleanupScript = Join-Path $PSScriptRoot 'cleanup-orphaned-embedded-postgres.ps1'
 $RuntimeInventoryScript = Join-Path $PSScriptRoot 'lib\windows-runtime-inventory.mjs'
 $StartupTimeoutSeconds = 180
+$CanonicalDatabasePort = 54329
+
+function Get-WindowsExcludedTcpPortRange {
+  param([int]$Port)
+
+  foreach ($family in @('ipv4', 'ipv6')) {
+    $lines = & netsh int $family show excludedportrange protocol=tcp 2>$null
+    foreach ($line in @($lines)) {
+      if ($line -notmatch '^\s*(\d+)\s+(\d+)(?:\s+\*)?\s*$') { continue }
+      $startPort = [int]$Matches[1]
+      $endPort = [int]$Matches[2]
+      if ($Port -ge $startPort -and $Port -le $endPort) {
+        return [pscustomobject]@{ Family = $family; StartPort = $startPort; EndPort = $endPort }
+      }
+    }
+  }
+
+  return $null
+}
 
 function Get-StrictPortListeners {
   param([int]$Port)
@@ -102,6 +121,11 @@ New-Item -ItemType Directory -Path (Join-Path $Root '.paperclip') -Force | Out-N
 
 if (Test-Path -LiteralPath $OrphanCleanupScript) {
   & $OrphanCleanupScript -Apply | Write-Output
+}
+
+$excludedDatabasePortRange = Get-WindowsExcludedTcpPortRange -Port $CanonicalDatabasePort
+if ($excludedDatabasePortRange) {
+  throw "Canonical embedded PostgreSQL port $CanonicalDatabasePort is reserved by Windows $($excludedDatabasePortRange.Family) exclusion range $($excludedDatabasePortRange.StartPort)-$($excludedDatabasePortRange.EndPort). Keep the strict port; release or reserve it from an elevated host session before starting Paperclip."
 }
 
 if (-not (Test-Path -LiteralPath $ConfigPath)) {
