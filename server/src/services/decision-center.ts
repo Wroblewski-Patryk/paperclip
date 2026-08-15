@@ -82,24 +82,58 @@ function isOwnerDecisionReady(interaction: IssueThreadInteraction) {
     && briefing.afterApproval.length >= 1;
 }
 
-function approvalBriefing(approval: Approval): DecisionCenterItem["ownerBriefing"] {
+function firstPayloadString(payload: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function payloadStringList(payload: Record<string, unknown>, key: string) {
+  const value = payload[key];
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function approvalBriefing(approval: Approval): DecisionCenterItem["ownerBriefing"] {
   const budget = approval.type === "budget_override_required";
+  const payload = approval.payload;
+  const subject = firstPayloadString(payload, "title", "name", "summary", "recommendedAction");
+  const summary = firstPayloadString(payload, "summary", "description", "guidance");
+  const recommendation = firstPayloadString(payload, "recommendedAction", "guidance");
+  const nextAction = firstPayloadString(payload, "nextActionOnApproval", "nextAction");
+  const rollback = firstPayloadString(payload, "rollbackPlan", "rollback", "recoveryPlan");
+  const risks = payloadStringList(payload, "risks");
+  const decision = budget
+    ? "Czy zaakceptować przekroczenie ustalonego budżetu?"
+    : subject
+      ? `Czy zatwierdzić wniosek „${subject.replace(/[.!?]+$/u, "")}”?`
+      : "Czy zatwierdzić tę formalną operację Paperclipa?";
+  const contextFacts = [
+    summary,
+    "Operacja przekracza uprawnienia autonomicznych agentów i wymaga audytowalnej decyzji właściciela.",
+    `Typ wniosku: ${approval.type}.`,
+    ...risks.map((risk) => `Ryzyko wskazane we wniosku: ${risk}`),
+  ].filter((fact): fact is string => Boolean(fact));
+
   return {
     version: 1,
     language: "pl",
     preparedBy: "system",
-    decision: budget ? "Czy zaakceptować przekroczenie ustalonego budżetu?" : "Czy zatwierdzić tę formalną operację Paperclipa?",
-    contextFacts: [
-      "Operacja przekracza uprawnienia autonomicznych agentów i wymaga śladu audytowego właściciela.",
-      `Typ wniosku: ${approval.type}.`,
-    ],
+    decision,
+    contextFacts,
     options: [
       {
         id: "approve",
         label: "Zatwierdź",
-        benefit: "Paperclip może kontynuować wskazaną operację.",
+        description: nextAction ?? "Paperclip wykona dalszy krok opisany we wniosku.",
+        benefit: nextAction ?? "Paperclip może kontynuować wskazaną operację.",
         cost: budget ? "Może zwiększyć wykorzystanie budżetu." : "Uruchamia skutki opisane we wniosku.",
-        risk: "Wymaga sprawdzenia treści wniosku i dołączonych dowodów.",
+        risk: risks[0] ?? "Wymaga sprawdzenia treści wniosku i dołączonych dowodów.",
       },
       {
         id: "reject",
@@ -109,9 +143,9 @@ function approvalBriefing(approval: Approval): DecisionCenterItem["ownerBriefing
         risk: "Może opóźnić realizację celu.",
       },
     ],
-    recommendation: "Sprawdź zakres, konsekwencje i dowody wniosku; zatwierdź tylko wtedy, gdy są zgodne z Twoim celem i akceptowanym ryzykiem.",
-    afterApproval: ["Paperclip zapisze audytowalny wynik i wznowi zależną pracę zgodnie z polityką operacji."],
-    rollback: "Jeśli operacja jest odwracalna, odpowiedzialny agent powinien wykonać opisany we wniosku rollback; samo zatwierdzenie pozostaje w historii.",
+    recommendation: recommendation ?? "Sprawdź zakres, konsekwencje i dowody wniosku; zatwierdź tylko wtedy, gdy są zgodne z Twoim celem i akceptowanym ryzykiem.",
+    afterApproval: [nextAction ?? "Paperclip zapisze audytowalny wynik i wznowi zależną pracę zgodnie z polityką operacji."],
+    rollback: rollback ?? "Jeśli operacja jest odwracalna, odpowiedzialny agent powinien wykonać opisany we wniosku rollback; samo zatwierdzenie pozostaje w historii.",
   };
 }
 
@@ -211,7 +245,7 @@ export function decisionCenterService(db: Db) {
           whyOwner: decisionContext?.authorityReason
             ?? (needsPreparation
               ? "AIA must classify, consolidate, and prepare this request before it can reach the owner."
-              : "This issue-thread request is pending at the board governance boundary; agents cannot resolve it for the owner."),
+              : "Wniosek dotarł do granicy uprawnień właściciela; agenci nie mogą rozstrzygnąć go w jego imieniu."),
           recommendedAction: interactionRecommendation(interaction),
           ownerBriefing: decisionContext?.ownerBriefing ?? null,
           risk,
@@ -248,8 +282,8 @@ export function decisionCenterService(db: Db) {
           category: "formal_approval",
           title: approvalTitle(approvalRow),
           summary: null,
-          whyOwner: "This is a formal governed action that requires an auditable board decision.",
-          recommendedAction: "Review the request, linked evidence, and consequences before approving or rejecting it",
+          whyOwner: "Ta formalna, kontrolowana operacja wymaga audytowalnej decyzji właściciela; agenci nie mogą zatwierdzić jej we własnym imieniu.",
+          recommendedAction: "Sprawdź zakres, powiązane dowody i konsekwencje przed zatwierdzeniem albo odrzuceniem wniosku.",
           ownerBriefing: approvalBriefing(approval),
           risk,
           urgency: ageUrgency(approvalRow.createdAt, risk, now),
@@ -275,7 +309,7 @@ export function decisionCenterService(db: Db) {
           category: interactionCategory(interaction.kind),
           title: interactionTitle(row.interaction),
           summary: interaction.summary ?? null,
-          whyOwner: "This structured interaction is part of the durable board decision history.",
+          whyOwner: "Ta ustrukturyzowana interakcja jest częścią trwałej historii decyzji właściciela.",
           recommendedAction: null,
           ownerBriefing: interaction.payload.decisionContext?.ownerBriefing ?? null,
           risk,
@@ -310,7 +344,7 @@ export function decisionCenterService(db: Db) {
           category: "formal_approval",
           title: approvalTitle(approvalRow),
           summary: approval.decisionNote ?? null,
-          whyOwner: "This formal approval is part of the durable board governance history.",
+          whyOwner: "To formalne zatwierdzenie jest częścią trwałej historii nadzoru właścicielskiego.",
           recommendedAction: null,
           ownerBriefing: approvalBriefing(approval),
           risk,

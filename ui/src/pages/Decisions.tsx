@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AskUserQuestionsInteraction, DecisionCenterItem, DecisionCenterState } from "@paperclipai/shared";
-import { AlertTriangle, Bot, CalendarClock, CheckCircle2, ChevronRight, ListChecks, MessagesSquare, RotateCcw, Search, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Bot, CalendarClock, CheckCircle2, ChevronRight, CircleHelp, ListChecks, MessagesSquare, RotateCcw, Search, ShieldCheck } from "lucide-react";
 import { agentsApi } from "../api/agents";
 import { approvalsApi } from "../api/approvals";
 import { decisionsApi } from "../api/decisions";
@@ -42,6 +42,8 @@ export function Decisions() {
   const [search, setSearch] = useState("");
   const [note, setNote] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
+  const answerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setBreadcrumbs([{ label: "Decisions" }]), [setBreadcrumbs]);
 
@@ -70,6 +72,7 @@ export function Decisions() {
     });
   }, [decisionQuery.data?.items, search, tab]);
   const current = items.find((item) => item.id === selectedId) ?? items[0] ?? null;
+  const currentIndex = current ? items.findIndex((item) => item.id === current.id) : -1;
 
   useEffect(() => {
     setSelectedId(null);
@@ -117,6 +120,19 @@ export function Decisions() {
   const counts = decisionQuery.data?.counts ?? { ready: 0, preparing: 0, deferred: 0, allOpen: 0 };
   const historyCount = (decisionQuery.data?.items ?? []).filter((item) => item.state === "resolved").length;
 
+  function selectAt(index: number) {
+    const item = items[index];
+    if (!item) return;
+    setSelectedId(item.id);
+  }
+
+  function selectFromList(itemId: string) {
+    setSelectedId(itemId);
+    if (typeof window.matchMedia === "function" && window.matchMedia("(max-width: 1023px)").matches) {
+      window.requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -163,7 +179,8 @@ export function Decisions() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setSelectedId(item.id)}
+                onClick={() => selectFromList(item.id)}
+                aria-pressed={current?.id === item.id}
                 className={cn(
                   "mb-1 w-full rounded-sm border px-3 py-3 text-left transition-colors",
                   current?.id === item.id ? "border-primary/50 bg-primary/10" : "border-transparent hover:border-border hover:bg-muted/40",
@@ -190,13 +207,34 @@ export function Decisions() {
             <p className="mt-1 max-w-sm text-xs text-muted-foreground">AIA pokaże tutaj tylko kompletny, właścicielski pakiet decyzyjny.</p>
           </div>
         ) : (
-          <div className="min-w-0 space-y-4">
+          <div ref={detailRef} className="min-w-0 scroll-mt-4 space-y-4">
+            <div className="paperclip-surface flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="w-full min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Decyzja {currentIndex + 1} z {items.length}</span>
+                  <span>·</span>
+                  <span>najpierw poznaj kontekst, potem odpowiedz</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${items.length > 0 ? ((currentIndex + 1) / items.length) * 100 : 0}%` }} />
+                </div>
+              </div>
+              <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
+                <Button variant="outline" size="sm" onClick={() => selectAt(currentIndex - 1)} disabled={currentIndex <= 0} aria-label="Poprzednia decyzja">
+                  <ArrowLeft className="h-3.5 w-3.5" /> Poprzednia
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => selectAt(currentIndex + 1)} disabled={currentIndex < 0 || currentIndex >= items.length - 1} aria-label="Następna decyzja">
+                  Następna <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+
             <Card className="gap-4 py-5">
               <CardHeader className="px-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="mb-2 flex items-center gap-2 text-xs font-medium text-primary">
-                      <Bot className="h-4 w-4" /> {current.ownerBriefing?.preparedBy === "aia" ? "Brief decyzyjny AIA" : "Formalny pakiet decyzyjny"}
+                      <Bot className="h-4 w-4" /> Krok 1 · {current.ownerBriefing?.preparedBy === "aia" ? "Brief decyzyjny AIA" : "Formalny pakiet decyzyjny"}
                     </div>
                     <CardTitle className="text-lg leading-7">{current.ownerBriefing?.decision ?? current.title}</CardTitle>
                     {current.issue ? <Link to={`/issues/${current.issue.id}`} className="mt-2 inline-flex text-xs text-muted-foreground hover:text-foreground">{current.issue.identifier} · {current.issue.title}</Link> : null}
@@ -207,15 +245,29 @@ export function Decisions() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-5 px-5">
+                <section className="paperclip-inset flex items-start gap-3 p-4">
+                  <CircleHelp className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dlaczego potrzebna jest Twoja decyzja?</h2>
+                    <p className="mt-1 text-sm leading-6">{current.whyOwner}</p>
+                  </div>
+                </section>
                 {current.ownerBriefing ? <DecisionBriefing item={current} /> : (
                   <p className="text-sm text-muted-foreground">Historyczny wpis nie ma współczesnego briefu AIA.</p>
                 )}
+                {current.state === "ready" ? (
+                  <div className="flex justify-end border-t border-border pt-4">
+                    <Button onClick={() => answerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+                      Przejdź do odpowiedzi <ArrowRight className="ml-1.5 h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 
             {current.interaction ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 px-1 text-sm font-medium"><MessagesSquare className="h-4 w-4" /> Twoja odpowiedź</div>
+              <div ref={answerRef} className="scroll-mt-4 space-y-2">
+                <div className="flex items-center gap-2 px-1 text-sm font-medium"><MessagesSquare className="h-4 w-4" /> Krok 2 · Twoja odpowiedź</div>
                 <IssueThreadInteractionCard
                   interaction={current.interaction}
                   agentMap={agentMap}
@@ -234,14 +286,17 @@ export function Decisions() {
                 />
               </div>
             ) : current.approval ? (
-              <ApprovalCard
-                approval={current.approval}
-                requesterAgent={current.approval.requestedByAgentId ? agentMap.get(current.approval.requestedByAgentId) ?? null : null}
-                onApprove={() => actionMutation.mutate(() => approvalsApi.approve(current.approval!.id, note.trim() || undefined))}
-                onReject={() => actionMutation.mutate(() => approvalsApi.reject(current.approval!.id, note.trim() || undefined))}
-                detailLink={`/approvals/${current.approval.id}`}
-                isPending={actionMutation.isPending}
-              />
+              <div ref={answerRef} className="scroll-mt-4 space-y-2">
+                <div className="flex items-center gap-2 px-1 text-sm font-medium"><MessagesSquare className="h-4 w-4" /> Krok 2 · Twoja odpowiedź</div>
+                <ApprovalCard
+                  approval={current.approval}
+                  requesterAgent={current.approval.requestedByAgentId ? agentMap.get(current.approval.requestedByAgentId) ?? null : null}
+                  onApprove={() => actionMutation.mutate(() => approvalsApi.approve(current.approval!.id, note.trim() || undefined))}
+                  onReject={() => actionMutation.mutate(() => approvalsApi.reject(current.approval!.id, note.trim() || undefined))}
+                  detailLink={`/approvals/${current.approval.id}`}
+                  isPending={actionMutation.isPending}
+                />
+              </div>
             ) : null}
 
             {current.state !== "resolved" ? (

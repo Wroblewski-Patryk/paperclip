@@ -131,6 +131,9 @@ describe("Decisions page", () => {
 
     await waitForAssertion(() => {
       expect(container.textContent).toContain("AIA przygotowuje 53");
+      expect(container.textContent).toContain("Decyzja 1 z 2");
+      expect(container.textContent).toContain("Dlaczego potrzebna jest Twoja decyzja?");
+      expect(container.textContent).toContain("Krok 2 · Twoja odpowiedź");
       expect(container.textContent).toContain("Czy uruchomić publikację Featherly?");
       expect(container.textContent).toContain("Uruchom publikację po akceptacji.");
       expect(container.textContent).not.toContain("Wewnętrzny routing agenta");
@@ -142,6 +145,7 @@ describe("Decisions page", () => {
     flushSync(() => secondButton!.click());
 
     await waitForAssertion(() => {
+      expect(container.textContent).toContain("Decyzja 2 z 2");
       expect(container.textContent).toContain("Pozostaw obecny limit.");
       expect(container.querySelector('[data-testid="decision-response"]')?.textContent).toContain("2");
     });
