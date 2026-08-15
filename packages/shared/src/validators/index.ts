@@ -265,6 +265,7 @@ export {
   issueThreadInteractionKindSchema,
   issueThreadInteractionContinuationPolicySchema,
   issueThreadDecisionContextSchema,
+  ownerDecisionBriefingSchema,
   suggestedTaskDraftSchema,
   suggestTasksPayloadSchema,
   suggestTasksResultCreatedTaskSchema,

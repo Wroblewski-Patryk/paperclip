@@ -28,6 +28,7 @@ export function queueIssueAssignmentWakeup(input: {
   requestedByActorId?: string | null;
   forceFreshSession?: boolean;
   skipContinuationSummary?: boolean;
+  evidenceHash?: string;
   rethrowOnError?: boolean;
 }) {
   if (!input.issue.assigneeAgentId || input.issue.status === "backlog") return;
@@ -45,6 +46,7 @@ export function queueIssueAssignmentWakeup(input: {
         source: input.contextSource,
         ...(input.forceFreshSession ? { forceFreshSession: true } : {}),
         ...(input.skipContinuationSummary ? { skipContinuationSummary: true } : {}),
+        ...(input.evidenceHash ? { evidenceHash: input.evidenceHash } : {}),
       },
     })
     .catch((err) => {

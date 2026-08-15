@@ -57,6 +57,9 @@ test("board-owned in_review issue without typed path is not treated as structure
   assert.equal(interaction.kind, "request_confirmation");
   assert.equal(interaction.idempotencyKey, `softwarehouse-in-review-decision-path:${issue.id}:v1`);
   assert.equal(interaction.continuationPolicy, "wake_assignee");
+  assert.equal(interaction.payload.decisionContext.audience, "board");
+  assert.equal(interaction.payload.decisionContext.decisionReady, false);
+  assert.match(interaction.payload.decisionContext.authorityReason, /AIA/);
   assert.match(interaction.payload.detailsMarkdown, /Decision owner: board user `local-board`/);
   assert.match(interaction.payload.detailsMarkdown, /Allowed decision options:/);
   assert.match(interaction.payload.detailsMarkdown, /Next-check expectation:/);

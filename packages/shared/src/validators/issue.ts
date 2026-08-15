@@ -728,6 +728,27 @@ export const issueThreadInteractionContinuationPolicySchema = z.enum(
   ISSUE_THREAD_INTERACTION_CONTINUATION_POLICIES,
 );
 
+export const ownerDecisionBriefingSchema = z.object({
+  version: z.literal(1),
+  language: z.literal("pl"),
+  preparedBy: z.enum(["aia", "system"]),
+  preparedByAgentId: z.string().uuid().nullable().optional(),
+  preparedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  decision: z.string().trim().min(1).max(1000),
+  contextFacts: z.array(z.string().trim().min(1).max(1000)).min(2).max(5),
+  options: z.array(z.object({
+    id: z.string().trim().min(1).max(120),
+    label: z.string().trim().min(1).max(300),
+    description: z.string().trim().max(1000).nullable().optional(),
+    benefit: z.string().trim().min(1).max(1000),
+    cost: z.string().trim().min(1).max(1000),
+    risk: z.string().trim().min(1).max(1000),
+  }).strict()).min(1).max(5),
+  recommendation: z.string().trim().min(1).max(2000),
+  afterApproval: z.array(z.string().trim().min(1).max(1000)).min(1).max(8),
+  rollback: z.string().trim().min(1).max(2000),
+}).strict();
+
 export const issueThreadDecisionContextSchema = z.object({
   version: z.literal(1),
   audience: z.enum(["board", "technical_reviewer", "issue_assignee"]),
@@ -749,6 +770,7 @@ export const issueThreadDecisionContextSchema = z.object({
   risk: z.enum(["low", "medium", "high", "critical"]).optional(),
   urgency: z.enum(["low", "medium", "high", "critical"]).optional(),
   reversibility: z.enum(["easy", "costly", "irreversible"]).optional(),
+  ownerBriefing: ownerDecisionBriefingSchema.nullable().optional(),
 }).strict();
 
 export const issueDocumentKeySchema = z

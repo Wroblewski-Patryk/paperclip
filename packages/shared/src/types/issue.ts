@@ -754,6 +754,30 @@ export interface IssueThreadDecisionContext {
   risk?: "low" | "medium" | "high" | "critical";
   urgency?: "low" | "medium" | "high" | "critical";
   reversibility?: "easy" | "costly" | "irreversible";
+  ownerBriefing?: OwnerDecisionBriefing | null;
+}
+
+export interface OwnerDecisionOption {
+  id: string;
+  label: string;
+  description?: string | null;
+  benefit: string;
+  cost: string;
+  risk: string;
+}
+
+export interface OwnerDecisionBriefing {
+  version: 1;
+  language: "pl";
+  preparedBy: "aia" | "system";
+  preparedByAgentId?: string | null;
+  preparedAt?: string | null;
+  decision: string;
+  contextFacts: string[];
+  options: OwnerDecisionOption[];
+  recommendation: string;
+  afterApproval: string[];
+  rollback: string;
 }
 
 export interface SuggestedTaskDraft {

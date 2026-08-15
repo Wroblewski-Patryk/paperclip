@@ -1482,6 +1482,7 @@ export function routineService(
           requestedByActorType: input.source === "schedule" ? "system" : undefined,
           forceFreshSession: true,
           skipContinuationSummary: true,
+          evidenceHash: run.id,
           rethrowOnError: true,
         });
       } catch (error) {

@@ -270,6 +270,8 @@ export type {
   IssueCommentPresentation,
   IssueThreadInteractionActorFields,
   IssueThreadDecisionContext,
+  OwnerDecisionBriefing,
+  OwnerDecisionOption,
   SuggestedTaskDraft,
   SuggestTasksPayload,
   SuggestTasksResultCreatedTask,

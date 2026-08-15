@@ -18,6 +18,23 @@ describe("issue thread interaction schemas", () => {
           risk: "high",
           urgency: "medium",
           reversibility: "costly",
+          ownerBriefing: {
+            version: 1,
+            language: "pl",
+            preparedBy: "aia",
+            decision: "Czy zatwierdzić chronioną operację?",
+            contextFacts: ["Operacja dotyczy produkcji.", "Agenci nie mają uprawnienia do samodzielnej zgody."],
+            options: [{
+              id: "approve",
+              label: "Zatwierdź",
+              benefit: "Praca może być kontynuowana.",
+              cost: "Wymaga nadzoru wdrożenia.",
+              risk: "Błędna operacja może wpłynąć na produkcję.",
+            }],
+            recommendation: "Zatwierdź po sprawdzeniu aktualnych dowodów.",
+            afterApproval: ["DRE wykona operację i zapisze monitoring."],
+            rollback: "DRE przywróci poprzednią wersję.",
+          },
         },
         prompt: "Authorize the protected action?",
       },
@@ -25,6 +42,35 @@ describe("issue thread interaction schemas", () => {
 
     expect(parsed.payload.decisionContext?.audience).toBe("board");
     expect(parsed.payload.decisionContext?.decisionReady).toBe(true);
+    expect(parsed.payload.decisionContext?.ownerBriefing?.language).toBe("pl");
+  });
+
+  it("rejects an incomplete AIA owner briefing", () => {
+    expect(() => createIssueThreadInteractionSchema.parse({
+      kind: "request_confirmation",
+      payload: {
+        version: 1,
+        decisionContext: {
+          version: 1,
+          audience: "board",
+          decisionClass: "owner_authority",
+          decisionReady: true,
+          authorityReason: "Owner authority is required.",
+          ownerBriefing: {
+            version: 1,
+            language: "pl",
+            preparedBy: "aia",
+            decision: "Czy kontynuować?",
+            contextFacts: ["Tylko jeden fakt."],
+            options: [],
+            recommendation: "Kontynuuj.",
+            afterApproval: [],
+            rollback: "Cofnij zmianę.",
+          },
+        },
+        prompt: "Continue?",
+      },
+    })).toThrow();
   });
   it("parses request_confirmation payloads with default no-wake continuation", () => {
     const parsed = createIssueThreadInteractionSchema.parse({

@@ -47,6 +47,21 @@ name, such as the sidebar, icon picker, organization graph, or assignee selector
 Agent status is separate from identity: render it as a badge or a small overlaid
 status dot instead of replacing the assigned icon.
 
+## Owner decision composition
+
+Owner-facing decision queues use a master-detail composition: a compact,
+searchable list in the left structural surface and the selected decision in the
+right surface. On narrow screens the list precedes the detail.
+
+Do not expose an unprepared internal interaction as an actionable owner item.
+The detail begins with the Polish AIA briefing in this order: decision, current
+facts, compared options, recommendation, post-decision actions, and
+rollback/recovery. The canonical interaction or approval control follows the
+briefing so the answer remains auditable without forcing the owner to discover
+context in raw issue history. Internal preparation counts may be shown as one
+quiet status line; technical tasks and agent assignments do not belong in the
+owner decision list.
+
 ## Change discipline
 
 When changing the global Paperclip look:

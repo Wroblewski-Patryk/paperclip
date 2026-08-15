@@ -82,7 +82,7 @@ const softwarehousePilotLegacyRoutineScheduleLabels = new Map([
   ["[Softwarehouse] Longevity snapshot backup", "Daily redacted longevity snapshot"],
   ["[Softwarehouse] Organizational learning loop", "Daily learning loop"],
   ["[Softwarehouse] Company value-stream governance", "Daily company value-stream governance at 08:20"],
-  ["[Softwarehouse] Human decision inbox steward", "Daily human decision inbox steward at 08:45"],
+  ["00 General: Owner Direction and Proposal Review", "00 AIA owner decision briefing every 30 minutes"],
   ["[Softwarehouse] Product acceptance gate review", "Product acceptance gate review every 4 hours"],
   ["[Softwarehouse] CTO technical acceptance gate review", "CTO technical acceptance gate review every 4 hours"],
   ["[Softwarehouse] AI-agent development review", "Daily AI-agent development review"],

@@ -12,7 +12,9 @@ import type {
   DecisionCenterItem,
   DecisionCenterResponse,
   DecisionCenterSourceType,
+  IssueThreadDecisionContext,
   IssueThreadInteraction,
+  IssueThreadInteractionResult,
 } from "@paperclipai/shared";
 import { notFound, unprocessable } from "../errors.js";
 
@@ -68,21 +70,55 @@ function interactionRecommendation(interaction: IssueThreadInteraction): string 
   return null;
 }
 
-function isLegacyInteractionNotDecisionReady(interaction: IssueThreadInteraction) {
-  const prompt = interaction.kind === "request_confirmation"
-    ? interaction.payload.prompt
-    : interaction.kind === "ask_user_questions"
-      ? interaction.payload.questions.map((question) => question.prompt).join(" ")
-      : interaction.payload.tasks.map((task) => task.title).join(" ");
-  const text = `${interaction.title ?? ""} ${interaction.summary ?? ""} ${prompt}`.toLowerCase();
-  return text.includes("record the typed next outcome")
-    || text.includes("record typed next outcome")
-    || text.includes("complete the proposal and return")
-    || text.includes("re-run the review")
-    || text.includes("rerun the review");
+function isOwnerDecisionReady(interaction: IssueThreadInteraction) {
+  const context = interaction.payload.decisionContext;
+  const briefing = context?.ownerBriefing;
+  return context?.audience === "board"
+    && context.decisionReady === true
+    && briefing?.preparedBy === "aia"
+    && briefing.language === "pl"
+    && briefing.contextFacts.length >= 2
+    && briefing.options.length >= 1
+    && briefing.afterApproval.length >= 1;
+}
+
+function approvalBriefing(approval: Approval): DecisionCenterItem["ownerBriefing"] {
+  const budget = approval.type === "budget_override_required";
+  return {
+    version: 1,
+    language: "pl",
+    preparedBy: "system",
+    decision: budget ? "Czy zaakceptować przekroczenie ustalonego budżetu?" : "Czy zatwierdzić tę formalną operację Paperclipa?",
+    contextFacts: [
+      "Operacja przekracza uprawnienia autonomicznych agentów i wymaga śladu audytowego właściciela.",
+      `Typ wniosku: ${approval.type}.`,
+    ],
+    options: [
+      {
+        id: "approve",
+        label: "Zatwierdź",
+        benefit: "Paperclip może kontynuować wskazaną operację.",
+        cost: budget ? "Może zwiększyć wykorzystanie budżetu." : "Uruchamia skutki opisane we wniosku.",
+        risk: "Wymaga sprawdzenia treści wniosku i dołączonych dowodów.",
+      },
+      {
+        id: "reject",
+        label: "Odrzuć lub poproś o zmianę",
+        benefit: "Nieautoryzowana lub niedojrzała operacja nie zostanie wykonana.",
+        cost: "Powiązana praca pozostanie wstrzymana do czasu korekty.",
+        risk: "Może opóźnić realizację celu.",
+      },
+    ],
+    recommendation: "Sprawdź zakres, konsekwencje i dowody wniosku; zatwierdź tylko wtedy, gdy są zgodne z Twoim celem i akceptowanym ryzykiem.",
+    afterApproval: ["Paperclip zapisze audytowalny wynik i wznowi zależną pracę zgodnie z polityką operacji."],
+    rollback: "Jeśli operacja jest odwracalna, odpowiedzialny agent powinien wykonać opisany we wniosku rollback; samo zatwierdzenie pozostaje w historii.",
+  };
 }
 
 function sortItems(left: DecisionCenterItem, right: DecisionCenterItem) {
+  if (left.state === "resolved" && right.state === "resolved") {
+    return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+  }
   const rank = { critical: 4, high: 3, medium: 2, low: 1 } as const;
   const riskDelta = rank[right.risk] - rank[left.risk];
   if (riskDelta !== 0) return riskDelta;
@@ -156,13 +192,11 @@ export function decisionCenterService(db: Db) {
         const preference = preferenceBySource.get(`interaction:${interaction.id}`) ?? null;
         const isDeferred = Boolean(preference?.deferredUntil && preference.deferredUntil.getTime() > now.getTime());
         const decisionContext = interaction.payload.decisionContext ?? null;
-        const needsInformation = decisionContext
-          ? decisionContext.audience !== "board" || !decisionContext.decisionReady
-          : isLegacyInteractionNotDecisionReady(interaction);
+        const needsPreparation = !isOwnerDecisionReady(interaction);
         const state: DecisionCenterItem["state"] = isDeferred
           ? "deferred"
-          : needsInformation
-            ? "needs_information"
+          : needsPreparation
+            ? "preparing"
             : "ready";
         const risk = decisionContext?.risk ?? priorityRisk(row.issue.priority);
         items.push({
@@ -175,10 +209,11 @@ export function decisionCenterService(db: Db) {
           title: interactionTitle(row.interaction),
           summary: interaction.summary ?? null,
           whyOwner: decisionContext?.authorityReason
-            ?? (needsInformation
-              ? "This legacy request is incomplete or appears technical. Paperclip must clarify or reroute it before asking the owner."
+            ?? (needsPreparation
+              ? "AIA must classify, consolidate, and prepare this request before it can reach the owner."
               : "This issue-thread request is pending at the board governance boundary; agents cannot resolve it for the owner."),
           recommendedAction: interactionRecommendation(interaction),
+          ownerBriefing: decisionContext?.ownerBriefing ?? null,
           risk,
           urgency: decisionContext?.urgency ?? ageUrgency(row.interaction.createdAt, risk, now),
           createdAt: interaction.createdAt,
@@ -215,6 +250,7 @@ export function decisionCenterService(db: Db) {
           summary: null,
           whyOwner: "This is a formal governed action that requires an auditable board decision.",
           recommendedAction: "Review the request, linked evidence, and consequences before approving or rejecting it",
+          ownerBriefing: approvalBriefing(approval),
           risk,
           urgency: ageUrgency(approvalRow.createdAt, risk, now),
           createdAt: approval.createdAt,
@@ -241,6 +277,7 @@ export function decisionCenterService(db: Db) {
           summary: interaction.summary ?? null,
           whyOwner: "This structured interaction is part of the durable board decision history.",
           recommendedAction: null,
+          ownerBriefing: interaction.payload.decisionContext?.ownerBriefing ?? null,
           risk,
           urgency: "low",
           createdAt: interaction.createdAt,
@@ -275,6 +312,7 @@ export function decisionCenterService(db: Db) {
           summary: approval.decisionNote ?? null,
           whyOwner: "This formal approval is part of the durable board governance history.",
           recommendedAction: null,
+          ownerBriefing: approvalBriefing(approval),
           risk,
           urgency: "low",
           createdAt: approval.createdAt,
@@ -289,9 +327,92 @@ export function decisionCenterService(db: Db) {
 
       items.sort(sortItems);
       const ready = items.filter((item) => item.state === "ready").length;
-      const needsInformation = items.filter((item) => item.state === "needs_information").length;
+      const preparing = items.filter((item) => item.state === "preparing").length;
       const deferred = items.filter((item) => item.state === "deferred").length;
-      return { counts: { ready, needsInformation, deferred, allOpen: ready + needsInformation + deferred }, items };
+      return { counts: { ready, preparing, deferred, allOpen: ready + preparing + deferred }, items };
+    },
+
+    prepareInteraction: async (input: {
+      companyId: string;
+      sourceId: string;
+      decisionContext: IssueThreadDecisionContext;
+      agentId: string;
+    }) => {
+      const current = await db
+        .select()
+        .from(issueThreadInteractions)
+        .where(and(
+          eq(issueThreadInteractions.id, input.sourceId),
+          eq(issueThreadInteractions.companyId, input.companyId),
+          eq(issueThreadInteractions.status, "pending"),
+        ))
+        .then((rows) => rows[0] ?? null);
+      if (!current) throw notFound("Pending decision interaction not found");
+      const briefing = input.decisionContext.ownerBriefing;
+      if (
+        input.decisionContext.audience !== "board"
+        || !input.decisionContext.decisionReady
+        || briefing?.preparedBy !== "aia"
+        || briefing.language !== "pl"
+      ) {
+        throw unprocessable("A ready owner decision requires a complete Polish AIA briefing");
+      }
+      const payload = current.payload;
+      const [updated] = await db
+        .update(issueThreadInteractions)
+        .set({
+          payload: {
+            ...payload,
+            decisionContext: {
+              ...input.decisionContext,
+              ownerBriefing: {
+                ...briefing,
+                preparedByAgentId: input.agentId,
+                preparedAt: new Date().toISOString(),
+              },
+            },
+          } as typeof current.payload,
+          updatedAt: new Date(),
+        })
+        .where(eq(issueThreadInteractions.id, current.id))
+        .returning();
+      return updated;
+    },
+
+    rerouteInteraction: async (input: {
+      companyId: string;
+      sourceId: string;
+      reason: string;
+      agentId: string;
+    }) => {
+      const current = await db
+        .select()
+        .from(issueThreadInteractions)
+        .where(and(
+          eq(issueThreadInteractions.id, input.sourceId),
+          eq(issueThreadInteractions.companyId, input.companyId),
+          eq(issueThreadInteractions.status, "pending"),
+        ))
+        .then((rows) => rows[0] ?? null);
+      if (!current) throw notFound("Pending decision interaction not found");
+      const result: IssueThreadInteractionResult = current.kind === "ask_user_questions"
+        ? { version: 1 as const, cancelled: true as const, cancellationReason: input.reason }
+        : current.kind === "request_confirmation"
+          ? { version: 1 as const, outcome: "rejected" as const, reason: input.reason }
+          : { version: 1 as const, rejectionReason: input.reason };
+      const now = new Date();
+      const [updated] = await db
+        .update(issueThreadInteractions)
+        .set({
+          status: current.kind === "ask_user_questions" ? "cancelled" : "rejected",
+          result,
+          resolvedByAgentId: input.agentId,
+          resolvedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(issueThreadInteractions.id, current.id))
+        .returning();
+      return updated;
     },
 
     defer: async (input: {

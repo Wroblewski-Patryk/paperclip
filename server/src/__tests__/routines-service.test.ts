@@ -311,6 +311,7 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
     expect(wakeups[0]?.opts.contextSnapshot).toMatchObject({
       forceFreshSession: true,
       skipContinuationSummary: true,
+      evidenceHash: run.id,
     });
 
     const reusedIssue = await db

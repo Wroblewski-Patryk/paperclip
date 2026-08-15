@@ -1,8 +1,8 @@
 import type { Approval } from "./approval.js";
-import type { Issue, IssueThreadInteraction } from "./issue.js";
+import type { Issue, IssueThreadInteraction, OwnerDecisionBriefing } from "./issue.js";
 
 export type DecisionCenterSourceType = "interaction" | "approval";
-export type DecisionCenterState = "ready" | "needs_information" | "deferred" | "resolved";
+export type DecisionCenterState = "ready" | "preparing" | "deferred" | "resolved";
 export type DecisionCenterCategory =
   | "confirmation"
   | "information_request"
@@ -30,6 +30,7 @@ export interface DecisionCenterItem {
   summary: string | null;
   whyOwner: string;
   recommendedAction: string | null;
+  ownerBriefing: OwnerDecisionBriefing | null;
   risk: "low" | "medium" | "high" | "critical";
   urgency: "low" | "medium" | "high" | "critical";
   createdAt: Date | string;
@@ -44,7 +45,7 @@ export interface DecisionCenterItem {
 export interface DecisionCenterResponse {
   counts: {
     ready: number;
-    needsInformation: number;
+    preparing: number;
     deferred: number;
     allOpen: number;
   };
