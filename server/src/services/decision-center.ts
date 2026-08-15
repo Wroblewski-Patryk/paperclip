@@ -99,6 +99,10 @@ function payloadStringList(payload: Record<string, unknown>, key: string) {
     .filter(Boolean);
 }
 
+function isOutOfScopeStatement(value: string) {
+  return /\b(does not authorize|not authorized|must not|forbidden|poza zakresem|nie (?:obejmuje|upoważnia|zezwala)|zakaz)/iu.test(value);
+}
+
 export function approvalBriefing(approval: Approval): DecisionCenterItem["ownerBriefing"] {
   const budget = approval.type === "budget_override_required";
   const payload = approval.payload;
@@ -108,6 +112,8 @@ export function approvalBriefing(approval: Approval): DecisionCenterItem["ownerB
   const nextAction = firstPayloadString(payload, "nextActionOnApproval", "nextAction");
   const rollback = firstPayloadString(payload, "rollbackPlan", "rollback", "recoveryPlan");
   const risks = payloadStringList(payload, "risks");
+  const outOfScope = risks.filter(isOutOfScopeStatement);
+  const safetyConstraints = risks.filter((risk) => !isOutOfScopeStatement(risk));
   const decision = budget
     ? "Czy zaakceptować przekroczenie ustalonego budżetu?"
     : subject
@@ -117,7 +123,6 @@ export function approvalBriefing(approval: Approval): DecisionCenterItem["ownerB
     summary,
     "Operacja przekracza uprawnienia autonomicznych agentów i wymaga audytowalnej decyzji właściciela.",
     `Typ wniosku: ${approval.type}.`,
-    ...risks.map((risk) => `Ryzyko wskazane we wniosku: ${risk}`),
   ].filter((fact): fact is string => Boolean(fact));
 
   return {
@@ -125,6 +130,10 @@ export function approvalBriefing(approval: Approval): DecisionCenterItem["ownerB
     language: "pl",
     preparedBy: "system",
     decision,
+    plainLanguageSummary: summary ?? subject ?? "Paperclip potrzebuje formalnej zgody właściciela przed wykonaniem tej operacji.",
+    scope: [summary, nextAction].filter((value): value is string => Boolean(value)),
+    outOfScope,
+    safetyConstraints,
     contextFacts,
     options: [
       {

@@ -23,6 +23,11 @@ describe("issue thread interaction schemas", () => {
             language: "pl",
             preparedBy: "aia",
             decision: "Czy zatwierdzić chronioną operację?",
+            plainLanguageSummary: "Jednorazowa operacja wymagająca zgody właściciela.",
+            scope: ["Jedno wdrożenie wskazanej wersji."],
+            outOfScope: ["Brak zgody na kolejne wdrożenia."],
+            openQuestions: ["Czy istnieje aktualny punkt przywracania?"],
+            safetyConstraints: ["Przerwij, jeśli punkt przywracania jest nieaktualny."],
             contextFacts: ["Operacja dotyczy produkcji.", "Agenci nie mają uprawnienia do samodzielnej zgody."],
             options: [{
               id: "approve",
@@ -43,6 +48,7 @@ describe("issue thread interaction schemas", () => {
     expect(parsed.payload.decisionContext?.audience).toBe("board");
     expect(parsed.payload.decisionContext?.decisionReady).toBe(true);
     expect(parsed.payload.decisionContext?.ownerBriefing?.language).toBe("pl");
+    expect(parsed.payload.decisionContext?.ownerBriefing?.outOfScope).toEqual(["Brak zgody na kolejne wdrożenia."]);
   });
 
   it("rejects an incomplete AIA owner briefing", () => {

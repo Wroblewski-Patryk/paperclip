@@ -773,6 +773,11 @@ export interface OwnerDecisionBriefing {
   preparedByAgentId?: string | null;
   preparedAt?: string | null;
   decision: string;
+  plainLanguageSummary?: string | null;
+  scope?: string[];
+  outOfScope?: string[];
+  openQuestions?: string[];
+  safetyConstraints?: string[];
   contextFacts: string[];
   options: OwnerDecisionOption[];
   recommendation: string;

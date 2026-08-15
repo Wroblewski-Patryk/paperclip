@@ -32,11 +32,30 @@ describe("approvalBriefing", () => {
     }));
 
     expect(briefing?.decision).toContain("Approve one bounded PAPER owner QA session for LUC-2284");
+    expect(briefing?.plainLanguageSummary).toBe("Authorize one redacted, read-only protected-UI QA session.");
+    expect(briefing?.scope).toEqual([
+      "Authorize one redacted, read-only protected-UI QA session.",
+      "QVE captures evidence bound to the deployed SHA.",
+    ]);
     expect(briefing?.contextFacts).toContain("Authorize one redacted, read-only protected-UI QA session.");
     expect(briefing?.recommendation).toBe("Approve only the stated safety envelope.");
     expect(briefing?.afterApproval).toEqual(["QVE captures evidence bound to the deployed SHA."]);
     expect(briefing?.rollback).toBe("Stop the session and invalidate its authorization.");
     expect(briefing?.options[0]?.risk).toBe("The protected authentication path will be exercised.");
+    expect(briefing?.safetyConstraints).toEqual(["The protected authentication path will be exercised."]);
+  });
+
+  it("separates forbidden scope from ordinary safety constraints", () => {
+    const briefing = approvalBriefing(approval({
+      summary: "Run one read-only PAPER QA session.",
+      risks: [
+        "The runner must fail closed before authentication.",
+        "Approval does not authorize exchange linkage, funds, or trading.",
+      ],
+    }));
+
+    expect(briefing?.safetyConstraints).toEqual(["The runner must fail closed before authentication."]);
+    expect(briefing?.outOfScope).toEqual(["Approval does not authorize exchange linkage, funds, or trading."]);
   });
 
   it("retains a complete safe fallback when structured payload context is missing", () => {

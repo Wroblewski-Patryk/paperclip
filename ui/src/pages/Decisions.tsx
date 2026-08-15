@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AskUserQuestionsInteraction, DecisionCenterItem, DecisionCenterState } from "@paperclipai/shared";
-import { AlertTriangle, ArrowLeft, ArrowRight, Bot, CalendarClock, CheckCircle2, ChevronRight, CircleHelp, ListChecks, MessagesSquare, RotateCcw, Search, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Ban, Bot, CalendarClock, CheckCircle2, ChevronRight, CircleHelp, FileClock, History, ListChecks, LockKeyhole, MessagesSquare, RotateCcw, Search, ShieldCheck, Target } from "lucide-react";
 import { agentsApi } from "../api/agents";
 import { approvalsApi } from "../api/approvals";
 import { decisionsApi } from "../api/decisions";
@@ -28,6 +28,52 @@ const riskClasses: Record<DecisionCenterItem["risk"], string> = {
   high: "border-orange-500/50 bg-orange-500/10 text-orange-900 dark:text-orange-100",
   critical: "border-destructive/50 bg-destructive/10 text-destructive",
 };
+
+const riskLabels: Record<DecisionCenterItem["risk"], string> = {
+  low: "niskie",
+  medium: "średnie",
+  high: "wysokie",
+  critical: "krytyczne",
+};
+
+const urgencyLabels: Record<DecisionCenterItem["urgency"], string> = {
+  low: "niska",
+  medium: "średnia",
+  high: "wysoka",
+  critical: "krytyczna",
+};
+
+const categoryLabels: Record<DecisionCenterItem["category"], string> = {
+  confirmation: "Potwierdzenie",
+  information_request: "Brakująca informacja",
+  task_proposal: "Propozycja zakresu",
+  formal_approval: "Formalna zgoda",
+};
+
+function uniqueStrings(values: Array<string | null | undefined>) {
+  return [...new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))];
+}
+
+function isOpenQuestionFact(value: string) {
+  return /\b(brak (?:autorytatywnego|potwierdzenia|dowodu|dostępu|informacji)|niezweryfik|nie udało się|oczekuje na|pozostaje do|wymaga wyjaśnienia|unknown|missing|not verified)\b/iu.test(value);
+}
+
+function isSafetyFact(value: string) {
+  return /^(ryzyko|ograniczenie|warunek bezpieczeństwa)|\b(fail[- ]closed|least[- ]privilege|read[- ]only|redacted|tylko do odczytu)\b/iu.test(value);
+}
+
+function stripRiskPrefix(value: string) {
+  return value.replace(/^Ryzyko wskazane we wniosku:\s*/iu, "");
+}
+
+function decisionSummary(item: DecisionCenterItem) {
+  const briefing = item.ownerBriefing;
+  return briefing?.plainLanguageSummary
+    ?? briefing?.contextFacts[0]
+    ?? item.summary
+    ?? item.issue?.title
+    ?? item.title;
+}
 
 function deferDate(hours: number) {
   return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
@@ -139,7 +185,7 @@ export function Decisions() {
         <div>
           <h1 className="text-xl font-bold">Centrum decyzji</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Tylko decyzje wymagające Twoich uprawnień. AIA zbiera kontekst, porównuje opcje i przekazuje odpowiedź właściwym agentom.
+            Najpierw dostajesz sens sprawy, zakres i rekomendację. Dopiero potem odpowiadasz.
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-sm border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
@@ -190,9 +236,10 @@ export function Decisions() {
                   <span className="line-clamp-2 text-sm font-medium leading-5">{item.ownerBriefing?.decision ?? item.title}</span>
                   <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
+                {item.issue?.title ? <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{item.issue.title}</p> : null}
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <span>{item.issue?.identifier ?? "Formal approval"}</span><span>·</span>
-                  <span className={cn("rounded-sm border px-1.5 py-0.5", riskClasses[item.risk])}>{item.risk}</span><span>·</span>
+                  <span>{item.issue?.identifier ?? categoryLabels[item.category]}</span><span>·</span>
+                  <span className={cn("rounded-sm border px-1.5 py-0.5", riskClasses[item.risk])}>{riskLabels[item.risk]}</span><span>·</span>
                   <span>{formatDateTime(item.createdAt)}</span>
                 </div>
               </button>
@@ -233,25 +280,29 @@ export function Decisions() {
               <CardHeader className="px-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="mb-2 flex items-center gap-2 text-xs font-medium text-primary">
-                      <Bot className="h-4 w-4" /> Krok 1 · {current.ownerBriefing?.preparedBy === "aia" ? "Brief decyzyjny AIA" : "Formalny pakiet decyzyjny"}
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-primary">
+                      <Bot className="h-4 w-4" /> Krok 1 · Wyjaśnienie decyzji
+                      <span className="rounded-sm border border-border bg-muted/30 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        {categoryLabels[current.category]}
+                      </span>
+                      {current.state === "resolved" ? <span className="inline-flex items-center gap-1 text-muted-foreground"><History className="h-3.5 w-3.5" /> Historia</span> : null}
                     </div>
                     <CardTitle className="text-lg leading-7">{current.ownerBriefing?.decision ?? current.title}</CardTitle>
-                    {current.issue ? <Link to={`/issues/${current.issue.id}`} className="mt-2 inline-flex text-xs text-muted-foreground hover:text-foreground">{current.issue.identifier} · {current.issue.title}</Link> : null}
+                    {current.issue ? <Link to={`/issues/${current.issue.id}`} className="mt-2 inline-flex text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Źródło: {current.issue.identifier} · {current.issue.title}</Link> : null}
                   </div>
                   <span className={cn("rounded-sm border px-2 py-1 text-[11px] font-medium uppercase tracking-wide", riskClasses[current.risk])}>
-                    {current.risk} risk · {current.urgency} urgency
+                    ryzyko {riskLabels[current.risk]} · pilność {urgencyLabels[current.urgency]}
                   </span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-5 px-5">
-                <section className="paperclip-inset flex items-start gap-3 p-4">
-                  <CircleHelp className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <div>
-                    <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dlaczego potrzebna jest Twoja decyzja?</h2>
-                    <p className="mt-1 text-sm leading-6">{current.whyOwner}</p>
+                {current.state === "resolved" ? (
+                  <div className="flex items-start gap-2 rounded-sm border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-950 dark:text-emerald-100">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span><strong>Zakończona sprawa.</strong> To zapis historyczny — nie wymaga ponownego działania.</span>
                   </div>
-                </section>
+                ) : null}
+                <DecisionSnapshot item={current} />
                 {current.ownerBriefing ? <DecisionBriefing item={current} /> : (
                   <p className="text-sm text-muted-foreground">Historyczny wpis nie ma współczesnego briefu AIA.</p>
                 )}
@@ -267,7 +318,7 @@ export function Decisions() {
 
             {current.interaction ? (
               <div ref={answerRef} className="scroll-mt-4 space-y-2">
-                <div className="flex items-center gap-2 px-1 text-sm font-medium"><MessagesSquare className="h-4 w-4" /> Krok 2 · Twoja odpowiedź</div>
+                <div className="flex items-center gap-2 px-1 text-sm font-medium"><MessagesSquare className="h-4 w-4" /> Krok 2 · {current.state === "resolved" ? "Zapisana odpowiedź" : "Twoja odpowiedź"}</div>
                 <IssueThreadInteractionCard
                   interaction={current.interaction}
                   agentMap={agentMap}
@@ -287,7 +338,7 @@ export function Decisions() {
               </div>
             ) : current.approval ? (
               <div ref={answerRef} className="scroll-mt-4 space-y-2">
-                <div className="flex items-center gap-2 px-1 text-sm font-medium"><MessagesSquare className="h-4 w-4" /> Krok 2 · Twoja odpowiedź</div>
+                <div className="flex items-center gap-2 px-1 text-sm font-medium"><MessagesSquare className="h-4 w-4" /> Krok 2 · {current.state === "resolved" ? "Zapisana odpowiedź" : "Twoja odpowiedź"}</div>
                 <ApprovalCard
                   approval={current.approval}
                   requesterAgent={current.approval.requestedByAgentId ? agentMap.get(current.approval.requestedByAgentId) ?? null : null}
@@ -295,6 +346,8 @@ export function Decisions() {
                   onReject={() => actionMutation.mutate(() => approvalsApi.reject(current.approval!.id, note.trim() || undefined))}
                   detailLink={`/approvals/${current.approval.id}`}
                   isPending={actionMutation.isPending}
+                  language="pl"
+                  showPayload={false}
                 />
               </div>
             ) : null}
@@ -322,42 +375,140 @@ export function Decisions() {
   );
 }
 
+function DecisionSnapshot({ item }: { item: DecisionCenterItem }) {
+  const nextStep = item.ownerBriefing?.afterApproval[0] ?? item.recommendedAction;
+  return (
+    <section aria-label="Decyzja w skrócie" className="grid gap-3 md:grid-cols-3">
+      <div className="rounded-sm border border-primary/35 bg-primary/10 p-4 md:col-span-3">
+        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
+          <CircleHelp className="h-4 w-4" /> W skrócie
+        </h2>
+        <p className="mt-2 text-base font-medium leading-7">{decisionSummary(item)}</p>
+      </div>
+      <div className="paperclip-inset p-3">
+        <div className="text-xs font-medium text-muted-foreground">Dlaczego pyta Ciebie?</div>
+        <p className="mt-1 text-sm leading-6">{item.whyOwner}</p>
+      </div>
+      <div className="paperclip-inset p-3">
+        <div className="text-xs font-medium text-muted-foreground">Co masz zrobić?</div>
+        <p className="mt-1 text-sm leading-6">{item.ownerBriefing?.decision ?? item.title}</p>
+      </div>
+      <div className="paperclip-inset p-3">
+        <div className="text-xs font-medium text-muted-foreground">Co stanie się potem?</div>
+        <p className="mt-1 text-sm leading-6">{nextStep ?? "Paperclip zapisze wynik i przekaże go właściwemu agentowi."}</p>
+      </div>
+    </section>
+  );
+}
+
+function FactList({ items, tone = "default" }: { items: string[]; tone?: "default" | "warning" | "safe" }) {
+  const dotClass = tone === "warning" ? "bg-amber-500" : tone === "safe" ? "bg-emerald-500" : "bg-primary";
+  return (
+    <ul className="mt-2 space-y-2">
+      {items.map((fact) => (
+        <li key={fact} className="flex gap-2 text-sm leading-6">
+          <span className={cn("mt-2 h-1.5 w-1.5 shrink-0 rounded-full", dotClass)} />
+          <span>{fact}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function DecisionBriefing({ item }: { item: DecisionCenterItem }) {
   const briefing = item.ownerBriefing!;
+  const summary = decisionSummary(item);
+  const explicitOpenQuestions = briefing.openQuestions ?? [];
+  const explicitSafety = briefing.safetyConstraints ?? [];
+  const explicitScope = briefing.scope ?? [];
+  const explicitOutOfScope = briefing.outOfScope ?? [];
+  const remainingFacts = briefing.contextFacts.filter((fact) => fact !== summary);
+  const inferredOpenQuestions = remainingFacts.filter(isOpenQuestionFact);
+  const inferredSafety = remainingFacts.filter((fact) => isSafetyFact(fact) && !isOpenQuestionFact(fact)).map(stripRiskPrefix);
+  const openQuestions = uniqueStrings([...explicitOpenQuestions, ...inferredOpenQuestions]);
+  const safetyConstraints = uniqueStrings([...explicitSafety, ...inferredSafety]);
+  const knownFacts = uniqueStrings(remainingFacts.filter((fact) => !openQuestions.includes(fact) && !isSafetyFact(fact)));
+  const scope = uniqueStrings(explicitScope.filter((fact) => fact !== summary));
+  const outOfScope = uniqueStrings(explicitOutOfScope);
+
   return <>
-    <section>
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Kontekst</h2>
-      <ul className="mt-2 space-y-2">{briefing.contextFacts.map((fact) => <li key={fact} className="flex gap-2 text-sm leading-6"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />{fact}</li>)}</ul>
+    <section className="rounded-sm border border-primary/35 bg-primary/10 p-4">
+      <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
+        <ShieldCheck className="h-4 w-4" /> {briefing.preparedBy === "aia" ? "Rekomendacja AIA" : "Rekomendacja systemowa"}
+      </h2>
+      <p className="mt-2 text-sm font-medium leading-6">{briefing.recommendation}</p>
     </section>
+
+    {(knownFacts.length > 0 || openQuestions.length > 0) ? (
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stan sprawy</h2>
+        <div className="mt-2 grid gap-3 md:grid-cols-2">
+          {knownFacts.length > 0 ? (
+            <div className="paperclip-inset p-4">
+              <h3 className="flex items-center gap-2 text-sm font-medium"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Co już wiemy</h3>
+              <FactList items={knownFacts} tone="safe" />
+            </div>
+          ) : null}
+          {openQuestions.length > 0 ? (
+            <div className="rounded-sm border border-amber-500/40 bg-amber-500/10 p-4">
+              <h3 className="flex items-center gap-2 text-sm font-medium"><FileClock className="h-4 w-4 text-amber-600" /> Czego nadal brakuje</h3>
+              <FactList items={openQuestions} tone="warning" />
+            </div>
+          ) : null}
+        </div>
+      </section>
+    ) : null}
+
+    {(scope.length > 0 || outOfScope.length > 0 || safetyConstraints.length > 0) ? (
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Zakres i granice</h2>
+        <div className="mt-2 grid gap-3 md:grid-cols-2">
+          {scope.length > 0 ? (
+            <div className="paperclip-inset p-4">
+              <h3 className="flex items-center gap-2 text-sm font-medium"><Target className="h-4 w-4 text-primary" /> Ta decyzja obejmuje</h3>
+              <FactList items={scope} />
+            </div>
+          ) : null}
+          {outOfScope.length > 0 ? (
+            <div className="rounded-sm border border-destructive/35 bg-destructive/10 p-4">
+              <h3 className="flex items-center gap-2 text-sm font-medium text-destructive"><Ban className="h-4 w-4" /> Ta decyzja nie obejmuje</h3>
+              <FactList items={outOfScope} />
+            </div>
+          ) : null}
+          {safetyConstraints.length > 0 ? (
+            <div className="paperclip-inset p-4 md:col-span-2">
+              <h3 className="flex items-center gap-2 text-sm font-medium"><LockKeyhole className="h-4 w-4 text-primary" /> Warunki bezpieczeństwa</h3>
+              <FactList items={safetyConstraints} />
+            </div>
+          ) : null}
+        </div>
+      </section>
+    ) : null}
+
     <section>
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Opcje</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Porównanie opcji</h2>
       <div className="mt-2 grid gap-2">{briefing.options.map((option, index) => (
         <div key={option.id} className="paperclip-inset p-3">
           <div className="text-sm font-medium">{index + 1}. {option.label}</div>
           {option.description ? <p className="mt-1 text-sm text-muted-foreground">{option.description}</p> : null}
-          <dl className="mt-2 grid gap-2 text-xs sm:grid-cols-3">
-            <div><dt className="text-muted-foreground">Korzyść</dt><dd className="mt-0.5">{option.benefit}</dd></div>
-            <div><dt className="text-muted-foreground">Koszt</dt><dd className="mt-0.5">{option.cost}</dd></div>
-            <div><dt className="text-muted-foreground">Ryzyko</dt><dd className="mt-0.5">{option.risk}</dd></div>
+          <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+            <div><dt className="text-muted-foreground">Korzyść</dt><dd className="mt-1 leading-5">{option.benefit}</dd></div>
+            <div><dt className="text-muted-foreground">Koszt</dt><dd className="mt-1 leading-5">{option.cost}</dd></div>
+            <div><dt className="text-muted-foreground">Ryzyko</dt><dd className="mt-1 leading-5">{option.risk}</dd></div>
           </dl>
         </div>
       ))}</div>
     </section>
+
     <div className="grid gap-3 md:grid-cols-2">
-      <section className="rounded-sm border border-primary/30 bg-primary/10 p-4">
-        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
-          <ShieldCheck className="h-4 w-4" /> {briefing.preparedBy === "aia" ? "Rekomendacja AIA" : "Rekomendacja systemowa"}
-        </h2>
-        <p className="mt-2 text-sm leading-6">{briefing.recommendation}</p>
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Co stanie się po decyzji</h2>
+        <FactList items={briefing.afterApproval} />
       </section>
       <section className="paperclip-inset p-4">
-        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><RotateCcw className="h-4 w-4" /> Ryzyko i cofnięcie</h2>
+        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><RotateCcw className="h-4 w-4" /> Cofnięcie lub bezpieczne zatrzymanie</h2>
         <p className="mt-2 text-sm leading-6">{briefing.rollback}</p>
       </section>
     </div>
-    <section>
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Co stanie się po decyzji</h2>
-      <ul className="mt-2 space-y-2">{briefing.afterApproval.map((step) => <li key={step} className="flex gap-2 text-sm leading-6"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />{step}</li>)}</ul>
-    </section>
   </>;
 }

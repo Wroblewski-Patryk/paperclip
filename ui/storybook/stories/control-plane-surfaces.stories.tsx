@@ -109,6 +109,18 @@ function ControlPlaneSurfaces() {
               />
             ))}
           </div>
+          <div className="mt-5 max-w-2xl">
+            <div className="mb-2 text-xs font-medium text-muted-foreground">Polish compact owner-decision action</div>
+            <ApprovalCard
+              approval={storybookApprovals[0]!}
+              requesterAgent={storybookApprovals[0]!.requestedByAgentId ? storybookAgentMap.get(storybookApprovals[0]!.requestedByAgentId!) ?? null : null}
+              onApprove={() => undefined}
+              onReject={() => undefined}
+              detailLink={`/approvals/${storybookApprovals[0]!.id}`}
+              language="pl"
+              showPayload={false}
+            />
+          </div>
         </Section>
 
         <Section eyebrow="Budgets" title="Healthy, warning, and hard-stop budget policy cards">

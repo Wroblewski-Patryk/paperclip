@@ -54,13 +54,16 @@ searchable list in the left structural surface and the selected decision in the
 right surface. On narrow screens the list precedes the detail.
 
 Do not expose an unprepared internal interaction as an actionable owner item.
-The detail begins with the Polish AIA briefing in this order: decision, current
-facts, compared options, recommendation, post-decision actions, and
-rollback/recovery. The canonical interaction or approval control follows the
-briefing so the answer remains auditable without forcing the owner to discover
-context in raw issue history. Internal preparation counts may be shown as one
-quiet status line; technical tasks and agent assignments do not belong in the
-owner decision list.
+The detail begins with a Polish, plain-language snapshot: what happened, why the
+owner is being asked, what the owner must decide, and what happens next. It must
+clearly distinguish a resolved historical record from a current request. The
+expanded AIA briefing then presents recommendation, known facts versus missing
+information, scope versus explicit exclusions, safety constraints, compared
+options, post-decision actions, and rollback/recovery. The canonical interaction
+or approval control follows the briefing so the answer remains auditable without
+forcing the owner to discover context in raw issue history. Internal preparation
+counts may be shown as one quiet status line; technical tasks and agent
+assignments do not belong in the owner decision list.
 
 ## Change discipline
 

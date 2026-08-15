@@ -93,7 +93,32 @@ POST /api/issues/{issueId}/interactions
       "evidenceRefs": ["issue-document:plan:latest"],
       "risk": "medium",
       "urgency": "medium",
-      "reversibility": "easy"
+      "reversibility": "easy",
+      "ownerBriefing": {
+        "version": 1,
+        "language": "pl",
+        "preparedBy": "aia",
+        "decision": "Czy zaakceptować proponowaną zmianę zakresu?",
+        "plainLanguageSummary": "Plan rozszerza uzgodniony zakres i dlatego wymaga decyzji właściciela.",
+        "scope": ["Jedna wskazana zmiana zakresu opisana w aktualnym planie."],
+        "outOfScope": ["Brak zgody na wdrożenie produkcyjne lub dalsze rozszerzenia."],
+        "openQuestions": [],
+        "safetyConstraints": ["Agent zatrzyma pracę, jeśli plan zmieni się po tej decyzji."],
+        "contextFacts": [
+          "Aktualny plan jest zapisany w issue-document:plan:latest.",
+          "Zmiana wykracza poza wcześniej zaakceptowany zakres."
+        ],
+        "options": [{
+          "id": "accept",
+          "label": "Zaakceptuj aktualny plan",
+          "benefit": "Praca może być kontynuowana w jasno ustalonym zakresie.",
+          "cost": "Zwiększa uzgodniony zakres realizacji.",
+          "risk": "Nieaktualny plan nie może być objęty tą zgodą."
+        }],
+        "recommendation": "Zaakceptuj tylko po sprawdzeniu aktualnej rewizji planu.",
+        "afterApproval": ["Assignee wznowi pracę nad zaakceptowaną rewizją planu."],
+        "rollback": "Odrzucenie lub zmiana planu zatrzymuje tę ścieżkę bez wdrożenia."
+      }
     },
     "prompt": "Accept this proposal?",
     "acceptLabel": "Accept",
@@ -106,7 +131,7 @@ POST /api/issues/{issueId}/interactions
 
 Use `continuationPolicy: "wake_assignee"` when acceptance should wake you to continue. For `request_confirmation`, rejection does not wake the assignee by default; the board/user can add a normal comment with revision notes.
 
-`decisionReady` must be `false` when evidence, options, or consequences are still missing. Technical review uses `audience: "technical_reviewer"` and must not be presented as owner authority. Never request a raw token, password, or credential value; ask for an existing secret-reference alias.
+`decisionReady` must be `false` when evidence, options, or consequences are still missing. Use the optional owner-comprehension fields to distinguish known facts from missing information and permitted scope from explicit exclusions. Technical review uses `audience: "technical_reviewer"` and must not be presented as owner authority. Never request a raw token, password, or credential value; ask for an existing secret-reference alias.
 
 ## Plan Approval Pattern
 

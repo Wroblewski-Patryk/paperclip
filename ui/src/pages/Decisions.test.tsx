@@ -34,6 +34,11 @@ function briefing(decision: string, recommendation: string) {
     language: "pl" as const,
     preparedBy: "aia" as const,
     decision,
+    plainLanguageSummary: "To krótkie wyjaśnienie sprawy bez technicznego żargonu.",
+    scope: ["Jedna operacja testowa w bezpiecznym środowisku."],
+    outOfScope: ["Nie obejmuje produkcji ani prawdziwych środków."],
+    openQuestions: ["Brak potwierdzenia dostępu do środowiska testowego."],
+    safetyConstraints: ["Zatrzymaj próbę, jeśli nie można potwierdzić trybu testowego."],
     contextFacts: ["Fakt pierwszy", "Fakt drugi"],
     options: [{
       id: "recommended",
@@ -132,7 +137,12 @@ describe("Decisions page", () => {
     await waitForAssertion(() => {
       expect(container.textContent).toContain("AIA przygotowuje 53");
       expect(container.textContent).toContain("Decyzja 1 z 2");
-      expect(container.textContent).toContain("Dlaczego potrzebna jest Twoja decyzja?");
+      expect(container.textContent).toContain("Dlaczego pyta Ciebie?");
+      expect(container.textContent).toContain("W skrócie");
+      expect(container.textContent).toContain("To krótkie wyjaśnienie sprawy bez technicznego żargonu.");
+      expect(container.textContent).toContain("Czego nadal brakuje");
+      expect(container.textContent).toContain("Ta decyzja nie obejmuje");
+      expect(container.textContent).toContain("Warunki bezpieczeństwa");
       expect(container.textContent).toContain("Krok 2 · Twoja odpowiedź");
       expect(container.textContent).toContain("Czy uruchomić publikację Featherly?");
       expect(container.textContent).toContain("Uruchom publikację po akceptacji.");
@@ -148,6 +158,41 @@ describe("Decisions page", () => {
       expect(container.textContent).toContain("Decyzja 2 z 2");
       expect(container.textContent).toContain("Pozostaw obecny limit.");
       expect(container.querySelector('[data-testid="decision-response"]')?.textContent).toContain("2");
+    });
+
+    flushSync(() => root.unmount());
+  });
+
+  it("marks resolved decisions as historical records and leads with the plain-language meaning", async () => {
+    const historical = {
+      ...decisionItem("1900", "Czy zamknąć historyczny incydent SMTP?", "Nie zgaduj brakujących wyników."),
+      state: "resolved" as const,
+    };
+    decisionsApiMock.list.mockResolvedValue({
+      counts: { ready: 0, preparing: 0, deferred: 0, allOpen: 0 },
+      items: [historical],
+    });
+
+    const root = createRoot(container);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    flushSync(() => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter><Decisions /></MemoryRouter>
+        </QueryClientProvider>,
+      );
+    });
+
+    await waitForAssertion(() => expect(container.textContent).toContain("Historia 1"));
+    const historyButton = [...container.querySelectorAll("button")]
+      .find((button) => button.textContent?.includes("Historia 1"));
+    expect(historyButton).toBeTruthy();
+    flushSync(() => historyButton!.click());
+
+    await waitForAssertion(() => {
+      expect(container.textContent).toContain("Zakończona sprawa. To zapis historyczny — nie wymaga ponownego działania.");
+      expect(container.textContent).toContain("To krótkie wyjaśnienie sprawy bez technicznego żargonu.");
+      expect(container.textContent).toContain("Krok 2 · Zapisana odpowiedź");
     });
 
     flushSync(() => root.unmount());

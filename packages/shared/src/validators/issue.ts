@@ -735,6 +735,11 @@ export const ownerDecisionBriefingSchema = z.object({
   preparedByAgentId: z.string().uuid().nullable().optional(),
   preparedAt: z.string().datetime({ offset: true }).nullable().optional(),
   decision: z.string().trim().min(1).max(1000),
+  plainLanguageSummary: z.string().trim().min(1).max(2000).nullable().optional(),
+  scope: z.array(z.string().trim().min(1).max(1000)).max(8).optional(),
+  outOfScope: z.array(z.string().trim().min(1).max(1000)).max(8).optional(),
+  openQuestions: z.array(z.string().trim().min(1).max(1000)).max(8).optional(),
+  safetyConstraints: z.array(z.string().trim().min(1).max(1000)).max(8).optional(),
   contextFacts: z.array(z.string().trim().min(1).max(1000)).min(2).max(5),
   options: z.array(z.object({
     id: z.string().trim().min(1).max(120),
