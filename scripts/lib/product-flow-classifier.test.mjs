@@ -19,3 +19,9 @@ test("robots and generic runtime workers do not imply a trading product flow", (
   assert.equal(hasTradingIntent("market order", { projectName: "Roost" }), false);
   assert.equal(hasTradingIntent("market order", { projectName: "Soar" }), true);
 });
+
+test("exchange intent wins when an exchange UI also mentions authentication", () => {
+  const exchangeUiEvidence = "ExchangeConnectionsView manages exchange connections for authenticated users";
+  assert.equal(hasExchangeIntent(exchangeUiEvidence, { projectName: "Soar" }), true);
+  assert.equal(hasExchangeIntent("authenticated login form", { projectName: "Soar" }), false);
+});

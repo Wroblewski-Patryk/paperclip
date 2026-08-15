@@ -781,6 +781,21 @@ function inferredGapNoiseReason(entity, curatedCoverage) {
   if (entity.type === "function" && pathLooksLikeTestFixture(basePath)) {
     return "test_fixture_function";
   }
+  if (/\.(d\.ts|ts|tsx)$/i.test(basePath) && /(^|\/)types?(?:\/|\.)/i.test(basePath) && ["feature", "function", "model"].includes(entity.type)) {
+    return "typescript_type_declaration";
+  }
+
+  if (/Error$/i.test(name) && /\.(ts|tsx)$/i.test(basePath) && ["feature", "function", "model"].includes(entity.type)) {
+    return "domain_error_declaration";
+  }
+
+  if ((/(^|\/)(proof|proofs|test-support|testing)(\/|$)/i.test(basePath) || (/CdpClient/i.test(name) && /(^|\/)scripts\//i.test(basePath))) && ["feature", "function", "model"].includes(entity.type)) {
+    return "proof_runner_helper";
+  }
+
+  if (/(^|\/)(test|tests|__tests__)(\/|$)/i.test(basePath) && entity.type === "feature") {
+    return "test_support_file";
+  }
 
   if (basePath && curatedCoverage.coveredPaths.has(basePath)) {
     return "curated_graph_covered";

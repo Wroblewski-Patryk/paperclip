@@ -88,9 +88,10 @@ function gateForEntity(entity) {
 
 function userFlowName(entity) {
   const text = entityText(entity);
+  if (hasExchangeIntent(text, { projectName })) return "Exchange connection and configuration";
   if (includesAny(text, ["login", "register", "session", "auth"])) return "Account access";
   if (hasSubscriptionIntent(text)) return "Subscription and entitlement";
-  if (hasExchangeIntent(text, { projectName })) return "Exchange connection and configuration";
+
   if (includesAny(text, ["dashboard", "home", "overview"])) return "Dashboard overview";
   if (hasTradingIntent(text, { projectName })) return "Trading operation";
   if (includesAny(text, ["settings", "profile", "config"])) return "User configuration";

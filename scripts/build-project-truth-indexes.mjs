@@ -93,9 +93,10 @@ function entityText(entity) {
 
 function flowForText(value) {
   const text = lower(value);
+  if (hasExchangeIntent(text, { projectName })) return "Exchange connection and configuration";
   if (/(login|logout|register|session|auth|user)/.test(text)) return "Account access";
   if (/(subscription|billing|stripe|checkout|payment|entitlement|plan)/.test(text)) return "Subscription and entitlement";
-  if (hasExchangeIntent(text, { projectName })) return "Exchange connection and configuration";
+
   if (/(dashboard|home|overview|widget)/.test(text)) return "Dashboard overview";
   if (hasTradingIntent(text, { projectName })) return "Trading operation";
   if (/(settings|profile|config)/.test(text)) return "User configuration";
