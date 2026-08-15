@@ -31,7 +31,9 @@ import { readExecutionWorkspaceConfig } from "./execution-workspaces.js";
 import { readProjectWorkspaceRuntimeConfig } from "./project-workspace-runtime-config.js";
 
 export function resolveShell(): string {
-  const fallback = process.platform === "win32" ? "sh" : "/bin/sh";
+  const fallback = process.platform === "win32"
+    ? (process.env.ComSpec?.trim() || "cmd.exe")
+    : "/bin/sh";
   const shell = process.env.SHELL?.trim();
   if (!shell) return fallback;
   if (path.isAbsolute(shell) && !existsSync(shell)) return fallback;

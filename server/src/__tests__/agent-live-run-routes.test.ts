@@ -1,6 +1,8 @@
 import express from "express";
+import os from "node:os";
+import path from "node:path";
 import request from "supertest";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockAgentService = vi.hoisted(() => ({
   getById: vi.fn(),
@@ -153,6 +155,18 @@ async function requestApp(
 }
 
 describe("agent live run routes", () => {
+  const previousPaperclipHome = process.env.PAPERCLIP_HOME;
+  const isolatedPaperclipHome = path.join(os.tmpdir(), `paperclip-agent-live-run-routes-${process.pid}`);
+
+  beforeAll(() => {
+    process.env.PAPERCLIP_HOME = isolatedPaperclipHome;
+  });
+
+  afterAll(() => {
+    if (previousPaperclipHome === undefined) delete process.env.PAPERCLIP_HOME;
+    else process.env.PAPERCLIP_HOME = previousPaperclipHome;
+  });
+
   beforeEach(() => {
     vi.resetModules();
     vi.doUnmock("../services/agents.js");
@@ -415,8 +429,8 @@ describe("agent live run routes", () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body[0]).toMatchObject({
       effectiveModelProfile: "light",
-      effectiveDefaultModel: "gpt-5.4-mini",
-      effectiveQuotaLane: "codex_standard_light",
+      effectiveDefaultModel: "gpt-5.6-terra",
+      effectiveQuotaLane: "codex_5_6_terra",
       effectiveModelProfileRequested: "standard",
       effectiveModelProfileApplied: "light",
       effectiveModelProfileSource: "model_router",

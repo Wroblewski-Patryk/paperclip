@@ -31,6 +31,8 @@ vi.mock("../services/index.js", () => ({
   agentService: () => ({
     getById: vi.fn(),
   }),
+  assignmentProposalService: () => ({}),
+  delegationFlowService: () => ({}),
   documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
   documentService: () => ({
     getIssueDocumentPayload: vi.fn(async () => ({})),

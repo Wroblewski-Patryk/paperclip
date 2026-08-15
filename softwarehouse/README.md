@@ -94,6 +94,11 @@ condition, or escalated.
 The tooling rule is catalog-first: if a script, provider action, or automation
 is not classified in `docs/automation/agent-command-catalog.csv`, agents treat
 it as risky until the responsible lead classifies it.
+The capability rule is evidence-first: a skill assignment is not a callable
+tool. `pnpm softwarehouse:agent-capabilities` must pass before capability
+routing is treated as healthy; use the configure/apply command only while the
+affected agents have no active heartbeat, then rerun the browser and
+CompanyCore MCP smokes.
 The runtime rule is ledger-first: local config, auth, secret aliases, project
 workspace paths, and VPS/Coolify facts belong in
 `docs/operations/runtime-config-ledger.csv` or a per-project deployment

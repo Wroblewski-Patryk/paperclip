@@ -105,10 +105,10 @@ function flowForText(value) {
 
 function layerForEntity(entity) {
   const text = lower(entityText(entity));
+  if (entity.type === "test" || /\.test\.|\.spec\.|playwright|vitest/.test(text)) return "test";
   if (entity.type === "api_endpoint" || /apps\/api|server|controller|route|router|api\//.test(text)) return "backend";
   if (entity.type === "route" || entity.type === "component" || /apps\/web|web\/src|frontend|component|page|screen/.test(text)) return "frontend";
   if (/worker|queue|job|runtime|scheduler|stream|engine/.test(text)) return "worker";
-  if (entity.type === "test" || /\.test\.|\.spec\.|playwright|vitest/.test(text)) return "test";
   if (entity.type === "document" || /docs\//.test(text)) return "docs";
   if (entity.type === "model" || entity.type === "migration" || /prisma|drizzle|migration|schema|database/.test(text)) return "data";
   return "support";

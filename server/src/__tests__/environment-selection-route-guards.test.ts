@@ -67,6 +67,8 @@ vi.mock("../services/index.js", () => ({
   agentService: () => ({
     getById: vi.fn(),
   }),
+  assignmentProposalService: () => ({}),
+  delegationFlowService: () => ({}),
   executionWorkspaceService: () => ({}),
   goalService: () => ({
     getById: vi.fn(),

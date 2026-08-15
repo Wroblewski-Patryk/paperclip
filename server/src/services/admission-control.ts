@@ -77,6 +77,7 @@ type WorkAdmissionInput = {
   acceptedRisk?: boolean;
   budgetBlocked?: boolean;
   budgetReason?: string | null;
+  allowIssueWipContinuation?: boolean;
   now?: Date;
 };
 
@@ -402,7 +403,11 @@ export function admissionControlService(db: Db) {
       admitted = false;
       observationUntil = previousStop.observationUntil ?? null;
       cooldownUntil = previousStop.cooldownUntil ?? null;
-    } else if (input.issueId && observed.issueWip >= limits.maxIssueWip) {
+    } else if (
+      input.issueId &&
+      !input.allowIssueWipContinuation &&
+      observed.issueWip >= limits.maxIssueWip
+    ) {
       disposition = "rejected_as_duplicate";
       reasonCode = "wip.issue_limit";
       reason = `Issue WIP ${observed.issueWip} reached limit ${limits.maxIssueWip}`;

@@ -26,6 +26,16 @@ import {
   upsertIssueDocumentSchema,
   restoreIssueDocumentRevisionSchema,
   upsertIssueFeedbackVoteSchema,
+  proposeAssignmentSchema,
+  createWorkProposalSchema,
+  updateWorkProposalStatusSchema,
+  createDelegationReportSchema,
+  createDeliverySchema,
+  dispatchDeliverySchema,
+  listDeliveriesQuerySchema,
+  transitionDeliverySchema,
+  updateDeliveryStatusSchema,
+  updateProductOutcomeSchema,
   // Project
   createProjectSchema,
   updateProjectSchema,
@@ -144,6 +154,7 @@ import {
   listSupervisionFindingsQuerySchema,
   updateNativeSafeguardSchema,
   upsertSupervisionFindingSchema,
+  softwarehouseProjectTruthProbeRequestSchema,
 } from "@paperclipai/shared";
 
 type JsonSchema = Record<string, unknown>;
@@ -4306,6 +4317,88 @@ registerCurrentRoute({
   path: "/api/issues/{id}/cost-summary",
   tags: ["costs"],
   summary: "Get issue cost summary",
+});
+
+for (const route of [
+  ["get", "/api/issues/{id}/assignment-proposals", "List issue assignment proposals", null],
+  ["post", "/api/issues/{id}/assignment-proposals", "Propose an issue assignment", proposeAssignmentSchema],
+  ["get", "/api/issues/{id}/work-proposals", "List issue work proposals", null],
+  ["post", "/api/issues/{id}/work-proposals", "Create an issue work proposal", createWorkProposalSchema],
+  ["post", "/api/issues/{id}/work-proposals/{proposalId}/status", "Update an issue work proposal status", updateWorkProposalStatusSchema],
+  ["get", "/api/issues/{id}/delegation-reports", "List issue delegation reports", null],
+  ["post", "/api/issues/{id}/delegation-reports", "Create an issue delegation report", createDelegationReportSchema],
+] as const) {
+  registerCurrentRoute({
+    method: route[0],
+    path: route[1],
+    tags: ["issues"],
+    summary: route[2],
+    ...(route[3] ? { body: route[3] } : {}),
+  });
+}
+
+registerCurrentRoute({
+  method: "post",
+  path: "/api/companies/{companyId}/softwarehouse/project-truth-probe",
+  tags: ["companies"],
+  summary: "Probe the configured project-truth endpoint",
+  body: softwarehouseProjectTruthProbeRequestSchema,
+});
+
+registerCurrentRoute({
+  method: "get",
+  path: "/api/companies/{companyId}/deliveries",
+  tags: ["deliveries"],
+  summary: "List product deliveries",
+  query: listDeliveriesQuerySchema,
+});
+
+for (const route of [
+  ["get", "/api/deliveries/{id}", "Get a product delivery", null],
+  ["post", "/api/companies/{companyId}/deliveries", "Create a product delivery", createDeliverySchema],
+  ["post", "/api/deliveries/{id}/transition", "Transition a product delivery", transitionDeliverySchema],
+  ["post", "/api/deliveries/{id}/dispatch", "Dispatch a product delivery", dispatchDeliverySchema],
+  ["patch", "/api/deliveries/{id}/status", "Update a product delivery status", updateDeliveryStatusSchema],
+  ["post", "/api/deliveries/{id}/outcome", "Record a product delivery outcome", updateProductOutcomeSchema],
+] as const) {
+  registerCurrentRoute({
+    method: route[0],
+    path: route[1],
+    tags: ["deliveries"],
+    summary: route[2],
+    ...(route[3] ? { body: route[3] } : {}),
+  });
+}
+
+registerCurrentRoute({
+  method: "post",
+  path: "/api/companies/{companyId}/supervision/stalled-ready/dispatch",
+  tags: ["supervision"],
+  summary: "Dispatch stalled ready work",
+});
+
+registerCurrentRoute({
+  method: "patch",
+  path: "/api/companies/{companyId}/autonomy/envelope-stage",
+  tags: ["autonomy"],
+  summary: "Update the autonomy envelope stage",
+  body: z.object({
+    stage: z.enum(["RECOMMEND", "LIMITED_AUTO"]),
+    rationale: z.string().trim().min(1).max(4000),
+  }).strict(),
+});
+
+registerCurrentRoute({
+  method: "patch",
+  path: "/api/companies/{companyId}/autonomy/envelope-capacity",
+  tags: ["autonomy"],
+  summary: "Update the autonomy envelope capacity",
+  body: z.object({
+    maxActive: z.number().int().min(1).max(3),
+    maxRuns: z.number().int().min(1).max(3),
+    maxCostCents: z.number().int().min(1).max(10_000),
+    rationale: z.string().trim().min(1).max(4000),
+  }).strict(),
 });
 
 for (const route of [

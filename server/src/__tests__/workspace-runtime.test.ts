@@ -2171,7 +2171,7 @@ describe("realizeExecutionWorkspace", () => {
       },
       projectWorkspace: {
         cwd: repoRoot,
-        cleanupCommand: "printf 'cleanup ok\\n'",
+        cleanupCommand: "node -e \"process.stdout.write('cleanup ok\\\\n')\"",
       },
       recorder,
     });
@@ -2181,7 +2181,7 @@ describe("realizeExecutionWorkspace", () => {
       "worktree_cleanup",
       "worktree_cleanup",
     ]);
-    expect(operations[0]?.command).toBe("printf 'cleanup ok\\n'");
+    expect(operations[0]?.command).toBe("node -e \"process.stdout.write('cleanup ok\\\\n')\"");
     expect(operations[1]?.metadata).toMatchObject({
       cleanupAction: "worktree_remove",
     });
@@ -2908,10 +2908,10 @@ describe("resolveShell (shell fallback)", () => {
     expect(resolveShell()).toBe("/bin/sh");
   });
 
-  it("falls back to sh (bare) on Windows when SHELL is unset", () => {
+  it("falls back to the native command shell on Windows when SHELL is unset", () => {
     delete process.env.SHELL;
     Object.defineProperty(process, "platform", { value: "win32" });
-    expect(resolveShell()).toBe("sh");
+    expect(resolveShell()).toBe(process.env.ComSpec?.trim() || "cmd.exe");
   });
 
   it("falls back to /bin/sh on darwin when SHELL is unset", () => {
@@ -2929,7 +2929,7 @@ describe("resolveShell (shell fallback)", () => {
   it("treats whitespace-only SHELL as unset and uses platform fallback", () => {
     process.env.SHELL = "   ";
     Object.defineProperty(process, "platform", { value: "win32" });
-    expect(resolveShell()).toBe("sh");
+    expect(resolveShell()).toBe(process.env.ComSpec?.trim() || "cmd.exe");
   });
 
   it("falls back when SHELL points to a missing absolute path", () => {

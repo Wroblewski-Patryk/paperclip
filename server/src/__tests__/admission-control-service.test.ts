@@ -505,6 +505,47 @@ describeEmbeddedPostgres("native admission control", () => {
     expect(reconsidered).toMatchObject({ admitted: true, reasonCode: "policy.admitted" });
   });
 
+  it("admits continuation input for an issue that already owns the issue WIP slot", async () => {
+    const { companyId, agentId } = await seed("active");
+    const admission = admissionControlService(db);
+    const issueId = randomUUID();
+    const issuePrefix = `A${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      title: "Running issue",
+      status: "in_progress",
+      priority: "medium",
+      assigneeAgentId: agentId,
+      issueNumber: 1,
+      identifier: `${issuePrefix}-1`,
+    });
+    await db.insert(heartbeatRuns).values({
+      companyId,
+      agentId,
+      invocationSource: "assignment",
+      status: "running",
+      contextSnapshot: { issueId },
+    });
+
+    const base = {
+      companyId,
+      issueId,
+      agentId,
+      source: "test",
+      fingerprint: "running-issue-followup",
+    };
+    const duplicate = await admission.evaluateWork(base);
+    expect(duplicate).toMatchObject({ admitted: false, reasonCode: "wip.issue_limit" });
+
+    const continuation = await admission.evaluateWork({
+      ...base,
+      fingerprint: "running-issue-continuation",
+      allowIssueWipContinuation: true,
+    });
+    expect(continuation).toMatchObject({ admitted: true, reasonCode: "policy.admitted" });
+  });
+
   it("records budget holds and explicit governed risk acceptance", async () => {
     const { companyId, agentId } = await seed("active");
     const admission = admissionControlService(db);

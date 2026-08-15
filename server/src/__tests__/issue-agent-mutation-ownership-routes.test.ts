@@ -20,6 +20,7 @@ const mockIssueService = vi.hoisted(() => ({
   getById: vi.fn(),
   getRelationSummaries: vi.fn(),
   getWakeableParentAfterChildCompletion: vi.fn(),
+  list: vi.fn(),
   listAttachments: vi.fn(),
   listWakeableBlockedDependents: vi.fn(),
   remove: vi.fn(),
@@ -116,7 +117,9 @@ function registerRouteMocks() {
   vi.doMock("../services/index.js", () => ({
     accessService: () => mockAccessService,
     agentService: () => mockAgentService,
+    assignmentProposalService: () => ({}),
     companyService: () => mockCompanyService,
+    delegationFlowService: () => ({}),
     documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
     documentService: () => mockDocumentService,
     executionWorkspaceService: () => ({}),
@@ -398,6 +401,7 @@ describe("agent issue mutation checkout ownership", () => {
       parentBlockerAdded: false,
     }));
     mockIssueService.getRelationSummaries.mockResolvedValue({ blockedBy: [], blocks: [] });
+    mockIssueService.list.mockResolvedValue([]);
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
     mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(null);
     mockIssueService.findMentionedAgents.mockResolvedValue([]);

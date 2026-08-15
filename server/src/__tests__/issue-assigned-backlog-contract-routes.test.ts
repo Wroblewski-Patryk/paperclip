@@ -33,6 +33,8 @@ vi.mock("../services/index.js", () => ({
   agentService: () => ({
     getById: vi.fn(async () => null),
   }),
+  assignmentProposalService: () => ({}),
+  delegationFlowService: () => ({}),
   companyService: () => ({
     getById: vi.fn(async () => ({ id: "company-1", attachmentMaxBytes: 10 * 1024 * 1024 })),
   }),

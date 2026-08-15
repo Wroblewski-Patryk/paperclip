@@ -394,4 +394,44 @@ describeEmbeddedPostgres("companySkillService.list", () => {
       "# Runtime Coach\n\nRecovered from DB.\n",
     );
   });
+
+  it("honors required: false for bundled runtime skills", async () => {
+    const companyId = randomUUID();
+    const requiredDir = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-required-skill-"));
+    const optionalDir = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-optional-skill-"));
+    cleanupDirs.add(requiredDir);
+    cleanupDirs.add(optionalDir);
+    await fs.writeFile(path.join(requiredDir, "SKILL.md"), "---\nname: paperclip\n---\n# Required\n", "utf8");
+    await fs.writeFile(path.join(optionalDir, "SKILL.md"), "---\nname: specialist\nrequired: false\n---\n# Optional\n", "utf8");
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(companySkills).values([
+      {
+        id: randomUUID(), companyId, key: "paperclipai/paperclip/paperclip", slug: "paperclip",
+        name: "Paperclip", description: null, markdown: "---\nname: paperclip\n---\n# Required\n",
+        sourceType: "local_path", sourceLocator: requiredDir, trustLevel: "markdown_only",
+        compatibility: "compatible", fileInventory: [{ path: "SKILL.md", kind: "skill" }],
+        metadata: { sourceKind: "paperclip_bundled" },
+      },
+      {
+        id: randomUUID(), companyId, key: "paperclipai/paperclip/specialist", slug: "specialist",
+        name: "Specialist", description: null, markdown: "---\nname: specialist\nrequired: false\n---\n# Optional\n",
+        sourceType: "local_path", sourceLocator: optionalDir, trustLevel: "markdown_only",
+        compatibility: "compatible", fileInventory: [{ path: "SKILL.md", kind: "skill" }],
+        metadata: { sourceKind: "paperclip_bundled" },
+      },
+    ]);
+
+    const entries = await svc.listRuntimeSkillEntries(companyId, { materializeMissing: false });
+    expect(entries.find((entry) => entry.key.endsWith("/paperclip"))).toMatchObject({ required: true });
+    expect(entries.find((entry) => entry.key.endsWith("/specialist"))).toMatchObject({
+      required: false,
+      requiredReason: null,
+    });
+  });
 });

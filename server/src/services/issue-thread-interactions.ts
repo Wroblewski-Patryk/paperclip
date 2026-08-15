@@ -879,10 +879,12 @@ export function issueThreadInteractionService(db: Db) {
             throw unprocessable(`Unable to resolve parent for suggested task ${task.clientKey}`);
           }
 
+          const hasAssignee = Boolean(task.assigneeAgentId || task.assigneeUserId);
+
           const { issue: createdIssue } = await issueService(tx as unknown as Db).createChild(parentIssueId, {
             title: task.title,
             description: task.description ?? null,
-            status: "todo",
+            status: hasAssignee ? "todo" : "backlog",
             workMode: task.workMode ?? "standard",
             priority: task.priority ?? "medium",
             assigneeAgentId: task.assigneeAgentId ?? null,

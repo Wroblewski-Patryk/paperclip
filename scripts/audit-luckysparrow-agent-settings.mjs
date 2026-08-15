@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveLocalCodexCommand } from "./lib/local-codex-command.mjs";
+import { WEB_SEARCH_AGENT_NAMES } from "./lib/softwarehouse-agent-capabilities.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -29,7 +30,7 @@ function normalizePath(value) {
   return path.resolve(String(value ?? "")).replace(/\\/g, "/").toLowerCase();
 }
 
-function expectedAdapterConfig(roster, laneKey) {
+function expectedAdapterConfig(roster, laneKey, search = false) {
   const lane = roster.modelPolicy[laneKey];
   return {
     command: localCodexCommand,
@@ -37,7 +38,7 @@ function expectedAdapterConfig(roster, laneKey) {
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,
     fastMode: Boolean(lane.fastMode),
-    search: false,
+    search,
     dangerouslyBypassApprovalsAndSandbox: false,
     timeoutSec: 0,
     graceSec: 15,
@@ -52,8 +53,9 @@ function expectedWorkspaceCwd(roster, definition) {
 }
 
 function expectedAdapterConfigForAgent(roster, definition, laneKey = definition.modelLane) {
+  const search = laneKey === definition.modelLane && WEB_SEARCH_AGENT_NAMES.includes(definition.name);
   return {
-    ...expectedAdapterConfig(roster, laneKey),
+    ...expectedAdapterConfig(roster, laneKey, search),
     cwd: expectedWorkspaceCwd(roster, definition),
   };
 }

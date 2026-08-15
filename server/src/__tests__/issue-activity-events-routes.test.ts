@@ -85,6 +85,8 @@ function registerModuleMocks() {
     agentService: () => ({
       getById: vi.fn(async () => null),
     }),
+    assignmentProposalService: () => ({}),
+    delegationFlowService: () => ({}),
     documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
     documentService: () => ({}),
     executionWorkspaceService: () => ({}),

@@ -52,6 +52,7 @@ function registerModuleMocks() {
       hasPermission: vi.fn(async () => true),
     }),
     assignmentProposalService: () => ({}),
+    delegationFlowService: () => ({}),
     agentService: () => ({
       getById: vi.fn(async () => null),
       resolveByReference: vi.fn(async (_companyId: string, raw: string) => ({

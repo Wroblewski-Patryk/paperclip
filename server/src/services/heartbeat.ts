@@ -11212,6 +11212,13 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       retryCount,
       budgetBlocked: Boolean(budgetBlock),
       budgetReason: budgetBlock?.reason ?? null,
+      // A comment or approval targeting an already-running issue is continuation
+      // input, not a second execution attempt. Every other admission gate remains
+      // active, and the issue execution lock below serializes the follow-up.
+      allowIssueWipContinuation: shouldQueueFollowupForRunningIssueWake({
+        contextSnapshot: enrichedContextSnapshot,
+        wakeCommentId,
+      }),
     });
     if (!admissionDecision.admitted) {
       const dedupeKey = opts.idempotencyKey

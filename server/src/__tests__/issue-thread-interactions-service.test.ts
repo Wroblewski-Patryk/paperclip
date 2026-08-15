@@ -193,7 +193,7 @@ describeEmbeddedPostgres("issueThreadInteractionService", () => {
       }),
       expect.objectContaining({
         assigneeAgentId: null,
-        status: "todo",
+        status: "backlog",
       }),
     ]);
     const createdIssueRows = await db

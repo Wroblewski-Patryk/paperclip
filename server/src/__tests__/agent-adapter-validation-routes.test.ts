@@ -1,6 +1,8 @@
 import express from "express";
+import os from "node:os";
+import path from "node:path";
 import request from "supertest";
-import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import type { ServerAdapterModule } from "../adapters/index.js";
 
 const mockAgentService = vi.hoisted(() => ({
@@ -19,6 +21,10 @@ const mockAccessService = vi.hoisted(() => ({
 const mockCompanySkillService = vi.hoisted(() => ({
   listRuntimeSkillEntries: vi.fn(),
   resolveRequestedSkillKeys: vi.fn(),
+}));
+
+const mockEnvironmentService = vi.hoisted(() => ({
+  getById: vi.fn(),
 }));
 
 const mockSecretService = vi.hoisted(() => ({
@@ -80,6 +86,14 @@ vi.mock("../services/instance-settings.js", () => ({
   instanceSettingsService: () => mockInstanceSettingsService,
 }));
 
+vi.mock("../services/environments.js", () => ({
+  environmentService: () => mockEnvironmentService,
+}));
+
+vi.mock("../services/secrets.js", () => ({
+  secretService: () => mockSecretService,
+}));
+
 function registerModuleMocks() {
   vi.doMock("../services/index.js", () => ({
     agentService: () => mockAgentService,
@@ -99,6 +113,14 @@ function registerModuleMocks() {
 
   vi.doMock("../services/instance-settings.js", () => ({
     instanceSettingsService: () => mockInstanceSettingsService,
+  }));
+
+  vi.doMock("../services/environments.js", () => ({
+    environmentService: () => mockEnvironmentService,
+  }));
+
+  vi.doMock("../services/secrets.js", () => ({
+    secretService: () => mockSecretService,
   }));
 }
 
@@ -182,6 +204,18 @@ async function unregisterTestAdapter(type: string) {
 }
 
 describe("agent routes adapter validation", () => {
+  const previousPaperclipHome = process.env.PAPERCLIP_HOME;
+  const isolatedPaperclipHome = path.join(os.tmpdir(), `paperclip-agent-adapter-validation-${process.pid}`);
+
+  beforeAll(() => {
+    process.env.PAPERCLIP_HOME = isolatedPaperclipHome;
+  });
+
+  afterAll(() => {
+    if (previousPaperclipHome === undefined) delete process.env.PAPERCLIP_HOME;
+    else process.env.PAPERCLIP_HOME = previousPaperclipHome;
+  });
+
   beforeEach(async () => {
     vi.resetModules();
     vi.doUnmock("../routes/agents.js");
@@ -192,6 +226,7 @@ describe("agent routes adapter validation", () => {
     vi.clearAllMocks();
     mockCompanySkillService.listRuntimeSkillEntries.mockResolvedValue([]);
     mockCompanySkillService.resolveRequestedSkillKeys.mockResolvedValue([]);
+    mockEnvironmentService.getById.mockResolvedValue(null);
     mockAccessService.canUser.mockResolvedValue(true);
     mockAccessService.decide.mockResolvedValue({
       allowed: true,

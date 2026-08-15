@@ -25,7 +25,8 @@ describe("acpx local skill sync", () => {
     expect(snapshot.supported).toBe(true);
     expect(snapshot.mode).toBe("ephemeral");
     expect(snapshot.desiredSkills).toContain(paperclipKey);
-    expect(snapshot.desiredSkills).toContain(createAgentKey);
+    expect(snapshot.desiredSkills).not.toContain(createAgentKey);
+    expect(snapshot.entries.find((entry) => entry.key === createAgentKey)?.state).toBe("available");
     expect(snapshot.entries.find((entry) => entry.key === paperclipKey)?.state).toBe("configured");
     expect(snapshot.entries.find((entry) => entry.key === paperclipKey)?.detail).toContain("ACPX Claude session");
     expect(snapshot.warnings).toEqual([]);

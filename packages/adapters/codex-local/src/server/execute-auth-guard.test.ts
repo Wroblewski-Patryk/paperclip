@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const originalOpenAiApiKey = process.env.OPENAI_API_KEY;
 
 const {
   ensureAbsoluteDirectory,
@@ -68,9 +70,17 @@ vi.mock("./quota.js", async () => {
 import { execute } from "./execute.js";
 
 describe("codex local execution auth guard", () => {
+  beforeEach(() => {
+    delete process.env.OPENAI_API_KEY;
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
-    delete process.env.OPENAI_API_KEY;
+    if (originalOpenAiApiKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = originalOpenAiApiKey;
+    }
   });
 
   it("fails fast before spawning Codex when neither API key nor auth.json is available", async () => {
@@ -113,7 +123,7 @@ describe("codex local execution auth guard", () => {
       },
     });
     expect(prepareManagedCodexHome).toHaveBeenCalledTimes(1);
-    expect(readCodexAuthInfo).toHaveBeenCalledTimes(1);
+    expect(readCodexAuthInfo).toHaveBeenCalledTimes(2);
     expect(runAdapterExecutionTargetProcess).not.toHaveBeenCalled();
     expect(ensureAdapterExecutionTargetRuntimeCommandInstalled).not.toHaveBeenCalled();
     expect(ensureAdapterExecutionTargetCommandResolvable).not.toHaveBeenCalled();

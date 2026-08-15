@@ -3543,8 +3543,30 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
 
     const blockerIds = await existingBlockerIssueIds(sourceIssue.companyId, sourceIssue.id);
     if (!blockerIds.includes(recovery.id)) return false;
+    const remainingBlockerIds = blockerIds.filter((blockerId) => blockerId !== recovery.id);
+    const hasUnresolvedRemainingBlocker = remainingBlockerIds.length > 0
+      ? await db
+        .select({ id: issues.id })
+        .from(issues)
+        .where(
+          and(
+            eq(issues.companyId, sourceIssue.companyId),
+            inArray(issues.id, remainingBlockerIds),
+            notInArray(issues.status, ["done", "cancelled"]),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows.length > 0)
+      : false;
     await issuesSvc.update(sourceIssue.id, {
-      blockedByIssueIds: blockerIds.filter((blockerId) => blockerId !== recovery.id),
+      blockedByIssueIds: remainingBlockerIds,
+      ...(sourceIssue.status === "blocked" && !hasUnresolvedRemainingBlocker
+        ? {
+            status: sourceIssue.assigneeAgentId || sourceIssue.assigneeUserId
+              ? "todo" as const
+              : "backlog" as const,
+          }
+        : {}),
     });
     return true;
   }

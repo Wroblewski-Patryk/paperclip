@@ -89,6 +89,18 @@ const steps = [
     }),
   },
   {
+    name: "agentCapabilities",
+    command: ["scripts/audit-softwarehouse-agent-capabilities.mjs"],
+    summary: (data) => ({
+      passed: data.ok ?? false,
+      agents: data.counts?.agents ?? null,
+      findings: data.counts?.findings ?? null,
+      browserCapable: data.counts?.browserCapable ?? null,
+      companycoreCapable: data.counts?.companycoreCapable ?? null,
+      webSearchCapable: data.counts?.webSearchCapable ?? null,
+    }),
+  },
+  {
     name: "goalAlignment",
     command: ["scripts/audit-softwarehouse-goal-alignment.mjs"],
     summary: (data) => ({

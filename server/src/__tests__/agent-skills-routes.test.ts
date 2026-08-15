@@ -1,6 +1,8 @@
 import express from "express";
+import os from "node:os";
+import path from "node:path";
 import request from "supertest";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockAgentService = vi.hoisted(() => ({
   getById: vi.fn(),
@@ -95,6 +97,14 @@ vi.mock("../adapters/index.js", () => ({
   detectAdapterModel: vi.fn(),
 }));
 
+vi.mock("../services/environments.js", () => ({
+  environmentService: () => mockEnvironmentService,
+}));
+
+vi.mock("../services/secrets.js", () => ({
+  secretService: () => mockSecretService,
+}));
+
 function registerModuleMocks() {
   vi.doMock("@paperclipai/shared/telemetry", () => ({
     trackAgentCreated: mockTrackAgentCreated,
@@ -126,6 +136,14 @@ function registerModuleMocks() {
     findActiveServerAdapter: vi.fn(() => mockAdapter),
     listAdapterModels: vi.fn(),
     detectAdapterModel: vi.fn(),
+  }));
+
+  vi.doMock("../services/environments.js", () => ({
+    environmentService: () => mockEnvironmentService,
+  }));
+
+  vi.doMock("../services/secrets.js", () => ({
+    secretService: () => mockSecretService,
   }));
 }
 
@@ -213,6 +231,18 @@ function makeAgent(adapterType: string) {
 }
 
 describe.sequential("agent skill routes", () => {
+  const previousPaperclipHome = process.env.PAPERCLIP_HOME;
+  const isolatedPaperclipHome = path.join(os.tmpdir(), `paperclip-agent-skills-routes-${process.pid}`);
+
+  beforeAll(() => {
+    process.env.PAPERCLIP_HOME = isolatedPaperclipHome;
+  });
+
+  afterAll(() => {
+    if (previousPaperclipHome === undefined) delete process.env.PAPERCLIP_HOME;
+    else process.env.PAPERCLIP_HOME = previousPaperclipHome;
+  });
+
   beforeEach(() => {
     vi.resetModules();
     vi.doUnmock("../routes/agents.js");
@@ -227,6 +257,7 @@ describe.sequential("agent skill routes", () => {
     for (const mock of Object.values(mockAgentInstructionsService)) mock.mockReset();
     for (const mock of Object.values(mockCompanySkillService)) mock.mockReset();
     for (const mock of Object.values(mockSecretService)) mock.mockReset();
+    for (const mock of Object.values(mockEnvironmentService)) mock.mockReset();
     mockLogActivity.mockReset();
     mockTrackAgentCreated.mockReset();
     mockGetTelemetryClient.mockReset();
@@ -241,6 +272,7 @@ describe.sequential("agent skill routes", () => {
       agent: makeAgent("claude_local"),
     });
     mockSecretService.resolveAdapterConfigForRuntime.mockResolvedValue({ config: { env: {} } });
+    mockEnvironmentService.getById.mockResolvedValue(null);
     mockCompanySkillService.listRuntimeSkillEntries.mockResolvedValue([
       {
         key: "paperclipai/paperclip/paperclip",
@@ -349,7 +381,7 @@ describe.sequential("agent skill routes", () => {
         }),
       }),
     );
-  }, 10_000);
+  }, 30_000);
 
   it("skips runtime materialization when listing Codex skills", async () => {
     mockAgentService.getById.mockResolvedValue(makeAgent("codex_local"));

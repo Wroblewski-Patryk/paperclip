@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { and, eq } from "drizzle-orm";
 import {
   activityLog,
+  admissionControls,
   agents,
   agentRuntimeState,
   agentWakeupRequests,
@@ -429,6 +430,13 @@ describeEmbeddedPostgres("workspaceResourceClaimService", () => {
     const winner = await heartbeat.invoke(winnerAgentId, "on_demand", { issueId: winnerIssueId });
     expect(winner).not.toBeNull();
     await winnerStarted;
+
+    // This scenario is specifically about the shared-resource lock, so permit
+    // two project runs to reach that lower-level guard concurrently.
+    await db
+      .update(admissionControls)
+      .set({ policy: { maxProjectWip: 2 } })
+      .where(eq(admissionControls.companyId, companyId));
 
     const loser = await heartbeat.invoke(loserAgentId, "on_demand", { issueId: loserIssueId });
     expect(loser).not.toBeNull();

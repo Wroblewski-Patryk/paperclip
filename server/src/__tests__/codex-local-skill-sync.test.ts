@@ -42,11 +42,11 @@ describe("codex local skill sync", () => {
     const before = await listCodexSkills(ctx);
     expect(before.mode).toBe("ephemeral");
     expect(before.desiredSkills).toContain(paperclipKey);
-    expect(before.desiredSkills).toContain(createAgentKey);
+    expect(before.desiredSkills).not.toContain(createAgentKey);
     expect(before.entries.find((entry) => entry.key === paperclipKey)?.required).toBe(true);
     expect(before.entries.find((entry) => entry.key === paperclipKey)?.state).toBe("configured");
-    expect(before.entries.find((entry) => entry.key === createAgentKey)?.required).toBe(true);
-    expect(before.entries.find((entry) => entry.key === createAgentKey)?.state).toBe("configured");
+    expect(before.entries.find((entry) => entry.key === createAgentKey)?.required).toBe(false);
+    expect(before.entries.find((entry) => entry.key === createAgentKey)?.state).toBe("available");
     expect(before.entries.find((entry) => entry.key === paperclipKey)?.detail).toContain("CODEX_HOME/skills/");
   });
 
@@ -76,7 +76,7 @@ describe("codex local skill sync", () => {
     });
   });
 
-  it("keeps required bundled Paperclip skills configured even when the desired set is emptied", async () => {
+  it("keeps only required bundled Paperclip skills configured when the desired set is emptied", async () => {
     const codexHome = await makeTempDir("paperclip-codex-skill-required-");
     cleanupDirs.add(codexHome);
 
@@ -96,9 +96,9 @@ describe("codex local skill sync", () => {
 
     const after = await syncCodexSkills(configuredCtx, []);
     expect(after.desiredSkills).toContain(paperclipKey);
-    expect(after.desiredSkills).toContain(createAgentKey);
+    expect(after.desiredSkills).not.toContain(createAgentKey);
     expect(after.entries.find((entry) => entry.key === paperclipKey)?.state).toBe("configured");
-    expect(after.entries.find((entry) => entry.key === createAgentKey)?.state).toBe("configured");
+    expect(after.entries.find((entry) => entry.key === createAgentKey)?.state).toBe("available");
   });
 
   it("normalizes legacy flat Paperclip skill refs before reporting configured state", async () => {

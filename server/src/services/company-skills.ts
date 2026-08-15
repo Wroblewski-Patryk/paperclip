@@ -592,6 +592,11 @@ function parseFrontmatterMarkdown(raw: string): { frontmatter: Record<string, un
   };
 }
 
+export function resolveBundledRuntimeSkillRequired(sourceKind: string | null, markdown: string): boolean {
+  if (sourceKind !== "paperclip_bundled") return false;
+  return parseFrontmatterMarkdown(markdown).frontmatter.required !== false;
+}
+
 async function fetchText(url: string) {
   const response = await ghFetch(url);
   if (!response.ok) {
@@ -3144,7 +3149,7 @@ export function companySkillService(db: Db) {
       const sourceResolution = await resolveRuntimeSkillSource(companyId, skill, options);
       if (!sourceResolution) continue;
 
-      const required = sourceKind === "paperclip_bundled";
+      const required = resolveBundledRuntimeSkillRequired(sourceKind, skill.markdown);
       out.push({
         key: skill.key,
         runtimeName: buildSkillRuntimeName(skill.key, skill.slug),

@@ -4375,8 +4375,15 @@ export function issueService(db: Db) {
         actorUserId,
         ...issueData
       } = data;
+      const childStatus =
+        !issueData.assigneeAgentId &&
+        !issueData.assigneeUserId &&
+        (issueData.status === undefined || issueData.status === "todo" || issueData.status === "in_progress")
+          ? "backlog" as const
+          : issueData.status;
       const child = await issueService(db).create(parent.companyId, {
         ...issueData,
+        status: childStatus,
         parentId: parent.id,
         projectId: issueData.projectId ?? parent.projectId,
         goalId: issueData.goalId ?? parent.goalId,

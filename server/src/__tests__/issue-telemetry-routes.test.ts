@@ -37,6 +37,8 @@ function registerModuleMocks() {
       hasPermission: vi.fn(),
     }),
     agentService: () => mockAgentService,
+    assignmentProposalService: () => ({}),
+    delegationFlowService: () => ({}),
     documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
     documentService: () => ({}),
     executionWorkspaceService: () => ({}),

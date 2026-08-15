@@ -50,34 +50,40 @@ describeEmbedded("durable Roost Product Map outbox", () => {
   it("deduplicates events, refuses stale events, and supersedes obsolete pending snapshots", async () => {
     await seed();
     const service = roostProductMapOutboxService(db);
-    const older = envelopeForOutbox(packet("2026-08-03T10:00:00.000Z"), "2026-08-03T10:00:01.000Z");
-    const newer = envelopeForOutbox(packet("2026-08-03T10:05:00.000Z"), "2026-08-03T10:05:01.000Z");
+    const newerObservedAt = new Date(Date.now() - 60_000);
+    const olderObservedAt = new Date(newerObservedAt.getTime() - 5 * 60_000);
+    const staleObservedAt = new Date(olderObservedAt.getTime() - 60_000);
+    const older = envelopeForOutbox(packet(olderObservedAt.toISOString()), new Date(olderObservedAt.getTime() + 1_000).toISOString());
+    const newer = envelopeForOutbox(packet(newerObservedAt.toISOString()), new Date(newerObservedAt.getTime() + 1_000).toISOString());
     expect((await service.enqueueEnvelope(older)).outcome).toBe("enqueued");
     expect((await service.enqueueEnvelope(older)).outcome).toBe("duplicate");
     expect((await service.enqueueEnvelope(newer)).outcome).toBe("enqueued");
-    expect((await service.enqueueEnvelope(envelopeForOutbox(packet("2026-08-03T09:59:00.000Z"), "2026-08-03T10:06:00.000Z"))).outcome).toBe("stale");
+    expect((await service.enqueueEnvelope(envelopeForOutbox(packet(staleObservedAt.toISOString()), new Date(newerObservedAt.getTime() + 60_000).toISOString()))).outcome).toBe("stale");
 
     const delivered: string[] = [];
     const request = async (input: { kind: string; body?: Buffer }) => {
       if (input.kind === "outbound") delivered.push(JSON.parse(input.body!.toString("utf8")).observedAt);
       return { status: 202, body: {} };
     };
-    expect((await service.drainOne(companyId, bindings, request as never, new Date("2026-08-04T11:00:00.000Z"))).outcome).toBe("published");
-    expect((await service.drainOne(companyId, bindings, request as never, new Date("2026-08-04T11:00:00.000Z"))).outcome).toBe("empty");
-    expect(delivered).toEqual(["2026-08-03T10:05:00.000Z"]);
+    const drainAt = new Date(newerObservedAt.getTime() + 25 * 60 * 60_000);
+    expect((await service.drainOne(companyId, bindings, request as never, drainAt)).outcome).toBe("published");
+    expect((await service.drainOne(companyId, bindings, request as never, drainAt)).outcome).toBe("empty");
+    expect(delivered).toEqual([newerObservedAt.toISOString()]);
   });
 
   it("survives publisher outage, retries after backoff, recovers, and reports stale-feed lag", async () => {
     await seed();
     const service = roostProductMapOutboxService(db);
-    await service.enqueueEnvelope(envelopeForOutbox(packet("2026-08-03T10:00:00.000Z"), "2026-08-03T10:00:01.000Z"));
+    const observedAt = new Date(Date.now() - 60_000);
+    await service.enqueueEnvelope(envelopeForOutbox(packet(observedAt.toISOString()), new Date(observedAt.getTime() + 1_000).toISOString()));
+    const firstAttemptAt = new Date(observedAt.getTime() + 24 * 60 * 60_000 + 60_000);
     const offline = async () => { throw new Error("INGEST_REJECTED"); };
-    expect(await service.drainOne(companyId, bindings, offline, new Date("2026-08-04T10:01:00.000Z")))
+    expect(await service.drainOne(companyId, bindings, offline, firstAttemptAt))
       .toMatchObject({ outcome: "retry_scheduled", attempts: 1 });
-    expect((await service.drainOne(companyId, bindings, offline, new Date("2026-08-04T10:01:30.000Z"))).outcome).toBe("empty");
+    expect((await service.drainOne(companyId, bindings, offline, new Date(firstAttemptAt.getTime() + 30_000))).outcome).toBe("empty");
     const recovered = async () => ({ status: 202, body: {} });
-    expect((await service.drainOne(companyId, bindings, recovered, new Date("2026-08-04T10:02:01.000Z"))).outcome).toBe("published");
-    expect(await service.freshness(companyId, new Date("2026-08-04T10:20:00.000Z")))
+    expect((await service.drainOne(companyId, bindings, recovered, new Date(firstAttemptAt.getTime() + 61_000))).outcome).toBe("published");
+    expect(await service.freshness(companyId, new Date(observedAt.getTime() + (24 * 60 + 20) * 60_000)))
       .toMatchObject({ status: "published", lagMs: (24 * 60 + 20) * 60_000, lastErrorCode: null });
   });
 });

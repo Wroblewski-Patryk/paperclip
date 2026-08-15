@@ -107,7 +107,7 @@ describeEmbeddedPostgres("multilingual issue routes", () => {
       .send({
         title,
         description,
-        status: "todo",
+        status: "backlog",
         priority: "medium",
       });
 
@@ -115,7 +115,7 @@ describeEmbeddedPostgres("multilingual issue routes", () => {
     expect(createRes.body).toMatchObject({
       title,
       description,
-      status: "todo",
+      status: "backlog",
       priority: "medium",
       identifier: "LNG-1",
     });

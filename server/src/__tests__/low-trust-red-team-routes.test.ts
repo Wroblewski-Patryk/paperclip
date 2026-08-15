@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import express from "express";
 import request from "supertest";
 import { WebSocketServer } from "ws";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   activityLog,
@@ -871,6 +871,18 @@ describeEmbeddedPostgres("low-trust red-team HTTP route regression suite", () =>
       });
       expectNoCanary(bogusRunContext.body, fixture.canaries.raw);
 
+      await db.update(heartbeatRuns).set({
+        status: "succeeded",
+        finishedAt: new Date(),
+      }).where(inArray(heartbeatRuns.id, [fixture.runs.standard.id, fixture.runs.lowTrust.id]));
+      await db.update(issues).set({
+        status: "in_review",
+        checkoutRunId: null,
+        executionRunId: null,
+      }).where(eq(issues.id, fixture.issues.assignedReview.id));
+      await db.update(issues).set({
+        assigneeAgentId: fixture.agents.standard.id,
+      }).where(eq(issues.id, fixture.issues.reviewRoot.id));
       await db.update(agents).set({
         status: "idle",
         adapterType: "openclaw_gateway",

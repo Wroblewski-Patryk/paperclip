@@ -1,13 +1,20 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
+import { BROWSER_CAPABILITY_AGENT_NAMES } from "./lib/softwarehouse-agent-capabilities.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
 const companyId = process.env.PAPERCLIP_COMPANY_ID ?? "ae26bb8b-8f5f-4a85-b341-78d4e1985975";
 const apply = process.argv.includes("--apply");
-const targetAgentName = "09 DRE (Deployment & Reliability Engineer)";
 const configPrefix = "mcp_servers.playwright.";
 const cliPath = path.resolve("node_modules", "@playwright", "mcp", "cli.js");
-const outputDir = path.resolve("report", "controlled-browser", "dre");
+
+function outputDirFor(agentName) {
+  const slug = agentName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return path.resolve("report", "controlled-browser", slug);
+}
 
 function asRecord(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -28,7 +35,7 @@ async function request(method, route, body) {
   return text ? JSON.parse(text) : null;
 }
 
-function controlledBrowserExtraArgs(current) {
+function controlledBrowserExtraArgs(current, outputDir) {
   const existing = asStringArray(current);
   const preserved = [];
   for (let index = 0; index < existing.length; index += 1) {
@@ -58,12 +65,12 @@ function controlledBrowserExtraArgs(current) {
   ];
 }
 
-function configuredAdapter(rawConfig) {
+function configuredAdapter(rawConfig, outputDir) {
   const config = asRecord(rawConfig);
-  return { ...config, extraArgs: controlledBrowserExtraArgs(config.extraArgs) };
+  return { ...config, extraArgs: controlledBrowserExtraArgs(config.extraArgs, outputDir) };
 }
 
-function browserConfigIsCurrent(rawConfig) {
+function browserConfigIsCurrent(rawConfig, outputDir) {
   const args = asStringArray(asRecord(rawConfig).extraArgs);
   return args.includes(`${configPrefix}command=${JSON.stringify(process.execPath)}`)
     && args.includes(`${configPrefix}args=${JSON.stringify([
@@ -77,7 +84,7 @@ function browserConfigIsCurrent(rawConfig) {
     ])}`);
 }
 
-async function verifyControlledBrowser() {
+async function verifyControlledBrowser(outputDir) {
   const child = spawn(process.execPath, [
     cliPath,
     "--headless",
@@ -169,46 +176,67 @@ const [agents, liveRuns] = await Promise.all([
   request("GET", `/api/companies/${companyId}/agents`),
   request("GET", `/api/companies/${companyId}/live-runs`),
 ]);
-const target = agents.find((agent) => agent.name === targetAgentName);
-if (!target) throw new Error(`Target agent not found: ${targetAgentName}`);
-if (apply && liveRuns.some((run) => run.agentId === target.id)) {
-  throw new Error(`Refusing to reconfigure ${targetAgentName} while its heartbeat is active`);
+const targets = BROWSER_CAPABILITY_AGENT_NAMES.map((name) => {
+  const agent = agents.find((candidate) => candidate.name === name);
+  if (!agent) throw new Error(`Target agent not found: ${name}`);
+  return agent;
+});
+const activeTargets = targets.filter((target) => liveRuns.some((run) => run.agentId === target.id));
+if (apply && activeTargets.length > 0) {
+  throw new Error(`Refusing to reconfigure agents with active heartbeats: ${activeTargets.map((agent) => agent.name).join(", ")}`);
 }
-const runtimeConfig = asRecord(target.runtimeConfig);
-const modelProfiles = asRecord(runtimeConfig.modelProfiles);
-const cheap = asRecord(modelProfiles.cheap);
-const before = {
-  primary: browserConfigIsCurrent(target.adapterConfig),
-  cheap: browserConfigIsCurrent(cheap.adapterConfig),
-};
+
+const before = targets.map((target) => {
+  const cheap = asRecord(asRecord(asRecord(target.runtimeConfig).modelProfiles).cheap);
+  const outputDir = outputDirFor(target.name);
+  return {
+    agentId: target.id,
+    agent: target.name,
+    primary: browserConfigIsCurrent(target.adapterConfig, outputDir),
+    cheap: browserConfigIsCurrent(cheap.adapterConfig, outputDir),
+  };
+});
 
 if (apply) {
-  await request("PATCH", `/api/agents/${target.id}?companyId=${companyId}`, {
-    adapterConfig: configuredAdapter(target.adapterConfig),
-    runtimeConfig: {
-      ...runtimeConfig,
-      modelProfiles: {
-        ...modelProfiles,
-        cheap: { ...cheap, adapterConfig: configuredAdapter(cheap.adapterConfig) },
+  for (const target of targets) {
+    const runtimeConfig = asRecord(target.runtimeConfig);
+    const modelProfiles = asRecord(runtimeConfig.modelProfiles);
+    const cheap = asRecord(modelProfiles.cheap);
+    const outputDir = outputDirFor(target.name);
+    await request("PATCH", `/api/agents/${target.id}?companyId=${companyId}`, {
+      adapterConfig: configuredAdapter(target.adapterConfig, outputDir),
+      runtimeConfig: {
+        ...runtimeConfig,
+        modelProfiles: {
+          ...modelProfiles,
+          cheap: { ...cheap, adapterConfig: configuredAdapter(cheap.adapterConfig, outputDir) },
+        },
       },
-    },
-  });
+    });
+  }
 }
 
-const verification = await verifyControlledBrowser();
-const refreshed = apply
-  ? (await request("GET", `/api/companies/${companyId}/agents`)).find((agent) => agent.id === target.id)
-  : target;
-const refreshedCheap = asRecord(asRecord(asRecord(refreshed.runtimeConfig).modelProfiles).cheap);
+const verification = await verifyControlledBrowser(outputDirFor("verification"));
+const refreshedAgents = apply
+  ? await request("GET", `/api/companies/${companyId}/agents`)
+  : agents;
+const after = targets.map((target) => {
+  const refreshed = refreshedAgents.find((agent) => agent.id === target.id);
+  const refreshedCheap = asRecord(asRecord(asRecord(refreshed.runtimeConfig).modelProfiles).cheap);
+  const outputDir = outputDirFor(target.name);
+  return {
+    agentId: target.id,
+    agent: target.name,
+    primary: browserConfigIsCurrent(refreshed.adapterConfig, outputDir),
+    cheap: browserConfigIsCurrent(refreshedCheap.adapterConfig, outputDir),
+  };
+});
 console.log(JSON.stringify({
   mode: apply ? "apply" : "verify",
-  targetAgent: { id: target.id, name: target.name },
-  targetActiveRunCount: liveRuns.filter((run) => run.agentId === target.id).length,
+  targetAgents: targets.map((target) => ({ id: target.id, name: target.name })),
+  targetActiveRunCount: activeTargets.length,
   before,
-  after: {
-    primary: browserConfigIsCurrent(refreshed.adapterConfig),
-    cheap: browserConfigIsCurrent(refreshedCheap.adapterConfig),
-  },
+  after,
   verification,
   persistedBrowserProfile: false,
   productionMutation: false,

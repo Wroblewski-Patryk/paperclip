@@ -84,7 +84,12 @@ async function seedCompany(db: Db, label: string) {
 async function seedAgent(
   db: Db,
   companyId: string,
-  input: { role?: string; permissions?: Record<string, unknown>; status?: "active" | "idle" } = {},
+  input: {
+    role?: string;
+    reportsTo?: string | null;
+    permissions?: Record<string, unknown>;
+    status?: "active" | "idle";
+  } = {},
 ) {
   return db
     .insert(agents)
@@ -92,6 +97,7 @@ async function seedAgent(
       companyId,
       name: `Agent ${randomUUID()}`,
       role: input.role ?? "engineer",
+      reportsTo: input.reportsTo ?? null,
       status: input.status ?? "active",
       adapterType: "process",
       adapterConfig: {},
@@ -288,11 +294,12 @@ describeEmbeddedPostgres("permissions upgrade visibility and route boundaries", 
     expect(res.body.error).toContain("Agent key cannot access another company");
   });
 
-  it("allows same-company route assignment after upgrade but keeps private target assignment grant constrained", async () => {
+  it("allows direct-report assignment after upgrade without widening a private-target scope grant", async () => {
     const company = await seedCompany(db, "Assignment");
     const actorAgent = await seedAgent(db, company.id);
-    const openTargetAgent = await seedAgent(db, company.id);
+    const openTargetAgent = await seedAgent(db, company.id, { reportsTo: actorAgent.id });
     const privateTargetAgent = await seedAgent(db, company.id, {
+      reportsTo: actorAgent.id,
       permissions: {
         authorizationPolicy: {
           agentVisibility: { mode: "private", hiddenFromDefaultDirectory: true },
@@ -309,11 +316,13 @@ describeEmbeddedPostgres("permissions upgrade visibility and route boundaries", 
       .send({ title: "Assignable after upgrade", assigneeAgentId: openTargetAgent.id });
     expect(openAssignment.status, JSON.stringify(openAssignment.body)).toBe(201);
 
-    const deniedPrivateAssignment = await request(app)
+    const privateDirectReportAssignment = await request(app)
       .post(`/api/companies/${company.id}/issues`)
-      .send({ title: "Private target needs scope", assigneeAgentId: privateTargetAgent.id });
-    expect(deniedPrivateAssignment.status).toBe(403);
-    expect(deniedPrivateAssignment.body.error).toContain("private");
+      .send({ title: "Private direct report remains assignable", assigneeAgentId: privateTargetAgent.id });
+    expect(
+      privateDirectReportAssignment.status,
+      JSON.stringify(privateDirectReportAssignment.body),
+    ).toBe(201);
 
     await db.insert(companyMemberships).values({
       companyId: company.id,
@@ -331,17 +340,12 @@ describeEmbeddedPostgres("permissions upgrade visibility and route boundaries", 
       grantedByUserId: null,
     });
 
-    const allowedPrivateAssignment = await request(app)
-      .post(`/api/companies/${company.id}/issues`)
-      .send({ title: "Private target has explicit scope", assigneeAgentId: privateTargetAgent.id });
-    expect(allowedPrivateAssignment.status, JSON.stringify(allowedPrivateAssignment.body)).toBe(201);
-
     const otherPrivateTargetAgent = await seedAgent(db, company.id, {
       permissions: privateTargetAgent.permissions as Record<string, unknown>,
     });
     const deniedOutsideScope = await request(app)
       .post(`/api/companies/${company.id}/issues`)
-      .send({ title: "Different private target stays denied", assigneeAgentId: otherPrivateTargetAgent.id });
+      .send({ title: "Private target outside the grant stays denied", assigneeAgentId: otherPrivateTargetAgent.id });
     expect(deniedOutsideScope.status).toBe(403);
     expect(deniedOutsideScope.body.error).toContain("private");
   });

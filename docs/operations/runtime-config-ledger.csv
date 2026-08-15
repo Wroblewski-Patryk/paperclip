@@ -1,7 +1,7 @@
 Service,Environment,Config key,Secret,Required,Owner,Source of truth,Validation,Last verified,Notes
 Paperclip UI/API,local,PAPERCLIP_BIND_HOST,no,yes,CTO Architect,softwarehouse/README.md and .paperclip/config.json,GET http://127.0.0.1:3200/api/health,2026-05-31,Expected loopback host for local trusted Softwarehouse runtime.
 Paperclip UI/API,local,PAPERCLIP_PORT,no,yes,CTO Architect,softwarehouse/README.md and .paperclip/config.json,GET http://127.0.0.1:3200/api/health,2026-05-31,Expected port 3200.
-Paperclip database,local,embedded PostgreSQL port,no,yes,CTO Architect,softwarehouse/README.md and runtime startup logs,doctor-luckysparrow-softwarehouse.mjs,2026-05-31,Expected local embedded PostgreSQL port 54339.
+Paperclip database,local,embedded PostgreSQL port,no,yes,CTO Architect,softwarehouse/README.md and runtime startup logs,doctor-luckysparrow-softwarehouse.mjs,2026-08-15,Expected canonical local embedded PostgreSQL port 54329.
 Paperclip runtime home,local,PAPERCLIP_HOME,no,yes,CTO Architect,.paperclip/runtime/home,doctor-luckysparrow-softwarehouse.mjs,2026-05-31,Runtime data is local and ignored by git.
 Paperclip config,local,PAPERCLIP_CONFIG,no,yes,CTO Architect,.paperclip/config.json and softwarehouse/local-config.example.json,doctor-luckysparrow-softwarehouse.mjs,2026-05-31,Track examples only; do not commit live config.
 Paperclip env,local,.paperclip/.env,mixed,yes,Security Review Lead,softwarehouse/local-env.example,doctor-luckysparrow-softwarehouse.mjs,2026-05-31,Live env ignored by git; examples only in repo.

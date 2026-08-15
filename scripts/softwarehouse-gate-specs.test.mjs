@@ -482,6 +482,16 @@ test("runtime topology audit detects retained Compose one-off containers", async
   assert.match(completion, /cannot substitute for a canonical\s+service/i);
 });
 
+test("control tick fails closed on agent capability drift", async () => {
+  const controlTick = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
+  assert.match(controlTick, /name: "agentCapabilities"/);
+  assert.match(controlTick, /audit-softwarehouse-agent-capabilities\.mjs/);
+  assert.ok(
+    controlTick.indexOf('name: "agentCapabilities"') <
+      controlTick.indexOf('name: "goalAlignment"'),
+  );
+});
+
 test("runtime topology audit does not invent missing projects after a catalog timeout", async () => {
   const source = await readFile("scripts/audit-local-runtime-topology.mjs", "utf8");
 

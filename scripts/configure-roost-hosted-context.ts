@@ -186,12 +186,14 @@ async function verifyBridge(baseUrl: string, apiKey: string) {
 
 async function main() {
   await access(bridgePath);
-  const [agentsResponse, secretsResponse] = await Promise.all([
+  const [agentsResponse, secretsResponse, liveRunsResponse] = await Promise.all([
     request("GET", `/api/companies/${companyId}/agents`),
     request("GET", `/api/companies/${companyId}/secrets`),
+    request("GET", `/api/companies/${companyId}/live-runs`),
   ]);
   const agents = Array.isArray(agentsResponse) ? agentsResponse as JsonRecord[] : [];
   const secrets = Array.isArray(secretsResponse) ? secretsResponse as JsonRecord[] : [];
+  const liveRuns = Array.isArray(liveRunsResponse) ? liveRunsResponse as JsonRecord[] : [];
   const baseUrlSecret = secrets.find((secret) => secret.key === "roost_api_base_url");
   const apiKeySecret = secrets.find((secret) => secret.key === "companycore_api_key");
   if (typeof baseUrlSecret?.id !== "string" || typeof apiKeySecret?.id !== "string") {
@@ -203,6 +205,10 @@ async function main() {
     if (agent.adapterType !== "codex_local") throw new Error(`Target agent is not codex_local: ${name}`);
     return agent;
   });
+  const activeTargets = targets.filter((agent) => liveRuns.some((run) => run.agentId === agent.id));
+  if (apply && activeTargets.length > 0) {
+    throw new Error(`Refusing to reconfigure agents with active heartbeats: ${activeTargets.map((agent) => agent.name).join(", ")}`);
+  }
   const current = targets.map((agent) => {
     const cheapConfig = asRecord(asRecord(asRecord(agent.runtimeConfig).modelProfiles).cheap);
     return {
@@ -247,6 +253,24 @@ async function main() {
     }
   }
 
+  const persistedAgents = apply
+    ? await request("GET", `/api/companies/${companyId}/agents`) as JsonRecord[]
+    : agents;
+  const persistedCurrent = targetAgentNames.map((name) => {
+    const agent = persistedAgents.find((candidate) => candidate.name === name);
+    if (!agent) throw new Error(`Persisted target agent not found: ${name}`);
+    const cheapConfig = asRecord(asRecord(asRecord(agent.runtimeConfig).modelProfiles).cheap);
+    return {
+      name,
+      primaryCurrent: adapterIsCurrent(asRecord(agent.adapterConfig), baseUrlSecret.id as string, apiKeySecret.id as string),
+      cheapCurrent: adapterIsCurrent(asRecord(cheapConfig.adapterConfig), baseUrlSecret.id as string, apiKeySecret.id as string),
+    };
+  });
+  const configurationDrift = persistedCurrent.filter((entry) => !entry.primaryCurrent || !entry.cheapCurrent);
+  if (configurationDrift.length > 0) {
+    throw new Error(`CompanyCore MCP configuration drift: ${configurationDrift.map((entry) => entry.name).join(", ")}`);
+  }
+
   const sourceAgent = targets.find((agent) => agent.name === sourceAgentName);
   if (!sourceAgent || typeof sourceAgent.id !== "string") throw new Error("Source agent is missing");
   const runtime = await loadRuntimeConfig();
@@ -277,8 +301,9 @@ async function main() {
     if (negative.status !== 401) throw new Error("Hosted Roost unauthenticated MCP control did not fail closed");
     console.log(JSON.stringify({
       ...plan,
+      current: persistedCurrent,
       result: {
-        configuredAgentCount: targets.length,
+        configuredAgentCount: persistedCurrent.filter((entry) => entry.primaryCurrent && entry.cheapCurrent).length,
         bridge,
         unauthenticatedManifestStatus: negative.status,
         hostedHttps: true,

@@ -68,7 +68,7 @@ describeEmbeddedPostgres("issue identifier routes", () => {
       issueNumber: 7,
       identifier: "PC1A2-7",
       title: "Tenant identifier route",
-      status: "todo",
+      status: "backlog",
       priority: "medium",
       createdByUserId: "cloud-user-1",
     });
