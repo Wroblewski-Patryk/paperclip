@@ -3628,8 +3628,20 @@ test("hosted Roost context config is selective, read-only, and local-service hos
   const source = await readFile("scripts/configure-roost-hosted-context.ts", "utf8");
   const instructions = await readFile("softwarehouse/instructions/shared/02-hosted-roost-company-context.md", "utf8");
 
-  assert.match(source, /"04 COO \(Chief Operating Officer\)"/);
-  assert.match(source, /"11 RPM \(Roost Project Manager\)"/);
+  const targetBlock = source.match(/const targetAgentNames = \[([\s\S]*?)\];/)?.[1] ?? "";
+  const cleanupBlock = source.match(/const cleanupAgentNames = \[([\s\S]*?)\];/)?.[1] ?? "";
+  assert.match(targetBlock, /"09 DRE \(Deployment & Reliability Engineer\)"/);
+  assert.match(targetBlock, /"09 QVE \(QA & Verification Engineer\)"/);
+  assert.doesNotMatch(targetBlock, /"04 COO \(Chief Operating Officer\)"/);
+  assert.doesNotMatch(targetBlock, /"11 RPM \(Roost Project Manager\)"/);
+  assert.match(cleanupBlock, /"00 AIA \(AI Assistant\)"/);
+  assert.match(cleanupBlock, /"04 COO \(Chief Operating Officer\)"/);
+  assert.match(cleanupBlock, /"09 CTO \(Chief Technology Officer\)"/);
+  assert.match(cleanupBlock, /"11 RPM \(Roost Project Manager\)"/);
+  assert.match(source, /delete env\.COMPANYCORE_BASE_URL/);
+  assert.match(source, /delete env\.COMPANYCORE_API_KEY/);
+  assert.match(source, /withoutCompanycoreExtraArgs/);
+  assert.match(source, /least-privilege cleanup drift/);
   assert.match(source, /mcp_servers\.companycore\.command/);
   assert.match(source, /COMPANYCORE_MCP_COMMAND_MODE="read_only"/);
   assert.match(source, /profile.*mcp_company_os_reader|companycore_api_key/);

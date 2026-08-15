@@ -192,4 +192,3 @@ No non-terminal gate is fresh. Do not resume blocked delivery lanes; keep monito
 - If a gate becomes fresh, resume exactly one responsible lane and require the evidence listed above.
 - If the lane fails, return the root blocker to `blocked` with exact owner/action and wait for a new fact.
 - Do not treat this packet as approval for production mutation.
-

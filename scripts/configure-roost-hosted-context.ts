@@ -10,11 +10,13 @@ const apply = process.argv.includes("--apply");
 const verify = process.argv.includes("--verify") || apply;
 const sourceAgentName = "09 DRE (Deployment & Reliability Engineer)";
 const targetAgentNames = [
+  "09 DRE (Deployment & Reliability Engineer)",
+  "09 QVE (QA & Verification Engineer)",
+];
+const cleanupAgentNames = [
   "00 AIA (AI Assistant)",
   "04 COO (Chief Operating Officer)",
   "09 CTO (Chief Technology Officer)",
-  "09 DRE (Deployment & Reliability Engineer)",
-  "09 QVE (QA & Verification Engineer)",
   "11 RPM (Roost Project Manager)",
 ];
 const bridgePath = path.resolve("..", "Roost", "scripts", "companycore-mcp-server.mjs");
@@ -86,6 +88,21 @@ function companycoreExtraArgs(current: unknown): string[] {
   ];
 }
 
+function withoutCompanycoreExtraArgs(current: unknown): string[] {
+  const existing = asStringArray(current);
+  const preserved: string[] = [];
+  for (let index = 0; index < existing.length; index += 1) {
+    const currentArg = existing[index];
+    if (currentArg === "-c" && existing[index + 1]?.startsWith(roostConfigPrefix)) {
+      index += 1;
+      continue;
+    }
+    if (currentArg.startsWith(`-c${roostConfigPrefix}`)) continue;
+    preserved.push(currentArg);
+  }
+  return preserved;
+}
+
 function configuredAdapter(
   rawConfig: unknown,
   baseUrlSecretId: string,
@@ -111,6 +128,26 @@ function adapterIsCurrent(config: JsonRecord, baseUrlSecretId: string, apiKeySec
     && args.includes(`mcp_servers.companycore.command=${JSON.stringify(process.execPath)}`)
     && args.includes(`mcp_servers.companycore.args=[${JSON.stringify(bridgePath)}]`)
     && args.includes(`${roostConfigPrefix}env.COMPANYCORE_MCP_COMMAND_MODE="read_only"`);
+}
+
+function cleanedAdapter(rawConfig: unknown) {
+  const config = asRecord(rawConfig);
+  const env = { ...asRecord(config.env) };
+  delete env.COMPANYCORE_BASE_URL;
+  delete env.COMPANYCORE_API_KEY;
+  return {
+    ...config,
+    env,
+    extraArgs: withoutCompanycoreExtraArgs(config.extraArgs),
+  };
+}
+
+function adapterIsClean(config: JsonRecord) {
+  const env = asRecord(config.env);
+  const args = asStringArray(config.extraArgs);
+  return !("COMPANYCORE_BASE_URL" in env)
+    && !("COMPANYCORE_API_KEY" in env)
+    && !args.some((arg) => arg.startsWith(roostConfigPrefix) || arg.startsWith(`-c${roostConfigPrefix}`));
 }
 
 async function verifyBridge(baseUrl: string, apiKey: string) {
@@ -205,9 +242,16 @@ async function main() {
     if (agent.adapterType !== "codex_local") throw new Error(`Target agent is not codex_local: ${name}`);
     return agent;
   });
-  const activeTargets = targets.filter((agent) => liveRuns.some((run) => run.agentId === agent.id));
-  if (apply && activeTargets.length > 0) {
-    throw new Error(`Refusing to reconfigure agents with active heartbeats: ${activeTargets.map((agent) => agent.name).join(", ")}`);
+  const cleanupTargets = cleanupAgentNames.map((name) => {
+    const agent = agents.find((candidate) => candidate.name === name);
+    if (!agent || typeof agent.id !== "string") throw new Error(`Cleanup agent not found: ${name}`);
+    if (agent.adapterType !== "codex_local") throw new Error(`Cleanup agent is not codex_local: ${name}`);
+    return agent;
+  });
+  const affectedAgents = [...targets, ...cleanupTargets];
+  const activeAffected = affectedAgents.filter((agent) => liveRuns.some((run) => run.agentId === agent.id));
+  if (apply && activeAffected.length > 0) {
+    throw new Error(`Refusing to reconfigure agents with active heartbeats: ${activeAffected.map((agent) => agent.name).join(", ")}`);
   }
   const current = targets.map((agent) => {
     const cheapConfig = asRecord(asRecord(asRecord(agent.runtimeConfig).modelProfiles).cheap);
@@ -221,6 +265,7 @@ async function main() {
     mode: apply ? "apply" : verify ? "verify" : "dry-run",
     companyId,
     targetAgents: targetAgentNames,
+    cleanupAgents: cleanupAgentNames,
     bridgePath,
     hostedOnly: true,
     commandMode: "read_only",
@@ -233,6 +278,24 @@ async function main() {
   }
 
   if (apply) {
+    for (const agent of cleanupTargets) {
+      const runtimeConfig = asRecord(agent.runtimeConfig);
+      const modelProfiles = asRecord(runtimeConfig.modelProfiles);
+      const cheap = asRecord(modelProfiles.cheap);
+      await request("PATCH", `/api/agents/${agent.id}?companyId=${companyId}`, {
+        adapterConfig: cleanedAdapter(agent.adapterConfig),
+        runtimeConfig: {
+          ...runtimeConfig,
+          modelProfiles: {
+            ...modelProfiles,
+            cheap: {
+              ...cheap,
+              adapterConfig: cleanedAdapter(cheap.adapterConfig),
+            },
+          },
+        },
+      });
+    }
     for (const agent of targets) {
       const runtimeConfig = asRecord(agent.runtimeConfig);
       const modelProfiles = asRecord(runtimeConfig.modelProfiles);
@@ -270,6 +333,20 @@ async function main() {
   if (configurationDrift.length > 0) {
     throw new Error(`CompanyCore MCP configuration drift: ${configurationDrift.map((entry) => entry.name).join(", ")}`);
   }
+  const persistedCleanup = cleanupAgentNames.map((name) => {
+    const agent = persistedAgents.find((candidate) => candidate.name === name);
+    if (!agent) throw new Error(`Persisted cleanup agent not found: ${name}`);
+    const cheapConfig = asRecord(asRecord(asRecord(agent.runtimeConfig).modelProfiles).cheap);
+    return {
+      name,
+      primaryClean: adapterIsClean(asRecord(agent.adapterConfig)),
+      cheapClean: adapterIsClean(asRecord(cheapConfig.adapterConfig)),
+    };
+  });
+  const cleanupDrift = persistedCleanup.filter((entry) => !entry.primaryClean || !entry.cheapClean);
+  if (cleanupDrift.length > 0) {
+    throw new Error(`CompanyCore MCP least-privilege cleanup drift: ${cleanupDrift.map((entry) => entry.name).join(", ")}`);
+  }
 
   const sourceAgent = targets.find((agent) => agent.name === sourceAgentName);
   if (!sourceAgent || typeof sourceAgent.id !== "string") throw new Error("Source agent is missing");
@@ -302,6 +379,7 @@ async function main() {
     console.log(JSON.stringify({
       ...plan,
       current: persistedCurrent,
+      cleanup: persistedCleanup,
       result: {
         configuredAgentCount: persistedCurrent.filter((entry) => entry.primaryCurrent && entry.cheapCurrent).length,
         bridge,
