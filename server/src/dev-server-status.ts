@@ -132,3 +132,13 @@ export function toDevServerHealthStatus(
     lastRestartAt: persisted.lastRestartAt,
   };
 }
+
+export function shouldDrainForDevServerRestart(
+  persisted: PersistedDevServerStatus | null,
+  autoRestartEnabled: boolean,
+): boolean {
+  if (!persisted || !autoRestartEnabled) return false;
+  return persisted.dirty
+    || persisted.changedPathCount > 0
+    || persisted.pendingMigrations.length > 0;
+}

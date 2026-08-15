@@ -8,6 +8,11 @@ import {
 } from "@paperclipai/db";
 import type { AgentAvailability } from "@paperclipai/shared";
 import { conflict, notFound, unprocessable } from "../errors.js";
+import {
+  readPersistedDevServerStatus,
+  shouldDrainForDevServerRestart,
+} from "../dev-server-status.js";
+import { instanceSettingsService } from "./instance-settings.js";
 
 export const ADMISSION_CONTROL_STATES = ["open", "draining", "maintenance", "reopening"] as const;
 export type AdmissionControlState = (typeof ADMISSION_CONTROL_STATES)[number];
@@ -305,6 +310,14 @@ export function admissionControlService(db: Db) {
 
   async function evaluateWork(input: WorkAdmissionInput): Promise<WorkAdmissionDecision> {
     const stateDecision = await evaluate(input.companyId, input.projectId);
+    const persistedDevServerStatus = readPersistedDevServerStatus();
+    const autoRestartEnabled = persistedDevServerStatus
+      ? (await instanceSettingsService(db).getExperimental()).autoRestartDevServerWhenIdle
+      : false;
+    const restartDrainRequired = shouldDrainForDevServerRestart(
+      persistedDevServerStatus,
+      autoRestartEnabled,
+    );
     const control = await db
       .select({ policy: admissionControls.policy })
       .from(admissionControls)
@@ -377,6 +390,11 @@ export function admissionControlService(db: Db) {
       reasonCode = `control.${stateDecision.state}`;
       reason = stateDecision.reason ?? `Admission control is ${stateDecision.state}`;
       admitted = false;
+    } else if (restartDrainRequired) {
+      disposition = "waiting_for_signal";
+      reasonCode = "runtime.restart_drain";
+      reason = "A pending automatic dev-server restart is draining active work before restart";
+      admitted = false;
     } else if (input.budgetBlocked) {
       disposition = "paused_by_budget";
       reasonCode = "budget.exhausted";
@@ -395,6 +413,7 @@ export function admissionControlService(db: Db) {
       // after a WIP stop permanently poisons a queued run: once another agent
       // frees the slot, the unchanged wake signal can never be reconsidered.
       !previousStop.reasonCode.startsWith("wip.") &&
+      previousStop.reasonCode !== "runtime.restart_drain" &&
       previousStop.evidenceHash === (input.evidenceHash ?? null)
     ) {
       disposition = "waiting_for_signal";

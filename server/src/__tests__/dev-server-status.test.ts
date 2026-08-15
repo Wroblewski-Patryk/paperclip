@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   getDevServerRestartRequestFilePath,
   readPersistedDevServerStatus,
+  shouldDrainForDevServerRestart,
   toDevServerHealthStatus,
   writeDevServerRestartRequest,
 } from "../dev-server-status.js";
@@ -26,6 +27,23 @@ afterEach(() => {
 });
 
 describe("dev server status helpers", () => {
+  it("drains new work only while an enabled automatic restart is pending", () => {
+    const clean = {
+      dirty: false,
+      lastChangedAt: null,
+      changedPathCount: 0,
+      changedPathsSample: [],
+      pendingMigrations: [],
+      lastRestartAt: null,
+    };
+    const dirty = { ...clean, dirty: true, changedPathCount: 1 };
+
+    expect(shouldDrainForDevServerRestart(dirty, true)).toBe(true);
+    expect(shouldDrainForDevServerRestart(dirty, false)).toBe(false);
+    expect(shouldDrainForDevServerRestart(clean, true)).toBe(false);
+    expect(shouldDrainForDevServerRestart(null, true)).toBe(false);
+  });
+
   it("reads and normalizes persisted supervisor state", () => {
     const filePath = createTempStatusFile({
       dirty: true,
