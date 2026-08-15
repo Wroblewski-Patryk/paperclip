@@ -180,8 +180,10 @@ controller must preserve the gate and select a separate safe runnable lane; repe
 seeder that can only return `noop_existing_recovery_issue` is not constructive progress.
 
 The same rule applies to execution-policy holds. Exceeding an issue or routine-run execution quota
-must create a durable board-owned escalation with the reset/raise/cancel decision, not an automatic
-wake loop. Reusable daily or weekly routine issues receive a fresh quota epoch from each routine run,
+must preserve the hard stop and route a durable technical review to the existing invokable recovery
+owner through a `wake_owner` policy. Recovery must not reset quota windows, raise quotas, or invoke
+an adapter automatically; it escalates to the board only when no invokable recovery owner exists.
+Reusable daily or weekly routine issues receive a fresh quota epoch from each routine run,
 so successful reuse does not accumulate an unbounded historical penalty. Adapter crashes and lost
 processes remain eligible for bounded automatic recovery because they are transient execution
 failures rather than governance decisions.

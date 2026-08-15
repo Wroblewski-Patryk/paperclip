@@ -3072,6 +3072,165 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     }
   });
 
+  it("keeps an at-limit quota hold with its invokable technical owner without rearming execution", async () => {
+    const { companyId, agentId, issueId, runId } = await seedStrandedIssueFixture({
+      status: "in_progress",
+      runStatus: "failed",
+      runErrorCode: "issue_execution_quota_hold",
+      runError: "Execution stopped by policy",
+    });
+    const actionId = randomUUID();
+    await db
+      .update(issues)
+      .set({ status: "in_review", checkoutRunId: null, executionRunId: null })
+      .where(eq(issues.id, issueId));
+    const quotaWindows = [{
+      label: "five-hour",
+      usedPercent: 100,
+      resetsAt: "2026-03-19T05:00:00.000Z",
+      scope: "account",
+    }];
+    await db
+      .update(companies)
+      .set({ budgetMonthlyCents: 12_500, spentMonthlyCents: 9_100 })
+      .where(eq(companies.id, companyId));
+    await db
+      .update(agents)
+      .set({
+        budgetMonthlyCents: 6_700,
+        spentMonthlyCents: 4_400,
+        runtimeConfig: { quotaWindows },
+      })
+      .where(eq(agents.id, agentId));
+    await db.insert(budgetPolicies).values({
+      companyId,
+      scopeType: "agent",
+      scopeId: agentId,
+      metric: "billed_cents",
+      windowKind: "monthly",
+      amount: 6_700,
+      warnPercent: 80,
+      hardStopEnabled: true,
+      notifyEnabled: true,
+      isActive: true,
+    });
+    await db.insert(issueRecoveryActions).values({
+      id: actionId,
+      companyId,
+      sourceIssueId: issueId,
+      kind: "stranded_assigned_issue",
+      status: "active",
+      ownerType: "agent",
+      ownerAgentId: agentId,
+      previousOwnerAgentId: agentId,
+      returnOwnerAgentId: agentId,
+      cause: "stranded_assigned_issue",
+      fingerprint: `quota-hold:${issueId}`,
+      evidence: { sourceIssueId: issueId },
+      nextAction: "Review the quota hold.",
+      wakePolicy: {
+        type: "wake_owner",
+        reason: "source_scoped_recovery_action",
+        ownerAgentId: agentId,
+      },
+      attemptCount: 3,
+      maxAttempts: 3,
+      lastAttemptAt: new Date("2000-01-01T00:00:00.000Z"),
+    });
+    const wakeupsBefore = await db
+      .select({ id: agentWakeupRequests.id })
+      .from(agentWakeupRequests)
+      .where(eq(agentWakeupRequests.agentId, agentId));
+    const runsBefore = await db
+      .select({ id: heartbeatRuns.id })
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.agentId, agentId));
+    const quotaWindowsBefore = await db
+      .select({ runtimeConfig: agents.runtimeConfig })
+      .from(agents)
+      .where(eq(agents.id, agentId));
+    const quotaLimitsBefore = await db
+      .select({ budgetMonthlyCents: agents.budgetMonthlyCents })
+      .from(agents)
+      .where(eq(agents.id, agentId));
+    const spendingConfigurationBefore = await Promise.all([
+      db.select({
+        budgetMonthlyCents: companies.budgetMonthlyCents,
+        spentMonthlyCents: companies.spentMonthlyCents,
+      }).from(companies).where(eq(companies.id, companyId)),
+      db.select({
+        amount: budgetPolicies.amount,
+        warnPercent: budgetPolicies.warnPercent,
+        hardStopEnabled: budgetPolicies.hardStopEnabled,
+        notifyEnabled: budgetPolicies.notifyEnabled,
+        isActive: budgetPolicies.isActive,
+      }).from(budgetPolicies).where(eq(budgetPolicies.scopeId, agentId)),
+    ]);
+    const heartbeat = heartbeatService(db);
+
+    const result = await heartbeat.reconcileStrandedAssignedIssues();
+
+    expect(result.recoveryActionWakesRequeued).toBe(0);
+    const action = await db
+      .select()
+      .from(issueRecoveryActions)
+      .where(eq(issueRecoveryActions.id, actionId))
+      .then((rows) => rows[0] ?? null);
+    expect(action).toMatchObject({
+      status: "escalated",
+      ownerType: "agent",
+      ownerAgentId: agentId,
+      attemptCount: 3,
+      maxAttempts: 3,
+      wakePolicy: {
+        type: "wake_owner",
+        reason: "issue_execution_quota_hold",
+        ownerAgentId: agentId,
+      },
+      evidence: {
+        automaticRecoverySuppressed: true,
+        suppressionCode: "issue_execution_quota_hold",
+        latestRunId: runId,
+      },
+    });
+    expect(action?.nextAction).toContain("must not reset quota windows, raise quotas, or invoke adapters");
+
+    const wakeupsAfter = await db
+      .select({ id: agentWakeupRequests.id })
+      .from(agentWakeupRequests)
+      .where(eq(agentWakeupRequests.agentId, agentId));
+    const runsAfter = await db
+      .select({ id: heartbeatRuns.id })
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.agentId, agentId));
+    expect(wakeupsAfter).toHaveLength(wakeupsBefore.length);
+    expect(runsAfter).toHaveLength(runsBefore.length);
+    await expect(db
+      .select({ runtimeConfig: agents.runtimeConfig })
+      .from(agents)
+      .where(eq(agents.id, agentId))).resolves.toEqual(quotaWindowsBefore);
+    await expect(db
+      .select({ budgetMonthlyCents: agents.budgetMonthlyCents })
+      .from(agents)
+      .where(eq(agents.id, agentId))).resolves.toEqual(quotaLimitsBefore);
+    await expect(Promise.all([
+      db.select({
+        budgetMonthlyCents: companies.budgetMonthlyCents,
+        spentMonthlyCents: companies.spentMonthlyCents,
+      }).from(companies).where(eq(companies.id, companyId)),
+      db.select({
+        amount: budgetPolicies.amount,
+        warnPercent: budgetPolicies.warnPercent,
+        hardStopEnabled: budgetPolicies.hardStopEnabled,
+        notifyEnabled: budgetPolicies.notifyEnabled,
+        isActive: budgetPolicies.isActive,
+      }).from(budgetPolicies).where(eq(budgetPolicies.scopeId, agentId)),
+    ])).resolves.toEqual(spendingConfigurationBefore);
+
+    const issue = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0] ?? null);
+    expect(issue).toMatchObject({ status: "in_review", assigneeAgentId: agentId });
+  });
+
   it("escalates non-retryable continuation failures immediately without enqueuing another retry", async () => {
     const { companyId, agentId, issueId, runId } = await seedStrandedIssueFixture({
       status: "in_progress",
