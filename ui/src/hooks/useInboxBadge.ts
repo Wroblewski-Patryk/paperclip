@@ -6,6 +6,7 @@ import { inboxDismissalsApi } from "../api/inboxDismissals";
 import { approvalsApi } from "../api/approvals";
 import { authApi } from "../api/auth";
 import { dashboardApi } from "../api/dashboard";
+import { decisionsApi } from "../api/decisions";
 import { heartbeatsApi } from "../api/heartbeats";
 import { issuesApi } from "../api/issues";
 import { queryKeys } from "../lib/queryKeys";
@@ -173,6 +174,12 @@ export function useInboxBadge(companyId: string | null | undefined) {
     queryFn: () => dashboardApi.summary(companyId!),
     enabled: !!companyId,
   });
+  const { data: decisions } = useQuery({
+    queryKey: queryKeys.decisions(companyId!),
+    queryFn: () => decisionsApi.list(companyId!),
+    enabled: !!companyId,
+    refetchInterval: 30_000,
+  });
 
   const { data: mineIssuesRaw = [] } = useQuery({
     queryKey: queryKeys.issues.listMineByMe(companyId!),
@@ -196,8 +203,8 @@ export function useInboxBadge(companyId: string | null | undefined) {
   });
 
   return useMemo(
-    () =>
-      computeInboxBadgeData({
+    () => ({
+      ...computeInboxBadgeData({
         approvals,
         joinRequests,
         dashboard,
@@ -207,6 +214,8 @@ export function useInboxBadge(companyId: string | null | undefined) {
         dismissedAtByKey,
         currentUserId,
       }),
-    [approvals, joinRequests, dashboard, heartbeatRuns, mineIssues, dismissedAlerts, dismissedAtByKey, currentUserId],
+      decisions: decisions?.counts.ready ?? 0,
+    }),
+    [approvals, decisions?.counts.ready, joinRequests, dashboard, heartbeatRuns, mineIssues, dismissedAlerts, dismissedAtByKey, currentUserId],
   );
 }

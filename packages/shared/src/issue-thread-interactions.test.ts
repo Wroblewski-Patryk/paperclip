@@ -2,6 +2,30 @@ import { describe, expect, it } from "vitest";
 import { createIssueThreadInteractionSchema } from "./validators/issue.js";
 
 describe("issue thread interaction schemas", () => {
+  it("accepts a complete board decision context", () => {
+    const parsed = createIssueThreadInteractionSchema.parse({
+      kind: "request_confirmation",
+      payload: {
+        version: 1,
+        decisionContext: {
+          version: 1,
+          audience: "board",
+          decisionClass: "owner_authority",
+          decisionReady: true,
+          authorityReason: "Only the board can authorize the protected action.",
+          recommendation: "Approve after reviewing the current evidence.",
+          evidenceRefs: ["issue:LUC-1:comment:latest"],
+          risk: "high",
+          urgency: "medium",
+          reversibility: "costly",
+        },
+        prompt: "Authorize the protected action?",
+      },
+    });
+
+    expect(parsed.payload.decisionContext?.audience).toBe("board");
+    expect(parsed.payload.decisionContext?.decisionReady).toBe(true);
+  });
   it("parses request_confirmation payloads with default no-wake continuation", () => {
     const parsed = createIssueThreadInteractionSchema.parse({
       kind: "request_confirmation",

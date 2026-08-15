@@ -2860,6 +2860,49 @@ registry.registerPath({
   responses: { 200: r.ok(), 401: r.unauthorized },
 });
 
+registry.registerPath({
+  method: "get",
+  path: "/api/companies/{companyId}/decisions",
+  tags: ["dashboard"],
+  summary: "List the company owner decision queue and recent decision history",
+  request: { params: z.object({ companyId: z.string().uuid() }) },
+  responses: { 200: r.ok(), 401: r.unauthorized, 403: r.forbidden },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/api/companies/{companyId}/decisions/{sourceType}/{sourceId}/defer",
+  tags: ["dashboard"],
+  summary: "Defer an open owner decision until a future time",
+  request: {
+    params: z.object({
+      companyId: z.string().uuid(),
+      sourceType: z.enum(["interaction", "approval"]),
+      sourceId: z.string().uuid(),
+    }),
+    body: jsonBody(z.object({
+      deferredUntil: z.string().datetime({ offset: true }),
+      note: z.string().max(2000).nullable().optional(),
+    })),
+  },
+  responses: { 200: r.ok(), 400: r.badRequest, 401: r.unauthorized, 403: r.forbidden, 404: r.notFound },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/companies/{companyId}/decisions/{sourceType}/{sourceId}/defer",
+  tags: ["dashboard"],
+  summary: "Return a deferred owner decision to the ready queue",
+  request: {
+    params: z.object({
+      companyId: z.string().uuid(),
+      sourceType: z.enum(["interaction", "approval"]),
+      sourceId: z.string().uuid(),
+    }),
+  },
+  responses: { 200: r.ok(), 401: r.unauthorized, 403: r.forbidden, 404: r.notFound },
+});
+
 const AgentAvailabilitySchema = z.object({
   companyId: z.string(),
   state: z.enum(["on", "draining", "off", "reopening"]),

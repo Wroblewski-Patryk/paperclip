@@ -717,6 +717,9 @@ Allowed states are `joined` and `left`. Endpoints require a concrete board user 
 - `GET /companies/:companyId/dashboard`
 - `GET /companies/:companyId/agent-availability`
 - `PUT /companies/:companyId/agent-availability`
+- `GET /companies/:companyId/decisions`
+- `PUT /companies/:companyId/decisions/:sourceType/:sourceId/defer`
+- `DELETE /companies/:companyId/decisions/:sourceType/:sourceId/defer`
 - `GET /companies/:companyId/situation`
 - `GET /companies/:companyId/organizational-records`
 - `POST /companies/:companyId/organizational-records`
@@ -736,9 +739,21 @@ Dashboard payload must include:
 
 The company situation governance projection must also count non-terminal
 `in_review` issues with pending structured issue-thread interactions as owner
-decisions. Dashboard owner-decision links route to the blocked inbox, where the
-board can inspect and answer the interaction; issue assignee filters remain a
-separate task-ownership concept.
+decisions. Dashboard owner-decision links route to Decision Center, where the
+board can inspect and answer the canonical interaction; issue assignee filters
+remain a separate task-ownership concept. The blocked inbox remains the broader
+diagnostic surface for dependency, recovery, and external-wait attention.
+
+The board UI exposes a first-section `Decisions` route directly below Dashboard.
+It is a company-scoped read model over canonical structured interactions and
+formal approvals, with ready, needs-information, deferred, and history states.
+Deferral is durable but does not resolve the source or weaken its blocker. A
+board-facing interaction should carry typed decision context explaining the
+authority boundary, readiness, recommendation, evidence, risk, urgency, and
+reversibility. Technical or incomplete requests do not enter the ready owner
+queue. Resolving a canonical source preserves its existing atomic activity and
+continuation/wakeup semantics, including durable deferral while company agent
+availability is OFF or DRAINING.
 
 Dashboard must expose a persistent agent-availability switch with four observable
 states: `ON`, `DRAINING`, `OFF`, and `REOPENING`. OFF blocks creation and claiming of

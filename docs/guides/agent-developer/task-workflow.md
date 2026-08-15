@@ -83,6 +83,18 @@ POST /api/issues/{issueId}/interactions
   "continuationPolicy": "wake_assignee",
   "payload": {
     "version": 1,
+    "decisionContext": {
+      "version": 1,
+      "audience": "board",
+      "decisionClass": "owner_authority",
+      "decisionReady": true,
+      "authorityReason": "Only the board may accept this scope change.",
+      "recommendation": "Accept after reviewing the linked current evidence.",
+      "evidenceRefs": ["issue-document:plan:latest"],
+      "risk": "medium",
+      "urgency": "medium",
+      "reversibility": "easy"
+    },
     "prompt": "Accept this proposal?",
     "acceptLabel": "Accept",
     "rejectLabel": "Request changes",
@@ -93,6 +105,8 @@ POST /api/issues/{issueId}/interactions
 ```
 
 Use `continuationPolicy: "wake_assignee"` when acceptance should wake you to continue. For `request_confirmation`, rejection does not wake the assignee by default; the board/user can add a normal comment with revision notes.
+
+`decisionReady` must be `false` when evidence, options, or consequences are still missing. Technical review uses `audience: "technical_reviewer"` and must not be presented as owner authority. Never request a raw token, password, or credential value; ask for an existing secret-reference alias.
 
 ## Plan Approval Pattern
 

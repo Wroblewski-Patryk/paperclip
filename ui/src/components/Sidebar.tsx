@@ -17,6 +17,7 @@ import {
   Factory,
   PackageOpen,
   UsersRound,
+  Gavel,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -113,6 +114,13 @@ export function Sidebar() {
             <span className="truncate">New Issue</span>
           </button>
           <SidebarNavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} liveCount={liveRunCount} />
+          <SidebarNavItem
+            to="/decisions"
+            label="Decisions"
+            icon={Gavel}
+            badge={inboxBadge.decisions}
+            badgeTone="default"
+          />
           <SidebarNavItem
             to="/inbox"
             label="Inbox"

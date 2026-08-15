@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, LayoutDashboard } from "lucide-react";
 import { dashboardApi } from "../api/dashboard";
+import { decisionsApi } from "../api/decisions";
 import { activityApi } from "../api/activity";
 import { costsApi } from "../api/costs";
 import { issuesApi } from "../api/issues";
@@ -132,6 +133,12 @@ export function Dashboard() {
     queryFn: () => dashboardApi.situation(selectedCompanyId!),
     enabled: !!selectedCompanyId,
   });
+  const { data: decisionCenter } = useQuery({
+    queryKey: queryKeys.decisions(selectedCompanyId!),
+    queryFn: () => decisionsApi.list(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+    refetchInterval: 30_000,
+  });
 
   const { data: softwarehouseStatus, isLoading: isSoftwarehouseStatusLoading } = useQuery({
     queryKey: queryKeys.softwarehouse.status(selectedCompanyId!),
@@ -211,6 +218,7 @@ export function Dashboard() {
           dashboard={data}
           liveRunCount={liveRuns?.length ?? 0}
           situation={companySituation}
+          readyDecisionCount={decisionCenter?.counts.ready}
           status={softwarehouseStatus}
           agents={agents ?? []}
           issues={issues ?? []}

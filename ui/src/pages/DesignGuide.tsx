@@ -23,6 +23,7 @@ import {
   Upload,
   User,
   Zap,
+  Gavel,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AgentAvailabilityControl } from "@/components/AgentAvailabilityControl";
@@ -359,6 +360,26 @@ export function DesignGuide() {
               onChange={setAgentAvailabilityOn}
             />
           </div>
+        </SubSection>
+      </Section>
+
+      <Section title="Owner Decision Composition">
+        <SubSection title="Decision context before canonical action">
+          <Card className="max-w-3xl gap-4 py-5">
+            <CardHeader className="px-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-sm"><Gavel className="h-4 w-4" /> Why this needs the owner</CardTitle>
+                  <CardDescription className="mt-1 leading-6">Explain the authority boundary, recommendation, evidence freshness, and downstream effect before showing confirmation or question controls.</CardDescription>
+                </div>
+                <Badge variant="outline">High risk</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-3 px-5 sm:grid-cols-2">
+              <div className="paperclip-inset p-3 text-sm"><span className="block text-xs text-muted-foreground">Recommendation</span>Accept after current evidence is reviewed.</div>
+              <div className="paperclip-inset p-3 text-sm"><span className="block text-xs text-muted-foreground">Unblocks</span>One governed implementation lane.</div>
+            </CardContent>
+          </Card>
         </SubSection>
       </Section>
 

@@ -63,7 +63,7 @@ vi.mock("../api/instanceSettings", () => ({
 }));
 
 vi.mock("../hooks/useInboxBadge", () => ({
-  useInboxBadge: () => ({ inbox: 0, failedRuns: 0 }),
+  useInboxBadge: () => ({ inbox: 0, decisions: 4, failedRuns: 0 }),
 }));
 
 vi.mock("@/plugins/slots", () => ({
@@ -181,6 +181,7 @@ describe("Sidebar", () => {
 
     const primaryNavText = container.querySelector("nav > div:first-child")?.textContent ?? "";
     expect(primaryNavText).toContain("Inbox");
+    expect(primaryNavText).toContain("Decisions");
     expect(primaryNavText).not.toContain("Plugin slot outlet");
 
     await act(async () => {

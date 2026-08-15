@@ -734,6 +734,28 @@ export interface IssueThreadInteractionActorFields {
   resolvedByUserId?: string | null;
 }
 
+export interface IssueThreadDecisionContext {
+  version: 1;
+  audience: "board" | "technical_reviewer" | "issue_assignee";
+  decisionClass:
+    | "owner_authority"
+    | "product_scope"
+    | "risk_acceptance"
+    | "protected_access"
+    | "destructive_action"
+    | "deployment"
+    | "technical_review"
+    | "operational";
+  decisionReady: boolean;
+  authorityReason: string;
+  recommendation?: string | null;
+  consequences?: string | null;
+  evidenceRefs?: string[];
+  risk?: "low" | "medium" | "high" | "critical";
+  urgency?: "low" | "medium" | "high" | "critical";
+  reversibility?: "easy" | "costly" | "irreversible";
+}
+
 export interface SuggestedTaskDraft {
   clientKey: string;
   parentClientKey?: string | null;
@@ -753,6 +775,7 @@ export interface SuggestedTaskDraft {
 
 export interface SuggestTasksPayload {
   version: 1;
+  decisionContext?: IssueThreadDecisionContext | null;
   defaultParentId?: string | null;
   tasks: SuggestedTaskDraft[];
 }
@@ -790,6 +813,7 @@ export interface AskUserQuestionsQuestion {
 
 export interface AskUserQuestionsPayload {
   version: 1;
+  decisionContext?: IssueThreadDecisionContext | null;
   title?: string | null;
   submitLabel?: string | null;
   questions: AskUserQuestionsQuestion[];
@@ -834,6 +858,7 @@ export type RequestConfirmationTarget =
 
 export interface RequestConfirmationPayload {
   version: 1;
+  decisionContext?: IssueThreadDecisionContext | null;
   prompt: string;
   acceptLabel?: string | null;
   rejectLabel?: string | null;

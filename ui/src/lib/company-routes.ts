@@ -1,5 +1,6 @@
 export const BOARD_ROUTE_ROOTS = [
   "dashboard",
+  "decisions",
   "companies",
   "company",
   "plugins",

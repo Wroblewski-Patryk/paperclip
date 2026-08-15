@@ -269,6 +269,7 @@ export type {
   IssueCommentMetadataRunLinkRow,
   IssueCommentPresentation,
   IssueThreadInteractionActorFields,
+  IssueThreadDecisionContext,
   SuggestedTaskDraft,
   SuggestTasksPayload,
   SuggestTasksResultCreatedTask,
@@ -439,6 +440,14 @@ export type {
   UserProfileWindowStats,
 } from "./user-profile.js";
 export type { SidebarBadges } from "./sidebar-badges.js";
+export type {
+  DecisionCenterCategory,
+  DecisionCenterIssueSummary,
+  DecisionCenterItem,
+  DecisionCenterResponse,
+  DecisionCenterSourceType,
+  DecisionCenterState,
+} from "./decision-center.js";
 export type { SidebarOrderPreference } from "./sidebar-preferences.js";
 export type {
   ResourceMembershipResourceType,

@@ -330,7 +330,6 @@ function shouldDeferIssueRefetchForVisibleAgentActivity(
   const actorType = readString(payload.actorType);
   const action = readString(payload.action);
   const details = readRecord(payload.details);
-
   if (entityType !== "issue" || !entityId) return false;
   if (actorType !== "agent" && actorType !== "system") return false;
   if (action !== "issue.updated") return false;
@@ -654,6 +653,10 @@ function invalidateActivityQueries(
   const actorId = readString(payload.actorId);
   const details = readRecord(payload.details);
 
+  if (action?.startsWith("issue.thread_interaction_") || action?.startsWith("approval.") || action?.startsWith("decision.")) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.decisions(companyId) });
+  }
+
   if (action?.startsWith("resource_membership.")) {
     const targetUserId = readString(details?.userId);
     if (!targetUserId || targetUserId === currentActor.userId) {
@@ -742,6 +745,7 @@ function invalidateActivityQueries(
 
   if (entityType === "approval") {
     queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(companyId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.decisions(companyId) });
     return;
   }
 

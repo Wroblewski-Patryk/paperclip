@@ -62,6 +62,7 @@ export { companySituationService } from "./company-situation.js";
 export { nextLegalActionService } from "./next-legal-action.js";
 export { autonomyDecisionService } from "./autonomy-decision.js";
 export { sidebarBadgeService } from "./sidebar-badges.js";
+export { decisionCenterService } from "./decision-center.js";
 export { sidebarPreferenceService } from "./sidebar-preferences.js";
 export { resourceMembershipService, type ResourceMembershipPolicyHook } from "./resource-memberships.js";
 export { inboxDismissalService } from "./inbox-dismissals.js";

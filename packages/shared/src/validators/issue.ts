@@ -728,6 +728,29 @@ export const issueThreadInteractionContinuationPolicySchema = z.enum(
   ISSUE_THREAD_INTERACTION_CONTINUATION_POLICIES,
 );
 
+export const issueThreadDecisionContextSchema = z.object({
+  version: z.literal(1),
+  audience: z.enum(["board", "technical_reviewer", "issue_assignee"]),
+  decisionClass: z.enum([
+    "owner_authority",
+    "product_scope",
+    "risk_acceptance",
+    "protected_access",
+    "destructive_action",
+    "deployment",
+    "technical_review",
+    "operational",
+  ]),
+  decisionReady: z.boolean(),
+  authorityReason: z.string().trim().min(1).max(1000),
+  recommendation: z.string().trim().max(2000).nullable().optional(),
+  consequences: z.string().trim().max(4000).nullable().optional(),
+  evidenceRefs: z.array(z.string().trim().min(1).max(1000)).max(30).optional(),
+  risk: z.enum(["low", "medium", "high", "critical"]).optional(),
+  urgency: z.enum(["low", "medium", "high", "critical"]).optional(),
+  reversibility: z.enum(["easy", "costly", "irreversible"]).optional(),
+}).strict();
+
 export const issueDocumentKeySchema = z
   .string()
   .trim()
@@ -762,6 +785,7 @@ export const suggestedTaskDraftSchema = z.object({
 
 export const suggestTasksPayloadSchema = z.object({
   version: z.literal(1),
+  decisionContext: issueThreadDecisionContextSchema.nullable().optional(),
   defaultParentId: z.string().uuid().nullable().optional(),
   tasks: z.array(suggestedTaskDraftSchema).min(1).max(50),
 }).superRefine((value, ctx) => {
@@ -812,6 +836,7 @@ export const askUserQuestionsQuestionSchema = z.object({
 
 export const askUserQuestionsPayloadSchema = z.object({
   version: z.literal(1),
+  decisionContext: issueThreadDecisionContextSchema.nullable().optional(),
   title: z.string().trim().max(240).nullable().optional(),
   submitLabel: z.string().trim().max(120).nullable().optional(),
   questions: z.array(askUserQuestionsQuestionSchema).min(1).max(10),
@@ -889,6 +914,7 @@ export const requestConfirmationTargetSchema = z.discriminatedUnion("type", [
 
 export const requestConfirmationPayloadSchema = z.object({
   version: z.literal(1),
+  decisionContext: issueThreadDecisionContextSchema.nullable().optional(),
   prompt: z.string().trim().min(1).max(1000),
   acceptLabel: z.string().trim().min(1).max(80).nullable().optional(),
   rejectLabel: z.string().trim().min(1).max(80).nullable().optional(),

@@ -332,7 +332,7 @@ describe("MissionControlDashboard", () => {
     const ownerDecisionRow = [...container.querySelectorAll("a")]
       .find((link) => link.textContent?.includes("Owner decision required"));
     expect(ownerDecisionRow?.textContent).toContain("46");
-    expect(ownerDecisionRow?.getAttribute("href")).toBe("/inbox/blocked");
+    expect(ownerDecisionRow?.getAttribute("href")).toBe("/decisions");
   });
 
   it("supports the compact agent admission control", () => {

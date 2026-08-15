@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, not } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import { agents, approvals, heartbeatRuns } from "@paperclipai/db";
 import type { SidebarBadges } from "@paperclipai/shared";
+import { decisionCenterService } from "./decision-center.js";
 
 const ACTIONABLE_APPROVAL_STATUSES = ["pending", "revision_requested"];
 const FAILED_HEARTBEAT_STATUSES = ["failed", "timed_out"];
@@ -45,6 +46,10 @@ export function sidebarBadgeService(db: Db) {
           rows.filter((row) => !isDismissed(extra?.dismissals ?? new Map(), `approval:${row.id}`, row.updatedAt)).length
         );
 
+      const readyDecisions = await decisionCenterService(db)
+        .list(companyId)
+        .then((response) => response.counts.ready);
+
       const latestRunByAgent = await db
         .selectDistinctOn([heartbeatRuns.agentId], {
           id: heartbeatRuns.id,
@@ -77,6 +82,7 @@ export function sidebarBadgeService(db: Db) {
       const unreadTouchedIssues = extra?.unreadTouchedIssues ?? 0;
       return {
         inbox: actionableApprovals + failedRuns + joinRequests + unreadTouchedIssues,
+        decisions: readyDecisions,
         approvals: actionableApprovals,
         failedRuns,
         joinRequests,

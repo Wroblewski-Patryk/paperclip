@@ -44,6 +44,7 @@ interface MissionControlDashboardProps {
   dashboard: DashboardSummary;
   liveRunCount: number;
   situation?: CompanySituation | null;
+  readyDecisionCount?: number;
   status?: SoftwarehouseControlStatusResponse | null;
   agents: Agent[];
   issues: Issue[];
@@ -265,6 +266,7 @@ export function MissionControlDashboard({
   dashboard,
   liveRunCount,
   situation,
+  readyDecisionCount,
   status,
   agents,
   issues,
@@ -432,13 +434,13 @@ export function MissionControlDashboard({
     },
   ];
 
-  const pendingOwnerDecisionCount = situation?.governance.pendingOwnerDecisions ?? 0;
+  const pendingOwnerDecisionCount = readyDecisionCount ?? situation?.governance.pendingOwnerDecisions ?? 0;
   const ownerDecisionCount = pendingOwnerDecisionCount
     + (situation?.attention ?? []).filter((signal) => OWNER_DECISION_KINDS.has(signal.kind) && signal.kind !== "pending_owner_decision").length
     + dashboard.pendingApprovals
     + dashboard.budgets.pendingApprovals;
   const ownerDecisionHref = pendingOwnerDecisionCount > 0
-    ? "/inbox/blocked"
+    ? "/decisions"
     : dashboard.pendingApprovals + dashboard.budgets.pendingApprovals > 0
       ? "/approvals"
       : "/inbox";
