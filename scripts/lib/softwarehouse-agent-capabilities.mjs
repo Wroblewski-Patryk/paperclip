@@ -26,12 +26,8 @@ export const BROWSER_CAPABILITY_AGENT_NAMES = Object.freeze([
 ]);
 
 export const COMPANYCORE_CAPABILITY_AGENT_NAMES = Object.freeze([
-  "00 AIA (AI Assistant)",
-  "04 COO (Chief Operating Officer)",
-  "09 CTO (Chief Technology Officer)",
   "09 DRE (Deployment & Reliability Engineer)",
   "09 QVE (QA & Verification Engineer)",
-  "11 RPM (Roost Project Manager)",
 ]);
 
 export const WEB_SEARCH_AGENT_NAMES = Object.freeze([

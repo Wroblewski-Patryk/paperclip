@@ -21,7 +21,10 @@ test("routes authority-bearing Paperclip skills only to their owning roles", () 
 
 test("keeps browser, hosted context, and fresh-web capability allowlists explicit", () => {
   assert.equal(BROWSER_CAPABILITY_AGENT_NAMES.length, 6);
-  assert.equal(COMPANYCORE_CAPABILITY_AGENT_NAMES.length, 6);
+  assert.deepEqual(COMPANYCORE_CAPABILITY_AGENT_NAMES, [
+    "09 DRE (Deployment & Reliability Engineer)",
+    "09 QVE (QA & Verification Engineer)",
+  ]);
   assert.equal(WEB_SEARCH_AGENT_NAMES.length, 12);
   assert.deepEqual(capabilityExpectations("09 DRE (Deployment & Reliability Engineer)"), {
     browser: true,
