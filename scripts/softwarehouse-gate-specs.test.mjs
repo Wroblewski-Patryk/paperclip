@@ -1154,6 +1154,10 @@ test("unblock packet scopes issue scans and resolves canonical gate roots direct
   assert.match(source, /issues\?status=\$\{activeIssueStatuses\.join\(","\)\}/);
   assert.match(source, /identifiers: gateSpecs\.map\(\(spec\) => spec\.rootBlocker\)/);
   assert.doesNotMatch(source, /issues\?limit=1000/);
+  assert.match(source, /stateStableRestartLabel = "state-stable; query \/api\/health for live restart state"/);
+  assert.match(source, /row\(\["restartRequired", stateStableRestartLabel\]\)/);
+  assert.doesNotMatch(source, /row\(\["restartRequired", packet\.health\.restartRequired\]\)/);
+  assert.match(source, /return lines\.join\("\\n"\);/);
 });
 
 test("unblock packet falls back to redacted secret metadata for agent runs", async () => {

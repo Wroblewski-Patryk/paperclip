@@ -22,6 +22,7 @@ const terminalStatuses = new Set(["done", "cancelled"]);
 const activeIssueStatuses = ["backlog", "todo", "in_progress", "in_review", "blocked"];
 const stateStableTimestampLabel = "state-stable; use file mtime for freshness";
 const stateStableRuntimeLabel = "state-stable; run pnpm softwarehouse:control-tick for live runtime counts";
+const stateStableRestartLabel = "state-stable; query /api/health for live restart state";
 async function request(method, route) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
@@ -272,7 +273,7 @@ function markdownFor(packet) {
     row(["---", "---"]),
     row(["API base", packet.apiBase]),
     row(["Company", packet.company.name ?? packet.company.id]),
-    row(["restartRequired", packet.health.restartRequired]),
+    row(["restartRequired", stateStableRestartLabel]),
     row(["activeRunCount", packet.health.activeRunCount]),
     row(["liveRunCount", packet.health.liveRunCount]),
     "",
@@ -391,7 +392,7 @@ function markdownFor(packet) {
     "",
   );
 
-  return `${lines.join("\n")}\n`;
+  return lines.join("\n");
 }
 
 async function writePacketFiles(packet) {
