@@ -355,6 +355,9 @@ export function admissionControlService(db: Db) {
       projectWip: Number(running?.project_wip ?? 0),
       issueWip: Number(running?.issue_wip ?? 0),
     };
+    const continuationWipOffset = input.allowIssueWipContinuation && observed.issueWip > 0 ? 1 : 0;
+    const effectiveProjectWip = Math.max(0, observed.projectWip - continuationWipOffset);
+    const effectiveOrganizationWip = Math.max(0, observed.organizationWip - continuationWipOffset);
 
     const previousStop = await db
       .select()
@@ -431,16 +434,16 @@ export function admissionControlService(db: Db) {
       reasonCode = "wip.issue_limit";
       reason = `Issue WIP ${observed.issueWip} reached limit ${limits.maxIssueWip}`;
       admitted = false;
-    } else if (input.projectId && observed.projectWip >= limits.maxProjectWip) {
+    } else if (input.projectId && effectiveProjectWip >= limits.maxProjectWip) {
       disposition = "waiting_for_signal";
       reasonCode = "wip.project_limit";
-      reason = `Project WIP ${observed.projectWip} reached limit ${limits.maxProjectWip}`;
+      reason = `Project WIP ${effectiveProjectWip} reached limit ${limits.maxProjectWip}`;
       admitted = false;
       cooldownUntil = new Date(now.getTime() + limits.cooldownSeconds * 1000);
-    } else if (observed.organizationWip >= limits.maxOrganizationWip) {
+    } else if (effectiveOrganizationWip >= limits.maxOrganizationWip) {
       disposition = "waiting_for_signal";
       reasonCode = "wip.organization_limit";
-      reason = `Organization WIP ${observed.organizationWip} reached limit ${limits.maxOrganizationWip}`;
+      reason = `Organization WIP ${effectiveOrganizationWip} reached limit ${limits.maxOrganizationWip}`;
       admitted = false;
       cooldownUntil = new Date(now.getTime() + limits.cooldownSeconds * 1000);
     } else if (input.expectedValue !== undefined && input.expectedValue !== null && input.expectedValue < 0) {

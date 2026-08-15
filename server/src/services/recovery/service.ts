@@ -3552,7 +3552,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
           and(
             eq(issues.companyId, sourceIssue.companyId),
             inArray(issues.id, remainingBlockerIds),
-            notInArray(issues.status, ["done", "cancelled"]),
+            notInArray(issues.status, ["done"]),
           ),
         )
         .limit(1)

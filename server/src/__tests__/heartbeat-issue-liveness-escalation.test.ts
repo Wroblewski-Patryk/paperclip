@@ -839,4 +839,36 @@ describeEmbeddedPostgres("heartbeat issue graph liveness escalation", () => {
       .where(eq(issueRelations.relatedIssueId, blockedIssueId));
     expect(blockers.some((row) => row.blockerIssueId === escalations[0]!.id)).toBe(false);
   });
+
+  it("keeps the source blocked when a cancelled blocker remains after recovery cleanup", async () => {
+    await enableAutoRecovery();
+    const { companyId, blockedIssueId, blockerIssueId } = await seedBlockedChain();
+    const heartbeat = heartbeatService(db);
+
+    const first = await heartbeat.reconcileIssueGraphLiveness();
+    expect(first.escalationsCreated).toBe(1);
+
+    const [escalation] = await db
+      .select()
+      .from(issues)
+      .where(and(eq(issues.companyId, companyId), eq(issues.originKind, "harness_liveness_escalation")));
+    expect(escalation).toBeTruthy();
+
+    await db.update(issues).set({ status: "done" }).where(eq(issues.id, escalation!.id));
+    await db.update(issues).set({ status: "cancelled" }).where(eq(issues.id, blockerIssueId));
+
+    const second = await heartbeat.reconcileIssueGraphLiveness();
+    expect(second.doneRecoveryBlockerRelationsRemoved).toBe(1);
+
+    const [source] = await db.select().from(issues).where(eq(issues.id, blockedIssueId));
+    expect(source?.status).toBe("blocked");
+
+    const blockers = await db
+      .select({ blockerIssueId: issueRelations.issueId })
+      .from(issueRelations)
+      .where(eq(issueRelations.relatedIssueId, blockedIssueId));
+    const blockerIds = blockers.map((row) => row.blockerIssueId);
+    expect(blockerIds).toContain(blockerIssueId);
+    expect(blockerIds).not.toContain(escalation!.id);
+  });
 });

@@ -509,10 +509,18 @@ describeEmbeddedPostgres("native admission control", () => {
     const { companyId, agentId } = await seed("active");
     const admission = admissionControlService(db);
     const issueId = randomUUID();
+    const projectId = randomUUID();
     const issuePrefix = `A${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+    await db.insert(projects).values({
+      id: projectId,
+      companyId,
+      name: "Running issue project",
+      status: "in_progress",
+    });
     await db.insert(issues).values({
       id: issueId,
       companyId,
+      projectId,
       title: "Running issue",
       status: "in_progress",
       priority: "medium",
@@ -530,6 +538,7 @@ describeEmbeddedPostgres("native admission control", () => {
 
     const base = {
       companyId,
+      projectId,
       issueId,
       agentId,
       source: "test",
