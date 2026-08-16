@@ -1,9 +1,24 @@
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLocalServiceKey } from "../server/src/services/local-service-supervisor.ts";
 
 export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+export function bootstrapRepoManagedDevServiceEnv(
+  rootDir: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  const configuredHome = env.PAPERCLIP_HOME?.trim();
+  if (configuredHome) return path.resolve(configuredHome);
+
+  const managedHome = path.resolve(rootDir, ".paperclip", "runtime", "home");
+  if (!existsSync(managedHome)) return null;
+
+  env.PAPERCLIP_HOME = managedHome;
+  return managedHome;
+}
 
 export function resolveDevRunnerPort(input: {
   envPort?: string;

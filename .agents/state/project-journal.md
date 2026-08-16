@@ -38,6 +38,10 @@ evidence.
   reports zero queued/running/restart-blocking runs, and four replay attempts
   became `scheduled_retry` with `provider_quota_hold` (`96%/75%`) until the
   provider reset, without starting an agent or creating a false agent error.
+- Dev-service control now discovers the repository-managed runtime home when
+  `PAPERCLIP_HOME` is not inherited. Raw `pnpm dev:list`/`dev:stop` and the
+  Windows startup scripts therefore address the same singleton service instead
+  of leaving a healthy but operationally invisible process.
 - Targeted regressions, repo-wide typecheck, build, workspace-boundary audit,
   and runtime-topology audit pass. The ordinary and DB portions of the broad
   test runner passed before its remaining multi-hour serialized shard was
