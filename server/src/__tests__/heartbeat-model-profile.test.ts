@@ -445,6 +445,94 @@ describe("model-aware provider quota gates", () => {
     ).not.toBeNull();
   });
 
+  it("uses the default Codex pool as a fail-closed fallback when a profile has no reported independent lane", () => {
+    resetModelEconomicsConfigCacheForTests();
+    const profiles = loadModelEconomicsConfig().profiles;
+    const quota = {
+      provider: "openai",
+      source: "codex-wham",
+      ok: true,
+      windows: [
+        {
+          label: "Weekly limit",
+          scope: "lane" as const,
+          quotaLane: "codex_standard",
+          model: null,
+          usedPercent: 92,
+          resetsAt: "2026-08-20T19:22:48.000Z",
+          valueLabel: null,
+          detail: null,
+        },
+        {
+          label: "Credits",
+          scope: null,
+          quotaLane: null,
+          model: null,
+          usedPercent: null,
+          resetsAt: null,
+          valueLabel: "$0.00 remaining",
+          detail: null,
+        },
+      ],
+    };
+    const settings = {
+      codexLocalQuotaHoldEnabled: true,
+      codexLocalQuotaShortWindowHoldUsedPercent: 75,
+      codexLocalQuotaLongWindowHoldUsedPercent: 75,
+      codexLocalQuotaRetrySpacingMinutes: 5,
+      codexLocalQuotaFallbackDelayMinutes: 60,
+    };
+
+    expect(buildProviderQuotaStartBlock(quota, new Date("2026-08-16T00:00:00.000Z"), settings, profiles.cheap))
+      .toMatchObject({
+        modelProfile: "cheap",
+        quotaLane: "codex_5_6_luna",
+        thresholdPercent: 75,
+        windows: [{ quotaLane: "codex_standard", usedPercent: 92 }],
+      });
+    expect(buildProviderQuotaStartBlock(quota, new Date("2026-08-16T00:00:00.000Z"), settings, profiles.light))
+      .not.toBeNull();
+    expect(buildProviderQuotaStartBlock(quota, new Date("2026-08-16T00:00:00.000Z"), settings, profiles.reasoning))
+      .not.toBeNull();
+    expect(buildProviderQuotaStartBlock(quota, new Date("2026-08-16T00:00:00.000Z"), settings, profiles.spark))
+      .not.toBeNull();
+  });
+
+  it("honors a freshly reported independent lane instead of the default Codex pool fallback", () => {
+    resetModelEconomicsConfigCacheForTests();
+    const profiles = loadModelEconomicsConfig().profiles;
+    const quota = {
+      provider: "openai",
+      source: "test",
+      ok: true,
+      windows: [
+        {
+          label: "Weekly limit",
+          scope: "lane" as const,
+          quotaLane: "codex_standard",
+          model: null,
+          usedPercent: 92,
+          resetsAt: "2026-08-20T19:22:48.000Z",
+          valueLabel: null,
+          detail: null,
+        },
+        {
+          label: "GPT-5.3-Codex-Spark · Weekly limit",
+          scope: "lane" as const,
+          quotaLane: "codex_spark_preview",
+          model: "gpt-5.3-codex-spark",
+          usedPercent: 20,
+          resetsAt: "2026-08-20T19:22:48.000Z",
+          valueLabel: null,
+          detail: null,
+        },
+      ],
+    };
+
+    expect(buildProviderQuotaStartBlock(quota, new Date("2026-08-16T00:00:00.000Z"), undefined, profiles.spark))
+      .toBeNull();
+  });
+
   it("does not treat unknown percent as a hard-stop trigger", () => {
     const now = new Date("2026-07-06T12:00:00.000Z");
     resetModelEconomicsConfigCacheForTests();

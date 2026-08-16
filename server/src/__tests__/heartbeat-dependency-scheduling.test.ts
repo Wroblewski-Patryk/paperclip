@@ -6,6 +6,7 @@ import {
   agents,
   agentRuntimeState,
   agentWakeupRequests,
+  approvals,
   companySkills,
   companies,
   createDb,
@@ -18,6 +19,7 @@ import {
   heartbeatRuns,
   issueComments,
   issueDocuments,
+  issueApprovals,
   issueRelations,
   issueTreeHolds,
   issues,
@@ -131,6 +133,8 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     await db.delete(environmentLeases);
     await db.delete(activityLog);
     await db.delete(companySkills);
+    await db.delete(issueApprovals);
+    await db.delete(approvals);
     await db.delete(issueComments);
     await db.delete(issueDocuments);
     await db.delete(documentRevisions);
@@ -242,6 +246,125 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
       return current?.status === "succeeded";
     }, 10_000);
     expect(completedForReviewer).toBe(true);
+  });
+
+  it("does not spend timer runs polling an in-review issue whose linked approval is pending", async () => {
+    const companyId = randomUUID();
+    const agentId = randomUUID();
+    const pendingReviewId = randomUUID();
+    const readyIssueId = randomUUID();
+    let finishReadyRun!: () => void;
+    const readyRunCanFinish = new Promise<void>((resolve) => {
+      finishReadyRun = resolve;
+    });
+    mockAdapterExecute.mockImplementationOnce(async () => {
+      await readyRunCanFinish;
+      return {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        errorMessage: null,
+        summary: "Independent safe work completed.",
+        provider: "test",
+        model: "test-model",
+      };
+    });
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Approval-aware timer",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "Security reviewer",
+      role: "security",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {
+        heartbeat: {
+          enabled: true,
+          intervalSec: 30,
+          wakeOnDemand: true,
+          workAware: true,
+          reviewFirst: true,
+          maxConcurrentRuns: 1,
+        },
+      },
+      permissions: {},
+      lastHeartbeatAt: new Date("2026-06-03T23:00:00Z"),
+    });
+    await db.insert(issues).values([
+      {
+        id: pendingReviewId,
+        companyId,
+        title: "Protected review awaiting owner approval",
+        status: "in_review",
+        priority: "critical",
+        assigneeAgentId: agentId,
+      },
+      {
+        id: readyIssueId,
+        companyId,
+        title: "Independent safe work",
+        status: "todo",
+        priority: "high",
+        assigneeAgentId: agentId,
+      },
+    ]);
+    const [approval] = await db.insert(approvals).values({
+      companyId,
+      type: "request_board_approval",
+      requestedByAgentId: agentId,
+      status: "pending",
+      payload: { title: "Approve one protected review action" },
+    }).returning();
+    await db.insert(issueApprovals).values({
+      companyId,
+      issueId: pendingReviewId,
+      approvalId: approval!.id,
+      linkedByAgentId: agentId,
+    });
+
+    const result = await heartbeat.tickTimers(new Date("2026-06-04T00:10:00Z"));
+
+    expect(result.enqueued).toBe(1);
+    const timerRun = await db
+      .select({ id: heartbeatRuns.id, contextSnapshot: heartbeatRuns.contextSnapshot })
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.agentId, agentId))
+      .then((rows) => rows[0] ?? null);
+    expect(timerRun?.contextSnapshot).toMatchObject({
+      issueId: readyIssueId,
+      reason: "assigned_work_available",
+    });
+
+    const pendingApprovalTimerAttempts = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(agentWakeupRequests)
+      .where(and(
+        eq(agentWakeupRequests.source, "timer"),
+        sql`${agentWakeupRequests.payload} ->> 'issueId' = ${pendingReviewId}`,
+      ))
+      .then((rows) => rows[0]?.count ?? 0);
+    expect(pendingApprovalTimerAttempts).toBe(0);
+
+    await db.update(issues).set({ status: "done", updatedAt: new Date() }).where(eq(issues.id, readyIssueId));
+    finishReadyRun();
+
+    const completed = await waitForCondition(async () => {
+      if (!timerRun) return false;
+      const current = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, timerRun.id))
+        .then((rows) => rows[0] ?? null);
+      return current?.status === "succeeded";
+    }, 10_000);
+    expect(completed).toBe(true);
   });
 
   it("keeps blocked descendants idle until their blockers resolve", async () => {

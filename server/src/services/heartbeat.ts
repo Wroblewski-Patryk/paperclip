@@ -532,9 +532,20 @@ export function buildProviderQuotaStartBlock(
 ): ProviderQuotaStartBlock | null {
   if (!settings.codexLocalQuotaHoldEnabled) return null;
   if (!quota.ok) return null;
+  const hasExplicitProfileQuotaWindow = Boolean(modelProfile && quota.windows.some((window) =>
+    (window.quotaLane && window.quotaLane === modelProfile.quotaLane) ||
+    (window.model && normalizeQuotaMatcherText(window.model) === normalizeQuotaMatcherText(modelProfile.defaultModel))
+  ));
   const blockedWindows = quota.windows.filter((window) => {
     if (!isConsumableQuotaWindow(window) || typeof window.usedPercent !== "number") return false;
-    if (!quotaWindowAppliesToModelProfile(window, modelProfile)) return false;
+    const directlyApplies = quotaWindowAppliesToModelProfile(window, modelProfile);
+    const isDefaultCodexPoolFallback = Boolean(
+      modelProfile &&
+      !hasExplicitProfileQuotaWindow &&
+      window.scope === "lane" &&
+      window.quotaLane === "codex_standard",
+    );
+    if (!directlyApplies && !isDefaultCodexPoolFallback) return false;
     return window.usedPercent >= quotaHoldThresholdForWindow(window, now, settings);
   });
   if (blockedWindows.length === 0) return null;
@@ -6736,6 +6747,19 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
               and pending_review_decision.status='pending'
           )
         )`,
+        sql`(
+          ${issues.status} <> 'in_review'
+          or not exists (
+            select 1
+            from issue_approvals pending_review_approval_link
+            join approvals pending_review_approval
+              on pending_review_approval.id=pending_review_approval_link.approval_id
+             and pending_review_approval.company_id=pending_review_approval_link.company_id
+            where pending_review_approval_link.company_id=${agent.companyId}
+              and pending_review_approval_link.issue_id=${issues.id}
+              and pending_review_approval.status in ('pending','revision_requested')
+          )
+        )`,
         sql`not exists (
           select 1
           from issue_relations relation
@@ -6958,6 +6982,16 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             where pending_review_decision.company_id=review_issue.company_id
               and pending_review_decision.issue_id=review_issue.id
               and pending_review_decision.status='pending'
+          )
+          and not exists (
+            select 1
+            from issue_approvals pending_review_approval_link
+            join approvals pending_review_approval
+              on pending_review_approval.id=pending_review_approval_link.approval_id
+             and pending_review_approval.company_id=pending_review_approval_link.company_id
+            where pending_review_approval_link.company_id=review_issue.company_id
+              and pending_review_approval_link.issue_id=review_issue.id
+              and pending_review_approval.status in ('pending','revision_requested')
           )
           and not exists (
             select 1

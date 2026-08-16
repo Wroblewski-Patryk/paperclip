@@ -22,6 +22,9 @@ export type DevServerHealthStatus = {
   pendingMigrations: string[];
   autoRestartEnabled: boolean;
   activeRunCount: number;
+  runningRunCount: number;
+  queuedRunCount: number;
+  restartBlockingRunCount: number;
   waitingForIdle: boolean;
   lastRestartAt: string | null;
 };
@@ -104,7 +107,12 @@ export function readPersistedDevServerStatus(
 
 export function toDevServerHealthStatus(
   persisted: PersistedDevServerStatus,
-  opts: { autoRestartEnabled: boolean; activeRunCount: number },
+  opts: {
+    autoRestartEnabled: boolean;
+    activeRunCount: number;
+    runningRunCount?: number;
+    queuedRunCount?: number;
+  },
 ): DevServerHealthStatus {
   const hasPathChanges = persisted.changedPathCount > 0;
   const hasPendingMigrations = persisted.pendingMigrations.length > 0;
@@ -117,6 +125,9 @@ export function toDevServerHealthStatus(
           ? "backend_changes"
           : null;
   const restartRequired = persisted.dirty || reason !== null;
+  const runningRunCount = Math.max(0, opts.runningRunCount ?? opts.activeRunCount);
+  const queuedRunCount = Math.max(0, opts.queuedRunCount ?? Math.max(0, opts.activeRunCount - runningRunCount));
+  const restartBlockingRunCount = runningRunCount;
 
   return {
     enabled: true,
@@ -128,7 +139,10 @@ export function toDevServerHealthStatus(
     pendingMigrations: persisted.pendingMigrations,
     autoRestartEnabled: opts.autoRestartEnabled,
     activeRunCount: opts.activeRunCount,
-    waitingForIdle: restartRequired && opts.autoRestartEnabled && opts.activeRunCount > 0,
+    runningRunCount,
+    queuedRunCount,
+    restartBlockingRunCount,
+    waitingForIdle: restartRequired && opts.autoRestartEnabled && restartBlockingRunCount > 0,
     lastRestartAt: persisted.lastRestartAt,
   };
 }

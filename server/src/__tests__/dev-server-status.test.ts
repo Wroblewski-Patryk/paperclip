@@ -83,7 +83,37 @@ describe("dev server status helpers", () => {
       reason: "backend_changes",
       autoRestartEnabled: true,
       activeRunCount: 3,
+      runningRunCount: 3,
+      queuedRunCount: 0,
+      restartBlockingRunCount: 3,
       waitingForIdle: true,
+    });
+  });
+
+  it("does not let durable queued work block a safe dev-server restart", () => {
+    const health = toDevServerHealthStatus(
+      {
+        dirty: true,
+        lastChangedAt: "2026-08-15T20:00:00.000Z",
+        changedPathCount: 1,
+        changedPathsSample: ["server/src/services/heartbeat.ts"],
+        pendingMigrations: [],
+        lastRestartAt: "2026-08-15T19:00:00.000Z",
+      },
+      {
+        autoRestartEnabled: true,
+        activeRunCount: 1,
+        runningRunCount: 0,
+        queuedRunCount: 1,
+      },
+    );
+
+    expect(health).toMatchObject({
+      activeRunCount: 1,
+      runningRunCount: 0,
+      queuedRunCount: 1,
+      restartBlockingRunCount: 0,
+      waitingForIdle: false,
     });
   });
 

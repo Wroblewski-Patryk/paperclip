@@ -1,6 +1,6 @@
 # Paperclip Project Journal
 
-Last updated: 2026-08-14
+Last updated: 2026-08-16
 
 This is the active journal of durable conversation decisions and meaningful
 operating-memory changes. It is not a transcript, live dashboard, issue log,
@@ -18,6 +18,30 @@ cannot override current truth, decisions, product contracts, or fresh live
 evidence.
 
 ## Entries
+
+### 2026-08-16 - Quota-held execution and restart deadlock repaired
+
+- A durable queued run for LUC-2284 remained unstarted for hours, repeatedly
+  blocked controlled restart, and timer wakes kept polling an already linked
+  pending approval. The dead run and the exact execution wave admitted before
+  the safety hold were dispositioned without deleting their issues or evidence.
+- Restart readiness now distinguishes running work from durable queued work:
+  queued runs remain visible but only running processes block a controlled
+  restart. Work-aware timer selection also excludes in-review issues whose
+  linked approval is pending or revision-requested.
+- The provider exposed a 96% `codex_standard` weekly pool while the model
+  router selected newer `cheap`/`light` lane names. The quota gate now treats
+  the default Codex pool as fail-closed for every profile lacking a freshly
+  reported independent quota window. Both short and long owner thresholds are
+  persisted at 75%.
+- Live proof after a full strict-port restart: availability is ON/open, health
+  reports zero queued/running/restart-blocking runs, and four replay attempts
+  became `scheduled_retry` with `provider_quota_hold` (`96%/75%`) until the
+  provider reset, without starting an agent or creating a false agent error.
+- Targeted regressions, repo-wide typecheck, build, workspace-boundary audit,
+  and runtime-topology audit pass. The ordinary and DB portions of the broad
+  test runner passed before its remaining multi-hour serialized shard was
+  intentionally stopped and not represented as a complete `test:run` pass.
 
 ### 2026-08-14 - Persistent dashboard agent availability implemented
 

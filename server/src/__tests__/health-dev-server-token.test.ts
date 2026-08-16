@@ -66,7 +66,11 @@ describe("GET /health dev-server supervisor access", () => {
         }
         return {
           from: vi.fn(() => ({
-            where: vi.fn().mockResolvedValue([{ count: 0 }]),
+            where: vi.fn().mockResolvedValue([{
+              activeRunCount: 1,
+              runningRunCount: 0,
+              queuedRunCount: 1,
+            }]),
           })),
         };
       }),
@@ -108,7 +112,10 @@ describe("GET /health dev-server supervisor access", () => {
           changedPathsSample: ["server/src/routes/health.ts"],
           pendingMigrations: [],
           autoRestartEnabled: true,
-          activeRunCount: 0,
+          activeRunCount: 1,
+          runningRunCount: 0,
+          queuedRunCount: 1,
+          restartBlockingRunCount: 0,
           waitingForIdle: false,
           lastRestartAt: "2026-03-20T11:30:00.000Z",
         },

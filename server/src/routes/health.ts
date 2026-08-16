@@ -141,15 +141,23 @@ export function healthRoutes(
     if (exposeDevServerDetails && persistedDevServerStatus && typeof (db as { select?: unknown }).select === "function") {
       const instanceSettings = instanceSettingsService(db);
       const experimentalSettings = await instanceSettings.getExperimental();
-      const activeRunCount = await db
-        .select({ count: count() })
+      const runCounts = await db
+        .select({
+          activeRunCount: count(),
+          runningRunCount: sql<number>`count(*) filter (where ${heartbeatRuns.status} = 'running')`,
+          queuedRunCount: sql<number>`count(*) filter (where ${heartbeatRuns.status} = 'queued')`,
+        })
         .from(heartbeatRuns)
         .where(inArray(heartbeatRuns.status, ["queued", "running"]))
-        .then((rows) => Number(rows[0]?.count ?? 0));
+        .then((rows) => ({
+          activeRunCount: Number(rows[0]?.activeRunCount ?? 0),
+          runningRunCount: Number(rows[0]?.runningRunCount ?? 0),
+          queuedRunCount: Number(rows[0]?.queuedRunCount ?? 0),
+        }));
 
       devServer = toDevServerHealthStatus(persistedDevServerStatus, {
         autoRestartEnabled: experimentalSettings.autoRestartDevServerWhenIdle ?? false,
-        activeRunCount,
+        ...runCounts,
       });
     }
 

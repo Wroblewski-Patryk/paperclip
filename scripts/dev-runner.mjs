@@ -515,7 +515,7 @@ async function maybeAutoRestartChild() {
     restartInFlight = false;
     return;
   }
-  if ((devServer.activeRunCount ?? 0) > 0) {
+  if ((devServer.restartBlockingRunCount ?? devServer.activeRunCount ?? 0) > 0) {
     restartInFlight = false;
     return;
   }
