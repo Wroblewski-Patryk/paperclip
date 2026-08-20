@@ -1,5 +1,6 @@
 import { agentWipBlockerFor, fetchAgentWipState, summarizeAgentWip } from "./lib/agent-wip-guard.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
+import { preflightSourceControlCapability } from "./lib/source-control-capability-preflight.mjs";
 import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
 
 const apiBase = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
@@ -483,6 +484,7 @@ try {
 }
 
 const sourceControlPacket = await readSourceControlPacket();
+const sourceControlCapability = await preflightSourceControlCapability(process.cwd());
 const dirtyProjectNames = new Set(sourceControlPacket.dirtyProjectNames ?? []);
 const operatingSourceControlClosureRequested =
   governorDecision.decision === "operating_source_control_closure_needed"
@@ -585,7 +587,9 @@ async function findIssueByIdentifier(companyId, identifier) {
 }
 
 const actions = [];
-if (activeRunCount > 0 && candidates.length === 0
+if (!sourceControlCapability.capable && (availableSidecarCreations.length > 0 || candidates.some((issue) => isSourceControlClosureTitle(issue.title)))) {
+  actions.push({ action: "route_source_control_to_native_executor", executorPath: "native_source_control_controller", reason: "sandbox_executor_cannot_write_git_metadata", sourceControlCapability });
+} else if (activeRunCount > 0 && candidates.length === 0
   && sidecarCreations.length > 0 && availableSidecarCreations.length === 0) {
   actions.push({
     action: "noop_active_runs",

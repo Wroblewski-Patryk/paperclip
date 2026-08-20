@@ -206,3 +206,93 @@ evidence.
 - Final health, agent settings, workspace-boundary, runtime-topology, and
   restore-drill checks pass. The durable closeout is
   `docs/status/2026-08-08-softwarehouse-stabilization-closeout.md`.
+
+### 2026-08-16 - Relational assurance, quota-safe host control, and root hygiene
+
+- Owner directive: audits must be relational and repeatable, show what was
+  checked and when, prevent incomplete feature work from appearing complete,
+  and leave the workstation and repositories free of disposable files and
+  processes.
+- `softwarehouse/extension-utilization-registry.json` is the canonical
+  Softwarehouse capability assurance graph. Schema v2 covers 13 extensions,
+  including Decision Center, declares required capability/consumer relations,
+  and fails closed on malformed or failed dependencies. The generated report
+  records one `checkedAt` instant plus local and dependency-propagated results.
+  The live audit passed 13/13 at 100% after implementation.
+- The file-level architecture graph remains complementary detail rather than a
+  competing completion index. Curated registry, relation, workflow, test, and
+  chain rows now represent the capability-assurance mechanism; Paperclip's
+  derived architecture/project-truth exports were refreshed from current
+  source.
+- A host scheduler defect allowed the full mutating control tick to run while
+  provider quota was above the owner's 75% hold. The host now chooses the
+  read-only quota-hold snapshot at or above threshold and fails closed when the
+  quota state cannot be established. Normal control resumes automatically only
+  after quota evidence falls below threshold. The current 98% state therefore
+  creates no tasks and dispatches no runs.
+- Temp hygiene now audits narrowly named, old, untracked disposable files in
+  the repository root as well as owned OS-temp resources. It rejects tracked
+  files, reparse points, escaped paths, live-process references, and excessive
+  candidate counts before deletion. Forty old logs, request bodies, snapshots,
+  Coolify browser/cookie captures, and closeout scratch files were removed.
+- Strict configuration, agent instruction/settings, runtime-file,
+  operating-standard/docs, workspace-boundary, runtime-topology,
+  cross-project-isolation, documentation, and product-intent audits pass. The
+  strict outcome audit intentionally remains red for historical evidence debt:
+  10 of 189 recent done issues lack modern typed evidence. Do not fabricate
+  retroactive proof; enforce the modern gate on new work and retain the old
+  debt as an explicit empirical limitation.
+
+### 2026-08-20 - Restart recovery and assurance false-positive closeout
+
+- After a workstation restart, `dev:list` exposed a dead registered PID as a
+  running Paperclip service even though port 3200 was closed. The dev-service
+  operator now removes dead registry records before listing or stopping; the
+  regression test verifies that live records survive and stale records are
+  deleted. The canonical start script then restored the singleton instance on
+  ports 3200/54329 and the persisted queued runs resumed.
+- The extension assurance graph incorrectly required
+  `restartBlockingRunCount=0` even when no restart was pending. Productive agent
+  runs are now accepted while `restartRequired=false` and
+  `waitingForIdle=false`; an actual pending restart remains a failure.
+- Architecture lifecycle refreshes could falsely fail when a large relational
+  project-truth report overflowed Node's default child-process output buffer.
+  All three bounded generator subprocesses now use an explicit 64 MiB ceiling;
+  a forced Paperclip refresh completed with zero missing or stale exports.
+- Cleanup removed 93 validated, process-unreferenced test directories left by
+  the interrupted 2026-08-16 full test run, including eight safely unlinked
+  test junctions. Canonical application roots and the active Featherly task
+  staging directory were preserved.
+- An empty owner Decision Center queue is now treated as a healthy state while
+  still validating the response contract. Capability assurance therefore does
+  not invent a failure merely because all owner decisions were resolved.
+- The native host control tick recovered after restart and completed with zero
+  failed steps. Its remaining `operating_source_control_closure_needed` posture
+  correctly represented this intentionally uncommitted audit work.
+- A concurrently produced source-control capability preflight was completed
+  and made race-safe: it uses a unique owned probe under `.git`, removes only
+  that probe, preserves another process' `index.lock`, and routes sandboxed git
+  metadata work to the native executor instead of repeating impossible runs.
+- The full stable verification exposed and closed two cross-layer contract
+  gaps: legacy issue-service fixtures now respect executable-owner and
+  first-class-blocker invariants, and both AIA Decision Center mutation routes
+  are represented in OpenAPI. The general/UI/CLI/DB/package groups passed, all
+  167 serialized server suites were covered, and the corrected issue-service
+  file passed 66/66 before the remaining 47 suites completed green.
+- Stable Vitest runs now place `TEMP`, `TMP`, `TMPDIR`, and `PAPERCLIP_HOME`
+  under one exact `pcvt-*` root and remove that owned physical root in a
+  `finally` block. The deletion guard rejects escaped, malformed, or reparse
+  roots. Immediate hygiene can explicitly include only narrowly named recent
+  test artifacts, while all junction targets must remain inside the temporary
+  root or this repository and are verified before and after unlinking.
+- Cleanup permanently removed 732 validated, process-unreferenced stale test
+  roots and safely unlinked 237 test junctions. One newer runtime fixture was
+  left in place after Windows reported a live file lock; investigation proved
+  that an orphaned test HTTP process, not the canonical Paperclip service,
+  owns that lock. Do not broaden or force deletion without exact process
+  disposition.
+- A controlled live restart exposed an unbounded `migration-status` child:
+  the dev-runner PID remained alive while port 3200 stayed closed. Pnpm
+  preflight commands now support a bounded deadline, terminate only their
+  owned Windows PID tree on timeout, and classify migration-status timeout as
+  exit 124 instead of hanging the singleton indefinitely.

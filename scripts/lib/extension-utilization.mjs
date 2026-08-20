@@ -66,3 +66,69 @@ export function scoreCapability(staticResult, runtimeChecks) {
   };
   return { dimensions, utilizationPercent: Object.values(dimensions).reduce((sum, value) => sum + value, 0) };
 }
+
+export function evaluateCapabilityRelations(capabilities, relations = []) {
+  const ids = capabilities.map((capability) => capability.id);
+  const idSet = new Set(ids);
+  const structuralFailures = [];
+  const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
+  for (const id of new Set(duplicateIds)) structuralFailures.push(`duplicate capability id: ${id}`);
+
+  const dependencies = new Map(ids.map((id) => [id, []]));
+  const consumers = new Map(ids.map((id) => [id, []]));
+  const relationKeys = new Set();
+  for (const relation of relations) {
+    const key = `${relation.type}:${relation.from}:${relation.to}`;
+    if (relationKeys.has(key)) structuralFailures.push(`duplicate relation: ${key}`);
+    relationKeys.add(key);
+    if (relation.type !== "depends_on") structuralFailures.push(`unsupported relation type: ${relation.type}`);
+    if (!idSet.has(relation.from)) structuralFailures.push(`relation source is missing: ${relation.from}`);
+    if (!idSet.has(relation.to)) structuralFailures.push(`relation target is missing: ${relation.to}`);
+    if (relation.from === relation.to) structuralFailures.push(`self dependency: ${relation.from}`);
+    if (relation.type === "depends_on" && idSet.has(relation.from) && idSet.has(relation.to) && relation.from !== relation.to) {
+      dependencies.get(relation.from).push(relation.to);
+      consumers.get(relation.to).push(relation.from);
+    }
+  }
+
+  const visiting = new Set();
+  const visited = new Set();
+  function visit(id, path) {
+    if (visiting.has(id)) {
+      const cycleStart = path.indexOf(id);
+      structuralFailures.push(`dependency cycle: ${[...path.slice(cycleStart), id].join(" -> ")}`);
+      return;
+    }
+    if (visited.has(id)) return;
+    visiting.add(id);
+    for (const dependency of dependencies.get(id) ?? []) visit(dependency, [...path, id]);
+    visiting.delete(id);
+    visited.add(id);
+  }
+  for (const id of ids) visit(id, []);
+
+  const effectivePass = new Map(capabilities.map((capability) => [capability.id, capability.localPassed]));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const capability of capabilities) {
+      const passed = Boolean(capability.localPassed)
+        && (dependencies.get(capability.id) ?? []).every((dependency) => effectivePass.get(dependency));
+      if (effectivePass.get(capability.id) !== passed) {
+        effectivePass.set(capability.id, passed);
+        changed = true;
+      }
+    }
+  }
+
+  return {
+    passed: structuralFailures.length === 0,
+    structuralFailures: [...new Set(structuralFailures)],
+    byCapability: Object.fromEntries(ids.map((id) => [id, {
+      dependencies: [...new Set(dependencies.get(id) ?? [])],
+      consumers: [...new Set(consumers.get(id) ?? [])],
+      dependencyFailures: [...new Set(dependencies.get(id) ?? [])].filter((dependency) => !effectivePass.get(dependency)),
+      passed: Boolean(effectivePass.get(id)),
+    }])),
+  };
+}

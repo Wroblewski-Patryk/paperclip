@@ -51,3 +51,35 @@ export function resolveHostControlTickPolicy({ mode, port, env = process.env }) 
     initialDelayMs: Math.max(5_000, Number.isFinite(requestedInitialDelayMs) ? requestedInitialDelayMs : 15_000),
   };
 }
+
+export function resolveHostControlTickMode({ quotaResults, settings, now = new Date(), quotaReadFailed = false }) {
+  if (quotaReadFailed) {
+    return { mode: "quota_hold", reason: "provider_quota_state_unavailable" };
+  }
+  if (settings?.codexLocalQuotaHoldEnabled === false) {
+    return { mode: "normal", reason: "provider_quota_hold_disabled" };
+  }
+
+  const shortThreshold = Number(settings?.codexLocalQuotaShortWindowHoldUsedPercent ?? 75);
+  const longThreshold = Number(settings?.codexLocalQuotaLongWindowHoldUsedPercent ?? 75);
+  const shortWindowMaxMs = 24 * 60 * 60 * 1000;
+  for (const result of Array.isArray(quotaResults) ? quotaResults : []) {
+    if (result?.provider !== "openai" || result?.ok !== true) continue;
+    for (const window of Array.isArray(result.windows) ? result.windows : []) {
+      if (window?.quotaLane && window.quotaLane !== "codex_standard") continue;
+      if (!Number.isFinite(window?.usedPercent)) continue;
+      const resetMs = Date.parse(window.resetsAt ?? "");
+      const resetInMs = Number.isFinite(resetMs) ? resetMs - now.getTime() : null;
+      const threshold = resetInMs !== null && resetInMs > 0 && resetInMs <= shortWindowMaxMs
+        ? shortThreshold
+        : longThreshold;
+      if (window.usedPercent >= threshold) {
+        return {
+          mode: "quota_hold",
+          reason: `provider_quota_threshold_reached:${window.label ?? "quota"}:${window.usedPercent}/${threshold}`,
+        };
+      }
+    }
+  }
+  return { mode: "normal", reason: "provider_quota_below_threshold" };
+}

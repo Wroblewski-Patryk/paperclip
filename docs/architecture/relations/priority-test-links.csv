@@ -6,6 +6,8 @@ server/src/routes/access.ts#/board-claim/:token,server/src/__tests__/auth-sessio
 server/src/routes/access.ts#/board-claim/:token/claim,server/src/__tests__/auth-session-route.test.ts,Board claim completion path
 server/src/routes/access.ts#/cli-auth/challenges,server/src/__tests__/cli-auth-routes.test.ts,CLI auth challenge creation
 server/src/routes/access.ts#/cli-auth/challenges/:id,server/src/__tests__/cli-auth-routes.test.ts,CLI auth challenge status lookup
+scripts/lib/extension-utilization.mjs,scripts/extension-utilization.test.mjs,relation integrity dependency propagation and four-dimension scoring
+softwarehouse/extension-utilization-registry.json,scripts/extension-utilization.test.mjs,registry schema and recurring control-tick enforcement
 server/src/routes/access.ts#/cli-auth/challenges/:id/approve,server/src/__tests__/cli-auth-routes.test.ts,CLI auth challenge approval
 server/src/routes/access.ts#/cli-auth/challenges/:id/cancel,server/src/__tests__/cli-auth-routes.test.ts,CLI auth challenge cancellation
 server/src/routes/access.ts#/cli-auth/me,server/src/__tests__/cli-auth-routes.test.ts,CLI auth identity lookup

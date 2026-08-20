@@ -9,6 +9,7 @@ import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "./dev-ru
 import {
   isChildTreeTerminationComplete,
   resolveChildTreeTermination,
+  resolveHostControlTickMode,
   resolveHostControlTickPolicy,
   resolvePnpmInvocation,
 } from "./dev-runner-command.mjs";
@@ -352,6 +353,7 @@ async function runPnpm(args: string[], options: {
   stdio?: "inherit" | ["ignore", "pipe", "pipe"];
   env?: NodeJS.ProcessEnv;
   cwd?: string;
+  timeoutMs?: number;
 } = {}) {
   const invocation = resolvePnpmInvocation(args);
   return await new Promise<{ code: number; signal: NodeJS.Signals | null; stdout: string; stderr: string }>((resolve, reject) => {
@@ -364,6 +366,16 @@ async function runPnpm(args: string[], options: {
 
     const stdoutBuffer = createCapturedOutputBuffer();
     const stderrBuffer = createCapturedOutputBuffer();
+    let settled = false;
+    let timedOut = false;
+    let timeoutHandle: NodeJS.Timeout | null = null;
+
+    const rejectOnce = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      reject(error);
+    };
 
     if (spawned.stdout) {
       spawned.stdout.on("data", (chunk) => {
@@ -376,15 +388,47 @@ async function runPnpm(args: string[], options: {
       });
     }
 
-    spawned.on("error", reject);
+    if (options.timeoutMs && options.timeoutMs > 0) {
+      timeoutHandle = setTimeout(() => {
+        timedOut = true;
+        const childPid = spawned.pid;
+        if (!childPid) {
+          rejectOnce(new Error(`Timed out after ${options.timeoutMs}ms before pnpm exposed a child PID`));
+          return;
+        }
+        const termination = resolveChildTreeTermination(childPid);
+        if (!termination) {
+          spawned.kill("SIGTERM");
+          return;
+        }
+        const terminator = spawn(termination.command, termination.args, {
+          stdio: "ignore",
+          windowsHide: true,
+        });
+        terminator.on("error", rejectOnce);
+        terminator.on("exit", (code) => {
+          if (!isChildTreeTerminationComplete(code, isProcessAlive(childPid))) {
+            rejectOnce(new Error(`Timed-out pnpm child tree ${childPid} could not be terminated`));
+          }
+        });
+      }, options.timeoutMs);
+      timeoutHandle.unref();
+    }
+
+    spawned.on("error", rejectOnce);
     spawned.on("exit", (code, signal) => {
+      if (settled) return;
+      settled = true;
+      if (timeoutHandle) clearTimeout(timeoutHandle);
       const stdout = stdoutBuffer.finish();
       const stderr = stderrBuffer.finish();
       resolve({
-        code: code ?? 0,
+        code: timedOut ? 124 : (code ?? 0),
         signal,
         stdout: stdout.text,
-        stderr: stderr.text,
+        stderr: timedOut
+          ? `${stderr.text}\n[paperclip] pnpm command timed out after ${options.timeoutMs}ms\n`.trimStart()
+          : stderr.text,
       });
     });
   });
@@ -393,7 +437,7 @@ async function runPnpm(args: string[], options: {
 async function getMigrationStatusPayload() {
   const status = await runPnpm(
     ["--filter", "@paperclipai/db", "exec", "tsx", "src/migration-status.ts", "--json"],
-    { env },
+    { env, timeoutMs: 60_000 },
   );
   if (status.code !== 0) {
     process.stderr.write(
@@ -702,14 +746,37 @@ async function runHostControlTick() {
     return;
   }
 
+  let tickMode: ReturnType<typeof resolveHostControlTickMode>;
+  try {
+    const companiesResponse = await fetch(`http://127.0.0.1:${serverPort}/api/companies`);
+    const settingsResponse = await fetch(`http://127.0.0.1:${serverPort}/api/instance/settings/experimental`);
+    if (!companiesResponse.ok || !settingsResponse.ok) throw new Error("quota preflight context unavailable");
+    const companies = await companiesResponse.json() as Array<{ id?: string; name?: string }>;
+    const company = companies.find((candidate) => candidate.name === "LuckySparrow") ?? companies[0];
+    if (!company?.id) throw new Error("quota preflight company unavailable");
+    const quotaResponse = await fetch(`http://127.0.0.1:${serverPort}/api/companies/${company.id}/costs/quota-windows`);
+    if (!quotaResponse.ok) throw new Error("provider quota preflight unavailable");
+    tickMode = resolveHostControlTickMode({
+      quotaResults: await quotaResponse.json(),
+      settings: await settingsResponse.json(),
+    });
+  } catch (error) {
+    tickMode = resolveHostControlTickMode({ quotaResults: [], settings: null, quotaReadFailed: true });
+    console.warn(`[paperclip] host control tick quota preflight failed closed: ${toError(error).message}`);
+  }
+
   hostControlTickInFlight = true;
   const stdoutBuffer = createCapturedOutputBuffer(512 * 1024);
   const stderrBuffer = createCapturedOutputBuffer(256 * 1024);
-  const scriptPath = path.join(repoRoot, "scripts", "run-softwarehouse-control-tick.mjs");
-  console.log("[paperclip] host control tick starting");
+  const quotaHold = tickMode.mode === "quota_hold";
+  const scriptPath = path.join(repoRoot, "scripts", quotaHold
+    ? "refresh-softwarehouse-readiness-quota-hold.mjs"
+    : "run-softwarehouse-control-tick.mjs");
+  const scriptArgs = quotaHold ? [scriptPath, "--apply"] : [scriptPath];
+  console.log(`[paperclip] host control tick starting mode=${tickMode.mode} reason=${tickMode.reason}`);
 
   await new Promise<void>((resolve) => {
-    const tickChild = spawn(process.execPath, [scriptPath], {
+    const tickChild = spawn(process.execPath, scriptArgs, {
       cwd: repoRoot,
       env: {
         ...env,

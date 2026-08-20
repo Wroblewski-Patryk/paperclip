@@ -1,6 +1,6 @@
 # Architecture Awareness Report
 
-Generated: 2026-08-03T14:48:09.744Z
+Generated: 2026-08-20T17:40:38.175Z
 Project: Paperclip
 Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 
@@ -9,40 +9,40 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 | Type | Count |
 | --- | ---: |
 | agent | 14 |
-| api_endpoint | 419 |
-| component | 273 |
-| document | 683 |
-| feature | 1149 |
-| function | 12794 |
-| migration | 192 |
-| model | 113 |
+| api_endpoint | 474 |
+| component | 275 |
+| document | 707 |
+| feature | 1338 |
+| function | 13258 |
+| migration | 220 |
+| model | 8 |
 | module | 108 |
 | project | 1 |
-| route | 171 |
-| test | 775 |
+| route | 176 |
+| test | 796 |
 
 ## Counts By Status
 
 | Status | Count |
 | --- | ---: |
 | blocked | 3 |
-| deprecated | 7 |
-| implemented | 14582 |
+| deprecated | 6 |
+| implemented | 15225 |
 | in_progress | 1 |
-| tested | 2099 |
+| tested | 2140 |
 
 ## Health Signals
 
-- Raw implementation entities without inferred tests: 12260
-- Actionable implementation entities without inferred tests: 11494
-- Raw implementation entities without inferred docs: 1861
-- Actionable implementation entities without inferred docs: 1729
-- Classified inferred-link noise: 769
+- Raw implementation entities without inferred tests: 13313
+- Actionable implementation entities without inferred tests: 11840
+- Raw implementation entities without inferred docs: 2006
+- Actionable implementation entities without inferred docs: 1765
+- Classified inferred-link noise: 1487
 - Raw tasks without architecture links: 0
 - Actionable tasks without architecture links: 0
-- Raw implementation entities without task links: 2125
-- Actionable implementation entities without task links: 1993
-- Classified task-linkage noise: 132
+- Raw implementation entities without task links: 2271
+- Actionable implementation entities without task links: 2030
+- Classified task-linkage noise: 241
 - Entities without owner attribution: 0
 - Disconnected entities: 0
 
@@ -75,6 +75,8 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - api_endpoint: POST /adapters/install (server/src/routes/adapters.ts#/adapters/install)
 - api_endpoint: GET /companies/:companyId/admission-controls (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls)
 - api_endpoint: POST /companies/:companyId/admission-controls/transition (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition)
+- api_endpoint: GET /companies/:companyId/agent-availability (server/src/routes/admission-control.ts#/companies/:companyId/agent-availability)
+- api_endpoint: PUT /companies/:companyId/agent-availability (server/src/routes/admission-control.ts#/companies/:companyId/agent-availability)
 - api_endpoint: DELETE /agents/:id (server/src/routes/agents.ts#/agents/:id)
 - api_endpoint: GET /agents/:id (server/src/routes/agents.ts#/agents/:id)
 - api_endpoint: PATCH /agents/:id (server/src/routes/agents.ts#/agents/:id)
@@ -86,8 +88,6 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - api_endpoint: POST /agents/:id/heartbeat/invoke (server/src/routes/agents.ts#/agents/:id/heartbeat/invoke)
 - api_endpoint: GET /agents/:id/instructions-bundle (server/src/routes/agents.ts#/agents/:id/instructions-bundle)
 - api_endpoint: PATCH /agents/:id/instructions-bundle (server/src/routes/agents.ts#/agents/:id/instructions-bundle)
-- api_endpoint: DELETE /agents/:id/instructions-bundle/file (server/src/routes/agents.ts#/agents/:id/instructions-bundle/file)
-- api_endpoint: GET /agents/:id/instructions-bundle/file (server/src/routes/agents.ts#/agents/:id/instructions-bundle/file)
 
 ## Top Actionable Missing Doc Links
 
@@ -104,6 +104,8 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - api_endpoint: POST /adapters/install (server/src/routes/adapters.ts#/adapters/install)
 - api_endpoint: GET /companies/:companyId/admission-controls (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls)
 - api_endpoint: POST /companies/:companyId/admission-controls/transition (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition)
+- api_endpoint: GET /companies/:companyId/agent-availability (server/src/routes/admission-control.ts#/companies/:companyId/agent-availability)
+- api_endpoint: PUT /companies/:companyId/agent-availability (server/src/routes/admission-control.ts#/companies/:companyId/agent-availability)
 - api_endpoint: GET /assets/:assetId/content (server/src/routes/assets.ts#/assets/:assetId/content)
 - api_endpoint: POST /companies/:companyId/assets/images (server/src/routes/assets.ts#/companies/:companyId/assets/images)
 - api_endpoint: POST /companies/:companyId/logo (server/src/routes/assets.ts#/companies/:companyId/logo)
@@ -129,13 +131,14 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - api_endpoint: POST /companies/:companyId/skills/import (server/src/routes/company-skills.ts#/companies/:companyId/skills/import)
 - api_endpoint: POST /companies/:companyId/skills/install-catalog (server/src/routes/company-skills.ts#/companies/:companyId/skills/install-catalog)
 - api_endpoint: POST /companies/:companyId/skills/scan-projects (server/src/routes/company-skills.ts#/companies/:companyId/skills/scan-projects)
-- api_endpoint: GET /skills/catalog (server/src/routes/company-skills.ts#/skills/catalog)
-- api_endpoint: GET /skills/catalog/:catalogId (server/src/routes/company-skills.ts#/skills/catalog/:catalogId)
 
 ## Classified Inferred-Link Noise
 
-- config_only_file: 294
-- test_fixture_function: 475
+- config_only_file: 292
+- domain_error_declaration: 95
+- test_fixture_function: 1014
+- test_support_file: 21
+- typescript_type_declaration: 65
 
 ## Top Classified Noise Samples
 
@@ -146,15 +149,23 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - config_only_file: component: index.tsx (packages/plugins/examples/plugin-orchestration-smoke-example/src/ui/index.tsx)
 - config_only_file: component: index.tsx (packages/plugins/plugin-llm-wiki/src/ui/index.tsx)
 - config_only_file: component: index.tsx (packages/plugins/plugin-workspace-diff/src/ui/index.tsx)
+- test_support_file: feature: embedded-postgres.ts (cli/src/__tests__/helpers/embedded-postgres.ts)
+- test_support_file: feature: zip.ts (cli/src/__tests__/helpers/zip.ts)
 - config_only_file: feature: index.ts (cli/src/adapters/http/index.ts)
 - config_only_file: feature: index.ts (cli/src/adapters/index.ts)
 - config_only_file: feature: index.ts (cli/src/adapters/process/index.ts)
 - config_only_file: feature: index.ts (cli/src/checks/index.ts)
+- domain_error_declaration: feature: ApiConnectionError (cli/src/client/http.ts#ApiConnectionError)
+- domain_error_declaration: feature: ApiRequestError (cli/src/client/http.ts#ApiRequestError)
+- domain_error_declaration: feature: UpstreamImportRequestError (cli/src/commands/client/cloud-transfer.ts#UpstreamImportRequestError)
+- domain_error_declaration: feature: CloudAuthRequestError (cli/src/commands/client/cloud.ts#CloudAuthRequestError)
 - config_only_file: feature: index.ts (cli/src/index.ts)
 - config_only_file: feature: vitest.config.ts (cli/vitest.config.ts)
 - config_only_file: feature: index.ts (packages/adapter-utils/src/index.ts)
+- typescript_type_declaration: feature: types.ts (packages/adapter-utils/src/types.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/cli/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/index.ts)
+- domain_error_declaration: feature: FakeAcpRuntimeError (packages/adapters/acpx-local/src/server/execute.test.ts#FakeAcpRuntimeError)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/server/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/ui/index.ts)
 - config_only_file: feature: vitest.config.ts (packages/adapters/acpx-local/vitest.config.ts)
@@ -171,18 +182,13 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/cli/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/server/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/ui/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/cursor-local/src/cli/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/cursor-local/src/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/cursor-local/src/server/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/cursor-local/src/ui/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/gemini-local/src/cli/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/gemini-local/src/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/gemini-local/src/server/index.ts)
 
 ## Classified Task-Linkage Noise
 
-- config_only_file: 132
+- config_only_file: 131
+- domain_error_declaration: 28
+- test_support_file: 21
+- typescript_type_declaration: 61
 
 ## Top Classified Task-Linkage Noise Samples
 
@@ -193,15 +199,23 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - config_only_file: component: index.tsx (packages/plugins/examples/plugin-orchestration-smoke-example/src/ui/index.tsx)
 - config_only_file: component: index.tsx (packages/plugins/plugin-llm-wiki/src/ui/index.tsx)
 - config_only_file: component: index.tsx (packages/plugins/plugin-workspace-diff/src/ui/index.tsx)
+- test_support_file: feature: embedded-postgres.ts (cli/src/__tests__/helpers/embedded-postgres.ts)
+- test_support_file: feature: zip.ts (cli/src/__tests__/helpers/zip.ts)
 - config_only_file: feature: index.ts (cli/src/adapters/http/index.ts)
 - config_only_file: feature: index.ts (cli/src/adapters/index.ts)
 - config_only_file: feature: index.ts (cli/src/adapters/process/index.ts)
 - config_only_file: feature: index.ts (cli/src/checks/index.ts)
+- domain_error_declaration: feature: ApiConnectionError (cli/src/client/http.ts#ApiConnectionError)
+- domain_error_declaration: feature: ApiRequestError (cli/src/client/http.ts#ApiRequestError)
+- domain_error_declaration: feature: UpstreamImportRequestError (cli/src/commands/client/cloud-transfer.ts#UpstreamImportRequestError)
+- domain_error_declaration: feature: CloudAuthRequestError (cli/src/commands/client/cloud.ts#CloudAuthRequestError)
 - config_only_file: feature: index.ts (cli/src/index.ts)
 - config_only_file: feature: vitest.config.ts (cli/vitest.config.ts)
 - config_only_file: feature: index.ts (packages/adapter-utils/src/index.ts)
+- typescript_type_declaration: feature: types.ts (packages/adapter-utils/src/types.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/cli/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/index.ts)
+- domain_error_declaration: feature: FakeAcpRuntimeError (packages/adapters/acpx-local/src/server/execute.test.ts#FakeAcpRuntimeError)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/server/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/ui/index.ts)
 - config_only_file: feature: vitest.config.ts (packages/adapters/acpx-local/vitest.config.ts)
@@ -218,14 +232,6 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/cli/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/server/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/ui/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/cursor-local/src/cli/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/cursor-local/src/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/cursor-local/src/server/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/cursor-local/src/ui/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/gemini-local/src/cli/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/gemini-local/src/index.ts)
-- config_only_file: feature: index.ts (packages/adapters/gemini-local/src/server/index.ts)
 
 ## Notes
 

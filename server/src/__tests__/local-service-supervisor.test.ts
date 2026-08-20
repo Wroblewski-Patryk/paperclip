@@ -1,6 +1,10 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
-import { terminateLocalService } from "../services/local-service-supervisor.js";
+import {
+  retainLiveLocalServiceRegistryRecords,
+  terminateLocalService,
+  type LocalServiceRegistryRecord,
+} from "../services/local-service-supervisor.js";
 
 function isPidAlive(pid: number) {
   try {
@@ -19,6 +23,43 @@ async function waitForPidExit(pid: number, timeoutMs = 5_000) {
   }
   return !isPidAlive(pid);
 }
+
+function serviceRecord(serviceKey: string, pid: number): LocalServiceRegistryRecord {
+  return {
+    version: 1,
+    serviceKey,
+    profileKind: "paperclip-dev",
+    serviceName: serviceKey,
+    command: "dev-runner.ts",
+    cwd: process.cwd(),
+    envFingerprint: "test",
+    port: 3200,
+    url: "http://127.0.0.1:3200",
+    pid,
+    processGroupId: null,
+    provider: "local_process",
+    runtimeServiceId: null,
+    reuseKey: null,
+    startedAt: "2026-01-01T00:00:00.000Z",
+    lastSeenAt: "2026-01-01T00:00:00.000Z",
+    metadata: null,
+  };
+}
+
+describe("retainLiveLocalServiceRegistryRecords", () => {
+  it("removes stale registry entries and returns only live services", async () => {
+    const removed: string[] = [];
+    const records = [serviceRecord("live", 101), serviceRecord("stale", 202)];
+
+    const live = await retainLiveLocalServiceRegistryRecords(records, {
+      isAlive: (pid) => pid === 101,
+      remove: async (serviceKey) => { removed.push(serviceKey); },
+    });
+
+    expect(live.map((record) => record.serviceKey)).toEqual(["live"]);
+    expect(removed).toEqual(["stale"]);
+  });
+});
 
 describe.skipIf(process.platform !== "win32")("terminateLocalService on Windows", () => {
   const spawned: ChildProcess[] = [];

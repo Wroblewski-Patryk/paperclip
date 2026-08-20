@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { buildVitestInvocation, chunkItems } from "./lib/vitest-invocation.mjs";
+import { removeOwnedVitestTestRoot } from "./lib/vitest-test-root.mjs";
 
 const repoRoot = process.cwd();
 const serverRoot = path.join(repoRoot, "server");
@@ -296,16 +297,23 @@ function runVitest(args, label) {
     PAPERCLIP_HOME: path.join(testRoot, "h"),
     PAPERCLIP_INSTANCE_ID: `vt-${process.pid}-${invocationIndex}`,
     TMPDIR: path.join(testRoot, "t"),
+    TEMP: path.join(testRoot, "t"),
+    TMP: path.join(testRoot, "t"),
   };
   mkdirSync(env.PAPERCLIP_HOME, { recursive: true });
   mkdirSync(env.TMPDIR, { recursive: true });
   const invocation = buildVitestInvocation(repoRoot, args);
-  const result = spawnSync(invocation.command, invocation.args, {
-    cwd: repoRoot,
-    env,
-    stdio: "inherit",
-    shell: invocation.shell,
-  });
+  let result;
+  try {
+    result = spawnSync(invocation.command, invocation.args, {
+      cwd: repoRoot,
+      env,
+      stdio: "inherit",
+      shell: invocation.shell,
+    });
+  } finally {
+    removeOwnedVitestTestRoot(testRoot, tempRootParent);
+  }
   if (result.error) {
     console.error(`[test:run] Failed to start Vitest: ${result.error.message}`);
     process.exit(1);

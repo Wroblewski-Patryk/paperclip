@@ -2568,18 +2568,30 @@ describeEmbeddedPostgres("issueService blockers and dependency wake readiness", 
 
   it("rejects blocking cycles", async () => {
     const companyId = randomUUID();
+    const assigneeAgentId = randomUUID();
     await db.insert(companies).values({
       id: companyId,
       name: "Paperclip",
       issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
       requireBoardApprovalForNewAgents: false,
     });
+    await db.insert(agents).values({
+      id: assigneeAgentId,
+      companyId,
+      name: "Dependency owner",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    });
 
     const issueA = randomUUID();
     const issueB = randomUUID();
     await db.insert(issues).values([
-      { id: issueA, companyId, title: "Issue A", status: "todo", priority: "medium" },
-      { id: issueB, companyId, title: "Issue B", status: "todo", priority: "medium" },
+      { id: issueA, companyId, title: "Issue A", status: "todo", priority: "medium", assigneeAgentId },
+      { id: issueB, companyId, title: "Issue B", status: "todo", priority: "medium", assigneeAgentId },
     ]);
 
     await svc.update(issueA, { blockedByIssueIds: [issueB] });
@@ -2714,7 +2726,12 @@ describeEmbeddedPostgres("issueService blockers and dependency wake readiness", 
         assigneeAgentId,
       },
     ]);
-    await svc.update(dependentId, { blockedByIssueIds: [blockerId] });
+    await db.insert(issueRelations).values({
+      companyId,
+      issueId: blockerId,
+      relatedIssueId: dependentId,
+      type: "blocks",
+    });
 
     // A run touched the workspace (prepare phase) but has not yet recorded
     // workspace_finalize — the dependent must NOT wake.
@@ -2802,7 +2819,12 @@ describeEmbeddedPostgres("issueService blockers and dependency wake readiness", 
         assigneeAgentId,
       },
     ]);
-    await svc.update(dependentId, { blockedByIssueIds: [blockerId] });
+    await db.insert(issueRelations).values({
+      companyId,
+      issueId: blockerId,
+      relatedIssueId: dependentId,
+      type: "blocks",
+    });
 
     // No executionWorkspaceId → no barrier → dependent should be wakeable.
     await expect(svc.listWakeableBlockedDependents(blockerId)).resolves.toEqual([
@@ -2816,18 +2838,30 @@ describeEmbeddedPostgres("issueService blockers and dependency wake readiness", 
 
   it("reports dependency readiness for blocked issue chains", async () => {
     const companyId = randomUUID();
+    const assigneeAgentId = randomUUID();
     await db.insert(companies).values({
       id: companyId,
       name: "Paperclip",
       issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
       requireBoardApprovalForNewAgents: false,
     });
+    await db.insert(agents).values({
+      id: assigneeAgentId,
+      companyId,
+      name: "Dependency owner",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    });
 
     const blockerId = randomUUID();
     const blockedId = randomUUID();
     await db.insert(issues).values([
-      { id: blockerId, companyId, title: "Blocker", status: "todo", priority: "medium" },
-      { id: blockedId, companyId, title: "Blocked", status: "todo", priority: "medium" },
+      { id: blockerId, companyId, title: "Blocker", status: "todo", priority: "medium", assigneeAgentId },
+      { id: blockedId, companyId, title: "Blocked", status: "todo", priority: "medium", assigneeAgentId },
     ]);
     await svc.update(blockedId, { blockedByIssueIds: [blockerId] });
 
@@ -3289,6 +3323,7 @@ describeEmbeddedPostgres("issueService.create workspace inheritance", () => {
 
   it("syncs reused execution workspace config when issue workspace settings are updated", async () => {
     const companyId = randomUUID();
+    const assigneeAgentId = randomUUID();
     const projectId = randomUUID();
     const projectWorkspaceId = randomUUID();
     const executionWorkspaceId = randomUUID();
@@ -3301,6 +3336,17 @@ describeEmbeddedPostgres("issueService.create workspace inheritance", () => {
       requireBoardApprovalForNewAgents: false,
     });
     await instanceSettingsService(db).updateExperimental({ enableIsolatedWorkspaces: true });
+    await db.insert(agents).values({
+      id: assigneeAgentId,
+      companyId,
+      name: "Workspace owner",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    });
 
     await db.insert(projects).values({
       id: projectId,
@@ -3344,6 +3390,7 @@ describeEmbeddedPostgres("issueService.create workspace inheritance", () => {
       title: "Recovery issue",
       status: "in_progress",
       priority: "medium",
+      assigneeAgentId,
       executionWorkspaceId,
       executionWorkspacePreference: "reuse_existing",
       executionWorkspaceSettings: {

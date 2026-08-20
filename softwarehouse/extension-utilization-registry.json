@@ -1,11 +1,17 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "minimumUtilizationPercent": 100,
   "completionContract": {
     "requiredDimensions": ["implementation", "integration", "runtime", "proof"],
     "rule": "A capability is complete only when it is implemented, wired into a real consumer, exercised in the live company, and backed by inspectable tests or operating evidence.",
     "partialDisposition": "repair_or_explicitly_retire",
     "forbiddenClaim": "Do not call a route, page, schema, script, or configuration complete merely because it exists."
+  },
+  "assuranceContract": {
+    "checkedAt": "The generated report records when every implementation, integration, runtime, proof-artifact, and dependency check was evaluated.",
+    "dependencyRule": "A capability cannot pass when one of its declared required capabilities fails.",
+    "changeRule": "When a capability changes, update its files, checks, relations, and proof in this registry in the same change.",
+    "scopeRule": "This registry covers Softwarehouse-specific capabilities and extensions. The generated architecture/project-truth indexes remain the file-level map."
   },
   "capabilities": [
     {
@@ -21,10 +27,10 @@
       "id": "admission_control",
       "name": "Evidence-gated admission control",
       "lifecycle": "active",
-      "requiredFiles": ["server/src/services/admission-control.ts", "server/src/routes/admission-control.ts", "packages/db/src/schema/admission_controls.ts"],
-      "integrationChecks": [{"file": "server/src/services/heartbeat.ts", "patterns": ["admission.evaluate(", "admission.evaluateWork(", "replayDeferredAdmissionWakeups"]}],
-      "runtimeProbes": [{"path": "/api/companies/{companyId}/admission-controls", "shape": "array", "minItems": 1, "where": {"scopeType": "company", "state": "open", "reopenResult": "completed"}, "minMatched": 1}],
-      "proofFiles": ["server/src/__tests__/admission-control-service.test.ts", "packages/db/src/admission-control-schema.test.ts", "docs/agent-policy-gates.md"]
+      "requiredFiles": ["server/src/services/admission-control.ts", "server/src/routes/admission-control.ts", "packages/db/src/schema/admission_controls.ts", "ui/src/components/AgentAvailabilityControl.tsx", "ui/src/api/dashboard.ts"],
+      "integrationChecks": [{"file": "server/src/services/heartbeat.ts", "patterns": ["admission.evaluate(", "admission.evaluateWork(", "replayDeferredAdmissionWakeups"]}, {"file": "ui/src/pages/Dashboard.tsx", "patterns": ["dashboardApi.agentAvailability", "dashboardApi.setAgentAvailability", "MissionControlDashboard"]}, {"file": "ui/src/components/MissionControlDashboard.tsx", "patterns": ["AgentAvailabilityControl", "onAvailabilityChange"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/admission-controls", "shape": "array", "minItems": 1, "where": {"scopeType": "company", "state": "open", "reopenResult": "completed"}, "minMatched": 1}, {"path": "/api/companies/{companyId}/agent-availability", "shape": "object", "equals": {"state": "on", "controlState": "open", "acceptsNewRuns": true}}],
+      "proofFiles": ["server/src/__tests__/admission-control-service.test.ts", "packages/db/src/admission-control-schema.test.ts", "ui/src/components/AgentAvailabilityControl.test.tsx", "docs/agent-policy-gates.md"]
     },
     {
       "id": "native_supervision",
@@ -77,7 +83,7 @@
       "lifecycle": "active",
       "requiredFiles": ["server/src/services/costs.ts", "server/src/services/budgets.ts", "server/src/services/quota-windows.ts", "server/src/routes/costs.ts", "ui/src/pages/Costs.tsx", "ui/src/api/costs.ts", "ui/src/api/budgets.ts", "packages/db/src/schema/cost_events.ts", "packages/db/src/schema/budget_policies.ts", "packages/db/src/schema/budget_incidents.ts"],
       "integrationChecks": [{"file": "server/src/app.ts", "patterns": ["costRoutes(db"]}, {"file": "server/src/services/heartbeat.ts", "patterns": ["budgets.getInvocationBlock", "getCodexLocalQuotaGateSettings", "getCachedProviderQuota", "buildProviderQuotaStartBlock"]}, {"file": "ui/src/App.tsx", "patterns": ["path=\"costs\"", "<Costs />"]}],
-      "runtimeProbes": [{"path": "/api/companies/{companyId}/costs/summary", "shape": "object", "pathMinimums": {"subscriptionSpendCents": 1, "subscriptionBudgetCents": 1}}, {"path": "/api/companies/{companyId}/costs/quota-windows", "shape": "array", "minItems": 1, "where": {"provider": "openai", "ok": true, "windows.0.quotaLane": "codex_standard"}, "minMatched": 1}, {"path": "/api/companies/{companyId}/budgets/overview", "shape": "object", "pathMinimums": {"policies.length": 1}}, {"path": "/api/instance/settings/experimental", "shape": "object", "equals": {"codexLocalQuotaHoldEnabled": true}, "pathMinimums": {"codexLocalQuotaLongWindowHoldUsedPercent": 1}}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/costs/summary", "shape": "object", "pathMinimums": {"subscriptionSpendCents": 1, "subscriptionBudgetCents": 1}}, {"path": "/api/companies/{companyId}/costs/quota-windows", "shape": "array", "minItems": 1, "where": {"provider": "openai", "ok": true, "windows.0.quotaLane": "codex_standard"}, "minMatched": 1}, {"path": "/api/companies/{companyId}/budgets/overview", "shape": "object", "pathMinimums": {"policies.length": 1}}, {"path": "/api/instance/settings/experimental", "shape": "object", "equals": {"codexLocalQuotaHoldEnabled": true, "codexLocalQuotaShortWindowHoldUsedPercent": 75, "codexLocalQuotaLongWindowHoldUsedPercent": 75}}],
       "proofFiles": ["server/src/__tests__/costs-service.test.ts", "server/src/__tests__/budgets-service.test.ts", "server/src/__tests__/quota-windows-service.test.ts", "scripts/softwarehouse-gate-specs.test.mjs"]
     },
     {
@@ -88,6 +94,15 @@
       "integrationChecks": [{"file": "ui/src/pages/Artifacts.tsx", "patterns": ["return \"task\"", "groupIssueId", "useInfiniteQuery"]}],
       "runtimeProbes": [{"path": "/api/companies/{companyId}/artifacts?groupBy=task&limit=30", "shape": "object", "pathMinimums": {"groups.length": 1}}],
       "proofFiles": ["ui/src/pages/Artifacts.test.tsx", "doc/AGENT-ARTIFACTS.md"]
+    },
+    {
+      "id": "owner_decision_center",
+      "name": "Owner decision briefing and response center",
+      "lifecycle": "active",
+      "requiredFiles": ["server/src/services/decision-center.ts", "server/src/routes/decision-center.ts", "packages/shared/src/types/decision-center.ts", "ui/src/pages/Decisions.tsx", "ui/src/api/decisions.ts"],
+      "integrationChecks": [{"file": "server/src/app.ts", "patterns": ["decisionCenterRoutes(db)"]}, {"file": "ui/src/App.tsx", "patterns": ["path=\"decisions\"", "<Decisions />"]}, {"file": "server/src/services/sidebar-badges.ts", "patterns": ["decisionCenterService"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/decisions", "shape": "object", "pathMinimums": {"counts.allOpen": 0, "items.length": 0}}],
+      "proofFiles": ["server/src/services/decision-center.test.ts", "ui/src/pages/Decisions.test.tsx", "doc/SPEC-implementation.md"]
     },
     {
       "id": "architecture_and_project_truth",
@@ -111,10 +126,29 @@
       "id": "workspace_runtime_and_isolation",
       "name": "Workspace, runtime topology, and cross-project isolation",
       "lifecycle": "active",
-      "requiredFiles": ["scripts/audit-softwarehouse-workspace-boundaries.mjs", "scripts/audit-local-runtime-topology.mjs", "scripts/audit-cross-project-isolation.mjs", "scripts/ensure-project-runtime-capabilities.mjs"],
-      "integrationChecks": [{"file": "package.json", "patterns": ["softwarehouse:workspace-boundary-audit", "softwarehouse:runtime-topology-audit", "softwarehouse:cross-project-isolation-audit", "softwarehouse:project-runtime"]}],
-      "runtimeProbes": [{"path": "/api/health", "shape": "object", "equals": {"status": "ok"}}],
-      "proofFiles": ["scripts/ensure-project-runtime-capabilities.test.mjs", "scripts/cross-project-isolation-audit.test.mjs", "scripts/lib/windows-runtime-inventory.test.mjs", "AGENTS.md"]
+      "requiredFiles": ["scripts/audit-softwarehouse-workspace-boundaries.mjs", "scripts/audit-local-runtime-topology.mjs", "scripts/audit-cross-project-isolation.mjs", "scripts/ensure-project-runtime-capabilities.mjs", "scripts/cleanup-stale-softwarehouse-temp.ps1", "scripts/dev-runner-command.mjs", "scripts/dev-runner.ts", "scripts/dev-service.ts", "server/src/dev-server-status.ts"],
+      "integrationChecks": [{"file": "package.json", "patterns": ["softwarehouse:workspace-boundary-audit", "softwarehouse:runtime-topology-audit", "softwarehouse:cross-project-isolation-audit", "softwarehouse:project-runtime", "softwarehouse:temp-hygiene", "softwarehouse:temp-hygiene:apply", "dev:list", "dev:stop"]}],
+      "runtimeProbes": [{"path": "/api/health", "shape": "object", "equals": {"status": "ok", "devServer.restartRequired": false, "devServer.waitingForIdle": false}}],
+      "proofFiles": ["scripts/ensure-project-runtime-capabilities.test.mjs", "scripts/cross-project-isolation-audit.test.mjs", "scripts/lib/windows-runtime-inventory.test.mjs", "scripts/dev-runner-command.test.mjs", "scripts/dev-service-profile.test.mjs", "scripts/temp-hygiene-contract.test.mjs", "server/src/__tests__/dev-server-status.test.ts", "AGENTS.md"]
     }
+  ],
+  "relations": [
+    {"from": "organizational_orientation", "to": "admission_control", "type": "depends_on", "reason": "Organizational maintenance must respect durable work admission."},
+    {"from": "native_supervision", "to": "organizational_orientation", "type": "depends_on", "reason": "Supervision consumes organizational observations and promoted safeguards."},
+    {"from": "native_supervision", "to": "workspace_runtime_and_isolation", "type": "depends_on", "reason": "Recovery decisions require trustworthy runtime and project identity."},
+    {"from": "autonomy_decision_engine", "to": "native_supervision", "type": "depends_on", "reason": "Autonomy decisions are materialized and reconciled by native supervision."},
+    {"from": "autonomy_decision_engine", "to": "cost_and_budget_governance", "type": "depends_on", "reason": "Autonomous admission is bounded by cost and provider quota evidence."},
+    {"from": "product_delivery_ledger", "to": "admission_control", "type": "depends_on", "reason": "Delivery execution cannot bypass owner availability or maintenance holds."},
+    {"from": "product_delivery_ledger", "to": "architecture_and_project_truth", "type": "depends_on", "reason": "Delivery claims require current product and implementation truth."},
+    {"from": "product_delivery_ledger", "to": "company_artifacts", "type": "depends_on", "reason": "Delivery evidence must remain inspectable as work products or artifacts."},
+    {"from": "roost_portfolio_bridge", "to": "product_delivery_ledger", "type": "depends_on", "reason": "Roost must project canonical delivery outcomes rather than infer them."},
+    {"from": "roost_portfolio_bridge", "to": "architecture_and_project_truth", "type": "depends_on", "reason": "Projection identity and gaps come from versioned project truth."},
+    {"from": "owner_decision_center", "to": "organizational_orientation", "type": "depends_on", "reason": "Only classified and adequately briefed owner decisions become ready."},
+    {"from": "owner_decision_center", "to": "admission_control", "type": "depends_on", "reason": "Decision continuations honor ON/OFF and deferred wake semantics."},
+    {"from": "autonomous_control_loop", "to": "admission_control", "type": "depends_on", "reason": "All dispatch paths must pass admission."},
+    {"from": "autonomous_control_loop", "to": "native_supervision", "type": "depends_on", "reason": "The control loop consumes native liveness and recurrence findings."},
+    {"from": "autonomous_control_loop", "to": "autonomy_decision_engine", "type": "depends_on", "reason": "Runnable selection and dispatch use calibrated authority."},
+    {"from": "autonomous_control_loop", "to": "product_delivery_ledger", "type": "depends_on", "reason": "Control activity must converge on verified outcomes."},
+    {"from": "autonomous_control_loop", "to": "workspace_runtime_and_isolation", "type": "depends_on", "reason": "Dispatch requires singleton runtime and project-safe workspaces."}
   ]
 }

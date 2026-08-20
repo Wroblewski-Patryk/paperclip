@@ -1,5 +1,6 @@
 param(
   [switch]$Apply,
+  [switch]$IncludeRecentOwnedTestArtifacts,
   [ValidateRange(1, 720)]
   [int]$MinAgeHours = 6
 )
@@ -15,20 +16,51 @@ if ($tempRoot -ne $resolvedTempRoot) {
 }
 
 $cutoff = (Get-Date).AddHours(-$MinAgeHours)
-$namePattern = '^(?i)(paperclip|soar|roost|featherly|vitest|pglite|postgres)'
+$namePattern = '^(?i)(pcvt-|paperclip|soar|roost|featherly|vitest|pglite|postgres)'
+$ownedRecentTestPattern = '^(?i)(pcvt-\d+-\d+-[A-Za-z0-9]+|paperclip-(?:activity-service|runtime-[A-Za-z0-9-]+|worktree-[A-Za-z0-9-]+)-[A-Za-z0-9]+)$'
+$repoDisposableNamePattern = '^(?i)(tmp-.+|(?:cto-)?closeout(?:-.+)?\.md|completion-evidence(?:-.+)?\.json|\.paperclip-dev-(?:restart|start).*\.log|coolify(?:\..+)?\.(?:html|txt))$'
 $candidates = @(
   Get-ChildItem -LiteralPath $tempRoot -Force -ErrorAction Stop |
-    Where-Object { $_.Name -match $namePattern -and $_.LastWriteTime -lt $cutoff }
+    Where-Object {
+      ($_.Name -match $namePattern -and $_.LastWriteTime -lt $cutoff) -or
+      ($IncludeRecentOwnedTestArtifacts -and $_.Name -match $ownedRecentTestPattern)
+    }
 )
 if ($candidates.Count -gt 1000) {
   throw "Refusing to inspect an unexpected candidate count: $($candidates.Count)"
 }
 
+$trackedRootFiles = @(
+  & git -C $repoRoot ls-files --full-name -- .
+)
+if ($LASTEXITCODE -ne 0) {
+  throw 'Unable to enumerate tracked repository files before hygiene audit.'
+}
+$trackedRootFileSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($trackedFile in $trackedRootFiles) {
+  if ($trackedFile -notmatch '[/\\]') {
+    [void]$trackedRootFileSet.Add($trackedFile)
+  }
+}
+$repoCandidates = @(
+  Get-ChildItem -LiteralPath $repoRoot -File -Force -ErrorAction Stop |
+    Where-Object {
+      $_.Name -match $repoDisposableNamePattern -and
+      $_.LastWriteTime -lt $cutoff -and
+      -not $trackedRootFileSet.Contains($_.Name)
+    }
+)
+if ($repoCandidates.Count -gt 250) {
+  throw "Refusing to inspect an unexpected repository-root candidate count: $($repoCandidates.Count)"
+}
+
 $processCommandLines = (Get-CimInstance Win32_Process -ErrorAction Stop | ForEach-Object CommandLine) -join "`n"
 $canonicalSkillTarget = Join-Path $repoRoot 'skills\paperclip'
-$allowedExternalTargets = @([IO.Path]::GetFullPath($canonicalSkillTarget).TrimEnd('\'))
+$allowedExternalTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+[void]$allowedExternalTargets.Add([IO.Path]::GetFullPath($canonicalSkillTarget).TrimEnd('\'))
 $junctions = @()
 $manifest = @()
+$repoManifest = @()
 
 foreach ($candidate in $candidates) {
   $fullPath = [IO.Path]::GetFullPath($candidate.FullName).TrimEnd('\')
@@ -58,8 +90,12 @@ foreach ($candidate in $candidates) {
     foreach ($target in @($junction.Target)) {
       $targetPath = [IO.Path]::GetFullPath($target).TrimEnd('\')
       $insideTemp = $targetPath.StartsWith($tempRoot + '\', [StringComparison]::OrdinalIgnoreCase)
-      if (-not $insideTemp -and $allowedExternalTargets -notcontains $targetPath) {
+      $insideRepository = $targetPath.StartsWith($repoRoot + '\', [StringComparison]::OrdinalIgnoreCase)
+      if (-not $insideTemp -and -not $insideRepository) {
         throw "Unexpected junction target: $targetPath"
+      }
+      if (-not $insideTemp) {
+        [void]$allowedExternalTargets.Add($targetPath)
       }
     }
     $junctions += $junction
@@ -70,6 +106,27 @@ foreach ($candidate in $candidates) {
     type = $(if ($candidate.PSIsContainer) { 'directory' } else { 'file' })
     lastWriteTime = $candidate.LastWriteTime
     junctionCount = $candidateJunctions.Count
+  }
+}
+
+foreach ($candidate in $repoCandidates) {
+  $fullPath = [IO.Path]::GetFullPath($candidate.FullName)
+  if ([IO.Path]::GetDirectoryName($fullPath) -ne $repoRoot) {
+    throw "Candidate escaped the repository root: $fullPath"
+  }
+  if ($candidate.PSIsContainer -or ($candidate.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw "Repository-root candidate is not a regular file: $fullPath"
+  }
+  if ($trackedRootFileSet.Contains($candidate.Name)) {
+    throw "Refusing to remove a tracked repository file: $fullPath"
+  }
+  if ($processCommandLines.IndexOf($fullPath, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+    throw "Repository-root candidate is referenced by a live process: $fullPath"
+  }
+  $repoManifest += [pscustomobject]@{
+    path = $fullPath
+    type = 'file'
+    lastWriteTime = $candidate.LastWriteTime
   }
 }
 
@@ -109,6 +166,15 @@ if ($Apply -and $candidates.Count -gt 0) {
   }
 }
 
+if ($Apply -and $repoCandidates.Count -gt 0) {
+  foreach ($candidate in $repoCandidates) {
+    Remove-Item -LiteralPath $candidate.FullName -Force -ErrorAction Stop
+    if (Test-Path -LiteralPath $candidate.FullName) {
+      throw "Repository-root candidate still exists after cleanup: $($candidate.FullName)"
+    }
+  }
+}
+
 $remainingStale = @(
   Get-ChildItem -LiteralPath $tempRoot -Force -ErrorAction Stop |
     Where-Object { $_.Name -match $namePattern -and $_.LastWriteTime -lt $cutoff }
@@ -117,9 +183,26 @@ $retainedRecent = @(
   Get-ChildItem -LiteralPath $tempRoot -Force -ErrorAction Stop |
     Where-Object { $_.Name -match $namePattern -and $_.LastWriteTime -ge $cutoff }
 )
+$remainingRepoStale = @(
+  Get-ChildItem -LiteralPath $repoRoot -File -Force -ErrorAction Stop |
+    Where-Object {
+      $_.Name -match $repoDisposableNamePattern -and
+      $_.LastWriteTime -lt $cutoff -and
+      -not $trackedRootFileSet.Contains($_.Name)
+    }
+)
+$retainedRepoRecent = @(
+  Get-ChildItem -LiteralPath $repoRoot -File -Force -ErrorAction Stop |
+    Where-Object {
+      $_.Name -match $repoDisposableNamePattern -and
+      $_.LastWriteTime -ge $cutoff -and
+      -not $trackedRootFileSet.Contains($_.Name)
+    }
+)
 
 [pscustomobject]@{
   mode = $(if ($Apply) { 'apply' } else { 'audit' })
+  includeRecentOwnedTestArtifacts = [bool]$IncludeRecentOwnedTestArtifacts
   tempRoot = $tempRoot
   cutoff = $cutoff
   candidateCount = $candidates.Count
@@ -127,4 +210,9 @@ $retainedRecent = @(
   remainingStaleCount = $remainingStale.Count
   retainedRecentCount = $retainedRecent.Count
   candidates = $manifest
+  repoRoot = $repoRoot
+  repoCandidateCount = $repoCandidates.Count
+  remainingRepoStaleCount = $remainingRepoStale.Count
+  retainedRepoRecentCount = $retainedRepoRecent.Count
+  repoCandidates = $repoManifest
 } | ConvertTo-Json -Depth 5

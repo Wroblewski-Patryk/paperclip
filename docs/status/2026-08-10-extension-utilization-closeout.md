@@ -16,9 +16,14 @@ dimensions for every registered capability:
 The gate threshold is 100%. A partial capability must be repaired or explicitly
 retired and removed. It cannot be silently described as complete.
 
+Since 2026-08-16 the registry also declares capability dependencies and
+consumers. The audit propagates failures through those relations, rejects an
+invalid graph, and records `checkedAt` for every evaluated capability. This
+prevents a locally healthy leaf from hiding a failed prerequisite.
+
 ## Live result
 
-`pnpm softwarehouse:extension-utilization` passed 11 of 11 registered
+The 2026-08-10 closeout run of `pnpm softwarehouse:extension-utilization` passed 11 of 11 registered
 capabilities with an average utilization score of 100%:
 
 | Capability | Lifecycle | Concrete live evidence |
@@ -68,3 +73,8 @@ The capability map and pipeline registry were updated to reflect active
 Soar/Roost/Featherly isolation, ProductDelivery, admission control, native
 supervision, autonomy calibration, artifacts, and the implemented Roost
 portfolio bridge.
+
+The live result is intentionally not maintained in this dated closeout. Read
+`report/softwarehouse-extension-utilization.latest.json` for the current
+machine-generated result; the current registry additionally covers cost/quota
+governance and the owner Decision Center.

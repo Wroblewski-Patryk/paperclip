@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-08-03T14:48:09.744Z",
+  "generatedAt": "2026-08-20T17:40:38.175Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "sourceGraph": "docs/graphs/architecture-awareness.json",
   "candidatePolicy": "product_boundaries_v2",
   "counts": {
-    "items": 492,
-    "flows": 7,
-    "needsBrowserReview": 72,
-    "missingTestLink": 364,
-    "missingDocLink": 24,
+    "items": 650,
+    "flows": 6,
+    "needsBrowserReview": 73,
+    "missingTestLink": 519,
+    "missingDocLink": 26,
     "implementedNeedsProof": 1,
     "blocked": 0,
-    "riskItems": 461,
-    "appCompletionRiskItems": 461,
+    "riskItems": 619,
+    "appCompletionRiskItems": 619,
     "priorityReviewItems": 200,
     "priorityReviewLimit": 200,
     "priorityReviewTruncated": true
@@ -21,23 +21,23 @@
   "flows": [
     {
       "userFlow": "Account access",
-      "total": 15,
+      "total": 19,
       "risks": {
         "ok": 9,
         "missing_doc_link": 3,
-        "missing_test_link": 1,
+        "missing_test_link": 5,
         "needs_browser_review": 2
       },
       "gates": {
-        "auth": 15
+        "auth": 19
       }
     },
     {
       "userFlow": "Admin operation",
-      "total": 6,
+      "total": 7,
       "risks": {
         "ok": 3,
-        "missing_test_link": 3
+        "missing_test_link": 4
       },
       "gates": {
         "auth": 5
@@ -45,9 +45,9 @@
     },
     {
       "userFlow": "Dashboard overview",
-      "total": 7,
+      "total": 8,
       "risks": {
-        "missing_test_link": 4,
+        "missing_test_link": 5,
         "needs_browser_review": 3
       },
       "gates": {}
@@ -63,38 +63,30 @@
       }
     },
     {
-      "userFlow": "Trading operation",
-      "total": 2,
-      "risks": {
-        "missing_test_link": 2
-      },
-      "gates": {}
-    },
-    {
       "userFlow": "Unclassified user workflow",
-      "total": 424,
+      "total": 577,
       "risks": {
         "ok": 19,
-        "missing_test_link": 326,
-        "missing_doc_link": 19,
+        "missing_test_link": 475,
+        "missing_doc_link": 22,
         "implemented_needs_proof": 1,
-        "needs_browser_review": 59
+        "needs_browser_review": 60
       },
       "gates": {
         "auth": 1,
-        "configuration": 15
+        "configuration": 17
       }
     },
     {
       "userFlow": "User configuration",
-      "total": 37,
+      "total": 38,
       "risks": {
-        "missing_doc_link": 2,
-        "missing_test_link": 27,
+        "missing_doc_link": 1,
+        "missing_test_link": 29,
         "needs_browser_review": 8
       },
       "gates": {
-        "configuration": 33,
+        "configuration": 34,
         "auth": 2
       }
     }
@@ -185,6 +177,90 @@
       "risk": "missing_test_link"
     },
     {
+      "id": "api_endpoint:post-autonomy-decisions-id-canary-authorizations:09a318e96c",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /autonomy/decisions/:id/canary-authorizations",
+      "path": "server/src/routes/supervision.ts#/autonomy/decisions/:id/canary-authorizations",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:get-companies-companyid-autonomy-canary-authorizations:bd238d29ea",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /companies/:companyId/autonomy/canary-authorizations",
+      "path": "server/src/routes/supervision.ts#/companies/:companyId/autonomy/canary-authorizations",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:cloudauthrequesterror:a866b719d9",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "CloudAuthRequestError",
+      "path": "cli/src/commands/client/cloud.ts#CloudAuthRequestError",
+      "owner": "Developer Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "feature:authapierror:333cc7aeb4",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "AuthApiError",
+      "path": "ui/src/api/auth.ts#AuthApiError",
+      "owner": "Frontend Experience Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Account access",
+      "gates": [
+        "auth"
+      ],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
       "id": "route:auth-tsx:c56aa37d8b",
       "type": "route",
       "kind": "screen_or_route",
@@ -197,7 +273,7 @@
         "auth"
       ],
       "evidence": {
-        "hasTest": true,
+        "hasTest": false,
         "hasDoc": false,
         "needsBrowserProof": true,
         "needsScreenshotReview": true
@@ -288,6 +364,25 @@
       "risk": "missing_test_link"
     },
     {
+      "id": "feature:adminpagesfeaturetest:ed061d15a9",
+      "type": "feature",
+      "kind": "feature_or_capability",
+      "name": "AdminPagesFeatureTest",
+      "path": "scripts/build-architecture-awareness-index.test.mjs#AdminPagesFeatureTest",
+      "owner": "Engineering Delivery Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Admin operation",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": true,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 1,
+      "risk": "missing_test_link"
+    },
+    {
       "id": "api_endpoint:get-companies-companyid-budgets-overview:0c07689cee",
       "type": "api_endpoint",
       "kind": "api_endpoint",
@@ -312,6 +407,25 @@
       "kind": "api_endpoint",
       "name": "GET /companies/:companyId/dashboard",
       "path": "server/src/routes/dashboard.ts#/companies/:companyId/dashboard",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Dashboard overview",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:get-companies-companyid-next-legal-actions:14abadcb91",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /companies/:companyId/next-legal-actions",
+      "path": "server/src/routes/dashboard.ts#/companies/:companyId/next-legal-actions",
       "owner": "Backend Platform Lead",
       "status": "implemented_needs_proof",
       "userFlow": "Dashboard overview",
@@ -398,7 +512,7 @@
         "needsBrowserProof": true,
         "needsScreenshotReview": true
       },
-      "relatedEntityCount": 64,
+      "relatedEntityCount": 44,
       "risk": "needs_browser_review"
     },
     {
@@ -432,44 +546,6 @@
       "gates": [
         "subscription"
       ],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-issues-id-accepted-plan-decompositions:e68952a4d0",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /issues/:id/accepted-plan-decompositions",
-      "path": "server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Trading operation",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:post-issues-id-accepted-plan-decompositions:91e9e43603",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "POST /issues/:id/accepted-plan-decompositions",
-      "path": "server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Trading operation",
-      "gates": [],
       "evidence": {
         "hasTest": false,
         "hasDoc": false,
@@ -979,6 +1055,44 @@
       "kind": "api_endpoint",
       "name": "POST /companies/:companyId/admission-controls/transition",
       "path": "server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:get-companies-companyid-agent-availability:a699e3826b",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /companies/:companyId/agent-availability",
+      "path": "server/src/routes/admission-control.ts#/companies/:companyId/agent-availability",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:put-companies-companyid-agent-availability:fc66261b70",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "PUT /companies/:companyId/agent-availability",
+      "path": "server/src/routes/admission-control.ts#/companies/:companyId/agent-availability",
       "owner": "Backend Platform Lead",
       "status": "implemented_needs_proof",
       "userFlow": "Unclassified user workflow",
@@ -1516,13 +1630,13 @@
       "userFlow": "Unclassified user workflow",
       "gates": [],
       "evidence": {
-        "hasTest": true,
+        "hasTest": false,
         "hasDoc": false,
         "needsBrowserProof": false,
         "needsScreenshotReview": false
       },
       "relatedEntityCount": 3,
-      "risk": "missing_doc_link"
+      "risk": "missing_test_link"
     },
     {
       "id": "api_endpoint:post-companies-companyid-agent-hires:cea9f95e37",
@@ -1763,13 +1877,13 @@
       "userFlow": "Unclassified user workflow",
       "gates": [],
       "evidence": {
-        "hasTest": false,
+        "hasTest": true,
         "hasDoc": false,
         "needsBrowserProof": false,
         "needsScreenshotReview": false
       },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
+      "relatedEntityCount": 4,
+      "risk": "missing_doc_link"
     },
     {
       "id": "api_endpoint:get-heartbeat-runs-runid-workspace-operations:e03957ac78",
@@ -3273,6 +3387,101 @@
       "risk": "missing_test_link"
     },
     {
+      "id": "api_endpoint:get-companies-companyid-decisions:384fd2f187",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /companies/:companyId/decisions",
+      "path": "server/src/routes/decision-center.ts#/companies/:companyId/decisions",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": true,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 4,
+      "risk": "missing_doc_link"
+    },
+    {
+      "id": "api_endpoint:delete-companies-companyid-decisions-sourcetype-sourceid-defer:44288d577b",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "DELETE /companies/:companyId/decisions/:sourceType/:sourceId/defer",
+      "path": "server/src/routes/decision-center.ts#/companies/:companyId/decisions/:sourceType/:sourceId/defer",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:put-companies-companyid-decisions-sourcetype-sourceid-defer:2c6ea7af8c",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "PUT /companies/:companyId/decisions/:sourceType/:sourceId/defer",
+      "path": "server/src/routes/decision-center.ts#/companies/:companyId/decisions/:sourceType/:sourceId/defer",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:post-companies-companyid-decisions-interaction-sourceid-prepare:db3769e283",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /companies/:companyId/decisions/interaction/:sourceId/prepare",
+      "path": "server/src/routes/decision-center.ts#/companies/:companyId/decisions/interaction/:sourceId/prepare",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:post-companies-companyid-decisions-interaction-sourceid-reroute:7f2d7f6fb0",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /companies/:companyId/decisions/interaction/:sourceId/reroute",
+      "path": "server/src/routes/decision-center.ts#/companies/:companyId/decisions/interaction/:sourceId/reroute",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
       "id": "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
       "type": "api_endpoint",
       "kind": "api_endpoint",
@@ -3330,11 +3539,49 @@
       "risk": "missing_test_link"
     },
     {
+      "id": "api_endpoint:post-deliveries-id-dispatch:a25c2fc3a8",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /deliveries/:id/dispatch",
+      "path": "server/src/routes/deliveries.ts#/deliveries/:id/dispatch",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
       "id": "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
       "type": "api_endpoint",
       "kind": "api_endpoint",
       "name": "POST /deliveries/:id/outcome",
       "path": "server/src/routes/deliveries.ts#/deliveries/:id/outcome",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:patch-deliveries-id-status:219ae2f286",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "PATCH /deliveries/:id/status",
+      "path": "server/src/routes/deliveries.ts#/deliveries/:id/status",
       "owner": "Backend Platform Lead",
       "status": "implemented_needs_proof",
       "userFlow": "Unclassified user workflow",
@@ -3658,253 +3905,6 @@
       "kind": "api_endpoint",
       "name": "GET /execution-workspaces/:id/workspace-operations",
       "path": "server/src/routes/execution-workspaces.ts#/execution-workspaces/:id/workspace-operations",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-issues-issueid-file-resources-content:f3d13abf65",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /issues/:issueId/file-resources/content",
-      "path": "server/src/routes/file-resources.ts#/issues/:issueId/file-resources/content",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-issues-issueid-file-resources-list:2166c68a83",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /issues/:issueId/file-resources/list",
-      "path": "server/src/routes/file-resources.ts#/issues/:issueId/file-resources/list",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-issues-issueid-file-resources-resolve:553be5442e",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /issues/:issueId/file-resources/resolve",
-      "path": "server/src/routes/file-resources.ts#/issues/:issueId/file-resources/resolve",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-companies-companyid-goals:9613e9d197",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /companies/:companyId/goals",
-      "path": "server/src/routes/goals.ts#/companies/:companyId/goals",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:post-companies-companyid-goals:e9fd068118",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "POST /companies/:companyId/goals",
-      "path": "server/src/routes/goals.ts#/companies/:companyId/goals",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:delete-goals-id:20eb55dd6f",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "DELETE /goals/:id",
-      "path": "server/src/routes/goals.ts#/goals/:id",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-goals-id:48ea40de41",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /goals/:id",
-      "path": "server/src/routes/goals.ts#/goals/:id",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:patch-goals-id:326c8d903a",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "PATCH /goals/:id",
-      "path": "server/src/routes/goals.ts#/goals/:id",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get:8bfb6330f8",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /",
-      "path": "server/src/routes/health.ts#/",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:post-dev-server-restart:8ce723f667",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "POST /dev-server/restart",
-      "path": "server/src/routes/health.ts#/dev-server/restart",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "api_endpoint:get-companies-companyid-inbox-dismissals:656da7ce6f",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "GET /companies/:companyId/inbox-dismissals",
-      "path": "server/src/routes/inbox-dismissals.ts#/companies/:companyId/inbox-dismissals",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": true,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 4,
-      "risk": "missing_doc_link"
-    },
-    {
-      "id": "api_endpoint:post-companies-companyid-inbox-dismissals:3dcb9a9d1c",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "POST /companies/:companyId/inbox-dismissals",
-      "path": "server/src/routes/inbox-dismissals.ts#/companies/:companyId/inbox-dismissals",
-      "owner": "Backend Platform Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Unclassified user workflow",
-      "gates": [],
-      "evidence": {
-        "hasTest": true,
-        "hasDoc": false,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 4,
-      "risk": "missing_doc_link"
-    },
-    {
-      "id": "api_endpoint:post-instance-database-backups:e8b3c6e8ff",
-      "type": "api_endpoint",
-      "kind": "api_endpoint",
-      "name": "POST /instance/database-backups",
-      "path": "server/src/routes/instance-database-backups.ts#/instance/database-backups",
       "owner": "Backend Platform Lead",
       "status": "implemented_needs_proof",
       "userFlow": "Unclassified user workflow",

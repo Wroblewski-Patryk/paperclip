@@ -6,6 +6,8 @@ server/src/routes/access.ts#/admin/users,doc/SPEC-implementation.md,instance acc
 server/src/routes/access.ts#/admin/users/:userId/company-access,doc/SPEC-implementation.md,company access management
 server/src/routes/access.ts#/admin/users/:userId/demote-instance-admin,docs/api/authentication.md,priority API route documentation mapping
 server/src/routes/access.ts#/admin/users/:userId/promote-instance-admin,docs/api/authentication.md,priority API route documentation mapping
+scripts/audit-extension-utilization.mjs,docs/architecture/architecture-evidence-graph-system.md,canonical capability assurance workflow and relation contract
+softwarehouse/extension-utilization-registry.json,docs/status/2026-08-10-extension-utilization-closeout.md,capability completion contract and dated adoption record
 server/src/routes/access.ts#/board-claim/:token,doc/SPEC-implementation.md,board claim flow
 server/src/routes/access.ts#/board-claim/:token/claim,doc/SPEC-implementation.md,board claim flow
 server/src/routes/access.ts#/cli-auth/challenges,doc/SPEC-implementation.md,cli auth challenge lifecycle

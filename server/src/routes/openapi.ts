@@ -101,6 +101,7 @@ import {
   acceptIssueThreadInteractionSchema,
   rejectIssueThreadInteractionSchema,
   respondIssueThreadInteractionSchema,
+  issueThreadDecisionContextSchema,
   // Auth / profile
   updateCurrentUserProfileSchema,
   // Company portability (legacy routes)
@@ -2867,6 +2868,36 @@ registry.registerPath({
   summary: "List the company owner decision queue and recent decision history",
   request: { params: z.object({ companyId: z.string().uuid() }) },
   responses: { 200: r.ok(), 401: r.unauthorized, 403: r.forbidden },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/companies/{companyId}/decisions/interaction/{sourceId}/prepare",
+  tags: ["dashboard"],
+  summary: "Prepare an owner-ready decision briefing as the AIA decision steward",
+  request: {
+    params: z.object({
+      companyId: z.string().uuid(),
+      sourceId: z.string().uuid(),
+    }),
+    body: jsonBody(z.object({ decisionContext: issueThreadDecisionContextSchema })),
+  },
+  responses: { 200: r.ok(), 400: r.badRequest, 401: r.unauthorized, 403: r.forbidden, 404: r.notFound },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/companies/{companyId}/decisions/interaction/{sourceId}/reroute",
+  tags: ["dashboard"],
+  summary: "Reroute an internal decision away from the owner queue as the AIA decision steward",
+  request: {
+    params: z.object({
+      companyId: z.string().uuid(),
+      sourceId: z.string().uuid(),
+    }),
+    body: jsonBody(z.object({ reason: z.string().trim().min(1).max(2000) })),
+  },
+  responses: { 200: r.ok(), 400: r.badRequest, 401: r.unauthorized, 403: r.forbidden, 404: r.notFound },
 });
 
 registry.registerPath({

@@ -9,3 +9,7 @@ UI-COMPANY-SELECTOR,API-COMPANIES-LIST,reads,verified_local,Company selector hyd
 UI-ISSUE-CHECKOUT-ACTION,API-ISSUE-CHECKOUT,invokes,partially_verified,Issue UI action invokes checkout endpoint.
 WORKFLOW-ISSUE-LIFECYCLE,EVENT-ISSUE-CHECKED-OUT,emits,verified_local,Checkout workflow creates state transition event.
 WORKFLOW-ISSUE-LIFECYCLE,WORKFLOW-COMPANY-CONTEXT,depends_on,verified_local,Issue workflow depends on active company context.
+FEATURE-SOFTWAREHOUSE-CAPABILITY-ASSURANCE,NODE-FEATURE-CAPABILITY-ASSURANCE,owns,verified_local,Feature owns the canonical capability assurance registry.
+NODE-WORKFLOW-SOFTWAREHOUSE-CONTROL-TICK,NODE-WORKFLOW-CAPABILITY-ASSURANCE,depends_on,verified_local,Control tick runs capability assurance as its first fail-closed gate.
+NODE-WORKFLOW-CAPABILITY-ASSURANCE,NODE-FUNCTION-CAPABILITY-RELATIONS,invokes,verified_local,Audit validates and propagates declared dependency relations.
+NODE-FUNCTION-CAPABILITY-RELATIONS,NODE-TEST-CAPABILITY-ASSURANCE,verified_by,verified_local,Regression suite proves relation propagation and malformed graph rejection.

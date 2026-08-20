@@ -1,6 +1,6 @@
 # Architecture Graph
 
-Generated: 2026-08-03T14:48:09.744Z
+Generated: 2026-08-20T17:40:38.175Z
 
 ## Canonical Exports
 
@@ -86,6 +86,8 @@ Generated: 2026-08-03T14:48:09.744Z
 | api_endpoint | implemented | POST /adapters/install | server/src/routes/adapters.ts#/adapters/install | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/admission-controls | server/src/routes/admission-control.ts#/companies/:companyId/admission-controls | Backend Platform Lead |
 | api_endpoint | implemented | POST /companies/:companyId/admission-controls/transition | server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/agent-availability | server/src/routes/admission-control.ts#/companies/:companyId/agent-availability | Backend Platform Lead |
+| api_endpoint | implemented | PUT /companies/:companyId/agent-availability | server/src/routes/admission-control.ts#/companies/:companyId/agent-availability | Backend Platform Lead |
 | api_endpoint | implemented | DELETE /agents/:id | server/src/routes/agents.ts#/agents/:id | Backend Platform Lead |
 | api_endpoint | implemented | GET /agents/:id | server/src/routes/agents.ts#/agents/:id | Backend Platform Lead |
 | api_endpoint | implemented | PATCH /agents/:id | server/src/routes/agents.ts#/agents/:id | Backend Platform Lead |
@@ -221,11 +223,19 @@ Generated: 2026-08-03T14:48:09.744Z
 | api_endpoint | implemented | POST /companies/:companyId/finance-events | server/src/routes/costs.ts#/companies/:companyId/finance-events | Backend Platform Lead |
 | api_endpoint | implemented | GET /issues/:id/cost-summary | server/src/routes/costs.ts#/issues/:id/cost-summary | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/dashboard | server/src/routes/dashboard.ts#/companies/:companyId/dashboard | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/next-legal-actions | server/src/routes/dashboard.ts#/companies/:companyId/next-legal-actions | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/situation | server/src/routes/dashboard.ts#/companies/:companyId/situation | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/decisions | server/src/routes/decision-center.ts#/companies/:companyId/decisions | Backend Platform Lead |
+| api_endpoint | implemented | DELETE /companies/:companyId/decisions/:sourceType/:sourceId/defer | server/src/routes/decision-center.ts#/companies/:companyId/decisions/:sourceType/:sourceId/defer | Backend Platform Lead |
+| api_endpoint | implemented | PUT /companies/:companyId/decisions/:sourceType/:sourceId/defer | server/src/routes/decision-center.ts#/companies/:companyId/decisions/:sourceType/:sourceId/defer | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/decisions/interaction/:sourceId/prepare | server/src/routes/decision-center.ts#/companies/:companyId/decisions/interaction/:sourceId/prepare | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/decisions/interaction/:sourceId/reroute | server/src/routes/decision-center.ts#/companies/:companyId/decisions/interaction/:sourceId/reroute | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/deliveries | server/src/routes/deliveries.ts#/companies/:companyId/deliveries | Backend Platform Lead |
 | api_endpoint | implemented | POST /companies/:companyId/deliveries | server/src/routes/deliveries.ts#/companies/:companyId/deliveries | Backend Platform Lead |
 | api_endpoint | implemented | GET /deliveries/:id | server/src/routes/deliveries.ts#/deliveries/:id | Backend Platform Lead |
+| api_endpoint | implemented | POST /deliveries/:id/dispatch | server/src/routes/deliveries.ts#/deliveries/:id/dispatch | Backend Platform Lead |
 | api_endpoint | implemented | POST /deliveries/:id/outcome | server/src/routes/deliveries.ts#/deliveries/:id/outcome | Backend Platform Lead |
+| api_endpoint | implemented | PATCH /deliveries/:id/status | server/src/routes/deliveries.ts#/deliveries/:id/status | Backend Platform Lead |
 | api_endpoint | implemented | POST /deliveries/:id/transition | server/src/routes/deliveries.ts#/deliveries/:id/transition | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/environments | server/src/routes/environments.ts#/companies/:companyId/environments | Backend Platform Lead |
 | api_endpoint | implemented | POST /companies/:companyId/environments | server/src/routes/environments.ts#/companies/:companyId/environments | Backend Platform Lead |
@@ -299,6 +309,8 @@ Generated: 2026-08-03T14:48:09.744Z
 | api_endpoint | implemented | POST /issues/:id/comments | server/src/routes/issues.ts#/issues/:id/comments | Backend Platform Lead |
 | api_endpoint | implemented | DELETE /issues/:id/comments/:commentId | server/src/routes/issues.ts#/issues/:id/comments/:commentId | Backend Platform Lead |
 | api_endpoint | implemented | GET /issues/:id/comments/:commentId | server/src/routes/issues.ts#/issues/:id/comments/:commentId | Backend Platform Lead |
+| api_endpoint | implemented | GET /issues/:id/delegation-reports | server/src/routes/issues.ts#/issues/:id/delegation-reports | Backend Platform Lead |
+| api_endpoint | implemented | POST /issues/:id/delegation-reports | server/src/routes/issues.ts#/issues/:id/delegation-reports | Backend Platform Lead |
 | api_endpoint | implemented | GET /issues/:id/documents | server/src/routes/issues.ts#/issues/:id/documents | Backend Platform Lead |
 | api_endpoint | implemented | DELETE /issues/:id/documents/:key | server/src/routes/issues.ts#/issues/:id/documents/:key | Backend Platform Lead |
 | api_endpoint | implemented | GET /issues/:id/documents/:key | server/src/routes/issues.ts#/issues/:id/documents/:key | Backend Platform Lead |
@@ -334,6 +346,9 @@ Generated: 2026-08-03T14:48:09.744Z
 | api_endpoint | implemented | POST /issues/:id/scheduled-retry/retry-now | server/src/routes/issues.ts#/issues/:id/scheduled-retry/retry-now | Backend Platform Lead |
 | api_endpoint | implemented | GET /issues/:id/work-products | server/src/routes/issues.ts#/issues/:id/work-products | Backend Platform Lead |
 | api_endpoint | implemented | POST /issues/:id/work-products | server/src/routes/issues.ts#/issues/:id/work-products | Backend Platform Lead |
+| api_endpoint | implemented | GET /issues/:id/work-proposals | server/src/routes/issues.ts#/issues/:id/work-proposals | Backend Platform Lead |
+| api_endpoint | implemented | POST /issues/:id/work-proposals | server/src/routes/issues.ts#/issues/:id/work-proposals | Backend Platform Lead |
+| api_endpoint | implemented | POST /issues/:id/work-proposals/:proposalId/status | server/src/routes/issues.ts#/issues/:id/work-proposals/:proposalId/status | Backend Platform Lead |
 | api_endpoint | implemented | DELETE /labels/:labelId | server/src/routes/issues.ts#/labels/:labelId | Backend Platform Lead |
 | api_endpoint | implemented | DELETE /work-products/:id | server/src/routes/issues.ts#/work-products/:id | Backend Platform Lead |
 | api_endpoint | implemented | PATCH /work-products/:id | server/src/routes/issues.ts#/work-products/:id | Backend Platform Lead |
@@ -345,6 +360,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | api_endpoint | implemented | POST /companies/:companyId/organizational-observations | server/src/routes/organizational-observations.ts#/companies/:companyId/organizational-observations | Backend Platform Lead |
 | api_endpoint | implemented | GET /organizational-observations/:id | server/src/routes/organizational-observations.ts#/organizational-observations/:id | Backend Platform Lead |
 | api_endpoint | implemented | PATCH /organizational-observations/:id | server/src/routes/organizational-observations.ts#/organizational-observations/:id | Backend Platform Lead |
+| api_endpoint | implemented | POST /organizational-observations/:id/evaluate-promotion | server/src/routes/organizational-observations.ts#/organizational-observations/:id/evaluate-promotion | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/organizational-records | server/src/routes/organizational-records.ts#/companies/:companyId/organizational-records | Backend Platform Lead |
 | api_endpoint | implemented | POST /companies/:companyId/organizational-records | server/src/routes/organizational-records.ts#/companies/:companyId/organizational-records | Backend Platform Lead |
 | api_endpoint | implemented | GET /organizational-records/:id | server/src/routes/organizational-records.ts#/organizational-records/:id | Backend Platform Lead |
@@ -434,11 +450,50 @@ Generated: 2026-08-03T14:48:09.744Z
 | api_endpoint | implemented | GET /sidebar-preferences/me | server/src/routes/sidebar-preferences.ts#/sidebar-preferences/me | Backend Platform Lead |
 | api_endpoint | implemented | PUT /sidebar-preferences/me | server/src/routes/sidebar-preferences.ts#/sidebar-preferences/me | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/backlog | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/backlog | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/softwarehouse/hierarchy-health | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/hierarchy-health | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/issue-templates | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/issue-templates | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/knowledge | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/knowledge | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/portfolio-projection/:version | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/portfolio-projection/:version | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/softwarehouse/project-truth-probe | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/project-truth-probe | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/status | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/status | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/tools | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/tools | Backend Platform Lead |
+| api_endpoint | implemented | POST /autonomy/decisions/:id/canary-authorizations | server/src/routes/supervision.ts#/autonomy/decisions/:id/canary-authorizations | Backend Platform Lead |
+| api_endpoint | implemented | POST /autonomy/decisions/:id/dispatch | server/src/routes/supervision.ts#/autonomy/decisions/:id/dispatch | Backend Platform Lead |
+| api_endpoint | implemented | GET /autonomy/decisions/:id/evaluations | server/src/routes/supervision.ts#/autonomy/decisions/:id/evaluations | Backend Platform Lead |
+| api_endpoint | implemented | POST /autonomy/decisions/:id/evaluations | server/src/routes/supervision.ts#/autonomy/decisions/:id/evaluations | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/autonomy/canary-authorizations | server/src/routes/supervision.ts#/companies/:companyId/autonomy/canary-authorizations | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/autonomy/constraints | server/src/routes/supervision.ts#/companies/:companyId/autonomy/constraints | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/autonomy/decisions | server/src/routes/supervision.ts#/companies/:companyId/autonomy/decisions | Backend Platform Lead |
+| api_endpoint | implemented | PATCH /companies/:companyId/autonomy/envelope-capacity | server/src/routes/supervision.ts#/companies/:companyId/autonomy/envelope-capacity | Backend Platform Lead |
+| api_endpoint | implemented | PATCH /companies/:companyId/autonomy/envelope-stage | server/src/routes/supervision.ts#/companies/:companyId/autonomy/envelope-stage | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/autonomy/envelopes | server/src/routes/supervision.ts#/companies/:companyId/autonomy/envelopes | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/autonomy/executions | server/src/routes/supervision.ts#/companies/:companyId/autonomy/executions | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/autonomy/health | server/src/routes/supervision.ts#/companies/:companyId/autonomy/health | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/autonomy/intents | server/src/routes/supervision.ts#/companies/:companyId/autonomy/intents | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/autonomy/intents/:issueId | server/src/routes/supervision.ts#/companies/:companyId/autonomy/intents/:issueId | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/autonomy/interrupts | server/src/routes/supervision.ts#/companies/:companyId/autonomy/interrupts | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/autonomy/interrupts | server/src/routes/supervision.ts#/companies/:companyId/autonomy/interrupts | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/autonomy/learned-policies | server/src/routes/supervision.ts#/companies/:companyId/autonomy/learned-policies | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/autonomy/learned-policies | server/src/routes/supervision.ts#/companies/:companyId/autonomy/learned-policies | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/supervision/archive | server/src/routes/supervision.ts#/companies/:companyId/supervision/archive | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/supervision/cycles | server/src/routes/supervision.ts#/companies/:companyId/supervision/cycles | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/supervision/findings | server/src/routes/supervision.ts#/companies/:companyId/supervision/findings | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/supervision/findings | server/src/routes/supervision.ts#/companies/:companyId/supervision/findings | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/supervision/interventions | server/src/routes/supervision.ts#/companies/:companyId/supervision/interventions | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/supervision/observation-windows | server/src/routes/supervision.ts#/companies/:companyId/supervision/observation-windows | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/supervision/recover | server/src/routes/supervision.ts#/companies/:companyId/supervision/recover | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/supervision/root-causes | server/src/routes/supervision.ts#/companies/:companyId/supervision/root-causes | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/supervision/safeguards | server/src/routes/supervision.ts#/companies/:companyId/supervision/safeguards | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/supervision/shadow-comparisons | server/src/routes/supervision.ts#/companies/:companyId/supervision/shadow-comparisons | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/supervision/shadow-comparisons | server/src/routes/supervision.ts#/companies/:companyId/supervision/shadow-comparisons | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/supervision/snapshot | server/src/routes/supervision.ts#/companies/:companyId/supervision/snapshot | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/supervision/stalled-ready/dispatch | server/src/routes/supervision.ts#/companies/:companyId/supervision/stalled-ready/dispatch | Backend Platform Lead |
+| api_endpoint | implemented | POST /supervision/cycles/:id/finish | server/src/routes/supervision.ts#/supervision/cycles/:id/finish | Backend Platform Lead |
+| api_endpoint | implemented | GET /supervision/findings/:id | server/src/routes/supervision.ts#/supervision/findings/:id | Backend Platform Lead |
+| api_endpoint | implemented | POST /supervision/findings/:id/root-cause | server/src/routes/supervision.ts#/supervision/findings/:id/root-cause | Backend Platform Lead |
+| api_endpoint | implemented | POST /supervision/observation-windows/:id/complete | server/src/routes/supervision.ts#/supervision/observation-windows/:id/complete | Backend Platform Lead |
+| api_endpoint | implemented | POST /supervision/root-causes/:id/close | server/src/routes/supervision.ts#/supervision/root-causes/:id/close | Backend Platform Lead |
+| api_endpoint | implemented | PATCH /supervision/safeguards/:id | server/src/routes/supervision.ts#/supervision/safeguards/:id | Backend Platform Lead |
 | api_endpoint | implemented | POST /companies/:companyId/teams/catalog/:catalogId/install | server/src/routes/teams-catalog.ts#/companies/:companyId/teams/catalog/:catalogId/install | Backend Platform Lead |
 | api_endpoint | implemented | POST /companies/:companyId/teams/catalog/:catalogId/preview | server/src/routes/teams-catalog.ts#/companies/:companyId/teams/catalog/:catalogId/preview | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/teams/catalog/installed | server/src/routes/teams-catalog.ts#/companies/:companyId/teams/catalog/installed | Backend Platform Lead |
@@ -458,61 +513,6 @@ Generated: 2026-08-03T14:48:09.744Z
 | component | implemented | config-fields.tsx | ui/src/adapters/claude-local/config-fields.tsx | Frontend Experience Lead |
 | component | implemented | config-fields.tsx | ui/src/adapters/codex-local/config-fields.tsx | Frontend Experience Lead |
 | component | implemented | config-fields.tsx | ui/src/adapters/cursor/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/gemini-local/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/grok-local/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/hermes-local/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/http/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | local-workspace-runtime-fields.tsx | ui/src/adapters/local-workspace-runtime-fields.tsx | Frontend Experience Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/openclaw-gateway/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/opencode-local/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/pi-local/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/process/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | runtime-json-fields.tsx | ui/src/adapters/runtime-json-fields.tsx | Frontend Experience Lead |
-| component | implemented | schema-config-fields.tsx | ui/src/adapters/schema-config-fields.tsx | Frontend Experience Lead |
-| component | implemented | App.tsx | ui/src/App.tsx | Frontend Experience Lead |
-| component | implemented | CompanySettingsNav.tsx | ui/src/components/access/CompanySettingsNav.tsx | Frontend Experience Lead |
-| component | implemented | ModeBadge.tsx | ui/src/components/access/ModeBadge.tsx | Frontend Experience Lead |
-| component | implemented | AccountingModelCard.tsx | ui/src/components/AccountingModelCard.tsx | Frontend Experience Lead |
-| component | implemented | ActiveAgentsPanel.tsx | ui/src/components/ActiveAgentsPanel.tsx | Frontend Experience Lead |
-| component | implemented | ActivityCharts.tsx | ui/src/components/ActivityCharts.tsx | Frontend Experience Lead |
-| component | implemented | ActivityRow.tsx | ui/src/components/ActivityRow.tsx | Frontend Experience Lead |
-| component | implemented | agent-config-primitives.tsx | ui/src/components/agent-config-primitives.tsx | Frontend Experience Lead |
-| component | implemented | AgentActionButtons.tsx | ui/src/components/AgentActionButtons.tsx | Frontend Experience Lead |
-| component | implemented | AgentConfigForm.tsx | ui/src/components/AgentConfigForm.tsx | Frontend Experience Lead |
-| component | implemented | AgentIconPicker.tsx | ui/src/components/AgentIconPicker.tsx | Frontend Experience Lead |
-| component | implemented | AgentProperties.tsx | ui/src/components/AgentProperties.tsx | Frontend Experience Lead |
-| component | implemented | ApprovalCard.tsx | ui/src/components/ApprovalCard.tsx | Frontend Experience Lead |
-| component | implemented | ApprovalPayload.tsx | ui/src/components/ApprovalPayload.tsx | Frontend Experience Lead |
-| component | implemented | ArtifactFileChip.tsx | ui/src/components/ArtifactFileChip.tsx | Frontend Experience Lead |
-| component | implemented | ArtifactCard.tsx | ui/src/components/artifacts/ArtifactCard.tsx | Frontend Experience Lead |
-| component | implemented | ArtifactGroupCard.tsx | ui/src/components/artifacts/ArtifactGroupCard.tsx | Frontend Experience Lead |
-| component | implemented | AsciiArtAnimation.tsx | ui/src/components/AsciiArtAnimation.tsx | Frontend Experience Lead |
-| component | implemented | BillerSpendCard.tsx | ui/src/components/BillerSpendCard.tsx | Frontend Experience Lead |
-| component | implemented | BlockedInboxView.tsx | ui/src/components/BlockedInboxView.tsx | Frontend Experience Lead |
-| component | implemented | BlockedReasonChip.tsx | ui/src/components/BlockedReasonChip.tsx | Frontend Experience Lead |
-| component | implemented | BootstrapPendingPage.tsx | ui/src/components/BootstrapPendingPage.tsx | Frontend Experience Lead |
-| component | implemented | BreadcrumbBar.tsx | ui/src/components/BreadcrumbBar.tsx | Frontend Experience Lead |
-| component | implemented | BudgetIncidentCard.tsx | ui/src/components/BudgetIncidentCard.tsx | Frontend Experience Lead |
-| component | implemented | BudgetPolicyCard.tsx | ui/src/components/BudgetPolicyCard.tsx | Frontend Experience Lead |
-| component | implemented | BudgetSidebarMarker.tsx | ui/src/components/BudgetSidebarMarker.tsx | Frontend Experience Lead |
-| component | implemented | ClaudeSubscriptionPanel.tsx | ui/src/components/ClaudeSubscriptionPanel.tsx | Frontend Experience Lead |
-| component | implemented | CloudAccessGate.tsx | ui/src/components/CloudAccessGate.tsx | Frontend Experience Lead |
-| component | implemented | CodexSubscriptionPanel.tsx | ui/src/components/CodexSubscriptionPanel.tsx | Frontend Experience Lead |
-| component | implemented | CommandPalette.tsx | ui/src/components/CommandPalette.tsx | Frontend Experience Lead |
-| component | implemented | CommentThread.tsx | ui/src/components/CommentThread.tsx | Frontend Experience Lead |
-| component | implemented | CompanyPatternIcon.tsx | ui/src/components/CompanyPatternIcon.tsx | Frontend Experience Lead |
-| component | implemented | CompanySettingsSidebar.tsx | ui/src/components/CompanySettingsSidebar.tsx | Frontend Experience Lead |
-| component | implemented | CompanySituationPanel.tsx | ui/src/components/CompanySituationPanel.tsx | Frontend Experience Lead |
-| component | implemented | CompanySwitcher.tsx | ui/src/components/CompanySwitcher.tsx | Frontend Experience Lead |
-| component | implemented | CopyText.tsx | ui/src/components/CopyText.tsx | Frontend Experience Lead |
-| component | implemented | DevRestartBanner.tsx | ui/src/components/DevRestartBanner.tsx | Frontend Experience Lead |
-| component | implemented | DocumentAnnotationLayer.tsx | ui/src/components/DocumentAnnotationLayer.tsx | Frontend Experience Lead |
-| component | implemented | DocumentAnnotationPanel.tsx | ui/src/components/DocumentAnnotationPanel.tsx | Frontend Experience Lead |
-| component | implemented | DocumentDiffModal.tsx | ui/src/components/DocumentDiffModal.tsx | Frontend Experience Lead |
-| component | implemented | EmptyState.tsx | ui/src/components/EmptyState.tsx | Frontend Experience Lead |
-| component | implemented | EntityRow.tsx | ui/src/components/EntityRow.tsx | Frontend Experience Lead |
-| component | implemented | EnvVarEditor.tsx | ui/src/components/EnvVarEditor.tsx | Frontend Experience Lead |
-| component | implemented | ExecutionParticipantPicker.tsx | ui/src/components/ExecutionParticipantPicker.tsx | Frontend Experience Lead |
 
 ## Relation Index
 
@@ -523,6 +523,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:delete-agents-id-keys-keyid:6bf2a864ac | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:delete-agents-id:c6de105f68 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:delete-attachments-attachmentid:cb78eb2436 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
+| connected_to | api_endpoint:delete-companies-companyid-decisions-sourcetype-sourceid-defer:44288d577b | module:src-routes:b474eba4ee | server/src/routes/decision-center.ts |
 | connected_to | api_endpoint:delete-companies-companyid-skills-skillid:e7012699de | module:src-routes:b474eba4ee | server/src/routes/company-skills.ts |
 | connected_to | api_endpoint:delete-companyid:fa9018b8ee | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
 | connected_to | api_endpoint:delete-environments-id:3083c8cd96 | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
@@ -564,6 +565,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:get-approvals-id:5ef46e391d | module:src-routes:b474eba4ee | server/src/routes/approvals.ts |
 | connected_to | api_endpoint:get-assets-assetid-content:40c445f6a0 | module:src-routes:b474eba4ee | server/src/routes/assets.ts |
 | connected_to | api_endpoint:get-attachments-attachmentid-content:fe4ebfa19c | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
+| connected_to | api_endpoint:get-autonomy-decisions-id-evaluations:b95767c335 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
 | connected_to | api_endpoint:get-board-claim-token:d9c5491ac0 | module:src-routes:b474eba4ee | server/src/routes/access.ts |
 | connected_to | api_endpoint:get-cli-auth-challenges-id:c4a6ea60c4 | module:src-routes:b474eba4ee | server/src/routes/access.ts |
 | connected_to | api_endpoint:get-cli-auth-me:04f4342f2d | module:src-routes:b474eba4ee | server/src/routes/access.ts |
@@ -574,9 +576,19 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:get-companies-companyid-adapters-type-model-profiles:ae29579111 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-adapters-type-models:a19b916b35 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-admission-controls:764bca8826 | module:src-routes:b474eba4ee | server/src/routes/admission-control.ts |
+| connected_to | api_endpoint:get-companies-companyid-agent-availability:a699e3826b | module:src-routes:b474eba4ee | server/src/routes/admission-control.ts |
 | connected_to | api_endpoint:get-companies-companyid-agent-configurations:ed14af9e8e | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-agents:d019714997 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-approvals:c48c0d67dc | module:src-routes:b474eba4ee | server/src/routes/approvals.ts |
+| connected_to | api_endpoint:get-companies-companyid-autonomy-canary-authorizations:bd238d29ea | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:get-companies-companyid-autonomy-constraints:023fd0438e | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:get-companies-companyid-autonomy-decisions:f807eab5c3 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:get-companies-companyid-autonomy-envelopes:dac4b216f1 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:get-companies-companyid-autonomy-executions:636d7ee7c7 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:get-companies-companyid-autonomy-health:9f73f441ba | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:get-companies-companyid-autonomy-intents:ae33eef89a | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:get-companies-companyid-autonomy-interrupts:740b81ab0c | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:get-companies-companyid-autonomy-learned-policies:2fbc709c04 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
 | connected_to | api_endpoint:get-companies-companyid-budgets-overview:0c07689cee | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:get-companies-companyid-costs-by-agent-model:7e7c96901d | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:get-companies-companyid-costs-by-agent:2f81a3d772 | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
@@ -592,6 +604,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:get-companies-companyid-costs-summary:86652e5a51 | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:get-companies-companyid-costs-window-spend:d19c064103 | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:get-companies-companyid-dashboard:a3b85af771 | module:src-routes:b474eba4ee | server/src/routes/dashboard.ts |
+| connected_to | api_endpoint:get-companies-companyid-decisions:384fd2f187 | module:src-routes:b474eba4ee | server/src/routes/decision-center.ts |
 | connected_to | api_endpoint:get-companies-companyid-deliveries:df67bf764e | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:get-companies-companyid-environments-capabilities:3cf50e822b | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:get-companies-companyid-environments:ac6e4c8a72 | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
@@ -606,6 +619,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:get-companies-companyid-labels:7a4294dc35 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-companies-companyid-live-runs:6caa7bf8d9 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-members:a23f467618 | module:src-routes:b474eba4ee | server/src/routes/access.ts |
+| connected_to | api_endpoint:get-companies-companyid-next-legal-actions:14abadcb91 | module:src-routes:b474eba4ee | server/src/routes/dashboard.ts |
 | connected_to | api_endpoint:get-companies-companyid-org-png:e2b0a62a36 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-org-svg:757b161560 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-companies-companyid-org:1972369169 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
@@ -628,11 +642,15 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:get-companies-companyid-skills-skillid:5caa9c49a1 | module:src-routes:b474eba4ee | server/src/routes/company-skills.ts |
 | connected_to | api_endpoint:get-companies-companyid-skills:936e7dcc51 | module:src-routes:b474eba4ee | server/src/routes/company-skills.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-backlog:1f9fdb29d0 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
+| connected_to | api_endpoint:get-companies-companyid-softwarehouse-hierarchy-health:65d7d1249e | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-issue-templates:c959b5150c | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-knowledge:4e9c016808 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-portfolio-projection-version:350f91c1c6 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-status:d4ad9a23e7 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-tools:f7d8321117 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
+| connected_to | api_endpoint:get-companies-companyid-supervision-findings:edb0faef10 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:get-companies-companyid-supervision-shadow-comparisons:01c6757c7d | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:get-companies-companyid-supervision-snapshot:ecde994c63 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
 | connected_to | api_endpoint:get-companies-companyid-teams-catalog-installed:24f6dfb582 | module:src-routes:b474eba4ee | server/src/routes/teams-catalog.ts |
 | connected_to | api_endpoint:get-companies-companyid-user-directory:7d2f0cc67b | module:src-routes:b474eba4ee | server/src/routes/access.ts |
 | connected_to | api_endpoint:get-companies-companyid-users-userslug-profile:ba4a566949 | module:src-routes:b474eba4ee | server/src/routes/user-profiles.ts |
@@ -674,6 +692,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:get-issues-id-comments-commentid:bcfbaf1adb | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-comments:fd09b4b3e0 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-cost-summary:0593bc8a8f | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
+| connected_to | api_endpoint:get-issues-id-delegation-reports:328c4f48ca | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-documents-key-annotations-threadid:8bdbab1e4a | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-documents-key-annotations:5a4fb5ff0a | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id-documents-key-revisions:b3625ae801 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
@@ -690,6 +709,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:get-issues-id-tree-holds-holdid:eb5b8cee5e | module:src-routes:b474eba4ee | server/src/routes/issue-tree-control.ts |
 | connected_to | api_endpoint:get-issues-id-tree-holds:029658b474 | module:src-routes:b474eba4ee | server/src/routes/issue-tree-control.ts |
 | connected_to | api_endpoint:get-issues-id-work-products:04df07996a | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
+| connected_to | api_endpoint:get-issues-id-work-proposals:3a8ca0a9c8 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-id:6e711795d8 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:get-issues-issueid-active-run:a891bbec94 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:get-issues-issueid-file-resources-content:f3d13abf65 | module:src-routes:b474eba4ee | server/src/routes/file-resources.ts |
@@ -736,6 +756,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:get-skills-index:3a397e2a57 | module:src-routes:b474eba4ee | server/src/routes/access.ts |
 | connected_to | api_endpoint:get-skills-skillname:ae576a04b5 | module:src-routes:b474eba4ee | server/src/routes/access.ts |
 | connected_to | api_endpoint:get-stats:0796a498cf | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
+| connected_to | api_endpoint:get-supervision-findings-id:c9b67ec6d6 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
 | connected_to | api_endpoint:get-teams-catalog-catalogid-files:fcb08e7ed0 | module:src-routes:b474eba4ee | server/src/routes/teams-catalog.ts |
 | connected_to | api_endpoint:get-teams-catalog-catalogid:19cb4e2e51 | module:src-routes:b474eba4ee | server/src/routes/teams-catalog.ts |
 | connected_to | api_endpoint:get-teams-catalog:f7b7634db7 | module:src-routes:b474eba4ee | server/src/routes/teams-catalog.ts |
@@ -749,6 +770,8 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:patch-agents-id-instructions-path:6a9884631e | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:patch-agents-id-permissions:898943b4bc | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:patch-agents-id:94857b88e1 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
+| connected_to | api_endpoint:patch-companies-companyid-autonomy-envelope-capacity:5cfb6d78a2 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:patch-companies-companyid-autonomy-envelope-stage:8123be8ad5 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
 | connected_to | api_endpoint:patch-companies-companyid-budgets:505a046daf | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:patch-companies-companyid-members-memberid-permissions:c6f459b1e3 | module:src-routes:b474eba4ee | server/src/routes/access.ts |
 | connected_to | api_endpoint:patch-companies-companyid-members-memberid-role-and-grants:c4579dea85 | module:src-routes:b474eba4ee | server/src/routes/access.ts |
@@ -756,6 +779,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:patch-companies-companyid-skills-skillid-files:58f148d5ff | module:src-routes:b474eba4ee | server/src/routes/company-skills.ts |
 | connected_to | api_endpoint:patch-companyid-branding:63e7d834a0 | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
 | connected_to | api_endpoint:patch-companyid:4f2eaf7359 | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
+| connected_to | api_endpoint:patch-deliveries-id-status:219ae2f286 | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:patch-environments-id:7fdc1ee34d | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:patch-execution-workspaces-id:414e9e82c4 | module:src-routes:b474eba4ee | server/src/routes/execution-workspaces.ts |
 | connected_to | api_endpoint:patch-goals-id:326c8d903a | module:src-routes:b474eba4ee | server/src/routes/goals.ts |
@@ -772,6 +796,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:patch-routines-id:be6dea0f77 | module:src-routes:b474eba4ee | server/src/routes/routines.ts |
 | connected_to | api_endpoint:patch-secret-provider-configs-id:fa79ea1b34 | module:src-routes:b474eba4ee | server/src/routes/secrets.ts |
 | connected_to | api_endpoint:patch-secrets-id:0e6dc8f855 | module:src-routes:b474eba4ee | server/src/routes/secrets.ts |
+| connected_to | api_endpoint:patch-supervision-safeguards-id:1debfb97d0 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
 | connected_to | api_endpoint:patch-work-products-id:2f3dccec71 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-adapters-install:950e22d07a | module:src-routes:b474eba4ee | server/src/routes/adapters.ts |
 | connected_to | api_endpoint:post-adapters-type-reinstall:8642263b64 | module:src-routes:b474eba4ee | server/src/routes/adapters.ts |
@@ -794,6 +819,9 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:post-approvals-id-reject:a63c8944a0 | module:src-routes:b474eba4ee | server/src/routes/approvals.ts |
 | connected_to | api_endpoint:post-approvals-id-request-revision:42bffdccb7 | module:src-routes:b474eba4ee | server/src/routes/approvals.ts |
 | connected_to | api_endpoint:post-approvals-id-resubmit:b200b29c54 | module:src-routes:b474eba4ee | server/src/routes/approvals.ts |
+| connected_to | api_endpoint:post-autonomy-decisions-id-canary-authorizations:09a318e96c | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-autonomy-decisions-id-dispatch:2b16f422e9 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-autonomy-decisions-id-evaluations:180ebc3e80 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
 | connected_to | api_endpoint:post-board-claim-token-claim:25b57a422f | module:src-routes:b474eba4ee | server/src/routes/access.ts |
 | connected_to | api_endpoint:post-bootstrap-claim:8055e4b75b | module:src-routes:b474eba4ee | server/src/routes/access.ts |
 | connected_to | api_endpoint:post-cli-auth-challenges-id-approve:1d43631fc5 | module:src-routes:b474eba4ee | server/src/routes/access.ts |
@@ -813,9 +841,14 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:post-companies-companyid-agents:2957bd6d18 | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
 | connected_to | api_endpoint:post-companies-companyid-approvals:c2dfa7d6a7 | module:src-routes:b474eba4ee | server/src/routes/approvals.ts |
 | connected_to | api_endpoint:post-companies-companyid-assets-images:f2f2e79bf4 | module:src-routes:b474eba4ee | server/src/routes/assets.ts |
+| connected_to | api_endpoint:post-companies-companyid-autonomy-intents-issueid:6435d8c571 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-autonomy-interrupts:53e9ab8066 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-autonomy-learned-policies:737a50a518 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
 | connected_to | api_endpoint:post-companies-companyid-budget-incidents-incidentid-resolve:69ac426dd0 | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:post-companies-companyid-budgets-policies:1a5497206f | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:post-companies-companyid-cost-events:0b7985783b | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
+| connected_to | api_endpoint:post-companies-companyid-decisions-interaction-sourceid-prepare:db3769e283 | module:src-routes:b474eba4ee | server/src/routes/decision-center.ts |
+| connected_to | api_endpoint:post-companies-companyid-decisions-interaction-sourceid-reroute:7f2d7f6fb0 | module:src-routes:b474eba4ee | server/src/routes/decision-center.ts |
 | connected_to | api_endpoint:post-companies-companyid-deliveries:295187fbac | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:post-companies-companyid-environments-probe-config:79f7ee336e | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:post-companies-companyid-environments:641573a90a | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
@@ -847,6 +880,17 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:post-companies-companyid-skills-skillid-install-update:b248091857 | module:src-routes:b474eba4ee | server/src/routes/company-skills.ts |
 | connected_to | api_endpoint:post-companies-companyid-skills-skillid-reset:e5ace138d7 | module:src-routes:b474eba4ee | server/src/routes/company-skills.ts |
 | connected_to | api_endpoint:post-companies-companyid-skills:f08e80bc2d | module:src-routes:b474eba4ee | server/src/routes/company-skills.ts |
+| connected_to | api_endpoint:post-companies-companyid-softwarehouse-project-truth-probe:2590b31e4a | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
+| connected_to | api_endpoint:post-companies-companyid-supervision-archive:ca5c8c7a57 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-supervision-cycles:c67256fc1e | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-supervision-findings:50af1629da | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-supervision-interventions:2fbc2a169e | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-supervision-observation-windows:0fffc031c0 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-supervision-recover:a00258c0ba | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-supervision-root-causes:f226ac8db2 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-supervision-safeguards:a4b692f0f4 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-supervision-shadow-comparisons:7dc6082d28 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-companies-companyid-supervision-stalled-ready-dispatch:d4651d35ce | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
 | connected_to | api_endpoint:post-companies-companyid-teams-catalog-catalogid-install:370d0ca00c | module:src-routes:b474eba4ee | server/src/routes/teams-catalog.ts |
 | connected_to | api_endpoint:post-companies-companyid-teams-catalog-catalogid-preview:6f7efc9cd7 | module:src-routes:b474eba4ee | server/src/routes/teams-catalog.ts |
 | connected_to | api_endpoint:post-companyid-archive:e24dd1b757 | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
@@ -855,6 +899,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:post-companyid-exports:de19679713 | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
 | connected_to | api_endpoint:post-companyid-imports-apply:e32f3b7b86 | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
 | connected_to | api_endpoint:post-companyid-imports-preview:bf845be5d5 | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
+| connected_to | api_endpoint:post-deliveries-id-dispatch:a25c2fc3a8 | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6 | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:post-deliveries-id-transition:d97a50341f | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:post-dev-server-restart:8ce723f667 | module:src-routes:b474eba4ee | server/src/routes/health.ts |
@@ -876,6 +921,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:post-issues-id-checkout:cbb5f7ff93 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-issues-id-children:df8794e00c | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-issues-id-comments:306ccfa063 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
+| connected_to | api_endpoint:post-issues-id-delegation-reports:cd08700f87 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-issues-id-documents-key-annotations-threadid-comments:56749718af | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-issues-id-documents-key-annotations:f79c211677 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-issues-id-documents-key-lock:f2b6274f8c | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
@@ -898,7 +944,10 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:post-issues-id-tree-holds-holdid-release:d8154836be | module:src-routes:b474eba4ee | server/src/routes/issue-tree-control.ts |
 | connected_to | api_endpoint:post-issues-id-tree-holds:3ee6e39036 | module:src-routes:b474eba4ee | server/src/routes/issue-tree-control.ts |
 | connected_to | api_endpoint:post-issues-id-work-products:8a20d0f0ac | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
+| connected_to | api_endpoint:post-issues-id-work-proposals-proposalid-status:24057e0f69 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
+| connected_to | api_endpoint:post-issues-id-work-proposals:e7f67c2f24 | module:src-routes:b474eba4ee | server/src/routes/issues.ts |
 | connected_to | api_endpoint:post-join-requests-requestid-claim-api-key:fafe951864 | module:src-routes:b474eba4ee | server/src/routes/access.ts |
+| connected_to | api_endpoint:post-organizational-observations-id-evaluate-promotion:59c91bd915 | module:src-routes:b474eba4ee | server/src/routes/organizational-observations.ts |
 | connected_to | api_endpoint:post-plugins-install:bbf957645b | module:src-routes:b474eba4ee | server/src/routes/plugins.ts |
 | connected_to | api_endpoint:post-plugins-pluginid-actions-key:6819263b47 | module:src-routes:b474eba4ee | server/src/routes/plugins.ts |
 | connected_to | api_endpoint:post-plugins-pluginid-bridge-action:652bf5a2c1 | module:src-routes:b474eba4ee | server/src/routes/plugins.ts |
@@ -924,9 +973,15 @@ Generated: 2026-08-03T14:48:09.744Z
 | connected_to | api_endpoint:post-secret-provider-configs-id-default:ecf96dee3b | module:src-routes:b474eba4ee | server/src/routes/secrets.ts |
 | connected_to | api_endpoint:post-secret-provider-configs-id-health:f4767601be | module:src-routes:b474eba4ee | server/src/routes/secrets.ts |
 | connected_to | api_endpoint:post-secrets-id-rotate:dc7807332f | module:src-routes:b474eba4ee | server/src/routes/secrets.ts |
+| connected_to | api_endpoint:post-supervision-cycles-id-finish:1bf351a1e4 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-supervision-findings-id-root-cause:b363953c04 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-supervision-observation-windows-id-complete:bd424cc97a | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
+| connected_to | api_endpoint:post-supervision-root-causes-id-close:2129e65342 | module:src-routes:b474eba4ee | server/src/routes/supervision.ts |
 | connected_to | api_endpoint:post:2b152fcb8e | module:src-routes:b474eba4ee | server/src/routes/companies.ts |
 | connected_to | api_endpoint:put-admin-users-userid-company-access:3bbce7d1a5 | module:src-routes:b474eba4ee | server/src/routes/access.ts |
 | connected_to | api_endpoint:put-agents-id-instructions-bundle-file:5c60f0be4d | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
+| connected_to | api_endpoint:put-companies-companyid-agent-availability:fc66261b70 | module:src-routes:b474eba4ee | server/src/routes/admission-control.ts |
+| connected_to | api_endpoint:put-companies-companyid-decisions-sourcetype-sourceid-defer:2c6ea7af8c | module:src-routes:b474eba4ee | server/src/routes/decision-center.ts |
 | connected_to | api_endpoint:put-companies-companyid-resource-memberships-me-agents-agentid:8fc99247fb | module:src-routes:b474eba4ee | server/src/routes/resource-memberships.ts |
 | connected_to | api_endpoint:put-companies-companyid-resource-memberships-me-projects-projectid:13d2ab6115 | module:src-routes:b474eba4ee | server/src/routes/resource-memberships.ts |
 | connected_to | api_endpoint:put-companies-companyid-sidebar-preferences-me:2d830ee2ea | module:src-routes:b474eba4ee | server/src/routes/sidebar-preferences.ts |
@@ -1019,6 +1074,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | documents | document:activity-log-md:258db19eea | module:docs:fae674dcd3 | docs/guides/board-operator/activity-log.md |
 | documents | document:adapter-authoring-notes:1644eaeac6 | module:packages-adapters:6b0246ea92 | packages/adapters/AUTHORING.md |
 | documents | document:adapter-plugin-md:ddeffe3e26 | module:item:4a28b5745a | adapter-plugin.md |
+| documents | document:additional-capability-utilization-closeout:afd030a03b | module:docs:fae674dcd3 | docs/status/2026-08-10-extension-utilization-closeout.md |
 | documents | document:adr-000-decision-title:ccdb363dda | module:docs:fae674dcd3 | docs/decisions/ADR-000-template.md |
 | documents | document:adr-0000-title:46c986aa94 | module:docs:fae674dcd3 | docs/softwarehouse/templates/adr-template.md |
 | documents | document:adr-0001-map-the-autonomous-softwarehouse-model-to-existing-paperclip-primitives:20441f29f8 | module:docs:fae674dcd3 | docs/decisions/ADR-0001.md |
@@ -1029,6 +1085,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | documents | document:agent-chat-ui-and-issue-backed-conversations:260af50b8f | module:doc:97bf06278b | doc/plans/2026-03-11-agent-chat-ui-and-issue-backed-conversations.md |
 | documents | document:agent-companies-spec-inventory:06cd8a2f4a | module:doc:97bf06278b | doc/AGENTCOMPANIES_SPEC_INVENTORY.md |
 | documents | document:agent-companies-specification:99f982f1c9 | module:docs:fae674dcd3 | docs/companies/companies-spec.md |
+| documents | document:agent-configuration-activity-ui:477fa2bc04 | module:docs:fae674dcd3 | docs/specs/agent-config-ui.md |
 | documents | document:agent-development-review:ec891056d0 | module:packages-skills-catalog-catalog:e86044ba4c | packages/skills-catalog/catalog/bundled/paperclip-operations/agent-development-review/SKILL.md |
 | documents | document:agent-enablement:d609bc160a | module:packages-teams-catalog-catalog:c60d3dd99e | packages/teams-catalog/catalog/optional/operations/agent-enablement/TEAM.md |
 | documents | document:agent-evals-framework-plan:0664a2d8fe | module:doc:97bf06278b | doc/plans/2026-03-13-agent-evals-framework.md |
@@ -1042,7 +1099,9 @@ Generated: 2026-08-03T14:48:09.744Z
 | documents | document:agent-os-technical-report-for-paperclip:64c9ee34c0 | module:doc:97bf06278b | doc/plans/2026-04-08-agent-os-technical-report.md |
 | documents | document:agent-policy-gates:039d303d3d | module:docs:fae674dcd3 | docs/agent-policy-gates.md |
 | documents | document:agent-role-template:1167cb62be | module:docs:fae674dcd3 | docs/softwarehouse/templates/agent-role-template.md |
+| documents | document:agent-runs-subsystem-spec:110c85e61f | module:doc:97bf06278b | doc/spec/agent-runs.md |
 | documents | document:agent-runtime-guide:627daf72f0 | module:docs:fae674dcd3 | docs/agents-runtime.md |
+| documents | document:agent-runtime-guide:e1ff44111b | module:doc:97bf06278b | doc/spec/agents-runtime.md |
 | documents | document:agent-runtime-layer:aa6ce306be | module:docs:fae674dcd3 | docs/agent-runtime-layer.md |
 | documents | document:agent-trajectory-log:d6d14622ad | module:docs:fae674dcd3 | docs/agent-trajectory-log.md |
 | documents | document:agents-md-llm-wiki-schema:3f3b08ad45 | module:packages-plugins-plugin-llm-wiki:e31e3d114a | packages/plugins/plugin-llm-wiki/templates/AGENTS.md |
@@ -1059,6 +1118,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | documents | document:architectural-awareness-layer:03d0191537 | module:softwarehouse:4e4b6a44d5 | softwarehouse/architectural-awareness-layer.md |
 | documents | document:architecture-awareness-gap-register:5de76c7aee | module:docs:fae674dcd3 | docs/status/architecture-awareness-gap-register.md |
 | documents | document:architecture-awareness-report:5e470fe816 | module:report:4137e9e012 | report/tmp-luc-2973-architecture-index/status/architecture-awareness-report.md |
+| documents | document:architecture-evidence-graph-system:21dd66b42b | feature:audit-extension-utilization-mjs:ca71b933bc | C:\Personal\Projekty\Aplikacje\Paperclip_Softwarehouse\docs\architecture\relations\documentation-links.csv |
 | documents | document:architecture-evidence-graph-system:21dd66b42b | module:docs:fae674dcd3 | docs/architecture/architecture-evidence-graph-system.md |
 | documents | document:architecture-graph:4fbd2e6490 | module:report:4137e9e012 | report/tmp-luc-2973-architecture-index/graphs/architecture-graph.md |
 | documents | document:architecture-md:b2f0444f46 | module:docs:fae674dcd3 | docs/start/architecture.md |
@@ -1066,20 +1126,31 @@ Generated: 2026-08-03T14:48:09.744Z
 | documents | document:audit-to-completion-loop:919f777d2a | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/60-audit-to-completion.md |
 | documents | document:audit-to-completion-loop:a4f4f30e80 | module:shared:4bb1b95607 | shared/60-audit-to-completion.md |
 | documents | document:audyt-dashboardu-deduplikacja-i-styl-paperclip:66b91c6d49 | module:item:4a28b5745a | dashboard-dedup-audit.md |
+| documents | document:audyt-paperclip-softwarehouse-raw-vs-instancja-lokalna-aktualizacja-i-repozytoria-produkt-:a836488cc6 | module:docs:fae674dcd3 | docs/status/2026-08-08-paperclip-raw-vs-softwarehouse-upgrade-and-product-audit.md |
 | documents | document:authenticate-docker-to-ecr:59b2b70ef0 | module:docs:fae674dcd3 | docs/deploy/aws-ecs.md |
 | documents | document:autonomous-application-and-business-lifecycle:1325a47c69 | module:docs:fae674dcd3 | docs/softwarehouse/19-autonomous-application-business-lifecycle.md |
 | documents | document:autonomous-application-and-business-lifecycle:ffa3f506ac | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/21-autonomous-application-lifecycle.md |
 | documents | document:autonomous-company-target:d28b8855d0 | module:docs:fae674dcd3 | docs/softwarehouse/15-autonomous-company-target.md |
+| documents | document:autonomous-development-cycle:06c813ffdd | module:report:4137e9e012 | report/autonomous-cycles/2026-08-04/cycle-2026-08-04T08-02-40-722Z.md |
+| documents | document:autonomous-development-cycle:1292cb6bf8 | module:report:4137e9e012 | report/autonomous-cycles/2026-08-04/cycle-2026-08-04T06-25-28-030Z.md |
+| documents | document:autonomous-development-cycle:153f818e78 | module:report:4137e9e012 | report/autonomous-cycles/2026-08-04/cycle-2026-08-04T04-25-34-686Z.md |
+| documents | document:autonomous-development-cycle:18bd6a2dcd | module:report:4137e9e012 | report/autonomous-cycles/2026-08-04/cycle-2026-08-04T10-01-44-397Z.md |
+| documents | document:autonomous-development-cycle:22e065ab22 | module:report:4137e9e012 | report/autonomous-cycles/2026-08-04/cycle-2026-08-04T01-02-56-935Z.md |
+| documents | document:autonomous-development-cycle:2550a4905e | module:report:4137e9e012 | report/autonomous-cycles/2026-08-04/cycle-2026-08-04T00-59-22-280Z.md |
 | documents | document:autonomous-development-cycle:285f3b874d | module:report:4137e9e012 | report/autonomous-cycles/2026-07-02/cycle-2026-07-02T13-53-28-653Z.md |
 | documents | document:autonomous-development-cycle:2a14327209 | module:report:4137e9e012 | report/autonomous-cycles/2026-06-01/cycle-2026-06-01T21-35-19-456Z.md |
 | documents | document:autonomous-development-cycle:55d65fc0b8 | module:report:4137e9e012 | report/autonomous-cycles/2026-06-01/cycle-2026-06-01T22-59-39-426Z.md |
 | documents | document:autonomous-development-cycle:566d43dde0 | module:report:4137e9e012 | report/autonomous-cycles/2026-06-02/cycle-2026-06-02T01-12-55-703Z.md |
 | documents | document:autonomous-development-cycle:60e64bcbe6 | module:report:4137e9e012 | report/autonomous-cycles/2026-06-01/cycle-2026-06-01T21-45-19-079Z.md |
 | documents | document:autonomous-development-cycle:63923d1c59 | module:report:4137e9e012 | report/autonomous-cycles/2026-06-02/cycle-2026-06-02T02-02-33-173Z.md |
+| documents | document:autonomous-development-cycle:6b02629c9e | module:report:4137e9e012 | report/autonomous-cycles/2026-08-04/cycle-2026-08-04T02-24-49-635Z.md |
 | documents | document:autonomous-development-cycle:72399aea75 | module:report:4137e9e012 | report/autonomous-cycles/2026-07-02/cycle-2026-07-02T13-55-10-612Z.md |
 | documents | document:autonomous-development-cycle:81bbf89b22 | module:report:4137e9e012 | report/autonomous-cycles/2026-06-02/cycle-2026-06-02T00-42-37-457Z.md |
 | documents | document:autonomous-development-cycle:8330932be3 | module:report:4137e9e012 | report/autonomous-cycles/latest.md |
+| documents | document:autonomous-development-cycle:89cdcb7dcb | module:report:4137e9e012 | report/autonomous-cycles/2026-08-04/cycle-2026-08-04T12-01-44-087Z.md |
 | documents | document:autonomous-development-cycle:9e53362f02 | module:report:4137e9e012 | report/autonomous-cycles/2026-06-01/cycle-2026-06-01T21-33-49-399Z.md |
+| documents | document:autonomous-development-cycle:a2a1799835 | module:report:4137e9e012 | report/autonomous-cycles/2026-08-04/cycle-2026-08-04T16-02-37-316Z.md |
+| documents | document:autonomous-development-cycle:aaf703092a | module:report:4137e9e012 | report/autonomous-cycles/2026-08-04/cycle-2026-08-04T14-01-50-562Z.md |
 | documents | document:autonomous-development-cycle:b33f1fafed | module:report:4137e9e012 | report/autonomous-cycles/2026-06-01/cycle-2026-06-01T21-59-38-504Z.md |
 | documents | document:autonomous-development-cycle:bdd4c31c75 | module:report:4137e9e012 | report/autonomous-cycles/2026-06-01/cycle-2026-06-01T21-43-28-042Z.md |
 | documents | document:autonomous-development-cycle:d739307229 | module:report:4137e9e012 | report/autonomous-cycles/2026-06-01/cycle-2026-06-01T21-33-13-632Z.md |
@@ -1089,6 +1160,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | documents | document:autonomous-idle-and-monitoring:73310ae2a2 | module:shared:4bb1b95607 | shared/95-autonomous-idle-and-monitoring.md |
 | documents | document:autonomous-idle-and-monitoring:7605686159 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/95-autonomous-idle-and-monitoring.md |
 | documents | document:autonomous-operating-model:ae7fc0a310 | module:softwarehouse:4e4b6a44d5 | softwarehouse/autonomous-operating-model.md |
+| documents | document:autonomy-evolution-report-iteracja-4:fb08695774 | module:docs:fae674dcd3 | docs/status/2026-08-08-paperclip-autonomy-evolution-iteration-4-report.md |
 | documents | document:aviary-project-manager:260ba61a7f | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/personality-project-manager.md |
 | documents | document:aws-secrets-manager-provider:793255a184 | module:doc:97bf06278b | doc/SECRETS-AWS-PROVIDER.md |
 | documents | document:backend-api-engineer:02291f74ec | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/backend-api-engineer.md |
@@ -1109,6 +1181,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | documents | document:cli-reference:6541739222 | feature:agent-ts:b8c76a35dd | LUC-6627 account access proof backfill |
 | documents | document:cli-reference:6541739222 | feature:auth-ts:00013c6fb7 | LUC-6627 account access proof backfill |
 | documents | document:cli-reference:6541739222 | module:doc:97bf06278b | doc/CLI.md |
+| documents | document:cliphub-marketplace-for-paperclip-team-configurations:de59e76385 | module:docs:fae674dcd3 | docs/specs/cliphub-plan.md |
 | documents | document:cliphub-the-company-registry:8fc4fa64a0 | module:doc:97bf06278b | doc/CLIPHUB.md |
 | documents | document:cloudflare-sandbox-bridge-template:760d97b9b5 | module:packages-plugins-sandbox-providers:ebc0bd086d | packages/plugins/sandbox-providers/cloudflare/bridge-template/README.md |
 | documents | document:codex-bootstrap-supervisor:b04bc6f899 | module:report:4137e9e012 | report/codex-bootstrap-supervisor.latest.md |
@@ -1127,6 +1200,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | documents | document:continuous-improvement:418e00fef3 | module:docs:fae674dcd3 | docs/softwarehouse/13-continuous-improvement.md |
 | documents | document:contributing-guide:cfedf682ba | module:item:4a28b5745a | CONTRIBUTING.md |
 | documents | document:coolify-production-reconciler:da4e2e2629 | module:report:4137e9e012 | report/coolify-production-reconciler.latest.md |
+| documents | document:coolify-runtime-access-bindings:a3e438e0a8 | module:docs:fae674dcd3 | docs/operations/coolify-runtime-access.md |
 | documents | document:coolify-vps-deployment-contract:e12230337d | module:docs:fae674dcd3 | docs/operations/coolify-vps-deployment-contract.md |
 | documents | document:core-concepts-md:8442fc9051 | module:docs:fae674dcd3 | docs/start/core-concepts.md |
 | documents | document:core-exec-team:b067b3f0c5 | module:packages-teams-catalog-catalog:c60d3dd99e | packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/TEAM.md |
@@ -1141,80 +1215,6 @@ Generated: 2026-08-03T14:48:09.744Z
 | documents | document:current-pilot-and-intake:2083203c35 | module:shared:4bb1b95607 | shared/00-current-pilot.md |
 | documents | document:current-pilot-and-intake:905ef2c9d4 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/00-current-pilot.md |
 | documents | document:cursor-cloud-agent-adapter-technical-plan:cbec5e2032 | module:doc:97bf06278b | doc/plans/2026-02-23-cursor-cloud-adapter.md |
+| documents | document:dashboard-and-sidebar-final-polish-audit:30f9ef6f7a | module:docs:fae674dcd3 | docs/dashboard-final-polish-audit/report.md |
+| documents | document:dashboard-interaction-polish-publish-audit:12713aa8b5 | module:docs:fae674dcd3 | docs/dashboard-publish-audit/report.md |
 | documents | document:dashboard-md:f4e44ba323 | module:docs:fae674dcd3 | docs/guides/board-operator/dashboard.md |
-| documents | document:dashboard-redesign-design-qa:c060ed6283 | module:item:4a28b5745a | design-qa.md |
-| documents | document:data-ownership-map:99621bb7d5 | module:docs:fae674dcd3 | docs/architecture/data-ownership-map.md |
-| documents | document:database-url-postgres-paperclip-paperclip-localhost-5432-paperclip:6b071ebbc5 | module:docs:fae674dcd3 | docs/deploy/database.md |
-| documents | document:database:115ddb21c9 | module:doc:97bf06278b | doc/DATABASE.md |
-| documents | document:decisions:ca2de6a86a | module:docs:fae674dcd3 | docs/decisions/README.md |
-| documents | document:definition-of-done:bf07f2d7eb | module:docs:fae674dcd3 | docs/softwarehouse/05-definition-of-done.md |
-| documents | document:definition-of-ready:8eed871c71 | module:docs:fae674dcd3 | docs/softwarehouse/04-definition-of-ready.md |
-| documents | document:delegation-md:a4ecac990d | module:docs:fae674dcd3 | docs/guides/board-operator/delegation.md |
-| documents | document:delivery-workflow:cff01792d4 | module:docs:fae674dcd3 | docs/softwarehouse/03-delivery-workflow.md |
-| documents | document:dependency-report:35c9880e51 | module:report:4137e9e012 | report/tmp-luc-2973-architecture-index/status/architecture-dependency-report.md |
-| documents | document:deployment-auth-mode-consolidation-plan:4587540b89 | module:doc:97bf06278b | doc/plans/2026-02-23-deployment-auth-mode-consolidation.md |
-| documents | document:deployment-modes:18128196e3 | module:doc:97bf06278b | doc/DEPLOYMENT-MODES.md |
-| documents | document:deployment:2fe4fe6c28 | module:docs:fae674dcd3 | docs/deployment.md |
-| documents | document:developing:006df05fee | module:doc:97bf06278b | doc/DEVELOPING.md |
-| documents | document:devops-and-release:80914b2fcb | module:docs:fae674dcd3 | docs/softwarehouse/08-devops-and-release.md |
-| documents | document:diagnose-why-work-stopped:043aace9cd | module:skills:3e2f7cddae | skills/diagnose-why-work-stopped/SKILL.md |
-| documents | document:disk-capacity-and-workspace-lifecycle-recovery:eb4b024539 | module:doc:97bf06278b | doc/plans/2026-07-17-disk-capacity-and-workspace-lifecycle.md |
-| documents | document:doc-maintenance:64b464a366 | module:packages-skills-catalog-catalog:e86044ba4c | packages/skills-catalog/catalog/bundled/docs/doc-maintenance/SKILL.md |
-| documents | document:docker-md:7b67fd4a25 | module:docs:fae674dcd3 | docs/deploy/docker.md |
-| documents | document:docker-quickstart:61b9dcdaa1 | module:doc:97bf06278b | doc/DOCKER.md |
-| documents | document:docker-release-browser-e2e-plan:2ed6bca32b | module:doc:97bf06278b | doc/plans/2026-03-17-docker-release-browser-e2e.md |
-| documents | document:docs-memory-lead:3c10cb9c95 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/docs-memory.md |
-| documents | document:documentation-map:ab999c325a | module:docs:fae674dcd3 | docs/documentation-map.md |
-| documents | document:documentation-standard:58c8d27eb8 | module:docs:fae674dcd3 | docs/softwarehouse/09-documentation-standard.md |
-| documents | document:draft-review-checklist:1856cca4f6 | module:skills:3e2f7cddae | skills/paperclip-create-agent/references/draft-review-checklist.md |
-| documents | document:engineering-delivery-lead:bedaa1d428 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/engineering-delivery-lead.md |
-| documents | document:environment-matrix:e48d7e5255 | module:docs:fae674dcd3 | docs/operations/environment-matrix.md |
-| documents | document:environment-operations:d14590d5fd | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/05-environment-operations.md |
-| documents | document:environment-variables-md:c4b991dfef | module:docs:fae674dcd3 | docs/deploy/environment-variables.md |
-| documents | document:evals-and-regression-gates:38ae5689eb | module:docs:fae674dcd3 | docs/evals-and-regression-gates.md |
-| documents | document:evidence-and-project-memory:001802f7b8 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/70-evidence-and-memory.md |
-| documents | document:evidence-and-project-memory:9b3188cd32 | module:shared:4bb1b95607 | shared/70-evidence-and-memory.md |
-| documents | document:execution-policy-review-approval-workflows:0ae2169a07 | module:docs:fae674dcd3 | docs/guides/execution-policy.md |
-| documents | document:execution-semantics:527b63bd47 | module:doc:97bf06278b | doc/execution-semantics.md |
-| documents | document:execution-workspaces-and-runtime-services-md:c407a3e866 | module:docs:fae674dcd3 | docs/guides/board-operator/execution-workspaces-and-runtime-services.md |
-| documents | document:export-company-with-agents-and-projects:d56e00e619 | module:docs:fae674dcd3 | docs/guides/board-operator/importing-and-exporting.md |
-| documents | document:feature-spec-template:0fbf4a8449 | module:docs:fae674dcd3 | docs/softwarehouse/templates/feature-spec-template.md |
-| documents | document:feature-specs:253b740f1c | module:doc:97bf06278b | doc/plans/2026-03-13-features.md |
-| documents | document:feedback-voting-local-data-guide:b08bb5fc79 | module:docs:fae674dcd3 | docs/feedback-voting.md |
-| documents | document:file-browser-example-plugin:f7ed96163c | module:packages-plugins-examples:82ce9eb6d5 | packages/plugins/examples/plugin-file-browser-example/README.md |
-| documents | document:frontend-engineer:e7c9ce59f9 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/frontend-engineer.md |
-| documents | document:frontend-style-audit:dda266ba24 | module:item:4a28b5745a | frontend-style-audit.md |
-| documents | document:gemini-local-md:2bd266a25c | module:docs:fae674dcd3 | docs/adapters/gemini-local.md |
-| documents | document:generated-artifacts-and-work-products:8c7bd78c96 | module:skills:3e2f7cddae | skills/paperclip/references/artifacts.md |
-| documents | document:git-push-deploy-and-production-safety:423d528d6c | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/20-release-and-deploy-safety.md |
-| documents | document:git-push-deploy-and-production-safety:ff3cbab2bc | module:shared:4bb1b95607 | shared/20-release-and-deploy-safety.md |
-| documents | document:github-pull-request-workflow:ea2c6ded6e | module:packages-skills-catalog-catalog:e86044ba4c | packages/skills-catalog/catalog/bundled/software-development/github-pr-workflow/SKILL.md |
-| documents | document:grid-palette-and-type-scale:4c8d84f52c | module:packages-skills-catalog-catalog:e86044ba4c | packages/skills-catalog/catalog/bundled/product/wireframe/references/grid-system.md |
-| documents | document:guardrail-commands:222e31d01f | module:docs:fae674dcd3 | docs/automation/guardrail-commands.md |
-| documents | document:handling-approvals-md:973aaf9d3b | module:docs:fae674dcd3 | docs/guides/agent-developer/handling-approvals.md |
-| documents | document:heartbeat-md-ceo-heartbeat-checklist:57393192fe | module:src-onboarding-assets-ceo:8c520eecee | server/src/onboarding-assets/ceo/HEARTBEAT.md |
-| documents | document:heartbeat-protocol-md:1fb8714d84 | module:docs:fae674dcd3 | docs/guides/agent-developer/heartbeat-protocol.md |
-| documents | document:hosted-roost-company-context:9db0023931 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/02-hosted-roost-company-context.md |
-| documents | document:how-agents-work-md:ba64633968 | module:docs:fae674dcd3 | docs/guides/agent-developer/how-agents-work.md |
-| documents | document:http-md:5668a20d84 | module:docs:fae674dcd3 | docs/adapters/http.md |
-| documents | document:humans-and-permissions-implementation-v1:4b756598ca | module:doc:97bf06278b | doc/plans/2026-02-21-humans-and-permissions-implementation.md |
-| documents | document:humans-and-permissions-plan:f7a12c70a7 | module:doc:97bf06278b | doc/plans/2026-02-21-humans-and-permissions.md |
-| documents | document:id-issue-101-status-in-progress-id-issue-100-status-in-review-id-issue-99-status-todo:6b4c21bb02 | module:docs:fae674dcd3 | docs/guides/agent-developer/task-workflow.md |
-| documents | document:idea-to-function-chain-playbook:c77f4fd377 | module:docs:fae674dcd3 | docs/planning/idea-to-function-chain-playbook.md |
-| documents | document:incident-and-bugfix-process:995e5b6de5 | module:docs:fae674dcd3 | docs/softwarehouse/12-incident-and-bugfix-process.md |
-| documents | document:index-refresh:3177759d45 | module:packages-plugins-plugin-llm-wiki:e31e3d114a | packages/plugins/plugin-llm-wiki/skills/index-refresh/SKILL.md |
-| documents | document:index:008a854f79 | module:packages-plugins-plugin-llm-wiki:e31e3d114a | packages/plugins/plugin-llm-wiki/fixtures/basic-root/wiki/index.md |
-| documents | document:index:5110c8f428 | module:packages-plugins-plugin-llm-wiki:e31e3d114a | packages/plugins/plugin-llm-wiki/templates/wiki/index.md |
-| documents | document:install-from-npm-via-api:6afad38923 | module:docs:fae674dcd3 | docs/adapters/overview.md |
-| documents | document:instructions-for-writing-the-readme-md:fb51d1a7b9 | module:doc:97bf06278b | doc/README-draft.md |
-| documents | document:integration-trading-engineer:4d1252ba0f | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/integration-trading-engineer.md |
-| documents | document:issue-documents-plan:cc22b8b35f | module:docs:fae674dcd3 | docs/plans/2026-03-13-issue-documents-plan.md |
-| documents | document:issue-run-orchestration-plan:41a500d64d | module:doc:97bf06278b | doc/plans/2026-02-20-issue-run-orchestration-plan.md |
-| documents | document:issue-triage:f4e7c6f8f4 | module:packages-skills-catalog-catalog:e86044ba4c | packages/skills-catalog/catalog/bundled/paperclip-operations/issue-triage/SKILL.md |
-| documents | document:issue-workspace-runtime-controls:6bc6508ee7 | module:skills:3e2f7cddae | skills/paperclip/references/issue-workspaces.md |
-| documents | document:issue-worktree-support:895f2a952e | module:doc:97bf06278b | doc/experimental/issue-worktree-support.md |
-| documents | document:kitchen-sink-plugin-plan:051a65beef | module:doc:97bf06278b | doc/plans/2026-03-13-plugin-kitchen-sink-example.md |
-| documents | document:knowledge-governance:2dc01e3f41 | module:docs:fae674dcd3 | docs/softwarehouse/17-knowledge-governance.md |
-| documents | document:knowledge:762b200b63 | module:packages-plugins-plugin-llm-wiki:e31e3d114a | packages/plugins/plugin-llm-wiki/fixtures/basic-root/wiki/areas/knowledge.md |
-| documents | document:legacy-role-files-archive:dd76a6ff95 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/README.md |
-| documents | document:list-issues:55b16e65a4 | module:docs:fae674dcd3 | docs/cli/control-plane-commands.md |

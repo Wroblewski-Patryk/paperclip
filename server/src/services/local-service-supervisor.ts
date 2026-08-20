@@ -177,6 +177,26 @@ export async function listLocalServiceRegistryRecords(filter?: {
   }
 }
 
+export async function retainLiveLocalServiceRegistryRecords(
+  records: LocalServiceRegistryRecord[],
+  dependencies: {
+    isAlive?: (pid: number) => boolean;
+    remove?: (serviceKey: string) => Promise<void>;
+  } = {},
+) {
+  const isAlive = dependencies.isAlive ?? isPidAlive;
+  const remove = dependencies.remove ?? removeLocalServiceRegistryRecord;
+  const live: LocalServiceRegistryRecord[] = [];
+  for (const record of records) {
+    if (isAlive(record.pid)) {
+      live.push(record);
+      continue;
+    }
+    await remove(record.serviceKey);
+  }
+  return live;
+}
+
 export async function findLocalServiceRegistryRecordByRuntimeServiceId(input: {
   runtimeServiceId: string;
   profileKind?: string;

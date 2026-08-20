@@ -6,6 +6,7 @@ const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Apl
 const apply = process.argv.includes("--apply");
 const force = process.argv.includes("--force");
 const maxAgeHours = Number(process.env.ARCHITECTURE_AWARENESS_MAX_AGE_HOURS ?? 24);
+const childOutputMaxBytes = 64 * 1024 * 1024;
 const now = Date.now();
 
 const projectNames = (process.env.SOFTWAREHOUSE_ARCHITECTURE_AWARENESS_PROJECTS ?? "Paperclip,Soar,Roost,Featherly")
@@ -118,6 +119,7 @@ function refreshProject(project) {
   ], {
     cwd: process.cwd(),
     encoding: "utf8",
+    maxBuffer: childOutputMaxBytes,
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -139,6 +141,7 @@ function refreshProject(project) {
   ], {
     cwd: process.cwd(),
     encoding: "utf8",
+    maxBuffer: childOutputMaxBytes,
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -167,6 +170,7 @@ function refreshProject(project) {
   ], {
     cwd: process.cwd(),
     encoding: "utf8",
+    maxBuffer: childOutputMaxBytes,
     stdio: ["ignore", "pipe", "pipe"],
   });
 

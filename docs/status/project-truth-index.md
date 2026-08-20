@@ -1,30 +1,30 @@
 # Project Truth Index
 
-Generated: 2026-08-03T14:48:09.744Z
-Observed: 2026-08-10T03:29:58.013Z
+Generated: 2026-08-20T17:40:38.175Z
+Observed: 2026-08-20T17:40:41.482Z
 Project: Paperclip
 Status: gaps_require_routing
-Source HEAD: 7dead1c7826f7185e199909af9de7df5cd1d6337
-Source ahead/behind: unknown/unknown
+Source HEAD: d4e19f347b88f44778aa00b47860e5e762bdd223
+Source ahead/behind: 7/0
 Deployed SHA: unknown
 
 This is the routing surface agents should use before guessing whether an app works.
 
 | Metric | Count |
 | --- | ---: |
-| appCompletionItems | 492 |
-| eventChains | 7 |
-| incompleteEventChains | 2 |
+| appCompletionItems | 650 |
+| eventChains | 6 |
+| incompleteEventChains | 1 |
 | runtimeFindings | 0 |
 | criticalRuntimeFindings | 0 |
-| appCompletionGaps | 10 |
-| indexedAppCompletionGaps | 10 |
-| knownAppCompletionRiskItems | 461 |
+| appCompletionGaps | 9 |
+| indexedAppCompletionGaps | 9 |
+| knownAppCompletionRiskItems | 619 |
 | appCompletionPriorityReviewItems | 200 |
 | appCompletionPriorityReviewTruncated | true |
-| operationalGateGaps | 5 |
-| indexedGaps | 17 |
-| totalGaps | 17 |
+| operationalGateGaps | 4 |
+| indexedGaps | 14 |
+| totalGaps | 14 |
 
 ## First Gap
 
@@ -37,19 +37,16 @@ This is the routing surface agents should use before guessing whether an app wor
 | Severity | Kind | Flow | Summary | Next owner |
 | --- | --- | --- | --- | --- |
 | high | event_chain_gap | Admin operation | Missing frontend layer(s) in event chain. | CTO Architect + Engineering Delivery Lead |
-| high | event_chain_gap | Trading operation | Missing frontend, backend, worker layer(s) in event chain. | CTO Architect + Engineering Delivery Lead |
 | medium | app_completion_gap | Account access | Account access has 3 item(s) with app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
-| medium | app_completion_gap | Account access | Account access has 1 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Account access | Account access has 5 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | high | app_completion_gap | Account access | Account access has 2 item(s) with app-completion risk needs_browser_review. | QA Regression Lead + Frontend Experience Lead |
-| medium | app_completion_gap | Admin operation | Admin operation has 3 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Dashboard overview | Dashboard overview has 4 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Admin operation | Admin operation has 4 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Dashboard overview | Dashboard overview has 5 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
 | high | app_completion_gap | Dashboard overview | Dashboard overview has 3 item(s) with app-completion risk needs_browser_review. | QA Regression Lead + Frontend Experience Lead |
 | medium | app_completion_gap | Subscription and entitlement | Subscription and entitlement has 1 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Trading operation | Trading operation has 2 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow has 167 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
-| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow has 14 item(s) with app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
-| high | operational_gate_gap | - | source_freshness: stale | Project Manager |
-| high | operational_gate_gap | - | release_branch_alignment: unknown | Project Manager |
+| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow has 164 item(s) with app-completion risk missing_test_link. | Test Automation Engineer + QA Regression Lead |
+| medium | app_completion_gap | Unclassified user workflow | Unclassified user workflow has 13 item(s) with app-completion risk missing_doc_link. | Docs Memory Lead + Project Manager |
+| high | operational_gate_gap | - | release_branch_alignment: diverged | Project Manager |
 | high | operational_gate_gap | - | deployment_identity: unknown | Project Manager |
 | high | operational_gate_gap | - | event_chain_index: incomplete | Project Manager |
 | high | operational_gate_gap | - | public_runtime_probe: unknown | Deployment Reliability Engineer |

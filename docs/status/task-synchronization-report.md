@@ -1,6 +1,6 @@
 # Task Synchronization Report
 
-Generated: 2026-08-03T14:48:09.744Z
+Generated: 2026-08-20T17:40:38.175Z
 
 ## Contract
 
@@ -10,14 +10,17 @@ Every task should identify the feature/module it changes, dependency expectation
 
 - Actionable tasks without architecture links: 0
 - Raw tasks without architecture links: 0
-- Actionable implementation entities without task links: 1993
-- Raw implementation entities without task links: 2125
-- Classified task-linkage noise: 132
+- Actionable implementation entities without task links: 2030
+- Raw implementation entities without task links: 2271
+- Classified task-linkage noise: 241
 - Verified entities without proof evidence: 0
 
 ## Classified Task-Linkage Noise
 
-- config_only_file: 132
+- config_only_file: 131
+- domain_error_declaration: 28
+- test_support_file: 21
+- typescript_type_declaration: 61
 
 ## Actionable Tasks Without Architecture Links
 
@@ -83,6 +86,8 @@ Every task should identify the feature/module it changes, dependency expectation
 - api_endpoint: POST /adapters/install (server/src/routes/adapters.ts#/adapters/install)
 - api_endpoint: GET /companies/:companyId/admission-controls (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls)
 - api_endpoint: POST /companies/:companyId/admission-controls/transition (server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition)
+- api_endpoint: GET /companies/:companyId/agent-availability (server/src/routes/admission-control.ts#/companies/:companyId/agent-availability)
+- api_endpoint: PUT /companies/:companyId/agent-availability (server/src/routes/admission-control.ts#/companies/:companyId/agent-availability)
 - api_endpoint: DELETE /agents/:id (server/src/routes/agents.ts#/agents/:id)
 - api_endpoint: GET /agents/:id (server/src/routes/agents.ts#/agents/:id)
 - api_endpoint: PATCH /agents/:id (server/src/routes/agents.ts#/agents/:id)
@@ -102,8 +107,6 @@ Every task should identify the feature/module it changes, dependency expectation
 - api_endpoint: GET /agents/:id/keys (server/src/routes/agents.ts#/agents/:id/keys)
 - api_endpoint: POST /agents/:id/keys (server/src/routes/agents.ts#/agents/:id/keys)
 - api_endpoint: DELETE /agents/:id/keys/:keyId (server/src/routes/agents.ts#/agents/:id/keys/:keyId)
-- api_endpoint: POST /agents/:id/pause (server/src/routes/agents.ts#/agents/:id/pause)
-- api_endpoint: PATCH /agents/:id/permissions (server/src/routes/agents.ts#/agents/:id/permissions)
 
 ## Raw Task-Linkage Samples
 

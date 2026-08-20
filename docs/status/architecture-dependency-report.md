@@ -1,11 +1,11 @@
 # Dependency Report
 
-Generated: 2026-08-03T14:48:09.744Z
+Generated: 2026-08-20T17:40:38.175Z
 
 ## Summary
 
-- Dependency relations: 2287
-- Entities with dependencies: 736
+- Dependency relations: 2369
+- Entities with dependencies: 781
 
 ## Dependency Edges
 
@@ -32,6 +32,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | agent-management.stories.tsx | uses | paperclipData.ts | ui/storybook/fixtures/paperclipData |
 | AgentActionButtons.tsx | uses | queryKeys.ts | ui/src/lib/queryKeys |
 | AgentActionButtons.tsx | uses | agents.ts | ui/src/api/agents |
+| AgentAvailabilityControl.tsx | uses | utils.ts | ui/src/lib/utils |
 | AgentConfigForm.tsx | uses | agent-config-primitives.tsx | ui/src/components/agent-config-primitives |
 | AgentConfigForm.tsx | uses | CompanyContext.tsx | ui/src/context/CompanyContext |
 | AgentConfigForm.tsx | uses | config-fields.tsx | ui/src/adapters/claude-local/config-fields |
@@ -99,6 +100,7 @@ Generated: 2026-08-03T14:48:09.744Z
 | App.tsx | uses | Costs.tsx | ui/src/pages/Costs |
 | App.tsx | uses | Dashboard.tsx | ui/src/pages/Dashboard |
 | App.tsx | uses | DashboardLive.tsx | ui/src/pages/DashboardLive |
+| App.tsx | uses | Decisions.tsx | ui/src/pages/Decisions |
 | App.tsx | uses | DesignGuide.tsx | ui/src/pages/DesignGuide |
 | App.tsx | uses | ExecutionWorkspaceDetail.tsx | ui/src/pages/ExecutionWorkspaceDetail |
 | App.tsx | uses | GoalDetail.tsx | ui/src/pages/GoalDetail |
@@ -566,6 +568,11 @@ Generated: 2026-08-03T14:48:09.744Z
 | MarkdownEditor.tsx | uses | paste-normalization.ts | ui/src/lib/paste-normalization |
 | MarkdownEditor.tsx | uses | utils.ts | ui/src/lib/utils |
 | MembershipAction.tsx | uses | utils.ts | ui/src/lib/utils |
+| MissionControlDashboard.tsx | uses | AgentAvailabilityControl.tsx | ui/src/components/AgentAvailabilityControl |
+| MissionControlDashboard.tsx | uses | StatusBadge.tsx | ui/src/components/StatusBadge |
+| MissionControlDashboard.tsx | uses | activity-format.ts | ui/src/lib/activity-format |
+| MissionControlDashboard.tsx | uses | utils.ts | ui/src/lib/utils |
+| MissionControlDashboard.tsx | uses | Identity.tsx | ui/src/components/Identity |
 | MobileBottomNav.tsx | uses | CompanyContext.tsx | ui/src/context/CompanyContext |
 | MobileBottomNav.tsx | uses | DialogContext.tsx | ui/src/context/DialogContext |
 | MobileBottomNav.tsx | uses | navigation-scroll.ts | ui/src/lib/navigation-scroll |
@@ -768,8 +775,8 @@ Generated: 2026-08-03T14:48:09.744Z
 | Sidebar.tsx | uses | SidebarProjects.tsx | ui/src/components/SidebarProjects |
 | Sidebar.tsx | uses | SidebarSection.tsx | ui/src/components/SidebarSection |
 | Sidebar.tsx | uses | queryKeys.ts | ui/src/lib/queryKeys |
+| Sidebar.tsx | uses | useCompanyLiveRuns.ts | ui/src/hooks/useCompanyLiveRuns |
 | Sidebar.tsx | uses | useInboxBadge.ts | ui/src/hooks/useInboxBadge |
-| Sidebar.tsx | uses | heartbeats.ts | ui/src/api/heartbeats |
 | Sidebar.tsx | uses | instanceSettings.ts | ui/src/api/instanceSettings |
 | SidebarAccountMenu.tsx | uses | SidebarContext.tsx | ui/src/context/SidebarContext |
 | SidebarAccountMenu.tsx | uses | ThemeContext.tsx | ui/src/context/ThemeContext |
@@ -785,11 +792,11 @@ Generated: 2026-08-03T14:48:09.744Z
 | SidebarAgents.tsx | uses | navigation-scroll.ts | ui/src/lib/navigation-scroll |
 | SidebarAgents.tsx | uses | queryKeys.ts | ui/src/lib/queryKeys |
 | SidebarAgents.tsx | uses | useAgentOrder.ts | ui/src/hooks/useAgentOrder |
+| SidebarAgents.tsx | uses | useCompanyLiveRuns.ts | ui/src/hooks/useCompanyLiveRuns |
 | SidebarAgents.tsx | uses | useResourceMemberships.ts | ui/src/hooks/useResourceMemberships |
 | SidebarAgents.tsx | uses | utils.ts | ui/src/lib/utils |
 | SidebarAgents.tsx | uses | agents.ts | ui/src/api/agents |
 | SidebarAgents.tsx | uses | auth.ts | ui/src/api/auth |
-| SidebarAgents.tsx | uses | heartbeats.ts | ui/src/api/heartbeats |
 | SidebarCompanyMenu.tsx | uses | CompanyPatternIcon.tsx | ui/src/components/CompanyPatternIcon |
 | SidebarCompanyMenu.tsx | uses | SidebarContext.tsx | ui/src/context/SidebarContext |
 | SidebarNavItem.tsx | uses | SidebarContext.tsx | ui/src/context/SidebarContext |
@@ -804,10 +811,3 @@ Generated: 2026-08-03T14:48:09.744Z
 | SidebarProjects.tsx | uses | project-order.ts | ui/src/lib/project-order |
 | SidebarProjects.tsx | uses | queryKeys.ts | ui/src/lib/queryKeys |
 | SidebarProjects.tsx | uses | useProjectOrder.ts | ui/src/hooks/useProjectOrder |
-| SidebarProjects.tsx | uses | useResourceMemberships.ts | ui/src/hooks/useResourceMemberships |
-| SidebarProjects.tsx | uses | utils.ts | ui/src/lib/utils |
-| SidebarProjects.tsx | uses | auth.ts | ui/src/api/auth |
-| SidebarProjects.tsx | uses | projects.ts | ui/src/api/projects |
-| SidebarSection.tsx | uses | SidebarContext.tsx | ui/src/context/SidebarContext |
-| slots.tsx | uses | bridge.ts | ui/src/plugins/bridge |
-| source-issue-recovery.stories.tsx | uses | paperclipData.ts | ui/storybook/fixtures/paperclipData |

@@ -1,6 +1,6 @@
 # Architecture Evidence Graph System
 
-Last updated: 2026-05-27
+Last updated: 2026-08-16
 
 ## Purpose
 
@@ -20,6 +20,31 @@ The goal is a living proof system:
 
 This system extends codebase maps, module docs, requirement matrices, and
 module confidence ledgers. It does not replace them.
+
+## Two Complementary Graphs
+
+Paperclip uses two graph layers rather than forcing file inventory and live
+operational assurance into one misleading status:
+
+- the curated CSV registries below map architecture-significant files,
+  functions, routes, tests, documents, and end-to-end chains;
+- `softwarehouse/extension-utilization-registry.json` is the canonical
+  Softwarehouse capability assurance graph. It names each extension's required
+  implementation, integration, runtime probes, proof artifacts, dependencies,
+  and downstream consumers.
+
+`pnpm softwarehouse:extension-utilization` evaluates the assurance graph and
+writes `report/softwarehouse-extension-utilization.latest.json`. Every
+capability records the same `checkedAt` instant, its local four-dimensional
+result, and its dependency-propagated result. A locally healthy consumer cannot
+pass when a required capability fails. Missing relation endpoints, duplicate
+relations, self-dependencies, and dependency cycles fail the audit.
+
+The assurance graph is the answer to “is this Softwarehouse extension complete
+and usable now?” The architecture registries answer “where is it implemented
+and how is the detailed chain connected?” A behavior-changing task must update
+both layers when their scope is affected; neither may be replaced by a new
+parallel checklist.
 
 ## Source Of Truth
 

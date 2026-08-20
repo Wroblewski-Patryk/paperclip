@@ -5,6 +5,7 @@ import {
   isChildTreeTerminationComplete,
   resolveChildTreeTermination,
   resolveHostControlTickPolicy,
+  resolveHostControlTickMode,
   resolvePnpmInvocation,
 } from "./dev-runner-command.mjs";
 
@@ -16,6 +17,33 @@ test("uses the current pnpm JavaScript entrypoint without a Windows command shel
   assert.deepEqual(result.args, [npmExecPath, "--filter", "server", "dev"]);
   assert.equal(result.shell, false);
   assert.equal(result.source, "npm_execpath");
+});
+
+test("host control tick switches to read-only mode at the configured provider quota threshold", () => {
+  const now = new Date("2026-08-16T00:00:00.000Z");
+  const settings = {
+    codexLocalQuotaHoldEnabled: true,
+    codexLocalQuotaShortWindowHoldUsedPercent: 75,
+    codexLocalQuotaLongWindowHoldUsedPercent: 75,
+  };
+  assert.equal(resolveHostControlTickMode({
+    quotaResults: [{ provider: "openai", ok: true, windows: [{ label: "Weekly limit", quotaLane: "codex_standard", usedPercent: 98, resetsAt: "2026-08-20T00:00:00.000Z" }] }],
+    settings,
+    now,
+  }).mode, "quota_hold");
+  assert.equal(resolveHostControlTickMode({
+    quotaResults: [{ provider: "openai", ok: true, windows: [{ quotaLane: "codex_standard", usedPercent: 5, resetsAt: "2026-08-20T00:00:00.000Z" }] }],
+    settings,
+    now,
+  }).mode, "normal");
+});
+
+test("host control tick fails closed when provider quota cannot be established", () => {
+  assert.deepEqual(resolveHostControlTickMode({
+    quotaResults: [],
+    settings: null,
+    quotaReadFailed: true,
+  }), { mode: "quota_hold", reason: "provider_quota_state_unavailable" });
 });
 
 test("keeps the deliberately scoped Windows launcher fallback", () => {

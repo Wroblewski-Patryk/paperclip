@@ -1,6 +1,6 @@
 # App Completion Index
 
-Generated: 2026-08-03T14:48:09.744Z
+Generated: 2026-08-20T17:40:38.175Z
 Project: Paperclip
 Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 Source graph: docs/graphs/architecture-awareness.json
@@ -13,25 +13,24 @@ Internal functions and modules are implementation details: they receive proof th
 
 ## Counts
 
-- Items: 492
-- User flows: 7
-- Needs browser/screenshot review: 72
-- Missing test link: 364
-- Missing doc link: 24
+- Items: 650
+- User flows: 6
+- Needs browser/screenshot review: 73
+- Missing test link: 519
+- Missing doc link: 26
 - Implemented, needs proof: 1
 - Blocked: 0
-- Known non-ok risk items: 461
-- Priority review items indexed: 200/461
+- Known non-ok risk items: 619
+- Priority review items indexed: 200/619
 - Priority review truncated: true
 
 ## Flow Summary
 
-- Unclassified user workflow: 424 entities; risks {"ok":19,"missing_test_link":326,"missing_doc_link":19,"implemented_needs_proof":1,"needs_browser_review":59}; gates {"auth":1,"configuration":15}
-- User configuration: 37 entities; risks {"missing_doc_link":2,"missing_test_link":27,"needs_browser_review":8}; gates {"configuration":33,"auth":2}
-- Account access: 15 entities; risks {"ok":9,"missing_doc_link":3,"missing_test_link":1,"needs_browser_review":2}; gates {"auth":15}
-- Dashboard overview: 7 entities; risks {"missing_test_link":4,"needs_browser_review":3}; gates {}
-- Admin operation: 6 entities; risks {"ok":3,"missing_test_link":3}; gates {"auth":5}
-- Trading operation: 2 entities; risks {"missing_test_link":2}; gates {}
+- Unclassified user workflow: 577 entities; risks {"ok":19,"missing_test_link":475,"missing_doc_link":22,"implemented_needs_proof":1,"needs_browser_review":60}; gates {"auth":1,"configuration":17}
+- User configuration: 38 entities; risks {"missing_doc_link":1,"missing_test_link":29,"needs_browser_review":8}; gates {"configuration":34,"auth":2}
+- Account access: 19 entities; risks {"ok":9,"missing_doc_link":3,"missing_test_link":5,"needs_browser_review":2}; gates {"auth":19}
+- Dashboard overview: 8 entities; risks {"missing_test_link":5,"needs_browser_review":3}; gates {}
+- Admin operation: 7 entities; risks {"ok":3,"missing_test_link":4}; gates {"auth":5}
 - Subscription and entitlement: 1 entities; risks {"missing_test_link":1}; gates {"subscription":1}
 
 ## Priority Review Queue
@@ -42,21 +41,25 @@ Internal functions and modules are implementation details: they receive proof th
 | Account access | missing_doc_link | api_endpoint | POST /agents/:id/runtime-state/reset-session | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/runtime-state/reset-session | auth |
 | Account access | missing_doc_link | api_endpoint | GET /agents/:id/task-sessions | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id/task-sessions | auth |
 | Account access | missing_test_link | api_endpoint | GET /profile | Backend Platform Lead | server/src/routes/auth.ts#/profile | auth |
+| Account access | missing_test_link | api_endpoint | POST /autonomy/decisions/:id/canary-authorizations | Backend Platform Lead | server/src/routes/supervision.ts#/autonomy/decisions/:id/canary-authorizations | auth |
+| Account access | missing_test_link | api_endpoint | GET /companies/:companyId/autonomy/canary-authorizations | Backend Platform Lead | server/src/routes/supervision.ts#/companies/:companyId/autonomy/canary-authorizations | auth |
+| Account access | missing_test_link | feature_or_capability | CloudAuthRequestError | Developer Experience Lead | cli/src/commands/client/cloud.ts#CloudAuthRequestError | auth |
+| Account access | missing_test_link | feature_or_capability | AuthApiError | Frontend Experience Lead | ui/src/api/auth.ts#AuthApiError | auth |
 | Account access | needs_browser_review | screen_or_route | Auth.tsx | Frontend Experience Lead | ui/src/pages/Auth.tsx | auth |
 | Account access | needs_browser_review | screen_or_route | CliAuth.tsx | Frontend Experience Lead | ui/src/pages/CliAuth.tsx | auth |
 | Admin operation | missing_test_link | api_endpoint | POST /admin/users/:userId/demote-instance-admin | Backend Platform Lead | server/src/routes/access.ts#/admin/users/:userId/demote-instance-admin | auth |
 | Admin operation | missing_test_link | api_endpoint | POST /admin/users/:userId/promote-instance-admin | Backend Platform Lead | server/src/routes/access.ts#/admin/users/:userId/promote-instance-admin | auth |
 | Admin operation | missing_test_link | api_endpoint | POST /issues/:id/admin/force-release | Backend Platform Lead | server/src/routes/issues.ts#/issues/:id/admin/force-release | - |
+| Admin operation | missing_test_link | feature_or_capability | AdminPagesFeatureTest | Engineering Delivery Lead | scripts/build-architecture-awareness-index.test.mjs#AdminPagesFeatureTest | - |
 | Dashboard overview | missing_test_link | api_endpoint | GET /companies/:companyId/budgets/overview | Backend Platform Lead | server/src/routes/costs.ts#/companies/:companyId/budgets/overview | - |
 | Dashboard overview | missing_test_link | api_endpoint | GET /companies/:companyId/dashboard | Backend Platform Lead | server/src/routes/dashboard.ts#/companies/:companyId/dashboard | - |
+| Dashboard overview | missing_test_link | api_endpoint | GET /companies/:companyId/next-legal-actions | Backend Platform Lead | server/src/routes/dashboard.ts#/companies/:companyId/next-legal-actions | - |
 | Dashboard overview | missing_test_link | api_endpoint | GET /companies/:companyId/situation | Backend Platform Lead | server/src/routes/dashboard.ts#/companies/:companyId/situation | - |
 | Dashboard overview | missing_test_link | api_endpoint | GET /plugins/:pluginId/dashboard | Backend Platform Lead | server/src/routes/plugins.ts#/plugins/:pluginId/dashboard | - |
 | Dashboard overview | needs_browser_review | screen_or_route | ProjectDeliveryOverview.tsx | Frontend Experience Lead | ui/src/components/ProjectDeliveryOverview.tsx | - |
 | Dashboard overview | needs_browser_review | screen_or_route | Dashboard.tsx | Frontend Experience Lead | ui/src/pages/Dashboard.tsx | - |
 | Dashboard overview | needs_browser_review | screen_or_route | DashboardLive.tsx | Frontend Experience Lead | ui/src/pages/DashboardLive.tsx | - |
 | Subscription and entitlement | missing_test_link | api_endpoint | POST /issues/:id/checkout | Backend Platform Lead | server/src/routes/issues.ts#/issues/:id/checkout | subscription |
-| Trading operation | missing_test_link | api_endpoint | GET /issues/:id/accepted-plan-decompositions | Backend Platform Lead | server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions | - |
-| Trading operation | missing_test_link | api_endpoint | POST /issues/:id/accepted-plan-decompositions | Backend Platform Lead | server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | USE /assets | Backend Platform Lead | server/src/app.ts#/assets | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | POST /bootstrap/claim | Backend Platform Lead | server/src/routes/access.ts#/bootstrap/claim | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/join-requests/:requestId/approve | Backend Platform Lead | server/src/routes/access.ts#/companies/:companyId/join-requests/:requestId/approve | - |
@@ -84,6 +87,8 @@ Internal functions and modules are implementation details: they receive proof th
 | Unclassified user workflow | missing_test_link | api_endpoint | POST /adapters/install | Backend Platform Lead | server/src/routes/adapters.ts#/adapters/install | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/admission-controls | Backend Platform Lead | server/src/routes/admission-control.ts#/companies/:companyId/admission-controls | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/admission-controls/transition | Backend Platform Lead | server/src/routes/admission-control.ts#/companies/:companyId/admission-controls/transition | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/agent-availability | Backend Platform Lead | server/src/routes/admission-control.ts#/companies/:companyId/agent-availability | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | PUT /companies/:companyId/agent-availability | Backend Platform Lead | server/src/routes/admission-control.ts#/companies/:companyId/agent-availability | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | DELETE /agents/:id | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/:id | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | PATCH /agents/:id | Backend Platform Lead | server/src/routes/agents.ts#/agents/:id | - |
@@ -111,13 +116,7 @@ Internal functions and modules are implementation details: they receive proof th
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /agents/me/inbox/mine | Backend Platform Lead | server/src/routes/agents.ts#/agents/me/inbox/mine | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/adapters/:type/detect-model | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/adapters/:type/detect-model | - |
 | Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/adapters/:type/models | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/adapters/:type/models | - |
-| Unclassified user workflow | missing_doc_link | api_endpoint | POST /companies/:companyId/adapters/:type/test-environment | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/adapters/:type/test-environment | - |
-| Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/agent-hires | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/agent-hires | - |
-| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/agents | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/agents | - |
-| Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/agents | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/agents | - |
-| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/heartbeat-runs | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/heartbeat-runs | - |
-| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/live-runs | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/live-runs | - |
-| Unclassified user workflow | missing_test_link | api_endpoint | GET /companies/:companyId/org | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/org | - |
+| Unclassified user workflow | missing_test_link | api_endpoint | POST /companies/:companyId/adapters/:type/test-environment | Backend Platform Lead | server/src/routes/agents.ts#/companies/:companyId/adapters/:type/test-environment | - |
 
 ## Agent Rule
 

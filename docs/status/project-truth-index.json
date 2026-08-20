@@ -1,16 +1,65 @@
 {
-  "observedAt": "2026-08-10T03:29:58.013Z",
-  "generatedAt": "2026-08-03T14:48:09.744Z",
+  "observedAt": "2026-08-20T17:40:41.482Z",
+  "generatedAt": "2026-08-20T17:40:38.175Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "repository": {
-    "headSha": "7dead1c7826f7185e199909af9de7df5cd1d6337",
-    "upstreamSha": null,
-    "behind": null,
-    "ahead": null,
-    "aheadPaths": [],
+    "schemaVersion": 1,
+    "repositoryRoot": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
+    "headSha": "d4e19f347b88f44778aa00b47860e5e762bdd223",
+    "upstreamSha": "8247e184cf73d9cfa83d1e25f09931005699baea",
+    "behind": 0,
+    "ahead": 7,
+    "aheadPaths": [
+      ".agents/state/project-journal.md",
+      "AGENTS.md",
+      "doc/UI-DESIGN-SYSTEM.md",
+      "docs/api/decision-center.md",
+      "docs/guides/agent-developer/task-workflow.md",
+      "package.json",
+      "packages/adapter-utils/src/server-utils.ts",
+      "packages/adapters/openclaw-gateway/src/server/execute.ts",
+      "packages/shared/src/index.ts",
+      "packages/shared/src/issue-thread-interactions.test.ts",
+      "packages/shared/src/types/decision-center.ts",
+      "packages/shared/src/types/index.ts",
+      "packages/shared/src/types/issue.ts",
+      "packages/shared/src/validators/index.ts",
+      "packages/shared/src/validators/issue.ts",
+      "scripts/build-app-completion-index.mjs",
+      "scripts/build-architecture-awareness-index.mjs",
+      "scripts/build-project-truth-indexes.mjs",
+      "scripts/cleanup-stale-softwarehouse-temp.ps1",
+      "scripts/configure-softwarehouse-company-os.mjs",
+      "scripts/dev-runner.mjs",
+      "scripts/dev-runner.ts",
+      "scripts/dev-service-profile.test.mjs",
+      "scripts/dev-service-profile.ts",
+      "scripts/dev-service.ts",
+      "scripts/lib/in-review-decision-path.mjs",
+      "scripts/lib/product-flow-classifier.test.mjs",
+      "scripts/lib/softwarehouse-active-routines.mjs",
+      "scripts/run-in-review-decision-path.test.mjs",
+      "server/src/__tests__/dev-server-status.test.ts",
+      "server/src/__tests__/health-dev-server-token.test.ts",
+      "server/src/__tests__/heartbeat-dependency-scheduling.test.ts",
+      "server/src/__tests__/heartbeat-model-profile.test.ts",
+      "server/src/__tests__/routines-service.test.ts",
+      "server/src/dev-server-status.ts",
+      "server/src/routes/decision-center.ts",
+      "server/src/routes/health.ts",
+      "server/src/services/decision-center.test.ts",
+      "server/src/services/decision-center.ts",
+      "server/src/services/heartbeat.ts",
+      "server/src/services/issue-assignment-wakeup.ts",
+      "server/src/services/routines.ts",
+      "ui/src/components/ApprovalCard.tsx",
+      "ui/src/pages/Decisions.test.tsx",
+      "ui/src/pages/Decisions.tsx",
+      "ui/storybook/stories/control-plane-surfaces.stories.tsx"
+    ],
     "controlPlaneOnlyAhead": false,
-    "releaseSha": "7dead1c7826f7185e199909af9de7df5cd1d6337"
+    "releaseSha": "d4e19f347b88f44778aa00b47860e5e762bdd223"
   },
   "deployment": {
     "deployedSha": null,
@@ -19,19 +68,19 @@
   },
   "status": "gaps_require_routing",
   "counts": {
-    "appCompletionItems": 492,
-    "eventChains": 7,
-    "incompleteEventChains": 2,
+    "appCompletionItems": 650,
+    "eventChains": 6,
+    "incompleteEventChains": 1,
     "runtimeFindings": 0,
     "criticalRuntimeFindings": 0,
-    "appCompletionGaps": 10,
-    "indexedAppCompletionGaps": 10,
-    "knownAppCompletionRiskItems": 461,
+    "appCompletionGaps": 9,
+    "indexedAppCompletionGaps": 9,
+    "knownAppCompletionRiskItems": 619,
     "appCompletionPriorityReviewItems": 200,
     "appCompletionPriorityReviewTruncated": true,
-    "operationalGateGaps": 5,
-    "indexedGaps": 17,
-    "totalGaps": 17
+    "operationalGateGaps": 4,
+    "indexedGaps": 14,
+    "totalGaps": 14
   },
   "firstGap": {
     "kind": "event_chain_gap",
@@ -49,14 +98,6 @@
       "summary": "Missing frontend layer(s) in event chain.",
       "nextOwner": "CTO Architect + Engineering Delivery Lead",
       "nextAction": "Map frontend entities into this flow before claiming holistic status."
-    },
-    {
-      "kind": "event_chain_gap",
-      "severity": "high",
-      "userFlow": "Trading operation",
-      "summary": "Missing frontend, backend, worker layer(s) in event chain.",
-      "nextOwner": "CTO Architect + Engineering Delivery Lead",
-      "nextAction": "Map frontend, backend, worker entities into this flow before claiming holistic status."
     },
     {
       "kind": "app_completion_gap",
@@ -83,18 +124,26 @@
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Account access",
-      "summary": "Account access has 1 item(s) with app-completion risk missing_test_link.",
+      "summary": "Account access has 5 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
-        "server/src/routes/auth.ts#/profile"
+        "server/src/routes/auth.ts#/profile",
+        "server/src/routes/supervision.ts#/autonomy/decisions/:id/canary-authorizations",
+        "server/src/routes/supervision.ts#/companies/:companyId/autonomy/canary-authorizations",
+        "cli/src/commands/client/cloud.ts#CloudAuthRequestError",
+        "ui/src/api/auth.ts#AuthApiError"
       ],
       "sourceItemId": "api_endpoint:get-profile:13548266f1",
       "risk": "missing_test_link",
       "sourceItemIds": [
-        "api_endpoint:get-profile:13548266f1"
+        "api_endpoint:get-profile:13548266f1",
+        "api_endpoint:post-autonomy-decisions-id-canary-authorizations:09a318e96c",
+        "api_endpoint:get-companies-companyid-autonomy-canary-authorizations:bd238d29ea",
+        "feature:cloudauthrequesterror:a866b719d9",
+        "feature:authapierror:333cc7aeb4"
       ],
-      "affectedItemCount": 1
+      "affectedItemCount": 5
     },
     {
       "kind": "app_completion_gap",
@@ -119,33 +168,36 @@
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Admin operation",
-      "summary": "Admin operation has 3 item(s) with app-completion risk missing_test_link.",
+      "summary": "Admin operation has 4 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
         "server/src/routes/access.ts#/admin/users/:userId/demote-instance-admin",
         "server/src/routes/access.ts#/admin/users/:userId/promote-instance-admin",
-        "server/src/routes/issues.ts#/issues/:id/admin/force-release"
+        "server/src/routes/issues.ts#/issues/:id/admin/force-release",
+        "scripts/build-architecture-awareness-index.test.mjs#AdminPagesFeatureTest"
       ],
       "sourceItemId": "api_endpoint:post-admin-users-userid-demote-instance-admin:3a7867c655",
       "risk": "missing_test_link",
       "sourceItemIds": [
         "api_endpoint:post-admin-users-userid-demote-instance-admin:3a7867c655",
         "api_endpoint:post-admin-users-userid-promote-instance-admin:9efb5ddd30",
-        "api_endpoint:post-issues-id-admin-force-release:af6e61c341"
+        "api_endpoint:post-issues-id-admin-force-release:af6e61c341",
+        "feature:adminpagesfeaturetest:ed061d15a9"
       ],
-      "affectedItemCount": 3
+      "affectedItemCount": 4
     },
     {
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Dashboard overview",
-      "summary": "Dashboard overview has 4 item(s) with app-completion risk missing_test_link.",
+      "summary": "Dashboard overview has 5 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
         "server/src/routes/costs.ts#/companies/:companyId/budgets/overview",
         "server/src/routes/dashboard.ts#/companies/:companyId/dashboard",
+        "server/src/routes/dashboard.ts#/companies/:companyId/next-legal-actions",
         "server/src/routes/dashboard.ts#/companies/:companyId/situation",
         "server/src/routes/plugins.ts#/plugins/:pluginId/dashboard"
       ],
@@ -154,10 +206,11 @@
       "sourceItemIds": [
         "api_endpoint:get-companies-companyid-budgets-overview:0c07689cee",
         "api_endpoint:get-companies-companyid-dashboard:a3b85af771",
+        "api_endpoint:get-companies-companyid-next-legal-actions:14abadcb91",
         "api_endpoint:get-companies-companyid-situation:782e7df67f",
         "api_endpoint:get-plugins-pluginid-dashboard:f2d3c46c6d"
       ],
-      "affectedItemCount": 4
+      "affectedItemCount": 5
     },
     {
       "kind": "app_completion_gap",
@@ -200,26 +253,8 @@
     {
       "kind": "app_completion_gap",
       "severity": "medium",
-      "userFlow": "Trading operation",
-      "summary": "Trading operation has 2 item(s) with app-completion risk missing_test_link.",
-      "nextOwner": "Test Automation Engineer + QA Regression Lead",
-      "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
-      "evidence": [
-        "server/src/routes/issues.ts#/issues/:id/accepted-plan-decompositions"
-      ],
-      "sourceItemId": "api_endpoint:get-issues-id-accepted-plan-decompositions:e68952a4d0",
-      "risk": "missing_test_link",
-      "sourceItemIds": [
-        "api_endpoint:get-issues-id-accepted-plan-decompositions:e68952a4d0",
-        "api_endpoint:post-issues-id-accepted-plan-decompositions:91e9e43603"
-      ],
-      "affectedItemCount": 2
-    },
-    {
-      "kind": "app_completion_gap",
-      "severity": "medium",
       "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow has 167 item(s) with app-completion risk missing_test_link.",
+      "summary": "Unclassified user workflow has 164 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
@@ -272,6 +307,8 @@
         "api_endpoint:post-adapters-install:950e22d07a",
         "api_endpoint:get-companies-companyid-admission-controls:764bca8826",
         "api_endpoint:post-companies-companyid-admission-controls-transition:dd94cee5f3",
+        "api_endpoint:get-companies-companyid-agent-availability:a699e3826b",
+        "api_endpoint:put-companies-companyid-agent-availability:fc66261b70",
         "api_endpoint:delete-agents-id:c6de105f68",
         "api_endpoint:get-agents-id:b7553c57f5",
         "api_endpoint:patch-agents-id:94857b88e1",
@@ -298,6 +335,7 @@
         "api_endpoint:get-agents-me-inbox-mine:3607fb9817",
         "api_endpoint:get-companies-companyid-adapters-type-detect-model:ce6f62715c",
         "api_endpoint:get-companies-companyid-adapters-type-models:a19b916b35",
+        "api_endpoint:post-companies-companyid-adapters-type-test-environment:aab9a34e43",
         "api_endpoint:post-companies-companyid-agent-hires:cea9f95e37",
         "api_endpoint:get-companies-companyid-agents:d019714997",
         "api_endpoint:post-companies-companyid-agents:2957bd6d18",
@@ -310,7 +348,6 @@
         "api_endpoint:post-heartbeat-runs-runid-cancel:f7e5dea4ec",
         "api_endpoint:get-heartbeat-runs-runid-events:72b2905a17",
         "api_endpoint:get-heartbeat-runs-runid-log:36370e2e5f",
-        "api_endpoint:post-heartbeat-runs-runid-watchdog-decisions:21702beb45",
         "api_endpoint:get-heartbeat-runs-runid-workspace-operations:e03957ac78",
         "api_endpoint:get-issues-issueid-active-run:a891bbec94",
         "api_endpoint:get-issues-issueid-live-runs:33b259691b",
@@ -383,10 +420,16 @@
         "api_endpoint:get-companies-companyid-costs-window-spend:d19c064103",
         "api_endpoint:post-companies-companyid-finance-events:b2a9880193",
         "api_endpoint:get-issues-id-cost-summary:0593bc8a8f",
+        "api_endpoint:delete-companies-companyid-decisions-sourcetype-sourceid-defer:44288d577b",
+        "api_endpoint:put-companies-companyid-decisions-sourcetype-sourceid-defer:2c6ea7af8c",
+        "api_endpoint:post-companies-companyid-decisions-interaction-sourceid-prepare:db3769e283",
+        "api_endpoint:post-companies-companyid-decisions-interaction-sourceid-reroute:7f2d7f6fb0",
         "api_endpoint:get-companies-companyid-deliveries:df67bf764e",
         "api_endpoint:post-companies-companyid-deliveries:295187fbac",
         "api_endpoint:get-deliveries-id:14cdad6d18",
+        "api_endpoint:post-deliveries-id-dispatch:a25c2fc3a8",
         "api_endpoint:post-deliveries-id-outcome:a9e6d8c6e6",
+        "api_endpoint:patch-deliveries-id-status:219ae2f286",
         "api_endpoint:post-deliveries-id-transition:d97a50341f",
         "api_endpoint:get-companies-companyid-environments:ac6e4c8a72",
         "api_endpoint:post-companies-companyid-environments:641573a90a",
@@ -402,33 +445,22 @@
         "api_endpoint:get-execution-workspaces-id-close-readiness:290891b565",
         "api_endpoint:post-execution-workspaces-id-runtime-commands-action:29e6f890b7",
         "api_endpoint:post-execution-workspaces-id-runtime-services-action:da155089d0",
-        "api_endpoint:get-execution-workspaces-id-workspace-operations:017ded6929",
-        "api_endpoint:get-issues-issueid-file-resources-content:f3d13abf65",
-        "api_endpoint:get-issues-issueid-file-resources-list:2166c68a83",
-        "api_endpoint:get-issues-issueid-file-resources-resolve:553be5442e",
-        "api_endpoint:get-companies-companyid-goals:9613e9d197",
-        "api_endpoint:post-companies-companyid-goals:e9fd068118",
-        "api_endpoint:delete-goals-id:20eb55dd6f",
-        "api_endpoint:get-goals-id:48ea40de41",
-        "api_endpoint:patch-goals-id:326c8d903a",
-        "api_endpoint:get:8bfb6330f8",
-        "api_endpoint:post-dev-server-restart:8ce723f667",
-        "api_endpoint:post-instance-database-backups:e8b3c6e8ff"
+        "api_endpoint:get-execution-workspaces-id-workspace-operations:017ded6929"
       ],
-      "affectedItemCount": 167
+      "affectedItemCount": 164
     },
     {
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow has 14 item(s) with app-completion risk missing_doc_link.",
+      "summary": "Unclassified user workflow has 13 item(s) with app-completion risk missing_doc_link.",
       "nextOwner": "Docs Memory Lead + Project Manager",
       "nextAction": "Link or update the source-of-truth docs/status entry for this flow so future agents can reason from evidence.",
       "evidence": [
         "server/src/routes/activity.ts#/companies/:companyId/activity",
         "server/src/routes/activity.ts#/heartbeat-runs/:runId/issues",
         "server/src/routes/agents.ts#/agents/:id/runtime-state",
-        "server/src/routes/agents.ts#/companies/:companyId/adapters/:type/test-environment",
+        "server/src/routes/agents.ts#/heartbeat-runs/:runId/watchdog-decisions",
         "server/src/routes/agents.ts#/instance/scheduler-heartbeats",
         "server/src/routes/approvals.ts#/approvals/:id/issues",
         "server/src/routes/cloud-upstreams.ts#/cloud-upstreams",
@@ -436,8 +468,8 @@
         "server/src/routes/companies.ts#/issues",
         "server/src/routes/company-skills.ts#/companies/:companyId/skills/scan-projects",
         "server/src/routes/costs.ts#/companies/:companyId/costs/quota-windows",
-        "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces",
-        "server/src/routes/inbox-dismissals.ts#/companies/:companyId/inbox-dismissals"
+        "server/src/routes/decision-center.ts#/companies/:companyId/decisions",
+        "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces"
       ],
       "sourceItemId": "api_endpoint:post-companies-companyid-activity:553426d5a8",
       "risk": "missing_doc_link",
@@ -445,7 +477,7 @@
         "api_endpoint:post-companies-companyid-activity:553426d5a8",
         "api_endpoint:get-heartbeat-runs-runid-issues:9f825c252e",
         "api_endpoint:get-agents-id-runtime-state:901571eae9",
-        "api_endpoint:post-companies-companyid-adapters-type-test-environment:aab9a34e43",
+        "api_endpoint:post-heartbeat-runs-runid-watchdog-decisions:21702beb45",
         "api_endpoint:get-instance-scheduler-heartbeats:0614a006b4",
         "api_endpoint:get-approvals-id-issues:6c6b090d8c",
         "api_endpoint:get-cloud-upstreams:e681f2d029",
@@ -453,27 +485,17 @@
         "api_endpoint:get-issues:35e084a6d4",
         "api_endpoint:post-companies-companyid-skills-scan-projects:358b598911",
         "api_endpoint:get-companies-companyid-costs-quota-windows:4ef8d8f2f9",
-        "api_endpoint:get-companies-companyid-execution-workspaces:e228eb46e6",
-        "api_endpoint:get-companies-companyid-inbox-dismissals:656da7ce6f",
-        "api_endpoint:post-companies-companyid-inbox-dismissals:3dcb9a9d1c"
+        "api_endpoint:get-companies-companyid-decisions:384fd2f187",
+        "api_endpoint:get-companies-companyid-execution-workspaces:e228eb46e6"
       ],
-      "affectedItemCount": 14
+      "affectedItemCount": 13
     },
     {
       "kind": "operational_gate_gap",
       "classification": null,
       "severity": "high",
       "userFlow": null,
-      "summary": "source_freshness: stale",
-      "nextOwner": "Project Manager",
-      "nextAction": "Restore current project truth rather than historical evidence."
-    },
-    {
-      "kind": "operational_gate_gap",
-      "classification": null,
-      "severity": "high",
-      "userFlow": null,
-      "summary": "release_branch_alignment: unknown",
+      "summary": "release_branch_alignment: diverged",
       "nextOwner": "Project Manager",
       "nextAction": "Restore an exact source release candidate."
     },
