@@ -2598,16 +2598,32 @@ describe("ensureRuntimeServicesForRun", () => {
       adapterEnv: {},
     });
 
-    await stopRuntimeServicesForExecutionWorkspace({
-      executionWorkspaceId: "execution-workspace-target",
-      workspaceCwd: targetWorkspaceRoot,
-    });
+    try {
+      await stopRuntimeServicesForExecutionWorkspace({
+        executionWorkspaceId: "execution-workspace-target",
+        workspaceCwd: targetWorkspaceRoot,
+      });
 
-    const response = await fetch(services[0]!.url!);
-    expect(await response.text()).toBe("ok");
+      const response = await fetch(services[0]!.url!);
+      expect(await response.text()).toBe("ok");
+    } finally {
+      try {
+        await stopRuntimeServicesForExecutionWorkspace({
+          executionWorkspaceId: "execution-workspace-sibling",
+          workspaceCwd: siblingWorkspaceRoot,
+        });
+      } finally {
+        try {
+          await releaseRuntimeServicesForRun(runId);
+          leasedRunIds.delete(runId);
+        } finally {
+          await fs.rm(workspaceParent, { recursive: true, force: true });
+        }
+      }
+    }
 
-    await releaseRuntimeServicesForRun(runId);
-    leasedRunIds.delete(runId);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await expect(fetch(services[0]!.url!)).rejects.toThrow();
   });
 
   it("starts only the selected workspace-controlled runtime service", async () => {

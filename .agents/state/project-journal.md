@@ -303,9 +303,11 @@ evidence.
   persisted quota-held work advances under the configured one-run-per-project
   WIP limit. The resulting `project_source_control_closure_needed` decision is
   a governed application/repository follow-up, not a failed control plane.
-- Standard temp hygiene reports zero stale candidates. The expanded recent
-  audit still identifies the exact locked fixture
-  `paperclip-runtime-sibling-34OgM7`, owned by orphan test PID 37328, plus
-  disposable same-day test roots. Because Windows rejected the first deletion,
-  leave that process and fixture untouched until the owner explicitly
-  authorizes exact termination and a fresh validated cleanup.
+- Standard temp hygiene reports zero stale candidates. After explicit owner
+  approval, the exact orphan test PID 37328 was stopped and the expanded audit
+  removed 83 validated same-day test roots; the one retained recent resource
+  belongs to active work. The leak came from the sibling-workspace isolation
+  test proving a manual-stop service stayed alive without subsequently owning
+  its teardown. That test now stops the exact sibling service, releases its
+  lease, removes its own `mkdtemp` root in `finally`, and proves the HTTP port
+  is closed. A repeated focused run passed without adding a process or folder.
