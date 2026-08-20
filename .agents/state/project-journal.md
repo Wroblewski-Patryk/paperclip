@@ -311,3 +311,24 @@ evidence.
   its teardown. That test now stops the exact sibling service, releases its
   lease, removes its own `mkdtemp` root in `finally`, and proves the HTTP port
   is closed. A repeated focused run passed without adding a process or folder.
+
+### 2026-08-20 - Conflict-aware scheduler requirement captured
+
+- Conversation decision: one concurrent run per project is a safe temporary
+  fallback, not the desired scheduler. Independent tasks in different files or
+  components should run in parallel even inside one application; overlapping
+  functionality or resources must be ordered by explicit dependency and scope
+  evidence.
+- The future design must combine declared read/write/resource claims,
+  dependency-aware admission, fail-closed handling of unknown scope, and
+  narrow locks for shared runtime, migration, integration, review, deployment,
+  and source-control operations.
+- Because application repositories remain singleton checkouts, concurrent
+  editing is allowed only for disjoint owned paths. Git staging and commit must
+  be serialized, use exact owned paths, reject overlap, and preserve unrelated
+  changes so two independent tasks can produce two independent commits safely.
+- Live Runs must state the concrete wait reason rather than collapsing OFF,
+  WIP, dependency, conflict, and commit-lock waits into an unexplained
+  `queued`. Implementation is deliberately paused until the owner returns and
+  explicitly authorizes work; the current OFF/draining behavior remains
+  unchanged.

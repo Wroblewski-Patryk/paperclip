@@ -1,6 +1,34 @@
 # Board Context
 
-Last updated: 2026-08-10
+Last updated: 2026-08-20
+
+## 2026-08-20 Conflict-aware concurrency instead of project-wide serialization
+
+The owner rejected a permanent one-running-task-per-project rule as too coarse.
+Independent work may run concurrently in one application when declared write
+sets, components, runtime resources, and functional dependencies do not
+overlap; for example, a bounded frontend color change and an unrelated backend
+API correction should not block each other merely because they share a
+project. Work that shares a feature contract, schema, generated artifact,
+runtime service, migration, file set, or explicit dependency must be ordered or
+coordinated through a dependency graph.
+
+Future implementation must preserve singleton repository safety without
+returning to a global project mutex. Each executable issue should declare a
+bounded scope/resource manifest and dependency edges. Unknown or overlapping
+write scope fails closed. Concurrent agents may edit only disjoint owned paths;
+Git index/staging/commit operations remain serialized and must stage exact
+owned paths, verify that unrelated changes were preserved, and produce
+traceable independent commits. Review, integration, test, deploy, and shared
+runtime gates may introduce narrower resource locks. The Live Runs UI should
+explain whether queued work is waiting for OFF/admission, a dependency, a
+conflicting scope/resource, or the Git commit lock instead of showing only
+`queued`.
+
+This is a deferred owner requirement. Do not implement or alter live admission
+while the owner is away and the dashboard availability switch is OFF; resume
+analysis and implementation only after the owner explicitly returns and
+authorizes work.
 
 ## 2026-08-10 Provider Quota Maintenance Boundary
 
