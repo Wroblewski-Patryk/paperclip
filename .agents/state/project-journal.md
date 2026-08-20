@@ -296,3 +296,16 @@ evidence.
   preflight commands now support a bounded deadline, terminate only their
   owned Windows PID tree on timeout, and classify migration-status timeout as
   exit 124 instead of hanging the singleton indefinitely.
+- Post-commit live proof completed on the canonical instance: the next
+  scheduled host control tick ran its full 51-step path with `ok=true` and no
+  manual invocation. The queue moved from seven to five waiting runs while a
+  Softwarehouse run and a Featherly/QA run executed in parallel, proving that
+  persisted quota-held work advances under the configured one-run-per-project
+  WIP limit. The resulting `project_source_control_closure_needed` decision is
+  a governed application/repository follow-up, not a failed control plane.
+- Standard temp hygiene reports zero stale candidates. The expanded recent
+  audit still identifies the exact locked fixture
+  `paperclip-runtime-sibling-34OgM7`, owned by orphan test PID 37328, plus
+  disposable same-day test roots. Because Windows rejected the first deletion,
+  leave that process and fixture untouched until the owner explicitly
+  authorizes exact termination and a fresh validated cleanup.
