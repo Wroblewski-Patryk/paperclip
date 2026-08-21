@@ -44,7 +44,7 @@ async function paperclipGet(route: string) {
 }
 
 async function loadRuntime() {
-  const config = JSON.parse(await readFile(path.resolve(".paperclip/config.json"), "utf8"));
+  const config = JSON.parse(await readFile(path.resolve(import.meta.dirname, "..", ".paperclip/config.json"), "utf8"));
   const port = Number(config?.database?.embeddedPostgresPort);
   const keyFile = String(config?.secrets?.localEncrypted?.keyFilePath ?? "").trim();
   if (!Number.isFinite(port) || port !== 54329 || !keyFile) throw new Error("Canonical runtime configuration is unavailable");

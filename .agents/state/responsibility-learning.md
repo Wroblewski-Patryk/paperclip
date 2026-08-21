@@ -1037,3 +1037,21 @@ Current evidence:
 - The fresh result was `exited:unhealthy`, with no FQDN, health check disabled,
   and incomplete destination/source/server facts. No deploy, restart, secret
   read, configuration write, or production operation was performed.
+## 2026-08-21 - Temporary resources are leases, and cleanup is an exit gate
+
+Observed pattern: Roost browser-QA planning created a separate Coolify
+application and environment, but the delivery contract required only a
+teardown *plan*. After the hosted route became unnecessary, the stopped,
+unpublished resource remained as capacity and control-plane clutter.
+
+Standing prevention:
+
+- discover and reuse before create; default to local/existing proof;
+- register exact resource identity, purpose, owner, dependencies, protected
+  exclusions, expiry/review, and teardown trigger at creation time;
+- make verified teardown part of the originating delivery's Definition of
+  Done; a plan or comment cannot satisfy the cleanup gate;
+- retain only for a concrete current use with bounded review and accountable
+  cost/capacity ownership;
+- delete only exact authorized targets, then read back both target absence and
+  protected production/shared presence.

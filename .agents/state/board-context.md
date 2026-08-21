@@ -1,6 +1,25 @@
 # Board Context
 
-Last updated: 2026-08-20
+Last updated: 2026-08-21
+
+## 2026-08-21 Managed temporary resources are singleton leases
+
+- The owner requires clean resource topology across applications: discover
+  and reuse compatible resources before creating new ones, then remove
+  temporary provider resources, processes, files, branches, volumes, and
+  environments when their bounded purpose ends.
+- Hosted QA/stage is not an automatic fixture for every application while VPS
+  capacity is scarce. Prefer local or already-existing proof when it satisfies
+  the same gate; create hosted temporary capacity only for a concrete need.
+- Every temporary managed resource must use
+  `softwarehouse-managed-resource-lifecycle:v1` with exact identities, owner,
+  source issue, dependencies, protected exclusions, expiry/review, teardown
+  trigger, and verified teardown evidence. A cleanup plan alone is not done.
+- Exact destructive cleanup remains protected. The current authorization is
+  limited to the unused Roost QA application `xj0ch8j95devlvegx8sa2tqk`, its
+  exclusive configuration/volumes/networks, and the empty `roost-qa`
+  environment `cvi4zebvgoqmtw49oucby9i7`; Roost production resource
+  `rnqqkhl3o3dut4qv56mlxly2` and the project are explicit exclusions.
 
 ## 2026-08-20 Conflict-aware concurrency instead of project-wide serialization
 

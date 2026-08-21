@@ -41,6 +41,34 @@ For the current issue:
 - turn repeated/systemic failures into a durable prevention control and
   regression/eval signal.
 
+## Temporary Managed Resources
+
+Treat every non-production environment, application, database, service,
+container, volume, branch, preview, sandbox, and test process as a leased
+resource rather than permanent background state.
+
+- Before creating one, search the provider and Paperclip for a compatible
+  active resource. Reuse it when isolation and purpose match; never create a
+  duplicate merely because a new issue or agent started.
+- Record `softwarehouse-managed-resource-lifecycle:v1` with the provider,
+  exact project/environment/resource identifiers, purpose, accountable owner,
+  source issue, creation time, expiry/next review, dependencies, protected
+  exclusions, retention reason, and teardown trigger.
+- Default to the smallest local or existing environment that can produce the
+  required proof. A scarce hosted QA/stage resource requires evidence that the
+  local or existing route cannot satisfy the current gate.
+- Completion or supersession triggers cleanup in the same delivery chain.
+  A teardown plan is not teardown evidence. Closure requires provider
+  readback that the exact resource and its exclusive configurations, volumes,
+  networks, processes, and disposable files are gone, while every named
+  production/shared exclusion still resolves.
+- If a resource must be retained, record the concrete current use, owner,
+  bounded expiry/next review, and cost/capacity impact. Indefinite retention,
+  absent ownership, or an expired lease is a blocker and cleanup finding.
+- Destructive teardown remains exact-target and approval-gated. Never widen a
+  resource-scoped authorization into a project, server, shared destination,
+  production environment, or broad Docker/filesystem cleanup.
+
 Paperclip owns live execution, gates, and evidence. Roost may present the
 company-facing procedure, offering, decision, dependency, and KPI projection.
 Product repositories own versioned product, source, architecture, test, and

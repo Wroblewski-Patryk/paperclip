@@ -132,6 +132,26 @@ Every release slice evaluates these qualities proportionally to risk:
 An item is `verified`, `not_applicable` with rationale, `blocked`, `stale`, or
 `failed`. Only the first two are green.
 
+### Managed-resource lifecycle gate
+
+Temporary provider resources use the contract marker
+`softwarehouse-managed-resource-lifecycle:v1`. Creation is admitted only after
+duplicate discovery, an exact purpose/owner/source issue, protected-resource
+exclusions, dependencies, and a bounded expiry or review time are recorded.
+Use the smallest existing or local environment capable of producing the gate
+evidence; hosted QA/stage capacity is not a default per-application fixture.
+
+When the proof is complete, the lane is superseded, or the resource is no
+longer necessary, teardown becomes part of that lane's Definition of Done.
+The closeout must prove deletion of the exact provider resource and all of its
+exclusive configuration, volumes, networks, processes, and disposable files,
+then prove named production/shared exclusions remain present. Merely writing a
+future cleanup procedure is not closure. Retention is allowed only with a
+current use, accountable owner, bounded expiry/review, and explicit
+cost/capacity rationale. Destructive cleanup stays exact-target and governed;
+it never authorizes project-wide, server-wide, production, or shared-resource
+deletion.
+
 ## Meaningful Commit, Push, And Deployment Rule
 
 Implementation must not accumulate indefinitely as local-only work. A coherent

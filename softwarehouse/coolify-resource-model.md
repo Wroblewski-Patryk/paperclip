@@ -52,6 +52,32 @@ Read-only inventory may discover resource ids when the project id and token are
 configured. Mutating actions require an explicit release issue or user-approved
 task.
 
+Temporary Coolify resources additionally follow
+`softwarehouse-managed-resource-lifecycle:v1`: discover/reuse before create,
+record the exact project/environment/resource UUIDs and protected production
+exclusions, and attach a bounded expiry/review plus teardown trigger. Prefer
+local proof when it satisfies the same gate. Once the temporary purpose ends,
+delete the exact application/service/database with its exclusive
+configurations, volumes, and networks; verify provider 404/readback for the
+target and fresh success readback for every protected resource. An empty
+temporary environment should also be removed through the provider-supported
+path. A documented cleanup plan without provider readback is incomplete.
+
+For an issue carrying the exact contract, use the dry-run first and add
+`--apply` only after its allowlisted readback is green:
+
+```powershell
+pnpm softwarehouse:coolify-managed-resource-teardown -- --issue=LUC-0000 --application=<qa-app-uuid> --project=<project-uuid> --environment=<environment-uuid> --exclude-resource=<production-app-uuid>
+```
+
+Use `--verify-deleted` for read-only target-absence and protected-resource
+presence evidence after an asynchronous provider deletion. On `--apply`, the
+helper waits within a bounded readback window without repeating the destructive
+request, then verifies every protected resource. The helper refuses
+missing production exclusions, mismatched project/environment membership,
+running or published targets, unreviewed deployment history, and issue text
+without the exact teardown authorization marker.
+
 If the Soar project is not visible after login, Ops should first check the
 Coolify team/workspace selector and switch to the appropriate team if available.
 Missing project visibility after team switching is a credential/scope blocker,

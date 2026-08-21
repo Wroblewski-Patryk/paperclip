@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { secretFreshnessTimestamp, stableSecretMetadata } from "./lib/gate-freshness.mjs";
 import { rootBlockerIdentifierFor, terminalBlockersFor } from "./lib/issue-blockers.mjs";
+import { evaluateManagedResourceLifecycles } from "./lib/managed-resource-lifecycle.mjs";
 import { normalizeKey, uniqueSecretsForKeys } from "./lib/secret-aliases.mjs";
 import { softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.mjs";
 import { softwarehouseActiveApplicationProjectNames } from "./lib/softwarehouse-project-registry.mjs";
@@ -283,7 +284,7 @@ async function resolveCompany() {
 
 const company = await resolveCompany();
 
-const [health, agents, projects, routines, issues, liveRuns, secrets] = await Promise.all([
+const [health, agents, projects, routines, issues, liveRuns, secrets, managedResourceIssueSummaries] = await Promise.all([
   request("GET", "/api/health"),
   request("GET", `/api/companies/${company.id}/agents`),
   request("GET", `/api/companies/${company.id}/projects`),
@@ -291,7 +292,11 @@ const [health, agents, projects, routines, issues, liveRuns, secrets] = await Pr
   request("GET", `/api/companies/${company.id}/issues?limit=2000`),
   request("GET", `/api/companies/${company.id}/live-runs`),
   request("GET", `/api/companies/${company.id}/secrets`),
+  request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent("softwarehouse-managed-resource-lifecycle:v1")}&limit=500`),
 ]);
+const managedResourceIssues = await Promise.all(
+  managedResourceIssueSummaries.map((issue) => request("GET", `/api/issues/${issue.id}`).catch(() => issue)),
+);
 
 const activeAgents = agents.filter((agent) => agent.status !== "terminated");
 const activeAgentById = new Map(activeAgents.map((agent) => [agent.id, agent]));
@@ -1154,6 +1159,13 @@ if (runnableIssues.length > 0) {
 }
 
 const findings = [];
+const managedResourceLifecycle = evaluateManagedResourceLifecycles(managedResourceIssues);
+if (managedResourceLifecycle.findings.length > 0) findings.push({
+  severity: "warn",
+  area: "managed-resource-lifecycle",
+  message: "Temporary managed resources have expired, duplicate, incomplete, or unverified teardown contracts.",
+  items: managedResourceLifecycle.findings,
+});
 if (health.status !== "ok") findings.push({ severity: "critical", area: "health", message: "Paperclip API health is not ok." });
 if (health.devServer?.restartRequired) findings.push({ severity: "warn", area: "health", message: "Dev server restart is required.", detail: health.devServer.reason });
 if (activeDeliveryPilotsInPreparationOnly.length > 0) findings.push({
