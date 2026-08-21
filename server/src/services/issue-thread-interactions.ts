@@ -115,12 +115,21 @@ function hydrateInteraction(
         result: row.result ? suggestTasksResultSchema.parse(row.result) : null,
       } satisfies SuggestTasksInteraction;
     case "ask_user_questions":
+      {
+        const result = row.result as Record<string, unknown> | null;
+        const normalizedResult = result?.cancelled === true && result.answers === undefined
+          ? { ...result, answers: [] }
+          : result;
+
       return {
         ...base,
         kind: "ask_user_questions",
         payload: askUserQuestionsPayloadSchema.parse(row.payload),
-        result: row.result ? askUserQuestionsResultSchema.parse(row.result) : null,
+        result: normalizedResult
+          ? askUserQuestionsResultSchema.parse(normalizedResult)
+          : null,
       } satisfies AskUserQuestionsInteraction;
+      }
     case "request_confirmation":
       return {
         ...base,

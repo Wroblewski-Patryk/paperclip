@@ -212,4 +212,66 @@ describe("issueThreadInteractionService", () => {
     expect(state.interactionUpdates).toHaveLength(1);
     expect(state.issueTouches).toHaveLength(1);
   });
+
+  it("lists pending questions alongside legacy cancelled results without answers", async () => {
+    const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
+    const pendingRow = {
+      id: "pending",
+      companyId: "company-1",
+      issueId: "issue-1",
+      kind: "ask_user_questions",
+      status: "pending",
+      continuationPolicy: "wake_assignee",
+      sourceCommentId: null,
+      sourceRunId: null,
+      title: null,
+      summary: null,
+      createdByAgentId: "agent-1",
+      createdByUserId: null,
+      resolvedByAgentId: null,
+      resolvedByUserId: null,
+      resolvedAt: null,
+      payload: {
+        version: 1,
+        questions: [{
+          id: "q",
+          prompt: "Choose",
+          selectionMode: "single",
+          options: [{ id: "a", label: "A" }],
+        }],
+      },
+      result: null,
+      createdAt: new Date("2026-04-20T10:00:00.000Z"),
+      updatedAt: new Date("2026-04-20T10:00:00.000Z"),
+    };
+    const legacyCancelledRow = {
+      ...pendingRow,
+      id: "legacy-cancelled",
+      status: "cancelled",
+      result: { version: 1, cancelled: true },
+      resolvedByAgentId: null,
+      resolvedByUserId: "board",
+      resolvedAt: new Date("2026-04-20T10:05:00.000Z"),
+      updatedAt: new Date("2026-04-20T10:05:00.000Z"),
+    };
+    const db: any = {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            orderBy: async () => [pendingRow, legacyCancelledRow],
+          }),
+        }),
+      }),
+    };
+
+    const interactions = await issueThreadInteractionService(db).listForIssue("issue-1");
+
+    expect(interactions).toHaveLength(2);
+    expect(interactions[0]?.result).toBeNull();
+    expect(interactions[1]?.result).toMatchObject({
+      version: 1,
+      cancelled: true,
+      answers: [],
+    });
+  });
 });
