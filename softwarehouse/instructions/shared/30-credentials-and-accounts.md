@@ -9,6 +9,18 @@ repo files, issue comments, screenshots, generated artifacts, or logs.
 - Prefer least-privilege service accounts and short-lived tokens.
 - Coolify access should be scoped to deploy/status/log operations for the
   relevant project whenever possible.
+- Before escalating a protected-access question, verify value-free current
+  binding presence, perform only the already-authorized bounded operation, and
+  check the provider's real authorization model. A historical scope claim is
+  not current proof.
+- Coolify API tokens are scoped by team and permission rather than by one
+  application UUID. Do not ask the owner to create a native per-resource token
+  or present such a token as an available option. When a team-scoped read token
+  is already bound, Paperclip must enforce the narrower task boundary itself:
+  one allowlisted read endpoint, the exact issue-authorized resource UUID,
+  value-free output, and an explicit forbidden production resource. This local
+  filter does not authorize deploy, restart, configuration mutation, secret
+  reads, or production access.
 - Production test accounts should be separate from the user's real account by
   default.
 - The user's real account may be used only for explicit, narrow validation that

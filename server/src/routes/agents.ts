@@ -3,7 +3,7 @@ import { generateKeyPairSync, randomUUID } from "node:crypto";
 import path from "node:path";
 import type { Db } from "@paperclipai/db";
 import { admissionDecisions, agents as agentsTable, companies, heartbeatRuns, issues as issuesTable, projects as projectsTable } from "@paperclipai/db";
-import { and, desc, eq, inArray, not, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, not, sql } from "drizzle-orm";
 import {
   agentSkillSyncSchema,
   agentMineInboxQuerySchema,
@@ -3375,7 +3375,7 @@ export function agentRoutes(
             eq(admissionDecisions.agentId, run.agentId),
             eq(admissionDecisions.issueId, run.issueId),
             eq(admissionDecisions.admitted, false),
-            sql`${admissionDecisions.createdAt} >= ${run.createdAt}`,
+            gte(admissionDecisions.createdAt, run.createdAt),
             sql`${admissionDecisions.source} like 'heartbeat.claim:%'`,
           )).orderBy(desc(admissionDecisions.createdAt)).limit(1).then((rows) => rows[0] ?? null)
         : null;

@@ -3205,6 +3205,17 @@ test("softwarehouse instructions preserve the V0 to V2 autonomous roadmap", asyn
   assert.match(operatingManual, /Roost must not be parked when local\s+known-state, source-control, implementation, proof, or documentation work is\s+legal and owner-scoped/);
 });
 
+test("protected access decisions verify current bindings and provider scope before owner escalation", async () => {
+  const credentials = await readFile("softwarehouse/instructions/shared/30-credentials-and-accounts.md", "utf8");
+  const companyOsConfigurator = await readFile("scripts/configure-softwarehouse-company-os.mjs", "utf8");
+
+  assert.match(credentials, /Coolify API tokens are scoped by team and permission rather than by one\s+application UUID/);
+  assert.match(credentials, /one allowlisted read endpoint/);
+  assert.match(credentials, /does not authorize deploy, restart, configuration mutation/);
+  assert.match(companyOsConfigurator, /fresh value-free check of the existing secret-ref bindings/);
+  assert.match(companyOsConfigurator, /do not offer that impossible grant as an owner option/);
+});
+
 test("softwarehouse instructions distinguish local platform V0 from product V1 labels", async () => {
   const source = await readFile("softwarehouse/instructions/shared/00-current-pilot.md", "utf8");
 

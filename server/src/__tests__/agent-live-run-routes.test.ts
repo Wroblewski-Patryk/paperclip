@@ -1,4 +1,5 @@
 import express from "express";
+import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import request from "supertest";
@@ -381,6 +382,13 @@ describe("agent live run routes", () => {
     expect(limit).toHaveBeenCalledWith(50);
     expect(res.body).toHaveLength(50);
     expect(mockHeartbeatService.buildRunOutputSilence).toHaveBeenCalledTimes(50);
+  });
+
+  it("uses the timestamp column encoder when comparing queued-run admission decisions", async () => {
+    const source = await readFile(new URL("../routes/agents.ts", import.meta.url), "utf8");
+
+    expect(source).toContain("gte(admissionDecisions.createdAt, run.createdAt)");
+    expect(source).not.toContain("sql`${admissionDecisions.createdAt} >= ${run.createdAt}`");
   });
 
   it("enriches company live runs with the effective model profile and quota lane", async () => {

@@ -1006,3 +1006,34 @@ Current evidence:
   AdminLoginTest: 3 tests, 18 assertions, with no application source mutation.
 - Decision-authority and runtime tests pass; the entry instruction was synced
   to all 39 agents.
+
+## 2026-08-21 - Protected access must be proven before it becomes an owner decision
+
+Observed pattern: LUC-2469 asked the owner to choose a temporary Coolify grant
+limited to one Roost QA application, although the DRE already had current
+secret-ref bindings that could perform the required read. Coolify authorizes
+API tokens by team and permission, not by an individual application UUID, so
+the proposed native per-resource option was not an available provider action.
+
+Standing rule:
+
+- Before a protected-access escalation, freshly verify value-free binding
+  presence, the exact bounded operation, and the provider's documented scope.
+- Existing sufficient read access is a technical path, not a repeated owner
+  authorization question.
+- Do not offer a provider capability that does not exist. Where a provider
+  token is necessarily broader, enforce the task boundary in Paperclip with an
+  exact resource identifier, an allowlisted read endpoint and fields, and an
+  explicit production exclusion. That filter never expands into mutation.
+- Separate access proof from resource readiness. A successful read can prove
+  access while simultaneously proving the QA resource is unhealthy or
+  incompletely configured; the latter remains technical delivery work.
+
+Current evidence:
+
+- The issue-bound LUC-2469 observer read only QA resource
+  `xj0ch8j95devlvegx8sa2tqk`, returned allowlisted value-free facts, and did not
+  access production resource `rnqqkhl3o3dut4qv56mlxly2`.
+- The fresh result was `exited:unhealthy`, with no FQDN, health check disabled,
+  and incomplete destination/source/server facts. No deploy, restart, secret
+  read, configuration write, or production operation was performed.
