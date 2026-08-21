@@ -1055,3 +1055,22 @@ Standing prevention:
   cost/capacity ownership;
 - delete only exact authorized targets, then read back both target absence and
   protected production/shared presence.
+
+## 2026-08-21 - Projection and recovery ownership boundaries
+
+Observed pattern: board-facing constraints counted internal preparation and
+unadmitted backlog as owner/runnable work, while recovery could overwrite a
+newer cancellation and treat quota admission as execution failure.
+
+Standing rule:
+
+- AIA owns preparation and classification until a complete owner briefing is
+  explicitly decision-ready; the board owns only that prepared packet.
+- Backlog is portfolio intent. Dispatch ownership starts only after admission
+  to `todo`, dependency readiness, and hold clearance.
+- The latest committed issue disposition owns truth. Recovery may use one
+  compare-and-set transition but must never repair over a newer terminal or
+  workflow transition after enqueueing a wake.
+- Quota holds belong to admission/cost control. They suppress invocation and
+  resume after fresh quota evidence; they do not create product-failure or
+  recovery-failure work.

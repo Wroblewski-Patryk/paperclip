@@ -3,9 +3,12 @@ import test from "node:test";
 import {
   MANAGED_RESOURCE_LIFECYCLE_MARKER,
   assertApplicationBoundary,
+  assertEmptyCoolifyEnvironment,
+  assertEnvironmentTeardownAuthorization,
   assertTeardownAuthorization,
   assertUnusedTemporaryApplication,
   coolifyApplicationDeleteRoute,
+  coolifyEnvironmentDeleteRoute,
   evaluateManagedResourceLifecycles,
 } from "./lib/managed-resource-lifecycle.mjs";
 
@@ -23,6 +26,9 @@ const authorization = {
     "disposition: teardown_authorized",
     `excludedResourceUuid: ${productionUuid}`,
   ].join("\n"),
+};
+const environmentAuthorization = {
+  description: `${authorization.description}\nenvironmentDisposition: teardown_authorized`,
 };
 
 test("teardown requires an exact issue authorization and production exclusion", () => {
@@ -90,4 +96,42 @@ test("Coolify deletion always includes configurations, volumes, networks, and bo
   for (const token of ["delete_configurations=true", "delete_volumes=true", "docker_cleanup=true", "delete_connected_networks=true"]) {
     assert.match(route, new RegExp(token));
   }
+});
+
+test("empty-environment teardown requires a separate exact authorization", () => {
+  assert.doesNotThrow(() => assertEnvironmentTeardownAuthorization({
+    issue: environmentAuthorization,
+    applicationUuid,
+    projectUuid,
+    environmentUuid,
+    excludedResourceUuids: [productionUuid],
+  }));
+  assert.throws(() => assertEnvironmentTeardownAuthorization({
+    issue: authorization,
+    applicationUuid,
+    projectUuid,
+    environmentUuid,
+    excludedResourceUuids: [productionUuid],
+  }), /missing explicit empty-environment/);
+});
+
+test("empty-environment proof fails closed on resources and uninspectable provider fields", () => {
+  const empty = {
+    applications: [], mariadbs: [], mongodbs: [], mysqls: [], postgresqls: [], redis: [], services: [],
+  };
+  assert.throws(() => assertEmptyCoolifyEnvironment(empty), /shared-variable field/);
+  assert.deepEqual(
+    assertEmptyCoolifyEnvironment(empty, { allowMissingSharedVariableField: true }).relationCounts,
+    { applications: 0, mariadbs: 0, mongodbs: 0, mysqls: 0, postgresqls: 0, redis: 0, services: 0 },
+  );
+  assert.throws(() => assertEmptyCoolifyEnvironment({ ...empty, applications: [{ uuid: applicationUuid }] }, { allowMissingSharedVariableField: true }), /applications=1/);
+  assert.throws(() => assertEmptyCoolifyEnvironment({ ...empty, shared_variables: [{}] }), /shared_variables entries/);
+});
+
+test("Coolify environment deletion uses only the exact project/environment route", () => {
+  assert.equal(
+    coolifyEnvironmentDeleteRoute(projectUuid, environmentUuid),
+    `/api/v1/projects/${projectUuid}/${environmentUuid}`,
+  );
+  assert.throws(() => coolifyEnvironmentDeleteRoute("", environmentUuid), /exact provider resource identifier/);
 });

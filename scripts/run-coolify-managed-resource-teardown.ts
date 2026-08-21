@@ -5,9 +5,12 @@ import { secretService } from "../server/src/services/secrets.js";
 import {
   assertApplicationBoundary,
   assertBoundedResourceRef,
+  assertEmptyCoolifyEnvironment,
+  assertEnvironmentTeardownAuthorization,
   assertTeardownAuthorization,
   assertUnusedTemporaryApplication,
   coolifyApplicationDeleteRoute,
+  coolifyEnvironmentDeleteRoute,
 } from "./lib/managed-resource-lifecycle.mjs";
 
 const API_BASE = process.env.PAPERCLIP_API_URL ?? "http://127.0.0.1:3200";
@@ -66,6 +69,24 @@ async function waitForApplicationDeletion(baseUrl: string, token: string, applic
   throw new Error("Coolify accepted the deletion, but the application remained visible after the bounded verification window; do not retry deletion automatically");
 }
 
+async function waitForEnvironmentDeletion(baseUrl: string, token: string, projectUuid: string, environmentUuid: string) {
+  const attempts = 15;
+  const route = coolifyEnvironmentDeleteRoute(projectUuid, environmentUuid);
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const response = await coolifyRequest(baseUrl, token, route);
+    if (response.status === 404) return;
+    if (!response.ok) throw new Error(`Post-delete environment read failed with ${response.status}`);
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+  throw new Error("Coolify accepted the environment deletion, but it remained visible after the bounded verification window; do not retry deletion automatically");
+}
+
+function projectEnvironmentItems(value: unknown) {
+  const project = record(value);
+  if (!Array.isArray(project.environments)) throw new Error("Coolify project environment list is not inspectable");
+  return project.environments.map(record);
+}
+
 function deploymentItems(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
   const payload = record(value);
@@ -99,6 +120,7 @@ async function main() {
   if (excludedResourceUuids.length === 0) throw new Error("At least one production/protected resource exclusion is required");
   const apply = process.argv.includes("--apply");
   const verifyDeleted = process.argv.includes("--verify-deleted");
+  const deleteEmptyEnvironment = process.argv.includes("--delete-empty-environment");
 
   const [issue, agents] = await Promise.all([
     paperclipGet(`/api/issues/${encodeURIComponent(issueIdentifier)}`),
@@ -126,6 +148,59 @@ async function main() {
     const baseUrl = resolved.env.COOLIFY_BASE_URL?.replace(/\/+$/, "");
     const token = resolved.env.COOLIFY_DEPLOY_API_TOKEN;
     if (!baseUrl || !token) throw new Error("Coolify teardown bindings did not resolve");
+
+    if (deleteEmptyEnvironment) {
+      assertEnvironmentTeardownAuthorization({ issue, applicationUuid, projectUuid, environmentUuid, excludedResourceUuids });
+      const allowMissingSharedVariableField = String(issue.description ?? "")
+        .includes("sharedVariableBoundary: provider_version_omits_environment_field_verified_empty");
+      const [applicationReadback, environmentResponse, projectResponse, ...protectedResponses] = await Promise.all([
+        coolifyRequest(baseUrl, token, `/api/v1/applications/${applicationUuid}`),
+        coolifyRequest(baseUrl, token, coolifyEnvironmentDeleteRoute(projectUuid, environmentUuid)),
+        coolifyRequest(baseUrl, token, `/api/v1/projects/${projectUuid}`),
+        ...excludedResourceUuids.map((uuid) => coolifyRequest(baseUrl, token, `/api/v1/applications/${uuid}`)),
+      ]);
+      if (applicationReadback.status !== 404) throw new Error("QA application must be absent before empty-environment teardown");
+      const environment = await requireJson(environmentResponse, "Environment read");
+      if (String(record(environment).uuid ?? "") !== environmentUuid) throw new Error("Environment identity mismatch");
+      const project = await requireJson(projectResponse, "Project read");
+      const environments = projectEnvironmentItems(project);
+      if (environments.filter((item) => String(item.uuid ?? "") === environmentUuid).length !== 1) {
+        throw new Error("Authorized environment is not present exactly once in its project");
+      }
+      const emptyEvidence = assertEmptyCoolifyEnvironment(environment, { allowMissingSharedVariableField });
+      const protectedReadback = await Promise.all(protectedResponses.map(async (response, index) => {
+        const uuid = excludedResourceUuids[index]!;
+        const data = await requireJson(response, `Protected application ${uuid} read`);
+        if (String(record(data).uuid ?? "") !== uuid) throw new Error("A protected-resource readback did not match its exclusion");
+        return { uuid, present: true };
+      }));
+      const before = {
+        uuid: environmentUuid,
+        name: record(environment).name ?? null,
+        ...emptyEvidence,
+        qaApplicationAbsent: true,
+        protectedResourcesVerified: protectedReadback.length,
+      };
+      if (!apply) {
+        console.log(JSON.stringify({ mode: "empty_environment_dry_run", authorized: true, deleteRoute: coolifyEnvironmentDeleteRoute(projectUuid, environmentUuid), before, secretsReturned: false }, null, 2));
+        return;
+      }
+      const deletion = await coolifyRequest(baseUrl, token, coolifyEnvironmentDeleteRoute(projectUuid, environmentUuid), { method: "DELETE" });
+      if (!deletion.ok) throw new Error(`Coolify environment deletion failed with ${deletion.status}`);
+      await waitForEnvironmentDeletion(baseUrl, token, projectUuid, environmentUuid);
+      const projectAfter = await coolifyRequest(baseUrl, token, `/api/v1/projects/${projectUuid}`).then((response) => requireJson(response, "Project post-delete read"));
+      if (projectEnvironmentItems(projectAfter).some((item) => String(item.uuid ?? "") === environmentUuid)) {
+        throw new Error("Deleted environment remains in the project environment list");
+      }
+      const protectedAfter = await Promise.all(excludedResourceUuids.map(async (uuid) => {
+        const response = await coolifyRequest(baseUrl, token, `/api/v1/applications/${uuid}`);
+        const data = await requireJson(response, `Protected application ${uuid} post-delete read`);
+        if (String(record(data).uuid ?? "") !== uuid) throw new Error("Protected application identity changed after environment teardown");
+        return { uuid, present: true };
+      }));
+      console.log(JSON.stringify({ mode: "empty_environment_apply", deleted: true, before, protectedReadback: protectedAfter, secretsReturned: false }, null, 2));
+      return;
+    }
 
     if (verifyDeleted) {
       const targetReadback = await coolifyRequest(baseUrl, token, `/api/v1/applications/${applicationUuid}`);

@@ -70,6 +70,22 @@ For an issue carrying the exact contract, use the dry-run first and add
 pnpm softwarehouse:coolify-managed-resource-teardown -- --issue=LUC-0000 --application=<qa-app-uuid> --project=<project-uuid> --environment=<environment-uuid> --exclude-resource=<production-app-uuid>
 ```
 
+After the application is verified absent, an empty environment is a separate
+phase and requires `environmentDisposition: teardown_authorized` in the same
+exact issue contract. Run its dry-run first:
+
+```powershell
+pnpm softwarehouse:coolify-managed-resource-teardown -- --issue=LUC-0000 --application=<absent-qa-app-uuid> --project=<project-uuid> --environment=<empty-environment-uuid> --exclude-resource=<production-app-uuid> --delete-empty-environment
+```
+
+This phase refuses any application, database, Redis, or service relation. If a
+deployed Coolify version omits environment-level shared-variable fields, the
+issue must additionally record
+`sharedVariableBoundary: provider_version_omits_environment_field_verified_empty`
+from a current provider readback before apply. The exact environment DELETE is
+issued once; bounded polling and project-list absence verify completion without
+retrying the destructive request.
+
 Use `--verify-deleted` for read-only target-absence and protected-resource
 presence evidence after an asynchronous provider deletion. On `--apply`, the
 helper waits within a bounded readback window without repeating the destructive

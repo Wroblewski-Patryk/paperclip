@@ -89,6 +89,7 @@ import {
   SUCCESSFUL_RUN_HANDOFF_REQUIRED_NOTICE_BODY,
   SUCCESSFUL_RUN_MISSING_STATE_REASON,
 } from "../services/recovery/index.ts";
+import { recoveryService } from "../services/recovery/service.ts";
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
 
@@ -3239,6 +3240,34 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(issue).toMatchObject({ status: "in_review", assigneeAgentId: agentId });
   });
 
+  it("keeps quota-held assigned work in place without creating a false recovery escalation", async () => {
+    const { companyId, issueId } = await seedStrandedIssueFixture({
+      status: "in_progress",
+      runStatus: "failed",
+      runErrorCode: "issue_execution_quota_hold",
+      runError: "Issue execution quota hard hold",
+      retryReason: "issue_continuation_needed",
+    });
+    const heartbeat = heartbeatService(db);
+
+    const result = await heartbeat.reconcileStrandedAssignedIssues();
+
+    expect(result.escalated).toBe(0);
+    expect(result.continuationRequeued).toBe(0);
+    expect(result.recoveryActionWakesRequeued).toBe(0);
+    expect(result.skipped).toBe(1);
+    expect(result.issueIds).toEqual([]);
+    const issue = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0] ?? null);
+    expect(issue?.status).toBe("in_progress");
+    const actions = await db
+      .select()
+      .from(issueRecoveryActions)
+      .where(and(eq(issueRecoveryActions.companyId, companyId), eq(issueRecoveryActions.sourceIssueId, issueId)));
+    expect(actions).toHaveLength(0);
+    const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
+    expect(comments).toHaveLength(0);
+  });
+
   it("escalates non-retryable continuation failures immediately without enqueuing another retry", async () => {
     const { companyId, agentId, issueId, runId } = await seedStrandedIssueFixture({
       status: "in_progress",
@@ -3612,6 +3641,31 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(comments[0]?.body).toContain("still has no live execution path");
     expect(comments[0]?.body).toContain(`Recovery action: \`${recoveryAction.id}\``);
     expect(comments[0]?.body).toContain("Recovery owner: [CodexCoder]");
+  });
+
+  it("does not overwrite a terminal disposition committed while a recovery wake is enqueued", async () => {
+    const { issueId } = await seedStrandedIssueFixture({
+      status: "in_progress",
+      runStatus: "succeeded",
+      retryReason: "issue_continuation_needed",
+      runSource: "issue.productive_terminal_continuation_recovery",
+      livenessState: "advanced",
+    });
+    let wakeObserved = false;
+    const recovery = recoveryService(db, {
+      enqueueWakeup: async () => {
+        wakeObserved = true;
+        await db.update(issues).set({ status: "cancelled" }).where(eq(issues.id, issueId));
+        return null;
+      },
+    });
+
+    const result = await recovery.reconcileStrandedAssignedIssues();
+
+    expect(wakeObserved).toBe(true);
+    expect(result.escalated).toBe(1);
+    const issue = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0] ?? null);
+    expect(issue?.status).toBe("cancelled");
   });
 
   it("allows one productive-terminal recovery after regular continuation recovery made progress", async () => {

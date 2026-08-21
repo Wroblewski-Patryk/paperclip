@@ -42,6 +42,22 @@ const OPEN_WORK_CONDITION = and(
   sql`${issues.status} not in ('done', 'cancelled')`,
 );
 
+// Keep this projection aligned with decision-center isOwnerDecisionReady().
+// Pending interactions that AIA still has to classify are internal work, not
+// owner decisions and must not inflate the board-facing constraint count.
+const OWNER_READY_DECISION_CONDITION = sql`
+  ${issueThreadInteractions.payload}#>>'{decisionContext,audience}' = 'board'
+  and lower(coalesce(${issueThreadInteractions.payload}#>>'{decisionContext,decisionReady}', 'false')) = 'true'
+  and ${issueThreadInteractions.payload}#>>'{decisionContext,ownerBriefing,preparedBy}' = 'aia'
+  and ${issueThreadInteractions.payload}#>>'{decisionContext,ownerBriefing,language}' = 'pl'
+  and jsonb_typeof(${issueThreadInteractions.payload}#>'{decisionContext,ownerBriefing,contextFacts}') = 'array'
+  and jsonb_array_length(${issueThreadInteractions.payload}#>'{decisionContext,ownerBriefing,contextFacts}') >= 2
+  and jsonb_typeof(${issueThreadInteractions.payload}#>'{decisionContext,ownerBriefing,options}') = 'array'
+  and jsonb_array_length(${issueThreadInteractions.payload}#>'{decisionContext,ownerBriefing,options}') >= 1
+  and jsonb_typeof(${issueThreadInteractions.payload}#>'{decisionContext,ownerBriefing,afterApproval}') = 'array'
+  and jsonb_array_length(${issueThreadInteractions.payload}#>'{decisionContext,ownerBriefing,afterApproval}') >= 1
+`;
+
 function asIso(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
@@ -268,6 +284,16 @@ export function companySituationService(db: Db) {
               where interaction.company_id=i.company_id
                 and interaction.issue_id=i.id
                 and interaction.status='pending'
+                and interaction.payload#>>'{decisionContext,audience}' = 'board'
+                and lower(coalesce(interaction.payload#>>'{decisionContext,decisionReady}', 'false')) = 'true'
+                and interaction.payload#>>'{decisionContext,ownerBriefing,preparedBy}' = 'aia'
+                and interaction.payload#>>'{decisionContext,ownerBriefing,language}' = 'pl'
+                and jsonb_typeof(interaction.payload#>'{decisionContext,ownerBriefing,contextFacts}') = 'array'
+                and jsonb_array_length(interaction.payload#>'{decisionContext,ownerBriefing,contextFacts}') >= 2
+                and jsonb_typeof(interaction.payload#>'{decisionContext,ownerBriefing,options}') = 'array'
+                and jsonb_array_length(interaction.payload#>'{decisionContext,ownerBriefing,options}') >= 1
+                and jsonb_typeof(interaction.payload#>'{decisionContext,ownerBriefing,afterApproval}') = 'array'
+                and jsonb_array_length(interaction.payload#>'{decisionContext,ownerBriefing,afterApproval}') >= 1
             )
         `).then((rows) => Number(rows[0]?.count ?? 0)),
         db.execute<{ count: number | string }>(sql`
@@ -301,9 +327,25 @@ export function companySituationService(db: Db) {
             and(
               eq(issues.companyId, companyId),
               OPEN_WORK_CONDITION,
-              sql`${issues.status} in ('backlog', 'todo')`,
+              eq(issues.status, "todo"),
               isNull(issues.assigneeAgentId),
               isNull(issues.assigneeUserId),
+              sql`not exists (
+                select 1 from issue_relations relation
+                join issues blocker on blocker.id=relation.issue_id and blocker.company_id=relation.company_id
+                where relation.company_id=${issues.companyId}
+                  and relation.related_issue_id=${issues.id}
+                  and relation.type='blocks'
+                  and relation.status='active'
+                  and blocker.status not in ('done', 'cancelled')
+              )`,
+              sql`not exists (
+                select 1 from issue_tree_hold_members member
+                join issue_tree_holds hold on hold.id=member.hold_id and hold.company_id=member.company_id
+                where member.company_id=${issues.companyId}
+                  and member.issue_id=${issues.id}
+                  and hold.status='active'
+              )`,
             ),
           )
           .then((rows) => Number(rows[0]?.count ?? 0)),
@@ -325,9 +367,25 @@ export function companySituationService(db: Db) {
             and(
               eq(issues.companyId, companyId),
               OPEN_WORK_CONDITION,
-              sql`${issues.status} in ('backlog', 'todo')`,
+              eq(issues.status, "todo"),
               isNull(issues.assigneeAgentId),
               isNull(issues.assigneeUserId),
+              sql`not exists (
+                select 1 from issue_relations relation
+                join issues blocker on blocker.id=relation.issue_id and blocker.company_id=relation.company_id
+                where relation.company_id=${issues.companyId}
+                  and relation.related_issue_id=${issues.id}
+                  and relation.type='blocks'
+                  and relation.status='active'
+                  and blocker.status not in ('done', 'cancelled')
+              )`,
+              sql`not exists (
+                select 1 from issue_tree_hold_members member
+                join issue_tree_holds hold on hold.id=member.hold_id and hold.company_id=member.company_id
+                where member.company_id=${issues.companyId}
+                  and member.issue_id=${issues.id}
+                  and hold.status='active'
+              )`,
             ),
           )
           .orderBy(desc(issues.updatedAt))
@@ -345,6 +403,7 @@ export function companySituationService(db: Db) {
           .where(and(
             eq(issueThreadInteractions.companyId, companyId),
             eq(issueThreadInteractions.status, "pending"),
+            OWNER_READY_DECISION_CONDITION,
             eq(issues.companyId, companyId),
             eq(issues.status, "in_review"),
             OPEN_WORK_CONDITION,

@@ -2941,28 +2941,10 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       recoveryCause,
     });
 
-    if (recoveryAction.ownerAgentId && recoveryAction.ownerAgentId === input.issue.assigneeAgentId) {
-      const [currentIssue] = await db
-        .select({
-          status: issues.status,
-          assigneeAgentId: issues.assigneeAgentId,
-        })
-        .from(issues)
-        .where(eq(issues.id, input.issue.id))
-        .limit(1);
-      if (
-        currentIssue &&
-        (currentIssue.status !== recoveryDisposition ||
-          currentIssue.assigneeAgentId !== recoveryAction.ownerAgentId)
-      ) {
-        const reblocked = await issuesSvc.update(input.issue.id, {
-          status: recoveryDisposition,
-          blockedByIssueIds: blockerIds,
-          assigneeAgentId: recoveryAction.ownerAgentId,
-        });
-        if (reblocked) return reblocked;
-      }
-    }
+    // The compare-and-set write above is the only recovery disposition write.
+    // A board operator or an agent may legitimately cancel, complete, or move
+    // the source while the recovery wake is being enqueued. Never overwrite
+    // that newer disposition with a stale post-enqueue "repair".
 
     return updated;
   }
@@ -3017,6 +2999,13 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       }
 
       const latestRun = await getLatestIssueRun(issue.companyId, issue.id);
+      // A quota hold is an admission-policy stop, not a failed product run.
+      // Preserve the source disposition and wait for the quota window to
+      // reopen instead of manufacturing a recovery escalation.
+      if (classifyAutomaticRecoveryPolicyHold(latestRun)) {
+        result.skipped += 1;
+        continue;
+      }
       if (isStrandedIssueRecoveryIssue(issue) && isUnsuccessfulTerminalIssueRun(latestRun)) {
         const updated = await escalateStrandedRecoveryIssueInPlace({
           issue,

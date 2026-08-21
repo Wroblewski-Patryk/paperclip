@@ -47,6 +47,8 @@ test("shared agent instructions require the canonical lifecycle", async () => {
   assert.match(instructions, /softwarehouse-managed-resource-lifecycle:v1/);
   assert.match(instructions, /A teardown plan is not teardown evidence/);
   assert.match(instructions, /never create a\s+duplicate/i);
+  assert.match(instructions, /Application teardown and empty-environment teardown are distinct destructive\s+phases/i);
+  assert.match(instructions, /Never infer permission to delete an environment/i);
 });
 
 test("architecture, SDLC, procedure registry, and policy gates link the lifecycle", async () => {

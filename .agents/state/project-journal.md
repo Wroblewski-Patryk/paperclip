@@ -355,3 +355,26 @@ evidence.
   `queued`. Implementation is deliberately paused until the owner returns and
   explicitly authorizes work; the current OFF/draining behavior remains
   unchanged.
+
+### 2026-08-21 - Dashboard constraint truth and terminal recovery race
+
+- Board constraints must describe actionable state, not raw storage volume.
+  Only AIA-prepared, Polish, board-audience interactions with a complete owner
+  briefing count as owner decisions; internal AIA preparation remains internal
+  work. Only unassigned `todo` work with no unresolved dependency or tree hold
+  counts as runnable; unadmitted `backlog` proposals do not.
+- Three Featherly DNS/HTTPS signals were refreshed with value-free public
+  readback. Live company situation then reported zero stale signals, zero ready
+  owner decisions, zero unassigned runnable work, and zero attention items.
+- Recovery escalation contained a post-enqueue write that could overwrite a
+  newer terminal board disposition. The compare-and-set escalation write is
+  now the only disposition write; a deterministic race regression proves that
+  cancellation during wake enqueue remains cancelled.
+- `issue_execution_quota_hold` is an admission-policy stop, not a product or
+  agent failure. Stranded-work reconciliation now preserves the source state,
+  creates no false recovery action/comment, and waits for the quota window.
+- Roost's obsolete hosted-QA provisioning issue LUC-2153 was cancelled after
+  verified resource cleanup and its recovery action resolved. Separate empty
+  Coolify environment deletion now requires its own exact authorization,
+  provider emptiness proof, production exclusion, one bounded delete, and
+  absence/protected-resource readback.

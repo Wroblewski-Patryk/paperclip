@@ -62,6 +62,12 @@ resource rather than permanent background state.
   readback that the exact resource and its exclusive configurations, volumes,
   networks, processes, and disposable files are gone, while every named
   production/shared exclusion still resolves.
+- Application teardown and empty-environment teardown are distinct destructive
+  phases. Removing the latter requires a second exact authorization, proof that
+  the application is already absent, zero inspectable resource relations, and
+  post-delete absence in both the exact provider route and project inventory.
+  Never infer permission to delete an environment from permission to delete
+  one application.
 - If a resource must be retained, record the concrete current use, owner,
   bounded expiry/next review, and cost/capacity impact. Indefinite retention,
   absent ownership, or an expired lease is a blocker and cleanup finding.

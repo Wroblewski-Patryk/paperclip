@@ -387,9 +387,10 @@ describeEmbeddedPostgres("company situation service", () => {
       name: "Canary",
       status: "in_progress",
     });
-    const [acceptedTask, review] = await db.insert(issues).values([
+    const [acceptedTask, review, preparingReview] = await db.insert(issues).values([
       { companyId, projectId, title: "Accepted canary task", status: "todo", assigneeAgentId: agentId },
       { companyId, projectId, title: "Waiting for explicit review decision", status: "in_review", assigneeAgentId: agentId },
+      { companyId, projectId, title: "Waiting for internal AIA triage", status: "in_review", assigneeAgentId: agentId },
     ]).returning();
     const [delivery] = await db.insert(productDeliveries).values({
       companyId,
@@ -408,7 +409,46 @@ describeEmbeddedPostgres("company situation service", () => {
       kind: "request_confirmation",
       status: "pending",
       continuationPolicy: "none",
-      payload: { version: 1, prompt: "Accept or request changes?" },
+      payload: {
+        version: 1,
+        prompt: "Accept or request changes?",
+        decisionContext: {
+          version: 1,
+          audience: "board",
+          decisionClass: "owner_authority",
+          decisionReady: true,
+          authorityReason: "The board owns the decision.",
+          ownerBriefing: {
+            version: 1,
+            language: "pl",
+            preparedBy: "aia",
+            decision: "Czy zaakceptować wynik?",
+            contextFacts: ["Dowód A jest aktualny.", "Dowód B jest aktualny."],
+            options: [{ id: "accept", label: "Akceptuj", benefit: "Domyka pracę.", cost: "Brak.", risk: "Niskie." }],
+            recommendation: "Zaakceptuj.",
+            afterApproval: ["Zapisz wynik."],
+            rollback: "Wróć do przeglądu.",
+          },
+        },
+      },
+    });
+    await db.insert(issueThreadInteractions).values({
+      companyId,
+      issueId: preparingReview.id,
+      kind: "request_confirmation",
+      status: "pending",
+      continuationPolicy: "none",
+      payload: {
+        version: 1,
+        prompt: "Internal triage required.",
+        decisionContext: {
+          version: 1,
+          audience: "board",
+          decisionClass: "technical_review",
+          decisionReady: false,
+          authorityReason: "AIA must classify this technical request first.",
+        },
+      },
     });
 
     const situation = await companySituationService(db).get(companyId, { now: new Date("2026-08-08T17:00:00Z") });
@@ -498,6 +538,45 @@ describeEmbeddedPostgres("company situation service", () => {
     }));
     expect(situation.attention.map((signal) => signal.kind)).not.toContain("blocked_work");
     expect(situation.attention.map((signal) => signal.kind)).not.toContain("capacity_bottleneck");
+  });
+
+  it("labels only admitted, dependency-ready unassigned todo work as runnable", async () => {
+    const companyId = randomUUID();
+    const blockerId = randomUUID();
+    const waitingId = randomUUID();
+    const backlogId = randomUUID();
+    const readyId = randomUUID();
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Unassigned queue truth",
+      issuePrefix: "UQT",
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(issues).values([
+      { id: blockerId, companyId, title: "Unresolved prerequisite", status: "todo", assigneeUserId: "operator" },
+      { id: waitingId, companyId, title: "Unassigned but dependency-waiting", status: "todo" },
+      { id: backlogId, companyId, title: "Unadmitted backlog proposal", status: "backlog" },
+      { id: readyId, companyId, title: "Actually unassigned and runnable", status: "todo" },
+    ]);
+    await db.insert(issueRelations).values({
+      companyId,
+      issueId: blockerId,
+      relatedIssueId: waitingId,
+      type: "blocks",
+    });
+
+    const situation = await companySituationService(db).get(companyId, {
+      now: new Date("2026-08-21T03:00:00Z"),
+    });
+
+    expect(situation.work.unassignedRunnable).toBe(1);
+    expect(situation.attention).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "unassigned_runnable_work",
+        title: "1 unassigned runnable issue",
+        sources: [expect.objectContaining({ entityId: readyId })],
+      }),
+    ]));
   });
 
   it("does not report fresh active execution as a capacity bottleneck", async () => {

@@ -27,6 +27,14 @@ export function assertTeardownAuthorization({ issue, applicationUuid, projectUui
   }
 }
 
+export function assertEnvironmentTeardownAuthorization({ issue, applicationUuid, projectUuid, environmentUuid, excludedResourceUuids = [] }) {
+  assertTeardownAuthorization({ issue, applicationUuid, projectUuid, environmentUuid, excludedResourceUuids });
+  const description = String(issue?.description ?? "");
+  if (!description.includes("environmentDisposition: teardown_authorized")) {
+    throw new Error("Issue is missing explicit empty-environment teardown authorization");
+  }
+}
+
 export function assertApplicationBoundary({ application, environment, applicationUuid, environmentUuid, excludedResourceUuids = [] }) {
   const actualUuid = String(application?.uuid ?? "");
   if (actualUuid !== applicationUuid) throw new Error("Coolify returned a different application than requested");
@@ -61,6 +69,44 @@ export function coolifyApplicationDeleteRoute(applicationUuid) {
     delete_connected_networks: "true",
   });
   return `/api/v1/applications/${encodeURIComponent(uuid)}?${params.toString()}`;
+}
+
+export const COOLIFY_ENVIRONMENT_RESOURCE_RELATIONS = [
+  "applications",
+  "mariadbs",
+  "mongodbs",
+  "mysqls",
+  "postgresqls",
+  "redis",
+  "services",
+];
+
+export function assertEmptyCoolifyEnvironment(environment, { allowMissingSharedVariableField = false } = {}) {
+  const counts = {};
+  for (const key of COOLIFY_ENVIRONMENT_RESOURCE_RELATIONS) {
+    if (!Array.isArray(environment?.[key])) throw new Error(`Coolify environment relation ${key} is not inspectable`);
+    counts[key] = environment[key].length;
+  }
+  const nonEmpty = Object.entries(counts).filter(([, count]) => count > 0);
+  if (nonEmpty.length > 0) {
+    throw new Error(`Coolify environment is not empty: ${nonEmpty.map(([key, count]) => `${key}=${count}`).join(", ")}`);
+  }
+  const sharedVariableFields = ["environment_variables", "shared_variables", "sharedVariables"]
+    .filter((key) => Object.hasOwn(environment ?? {}, key));
+  if (sharedVariableFields.length === 0 && !allowMissingSharedVariableField) {
+    throw new Error("Coolify environment does not expose an inspectable shared-variable field");
+  }
+  for (const key of sharedVariableFields) {
+    if (!Array.isArray(environment[key])) throw new Error(`Coolify environment field ${key} is not inspectable`);
+    if (environment[key].length > 0) throw new Error(`Coolify environment has ${environment[key].length} ${key} entries`);
+  }
+  return { relationCounts: counts, sharedVariableFields };
+}
+
+export function coolifyEnvironmentDeleteRoute(projectUuid, environmentUuid) {
+  const project = assertBoundedResourceRef(projectUuid, "projectUuid");
+  const environment = assertBoundedResourceRef(environmentUuid, "environmentUuid");
+  return `/api/v1/projects/${encodeURIComponent(project)}/${encodeURIComponent(environment)}`;
 }
 
 function contractField(description, name) {
