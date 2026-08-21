@@ -115,7 +115,10 @@ async function createApp() {
     };
     next();
   });
-  app.use("/api", agentRoutes({} as any));
+  const db = {
+    transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(db)),
+  };
+  app.use("/api", agentRoutes(db as any));
   app.use(errorHandler);
   return app;
 }

@@ -4,16 +4,18 @@ import type { Db } from "@paperclipai/db";
 import {
   roostBridgePortfolioRouteVersion,
   softwarehouseControlStatusResponseSchema,
+  softwarehouseCoolifyFeatherlyInventoryResponseSchema,
   softwarehouseIssueTemplateCatalogResponseSchema,
   softwarehouseProjectTruthProbeRequestSchema,
   softwarehouseProjectTruthProbeResponseSchema,
   type SoftwarehouseControlStatusResponse,
+  type SoftwarehouseCoolifyFeatherlyInventoryResponse,
   type SoftwarehouseIssueTemplate,
   type SoftwarehouseIssueTemplateCatalogResponse,
   type SoftwarehouseProjectTruthProbeResponse,
 } from "@paperclipai/shared";
 import { Router } from "express";
-import { HttpError, unprocessable } from "../errors.js";
+import { forbidden, HttpError, unprocessable } from "../errors.js";
 import {
   buildRoostBridgePortfolioProjection,
   createUnavailableRoostBridgePortfolioProjection,
@@ -25,6 +27,8 @@ import { hierarchyHealthService } from "../services/hierarchy-health.js";
 import { probeSoftwarehouseProjectTruthHttps } from "../services/softwarehouse-project-truth-probe.js";
 import { logActivity } from "../services/activity-log.js";
 import { validate } from "../middleware/validate.js";
+import { agentService, secretService } from "../services/index.js";
+import { inspectSoftwarehouseCoolifyFeatherly } from "../services/softwarehouse-coolify-featherly-inventory.js";
 
 function resolveWorkspaceRoot() {
   const cwd = process.cwd();
@@ -872,6 +876,22 @@ export interface SoftwarehouseRoutesOptions {
     actor: ReturnType<typeof getActorInfo>;
     result: SoftwarehouseProjectTruthProbeResponse;
   }) => Promise<void>;
+  resolveCoolifyRuntimeBindings?: (input: {
+    companyId: string;
+    agentId: string;
+    runId: string;
+  }) => Promise<{ baseUrl: string; token: string }>;
+  coolifyFeatherlyInventory?: (input: {
+    baseUrl: string;
+    token: string;
+    auditRef: string;
+    sessionRef: string;
+  }) => Promise<SoftwarehouseCoolifyFeatherlyInventoryResponse>;
+  recordCoolifyFeatherlyInventoryActivity?: (input: {
+    companyId: string;
+    actor: ReturnType<typeof getActorInfo>;
+    result: SoftwarehouseCoolifyFeatherlyInventoryResponse;
+  }) => Promise<void>;
 }
 
 function isCanonicalSourceOwnerCompanyId(value: unknown): value is string {
@@ -928,6 +948,75 @@ export function softwarehouseRoutes(db?: Db, options: SoftwarehouseRoutesOptions
       },
     });
   });
+  const resolveCoolifyRuntimeBindings = options.resolveCoolifyRuntimeBindings ?? (async ({ companyId, agentId, runId }) => {
+    if (!db) throw new HttpError(503, "Coolify runtime binding storage is unavailable");
+    const agent = await agentService(db).getById(agentId);
+    if (!agent || agent.companyId !== companyId) {
+      throw forbidden("Agent runtime binding is unavailable");
+    }
+    const env = asRecord(asRecord(agent.adapterConfig).env);
+    const selected = {
+      COOLIFY_BASE_URL: env.COOLIFY_BASE_URL,
+      COOLIFY_API_TOKEN: env.COOLIFY_API_TOKEN,
+    };
+    for (const [key, binding] of Object.entries(selected)) {
+      const parsedBinding = asRecord(binding);
+      if (parsedBinding.type !== "secret_ref") {
+        throw forbidden(`Required secret-ref runtime binding is unavailable: ${key}`);
+      }
+    }
+
+    const resolved = await secretService(db).resolveEnvBindings(companyId, selected, {
+      consumerType: "agent",
+      consumerId: agentId,
+      actorType: "agent",
+      actorId: agentId,
+      heartbeatRunId: runId,
+    });
+    const manifestByPath = new Map(resolved.manifest.map((entry) => [entry.configPath, entry]));
+    if (manifestByPath.get("env.COOLIFY_BASE_URL")?.secretKey !== "coolify_base_url") {
+      throw forbidden("COOLIFY_BASE_URL must resolve from the coolify_base_url alias");
+    }
+    if (manifestByPath.get("env.COOLIFY_API_TOKEN")?.secretKey !== "coolify_read_api_token") {
+      throw forbidden("COOLIFY_API_TOKEN must resolve from the coolify_read_api_token alias");
+    }
+    const baseUrl = resolved.env.COOLIFY_BASE_URL?.trim();
+    const token = resolved.env.COOLIFY_API_TOKEN?.trim();
+    if (!baseUrl || !token) {
+      throw forbidden("Coolify runtime bindings did not resolve");
+    }
+    return { baseUrl, token };
+  });
+  const coolifyFeatherlyInventory = options.coolifyFeatherlyInventory ?? (async (input) =>
+    inspectSoftwarehouseCoolifyFeatherly(input.baseUrl, input.token, {
+      auditRef: input.auditRef,
+      sessionRef: input.sessionRef,
+    }));
+  const recordCoolifyFeatherlyInventoryActivity = options.recordCoolifyFeatherlyInventoryActivity
+    ?? (async ({ companyId, actor, result }) => {
+      if (!db) throw new HttpError(503, "Coolify inventory audit storage is unavailable");
+      await logActivity(db, {
+        companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        action: "softwarehouse.coolify_featherly_inventory",
+        entityType: "provider_inventory",
+        entityId: result.target.applicationUuid,
+        details: {
+          outcome: result.outcome,
+          providerHost: result.providerHost,
+          http: result.http,
+          scopeVerified: result.scopeVerified,
+          auditRef: result.auditRef,
+          sessionRef: result.sessionRef,
+          providerWriteAttempted: result.providerWriteAttempted,
+          requestMethods: result.requestMethods,
+          secretsReturned: result.secretsReturned,
+        },
+      });
+    });
 
   function ownsSoftwarehouseSource(companyId: string): boolean {
     return Boolean(sourceOwnerCompanyId && companyId === sourceOwnerCompanyId);
@@ -1005,6 +1094,32 @@ export function softwarehouseRoutes(db?: Db, options: SoftwarehouseRoutesOptions
       templates: await sourceLoaders.issueTemplates(),
     };
     res.json(softwarehouseIssueTemplateCatalogResponseSchema.parse(response));
+  });
+
+  router.get("/companies/:companyId/softwarehouse/coolify/featherly-inventory", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    requireSoftwarehouseSourceOwner(companyId);
+    if (req.actor.type !== "agent" || !req.actor.agentId || !req.actor.runId) {
+      throw forbidden("Agent runtime session access required");
+    }
+    const actor = getActorInfo(req);
+    const sessionRef = `heartbeat-run:${req.actor.runId}`;
+    const auditRef = `softwarehouse.coolify_featherly_inventory:${req.actor.runId}`;
+    const bindings = await resolveCoolifyRuntimeBindings({
+      companyId,
+      agentId: req.actor.agentId,
+      runId: req.actor.runId,
+    });
+    const result = softwarehouseCoolifyFeatherlyInventoryResponseSchema.parse(
+      await coolifyFeatherlyInventory({
+        ...bindings,
+        auditRef,
+        sessionRef,
+      }),
+    );
+    await recordCoolifyFeatherlyInventoryActivity({ companyId, actor, result });
+    res.json(result);
   });
 
   router.post(

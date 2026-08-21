@@ -148,6 +148,67 @@ export const softwarehouseProjectTruthProbeResponseSchema = z.object({
   }).strict().nullable(),
 }).strict();
 
+export const softwarehouseProviderHttpResultCategorySchema = z.enum([
+  "success",
+  "auth_error",
+  "not_found",
+  "client_error",
+  "provider_error",
+  "redirect_blocked",
+  "network_error",
+  "invalid_response",
+  "invalid_target",
+  "not_attempted",
+]);
+
+export const softwarehouseCoolifyFeatherlyInventoryResponseSchema = z.object({
+  observedAt: z.string().datetime(),
+  outcome: z.enum([
+    "verified",
+    "provider_error",
+    "scope_mismatch",
+    "invalid_runtime_binding",
+  ]),
+  providerHost: z.string().min(1).max(253),
+  target: z.object({
+    projectUuid: z.literal("a14a7zgzt6r13wtqxe5c916y"),
+    environmentUuid: z.literal("gz5uke25v3tpqcc0o47gyw2e"),
+    applicationUuid: z.literal("dc1mn3hep62twm6ih582kblw"),
+  }).strict(),
+  http: z.object({
+    project: softwarehouseProviderHttpResultCategorySchema,
+    environment: softwarehouseProviderHttpResultCategorySchema,
+    application: softwarehouseProviderHttpResultCategorySchema,
+  }).strict(),
+  scopeVerified: z.object({
+    project: z.boolean(),
+    environment: z.boolean(),
+    application: z.boolean(),
+  }).strict(),
+  project: z.object({
+    uuid: z.literal("a14a7zgzt6r13wtqxe5c916y"),
+    name: z.string().max(240).nullable(),
+  }).strict().nullable(),
+  environment: z.object({
+    uuid: z.literal("gz5uke25v3tpqcc0o47gyw2e"),
+    name: z.string().max(240).nullable(),
+  }).strict().nullable(),
+  application: z.object({
+    uuid: z.literal("dc1mn3hep62twm6ih582kblw"),
+    name: z.string().max(240).nullable(),
+    status: z.string().max(120).nullable(),
+    fqdn: z.string().max(500).nullable(),
+    gitBranch: z.string().max(240).nullable(),
+    gitCommitSha: z.string().max(120).nullable(),
+    updatedAt: z.string().max(120).nullable(),
+  }).strict().nullable(),
+  auditRef: z.string().min(1).max(240),
+  sessionRef: z.string().min(1).max(240),
+  providerWriteAttempted: z.literal(false),
+  requestMethods: z.array(z.literal("GET")).min(1).max(3),
+  secretsReturned: z.literal(false),
+}).strict();
+
 export const roostBridgePortfolioSchemaVersion = "1.0" as const;
 export const roostBridgePortfolioRouteVersion = "v1" as const;
 export const roostBridgePortfolioSourceVersion = "softwarehouse-status-v1" as const;
@@ -270,6 +331,8 @@ export type SoftwarehouseProjectTruthStatus = z.infer<typeof softwarehouseProjec
 export type SoftwarehouseControlStatusResponse = z.infer<typeof softwarehouseControlStatusResponseSchema>;
 export type SoftwarehouseProjectTruthProbeRequest = z.infer<typeof softwarehouseProjectTruthProbeRequestSchema>;
 export type SoftwarehouseProjectTruthProbeResponse = z.infer<typeof softwarehouseProjectTruthProbeResponseSchema>;
+export type SoftwarehouseProviderHttpResultCategory = z.infer<typeof softwarehouseProviderHttpResultCategorySchema>;
+export type SoftwarehouseCoolifyFeatherlyInventoryResponse = z.infer<typeof softwarehouseCoolifyFeatherlyInventoryResponseSchema>;
 export type RoostBridgePortfolioAggregate = z.infer<typeof roostBridgePortfolioAggregateSchema>;
 export type RoostBridgePortfolioItem = z.infer<typeof roostBridgePortfolioItemSchema>;
 export type RoostBridgePortfolioProjection = z.infer<typeof roostBridgePortfolioProjectionSchema>;

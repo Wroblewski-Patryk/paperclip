@@ -44,6 +44,7 @@ const mockAgentService = vi.hoisted(() => ({
   create: vi.fn(),
   activatePendingApproval: vi.fn(),
   update: vi.fn(),
+  rollbackConfigRevision: vi.fn(),
   updatePermissions: vi.fn(),
   getChainOfCommand: vi.fn(),
   resolveByReference: vi.fn(),
@@ -223,7 +224,11 @@ function createDbStub(options: { requireBoardApprovalForNewAgents?: boolean } = 
   };
 }
 
-async function createApp(actor: Record<string, unknown>, dbOptions: { requireBoardApprovalForNewAgents?: boolean } = {}) {
+async function createApp(
+  actor: Record<string, unknown>,
+  dbOptions: { requireBoardApprovalForNewAgents?: boolean } = {},
+  dbOverride?: unknown,
+) {
   const [{ errorHandler }, { agentRoutes }] = await Promise.all([
     import("../middleware/index.js") as Promise<typeof import("../middleware/index.js")>,
     import("../routes/agents.js") as Promise<typeof import("../routes/agents.js")>,
@@ -237,7 +242,7 @@ async function createApp(actor: Record<string, unknown>, dbOptions: { requireBoa
     };
     next();
   });
-  app.use("/api", agentRoutes(createDbStub(dbOptions) as any));
+  app.use("/api", agentRoutes((dbOverride ?? createDbStub(dbOptions)) as any));
   app.use(errorHandler);
   return app;
 }
@@ -301,6 +306,7 @@ describe.sequential("agent permission routes", () => {
     mockAgentService.create.mockReset();
     mockAgentService.activatePendingApproval.mockReset();
     mockAgentService.update.mockReset();
+    mockAgentService.rollbackConfigRevision.mockReset();
     mockAgentService.updatePermissions.mockReset();
     mockAgentService.getChainOfCommand.mockReset();
     mockAgentService.resolveByReference.mockReset();
@@ -811,6 +817,180 @@ describe.sequential("agent permission routes", () => {
       updated.runtimeConfig.modelProfiles.standard.adapterConfig.env,
       { db: expect.anything() },
     );
+  });
+
+  it("rolls back the agent update and config revision transaction when binding persistence fails", async () => {
+    const secretId = "33333333-3333-4333-8333-333333333333";
+    const previousRuntimeConfig = { modelProfiles: {} };
+    const requestedRuntimeConfig = {
+      modelProfiles: {
+        cheap: {
+          adapterConfig: {
+            env: {
+              PROFILE_TOKEN: { type: "secret_ref", secretId, version: "latest" },
+            },
+          },
+        },
+      },
+    };
+    let persistedRuntimeConfig: unknown = previousRuntimeConfig;
+    const db = createDbStub() as ReturnType<typeof createDbStub> & {
+      transaction: ReturnType<typeof vi.fn>;
+    };
+    db.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
+      const snapshot = persistedRuntimeConfig;
+      try {
+        return await callback({ transaction: "agent-config" });
+      } catch (error) {
+        persistedRuntimeConfig = snapshot;
+        throw error;
+      }
+    });
+    mockAgentService.getById.mockResolvedValue({
+      ...baseAgent,
+      adapterType: "codex_local",
+      runtimeConfig: previousRuntimeConfig,
+    });
+    mockAgentService.update.mockImplementation(async (_id, patch) => {
+      persistedRuntimeConfig = patch.runtimeConfig;
+      return {
+        ...baseAgent,
+        adapterType: "codex_local",
+        runtimeConfig: patch.runtimeConfig,
+      };
+    });
+    mockSecretService.syncEnvBindingsForTarget.mockRejectedValueOnce(
+      new Error("synthetic binding persistence failure"),
+    );
+
+    const app = await createApp({
+      type: "board",
+      userId: "board-user",
+      source: "local_implicit",
+      isInstanceAdmin: true,
+      companyIds: [companyId],
+    }, {}, db);
+    const res = await requestApp(app, (baseUrl) => request(baseUrl)
+      .patch(`/api/agents/${agentId}`)
+      .send({ runtimeConfig: requestedRuntimeConfig }));
+
+    expect(res.status).toBe(500);
+    expect(persistedRuntimeConfig).toEqual(previousRuntimeConfig);
+    expect(mockAgentService.update).toHaveBeenCalledWith(
+      agentId,
+      expect.objectContaining({ runtimeConfig: requestedRuntimeConfig }),
+      expect.objectContaining({ recordRevision: expect.any(Object) }),
+    );
+    expect(mockLogActivity).not.toHaveBeenCalled();
+    expect(JSON.stringify(res.body)).not.toContain(secretId);
+    expect(JSON.stringify(res.body)).not.toContain("synthetic binding persistence failure");
+  });
+
+  it("rolls back direct agent creation when initial binding persistence fails", async () => {
+    let created = false;
+    const db = createDbStub() as ReturnType<typeof createDbStub> & {
+      transaction: ReturnType<typeof vi.fn>;
+    };
+    db.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
+      const snapshot = created;
+      try {
+        return await callback({ transaction: "agent-create" });
+      } catch (error) {
+        created = snapshot;
+        throw error;
+      }
+    });
+    mockAgentService.create.mockImplementation(async (_companyId, input) => {
+      created = true;
+      return { ...baseAgent, ...input, companyId };
+    });
+    mockSecretService.syncEnvBindingsForTarget.mockRejectedValueOnce(
+      new Error("synthetic create binding failure"),
+    );
+
+    const app = await createApp({
+      type: "board",
+      userId: "board-user",
+      source: "local_implicit",
+      isInstanceAdmin: true,
+      companyIds: [companyId],
+    }, {}, db);
+    const res = await requestApp(app, (baseUrl) => request(baseUrl)
+      .post(`/api/companies/${companyId}/agents`)
+      .send({
+        name: "Atomic Builder",
+        role: "engineer",
+        adapterType: "process",
+        adapterConfig: {
+          env: {
+            BASE_TOKEN: {
+              type: "secret_ref",
+              secretId: "33333333-3333-4333-8333-333333333333",
+              version: "latest",
+            },
+          },
+        },
+      }));
+
+    expect(res.status).toBe(500);
+    expect(created).toBe(false);
+    expect(mockLogActivity).not.toHaveBeenCalled();
+    expect(JSON.stringify(res.body)).not.toContain("33333333-3333-4333-8333-333333333333");
+  });
+
+  it("rolls back a config rollback revision when restored binding persistence fails", async () => {
+    const revisionId = "66666666-6666-4666-8666-666666666666";
+    let activeRuntimeConfig: unknown = { modelProfiles: {} };
+    const db = createDbStub() as ReturnType<typeof createDbStub> & {
+      transaction: ReturnType<typeof vi.fn>;
+    };
+    db.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
+      const snapshot = activeRuntimeConfig;
+      try {
+        return await callback({ transaction: "agent-rollback" });
+      } catch (error) {
+        activeRuntimeConfig = snapshot;
+        throw error;
+      }
+    });
+    mockAgentService.getById.mockResolvedValue({ ...baseAgent, runtimeConfig: activeRuntimeConfig });
+    mockAgentService.rollbackConfigRevision.mockImplementation(async () => {
+      activeRuntimeConfig = {
+        modelProfiles: {
+          cheap: {
+            adapterConfig: {
+              env: {
+                PROFILE_TOKEN: {
+                  type: "secret_ref",
+                  secretId: "44444444-4444-4444-8444-444444444444",
+                  version: "latest",
+                },
+              },
+            },
+          },
+        },
+      };
+      return { ...baseAgent, runtimeConfig: activeRuntimeConfig };
+    });
+    mockSecretService.syncEnvBindingsForTarget.mockRejectedValueOnce(
+      new Error("synthetic rollback binding failure"),
+    );
+
+    const app = await createApp({
+      type: "board",
+      userId: "board-user",
+      source: "local_implicit",
+      isInstanceAdmin: true,
+      companyIds: [companyId],
+    }, {}, db);
+    const res = await requestApp(app, (baseUrl) => request(baseUrl)
+      .post(`/api/agents/${agentId}/config-revisions/${revisionId}/rollback`)
+      .send({}));
+
+    expect(res.status).toBe(500);
+    expect(activeRuntimeConfig).toEqual({ modelProfiles: {} });
+    expect(mockLogActivity).not.toHaveBeenCalled();
+    expect(JSON.stringify(res.body)).not.toContain("44444444-4444-4444-8444-444444444444");
   });
 
   it("blocks agent-authenticated self-updates that set instructions bundle roots", async () => {

@@ -17,12 +17,18 @@ export async function preflightSourceControlCapability(repoRoot) {
     handle = null;
     await unlink(probePath);
     ownsProbe = false;
-    return { capable: true, probePath, reason: "git_metadata_probe_create_and_remove_succeeded" };
+    return {
+      capable: true,
+      executorPath: "current_executor",
+      probePath,
+      reason: "git_metadata_probe_create_and_remove_succeeded",
+    };
   } catch (error) {
     if (handle) await handle.close().catch(() => {});
     if (ownsProbe) await unlink(probePath).catch(() => {});
     return {
       capable: false,
+      executorPath: "native_source_control_controller",
       probePath,
       reason: "git_metadata_probe_write_failed",
       error: error instanceof Error ? error.code ?? error.message : String(error),

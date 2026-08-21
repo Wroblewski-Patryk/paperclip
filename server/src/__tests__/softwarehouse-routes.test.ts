@@ -5,6 +5,7 @@ import path from "node:path";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import {
+  softwarehouseCoolifyFeatherlyInventoryResponseSchema,
   softwarehouseControlStatusResponseSchema,
   softwarehouseIssueTemplateCatalogResponseSchema,
 } from "@paperclipai/shared";
@@ -117,6 +118,103 @@ describe("governed project-truth probe route", () => {
     expect(crossCompany.status).toBe(403);
     expect(invalid.status).toBe(400);
     expect(projectTruthProbe).not.toHaveBeenCalled();
+  });
+});
+
+describe("governed Coolify Featherly inventory route", () => {
+  const inventory = softwarehouseCoolifyFeatherlyInventoryResponseSchema.parse({
+    observedAt: "2026-08-21T10:00:00.000Z",
+    outcome: "verified",
+    providerHost: "coolify.example",
+    target: {
+      projectUuid: "a14a7zgzt6r13wtqxe5c916y",
+      environmentUuid: "gz5uke25v3tpqcc0o47gyw2e",
+      applicationUuid: "dc1mn3hep62twm6ih582kblw",
+    },
+    http: { project: "success", environment: "success", application: "success" },
+    scopeVerified: { project: true, environment: true, application: true },
+    project: { uuid: "a14a7zgzt6r13wtqxe5c916y", name: "Featherly" },
+    environment: { uuid: "gz5uke25v3tpqcc0o47gyw2e", name: "production" },
+    application: {
+      uuid: "dc1mn3hep62twm6ih582kblw",
+      name: "Featherly Web",
+      status: "running:healthy",
+      fqdn: "https://featherly.example",
+      gitBranch: "main",
+      gitCommitSha: "abc123",
+      updatedAt: "2026-08-21T09:55:00Z",
+    },
+    auditRef: "softwarehouse.coolify_featherly_inventory:run-1",
+    sessionRef: "heartbeat-run:run-1",
+    providerWriteAttempted: false,
+    requestMethods: ["GET", "GET", "GET"],
+    secretsReturned: false,
+  });
+
+  it("uses the authenticated agent runtime binding and records run-linked audit evidence", async () => {
+    const resolveCoolifyRuntimeBindings = vi.fn(async () => ({
+      baseUrl: "https://coolify.example",
+      token: "provider-token",
+    }));
+    const coolifyFeatherlyInventory = vi.fn(async () => inventory);
+    const recordCoolifyFeatherlyInventoryActivity = vi.fn(async () => {});
+    const app = createApp({
+      type: "agent",
+      source: "agent_jwt",
+      agentId: "agent-1",
+      companyId: "company-1",
+      runId: "run-1",
+    }, {
+      resolveCoolifyRuntimeBindings,
+      coolifyFeatherlyInventory,
+      recordCoolifyFeatherlyInventoryActivity,
+    });
+
+    const response = await request(app)
+      .get("/api/companies/company-1/softwarehouse/coolify/featherly-inventory");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(inventory);
+    expect(resolveCoolifyRuntimeBindings).toHaveBeenCalledWith({
+      companyId: "company-1",
+      agentId: "agent-1",
+      runId: "run-1",
+    });
+    expect(coolifyFeatherlyInventory).toHaveBeenCalledWith({
+      baseUrl: "https://coolify.example",
+      token: "provider-token",
+      auditRef: "softwarehouse.coolify_featherly_inventory:run-1",
+      sessionRef: "heartbeat-run:run-1",
+    });
+    expect(recordCoolifyFeatherlyInventoryActivity).toHaveBeenCalledWith({
+      companyId: "company-1",
+      actor: expect.objectContaining({
+        actorType: "agent",
+        actorId: "agent-1",
+        runId: "run-1",
+      }),
+      result: inventory,
+    });
+    expect(JSON.stringify(response.body)).not.toContain("provider-token");
+  });
+
+  it("rejects board and non-session agent callers before resolving provider bindings", async () => {
+    const resolveCoolifyRuntimeBindings = vi.fn();
+    const boardResponse = await request(createApp(companyOneActor, {
+      resolveCoolifyRuntimeBindings,
+    })).get("/api/companies/company-1/softwarehouse/coolify/featherly-inventory");
+    const agentKeyResponse = await request(createApp({
+      type: "agent",
+      source: "agent_key",
+      agentId: "agent-1",
+      companyId: "company-1",
+    }, {
+      resolveCoolifyRuntimeBindings,
+    })).get("/api/companies/company-1/softwarehouse/coolify/featherly-inventory");
+
+    expect(boardResponse.status).toBe(403);
+    expect(agentKeyResponse.status).toBe(403);
+    expect(resolveCoolifyRuntimeBindings).not.toHaveBeenCalled();
   });
 });
 

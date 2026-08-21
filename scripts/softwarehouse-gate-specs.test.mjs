@@ -816,7 +816,7 @@ test("longevity doctor checks the single canonical active routine catalog", asyn
   assert.match(doctor, /missingCanonicalRoutineTitles/);
   assert.match(doctor, /Canonical routine coverage is not active/);
   assert.doesNotMatch(doctor, /Core routine coverage is not active/);
-  assert.equal(softwarehousePilotActiveRoutineTitles.size, 7);
+  assert.equal(softwarehousePilotActiveRoutineTitles.size, 6);
 });
 
 test("softwarehouse doctor and team adoption share the canonical routine title registry", async () => {
@@ -833,7 +833,6 @@ test("softwarehouse doctor and team adoption share the canonical routine title r
   );
   for (const title of [
     "09 Technology: Agent Health and Model Governance",
-    "09 Technology: Longevity Doctor and Watchdog",
     "04 Operations: Longevity Snapshot Backup",
     "04 Operations: Organizational Learning Loop",
     "[Soar] Daily project status refresh",
@@ -847,6 +846,7 @@ test("softwarehouse doctor and team adoption share the canonical routine title r
     );
   }
   for (const title of [
+    "09 Technology: Longevity Doctor and Watchdog",
     "11 Innovation: Autonomy Governor",
     "11 Innovation: Continuation Watchdog",
     "04 Operations: Gate Freshness Watcher",

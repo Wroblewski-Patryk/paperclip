@@ -148,7 +148,8 @@ function registerModuleMocks() {
 }
 
 function createDb(requireBoardApprovalForNewAgents = false) {
-  return {
+  const db = {
+    transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(db)),
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn(async () => [
@@ -160,6 +161,7 @@ function createDb(requireBoardApprovalForNewAgents = false) {
       })),
     })),
   };
+  return db;
 }
 
 async function createApp(db: Record<string, unknown> = createDb()) {

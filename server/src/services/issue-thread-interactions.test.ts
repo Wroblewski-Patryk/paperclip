@@ -137,6 +137,85 @@ describe("issueThreadInteractionService", () => {
     expect(db.insert).not.toHaveBeenCalled();
   });
 
+  it("rejects a new owner questionnaire when all question ids were already answered", async () => {
+    const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
+    const answeredRow = {
+      id: "answered-1",
+      payload: {
+        version: 1,
+        questions: [
+          {
+            id: "provider_review",
+            prompt: "Provider review?",
+            selectionMode: "single",
+            required: true,
+            options: [{ id: "not_completed", label: "Not completed" }],
+          },
+          {
+            id: "alert_state",
+            prompt: "Alert state?",
+            selectionMode: "single",
+            required: true,
+            options: [{ id: "not_verified", label: "Not verified" }],
+          },
+          {
+            id: "ref_disposition",
+            prompt: "Ref disposition?",
+            selectionMode: "single",
+            required: true,
+            options: [{ id: "zero_updates", label: "Zero updates" }],
+          },
+        ],
+      },
+    };
+    let selectCallCount = 0;
+    const db: any = {
+      select: vi.fn(() => {
+        selectCallCount += 1;
+        if (selectCallCount === 1) return createSelectChain([]);
+        return {
+          from: () => ({
+            where: () => ({
+              orderBy: async () => [answeredRow],
+            }),
+          }),
+        };
+      }),
+      insert: vi.fn(),
+      update: vi.fn(),
+    };
+
+    const svc = issueThreadInteractionService(db as never);
+    await expect(svc.create({
+      id: "11111111-1111-4111-8111-111111111111",
+      companyId: "company-1",
+    }, {
+      kind: "ask_user_questions",
+      idempotencyKey: "owner-evidence-v2",
+      continuationPolicy: "wake_assignee",
+      payload: {
+        version: 1,
+        questions: [
+          {
+            id: "provider_review",
+            prompt: "Provider review now?",
+            selectionMode: "single",
+            required: true,
+            options: [{ id: "still_not_completed", label: "Still not completed" }],
+          },
+          {
+            id: "alert_state",
+            prompt: "Alert state now?",
+            selectionMode: "single",
+            required: true,
+            options: [{ id: "still_not_verified", label: "Still not verified" }],
+          },
+        ],
+      },
+    }, { agentId: "agent-1" })).rejects.toMatchObject({ status: 409 });
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
   it("answerQuestions normalizes duplicate option ids and persists answered results", async () => {
     const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
 

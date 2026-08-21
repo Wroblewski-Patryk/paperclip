@@ -378,3 +378,61 @@ evidence.
   Coolify environment deletion now requires its own exact authorization,
   provider emptiness proof, production exclusion, one bounded delete, and
   absence/protected-resource readback.
+
+### 2026-08-21 - Overnight throughput audit and owner-decision reconciliation
+
+- A full paginated read from 03:30 UTC found 59 issues moved to `done`: 38 in
+  Softwarehouse, 11 in Soar, 5 in Featherly, 2 in Roost, and 3 without a
+  project. All 59 have typed completion evidence. The run ledger contained
+  228 successes, 18 controlled cancellations, and 7 policy/budget stops; no
+  application execution failure was recorded in that failed set.
+- The count is not equivalent to 59 shipped application changes. Much of the
+  work was routing, review, evidence, recovery, and known-state reconciliation;
+  Soar, Roost, and Featherly received no new commit during the audited window
+  and still contain owned uncommitted work that must pass source-control
+  closure before it is durable delivery.
+- The canonical issue-queue reconciler repaired seven stale `blocked` issues
+  whose first-class blockers were already terminal. `blocked_unknown` returned
+  to zero and a Featherly PHPUnit bootstrap lane resumed without creating a
+  duplicate issue.
+- Decision Center contained one false historical owner request, LUC-1617,
+  whose source productivity review LUC-1544 was already done. The interaction
+  and wrapper issue were cancelled as obsolete, leaving four genuine owner
+  decisions: LUC-1900 SMTP/secret-alert evidence, LUC-2439 Soar hot-path
+  scoping, LUC-2563 Paperclip default-branch policy, and LUC-2726 exact Roost
+  evidence cleanup.
+- Fresh local Git evidence makes the LUC-2563 briefing stale: the active local
+  branch is `codex/rolling-work-queue`, while the proposal compares only
+  `main` and the older `codex/softwarehouse-v1` history. Keep `main` as the
+  public default until a new convergence packet includes the active rolling
+  lineage; do not adopt the old branch from the current decision.
+- The hourly agent-run Longevity Doctor still attempts nested Windows child
+  processes even though native host supervision owns the deterministic control
+  tick. Its latest report recorded multiple `exitCode=null` results with empty
+  stderr and refreshed LUC-1729. Treat this as a remaining supervision-path
+  defect/noise signal, not proof that all listed governance and deployment
+  checks truly failed.
+
+### 2026-08-21 - Supervision deduplication and durable owner-question closure
+
+- The three overnight completions reported as having no project were not
+  orphaned work: LUC-2949 and LUC-2950 were Roost-goal admission/control-plane
+  work, while LUC-2919 was a Featherly-goal admission retry deliberately kept
+  outside the project WIP lock. Reports must describe such rows as
+  goal-scoped/control-plane work rather than imply that they lack purpose.
+- The model-backed `09 Technology: Longevity Doctor and Watchdog` routine was
+  retired from the canonical active set and archived live. Deterministic native
+  host supervision remains the sole owner of the control tick; this removes the
+  nested Windows Sandbox child-process path that returned `exitCode=null` and
+  consumed large model contexts without reliable evidence. The duplicate
+  continuation watchdog remains archived as well.
+- Featherly incident question LUC-1900 was already answered historically. A
+  later interaction repeated the same question identifiers under a new
+  idempotency key, so it was cancelled and the source issue was closed. New
+  `ask_user_questions` interactions now fail with conflict when their complete
+  question-id set was already answered on the same issue; genuinely new
+  questions remain possible through materially new identifiers.
+- Paperclip was intentionally placed OFF while the source-control closure and
+  default-branch convergence were performed. Deferred work must be replayed by
+  the normal admission path after the verified repository state is reopened;
+  no agent work is to be invented or bypassed during maintenance.

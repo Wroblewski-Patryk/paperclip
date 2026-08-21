@@ -376,6 +376,10 @@ export {
   softwarehouseProjectTruthGapSchema,
   softwarehouseProjectTruthStatusSchema,
   softwarehouseControlStatusResponseSchema,
+  softwarehouseProjectTruthProbeRequestSchema,
+  softwarehouseProjectTruthProbeResponseSchema,
+  softwarehouseProviderHttpResultCategorySchema,
+  softwarehouseCoolifyFeatherlyInventoryResponseSchema,
   type SoftwarehouseIssueTemplateKind,
   type SoftwarehouseIssueTemplate,
   type SoftwarehouseIssueTemplateCatalogResponse,
@@ -383,6 +387,10 @@ export {
   type SoftwarehouseProjectTruthGap,
   type SoftwarehouseProjectTruthStatus,
   type SoftwarehouseControlStatusResponse,
+  type SoftwarehouseProjectTruthProbeRequest,
+  type SoftwarehouseProjectTruthProbeResponse,
+  type SoftwarehouseProviderHttpResultCategory,
+  type SoftwarehouseCoolifyFeatherlyInventoryResponse,
 } from "./softwarehouse.js";
 
 export {

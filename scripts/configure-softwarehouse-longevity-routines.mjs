@@ -127,6 +127,10 @@ const specs = [
       "Command: `node scripts/run-softwarehouse-longevity-doctor.mjs --apply`.",
     ].join("\n"),
     schedule: ["Hourly longevity doctor", "20 * * * *"],
+    // Native host supervision already runs the deterministic control tick and
+    // its bounded checks. Keeping this model-backed routine active makes a
+    // managed Windows Codex sandbox attempt nested Node/pnpm processes, which
+    // can fail with EPERM while still consuming a full agent run.
   },
   {
     title: "11 Innovation: Continuation Watchdog",

@@ -1572,6 +1572,14 @@ export function issueRoutes(
     const approvals = await issueApprovalsSvc.listApprovalsForIssue(input.existing.id);
     if (approvals.some((approval) => ACTIVE_REVIEW_APPROVAL_STATUSES.has(String(approval.status)))) return;
 
+    // An unresolved first-class blocker is a typed dependency wake: the dependency graph owns the next action.
+    const relations = await svc.getRelationSummaries(input.existing.id);
+    const hasDependencyWake = (blockers: IssueRelationIssueSummary[]): boolean => blockers.some((blocker) => {
+      if (blocker.status !== 'done' && blocker.status !== 'cancelled' && blocker.assigneeAgentId) return true;
+      return hasDependencyWake(blocker.terminalBlockers ?? []);
+    });
+    if (hasDependencyWake(relations.blockedBy)) return;
+
     throw unprocessable(INVALID_AGENT_IN_REVIEW_DISPOSITION_MESSAGE, {
       code: "invalid_issue_disposition",
       missing: "review_path",

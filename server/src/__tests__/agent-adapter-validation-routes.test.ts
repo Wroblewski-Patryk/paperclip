@@ -155,6 +155,7 @@ async function createApp() {
     next();
   });
   const db = {
+    transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(db)),
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn(async () => [

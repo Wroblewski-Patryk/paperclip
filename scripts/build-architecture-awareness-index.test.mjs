@@ -72,6 +72,72 @@ test("build-architecture-awareness-index writes byte-identical graph exports whe
     }
 });
 
+test("generated input exclusion is independent from the output destination", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "paperclip-awareness-input-exclusion-"));
+  const externalOutput = await mkdtemp(path.join(os.tmpdir(), "paperclip-awareness-external-output-"));
+  try {
+    await mkdir(path.join(root, "src"), { recursive: true });
+    await mkdir(path.join(root, "docs", "notes"), { recursive: true });
+    await writeFile(
+      path.join(root, "src", "feature.ts"),
+      "export function feature() { return true; }" + os.EOL,
+      "utf8",
+    );
+    await writeFile(
+      path.join(root, "docs", "notes", "ordinary.md"),
+      ["# Ordinary documentation", "", "This is authored input, not a generated export.", ""].join(os.EOL),
+      "utf8",
+    );
+
+    const env = {
+      ...process.env,
+      ARCHITECTURE_AWARENESS_OBSERVED_AT: "2026-01-01T00:00:00.000Z",
+    };
+    const commonArgs = ["--project", "Fixture", "--root", root];
+    execFileSync(process.execPath, [scriptPath, ...commonArgs], { encoding: "utf8", env });
+
+    const canonicalGraph = JSON.parse(
+      await readFile(path.join(root, "docs", "graphs", "architecture-awareness.json"), "utf8"),
+    );
+    const canonicalHealth = JSON.parse(
+      await readFile(path.join(root, "docs", "graphs", "architecture-health.json"), "utf8"),
+    );
+
+    execFileSync(
+      process.execPath,
+      [scriptPath, ...commonArgs, "--out", externalOutput],
+      { encoding: "utf8", env },
+    );
+
+    const externalGraph = JSON.parse(
+      await readFile(path.join(externalOutput, "graphs", "architecture-awareness.json"), "utf8"),
+    );
+    const externalHealth = JSON.parse(
+      await readFile(path.join(externalOutput, "graphs", "architecture-health.json"), "utf8"),
+    );
+    const signalCounts = (health) => Object.fromEntries(
+      Object.entries(health.signals).map(([name, signal]) => [name, signal.count]),
+    );
+
+    assert.deepEqual(externalGraph.entities, canonicalGraph.entities);
+    assert.deepEqual(externalGraph.relations, canonicalGraph.relations);
+    assert.deepEqual(externalHealth.counts, canonicalHealth.counts);
+    assert.deepEqual(signalCounts(externalHealth), signalCounts(canonicalHealth));
+
+    const entityPaths = new Set(externalGraph.entities.map((entity) => entity.path));
+    assert.equal(entityPaths.has("docs/notes/ordinary.md"), true);
+    assert.equal(
+      [...entityPaths].some((entityPath) =>
+        entityPath.startsWith("docs/graphs/") || entityPath.startsWith("docs/status/")
+      ),
+      false,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(externalOutput, { recursive: true, force: true });
+  }
+});
+
 test("project truth aggregates symbol-level proof gaps into user-flow repair lanes", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "paperclip-project-truth-aggregation-"));
   try {

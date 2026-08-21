@@ -205,6 +205,55 @@ describeEmbeddedPostgres("secretService", () => {
     expect(JSON.stringify(events)).not.toContain("runtime-secret");
   });
 
+  it("resolves model-profile env refs against their persisted profile binding paths", async () => {
+    const companyId = await seedCompany();
+    const svc = secretService(db);
+    const secretValue = "profile-runtime-secret";
+    const secret = await svc.create(companyId, {
+      name: `profile-runtime-${randomUUID()}`,
+      provider: "local_encrypted",
+      value: secretValue,
+    });
+    const env = {
+      PROFILE_API_KEY: { type: "secret_ref" as const, secretId: secret.id, version: "latest" as const },
+    };
+    const configPath = "runtimeConfig.modelProfiles.cheap.adapterConfig.env.PROFILE_API_KEY";
+
+    await svc.syncEnvBindingsForTarget(
+      companyId,
+      {
+        targetType: "agent",
+        targetId: "agent-profile",
+        pathPrefix: "runtimeConfig.modelProfiles.cheap.adapterConfig.env",
+      },
+      env,
+    );
+
+    const resolved = await svc.resolveAdapterConfigForRuntime(
+      companyId,
+      { env },
+      {
+        consumerType: "agent",
+        consumerId: "agent-profile",
+        actorType: "agent",
+        actorId: "agent-profile",
+        envConfigPathByKey: { PROFILE_API_KEY: configPath },
+      },
+    );
+
+    expect(resolved.config.env).toEqual({ PROFILE_API_KEY: secretValue });
+    expect(resolved.manifest).toEqual([
+      expect.objectContaining({ configPath, secretId: secret.id, outcome: "success" }),
+    ]);
+    expect(JSON.stringify(resolved.manifest)).not.toContain(secretValue);
+
+    const events = await svc.listAccessEvents(companyId, secret.id);
+    expect(events).toEqual([
+      expect.objectContaining({ configPath, outcome: "success" }),
+    ]);
+    expect(JSON.stringify(events)).not.toContain(secretValue);
+  });
+
   it("resolves routine env secret refs through routine bindings and records value-free access metadata", async () => {
     const companyId = await seedCompany();
     const svc = secretService(db);

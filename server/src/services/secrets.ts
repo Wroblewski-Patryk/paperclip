@@ -184,6 +184,10 @@ type SecretConsumerContext = {
   allowedBindingIds?: string[] | null;
 };
 
+type AdapterConfigSecretConsumerContext = Omit<SecretConsumerContext, "configPath"> & {
+  envConfigPathByKey?: Record<string, string>;
+};
+
 export type RuntimeSecretManifestEntry = {
   configPath: string;
   envKey: string | null;
@@ -2291,7 +2295,7 @@ export function secretService(db: Db) {
     resolveAdapterConfigForRuntime: async (
       companyId: string,
       adapterConfig: Record<string, unknown>,
-      context?: Omit<SecretConsumerContext, "configPath">,
+      context?: AdapterConfigSecretConsumerContext,
     ): Promise<{ config: Record<string, unknown>; secretKeys: Set<string>; manifest: RuntimeSecretManifestEntry[] }> => {
       const resolved = { ...adapterConfig };
       const secretKeys = new Set<string>();
@@ -2317,11 +2321,19 @@ export function secretService(db: Db) {
         if (binding.type === "plain") {
           env[key] = binding.value;
         } else {
+          let resolutionContext: SecretConsumerContext | undefined;
+          if (context) {
+            const { envConfigPathByKey, ...consumerContext } = context;
+            resolutionContext = {
+              ...consumerContext,
+              configPath: envConfigPathByKey?.[key] ?? `env.${key}`,
+            };
+          }
           const secretResolution = await resolveSecretValueInternal(
             companyId,
             binding.secretId,
             binding.version,
-            context ? { ...context, configPath: `env.${key}` } : undefined,
+            resolutionContext,
           );
           env[key] = secretResolution.value;
           manifest.push(secretResolution.manifestEntry);

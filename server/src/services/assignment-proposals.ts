@@ -1,6 +1,13 @@
 import { and, eq, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
-import { agents, assignmentProposals, deliveryTasks, issues, productDeliveries } from "@paperclipai/db";
+import {
+  agents,
+  assignmentProposals,
+  deliveryTasks,
+  heartbeatRuns,
+  issues,
+  productDeliveries,
+} from "@paperclipai/db";
 import type { ProposeAssignment } from "@paperclipai/shared";
 import { conflict, forbidden, notFound, unprocessable } from "../errors.js";
 import { admissionControlService } from "./admission-control.js";
@@ -103,6 +110,15 @@ export function assignmentProposalService(db: Db) {
         throw unprocessable(`Problem already uses the maximum ${MAX_DISTINCT_AGENTS_PER_PROBLEM} distinct agents`);
       }
 
+      const actorOwnsRunningIssueHeartbeat = actor.type === "agent" && actor.agentId
+        ? await db.select({ id: heartbeatRuns.id }).from(heartbeatRuns).where(and(
+          eq(heartbeatRuns.companyId, issue.companyId),
+          eq(heartbeatRuns.agentId, actor.agentId),
+          eq(heartbeatRuns.status, "running"),
+          sql`${heartbeatRuns.contextSnapshot} ->> 'issueId' = ${issue.id}`,
+        )).limit(1).then((rows) => rows.length > 0)
+        : false;
+
       const decision = await admission.evaluateWork({
         companyId: issue.companyId,
         projectId: issue.projectId,
@@ -111,6 +127,7 @@ export function assignmentProposalService(db: Db) {
         source: "assignment.proposal",
         fingerprint: `assignment:${issue.id}:${data.proposedAssigneeAgentId}`,
         evidenceHash: data.evidenceHash ?? data.idempotencyKey,
+        allowIssueWipContinuation: actorOwnsRunningIssueHeartbeat,
       });
 
       return db.transaction(async (tx) => {

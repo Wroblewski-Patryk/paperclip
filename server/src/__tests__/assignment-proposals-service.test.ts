@@ -1,7 +1,18 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { agents, assignmentProposals, companies, createDb, delegationReports, issues, projects, workProposals } from "@paperclipai/db";
+import {
+  admissionDecisions,
+  agents,
+  assignmentProposals,
+  companies,
+  createDb,
+  delegationReports,
+  heartbeatRuns,
+  issues,
+  projects,
+  workProposals,
+} from "@paperclipai/db";
 import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.js";
 import { assignmentProposalService } from "../services/assignment-proposals.js";
 import { issueService, MAX_AUTONOMOUS_DELEGATION_DEPTH } from "../services/issues.js";
@@ -67,6 +78,71 @@ describeEmbedded("governed assignment proposals and delegation limits", () => {
     expect(result.proposal).toMatchObject({ status: "applied", proposedByAgentId: refs.proposerId });
     expect(result.issue).toMatchObject({ assigneeAgentId: refs.workerId, status: "todo" });
     expect((await db.select().from(assignmentProposals))[0].admissionDecisionId).toBeTruthy();
+  });
+
+  it("admits one direct-child proposal from the actor's running issue heartbeat", async () => {
+    const refs = await seed("active");
+    await db.update(issues).set({ assigneeAgentId: refs.proposerId, status: "todo" })
+      .where(sql`${issues.id} = ${refs.issueId}`);
+    await db.insert(heartbeatRuns).values({
+      companyId: refs.companyId,
+      agentId: refs.proposerId,
+      invocationSource: "assignment",
+      status: "running",
+      contextSnapshot: { issueId: refs.issueId, projectId: refs.projectId },
+    });
+    const proposal = {
+      proposedAssigneeAgentId: refs.workerId,
+      idempotencyKey: "assignment-active-heartbeat",
+      reason: "Route bounded implementation from the owning heartbeat.",
+      ...contract(refs),
+    };
+
+    const first = await assignmentProposalService(db).proposeAndApply(
+      refs.issueId,
+      proposal,
+      { type: "agent", agentId: refs.proposerId },
+    );
+    const second = await assignmentProposalService(db).proposeAndApply(
+      refs.issueId,
+      proposal,
+      { type: "agent", agentId: refs.proposerId },
+    );
+
+    expect(first).toMatchObject({
+      idempotent: false,
+      proposal: { status: "applied" },
+      issue: { assigneeAgentId: refs.workerId },
+      decision: { admitted: true, reasonCode: "policy.admitted" },
+    });
+    expect(second).toMatchObject({ idempotent: true, proposal: { id: first.proposal.id } });
+    expect(await db.select().from(assignmentProposals)).toHaveLength(1);
+    expect(await db.select().from(admissionDecisions)).toHaveLength(1);
+  });
+
+  it("does not treat another agent's running heartbeat as actor continuation", async () => {
+    const refs = await seed("active");
+    await db.insert(heartbeatRuns).values({
+      companyId: refs.companyId,
+      agentId: refs.reviewerId,
+      invocationSource: "assignment",
+      status: "running",
+      contextSnapshot: { issueId: refs.issueId, projectId: refs.projectId },
+    });
+
+    const result = await assignmentProposalService(db).proposeAndApply(refs.issueId, {
+      proposedAssigneeAgentId: refs.workerId,
+      idempotencyKey: "assignment-other-heartbeat",
+      reason: "A different agent's run must remain duplicate work.",
+      ...contract(refs),
+    }, { type: "agent", agentId: refs.proposerId });
+
+    expect(result).toMatchObject({
+      idempotent: false,
+      proposal: { status: "rejected_as_duplicate" },
+      decision: { admitted: false, reasonCode: "wip.issue_limit" },
+    });
+    expect(result.issue.assigneeAgentId).toBeNull();
   });
 
   it("persists but does not apply proposals during maintenance", async () => {

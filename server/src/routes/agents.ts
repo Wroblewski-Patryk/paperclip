@@ -103,6 +103,7 @@ import { readObject } from "../lib/objects.js";
 
 const RUN_LOG_DEFAULT_LIMIT_BYTES = 256_000;
 const RUN_LOG_MAX_LIMIT_BYTES = 1024 * 1024;
+type DbTransaction = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 function readRunLogLimitBytes(value: unknown) {
   const parsed = Number(value ?? RUN_LOG_DEFAULT_LIMIT_BYTES);
@@ -1087,11 +1088,11 @@ export function agentRoutes(
     adapterConfig?: unknown;
     runtimeConfig?: unknown;
     previousRuntimeConfig?: unknown;
-  }) {
+  }, options?: { db?: DbTransaction }) {
     const sync = secretsSvc.syncEnvBindingsForTarget;
     if (!sync) return;
     const target = { targetType: "agent" as const, targetId: agent.id };
-    await db.transaction(async (tx) => {
+    const writeBindings = async (tx: DbTransaction) => {
       await sync(agent.companyId, target, asRecord(agent.adapterConfig)?.env, { db: tx });
       const modelProfiles = asRecord(asRecord(agent.runtimeConfig)?.modelProfiles);
       const previousModelProfiles = asRecord(asRecord(agent.previousRuntimeConfig)?.modelProfiles);
@@ -1114,7 +1115,12 @@ export function agentRoutes(
           { db: tx },
         );
       }
-    });
+    };
+    if (options?.db) {
+      await writeBindings(options.db);
+    } else {
+      await db.transaction(writeBindings);
+    }
   }
 
   function generateEd25519PrivateKeyPem(): string {
@@ -2057,16 +2063,23 @@ export function agentRoutes(
     await assertCanUpdateAgent(req, existing);
 
     const actor = getActorInfo(req);
-    const updated = await svc.rollbackConfigRevision(id, revisionId, {
-      agentId: actor.agentId,
-      userId: actor.actorType === "user" ? actor.actorId : null,
+    const updated = await db.transaction(async (tx) => {
+      const rolledBack = await agentService(tx).rollbackConfigRevision(id, revisionId, {
+        agentId: actor.agentId,
+        userId: actor.actorType === "user" ? actor.actorId : null,
+      });
+      if (rolledBack) {
+        await syncAgentEnvBindings(
+          { ...rolledBack, previousRuntimeConfig: existing.runtimeConfig },
+          { db: tx },
+        );
+      }
+      return rolledBack;
     });
     if (!updated) {
       res.status(404).json({ error: "Revision not found" });
       return;
     }
-
-    await syncAgentEnvBindings({ ...updated, previousRuntimeConfig: existing.runtimeConfig });
 
     await logActivity(db, {
       companyId: updated.companyId,
@@ -2215,11 +2228,15 @@ export function agentRoutes(
 
     const requiresApproval = company.requireBoardApprovalForNewAgents;
     const status = requiresApproval ? "pending_approval" : "idle";
-    const createdAgent = await svc.create(companyId, {
-      ...normalizedHireInput,
-      status,
-      spentMonthlyCents: 0,
-      lastHeartbeatAt: null,
+    const createdAgent = await db.transaction(async (tx) => {
+      const created = await agentService(tx).create(companyId, {
+        ...normalizedHireInput,
+        status,
+        spentMonthlyCents: 0,
+        lastHeartbeatAt: null,
+      });
+      await syncAgentEnvBindings(created, { db: tx });
+      return created;
     });
     const agent = await materializeDefaultInstructionsBundleForNewAgent(createdAgent, instructionsBundle);
 
@@ -2391,16 +2408,19 @@ export function agentRoutes(
       allowedSandboxProviders: allowedSandboxProvidersForAgent(createInput.adapterType),
     });
 
-    const createdAgent = await svc.create(companyId, {
-      ...createInput,
-      adapterConfig: normalizedAdapterConfig,
-      runtimeConfig: normalizedRuntimeConfig,
-      status: "idle",
-      spentMonthlyCents: 0,
-      lastHeartbeatAt: null,
+    const createdAgent = await db.transaction(async (tx) => {
+      const created = await agentService(tx).create(companyId, {
+        ...createInput,
+        adapterConfig: normalizedAdapterConfig,
+        runtimeConfig: normalizedRuntimeConfig,
+        status: "idle",
+        spentMonthlyCents: 0,
+        lastHeartbeatAt: null,
+      });
+      await syncAgentEnvBindings(created, { db: tx });
+      return created;
     });
     const agent = await materializeDefaultInstructionsBundleForNewAgent(createdAgent, instructionsBundle);
-    await syncAgentEnvBindings(agent);
 
     const actor = getActorInfo(req);
     await logActivity(db, {
@@ -2870,21 +2890,26 @@ export function agentRoutes(
     }
 
     const actor = getActorInfo(req);
-    const agent = await svc.update(id, patchData, {
-      recordRevision: {
-        createdByAgentId: actor.agentId,
-        createdByUserId: actor.actorType === "user" ? actor.actorId : null,
-        source: "patch",
-      },
+    const agent = await db.transaction(async (tx) => {
+      const updated = await agentService(tx).update(id, patchData, {
+        recordRevision: {
+          createdByAgentId: actor.agentId,
+          createdByUserId: actor.actorType === "user" ? actor.actorId : null,
+          source: "patch",
+        },
+      });
+      if (updated && (touchesAdapterConfiguration || requestedRuntimeConfig)) {
+        await syncAgentEnvBindings(
+          { ...updated, previousRuntimeConfig: existing.runtimeConfig },
+          { db: tx },
+        );
+      }
+      return updated;
     });
     if (!agent) {
       res.status(404).json({ error: "Agent not found" });
       return;
     }
-    if (touchesAdapterConfiguration || requestedRuntimeConfig) {
-      await syncAgentEnvBindings({ ...agent, previousRuntimeConfig: existing.runtimeConfig });
-    }
-
     await logActivity(db, {
       companyId: agent.companyId,
       actorType: actor.actorType,

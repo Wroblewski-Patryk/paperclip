@@ -140,6 +140,25 @@ third-party browser logs, screenshots, arbitrary page content, or adapter types
 that do not pass through this Codex JSONL transformer. A suspected exposure on
 those surfaces still follows the incident routine above.
 
+### Agent environment binding consistency
+
+Agent adapter configuration and its `company_secret_bindings` projection form
+one security state. Agent create, configuration update, and configuration
+rollback must persist the agent row, configuration revision, base env bindings,
+and model-profile env bindings in one database transaction. A missing,
+cross-company, or otherwise invalid secret reference fails before commit; a
+binding write failure rolls the whole configuration mutation back.
+
+- Base adapter env refs bind and resolve under `env.<KEY>`.
+- Model-profile env refs bind and resolve under
+  `runtimeConfig.modelProfiles.<profile>.adapterConfig.env.<KEY>`.
+- Runtime env composition is key-wise: base values remain available, profile
+  values override the same base key, and an explicit issue adapter override has
+  final precedence.
+- Errors, activity details, access diagnostics, and runtime secret manifests
+  may name the value-free config path and stable internal secret identifier,
+  but must never contain secret material or external provider references.
+
 ## Stop Conditions
 
 Security must block when:

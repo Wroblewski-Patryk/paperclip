@@ -1,5 +1,32 @@
 # Coolify runtime-access bindings
 
+Paperclip exposes provider reads only through bounded, audited runtime routes.
+
+## Featherly inventory route
+
+An active same-company agent runtime with persisted secret-ref bindings for
+`COOLIFY_BASE_URL` and `COOLIFY_API_TOKEN` can call:
+
+~~~text
+GET /api/companies/:companyId/softwarehouse/coolify/featherly-inventory
+~~~
+
+The route is intentionally fixed to Coolify project
+`a14a7zgzt6r13wtqxe5c916y`, environment
+`gz5uke25v3tpqcc0o47gyw2e`, and application
+`dc1mn3hep62twm6ih582kblw`. It accepts no target, method, host, or endpoint
+input. The token binding must resolve to the `coolify_read_api_token` secret
+alias, and the base URL binding must resolve to `coolify_base_url`.
+
+Paperclip performs only the three fixed provider GETs for project,
+environment, and application identity. Redirects are not followed. Returned
+evidence is limited to HTTP result categories, verified scope links, redacted
+identity/status fields, the heartbeat session/audit references, and explicit
+`providerWriteAttempted: false` / `secretsReturned: false` assertions.
+Board sessions, agent keys without a heartbeat run, plain-text bindings,
+different secret aliases, scope mismatches, non-HTTPS origins, URL paths,
+credentials, query strings, fragments, and non-443 ports fail closed.
+
 The helper at scripts/configure-coolify-runtime-access.mjs audits and updates
 Paperclip secret-ref environment bindings for the configured Coolify access
 plans. It resolves opaque references through the same-company

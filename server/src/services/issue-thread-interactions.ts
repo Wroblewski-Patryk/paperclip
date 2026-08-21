@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   documents,
@@ -147,6 +147,50 @@ async function touchIssue(db: IssueTouchDb, issueId: string) {
     .update(issues)
     .set({ updatedAt: new Date() })
     .where(eq(issues.id, issueId));
+}
+
+function questionIdSet(payload: unknown): Set<string> {
+  const parsed = askUserQuestionsPayloadSchema.safeParse(payload);
+  return parsed.success
+    ? new Set(parsed.data.questions.map((question) => question.id))
+    : new Set();
+}
+
+async function assertQuestionsAreMateriallyNew(
+  db: Db,
+  issue: { id: string; companyId: string },
+  payload: unknown,
+) {
+  const requestedQuestionIds = questionIdSet(payload);
+  if (requestedQuestionIds.size === 0) return;
+
+  const answered = await db
+    .select({
+      id: issueThreadInteractions.id,
+      payload: issueThreadInteractions.payload,
+    })
+    .from(issueThreadInteractions)
+    .where(and(
+      eq(issueThreadInteractions.companyId, issue.companyId),
+      eq(issueThreadInteractions.issueId, issue.id),
+      eq(issueThreadInteractions.kind, "ask_user_questions"),
+      eq(issueThreadInteractions.status, "answered"),
+    ))
+    .orderBy(desc(issueThreadInteractions.resolvedAt), desc(issueThreadInteractions.updatedAt));
+
+  const repeated = answered.find((row) => {
+    const priorQuestionIds = questionIdSet(row.payload);
+    return [...requestedQuestionIds].every((questionId) => priorQuestionIds.has(questionId));
+  });
+  if (!repeated) return;
+
+  throw conflict(
+    "These owner questions were already answered; do not create a new interaction without materially new question ids",
+    {
+      answeredInteractionId: repeated.id,
+      repeatedQuestionIds: [...requestedQuestionIds].sort(),
+    },
+  );
 }
 
 function isTerminalIssueStatus(status: string) {
@@ -693,6 +737,10 @@ export function issueThreadInteractionService(db: Db) {
           }
           return hydrateInteraction(existing);
         }
+      }
+
+      if (data.kind === "ask_user_questions") {
+        await assertQuestionsAreMateriallyNew(db, issue, data.payload);
       }
 
       if (data.sourceCommentId) {

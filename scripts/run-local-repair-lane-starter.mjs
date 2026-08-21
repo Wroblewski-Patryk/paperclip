@@ -588,7 +588,7 @@ async function findIssueByIdentifier(companyId, identifier) {
 
 const actions = [];
 if (!sourceControlCapability.capable && (availableSidecarCreations.length > 0 || candidates.some((issue) => isSourceControlClosureTitle(issue.title)))) {
-  actions.push({ action: "route_source_control_to_native_executor", executorPath: "native_source_control_controller", reason: "sandbox_executor_cannot_write_git_metadata", sourceControlCapability });
+  actions.push({ action: "route_source_control_to_native_executor", executorPath: sourceControlCapability.executorPath, reason: "sandbox_executor_cannot_write_git_metadata", sourceControlCapability });
 } else if (activeRunCount > 0 && candidates.length === 0
   && sidecarCreations.length > 0 && availableSidecarCreations.length === 0) {
   actions.push({
@@ -922,6 +922,7 @@ console.log(JSON.stringify({
   liveRunCount: liveRuns.length,
   governorDecision,
   sourceControlPacket,
+  sourceControlCapability,
   operatingSourceControlClosureRequested,
   projectSourceControlClosureRequested,
   dedicatedSourceControlClosureRequested,

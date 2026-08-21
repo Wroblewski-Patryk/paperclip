@@ -42,7 +42,6 @@ export const softwarehouseRoutineTitleRenames = new Map([
 
 const softwarehousePilotLegacyActiveRoutineTitles = new Set([
   "[Softwarehouse] Agent health and model governance",
-  "[Softwarehouse] Longevity doctor and watchdog",
   "[Softwarehouse] Longevity snapshot backup",
   "[Softwarehouse] Organizational learning loop",
   ...activeApplicationRoutineSpecs.map((routine) => routine.title),

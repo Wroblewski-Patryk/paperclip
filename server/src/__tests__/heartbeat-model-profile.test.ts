@@ -6,6 +6,7 @@ import {
 import {
   buildProviderQuotaStartBlock,
   mergeModelProfileAdapterConfig,
+  modelProfileEnvConfigPathByKey,
   normalizeModelProfileWakeContext,
   resolveModelRouterQuotaPressure,
   resolveModelProfileApplication,
@@ -164,6 +165,64 @@ describe("heartbeat model profile application", () => {
       model: "issue-explicit",
       modelReasoningEffort: "low",
       approvalPolicy: "strict",
+    });
+  });
+
+  it("merges base, profile, and explicit env overrides while retaining profile binding paths", () => {
+    const modelProfile = resolveModelProfileApplication({
+      adapterModelProfiles: [{
+        ...cheapProfile,
+        adapterConfig: {
+          ...cheapProfile.adapterConfig,
+          env: {
+            PROFILE_DEFAULT: "profile-default",
+            SHARED: "profile-default-shared",
+          },
+        },
+      }],
+      agentRuntimeConfig: {
+        modelProfiles: {
+          cheap: {
+            adapterConfig: {
+              env: {
+                PROFILE_SECRET: { type: "secret_ref", secretId: "profile-secret", version: "latest" },
+                SHARED: "profile-runtime-shared",
+              },
+            },
+          },
+        },
+      },
+      issueModelProfile: "cheap",
+      contextSnapshot: {},
+    });
+    const issueAdapterConfig = {
+      env: {
+        SHARED: "issue-explicit-shared",
+        ISSUE_ONLY: "issue-only",
+      },
+    };
+
+    const merged = mergeModelProfileAdapterConfig({
+      baseConfig: {
+        env: {
+          BASE_ONLY: "base-only",
+          SHARED: "base-shared",
+        },
+      },
+      modelProfile,
+      issueAdapterConfig,
+    });
+
+    expect(merged.env).toEqual({
+      BASE_ONLY: "base-only",
+      PROFILE_DEFAULT: "profile-default",
+      PROFILE_SECRET: { type: "secret_ref", secretId: "profile-secret", version: "latest" },
+      SHARED: "issue-explicit-shared",
+      ISSUE_ONLY: "issue-only",
+    });
+    expect(modelProfileEnvConfigPathByKey({ modelProfile, issueAdapterConfig })).toEqual({
+      PROFILE_DEFAULT: "runtimeConfig.modelProfiles.cheap.adapterConfig.env.PROFILE_DEFAULT",
+      PROFILE_SECRET: "runtimeConfig.modelProfiles.cheap.adapterConfig.env.PROFILE_SECRET",
     });
   });
 

@@ -21,6 +21,8 @@ import { conflict, notFound, unprocessable } from "../errors.js";
 import { normalizeAgentPermissions } from "./agent-permissions.js";
 import { REDACTED_EVENT_VALUE, sanitizeRecord } from "../redaction.js";
 
+type DbTransaction = Parameters<Parameters<Db["transaction"]>[0]>[0];
+
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -211,7 +213,7 @@ export function deduplicateAgentName(
   return `${candidateName} ${Date.now()}`;
 }
 
-export function agentService(db: Db) {
+export function agentService(db: Db | DbTransaction) {
   function currentUtcMonthWindow(now = new Date()) {
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth();

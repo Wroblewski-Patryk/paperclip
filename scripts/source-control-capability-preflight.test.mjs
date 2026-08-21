@@ -11,6 +11,7 @@ test("preflight records capable sandbox branch when git metadata is writable", a
     await mkdir(path.join(root, ".git"));
     const result = await preflightSourceControlCapability(root);
     assert.equal(result.capable, true);
+    assert.equal(result.executorPath, "current_executor");
     await assert.rejects(access(result.probePath));
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -22,6 +23,7 @@ test("preflight records native-routing branch when git metadata is unavailable",
   try {
     const result = await preflightSourceControlCapability(root);
     assert.equal(result.capable, false);
+    assert.equal(result.executorPath, "native_source_control_controller");
     assert.equal(result.reason, "git_metadata_probe_write_failed");
   } finally {
     await rm(root, { recursive: true, force: true });

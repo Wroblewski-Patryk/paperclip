@@ -661,6 +661,7 @@ export async function resolveExecutionRunAdapterConfig(input: {
   projectId?: string | null;
   routineId?: string | null;
   executionRunConfig: Record<string, unknown>;
+  agentEnvConfigPathByKey?: Record<string, string>;
   projectEnv: unknown;
   routineEnv?: unknown;
   secretsSvc: RuntimeConfigSecretResolver;
@@ -688,6 +689,9 @@ export async function resolveExecutionRunAdapterConfig(input: {
           actorId: input.agentId,
           issueId: input.issueId ?? null,
           heartbeatRunId: input.heartbeatRunId ?? null,
+          ...(input.agentEnvConfigPathByKey
+            ? { envConfigPathByKey: input.agentEnvConfigPathByKey }
+            : {}),
           ...(lowTrustAllowedBindingIds !== undefined ? { allowedBindingIds: lowTrustAllowedBindingIds } : {}),
         }
       : undefined,
@@ -1620,6 +1624,15 @@ export function resolveModelProfileApplication(input: {
     adapterConfig: {
       ...parseObject(adapterProfile.adapterConfig),
       ...runtimeProfile.adapterConfig,
+      ...(Object.prototype.hasOwnProperty.call(adapterProfile.adapterConfig, "env")
+        || Object.prototype.hasOwnProperty.call(runtimeProfile.adapterConfig, "env")
+        ? {
+            env: {
+              ...parseObject(parseObject(adapterProfile.adapterConfig).env),
+              ...parseObject(runtimeProfile.adapterConfig.env),
+            },
+          }
+        : {}),
     },
   };
 }
@@ -1629,11 +1642,41 @@ export function mergeModelProfileAdapterConfig(input: {
   modelProfile: ModelProfileApplication;
   issueAdapterConfig: Record<string, unknown> | null | undefined;
 }): Record<string, unknown> {
-  return {
+  const merged = {
     ...input.baseConfig,
     ...(input.modelProfile.adapterConfig ?? {}),
     ...(input.issueAdapterConfig ?? {}),
   };
+  const hasEnvLayer = [
+    input.baseConfig,
+    input.modelProfile.adapterConfig,
+    input.issueAdapterConfig,
+  ].some((config) => config && Object.prototype.hasOwnProperty.call(config, "env"));
+  if (hasEnvLayer) {
+    merged.env = {
+      ...parseObject(input.baseConfig.env),
+      ...parseObject(input.modelProfile.adapterConfig?.env),
+      ...parseObject(input.issueAdapterConfig?.env),
+    };
+  }
+  return merged;
+}
+
+export function modelProfileEnvConfigPathByKey(input: {
+  modelProfile: ModelProfileApplication;
+  issueAdapterConfig: Record<string, unknown> | null | undefined;
+}): Record<string, string> {
+  if (!input.modelProfile.applied) return {};
+  const profileEnv = parseObject(input.modelProfile.adapterConfig?.env);
+  const issueEnv = parseObject(input.issueAdapterConfig?.env);
+  return Object.fromEntries(
+    Object.keys(profileEnv)
+      .filter((key) => !Object.prototype.hasOwnProperty.call(issueEnv, key))
+      .map((key) => [
+        key,
+        `runtimeConfig.modelProfiles.${input.modelProfile.applied}.adapterConfig.env.${key}`,
+      ]),
+  );
 }
 
 function modelProfileRunMetadata(
@@ -9124,6 +9167,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       modelProfile: modelProfileApplication,
       issueAdapterConfig: issueAssigneeOverrides?.adapterConfig ?? null,
     });
+    const agentEnvConfigPathByKey = modelProfileEnvConfigPathByKey({
+      modelProfile: modelProfileApplication,
+      issueAdapterConfig: issueAssigneeOverrides?.adapterConfig ?? null,
+    });
     const declaredResourceClaims = parseWorkspaceResourceClaimDeclarations(
       ((mergedConfig as Record<string, unknown>).workspaceRuntime as Record<string, unknown> | undefined) ?? null,
     );
@@ -9137,6 +9184,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       projectId: projectContext?.id ?? null,
       routineId: routineEnvContext.routineId,
       executionRunConfig,
+      agentEnvConfigPathByKey,
       projectEnv: projectContext?.env ?? null,
       routineEnv: routineEnvContext.env,
       secretsSvc,

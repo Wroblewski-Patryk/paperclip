@@ -69,27 +69,42 @@ const observedAt = process.env.ARCHITECTURE_AWARENESS_OBSERVED_AT ?? new Date().
 const statusOnly = hasFlag("--status-only");
 const maxElapsedMs = Math.max(0, intArg("--max-elapsed-ms", 0));
 const progressEveryFiles = Math.max(1, intArg("--progress-every", 250) || 250);
-const generatedOutputFiles = new Set([
-  path.join(canonicalGraphsDir, "architecture-awareness.json"),
-  path.join(canonicalGraphsDir, "architecture-awareness.csv"),
-  path.join(canonicalGraphsDir, "architecture-proof-register.csv"),
-  path.join(canonicalGraphsDir, "architecture-graph.md"),
-  path.join(canonicalGraphsDir, "architecture-graph.mmd"),
-  path.join(canonicalGraphsDir, "architecture-health.json"),
-  path.join(canonicalStatusDir, "architecture-awareness-report.md"),
-  path.join(canonicalStatusDir, "architecture-dependency-report.md"),
-  path.join(canonicalStatusDir, "architecture-ownership-report.md"),
-  path.join(canonicalStatusDir, "task-synchronization-report.md"),
-  path.join(canonicalStatusDir, "app-completion-index.json"),
-  path.join(canonicalStatusDir, "app-completion-index.md"),
-  path.join(canonicalStatusDir, "event-chain-index.json"),
-  path.join(canonicalStatusDir, "event-chain-index.md"),
-  path.join(canonicalStatusDir, "operational-readiness-index.json"),
-  path.join(canonicalStatusDir, "operational-readiness-index.md"),
-  path.join(canonicalStatusDir, "project-truth-index.json"),
-  path.join(canonicalStatusDir, "project-truth-index.md"),
-  path.join(canonicalStatusDir, "runtime-error-index.json"),
-  path.join(canonicalStatusDir, "runtime-error-index.md"),
+const generatedGraphFileNames = [
+  "architecture-awareness.json",
+  "architecture-awareness.csv",
+  "architecture-proof-register.csv",
+  "architecture-graph.md",
+  "architecture-graph.mmd",
+  "architecture-health.json",
+];
+const generatedStatusFileNames = [
+  "architecture-awareness-report.md",
+  "architecture-dependency-report.md",
+  "architecture-ownership-report.md",
+  "task-synchronization-report.md",
+  "app-completion-index.json",
+  "app-completion-index.md",
+  "event-chain-index.json",
+  "event-chain-index.md",
+  "operational-readiness-index.json",
+  "operational-readiness-index.md",
+  "project-truth-index.json",
+  "project-truth-index.md",
+  "runtime-error-index.json",
+  "runtime-error-index.md",
+];
+
+function generatedFilesFor(graphsDirectory, statusDirectory) {
+  return [
+    ...generatedGraphFileNames.map((fileName) => path.join(graphsDirectory, fileName)),
+    ...generatedStatusFileNames.map((fileName) => path.join(statusDirectory, fileName)),
+  ];
+}
+
+const generatedOutputFiles = new Set(generatedFilesFor(graphsDir, statusDir));
+const generatedInputFiles = new Set([
+  ...generatedFilesFor(canonicalGraphsDir, canonicalStatusDir),
+  ...generatedOutputFiles,
 ]);
 
 const ignoredDirs = new Set([
@@ -356,7 +371,7 @@ async function walk(dir) {
       if (isExcludedByOverride(relativePath)) continue;
       files.push(...await walk(full));
     } else if (entry.isFile()) {
-      if (generatedOutputFiles.has(path.resolve(full))) continue;
+      if (generatedInputFiles.has(path.resolve(full))) continue;
       try {
         await fs.access(full);
         files.push(full);

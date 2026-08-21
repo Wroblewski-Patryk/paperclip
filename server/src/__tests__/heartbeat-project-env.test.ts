@@ -189,6 +189,61 @@ describe("resolveExecutionRunAdapterConfig", () => {
     expect(result.secretManifest).toEqual([]);
     expect(resolveEnvBindings).not.toHaveBeenCalled();
   });
+
+  it("passes profile-specific binding paths into agent startup resolution without exposing secret material", async () => {
+    const secretValue = "profile-runtime-secret-value";
+    const providerRef = "arn:example:provider-secret-ref";
+    const resolveAdapterConfigForRuntime = vi.fn(async (
+      _companyId: string,
+      config: Record<string, unknown>,
+      context: { envConfigPathByKey?: Record<string, string> },
+    ) => ({
+      config: { ...config, env: { PROFILE_TOKEN: secretValue } },
+      secretKeys: new Set(["PROFILE_TOKEN"]),
+      manifest: [{
+        configPath: context.envConfigPathByKey?.PROFILE_TOKEN ?? "env.PROFILE_TOKEN",
+        envKey: "PROFILE_TOKEN",
+        secretId: "secret-profile",
+        secretKey: "profile-token",
+        version: 1,
+        provider: "local_encrypted",
+        outcome: "success" as const,
+      }],
+    }));
+
+    const result = await resolveExecutionRunAdapterConfig({
+      companyId: "company-1",
+      agentId: "agent-1",
+      executionRunConfig: {
+        env: {
+          PROFILE_TOKEN: { type: "secret_ref", secretId: "secret-profile", version: "latest" },
+        },
+      },
+      agentEnvConfigPathByKey: {
+        PROFILE_TOKEN: "runtimeConfig.modelProfiles.cheap.adapterConfig.env.PROFILE_TOKEN",
+      },
+      projectEnv: null,
+      secretsSvc: {
+        resolveAdapterConfigForRuntime,
+        resolveEnvBindings: vi.fn(),
+      } as any,
+    });
+
+    expect(resolveAdapterConfigForRuntime.mock.calls[0]?.[2]).toMatchObject({
+      envConfigPathByKey: {
+        PROFILE_TOKEN: "runtimeConfig.modelProfiles.cheap.adapterConfig.env.PROFILE_TOKEN",
+      },
+    });
+    expect(result.resolvedConfig.env).toEqual({ PROFILE_TOKEN: secretValue });
+    expect(result.secretManifest).toEqual([
+      expect.objectContaining({
+        configPath: "runtimeConfig.modelProfiles.cheap.adapterConfig.env.PROFILE_TOKEN",
+        outcome: "success",
+      }),
+    ]);
+    expect(JSON.stringify(result.secretManifest)).not.toContain(secretValue);
+    expect(JSON.stringify(result.secretManifest)).not.toContain(providerRef);
+  });
 });
 
 describe("extractMentionedSkillIdsFromSources", () => {
