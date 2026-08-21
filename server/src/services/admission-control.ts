@@ -5,6 +5,7 @@ import {
   admissionControlTransitions,
   admissionDecisions,
   companies,
+  issues,
 } from "@paperclipai/db";
 import type { AgentAvailability } from "@paperclipai/shared";
 import { conflict, notFound, unprocessable } from "../errors.js";
@@ -13,6 +14,10 @@ import {
   shouldDrainForDevServerRestart,
 } from "../dev-server-status.js";
 import { instanceSettingsService } from "./instance-settings.js";
+import {
+  parseProjectConcurrencyScope,
+  scopesCanRunConcurrently,
+} from "./project-concurrency.js";
 
 export const ADMISSION_CONTROL_STATES = ["open", "draining", "maintenance", "reopening"] as const;
 export type AdmissionControlState = (typeof ADMISSION_CONTROL_STATES)[number];
@@ -62,7 +67,7 @@ export type AdmissionPolicy = {
 export const DEFAULT_ADMISSION_POLICY: AdmissionPolicy = Object.freeze({
   maxRetries: 2,
   maxIssueWip: 1,
-  maxProjectWip: 1,
+  maxProjectWip: 3,
   maxOrganizationWip: 3,
   cooldownSeconds: 30 * 60,
   observationWindowSeconds: 60 * 60,
@@ -358,6 +363,37 @@ export function admissionControlService(db: Db) {
     const continuationWipOffset = input.allowIssueWipContinuation && observed.issueWip > 0 ? 1 : 0;
     const effectiveProjectWip = Math.max(0, observed.projectWip - continuationWipOffset);
     const effectiveOrganizationWip = Math.max(0, observed.organizationWip - continuationWipOffset);
+    let projectConcurrency = { compatible: true as boolean, reason: null as string | null };
+    if (input.projectId && effectiveProjectWip > 0 && !input.issueId) {
+      projectConcurrency = {
+        compatible: false,
+        reason: "candidate work has no issue-scoped concurrency contract",
+      };
+    } else if (input.projectId && input.issueId && effectiveProjectWip > 0) {
+      const candidatePolicy = await db
+        .select({ executionPolicy: issues.executionPolicy })
+        .from(issues)
+        .where(and(eq(issues.companyId, input.companyId), eq(issues.id, input.issueId)))
+        .then((rows) => rows[0]?.executionPolicy ?? null);
+      const activePolicies = await db.execute<{ execution_policy: unknown }>(sql`
+        select active_issue.execution_policy
+        from heartbeat_runs active_run
+        join issues active_issue
+          on active_issue.company_id=active_run.company_id
+         and active_issue.id::text=active_run.context_snapshot->>'issueId'
+        where active_run.company_id=${input.companyId}
+          and active_run.status='running'
+          and active_issue.project_id=${input.projectId}
+          and active_issue.id<>${input.issueId}
+      `);
+      const compatibility = scopesCanRunConcurrently(
+        parseProjectConcurrencyScope(candidatePolicy),
+        activePolicies.map((row) => parseProjectConcurrencyScope(row.execution_policy)),
+      );
+      projectConcurrency = compatibility.compatible
+        ? { compatible: true, reason: null }
+        : { compatible: false, reason: compatibility.conflict.detail };
+    }
 
     const previousStop = await db
       .select()
@@ -438,6 +474,12 @@ export function admissionControlService(db: Db) {
       disposition = "waiting_for_signal";
       reasonCode = "wip.project_limit";
       reason = `Project WIP ${effectiveProjectWip} reached limit ${limits.maxProjectWip}`;
+      admitted = false;
+      cooldownUntil = new Date(now.getTime() + limits.cooldownSeconds * 1000);
+    } else if (input.projectId && !projectConcurrency.compatible) {
+      disposition = "waiting_for_signal";
+      reasonCode = "wip.project_conflict";
+      reason = `Project lane conflicts with active work: ${projectConcurrency.reason ?? "scope is not safely bounded"}`;
       admitted = false;
       cooldownUntil = new Date(now.getTime() + limits.cooldownSeconds * 1000);
     } else if (effectiveOrganizationWip >= limits.maxOrganizationWip) {

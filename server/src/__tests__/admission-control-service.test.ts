@@ -440,6 +440,8 @@ describeEmbeddedPostgres("native admission control", () => {
   it("reconsiders a queued signal after transient project WIP is released", async () => {
     const { companyId, agentId } = await seed("active");
     const admission = admissionControlService(db);
+    const [control] = await admission.list(companyId);
+    await db.update(admissionControls).set({ policy: { maxProjectWip: 1 } }).where(eq(admissionControls.id, control!.id));
     const projectId = randomUUID();
     await db.insert(projects).values({
       id: projectId,
@@ -553,6 +555,72 @@ describeEmbeddedPostgres("native admission control", () => {
       allowIssueWipContinuation: true,
     });
     expect(continuation).toMatchObject({ admitted: true, reasonCode: "policy.admitted" });
+  });
+
+  it("admits disjoint scoped work and blocks a shared functional resource in the same project", async () => {
+    const { companyId, agentId } = await seed("active");
+    const secondAgentId = randomUUID();
+    await db.insert(agents).values({
+      id: secondAgentId,
+      companyId,
+      name: "Admission frontend worker",
+      role: "engineer",
+      status: "idle",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: { heartbeat: { enabled: true, intervalSec: 60, wakeOnDemand: true } },
+      permissions: {},
+    });
+    const projectId = randomUUID();
+    await db.insert(projects).values({ id: projectId, companyId, name: "Scoped project", status: "active" });
+    const [backendIssue, frontendIssue] = await db.insert(issues).values([
+      {
+        companyId, projectId, title: "Backend response", status: "in_progress", priority: "medium",
+        assigneeAgentId: agentId,
+        executionPolicy: { mode: "normal", commentRequired: true, stages: [], concurrency: {
+          mode: "scoped", writePaths: ["server/src"], readPaths: [], resources: ["feature:api-read"],
+        } },
+      },
+      {
+        companyId, projectId, title: "Button color", status: "todo", priority: "medium",
+        assigneeAgentId: secondAgentId,
+        executionPolicy: { mode: "normal", commentRequired: true, stages: [], concurrency: {
+          mode: "scoped", writePaths: ["ui/src"], readPaths: [], resources: ["feature:button-color"],
+        } },
+      },
+    ]).returning();
+    await db.insert(heartbeatRuns).values({
+      companyId,
+      agentId,
+      invocationSource: "assignment",
+      status: "running",
+      contextSnapshot: { issueId: backendIssue!.id, projectId },
+    });
+
+    const admission = admissionControlService(db);
+    const disjoint = await admission.evaluateWork({
+      companyId, projectId, issueId: frontendIssue!.id, agentId: secondAgentId,
+      source: "test", fingerprint: "scoped-disjoint", evidenceHash: "v1",
+    });
+    expect(disjoint).toMatchObject({ admitted: true, reasonCode: "policy.admitted" });
+
+    await db.update(issues).set({ executionPolicy: {
+      mode: "normal", commentRequired: true, stages: [], concurrency: {
+        mode: "scoped", writePaths: ["ui/src"], readPaths: [], resources: ["feature:login"],
+      },
+    } }).where(eq(issues.id, frontendIssue!.id));
+    await db.update(issues).set({ executionPolicy: {
+      mode: "normal", commentRequired: true, stages: [], concurrency: {
+        mode: "scoped", writePaths: ["server/src"], readPaths: [], resources: ["feature:login"],
+      },
+    } }).where(eq(issues.id, backendIssue!.id));
+
+    const coupled = await admission.evaluateWork({
+      companyId, projectId, issueId: frontendIssue!.id, agentId: secondAgentId,
+      source: "test", fingerprint: "scoped-coupled", evidenceHash: "v2",
+    });
+    expect(coupled).toMatchObject({ admitted: false, reasonCode: "wip.project_conflict" });
+    expect(coupled.reason).toContain("Shared resource feature:login");
   });
 
   it("records budget holds and explicit governed risk acceptance", async () => {

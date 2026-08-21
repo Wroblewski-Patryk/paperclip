@@ -56,6 +56,13 @@ if ($repoCandidates.Count -gt 250) {
 
 $processCommandLines = (Get-CimInstance Win32_Process -ErrorAction Stop | ForEach-Object CommandLine) -join "`n"
 $canonicalSkillTarget = Join-Path $repoRoot 'skills\paperclip'
+$applicationsRoot = [IO.Path]::GetDirectoryName($repoRoot)
+$approvedApplicationRoots = @(
+  $repoRoot
+  (Join-Path $applicationsRoot 'Soar')
+  (Join-Path $applicationsRoot 'Roost')
+  (Join-Path $applicationsRoot 'Featherly')
+) | ForEach-Object { [IO.Path]::GetFullPath($_).TrimEnd('\') }
 $allowedExternalTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 [void]$allowedExternalTargets.Add([IO.Path]::GetFullPath($canonicalSkillTarget).TrimEnd('\'))
 $junctions = @()
@@ -90,8 +97,10 @@ foreach ($candidate in $candidates) {
     foreach ($target in @($junction.Target)) {
       $targetPath = [IO.Path]::GetFullPath($target).TrimEnd('\')
       $insideTemp = $targetPath.StartsWith($tempRoot + '\', [StringComparison]::OrdinalIgnoreCase)
-      $insideRepository = $targetPath.StartsWith($repoRoot + '\', [StringComparison]::OrdinalIgnoreCase)
-      if (-not $insideTemp -and -not $insideRepository) {
+      $insideApprovedApplication = @($approvedApplicationRoots | Where-Object {
+        $targetPath -eq $_ -or $targetPath.StartsWith($_ + '\', [StringComparison]::OrdinalIgnoreCase)
+      }).Count -gt 0
+      if (-not $insideTemp -and -not $insideApprovedApplication) {
         throw "Unexpected junction target: $targetPath"
       }
       if (-not $insideTemp) {

@@ -252,10 +252,35 @@ export const issueDecisionContractSchema = z.object({
 
 export type IssueDecisionContract = z.infer<typeof issueDecisionContractSchema>;
 
+const issueExecutionConcurrencyPathSchema = z.string().trim().min(1).max(500).superRefine((value, ctx) => {
+  const normalized = value.replace(/\\/g, "/");
+  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith("/") || normalized.split("/").includes("..")) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Concurrency paths must be workspace-relative and cannot traverse parents",
+    });
+  }
+});
+
+export const issueExecutionConcurrencyPolicySchema = z.object({
+  mode: z.enum(["project_exclusive", "scoped"]).default("project_exclusive"),
+  writePaths: z.array(issueExecutionConcurrencyPathSchema).max(200).default([]),
+  readPaths: z.array(issueExecutionConcurrencyPathSchema).max(200).default([]),
+  resources: z.array(z.string().trim().min(1).max(200)).max(100).default([]),
+}).strict().superRefine((value, ctx) => {
+  if (value.mode === "scoped" && value.writePaths.length === 0 && value.readPaths.length === 0 && value.resources.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Scoped concurrency requires at least one declared path or resource",
+    });
+  }
+});
+
 export const issueExecutionPolicySchema = z.object({
   mode: z.enum(ISSUE_EXECUTION_POLICY_MODES).optional().default("normal"),
   commentRequired: z.boolean().optional().default(true),
   stages: z.array(issueExecutionStageSchema).default([]),
+  concurrency: issueExecutionConcurrencyPolicySchema.optional().nullable(),
   monitor: issueExecutionMonitorPolicySchema.optional().nullable(),
   reviewPreset: lowTrustReviewPresetPolicySchema.optional(),
   authorizationPolicy: trustAuthorizationPolicySchema.optional(),

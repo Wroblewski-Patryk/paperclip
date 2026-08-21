@@ -213,6 +213,11 @@ import { environmentService } from "./environments.js";
 import { environmentRuntimeService } from "./environment-runtime.js";
 import { environmentRunOrchestrator } from "./environment-run-orchestrator.js";
 import { parseWorkspaceResourceClaimDeclarations, workspaceResourceClaimService } from "./workspace-resource-claims.js";
+import {
+  parseProjectConcurrencyScope,
+  scopesCanRunConcurrently,
+  type ProjectConcurrencyScope,
+} from "./project-concurrency.js";
 import { isUnsafeSessionWorkspaceCwd } from "./session-workspace-cwd.js";
 import {
   assertLowTrustRuntimeServicesAllowed,
@@ -6705,6 +6710,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       .select({
         id: issues.id,
         projectId: issues.projectId,
+        executionPolicy: issues.executionPolicy,
         status: issues.status,
         priority: issues.priority,
         updatedAt: issues.updatedAt,
@@ -7030,6 +7036,20 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         limit 1
       `)
       .then((rows) => rows.length > 0);
+  }
+
+  async function listLiveTimerProjectScopes(companyId: string, projectId: string | null) {
+    const rows = await db.execute<{ execution_policy: unknown }>(sql`
+      select active_issue.execution_policy
+      from heartbeat_runs active_run
+      left join issues active_issue
+        on active_issue.company_id=active_run.company_id
+       and active_issue.id::text=active_run.context_snapshot->>'issueId'
+      where active_run.company_id=${companyId}
+        and active_run.status in ('queued','running','scheduled_retry')
+        and coalesce(active_run.context_snapshot->>'projectId', active_issue.project_id::text, '')=${projectId ?? ''}
+    `);
+    return rows.map((row) => parseProjectConcurrencyScope(row.execution_policy));
   }
 
   function parseMaxTurnContinuationPolicy(agent: typeof agents.$inferSelect): MaxTurnContinuationPolicy {
@@ -12634,6 +12654,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       let enqueued = 0;
       let skipped = 0;
       const claimedProjectLanes = new Set<string>();
+      const claimedProjectScopes = new Map<string, Array<ProjectConcurrencyScope | null>>();
 
       for (const agent of allAgents) {
         if (agent.status === "paused" || agent.status === "terminated" || agent.status === "pending_approval") continue;
@@ -12664,6 +12685,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         }
 
         const projectLaneKey = timerCandidate?.projectId ?? `${agent.companyId}:unscoped`;
+        const candidateConcurrencyScope = parseProjectConcurrencyScope(timerCandidate?.executionPolicy ?? null);
         if (
           policy.workAware &&
           policy.serializeByProject &&
@@ -12674,6 +12696,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         ) {
           skipped += 1;
           continue;
+        }
+        if (policy.workAware && !policy.serializeByProject) {
+          const liveScopes = await listLiveTimerProjectScopes(agent.companyId, timerCandidate?.projectId ?? null);
+          const sameTickScopes = claimedProjectScopes.get(projectLaneKey) ?? [];
+          if (!scopesCanRunConcurrently(candidateConcurrencyScope, [...liveScopes, ...sameTickScopes]).compatible) {
+            skipped += 1;
+            continue;
+          }
         }
 
         const run = await enqueueWakeup(agent.id, {
@@ -12705,6 +12735,12 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         if (run) {
           enqueued += 1;
           if (policy.workAware && policy.serializeByProject) claimedProjectLanes.add(projectLaneKey);
+          if (policy.workAware && !policy.serializeByProject) {
+            claimedProjectScopes.set(projectLaneKey, [
+              ...(claimedProjectScopes.get(projectLaneKey) ?? []),
+              candidateConcurrencyScope,
+            ]);
+          }
         } else skipped += 1;
       }
 

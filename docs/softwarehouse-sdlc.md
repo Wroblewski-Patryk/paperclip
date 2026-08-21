@@ -32,6 +32,14 @@ therefore neither product acceptance nor commercial readiness by itself.
 
 The runtime represents these concerns with three independent records:
 
+Within one singleton project checkout, implementation parallelism is permitted
+only when every participating issue declares a bounded concurrency scope and
+the write/read path sets plus functional/runtime resource keys are disjoint.
+Unknown scope remains project-exclusive. Coupled frontend/backend work declares
+the same feature resource or an issue dependency; independent frontend/backend
+work may proceed concurrently. Source-control closure remains a separately
+serialized governed phase with exact-path ownership.
+
 - `issues` are executor tasks and may be `done` after their task evidence gate;
 - `product_deliveries` are product changes and advance only through the delivery transition API;
 - `product_outcomes` are real-world results and require independent evidence and acceptance.

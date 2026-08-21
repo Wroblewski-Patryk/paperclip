@@ -251,6 +251,7 @@ export type {
   IssueDecisionContract,
   IssueExecutionMonitorState,
   IssueExecutionPolicy,
+  IssueExecutionConcurrencyPolicy,
   IssueExecutionState,
   IssueExecutionStage,
   IssueExecutionStageParticipant,

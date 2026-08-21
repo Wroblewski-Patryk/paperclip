@@ -1,5 +1,18 @@
 # Active Mission
 
+## 2026-08-21 - Scoped Parallel Delivery Enabled
+
+- Agent availability is ON. Explicitly scoped, disjoint same-project
+  implementation may run concurrently within organization/project capacity.
+  Missing or conflicting scope fails closed; source-control closure remains
+  governed and exact-path owned.
+- Live Runs presents queued work as waiting rather than working and explains
+  the claim-time reason. Runtime configuration is synchronized to all 39
+  agents, with one active run per agent.
+- Paperclip remains on `0.3.1` and strict ports `3200`/`54329`; no upstream
+  update occurred. Boundary, topology, build, and temp-hygiene checks pass.
+- LUC-2469's protected Coolify QA grant remains an explicit owner decision.
+
 ## 2026-08-10 - Quota-Hold Readiness Hardened
 
 - Provider quota is exhausted, so the active posture is fail-closed read-only

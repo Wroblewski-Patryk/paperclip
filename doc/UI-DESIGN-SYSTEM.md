@@ -65,6 +65,15 @@ forcing the owner to discover context in raw issue history. Internal preparation
 counts may be shown as one quiet status line; technical tasks and agent
 assignments do not belong in the owner decision list.
 
+## Live run waiting state
+
+A queued run is not visually presented as active work. Use a quiet clock state,
+the label `Queued`, and one concise `paperclip-inset` explanation derived from
+the latest claim-time admission decision. Distinguish project scope conflict,
+project/organization/issue capacity, budget, runtime restart, admission OFF,
+and an ordinary scheduler wait. Keep raw reason codes available to diagnostics,
+but show the human reason in the primary card.
+
 ## Change discipline
 
 When changing the global Paperclip look:

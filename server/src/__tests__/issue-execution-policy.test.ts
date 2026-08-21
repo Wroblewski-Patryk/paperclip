@@ -95,6 +95,31 @@ describe("normalizeIssueExecutionPolicy", () => {
     expect(result!.mode).toBe("normal");
   });
 
+  it("keeps scoped concurrency without requiring workflow stages", () => {
+    const result = normalizeIssueExecutionPolicy({
+      stages: [],
+      concurrency: {
+        mode: "scoped",
+        writePaths: ["ui/src/features/login"],
+        readPaths: ["packages/shared/src/types"],
+        resources: ["feature:login"],
+      },
+    });
+    expect(result?.concurrency).toEqual({
+      mode: "scoped",
+      writePaths: ["ui/src/features/login"],
+      readPaths: ["packages/shared/src/types"],
+      resources: ["feature:login"],
+    });
+  });
+
+  it("rejects an empty scoped concurrency declaration", () => {
+    expect(() => normalizeIssueExecutionPolicy({
+      stages: [],
+      concurrency: { mode: "scoped", writePaths: [], readPaths: [], resources: [] },
+    })).toThrow("Invalid execution policy");
+  });
+
   it("rejects approvalsNeeded values above 1", () => {
     expect(() =>
       normalizeIssueExecutionPolicy({

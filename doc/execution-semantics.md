@@ -151,6 +151,29 @@ Paperclip already clears stale execution locks and can adopt some stale checkout
 
 ## 6. Parent/Sub-Issue vs Blockers
 
+### Conflict-aware same-project scheduling
+
+Project WIP is a capacity ceiling, not sufficient proof that two runs may share
+one singleton checkout. Same-project overlap is opt-in through
+`issue.executionPolicy.concurrency`:
+
+- `mode: "scoped"` requires workspace-relative `writePaths`, `readPaths`, and/or
+  named `resources`;
+- write/write and write/read path-prefix overlap is a conflict;
+- an equal resource key is a conflict even when file paths differ (for example
+  one login flow, schema, migration, generated artifact, database, dev server,
+  or release/source-control lane);
+- an absent, invalid, or `project_exclusive` declaration fails closed and keeps
+  the legacy one-project-lane behavior;
+- issue blocker dependencies remain authoritative and can further order scoped
+  work.
+
+Timers may consider scoped lanes independently, while claim-time admission
+rechecks current running lanes. Organization and project WIP limits remain hard
+ceilings. Git metadata mutation is not implied by a scoped implementation lane:
+agents commit only through the governed source-control closure path, which owns
+exact paths and preserves unrelated changes.
+
 Paperclip uses two different relationships for different jobs.
 
 ### Parent/Sub-Issue (`parentId`)

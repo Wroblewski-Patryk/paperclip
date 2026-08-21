@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { generateKeyPairSync, randomUUID } from "node:crypto";
 import path from "node:path";
 import type { Db } from "@paperclipai/db";
-import { agents as agentsTable, companies, heartbeatRuns, issues as issuesTable, projects as projectsTable } from "@paperclipai/db";
+import { admissionDecisions, agents as agentsTable, companies, heartbeatRuns, issues as issuesTable, projects as projectsTable } from "@paperclipai/db";
 import { and, desc, eq, inArray, not, sql } from "drizzle-orm";
 import {
   agentSkillSyncSchema,
@@ -3364,6 +3364,48 @@ export function agentRoutes(
 
     const liveRuns = await liveRunsQuery.limit(limit);
     const targetRunCount = Math.min(minCount, limit);
+    const enrichLiveRun = async (run: typeof liveRuns[number]) => {
+      const latestWait = run.status === "queued" && run.issueId
+        ? await db.select({
+            reasonCode: admissionDecisions.reasonCode,
+            reason: admissionDecisions.reason,
+            createdAt: admissionDecisions.createdAt,
+          }).from(admissionDecisions).where(and(
+            eq(admissionDecisions.companyId, companyId),
+            eq(admissionDecisions.agentId, run.agentId),
+            eq(admissionDecisions.issueId, run.issueId),
+            eq(admissionDecisions.admitted, false),
+            sql`${admissionDecisions.createdAt} >= ${run.createdAt}`,
+            sql`${admissionDecisions.source} like 'heartbeat.claim:%'`,
+          )).orderBy(desc(admissionDecisions.createdAt)).limit(1).then((rows) => rows[0] ?? null)
+        : null;
+      const reasonCode = latestWait?.reasonCode ?? "queue.scheduler";
+      const kind = reasonCode === "wip.project_conflict"
+        ? "project_conflict"
+        : reasonCode === "wip.project_limit"
+          ? "project_capacity"
+          : reasonCode === "wip.organization_limit"
+            ? "organization_capacity"
+            : reasonCode === "wip.issue_limit"
+              ? "issue_capacity"
+              : reasonCode.startsWith("budget.")
+                ? "budget"
+                : reasonCode === "runtime.restart_drain"
+                  ? "runtime_restart"
+                  : reasonCode.startsWith("control.")
+                    ? "admission_control"
+                    : "scheduler";
+      return {
+        ...enrichRunModelProfile(run),
+        queueWait: run.status === "queued" ? {
+          kind,
+          reasonCode,
+          reason: latestWait?.reason ?? "Waiting for the scheduler to claim this run",
+          observedAt: latestWait?.createdAt?.toISOString() ?? run.createdAt.toISOString(),
+        } : null,
+        outputSilence: await heartbeat.buildRunOutputSilence(run),
+      };
+    };
 
     if (targetRunCount > 0 && liveRuns.length < targetRunCount) {
       const activeIds = liveRuns.map((r) => r.id);
@@ -3382,17 +3424,11 @@ export function agentRoutes(
         .limit(targetRunCount - liveRuns.length);
 
       const rows = [...liveRuns, ...recentRuns];
-      res.json(await Promise.all(rows.map(async (run) => ({
-        ...enrichRunModelProfile(run),
-        outputSilence: await heartbeat.buildRunOutputSilence(run),
-      }))));
+      res.json(await Promise.all(rows.map(enrichLiveRun)));
       return;
     }
 
-    res.json(await Promise.all(liveRuns.map(async (run) => ({
-      ...enrichRunModelProfile(run),
-      outputSilence: await heartbeat.buildRunOutputSilence(run),
-    }))));
+    res.json(await Promise.all(liveRuns.map(enrichLiveRun)));
   });
 
   router.get("/heartbeat-runs/:runId", async (req, res) => {

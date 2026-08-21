@@ -319,6 +319,7 @@ export function stripMonitorFromExecutionPolicy(policy: IssueExecutionPolicy | n
     mode: policy.mode,
     commentRequired: policy.commentRequired,
     stages: policy.stages,
+    ...(policy.concurrency ? { concurrency: policy.concurrency } : {}),
   };
 }
 
@@ -390,6 +391,7 @@ export function normalizeIssueExecutionPolicy(input: unknown): IssueExecutionPol
   if (
     stages.length === 0
     && !monitor
+    && !parsed.data.concurrency
     && !parsed.data.reviewPreset
     && !parsed.data.authorizationPolicy
     && !parsed.data.decisionContract
@@ -399,6 +401,7 @@ export function normalizeIssueExecutionPolicy(input: unknown): IssueExecutionPol
     mode: parsed.data.mode ?? "normal",
     commentRequired: true,
     stages,
+    ...(parsed.data.concurrency ? { concurrency: parsed.data.concurrency } : {}),
     ...(monitor ? { monitor } : {}),
     ...(parsed.data.reviewPreset ? { reviewPreset: parsed.data.reviewPreset } : {}),
     ...(parsed.data.authorizationPolicy ? { authorizationPolicy: parsed.data.authorizationPolicy } : {}),

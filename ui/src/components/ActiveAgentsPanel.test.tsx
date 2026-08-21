@@ -232,4 +232,35 @@ describe("ActiveAgentsPanel", () => {
       root.unmount();
     });
   });
+
+  it("explains why a queued run is waiting instead of presenting it as working", async () => {
+    mockHeartbeatsApi.liveRunsForCompany.mockResolvedValue([{
+      ...createIssueRun(1, "65274215-0000-4000-8000-000000000000"),
+      status: "queued",
+      queueWait: {
+        kind: "project_conflict",
+        reasonCode: "wip.project_conflict",
+        reason: "Project lane conflicts with active work: Shared resource feature:login",
+        observedAt: "2026-04-24T12:00:00.000Z",
+      },
+    }]);
+
+    const root = createRoot(container);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <ActiveAgentsPanel companyId="company-1" />
+        </QueryClientProvider>,
+      );
+    });
+    await flushReact();
+
+    expect(container.textContent).toContain("Queued");
+    expect(container.textContent).not.toContain("Working now");
+    expect(container.textContent).toContain("Waiting safely:");
+    expect(container.textContent).toContain("Shared resource feature:login");
+
+    await act(async () => root.unmount());
+  });
 });

@@ -12,7 +12,7 @@ import {
   deriveActiveRecoveryDisplayState,
   RECOVERY_CHIP_DEFAULT_TONE,
 } from "../lib/recovery-display";
-import { ExternalLink } from "lucide-react";
+import { Clock3, ExternalLink } from "lucide-react";
 import { Identity } from "./Identity";
 import { RunChatSurface } from "./RunChatSurface";
 import { useLiveRunTranscripts } from "./transcript/useLiveRunTranscripts";
@@ -48,7 +48,7 @@ const DASHBOARD_MAX_CHUNKS_PER_RUN = 40;
 const EMPTY_TRANSCRIPT: TranscriptEntry[] = [];
 
 function isRunActive(run: LiveRunForIssue): boolean {
-  return run.status === "queued" || run.status === "running";
+  return run.status === "running";
 }
 
 interface ActiveAgentsPanelProps {
@@ -183,11 +183,13 @@ const AgentRunCard = memo(function AgentRunCard({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              {isActive ? (
+              {run.status === "running" ? (
                 <span className="relative flex h-2.5 w-2.5 shrink-0">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--company-accent)] opacity-70" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--company-accent)]" />
                 </span>
+              ) : run.status === "queued" ? (
+                <Clock3 className="h-3 w-3 shrink-0 text-amber-500" aria-hidden />
               ) : (
                 <span className="inline-flex h-2.5 w-2.5 rounded-full bg-muted-foreground/35" />
               )}
@@ -199,7 +201,7 @@ const AgentRunCard = memo(function AgentRunCard({
               />
             </div>
             <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-              <span>{isActive ? "Live now" : run.finishedAt ? `Finished ${relativeTime(run.finishedAt)}` : `Started ${relativeTime(run.createdAt)}`}</span>
+              <span>{run.status === "running" ? "Working now" : run.status === "queued" ? "Queued" : run.finishedAt ? `Finished ${relativeTime(run.finishedAt)}` : `Started ${relativeTime(run.createdAt)}`}</span>
             </div>
             {modelProfile ? (
               <div
@@ -246,6 +248,12 @@ const AgentRunCard = memo(function AgentRunCard({
             ) : null}
           </div>
         )}
+        {run.status === "queued" && run.queueWait ? (
+          <div className="paperclip-inset mt-2 px-2.5 py-2 text-[11px] text-muted-foreground" role="status">
+            <span className="font-medium text-foreground">Waiting safely:</span>{" "}
+            {run.queueWait.reason}
+          </div>
+        ) : null}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3">

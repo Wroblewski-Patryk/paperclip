@@ -73,6 +73,12 @@ export interface LiveRunForIssue {
   lastUsefulActionAt?: string | null;
   nextAction?: string | null;
   outputSilence?: HeartbeatRun["outputSilence"];
+  queueWait?: {
+    kind: "project_conflict" | "project_capacity" | "organization_capacity" | "issue_capacity" | "budget" | "runtime_restart" | "admission_control" | "scheduler";
+    reasonCode: string;
+    reason: string;
+    observedAt: string;
+  } | null;
 }
 export interface LiveRunForIssue extends RunEffectiveModelProfileFields {}
 

@@ -105,7 +105,9 @@ async function syncAgentRuntime(agent, definition) {
       intervalSec: workAwareHeartbeatIntervalSec,
       wakeOnDemand: true,
       workAware: true,
-      serializeByProject: true,
+      // The admission controller still fails closed for legacy/unknown scopes.
+      // Explicitly disjoint issue scopes may share a project checkout.
+      serializeByProject: false,
       reviewFirst: true,
       maxConcurrentRuns: 1,
     },
@@ -219,6 +221,7 @@ async function buildInstructions(definition, instructionsRoot) {
       "- Keep redaction checks bounded: prefer the repo secret scanner; otherwise use only high-confidence signatures and return capped file names/counts. Never scan generic secret words or pipe a full generated diff across generated graphs, status indexes, or append-heavy state files.",
       "- The assigned execution workspace (`cwd`) is this run's write boundary. Reading a shared tool from another allowed root is permitted, but modifying another repo requires a separately assigned linked issue bound to that repo's project and primary workspace. Never expand scope by adding a foreign path to your own task packet.",
       "- The safe Codex workspace sandbox may reject writes to `.git` metadata even when source-file edits are allowed. Do not retry `git commit`, `cherry-pick`, merge, or branch mutations after that denial and never request the global bypass. Finish scoped file edits and validation, attach evidence, move the issue to `in_review`, and create an explicit source-control closure handoff for the native controller/executor.",
+      "- Same-project parallelism is opt-in and fail-closed. Before implementation, ensure the issue execution policy has `concurrency.mode=\"scoped\"` with workspace-relative `writePaths`, `readPaths`, and functional/runtime `resources`. Use a shared resource key for coupled work such as one login flow, schema, generated artifact, migration, dev server, database, or source-control closure. Missing or overlapping scope intentionally serializes the project.",
       "- If a cross-repo defect is discovered, record a linked handoff and leave the foreign repo untouched. Do not close done while the assigned repo or any repo touched by the run is dirty unless an open source-control closure issue or exact no-commit blocker preserves ownership.",
       "",
       "The native run context is the current role/hierarchy/permission authority; the role file is an on-demand explanation. If a task needs more responsibility than this role owns, create or request a handoff instead of expanding the role silently.",

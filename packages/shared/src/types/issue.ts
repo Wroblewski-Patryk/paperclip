@@ -507,10 +507,23 @@ export interface IssueExecutionPolicy {
   mode: IssueExecutionPolicyMode;
   commentRequired: boolean;
   stages: IssueExecutionStage[];
+  concurrency?: IssueExecutionConcurrencyPolicy | null;
   monitor?: IssueExecutionMonitorPolicy | null;
   reviewPreset?: LowTrustReviewPresetPolicy;
   authorizationPolicy?: TrustAuthorizationPolicy;
   decisionContract?: IssueDecisionContract;
+}
+
+export interface IssueExecutionConcurrencyPolicy {
+  /**
+   * `project_exclusive` is the fail-closed legacy/default lane. `scoped`
+   * permits same-project overlap only when every active lane has a declared,
+   * non-conflicting scope.
+   */
+  mode: "project_exclusive" | "scoped";
+  writePaths: string[];
+  readPaths: string[];
+  resources: string[];
 }
 
 export interface IssueExecutionMonitorState {

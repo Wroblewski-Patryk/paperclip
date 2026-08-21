@@ -1,6 +1,6 @@
 # Paperclip Project Journal
 
-Last updated: 2026-08-16
+Last updated: 2026-08-21
 
 This is the active journal of durable conversation decisions and meaningful
 operating-memory changes. It is not a transcript, live dashboard, issue log,
@@ -18,6 +18,29 @@ cannot override current truth, decisions, product contracts, or fresh live
 evidence.
 
 ## Entries
+
+### 2026-08-21 - Conflict-aware same-project scheduling implemented
+
+- The owner returned and explicitly reopened agent work. Same-project overlap
+  is now permitted only for issues with explicit, disjoint read/write paths
+  and resource keys. Unknown, exclusive, overlapping, or coupled work remains
+  serialized.
+- Claim-time admission and timer selection apply the same fail-closed scope
+  contract. All 39 managed agents received the instruction; per-agent maximum
+  concurrency remains one.
+- Live Runs distinguishes queued work from active work and shows the latest
+  safe wait reason. Targeted shared/server/UI tests, the admission integration
+  test, all 225 Softwarehouse gate specs, repo-wide typecheck, and build pass.
+  The broad stable run completed general/UI/CLI groups and the new admission
+  suite before being deliberately stopped during its remaining multi-hour
+  isolated server sequence; unexecuted suites are not claimed as passing.
+- Temp hygiene now recognizes only the four approved singleton app roots as
+  preservable junction targets. It safely removed the stale
+  `featherly-luc2832-validation-20260820` fixture while preserving Featherly's
+  real `vendor` directory. Boundary, topology, and final hygiene audits pass.
+- LUC-2469 remains intentionally owner-gated: a temporary, read-only,
+  QA-resource-only Coolify grant. General agent availability does not authorize
+  deploy, restart, production access, or secret disclosure.
 
 ### 2026-08-16 - Quota-held execution and restart deadlock repaired
 

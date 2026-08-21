@@ -939,7 +939,8 @@ test("work-aware heartbeat admission preserves useful parallelism without empty 
   assert.match(heartbeat, /timerCandidate\?\.status !== "in_review"/);
   assert.match(heartbeat, /workType: timerCandidate\.status === "in_review" \? "review" : "implementation"/);
   assert.match(sync, /workAware: true/);
-  assert.match(sync, /serializeByProject: true/);
+  assert.match(sync, /serializeByProject: false/);
+  assert.match(sync, /Same-project parallelism is opt-in and fail-closed/);
   assert.match(sync, /reviewFirst: true/);
   assert.match(sync, /maxConcurrentRuns: 1/);
 });
