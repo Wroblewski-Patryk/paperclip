@@ -436,3 +436,21 @@ evidence.
   default-branch convergence were performed. Deferred work must be replayed by
   the normal admission path after the verified repository state is reopened;
   no agent work is to be invented or bypassed during maintenance.
+- The verified Softwarehouse implementation commit `d79cc4404` was published
+  to `owner/main` and `owner/codex/rolling-work-queue`. Because the former
+  hosted `owner/main` history was unrelated, its exact tip `522099418` was
+  first preserved at
+  `archive/main-before-softwarehouse-convergence-20260821`, then `main` was
+  replaced with an exact `force-with-lease`. Local `main` now tracks
+  `owner/main`; GitHub still reports `main` as the default branch. The stale
+  LUC-2563 proposal to make `codex/softwarehouse-v1` default was rejected and
+  the issue was completed with typed evidence.
+- Admission was reopened through the normal ON transition. Replay inspected
+  four deferred requests, queued two, admitted no duplicate work, and reduced
+  deferred work to zero. Live execution resumed with LUC-2804 and Featherly
+  recovery proof LUC-2226 running while LUC-2228 waits behind the same DRE
+  capacity; this is scheduler serialization, not the retired Longevity Doctor.
+- Decision Center now has two ready owner decisions (LUC-2439 Soar hot-path
+  scope and LUC-2726 Roost evidence cleanup) plus five AIA preparation items.
+  Neither the resolved SMTP incident nor the stale branch proposal remains in
+  the ready queue.
