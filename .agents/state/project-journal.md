@@ -7,6 +7,21 @@ operating-memory changes. It is not a transcript, live dashboard, issue log,
 or evidence store. Current truth belongs in the appropriate current-state or
 product source; detailed proof belongs in issues and work products.
 
+## 2026-08-21 - Application release sequencing and scope admission
+
+- Conversation decision: separate `application_release` from
+  `softwarehouse_platform`; never use platform V0/V1 wording to advance an app.
+- Soar order is v0 backend/web correctness and safety, v1 mobile on the same
+  API, then v2 AI/MCP/agent integration. The owner rejected the current Soar
+  hot-path AI proposal because it belongs to v2.
+- Paperclip now has a machine-readable portfolio policy, admission-time hold,
+  queue reconciler, dispatcher prevention, and Roost Product Map projection.
+- Investigation found that cancelled false-positive Featherly Exchange root
+  LUC-2473 left active descendants which were later revived. The exact
+  uncommitted Exchange slice was removed; unrelated Featherly work was
+  preserved. Future unauthorized-domain descendants are invalidated rather
+  than recycled.
+
 ## Archive Index
 
 - [Journal through 2026-08-04](../../history/agent-memory/project-journal-through-2026-08-04.md)

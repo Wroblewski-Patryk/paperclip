@@ -379,7 +379,7 @@ describeEmbeddedPostgres("issue recovery actions", () => {
     });
   });
 
-  it("keeps the source issue in review when source-scoped wakeup is claimed synchronously", async () => {
+  it("preserves the live in-progress disposition when a source-scoped wakeup is claimed synchronously", async () => {
     const { companyId, managerId, coderId, sourceIssue } = await seedCompany();
     await db.update(agents).set({ status: "paused" }).where(eq(agents.id, managerId));
     const enqueueWakeup = vi.fn(async () => {
@@ -408,7 +408,7 @@ describeEmbeddedPostgres("issue recovery actions", () => {
     });
 
     const [afterFirst] = await db.select().from(issues).where(eq(issues.id, sourceIssue.id));
-    expect(afterFirst?.status).toBe("in_review");
+    expect(afterFirst?.status).toBe("in_progress");
     expect(afterFirst?.assigneeAgentId).toBe(coderId);
 
     const secondLatestRun = {
@@ -437,7 +437,7 @@ describeEmbeddedPostgres("issue recovery actions", () => {
       attemptCount: 2,
     });
     const [afterSecond] = await db.select().from(issues).where(eq(issues.id, sourceIssue.id));
-    expect(afterSecond?.status).toBe("in_review");
+    expect(afterSecond?.status).toBe("in_progress");
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, sourceIssue.id));
     expect(comments).toHaveLength(1);

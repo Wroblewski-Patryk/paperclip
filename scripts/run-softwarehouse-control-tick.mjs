@@ -148,6 +148,18 @@ const steps = [
     }),
   },
   {
+    name: "applicationVersionPolicy",
+    command: ["scripts/run-application-version-policy-reconciler.mjs", "--apply"],
+    summary: (data) => ({
+      activeRunCount: data.activeRunCount ?? null,
+      mutationHeldForActiveRuns: data.mutationHeldForActiveRuns ?? null,
+      controlledIssueCount: data.controlledIssueCount ?? null,
+      actionCount: data.actionCount ?? null,
+      appliedCount: data.applied?.length ?? 0,
+      actions: data.actions ?? [],
+    }),
+  },
+  {
     name: "composeOneoffJanitor",
     command: ["scripts/run-compose-oneoff-janitor.mjs", "--apply"],
     summary: (data) => ({

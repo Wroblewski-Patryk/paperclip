@@ -421,6 +421,7 @@ export async function buildRoostBridgePortfolioProjection(
       paperclipProjectLink: `/${data.company!.issuePrefix}/projects/${project.id}`,
       lifecycleStage: portfolio.lifecycleStage,
       offeringType: portfolio.offeringType,
+      applicationVersion: portfolio.applicationVersion,
       mappingState: "mapped",
       conflictState,
       supersessionState,

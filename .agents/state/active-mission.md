@@ -1,5 +1,19 @@
 # Active Mission
 
+## 2026-08-21 - Sequential Application Release Admission
+
+- Soar remains in `application_release:v0`; mobile v1 and AI/MCP/agent v2 are
+  held until explicit predecessor acceptance. The rejected LUC-2439 proposal
+  must not return as current implementation work.
+- Paperclip admission, queue reconciliation, and project-truth dispatch now
+  enforce the same portfolio version/scope policy. Softwarehouse platform
+  version labels cannot satisfy an application release gate.
+- Roost Product Map receives the current/next application version and lock
+  state while product repositories remain canonical for intent and evidence.
+- Featherly Exchange work was confirmed as foreign scope derived from a
+  cancelled root; its active descendants and exact uncommitted implementation
+  slice are being removed without touching unrelated application work.
+
 ## 2026-08-21 - Scoped Parallel Delivery Enabled
 
 - Agent availability is ON. Explicitly scoped, disjoint same-project

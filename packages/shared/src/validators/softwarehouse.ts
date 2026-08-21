@@ -56,6 +56,21 @@ export const softwarehouseProjectTruthStatusSchema = z.object({
     paperclipProjectName: z.string(),
     lifecycleStage: z.string(),
     offeringType: z.string(),
+    applicationVersion: z.object({
+      namespace: z.literal("application_release"),
+      currentVersion: z.string().regex(/^v\d+$/),
+      currentStatus: z.enum(["in_progress", "accepted"]),
+      nextVersion: z.string().regex(/^v\d+$/).nullable(),
+      nextVersionStatus: z.enum(["locked", "unlocked"]).nullable(),
+      policySourcePath: z.string().min(1),
+    }).strict().optional().default({
+      namespace: "application_release",
+      currentVersion: "v0",
+      currentStatus: "in_progress",
+      nextVersion: null,
+      nextVersionStatus: null,
+      policySourcePath: "softwarehouse/portfolio/application-version-policy.json",
+    }),
     ownerSurface: z.object({
       system: z.string(),
       role: z.enum(["owner_facing_aggregate", "represented_in_aggregate"]),
@@ -230,6 +245,21 @@ export const roostBridgePortfolioItemSchema = z.object({
   paperclipProjectLink: z.string().min(1).nullable(),
   lifecycleStage: z.string().min(1),
   offeringType: z.string().min(1),
+  applicationVersion: z.object({
+    namespace: z.literal("application_release"),
+    currentVersion: z.string().regex(/^v\d+$/),
+    currentStatus: z.enum(["in_progress", "accepted"]),
+    nextVersion: z.string().regex(/^v\d+$/).nullable(),
+    nextVersionStatus: z.enum(["locked", "unlocked"]).nullable(),
+    policySourcePath: z.string().min(1),
+  }).strict().optional().default({
+    namespace: "application_release",
+    currentVersion: "v0",
+    currentStatus: "in_progress",
+    nextVersion: null,
+    nextVersionStatus: null,
+    policySourcePath: "softwarehouse/portfolio/application-version-policy.json",
+  }),
   mappingState: z.enum(["mapped", "unmapped"]),
   conflictState: z.enum([
     "none",

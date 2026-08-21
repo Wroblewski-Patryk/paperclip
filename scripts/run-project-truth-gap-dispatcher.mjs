@@ -21,6 +21,7 @@ import {
 } from "./lib/project-truth-gap-dispatcher.mjs";
 import { findAgentByNameOrAlias } from "./lib/softwarehouse-agent-resolver.mjs";
 import { isRequestTimeoutError, requestJson } from "./lib/timed-json-request.mjs";
+import { evaluateApplicationWork, loadApplicationVersionPolicy } from "./lib/application-version-policy.mjs";
 import {
   canonicalSoftwarehouseProject,
   softwarehouseActiveApplicationProjectNames,
@@ -44,6 +45,7 @@ const supersededMarker = `${marker}:superseded`;
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
 const appCompletionCandidatePolicy = "product_boundaries_v2";
 const projectTruthProjects = softwarehouseActiveApplicationProjectNames;
+const applicationVersionPolicy = loadApplicationVersionPolicy();
 
 async function request(method, route, body) {
   return requestJson({
@@ -775,6 +777,30 @@ for (const projectGapSet of gapsToDispatch) {
   for (const gap of projectGapSet.gaps) {
     if (trackDepth >= perTrackDispatchDepth || plannedDispatchCount >= maxDispatchGaps) break;
     const title = issueTitleForGap(gap);
+    const versionDecision = evaluateApplicationWork({
+      policy: applicationVersionPolicy,
+      projectName,
+      title,
+      description: [gap.summary, gap.nextAction, gap.userFlow, gap.risk].filter(Boolean).join("\n"),
+    });
+    if (["future_version_locked", "product_domain_not_authorized", "policy_invalid"].includes(versionDecision.disposition)) {
+      const action = {
+        action: "noop_application_version_policy_hold",
+        project: projectName,
+        title,
+        disposition: versionDecision.disposition,
+        targetVersion: versionDecision.targetVersion ?? null,
+        predecessorVersion: versionDecision.predecessorVersion ?? null,
+        marker: versionDecision.marker ?? null,
+      };
+      actions.push(action);
+      missingDepthReasons.push({
+        reason: versionDecision.disposition,
+        title,
+        targetVersion: versionDecision.targetVersion ?? null,
+      });
+      continue;
+    }
     currentDispatchTitles.add(title);
     const assignee = findOwner(agents, gap);
     if (!assignee) {

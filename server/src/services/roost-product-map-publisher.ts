@@ -155,6 +155,14 @@ const roostProductMapPacketV2Schema = z.object({
     offeringId: z.string().min(1).max(128).regex(/^[A-Za-z0-9._:-]+$/),
     paperclipProjectName: z.string().min(1).max(120),
     lifecycleStage: z.string().min(1).max(120),
+    applicationVersion: z.object({
+      namespace: z.literal("application_release"),
+      currentVersion: z.string().regex(/^v\d+$/),
+      currentStatus: z.enum(["in_progress", "accepted"]),
+      nextVersion: z.string().regex(/^v\d+$/).nullable(),
+      nextVersionStatus: z.enum(["locked", "unlocked"]).nullable(),
+      policySourcePath: z.string().min(1).max(240),
+    }).strict(),
     conflictState: z.enum(["none", "project_mapping_conflict", "owner_surface_unavailable"]),
     sourceControl: z.object({
       branch: z.string().min(1).max(120).nullable(),
@@ -300,6 +308,7 @@ export function toRoostProductMapPacketV2(packet: RoostBridgePortfolioProjection
         offeringId: item.offeringId,
         paperclipProjectName: item.paperclipProjectName,
         lifecycleStage: item.lifecycleStage,
+        applicationVersion: item.applicationVersion,
         conflictState: item.conflictState,
         sourceControl: {
           branch: item.sourceControl.branch,

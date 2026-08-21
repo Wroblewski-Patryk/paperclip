@@ -276,6 +276,15 @@ The placement contract is:
 | Roost product map | Durable owner-facing offering graph, department ownership, innovation-to-product transition, business context, and aggregate progress. |
 | Product repositories | Product intent, architecture, release contract, source SHA, tests, deployment evidence, and actual behavior. |
 
+The Product Map also renders the application-release projection from
+`softwarehouse/portfolio/application-version-policy.json`: current version and
+acceptance status, next declared version, and whether it is locked. Roost does
+not accept a release or infer progress from issue volume. Product repositories
+remain canonical for release intent and technical evidence, Paperclip owns the
+live gate and execution state, and Roost presents their sourced aggregate to
+the owner. This prevents copied documentation in Roost from becoming a second
+product contract.
+
 `Softwarehouse` therefore links to `Projects` for project phase and readiness.
 Its local `Knowledge` label is rendered as `Control sources` to avoid implying
 that Paperclip owns durable company/product knowledge. Its backlog is rendered

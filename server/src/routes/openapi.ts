@@ -4485,6 +4485,7 @@ for (const route of [
   ["/api/companies/{companyId}/softwarehouse/tools", "Get softwarehouse tool catalog"],
   ["/api/companies/{companyId}/softwarehouse/backlog", "Get softwarehouse backlog"],
   ["/api/companies/{companyId}/softwarehouse/issue-templates", "List softwarehouse issue templates"],
+  ["/api/companies/{companyId}/softwarehouse/coolify/featherly-inventory", "Inspect the bounded Featherly Coolify inventory"],
 ] as const) {
   registerCurrentRoute({
     method: "get",

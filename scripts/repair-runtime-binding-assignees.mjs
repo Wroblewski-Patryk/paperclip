@@ -127,10 +127,10 @@ function preferredAgentNamesFor(groups) {
   const groupNames = new Set(groups.map((group) => group.name));
   const names = [];
   if (groupNames.has("coolify") || groupNames.has("soar_smoke_principal")) {
-    names.push("Ops Release Lead");
+    names.push("09 DRE (Deployment & Reliability Engineer)");
   }
   if (groupNames.has("roost_protected_smoke")) {
-    names.push("Roost Project Manager");
+    names.push("09 QVE (QA & Verification Engineer)");
   }
   return names;
 }

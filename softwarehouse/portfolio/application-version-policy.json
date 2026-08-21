@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "namespace": "application_release",
+  "platformNamespace": "softwarehouse_platform",
+  "defaultPolicy": {
+    "currentVersion": "v0",
+    "currentStatus": "in_progress",
+    "futureVersionsRequirePredecessorAcceptance": true
+  },
+  "applications": [
+    {
+      "name": "Soar",
+      "projectNames": ["11 Innovation: Soar", "02 Product: Soar", "Soar"],
+      "currentVersion": "v0",
+      "currentStatus": "in_progress",
+      "versions": [
+        {
+          "version": "v0",
+          "status": "in_progress",
+          "scope": "Existing backend and web application are cleaned, functionally correct, safe and empirically proven. Trading flows, including DCA, must remain coherent across backtest, paper and live modes and exchange adapters."
+        },
+        {
+          "version": "v1",
+          "status": "locked",
+          "scope": "Mobile application reusing the accepted v0 backend and API.",
+          "semanticMarkers": ["mobile app", "mobile application", "android", "ios", "react native", "flutter"]
+        },
+        {
+          "version": "v2",
+          "status": "locked",
+          "scope": "AI, MCP and agent-facing integration after v1 acceptance.",
+          "semanticMarkers": ["mcp", "model context protocol", "ai assistant", "ai hot path", "agent-facing", "agent api", "llm"]
+        }
+      ],
+      "intentSource": "owner decision 2026-08-21"
+    },
+    {
+      "name": "Roost",
+      "projectNames": ["11 Innovation: Roost", "02 Product: Roost", "Roost"],
+      "currentVersion": "v1",
+      "currentStatus": "in_progress",
+      "versions": [
+        {
+          "version": "v0",
+          "status": "accepted",
+          "scope": "Historical foundation accepted by the current Roost product contract."
+        },
+        {
+          "version": "v1",
+          "status": "in_progress",
+          "scope": "Owner-facing company and product knowledge surface is correct, safe, usable and proven. Product Map projects Paperclip execution truth without becoming a second execution authority."
+        },
+        {
+          "version": "v2",
+          "status": "locked",
+          "scope": "Reserved for the explicitly documented Roost roadmap after v1 acceptance."
+        }
+      ],
+      "intentSource": "owner decision 2026-08-21"
+    },
+    {
+      "name": "Featherly",
+      "projectNames": ["11 Innovation: Featherly", "02 Product: Featherly", "Featherly"],
+      "currentVersion": "v0",
+      "currentStatus": "in_progress",
+      "versions": [
+        {
+          "version": "v0",
+          "status": "in_progress",
+          "scope": "Existing multilingual CMS is cleaned, functionally correct, safe and empirically proven."
+        },
+        {
+          "version": "v1",
+          "status": "locked",
+          "scope": "Reserved for an explicitly accepted owner roadmap after v0 acceptance."
+        }
+      ],
+      "forbiddenProductDomains": ["exchange", "trading", "broker", "brokerage", "wallet", "market order", "limit order", "position sizing"],
+      "intentSource": "owner scope correction confirmed 2026-08-08 and 2026-08-21"
+    }
+  ]
+}

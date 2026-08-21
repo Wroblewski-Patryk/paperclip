@@ -2,6 +2,22 @@
 
 Last updated: 2026-08-21
 
+## 2026-08-21 Sequential application versions and owner-facing projection
+
+- Every application advances through its own `application_release` sequence;
+  Softwarehouse platform versions are a different namespace and cannot unlock
+  a product release.
+- Soar is explicitly `app-v0` first: clean, correct, safe, empirically proven
+  backend and web, including dependent DCA behavior across backtest, paper,
+  live and exchange adapters. Only after v0 acceptance may mobile `app-v1`
+  begin; AI/MCP/agent integration is `app-v2` and follows accepted v1.
+- Product repositories retain canonical product/architecture/code/test truth.
+  Paperclip owns execution and version admission. Roost presents a readable
+  sourced portfolio/version projection and must not become a duplicate source
+  of product truth.
+- New applications use the same lifecycle: accepted v0 brief and end-to-end
+  proof first, then explicit predecessor acceptance before later versions.
+
 ## 2026-08-21 Managed temporary resources are singleton leases
 
 - The owner requires clean resource topology across applications: discover

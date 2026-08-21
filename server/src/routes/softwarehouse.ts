@@ -29,6 +29,7 @@ import { logActivity } from "../services/activity-log.js";
 import { validate } from "../middleware/validate.js";
 import { agentService, secretService } from "../services/index.js";
 import { inspectSoftwarehouseCoolifyFeatherly } from "../services/softwarehouse-coolify-featherly-inventory.js";
+import { loadApplicationVersionPolicy } from "../services/application-version-policy.js";
 
 function resolveWorkspaceRoot() {
   const cwd = process.cwd();
@@ -626,6 +627,7 @@ export async function loadSoftwarehouseControlStatus(
     }));
 
   const portfolioEntries = await readPortfolioEntries(workspaceRoot);
+  const applicationVersionPolicy = loadApplicationVersionPolicy();
   const portfolioByName = new Map(portfolioEntries.map((entry) => [entry.name.toLowerCase(), entry]));
   const commercialReadiness = new Map(
     await Promise.all(portfolioEntries.map(async (entry) => [
@@ -659,6 +661,7 @@ export async function loadSoftwarehouseControlStatus(
       const hasFirstGap = Object.keys(firstGap).length > 0;
       const name = nullableString(project.name) ?? "Unknown project";
       const portfolio = portfolioByName.get(name.toLowerCase());
+      const applicationPolicy = applicationVersionPolicy.applications.find((entry) => entry.name.toLowerCase() === name.toLowerCase()) ?? null;
       const source = sourceControl.get(name.toLowerCase()) ?? {
         branch: null,
         headSha: null,
@@ -690,6 +693,14 @@ export async function loadSoftwarehouseControlStatus(
           paperclipProjectName: portfolio.paperclipProjectName,
           lifecycleStage: portfolio.lifecycleStage,
           offeringType: portfolio.offeringType,
+          applicationVersion: {
+            namespace: "application_release" as const,
+            currentVersion: applicationPolicy?.currentVersion ?? applicationVersionPolicy.defaultPolicy?.currentVersion ?? "v0",
+            currentStatus: (applicationPolicy?.currentStatus ?? applicationVersionPolicy.defaultPolicy?.currentStatus ?? "in_progress") as "in_progress" | "accepted",
+            nextVersion: applicationPolicy?.versions.find((entry) => /^v\d+$/.test(entry.version) && Number(entry.version.slice(1)) > Number(applicationPolicy.currentVersion.slice(1)))?.version ?? null,
+            nextVersionStatus: applicationPolicy?.versions.find((entry) => /^v\d+$/.test(entry.version) && Number(entry.version.slice(1)) > Number(applicationPolicy.currentVersion.slice(1)))?.status === "locked" ? "locked" as const : null,
+            policySourcePath: "softwarehouse/portfolio/application-version-policy.json",
+          },
           ownerSurface: ownerSurfaces.get(name.toLowerCase()) ?? null,
           sourceControl: source,
           deployment,

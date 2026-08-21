@@ -325,7 +325,10 @@ describeEmbeddedPostgres("routine routes end-to-end", () => {
         "routine.run_triggered",
       ]),
     );
-  }, 15_000);
+  // This scenario boots the full app, persists a routine and trigger, creates
+  // its execution issue, then reads every projection back. On the bounded
+  // Windows runner it can legitimately cross 15 seconds under serial DB load.
+  }, 30_000);
 
   it("runs routines with variable inputs and interpolates the execution issue description", async () => {
     const { companyId, agentId, projectId, userId } = await seedFixture();

@@ -623,6 +623,33 @@ describeEmbeddedPostgres("native admission control", () => {
     expect(coupled.reason).toContain("Shared resource feature:login");
   });
 
+  it("holds future Soar releases and rejects foreign Featherly product scope", async () => {
+    const { companyId, agentId } = await seed("active");
+    const [soarProject, featherlyProject] = await db.insert(projects).values([
+      { companyId, name: "11 Innovation: Soar", status: "in_progress" },
+      { companyId, name: "11 Innovation: Featherly", status: "in_progress" },
+    ]).returning();
+    const [dcaIssue, mobileIssue, exchangeIssue] = await db.insert(issues).values([
+      { companyId, projectId: soarProject!.id, title: "Repair DCA across paper and live", status: "todo", priority: "medium", assigneeAgentId: agentId },
+      { companyId, projectId: soarProject!.id, title: "Build mobile app", status: "todo", priority: "medium", assigneeAgentId: agentId },
+      { companyId, projectId: featherlyProject!.id, title: "Add Exchange connection", status: "todo", priority: "medium", assigneeAgentId: agentId },
+    ]).returning();
+    const admission = admissionControlService(db);
+
+    await expect(admission.evaluateWork({
+      companyId, projectId: soarProject!.id, issueId: dcaIssue!.id, agentId,
+      source: "test", fingerprint: "soar-v0-dca",
+    })).resolves.toMatchObject({ admitted: true, reasonCode: "policy.admitted" });
+    await expect(admission.evaluateWork({
+      companyId, projectId: soarProject!.id, issueId: mobileIssue!.id, agentId,
+      source: "test", fingerprint: "soar-v1-mobile",
+    })).resolves.toMatchObject({ admitted: false, reasonCode: "product_version.predecessor_not_accepted" });
+    await expect(admission.evaluateWork({
+      companyId, projectId: featherlyProject!.id, issueId: exchangeIssue!.id, agentId,
+      source: "test", fingerprint: "featherly-exchange",
+    })).resolves.toMatchObject({ admitted: false, reasonCode: "product_scope.domain_not_authorized" });
+  });
+
   it("records budget holds and explicit governed risk acceptance", async () => {
     const { companyId, agentId } = await seed("active");
     const admission = admissionControlService(db);

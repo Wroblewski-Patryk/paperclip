@@ -14,6 +14,41 @@ implementation work. The lifecycle prevents three common failures:
 - agents start a new app without business, architecture, release, or proof
   boundaries.
 
+## Sequential Application Release Gate
+
+Application releases use the `application_release` namespace. This namespace
+is independent from `softwarehouse_platform`: completing or naming a
+Softwarehouse platform V0 never accepts an application's v0 and never unlocks
+its v1.
+
+Only the declared current application release may receive implementation work.
+The next release is locked until the predecessor has an explicit accepted
+outcome backed by product, architecture, automated test, user-flow, review,
+documentation, source-control, deployment/monitoring (when applicable), and
+owner-acceptance evidence. Zero indexed gaps, a healthy endpoint, completed
+tasks, or a commit alone cannot advance the release.
+
+The canonical machine-readable policy is
+`softwarehouse/portfolio/application-version-policy.json`. Issue execution may
+declare `executionPolicy.applicationVersion.targetVersion`; legacy work is
+classified from its bounded title/description and defaults to the current
+release when no later-release marker exists. A future release is held without
+creating a false failure. Work in a product domain explicitly forbidden by the
+policy is cancelled together with active descendants, and cannot be recreated
+by the project-truth dispatcher.
+
+Current Soar order is binding:
+
+1. `app-v0`: existing backend and web are cleaned, correct, safe and proven,
+   including coherent dependent flows such as DCA across backtest, paper,
+   live, and exchange adapters;
+2. `app-v1`: mobile client using the accepted backend/API;
+3. `app-v2`: AI, MCP and agent-facing integration.
+
+New applications start at `app-v0` only after the greenfield brief is
+accepted. Later versions remain locked even if their ideas already exist in a
+roadmap.
+
 ## Entry Paths
 
 | Path | When to use | First output |

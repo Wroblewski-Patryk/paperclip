@@ -6,6 +6,7 @@ import {
   admissionDecisions,
   companies,
   issues,
+  projects,
 } from "@paperclipai/db";
 import type { AgentAvailability } from "@paperclipai/shared";
 import { conflict, notFound, unprocessable } from "../errors.js";
@@ -18,6 +19,7 @@ import {
   parseProjectConcurrencyScope,
   scopesCanRunConcurrently,
 } from "./project-concurrency.js";
+import { evaluateApplicationVersionPolicy } from "./application-version-policy.js";
 
 export const ADMISSION_CONTROL_STATES = ["open", "draining", "maintenance", "reopening"] as const;
 export type AdmissionControlState = (typeof ADMISSION_CONTROL_STATES)[number];
@@ -331,6 +333,33 @@ export function admissionControlService(db: Db) {
     const limits = resolvePolicy(control?.policy);
     const now = input.now ?? new Date();
     const retryCount = Math.max(0, Math.trunc(input.retryCount ?? 0));
+    const issueContext = input.issueId
+      ? await db
+        .select({
+          title: issues.title,
+          description: issues.description,
+          executionPolicy: issues.executionPolicy,
+          projectName: projects.name,
+        })
+        .from(issues)
+        .leftJoin(projects, eq(issues.projectId, projects.id))
+        .where(and(eq(issues.companyId, input.companyId), eq(issues.id, input.issueId)))
+        .then((rows) => rows[0] ?? null)
+      : null;
+    let applicationVersionDecision: ReturnType<typeof evaluateApplicationVersionPolicy> | null = null;
+    if (issueContext) {
+      try {
+        applicationVersionDecision = evaluateApplicationVersionPolicy(issueContext);
+      } catch {
+        // Controlled application work must fail closed if its version policy
+        // cannot be loaded. Unknown projects retain the ordinary admission path.
+        applicationVersionDecision = {
+          controlled: Boolean(issueContext.projectName && /(?:Soar|Roost|Featherly)$/i.test(issueContext.projectName)),
+          disposition: "policy_invalid",
+          application: null,
+        };
+      }
+    }
 
     const [running] = await db.execute<{
       organization_wip: number | string;
@@ -428,6 +457,21 @@ export function admissionControlService(db: Db) {
       disposition = "deferred_by_maintenance";
       reasonCode = `control.${stateDecision.state}`;
       reason = stateDecision.reason ?? `Admission control is ${stateDecision.state}`;
+      admitted = false;
+    } else if (applicationVersionDecision?.controlled && applicationVersionDecision.disposition === "policy_invalid") {
+      disposition = "needs_decision";
+      reasonCode = "product_version.policy_unavailable";
+      reason = "Application release policy is unavailable or invalid; controlled product work fails closed";
+      admitted = false;
+    } else if (applicationVersionDecision?.disposition === "product_domain_not_authorized") {
+      disposition = "needs_decision";
+      reasonCode = "product_scope.domain_not_authorized";
+      reason = `${applicationVersionDecision.application?.name ?? "Application"} work contains an unauthorized product domain (${applicationVersionDecision.marker ?? "unknown"})`;
+      admitted = false;
+    } else if (applicationVersionDecision?.disposition === "future_version_locked") {
+      disposition = "waiting_for_signal";
+      reasonCode = "product_version.predecessor_not_accepted";
+      reason = `${applicationVersionDecision.application?.name ?? "Application"} ${applicationVersionDecision.targetVersion} remains locked until ${applicationVersionDecision.predecessorVersion} is explicitly accepted`;
       admitted = false;
     } else if (restartDrainRequired) {
       disposition = "waiting_for_signal";

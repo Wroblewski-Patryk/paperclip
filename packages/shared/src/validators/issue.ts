@@ -285,6 +285,10 @@ export const issueExecutionPolicySchema = z.object({
   reviewPreset: lowTrustReviewPresetPolicySchema.optional(),
   authorizationPolicy: trustAuthorizationPolicySchema.optional(),
   decisionContract: issueDecisionContractSchema.optional(),
+  applicationVersion: z.object({
+    targetVersion: z.string().regex(/^v\d+$/),
+    intentRef: z.string().trim().min(1).max(500).optional(),
+  }).strict().optional(),
 });
 
 export const issueExecutionMonitorStateSchema = z.object({

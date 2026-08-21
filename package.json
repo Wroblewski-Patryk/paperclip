@@ -59,6 +59,8 @@
     "softwarehouse:project-truth:apply": "node scripts/check-project-truth-indexes.mjs --apply",
     "softwarehouse:project-truth-dispatch": "node scripts/run-project-truth-gap-dispatcher.mjs",
     "softwarehouse:project-truth-dispatch:apply": "node scripts/run-project-truth-gap-dispatcher.mjs --apply",
+    "softwarehouse:application-version-policy": "node scripts/run-application-version-policy-reconciler.mjs",
+    "softwarehouse:application-version-policy:apply": "node scripts/run-application-version-policy-reconciler.mjs --apply",
     "softwarehouse:documentation-hygiene": "node scripts/run-documentation-hygiene-audit.mjs",
     "softwarehouse:readiness-quota-hold": "node scripts/refresh-softwarehouse-readiness-quota-hold.mjs",
     "softwarehouse:readiness-quota-hold:apply": "node scripts/refresh-softwarehouse-readiness-quota-hold.mjs --apply",

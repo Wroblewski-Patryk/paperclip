@@ -32,6 +32,10 @@ export function evaluateProbe(data, probe) {
     const actual = valueAt(data, key);
     if (!Number.isFinite(actual) || actual < minimum) failures.push(`${key} expected >= ${minimum}, received ${JSON.stringify(actual)}`);
   }
+  if (Array.isArray(probe.anyOf) && probe.anyOf.length > 0) {
+    const accepted = probe.anyOf.some((expected) => matches(data, expected));
+    if (!accepted) failures.push(`response does not match any accepted state: ${JSON.stringify(probe.anyOf)}`);
+  }
   return { passed: failures.length === 0, failures };
 }
 

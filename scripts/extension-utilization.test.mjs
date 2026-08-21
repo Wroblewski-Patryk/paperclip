@@ -13,6 +13,19 @@ test("evaluates runtime evidence rather than endpoint existence alone", () => {
   assert.equal(evaluateProbe({ stale: true }, { shape: "object", equals: { stale: false } }).passed, false);
 });
 
+test("accepts only coherent ON or intentional OFF admission states", () => {
+  const probe = {
+    shape: "object",
+    anyOf: [
+      { state: "on", controlState: "open", acceptsNewRuns: true },
+      { state: "off", controlState: "maintenance", acceptsNewRuns: false },
+    ],
+  };
+  assert.equal(evaluateProbe({ state: "on", controlState: "open", acceptsNewRuns: true }, probe).passed, true);
+  assert.equal(evaluateProbe({ state: "off", controlState: "maintenance", acceptsNewRuns: false }, probe).passed, true);
+  assert.equal(evaluateProbe({ state: "on", controlState: "maintenance", acceptsNewRuns: true }, probe).passed, false);
+});
+
 test("does not treat productive runs as a topology failure when no restart is pending", () => {
   const result = evaluateProbe({
     status: "ok",
@@ -80,7 +93,8 @@ test("the registry and recurring control tick enforce complete capabilities", as
   const controlTick = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
   assert.equal(registry.minimumUtilizationPercent, 100);
   assert.equal(registry.schemaVersion, 2);
-  assert.ok(registry.capabilities.length >= 13);
+  assert.ok(registry.capabilities.length >= 14);
+  assert.ok(registry.capabilities.some((capability) => capability.id === "application_version_admission"));
   const decisionCenter = registry.capabilities.find((capability) => capability.id === "owner_decision_center");
   assert.ok(decisionCenter);
   assert.deepEqual(decisionCenter.runtimeProbes[0].pathMinimums, {

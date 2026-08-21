@@ -74,9 +74,13 @@ const serializedServerVitestArgs = [
   "--no-file-parallelism",
   "--maxWorkers=1",
   "--minWorkers=1",
-  ...(process.platform === "win32" ? ["--hookTimeout=30000"] : []),
+  // Embedded PostgreSQL startup and owned PID-tree cleanup can legitimately
+  // cross 30 seconds on the bounded Windows workstation under sustained
+  // serial test load. Keep the hook bounded, but do not report those healthy
+  // lifecycle transitions as test failures.
+  ...(process.platform === "win32" ? ["--hookTimeout=60000"] : []),
 ];
-const windowsHookTimeoutArgs = process.platform === "win32" ? ["--hookTimeout=30000"] : [];
+const windowsHookTimeoutArgs = process.platform === "win32" ? ["--hookTimeout=60000"] : [];
 
 function walk(dir) {
   const entries = readdirSync(dir);

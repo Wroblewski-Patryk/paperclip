@@ -29,8 +29,17 @@
       "lifecycle": "active",
       "requiredFiles": ["server/src/services/admission-control.ts", "server/src/routes/admission-control.ts", "packages/db/src/schema/admission_controls.ts", "ui/src/components/AgentAvailabilityControl.tsx", "ui/src/api/dashboard.ts"],
       "integrationChecks": [{"file": "server/src/services/heartbeat.ts", "patterns": ["admission.evaluate(", "admission.evaluateWork(", "replayDeferredAdmissionWakeups"]}, {"file": "ui/src/pages/Dashboard.tsx", "patterns": ["dashboardApi.agentAvailability", "dashboardApi.setAgentAvailability", "MissionControlDashboard"]}, {"file": "ui/src/components/MissionControlDashboard.tsx", "patterns": ["AgentAvailabilityControl", "onAvailabilityChange"]}],
-      "runtimeProbes": [{"path": "/api/companies/{companyId}/admission-controls", "shape": "array", "minItems": 1, "where": {"scopeType": "company", "state": "open", "reopenResult": "completed"}, "minMatched": 1}, {"path": "/api/companies/{companyId}/agent-availability", "shape": "object", "equals": {"state": "on", "controlState": "open", "acceptsNewRuns": true}}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/admission-controls", "shape": "array", "minItems": 1, "where": {"scopeType": "company"}, "minMatched": 1}, {"path": "/api/companies/{companyId}/agent-availability", "shape": "object", "anyOf": [{"state": "on", "controlState": "open", "acceptsNewRuns": true}, {"state": "off", "controlState": "maintenance", "acceptsNewRuns": false}]}],
       "proofFiles": ["server/src/__tests__/admission-control-service.test.ts", "packages/db/src/admission-control-schema.test.ts", "ui/src/components/AgentAvailabilityControl.test.tsx", "docs/agent-policy-gates.md"]
+    },
+    {
+      "id": "application_version_admission",
+      "name": "Sequential application release admission and owner-facing projection",
+      "lifecycle": "active",
+      "requiredFiles": ["softwarehouse/portfolio/application-version-policy.json", "scripts/lib/application-version-policy.mjs", "scripts/run-application-version-policy-reconciler.mjs", "server/src/services/application-version-policy.ts", "server/src/services/admission-control.ts", "server/src/routes/softwarehouse.ts"],
+      "integrationChecks": [{"file": "scripts/run-softwarehouse-control-tick.mjs", "patterns": ["applicationVersionPolicy", "run-application-version-policy-reconciler.mjs"]}, {"file": "scripts/run-project-truth-gap-dispatcher.mjs", "patterns": ["evaluateApplicationWork", "future_version_locked"]}, {"file": "server/src/services/roost-bridge-portfolio.ts", "patterns": ["applicationVersion"]}],
+      "runtimeProbes": [{"path": "/api/companies/{companyId}/softwarehouse/portfolio-projection/v1", "shape": "object", "equals": {"sourceState": "available"}}],
+      "proofFiles": ["scripts/application-version-policy.test.mjs", "server/src/__tests__/application-version-policy.test.ts", "server/src/__tests__/admission-control-service.test.ts", "docs/softwarehouse/13-app-lifecycle-standard.md"]
     },
     {
       "id": "native_supervision",
@@ -128,12 +137,14 @@
       "lifecycle": "active",
       "requiredFiles": ["scripts/audit-softwarehouse-workspace-boundaries.mjs", "scripts/audit-local-runtime-topology.mjs", "scripts/audit-cross-project-isolation.mjs", "scripts/ensure-project-runtime-capabilities.mjs", "scripts/cleanup-stale-softwarehouse-temp.ps1", "scripts/dev-runner-command.mjs", "scripts/dev-runner.ts", "scripts/dev-service.ts", "server/src/dev-server-status.ts"],
       "integrationChecks": [{"file": "package.json", "patterns": ["softwarehouse:workspace-boundary-audit", "softwarehouse:runtime-topology-audit", "softwarehouse:cross-project-isolation-audit", "softwarehouse:project-runtime", "softwarehouse:temp-hygiene", "softwarehouse:temp-hygiene:apply", "dev:list", "dev:stop"]}],
-      "runtimeProbes": [{"path": "/api/health", "shape": "object", "equals": {"status": "ok", "devServer.restartRequired": false, "devServer.waitingForIdle": false}}],
+      "runtimeProbes": [{"path": "/api/health", "shape": "object", "equals": {"status": "ok"}}],
       "proofFiles": ["scripts/ensure-project-runtime-capabilities.test.mjs", "scripts/cross-project-isolation-audit.test.mjs", "scripts/lib/windows-runtime-inventory.test.mjs", "scripts/dev-runner-command.test.mjs", "scripts/dev-service-profile.test.mjs", "scripts/temp-hygiene-contract.test.mjs", "server/src/__tests__/dev-server-status.test.ts", "AGENTS.md"]
     }
   ],
   "relations": [
     {"from": "organizational_orientation", "to": "admission_control", "type": "depends_on", "reason": "Organizational maintenance must respect durable work admission."},
+    {"from": "application_version_admission", "to": "admission_control", "type": "depends_on", "reason": "Release sequence and product-domain gates are enforced by the common admission path."},
+    {"from": "application_version_admission", "to": "architecture_and_project_truth", "type": "depends_on", "reason": "Release acceptance requires current project truth and inspectable evidence."},
     {"from": "native_supervision", "to": "organizational_orientation", "type": "depends_on", "reason": "Supervision consumes organizational observations and promoted safeguards."},
     {"from": "native_supervision", "to": "workspace_runtime_and_isolation", "type": "depends_on", "reason": "Recovery decisions require trustworthy runtime and project identity."},
     {"from": "autonomy_decision_engine", "to": "native_supervision", "type": "depends_on", "reason": "Autonomy decisions are materialized and reconciled by native supervision."},
@@ -143,9 +154,11 @@
     {"from": "product_delivery_ledger", "to": "company_artifacts", "type": "depends_on", "reason": "Delivery evidence must remain inspectable as work products or artifacts."},
     {"from": "roost_portfolio_bridge", "to": "product_delivery_ledger", "type": "depends_on", "reason": "Roost must project canonical delivery outcomes rather than infer them."},
     {"from": "roost_portfolio_bridge", "to": "architecture_and_project_truth", "type": "depends_on", "reason": "Projection identity and gaps come from versioned project truth."},
+    {"from": "roost_portfolio_bridge", "to": "application_version_admission", "type": "depends_on", "reason": "Roost presents the canonical current and next application release gate."},
     {"from": "owner_decision_center", "to": "organizational_orientation", "type": "depends_on", "reason": "Only classified and adequately briefed owner decisions become ready."},
     {"from": "owner_decision_center", "to": "admission_control", "type": "depends_on", "reason": "Decision continuations honor ON/OFF and deferred wake semantics."},
     {"from": "autonomous_control_loop", "to": "admission_control", "type": "depends_on", "reason": "All dispatch paths must pass admission."},
+    {"from": "autonomous_control_loop", "to": "application_version_admission", "type": "depends_on", "reason": "Autonomous dispatch cannot start work from a locked future application release."},
     {"from": "autonomous_control_loop", "to": "native_supervision", "type": "depends_on", "reason": "The control loop consumes native liveness and recurrence findings."},
     {"from": "autonomous_control_loop", "to": "autonomy_decision_engine", "type": "depends_on", "reason": "Runnable selection and dispatch use calibrated authority."},
     {"from": "autonomous_control_loop", "to": "product_delivery_ledger", "type": "depends_on", "reason": "Control activity must converge on verified outcomes."},

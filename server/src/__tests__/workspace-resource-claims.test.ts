@@ -408,6 +408,9 @@ describeEmbeddedPostgres("workspaceResourceClaimService", () => {
         assigneeAgentId: winnerAgentId,
         executionWorkspaceId: workspaceId,
         executionWorkspacePreference: "reuse_existing",
+        executionPolicy: {
+          concurrency: { mode: "scoped", writePaths: ["winner"], readPaths: [], resources: [] },
+        },
         issueNumber: 1,
         identifier: `${issuePrefix}-1`,
       },
@@ -421,6 +424,9 @@ describeEmbeddedPostgres("workspaceResourceClaimService", () => {
         assigneeAgentId: loserAgentId,
         executionWorkspaceId: workspaceId,
         executionWorkspacePreference: "reuse_existing",
+        executionPolicy: {
+          concurrency: { mode: "scoped", writePaths: ["loser"], readPaths: [], resources: [] },
+        },
         issueNumber: 2,
         identifier: `${issuePrefix}-2`,
       },

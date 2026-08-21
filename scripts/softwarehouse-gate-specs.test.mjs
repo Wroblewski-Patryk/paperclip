@@ -3720,6 +3720,10 @@ test("runtime binding ownership only targets runnable agent execution", async ()
   assert.match(repair, /runtimeBindingExecutionStatuses = new Set\(\["todo", "in_progress"\]\)/);
   assert.match(repair, /non_execution_status_no_reassignment/);
   assert.match(repair, /Review and other non-execution states preserve their current decision owner/);
+  assert.match(repair, /09 DRE \(Deployment & Reliability Engineer\)/);
+  assert.match(repair, /09 QVE \(QA & Verification Engineer\)/);
+  assert.doesNotMatch(repair, /names\.push\("Ops Release Lead"\)/);
+  assert.doesNotMatch(repair, /names\.push\("Roost Project Manager"\)/);
 });
 
 test("secret aliases collapse duplicate tracked gate secrets", () => {
