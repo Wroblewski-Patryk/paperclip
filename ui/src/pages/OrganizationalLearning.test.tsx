@@ -69,6 +69,13 @@ describe("OrganizationalLearning", () => {
     mockObservationsApi.list.mockResolvedValue([
       observation(),
       observation({ id: "observation-2", status: "disputed", title: "Runtime evidence needs review", observedAt: new Date("2026-08-13T10:00:00Z") }),
+      observation({
+        id: "observation-3",
+        status: "superseded",
+        title: "Superseded evidence is historical",
+        observedAt: new Date("2026-08-01T10:00:00Z"),
+        validUntil: new Date("2026-08-02T10:00:00Z"),
+      }),
     ]);
   });
 
@@ -100,6 +107,7 @@ describe("OrganizationalLearning", () => {
     await act(async () => attentionButton.click());
     expect(container.textContent).toContain("Runtime evidence needs review");
     expect(container.textContent).not.toContain("Verified delivery outcome");
+    expect(container.textContent).not.toContain("Superseded evidence is historical");
 
     const search = container.querySelector('input[placeholder="Search outcomes"]') as HTMLInputElement;
     await act(async () => {

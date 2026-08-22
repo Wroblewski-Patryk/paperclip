@@ -41,6 +41,7 @@ const TRANSITIONS: Record<OrganizationalObservationKind, Record<string, string[]
 };
 const POSITIVE_STATUSES = new Set(["verified", "accepted", "validated", "promoted", "current"]);
 const ATTENTION_STATUSES = new Set(["disputed", "contradicted", "stale", "failure"]);
+const CLOSED_STATUSES = new Set(["superseded", "archived", "rejected", "promoted"]);
 type ObservationFilter = "all" | "attention" | "current";
 
 function observationFreshUntil(item: OrganizationalObservation) {
@@ -51,6 +52,7 @@ function observationFreshUntil(item: OrganizationalObservation) {
 }
 
 function observationNeedsAttention(item: OrganizationalObservation) {
+  if (CLOSED_STATUSES.has(item.status)) return false;
   if (ATTENTION_STATUSES.has(item.status)) return true;
   const freshUntil = observationFreshUntil(item);
   return Boolean(freshUntil && new Date(freshUntil).getTime() < Date.now());
