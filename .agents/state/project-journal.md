@@ -522,3 +522,22 @@ evidence.
   weekly quota. Replay inspected seven requests, queued two, rejected five,
   failed zero, and reduced deferred work to zero. Fresh AIA and CTO runs began
   successfully instead of failing at workspace setup.
+
+### 2026-08-22 - Dashboard schema drift repaired with restore-safe constraints
+
+- The blank LuckySparrow dashboard was caused by live database/schema drift:
+  application code queried `admission_controls.project_id`, but the canonical
+  database had not received the corresponding migration. Migrations 0125 and
+  0126 now add and backfill project scope, reject cross-company references,
+  and enforce company-safe composite foreign keys across admission controls,
+  transitions, wakeup requests, heartbeat runs, and projects.
+- Composite identities used as foreign-key targets are proper named PostgreSQL
+  `UNIQUE` constraints, not only standalone unique indexes. This is a durable
+  backup/restore requirement because schema restore may recreate foreign keys
+  before ordinary indexes. The worktree authenticated-user restore regression
+  now passes on Windows with a platform-appropriate timeout.
+- A verified offline backup was captured before migrating the canonical store
+  at `.paperclip/runtime/offline-backups/pre-0125-company-scope-20260822-0620`.
+  The migrated instance is healthy on strict `3200/54329`; dashboard and agent
+  availability endpoints return 200, workspace-boundary and runtime-topology
+  audits pass, and temporary-resource hygiene reports zero candidates.

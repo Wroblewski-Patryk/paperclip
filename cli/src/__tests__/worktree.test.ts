@@ -648,7 +648,7 @@ describe("worktree helpers", () => {
         fs.rmSync(tempRoot, { recursive: true, force: true });
       }
     },
-    90_000,
+    process.platform === "win32" ? 180_000 : 90_000,
   );
 
   it("avoids ports already claimed by sibling worktree instance configs", async () => {

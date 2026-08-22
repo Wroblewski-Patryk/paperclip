@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -46,6 +47,11 @@ export const admissionControlTransitions = pgTable(
       table.companyId,
       table.createdAt,
     ),
+    controlCompanyFk: foreignKey({
+      columns: [table.companyId, table.admissionControlId],
+      foreignColumns: [admissionControls.companyId, admissionControls.id],
+      name: "admission_control_transitions_company_control_id_admission_controls_company_id_id_fk",
+    }).onDelete("cascade"),
     statusCheck: check(
       "admission_control_transitions_status_check",
       sql`${table.status} in ('requested', 'committed', 'failed')`,

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   bigint,
+  foreignKey,
   boolean,
   index,
   integer,
@@ -100,5 +101,10 @@ export const heartbeatRuns = pgTable(
     wakeupRequestUniqueIdx: uniqueIndex("heartbeat_runs_wakeup_request_unique_idx")
       .on(table.wakeupRequestId)
       .where(sql`${table.wakeupRequestId} is not null`),
+    wakeupCompanyFk: foreignKey({
+      columns: [table.companyId, table.wakeupRequestId],
+      foreignColumns: [agentWakeupRequests.companyId, agentWakeupRequests.id],
+      name: "heartbeat_runs_company_wakeup_request_id_agent_wakeup_requests_company_id_id_fk",
+    }),
   }),
 );

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, date, index, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, date, index, jsonb, unique } from "drizzle-orm/pg-core";
 import type { AgentEnvConfig } from "@paperclipai/shared";
 import { companies } from "./companies.js";
 import { goals } from "./goals.js";
@@ -27,5 +27,6 @@ export const projects = pgTable(
   },
   (table) => ({
     companyIdx: index("projects_company_idx").on(table.companyId),
+    companyIdUnique: unique("projects_company_id_key").on(table.companyId, table.id),
   }),
 );

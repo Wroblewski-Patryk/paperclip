@@ -2,18 +2,21 @@ import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { companies } from "./companies.js";
 import { agents } from "./agents.js";
 import { issues } from "./issues.js";
+import { projects } from "./projects.js";
 
 export const admissionControls = pgTable(
   "admission_controls",
@@ -24,6 +27,7 @@ export const admissionControls = pgTable(
       .references(() => companies.id, { onDelete: "cascade" }),
     scopeType: text("scope_type").notNull(),
     scopeId: uuid("scope_id").notNull(),
+    projectId: uuid("project_id"),
     state: text("state").notNull().default("open"),
     version: integer("version").notNull().default(1),
     reason: text("reason"),
@@ -57,6 +61,10 @@ export const admissionControls = pgTable(
       table.scopeType,
       table.scopeId,
     ),
+    companyIdUnique: unique("admission_controls_company_id_key").on(
+      table.companyId,
+      table.id,
+    ),
     companyStateIdx: index("admission_controls_company_state_idx").on(table.companyId, table.state),
     scopeTypeCheck: check(
       "admission_controls_scope_type_check",
@@ -71,5 +79,18 @@ export const admissionControls = pgTable(
       "admission_controls_company_scope_check",
       sql`${table.scopeType} <> 'company' or ${table.scopeId} = ${table.companyId}`,
     ),
+    projectScopeCheck: check(
+      "admission_controls_project_scope_check",
+      sql`(
+        ${table.scopeType} = 'company' and ${table.projectId} is null
+      ) or (
+        ${table.scopeType} = 'project' and ${table.projectId} is not null and ${table.scopeId} = ${table.projectId}
+      )`,
+    ),
+    projectCompanyFk: foreignKey({
+      columns: [table.companyId, table.projectId],
+      foreignColumns: [projects.companyId, projects.id],
+      name: "admission_controls_company_project_id_projects_company_id_id_fk",
+    }).onDelete("cascade"),
   }),
 );

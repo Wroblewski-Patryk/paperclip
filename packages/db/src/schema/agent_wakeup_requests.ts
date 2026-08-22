@@ -1,12 +1,14 @@
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
+  foreignKey,
   index,
   integer,
   jsonb,
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -49,6 +51,10 @@ export const agentWakeupRequests = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
+    companyIdUnique: unique("agent_wakeup_requests_company_id_key").on(
+      table.companyId,
+      table.id,
+    ),
     companyAgentStatusIdx: index("agent_wakeup_requests_company_agent_status_idx").on(
       table.companyId,
       table.agentId,
@@ -71,5 +77,15 @@ export const agentWakeupRequests = pgTable(
     deferredDedupeUnique: uniqueIndex("agent_wakeup_requests_deferred_dedupe_unique")
       .on(table.companyId, table.dedupeKey)
       .where(sql`status = 'deferred_by_maintenance'`),
+    projectCompanyFk: foreignKey({
+      columns: [table.companyId, table.projectId],
+      foreignColumns: [projects.companyId, projects.id],
+      name: "agent_wakeup_requests_company_project_id_projects_company_id_id_fk",
+    }),
+    controlCompanyFk: foreignKey({
+      columns: [table.companyId, table.admissionControlId],
+      foreignColumns: [admissionControls.companyId, admissionControls.id],
+      name: "agent_wakeup_requests_company_control_id_admission_controls_company_id_id_fk",
+    }),
   }),
 );
