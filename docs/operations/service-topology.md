@@ -156,6 +156,15 @@ or touch secrets.
 
 The source-control packet is runtime-only and ignored by git:
 
+Owner-authored work may be exempted from autonomous closure through
+`.paperclip/softwarehouse-user-owned-work.json`. Each entry is repository- and
+path-scoped and includes the SHA-256 fingerprint of the exact porcelain status
+plus binary diff. The exemption stops matching as soon as the diff changes, so
+it cannot become a permanent path-based ignore rule. The source-control packet
+reports these files separately as `userOwnedDirtyPaths`; agents must not edit,
+commit, discard, or use them as a global mutex for independent application
+delivery.
+
 - `report/softwarehouse-source-control.latest.json`
 - `report/softwarehouse-source-control.latest.md`
 

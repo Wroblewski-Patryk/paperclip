@@ -1,9 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const appsRoot = process.env.LUCKYSPARROW_APPS_ROOT ?? "C:/Personal/Projekty/Aplikacje";
+const userOwnedWorkRegistryPath = process.env.SOFTWAREHOUSE_USER_OWNED_WORK_REGISTRY
+  ?? ".paperclip/softwarehouse-user-owned-work.json";
 const parkedProjectNames = new Set(
   (process.env.SOFTWAREHOUSE_PARKED_PROJECTS ?? "")
     .split(",")
@@ -35,6 +38,22 @@ function repositoryForName(name) {
 }
 
 const repositories = defaultRepositoryNames.map(repositoryForName);
+
+function loadUserOwnedWorkRegistry() {
+  try {
+    const parsed = JSON.parse(readFileSync(userOwnedWorkRegistryPath, "utf8"));
+    if (parsed?.version !== 1 || !Array.isArray(parsed.entries)) return [];
+    return parsed.entries.filter((entry) =>
+      typeof entry?.repository === "string"
+        && typeof entry?.path === "string"
+        && /^[a-f0-9]{64}$/.test(entry?.diffSha256 ?? "")
+    );
+  } catch {
+    return [];
+  }
+}
+
+const userOwnedWorkEntries = loadUserOwnedWorkRegistry();
 
 function runGit(cwd, args, options = {}) {
   const trimOutput = options.trimOutput ?? true;
@@ -78,6 +97,22 @@ function isTransientOperatingPath(repo, filePath) {
   return repo.name === "Paperclip_Softwarehouse"
     && (filePath === "report/softwarehouse-control-tick.lock"
       || filePath.startsWith("report/softwarehouse-control-tick.lock/"));
+}
+
+function dirtyItemFingerprint(repo, item) {
+  const status = runGit(repo.path, ["status", "--porcelain=v1", "--", item.path], { trimOutput: false });
+  if (!status.ok) return null;
+  const diff = runGit(repo.path, ["diff", "--binary", "--no-ext-diff", "--", item.path], { trimOutput: false });
+  if (!diff.ok) return null;
+  return createHash("sha256").update(status.stdout).update(diff.stdout).digest("hex");
+}
+
+function isRegisteredUserOwnedDirtyItem(repo, item) {
+  const entry = userOwnedWorkEntries.find((candidate) =>
+    candidate.repository === repo.name && candidate.path === item.path
+  );
+  if (!entry) return false;
+  return dirtyItemFingerprint(repo, item) === entry.diffSha256;
 }
 
 function classifyDirtyPath(filePath) {
@@ -214,7 +249,9 @@ function summarizeRepo(repo) {
   const head = runGit(repo.path, ["rev-parse", "--short", "HEAD"]);
   const status = runGit(repo.path, ["status", "--porcelain=v1"], { trimOutput: false });
   const lines = status.stdout ? status.stdout.split(/\r?\n/).filter(Boolean) : [];
-  const dirtyItems = lines.map(parseStatusLine).filter((item) => !isTransientOperatingPath(repo, item.path));
+  const allDirtyItems = lines.map(parseStatusLine).filter((item) => !isTransientOperatingPath(repo, item.path));
+  const userOwnedDirtyItems = allDirtyItems.filter((item) => isRegisteredUserOwnedDirtyItem(repo, item));
+  const dirtyItems = allDirtyItems.filter((item) => !userOwnedDirtyItems.includes(item));
   const sample = dirtyItems.slice(0, 20);
   const statusCounts = {};
   for (const item of dirtyItems) {
@@ -231,12 +268,16 @@ function summarizeRepo(repo) {
     git: true,
     branch: branch.stdout || null,
     head: head.stdout || null,
+    gitClean: allDirtyItems.length === 0,
     clean: dirtyItems.length === 0,
     dirtyCount: dirtyItems.length,
     statusCounts,
     sample,
     dirtyPaths: dirtyItems.map((item) => item.path),
     dirtyGroups: summarizeDirtyGroups(dirtyItems),
+    userOwnedDirtyCount: userOwnedDirtyItems.length,
+    userOwnedDirtyPaths: userOwnedDirtyItems.map((item) => item.path),
+    userOwnedWorkRegistry: userOwnedDirtyItems.length > 0 ? userOwnedWorkRegistryPath : null,
   };
 }
 

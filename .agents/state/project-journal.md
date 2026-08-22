@@ -635,3 +635,23 @@ evidence.
   provider is now at the owner's 75% weekly hard threshold, so the DRE, RTE,
   and CTO continuations are scheduled retries until reset; this is an
   intentional quota hold, not an execution failure.
+
+### 2026-08-22 - Outcome-first closure replaces issue-volume orchestration
+
+- Owner rejected task/run/evidence volume as a proxy for progress after nearly
+  10,000 historical tasks without finished applications. The empirical target
+  is now explicit: open delivery debt and dirty source-to-production gaps must
+  shrink while verified application commits and deployed owner journeys grow.
+- Live state contained 235 open issues but only 11 assigned executable items;
+  Soar, Roost, and Featherly still held 105, 7, and 3 dirty paths. The control
+  tick incorrectly allowed `project_truth_gap_routing_needed` to overwrite
+  `project_source_control_closure_needed`.
+- Source-control closure now has deterministic precedence. At 80 open issues
+  the selector enters closure-only mode: it reuses existing work or reconciles
+  the graph and forbids truth/triage fan-out. Server admission also rejects
+  agent-created duplicate titles, new roots, excessive child fan-out, and
+  excessive creator WIP while saturated.
+- Owner-authored dirty work is no longer a global mutex. Exact path+diff
+  fingerprints exempt only the recorded diff and fail closed when it changes.
+- Provider quota remained at 79% versus the owner's 75% threshold, so no issue
+  or run was created during this repair.

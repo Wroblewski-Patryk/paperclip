@@ -1074,3 +1074,23 @@ Standing rule:
 - Quota holds belong to admission/cost control. They suppress invocation and
   resume after fresh quota evidence; they do not create product-failure or
   recovery-failure work.
+
+## 2026-08-22 - Activity saturation is an orchestration incident
+
+Observed pattern: prompt-level instructions said queue depth was a ceiling,
+but agents could still create unlimited roots and child trees. Project-truth
+routing then displaced source-control closure, converting unfinished changes
+into more coordination work.
+
+Standing rule:
+
+- empirical application outcomes outrank issue, run, comment, document, map,
+  learning, and evidence volume;
+- saturation is enforced at server admission and deterministic selection, not
+  entrusted only to model instructions;
+- while saturated, agents close, consolidate, cancel, commit, release, or
+  reconcile existing work instead of representing the same gap again;
+- source-control closure outranks truth expansion when application repos have
+  unclassified changes and no live run owns them;
+- owner-authored work may be bypassed only through an exact diff fingerprint,
+  never through a permanent path ignore.

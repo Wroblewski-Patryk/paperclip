@@ -2054,8 +2054,8 @@ if (singleFlight.mode === "follower") {
     const sourceControlGateAfterAudit = (governor.sourceControlGateIssues ?? []).find((issue) =>
       dirtyProjectRepoAfterAudit && new RegExp(`\\b${dirtyProjectRepoAfterAudit.name}\\b`, "i").test(`${issue.title ?? ""}\n${issue.project ?? ""}`)
     ) ?? (governor.sourceControlGateIssues ?? [])[0] ?? null;
-    if (!failedStep && activeRunCount === 0 && governor.decision === "supervise_active_runs") {
-      if (dirtyProjectRepoAfterAudit) {
+    const projectSourceControlClosureSelected = !failedStep && activeRunCount === 0 && Boolean(dirtyProjectRepoAfterAudit);
+    if (projectSourceControlClosureSelected) {
         controlDecision = "project_source_control_closure_needed";
         recommendedAction = `No current live runs remain; route ${dirtyProjectRepoAfterAudit.name} through ${sourceControlGateAfterAudit?.identifier ?? "its source-control closure lane"} for local diff classification, validation, and commit/no-commit decisions. Do not push, deploy, restart, or run protected smoke without a fresh accepted gate fact.`;
         effectiveOperatingPosture = "project_source_control_closure_allowed";
@@ -2075,28 +2075,27 @@ if (singleFlight.mode === "follower") {
           "protected smoke without fresh gate fact",
           "secret disclosure",
         ];
-      } else {
+    } else if (!failedStep && activeRunCount === 0 && governor.decision === "supervise_active_runs") {
         controlDecision = "stale_in_progress_recovery_needed";
         recommendedAction = "No current live runs remain; reconcile in_progress issues without live runs before treating autonomy as healthy or idle.";
         effectiveOperatingPosture = "cleanup_tail_only";
-      }
     }
-    if (!failedStep && activeRunCount === 0 && (runtimeBindingRepair.reassignCount ?? 0) > 0) {
+    if (!projectSourceControlClosureSelected && !failedStep && activeRunCount === 0 && (runtimeBindingRepair.reassignCount ?? 0) > 0) {
       controlDecision = "runtime_binding_repair_ready";
       recommendedAction = "Run `pnpm softwarehouse:repair-runtime-bindings`, then `pnpm softwarehouse:repair-runtime-bindings:apply` only if exactly one reassignment action is listed and no live runs are active.";
       effectiveOperatingPosture = "runtime_binding_repair_allowed";
     }
-    if (!failedStep && activeRunCount === 0 && (recoveryActionJanitor.actionCount ?? 0) > 0) {
+    if (!projectSourceControlClosureSelected && !failedStep && activeRunCount === 0 && (recoveryActionJanitor.actionCount ?? 0) > 0) {
       controlDecision = "recovery_action_cleanup_ready";
       recommendedAction = "Run `pnpm softwarehouse:recovery-janitor`, then `pnpm softwarehouse:recovery-janitor:apply` only if every listed action is a clear blocked-source cleanup and no live runs are active.";
       effectiveOperatingPosture = "cleanup_tail_only";
     }
-    if (!failedStep && activeRunCount === 0 && (blockedRootGuardrail.repairActionCount ?? 0) > 0) {
+    if (!projectSourceControlClosureSelected && !failedStep && activeRunCount === 0 && (blockedRootGuardrail.repairActionCount ?? 0) > 0) {
       controlDecision = "blocked_root_guardrail_repair_ready";
       recommendedAction = "Run `pnpm softwarehouse:blocked-root-guardrail`, then `pnpm softwarehouse:blocked-root-guardrail:apply` only if the listed repairs are board-metadata-only root blocker links and no live runs are active.";
       effectiveOperatingPosture = "cleanup_tail_only";
     }
-    if (!failedStep && activeRunCount === 0 && (projectTruthAudit.totalGaps ?? 0) > 0) {
+    if (!projectSourceControlClosureSelected && !failedStep && activeRunCount === 0 && (projectTruthAudit.totalGaps ?? 0) > 0) {
       controlDecision = "project_truth_gap_routing_needed";
       const firstGap = projectTruthAudit.firstGap;
       recommendedAction = firstGap

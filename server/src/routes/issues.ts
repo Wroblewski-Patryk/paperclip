@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Router, type Request, type Response } from "express";
 import multer from "multer";
 import { z } from "zod";
-import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, notInArray } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   activityLog,
@@ -113,6 +113,10 @@ import {
 } from "../attachment-types.js";
 import { queueIssueAssignmentWakeup } from "../services/issue-assignment-wakeup.js";
 import { validateAgentDecisionContract } from "../services/issue-decision-contract.js";
+import {
+  evaluateAgentIssueCreationPressure,
+  normalizeIssueTitleForPressure,
+} from "../services/agent-issue-creation-pressure.js";
 import { assertEnvironmentSelectionForCompany } from "./environment-selection.js";
 import { executionWorkspaceService as executionWorkspaceServiceDirect } from "../services/execution-workspaces.js";
 import { feedbackService } from "../services/feedback.js";
@@ -4519,6 +4523,57 @@ export function issueRoutes(
       ...createExecutionPatch,
       executionPolicy,
     };
+    if (actor.actorType === "agent" && actor.agentId) {
+      const pressureProjectId = await resolveAssignmentProjectId({
+        companyId,
+        projectId: createFields.projectId,
+        parentIssueId: createFields.parentId,
+      });
+      const openRows = await db
+        .select({
+          title: issueRows.title,
+          parentId: issueRows.parentId,
+          projectId: issueRows.projectId,
+          createdByAgentId: issueRows.createdByAgentId,
+        })
+        .from(issueRows)
+        .where(and(
+          eq(issueRows.companyId, companyId),
+          isNull(issueRows.hiddenAt),
+          notInArray(issueRows.status, ["done", "cancelled"]),
+        ));
+      const normalizedTitle = normalizeIssueTitleForPressure(createFields.title);
+      const pressureDecision = evaluateAgentIssueCreationPressure({
+        actorType: actor.actorType,
+        title: createFields.title,
+        parentId: createFields.parentId ?? null,
+        openIssueCount: openRows.length,
+        duplicateOpenTitleCount: openRows.filter((row) =>
+          normalizeIssueTitleForPressure(row.title) === normalizedTitle
+            && row.parentId === (createFields.parentId ?? null)
+            && row.projectId === pressureProjectId
+        ).length,
+        openDirectChildCount: createFields.parentId
+          ? openRows.filter((row) => row.parentId === createFields.parentId).length
+          : 0,
+        openCreatedByActorCount: openRows.filter((row) => row.createdByAgentId === actor.agentId).length,
+        openIssueSoftLimit: Number(process.env.PAPERCLIP_AGENT_OPEN_ISSUE_SOFT_LIMIT ?? 80),
+        saturatedParentChildLimit: Number(process.env.PAPERCLIP_AGENT_SATURATED_PARENT_CHILD_LIMIT ?? 3),
+        saturatedCreatorLimit: Number(process.env.PAPERCLIP_AGENT_SATURATED_CREATOR_LIMIT ?? 5),
+      });
+      if (!pressureDecision.allowed) {
+        res.status(409).json({
+          error: pressureDecision.message,
+          code: pressureDecision.code,
+          details: {
+            saturated: pressureDecision.saturated,
+            openIssueCount: openRows.length,
+            requiredAction: "Reuse, consolidate, complete, or cancel existing work before creating another issue.",
+          },
+        });
+        return;
+      }
+    }
     const decisionContractError = validateAgentDecisionContract({
       actorType: actor.actorType,
       title: createFields.title,

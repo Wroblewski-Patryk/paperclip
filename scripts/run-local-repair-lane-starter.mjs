@@ -15,6 +15,7 @@ const authToken = process.env.PAPERCLIP_API_KEY ?? null;
 const runId = process.env.PAPERCLIP_RUN_ID ?? null;
 const currentIssueId = process.env.PAPERCLIP_ISSUE_ID ?? process.env.PAPERCLIP_TASK_ID ?? null;
 const apply = process.argv.includes("--apply");
+const existingOnly = process.env.SOFTWAREHOUSE_EXISTING_ISSUES_ONLY === "1";
 const requestTimeoutMs = Number(process.env.SOFTWAREHOUSE_LOCAL_REPAIR_REQUEST_TIMEOUT_MS ?? 30_000);
 const governorTimeoutMs = Number(process.env.SOFTWAREHOUSE_LOCAL_REPAIR_GOVERNOR_TIMEOUT_MS ?? 30_000);
 const sourceControlRefreshTimeoutMs = Number(
@@ -567,7 +568,7 @@ if (sourceControlClosureAllowed(governorDecision, sourceControlPacket)) {
     break;
   }
 }
-const availableSidecarCreations = sidecarCreations.filter((sidecar) =>
+const availableSidecarCreations = (existingOnly ? [] : sidecarCreations).filter((sidecar) =>
   !sidecarHasActiveConflict(sidecar, liveProjectIds, busyAgentIds, unknownActiveRunCount)
 );
 

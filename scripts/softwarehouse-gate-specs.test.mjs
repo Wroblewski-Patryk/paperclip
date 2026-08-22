@@ -2072,7 +2072,7 @@ test("credential incidents use one value-free owner interaction and one typed ro
 test("local source-control sidecars preserve parallelism across independent projects and agents", async () => {
   const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
 
-  assert.match(source, /const availableSidecarCreations = sidecarCreations\.filter/);
+  assert.match(source, /const availableSidecarCreations = \(existingOnly \? \[\] : sidecarCreations\)\.filter/);
   assert.match(source, /!sidecarHasActiveConflict\(sidecar, liveProjectIds, busyAgentIds, unknownActiveRunCount\)/);
   assert.match(source, /sidecarCreations\.length > 0 && availableSidecarCreations\.length === 0/);
   assert.match(source, /const sidecar = availableSidecarCreations\[0\]/);
@@ -2291,6 +2291,87 @@ test("next legal action selector starts project truth gap dispatch when control 
 
   assert.equal(action.decision, "start_project_truth_gap");
   assert.equal(action.command, "pnpm softwarehouse:project-truth-dispatch:apply");
+});
+
+test("next legal action selector forbids project-truth fan-out while the issue portfolio is saturated", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    {
+      activeRunCount: 0,
+      controlDecision: "project_truth_gap_routing_needed",
+      effectiveOperatingPosture: "project_truth_repair_allowed",
+    },
+    {},
+    { checked: true, ok: true, status: 200 },
+    {
+      checked: true,
+      ok: true,
+      liveRunCount: 0,
+      portfolioPressure: {
+        closureOnly: true,
+        reason: "Open issue inventory (203) reached the 80 soft limit.",
+      },
+    },
+    {},
+    {
+      checked: true,
+      ok: true,
+      decision: "known_gates_only",
+      counts: { dirtyProjectRepos: 0, dirtyOperatingRepos: 0, runnableIssues: 0, eligibleRunnableIssues: 0 },
+    },
+  );
+
+  assert.equal(action.decision, "reconcile_existing_work");
+  assert.equal(action.command, "pnpm softwarehouse:queue-reconciler:apply");
+  assert.match(action.reason, /Project-truth gaps must be attached to existing delivery work/);
+});
+
+test("next legal action selector resumes only existing issues while saturated", async () => {
+  const { pickAction } = await import("./run-next-legal-action-selector.mjs");
+
+  const action = pickAction(
+    { activeRunCount: 0 },
+    { projects: [{ runnableIssueCount: 2 }] },
+    { checked: true, ok: true, status: 200 },
+    {
+      checked: true,
+      ok: true,
+      liveRunCount: 0,
+      portfolioPressure: { closureOnly: true, reason: "Portfolio saturated." },
+    },
+    {},
+    {
+      checked: true,
+      ok: true,
+      decision: "runnable_work_available",
+      counts: { dirtyProjectRepos: 0, dirtyOperatingRepos: 0, runnableIssues: 2, eligibleRunnableIssues: 2 },
+    },
+  );
+
+  assert.equal(action.decision, "start_runnable_work");
+  assert.match(action.command, /SOFTWAREHOUSE_EXISTING_ISSUES_ONLY=1/);
+});
+
+test("control tick makes dirty application source control outrank project-truth routing", async () => {
+  const source = await readFile("scripts/run-softwarehouse-control-tick.mjs", "utf8");
+  assert.match(source, /const projectSourceControlClosureSelected = !failedStep && activeRunCount === 0 && Boolean\(dirtyProjectRepoAfterAudit\)/);
+  assert.match(source, /if \(!projectSourceControlClosureSelected && !failedStep && activeRunCount === 0 && \(projectTruthAudit\.totalGaps \?\? 0\) > 0\)/);
+});
+
+test("local repair starter can be forced to reuse existing issues only", async () => {
+  const source = await readFile("scripts/run-local-repair-lane-starter.mjs", "utf8");
+  assert.match(source, /SOFTWAREHOUSE_EXISTING_ISSUES_ONLY === "1"/);
+  assert.match(source, /existingOnly \? \[\] : sidecarCreations/);
+});
+
+test("source-control audit exempts only fingerprint-matching owner work", async () => {
+  const source = await readFile("scripts/check-softwarehouse-source-control.mjs", "utf8");
+  assert.match(source, /softwarehouse-user-owned-work\.json/);
+  assert.match(source, /dirtyItemFingerprint/);
+  assert.match(source, /entry\.diffSha256/);
+  assert.match(source, /gitClean: allDirtyItems\.length === 0/);
+  assert.match(source, /userOwnedDirtyPaths/);
 });
 
 test("project truth dispatcher does not treat terminal issues as active gap coverage", async () => {

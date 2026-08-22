@@ -2,6 +2,25 @@
 
 Policy gates prevent autonomous agents from calling work done when the company cannot verify it.
 
+## Outcome-first portfolio pressure
+
+Autonomous issue creation is not an unlimited planning surface. When the open
+issue inventory reaches the configured soft limit, the company enters
+closure-only mode:
+
+- agents cannot create new root issues or duplicate an open title in the same
+  project/parent scope;
+- direct child fan-out and per-creator open work are bounded by server-side
+  admission, not prompt compliance;
+- project-truth and blocked-triage gaps must update or resume existing work;
+- source-control closure, validation, commit/release completion, resolved
+  blocker reconciliation, and protected owner gates remain valid actions.
+
+The exit signal is a smaller open inventory and verified movement of an
+application source/deployed milestone. Task, document, evidence, learning, or
+run counts are diagnostic only and never compensate for missing application
+outcomes.
+
 ## Roost projection activation gate
 
 The Product Map publisher is disabled unless explicitly enabled with company-scoped source and ingest credentials. Credentials must pass pinned loopback-source/public-HTTPS-ingest validation and are never persisted in the outbox or telemetry. Enabling or changing protected ingest, pushing a product candidate, and triggering production redeploy remain deployment/security gates. Pending/dead outbox rows and stale feed lag are evidence, not authority to retry outside the bounded scheduler.

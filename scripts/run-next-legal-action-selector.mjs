@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { classifyLiveRuns } from "./lib/softwarehouse-live-run-classifier.mjs";
 import { projectMarker, projectSpecificReleasePriority } from "./lib/softwarehouse-project-registry.mjs";
+import { evaluateOutcomeFirstPortfolio } from "./lib/outcome-first-portfolio-policy.mjs";
 
 const apply = process.argv.includes("--apply");
 const outputPathJson = "report/softwarehouse-next-legal-action.latest.json";
@@ -33,6 +34,7 @@ const applyCommands = new Map([
   ],
   ["start_project_truth_gap", { executable: "pnpm", args: ["softwarehouse:project-truth-dispatch:apply"] }],
   ["start_blocked_triage", { executable: "pnpm", args: ["run", "softwarehouse:blocked-triage-lane-starter:apply"] }],
+  ["reconcile_existing_work", { executable: "pnpm", args: ["softwarehouse:queue-reconciler:apply"] }],
   ["repair_coolify_acceptance_gate", { executable: "pnpm", args: ["softwarehouse:coolify-resource-recovery:apply"] }],
 ]);
 
@@ -110,10 +112,11 @@ async function probeLiveRuns(companyId) {
     );
     if (!issueResponse.ok) throw new Error(`active_issue_catalog_failed:${issueResponse.status}`);
     const issues = await issueResponse.json();
+    const issueCatalog = Array.isArray(issues) ? issues : [];
     const classification = await classifyLiveRuns({
       apiBase,
       liveRuns,
-      issues: Array.isArray(issues) ? issues : [],
+      issues: issueCatalog,
       currentRunId,
       currentIssueId,
     });
@@ -121,6 +124,9 @@ async function probeLiveRuns(companyId) {
       checked: true,
       ok: true,
       ...classification,
+      portfolioPressure: evaluateOutcomeFirstPortfolio(issueCatalog, {
+        openIssueSoftLimit: Number(process.env.SOFTWAREHOUSE_OPEN_ISSUE_SOFT_LIMIT ?? 80),
+      }),
     };
   } catch (error) {
     return {
@@ -313,6 +319,7 @@ export function pickAction(
     effectiveAppHealthOk && liveApiReadbackSucceeded && liveRunProbe.liveRunCount != null
       ? Number(liveRunProbe.liveRunCount)
       : reportedActiveRunCount;
+  const closureOnly = liveRunProbe?.portfolioPressure?.closureOnly === true;
   if (appHealth.checked && !appHealth.ok && !liveApiReadbackSucceeded) {
     return {
       decision: "repair_local_paperclip_liveness",
@@ -368,6 +375,7 @@ export function pickAction(
       decision: "start_runnable_work",
       reason: "Runnable work exists while other agents are active; probe for one independent project/agent lane instead of globally idling the company.",
       command: "pnpm softwarehouse:local-repair-lane-starter:apply",
+      ...(closureOnly ? { applyEnv: { SOFTWAREHOUSE_EXISTING_ISSUES_ONLY: "1" } } : {}),
       target: "independent_project_or_agent_lane",
       allowed: ["wake one lane only when its assignee and project are idle", "preserve per-agent WIP=1", "serialize shared-project work"],
       forbidden: ["start work for a busy agent", "start a second lane in a busy project", "push", "deploy", "restart", "secret disclosure"],
@@ -435,6 +443,7 @@ export function pickAction(
       decision: "start_source_control_closure",
       reason: "Project repositories are dirty and local source-control closure is allowed while protected delivery stays blocked.",
       command: "pnpm softwarehouse:local-repair-lane-starter:apply",
+      ...(closureOnly ? { applyEnv: { SOFTWAREHOUSE_EXISTING_ISSUES_ONLY: "1" } } : {}),
       target: dirtyProject?.project ?? runnableSourceControlGate?.identifier ?? null,
       allowed: ["local diff classification", "local validation", "commit/no-commit decision"],
       forbidden: ["push", "deploy", "restart", "protected smoke", "secret disclosure"],
@@ -498,6 +507,16 @@ export function pickAction(
     && Number.isFinite(governorEligibleRunnableIssues)
     && governorEligibleRunnableIssues === 0
   ) {
+    if (closureOnly) {
+      return {
+        decision: "reconcile_existing_work",
+        reason: `${liveRunProbe.portfolioPressure.reason} Repair existing blocker/status relationships without creating another triage lane.`,
+        command: "pnpm softwarehouse:queue-reconciler:apply",
+        target: "existing_issue_graph",
+        allowed: ["remove resolved blocker links", "resume one existing assigned todo", "preserve quota and WIP gates"],
+        forbidden: ["create a triage issue", "create project-truth work", "expand backlog", "push", "deploy"],
+      };
+    }
     return {
       decision: "start_blocked_triage",
       reason: governorProbe.recommendedAction
@@ -531,7 +550,10 @@ export function pickAction(
     return {
       decision: "start_runnable_work",
       reason: "Runnable project backlog exists and no live run is active; start the next one-owner evidence lane instead of waiting for a later routine.",
-      command: "pnpm softwarehouse:local-repair-lane-starter:apply",
+      command: closureOnly
+        ? "SOFTWAREHOUSE_EXISTING_ISSUES_ONLY=1 pnpm softwarehouse:local-repair-lane-starter:apply"
+        : "pnpm softwarehouse:local-repair-lane-starter:apply",
+      ...(closureOnly ? { applyEnv: { SOFTWAREHOUSE_EXISTING_ISSUES_ONLY: "1" } } : {}),
       target: governorDecision === "runnable_work_available" ? "governor:runnable_work_available" : "project_backlog",
       allowed: ["wake the highest-priority eligible backlog/todo issue", "keep WIP guard active", "record local validation evidence"],
       forbidden: ["start duplicate owner lane", "push", "deploy", "restart", "secret disclosure"],
@@ -541,6 +563,16 @@ export function pickAction(
     control?.controlDecision === "project_truth_gap_routing_needed"
     || control?.effectiveOperatingPosture === "project_truth_repair_allowed"
   ) {
+    if (closureOnly) {
+      return {
+        decision: "reconcile_existing_work",
+        reason: `${liveRunProbe.portfolioPressure.reason} Project-truth gaps must be attached to existing delivery work; a new proof/repair lane is forbidden.`,
+        command: "pnpm softwarehouse:queue-reconciler:apply",
+        target: "existing_issue_graph",
+        allowed: ["repair existing issue relationships", "update existing delivery evidence", "resume existing assigned work"],
+        forbidden: ["create project-truth issue", "create proof-only sidecar", "expand backlog", "push", "deploy"],
+      };
+    }
     return {
       decision: "start_project_truth_gap",
       reason: control?.recommendedAction
@@ -614,7 +646,7 @@ export function runApplyCommand(action) {
   const commandText = `${executable} ${args.join(" ")}`;
   const result = spawnSync(executable, args, {
     cwd: process.cwd(),
-    env: { ...process.env, ...env },
+    env: { ...process.env, ...env, ...(action.applyEnv ?? {}) },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     shell: shouldShellExecuteApplyCommand(executable),
