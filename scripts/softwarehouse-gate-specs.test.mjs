@@ -4245,6 +4245,14 @@ test("agent instructions forbid unassigned backlog children from deadlocking act
   assert.match(sync, /owner interaction only when the missing input is genuinely owner-only/);
 });
 
+test("agent instruction sync preserves governed primary web-search capability", async () => {
+  const sync = await readFile("scripts/sync-luckysparrow-agent-instructions.mjs", "utf8");
+
+  assert.match(sync, /import \{ capabilityExpectations \} from "\.\/lib\/softwarehouse-agent-capabilities\.mjs"/);
+  assert.match(sync, /search: laneKey === "fastTriage" \? false : capabilityExpectations\(definition\.name\)\.webSearch/);
+  assert.match(sync, /existingCheapAdapterConfig/);
+});
+
 test("in-review handoff contract keeps all five decision fields in instructions and templates", async () => {
   const [instructions, taskTemplate, workReportTemplate] = await Promise.all([
     readFile("softwarehouse/instructions/shared/90-pipeline-and-supervision.md", "utf8"),

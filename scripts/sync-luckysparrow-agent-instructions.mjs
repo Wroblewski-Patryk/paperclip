@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveLocalCodexCommand } from "./lib/local-codex-command.mjs";
+import { capabilityExpectations } from "./lib/softwarehouse-agent-capabilities.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -87,7 +88,10 @@ function adapterConfigFor(definition, laneKey = definition.modelLane, existingCo
     model: lane.model,
     modelReasoningEffort: lane.modelReasoningEffort,
     fastMode: Boolean(lane.fastMode),
-    search: false,
+    // Primary strategic/product roles retain their explicitly governed search
+    // capability. The cheap profile stays search-free below to prevent noisy
+    // background/status runs from reaching the web.
+    search: laneKey === "fastTriage" ? false : capabilityExpectations(definition.name).webSearch,
     dangerouslyBypassApprovalsAndSandbox: false,
     timeoutSec: 0,
     graceSec: 15,

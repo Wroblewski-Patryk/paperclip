@@ -616,6 +616,12 @@ evidence.
   routed from unassigned backlog to RTE-owned todo. Its stopped run's disposable
   SQLite database and empty proof directories were removed; application edits
   were preserved.
+- The next control tick exposed a synchronizer/capability contradiction:
+  `sync-luckysparrow-agent-instructions` forced `search:false` for all primary
+  profiles even though 12 governed roles require web search. The synchronizer
+  now derives primary search from the capability policy and still forces the
+  cheap profile off. Focused regressions pass; live capability audit reports
+  39 agents, 12 search-capable primary profiles, and zero findings.
 - Paperclip main was synchronized with owner/main before this follow-up. The
   provider is now at the owner's 75% weekly hard threshold, so the DRE, RTE,
   and CTO continuations are scheduled retries until reset; this is an

@@ -1489,6 +1489,10 @@ automations active until that evidence accrues; do not fabricate acceptance.
   a newly created unassigned backlog child. Technical blocker children must be
   immediately routed to a competent active agent; owner interactions remain
   reserved for genuinely owner-only input.
+- The instruction synchronizer now also preserves the governed primary
+  `web_search` capability for the 12 strategic/product roles while keeping the
+  cheap profile search-free. This removes the capability-audit failure that
+  previously converted a normal control tick into `control_tick_failed`.
 - The owner's 75% weekly quota ceiling is currently a hard provider hold. New
   LUC-3022, LUC-3023, and LUC-3001 runs are `scheduled_retry` without adapter
   failure or token consumption; do not bypass the hold.
