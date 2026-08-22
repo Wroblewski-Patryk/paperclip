@@ -19,11 +19,12 @@ describe("executionWorkspacesApi.listSummaries", () => {
   it("requests the lightweight summary payload", async () => {
     await executionWorkspacesApi.listSummaries("company-1", {
       projectId: "project-1",
+      mode: "isolated_workspace,operator_branch",
       reuseEligible: true,
     });
 
     expect(mockApi.get).toHaveBeenCalledWith(
-      "/companies/company-1/execution-workspaces?projectId=project-1&reuseEligible=true&summary=true",
+      "/companies/company-1/execution-workspaces?projectId=project-1&mode=isolated_workspace%2Coperator_branch&reuseEligible=true&summary=true",
     );
   });
 

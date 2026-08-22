@@ -286,7 +286,8 @@ describe("buildProjectWorkspaceSummaries", () => {
             createRuntimeService({
               id: "service-stopped",
               executionWorkspaceId: "exec-stopped",
-              status: "stopped",
+              status: "failed",
+              healthStatus: "unhealthy",
               url: "http://127.0.0.1:4100",
             }),
           ],
@@ -318,6 +319,8 @@ describe("buildProjectWorkspaceSummaries", () => {
       primaryServiceUrl: "http://127.0.0.1:4100",
       primaryServiceUrlRunning: false,
       runningServiceCount: 0,
+      failedServiceCount: 1,
+      unhealthyServiceCount: 1,
     });
   });
 });

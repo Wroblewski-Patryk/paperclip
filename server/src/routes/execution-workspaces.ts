@@ -12,6 +12,7 @@ import type { WorkspaceRuntimeDesiredState, WorkspaceRuntimeServiceStateMap } fr
 import { validate } from "../middleware/validate.js";
 import { accessService, executionWorkspaceService, logActivity, workspaceOperationService } from "../services/index.js";
 import { mergeExecutionWorkspaceConfig, readExecutionWorkspaceConfig } from "../services/execution-workspaces.js";
+import { archiveDuplicateSharedExecutionWorkspaces } from "../services/shared-workspace-deduplication.js";
 import { parseProjectExecutionWorkspacePolicy } from "../services/execution-workspace-policy.js";
 import { readProjectWorkspaceRuntimeConfig } from "../services/project-workspace-runtime-config.js";
 import {
@@ -61,6 +62,30 @@ export function executionWorkspaceRoutes(db: Db) {
     return false;
   }
 
+  router.get("/companies/:companyId/execution-workspaces/diagnostics", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    if (!(await assertExecutionWorkspaceReadAllowed(req, res, companyId))) return;
+    const diagnostics = await archiveDuplicateSharedExecutionWorkspaces(db, { companyId, dryRun: true });
+    res.json({
+      ...diagnostics,
+      healthy: diagnostics.duplicateCount === 0,
+      invariant: "one reusable shared execution workspace per issue and project workspace",
+    });
+  });
+
+  router.post("/companies/:companyId/execution-workspaces/maintenance", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    if (getActorInfo(req).actorType === "agent") {
+      res.status(403).json({ error: "Workspace maintenance requires board authority" });
+      return;
+    }
+    const dryRun = req.body?.dryRun !== false;
+    const result = await archiveDuplicateSharedExecutionWorkspaces(db, { companyId, dryRun });
+    res.json(result);
+  });
+
   router.get("/companies/:companyId/execution-workspaces", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
@@ -70,6 +95,7 @@ export function executionWorkspaceRoutes(db: Db) {
       projectWorkspaceId: req.query.projectWorkspaceId as string | undefined,
       issueId: req.query.issueId as string | undefined,
       status: req.query.status as string | undefined,
+      mode: req.query.mode as string | undefined,
       reuseEligible: req.query.reuseEligible === "true",
     };
     const workspaces = req.query.summary === "true"

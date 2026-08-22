@@ -88,8 +88,11 @@ describe("pruneOldBackups", () => {
     fs.mkdirSync(newerSnapshot);
     fs.writeFileSync(path.join(olderSnapshot, "payload"), "x".repeat(100));
     fs.writeFileSync(path.join(newerSnapshot, "payload"), "ok");
-    fs.utimesSync(olderBackup, new Date("2026-07-22T01:01:01Z"), new Date("2026-07-22T01:01:01Z"));
-    fs.utimesSync(newerBackup, new Date("2026-07-23T01:01:01Z"), new Date("2026-07-23T01:01:01Z"));
+    const now = Date.now();
+    const olderMtime = new Date(now - 2 * 24 * 60 * 60 * 1000);
+    const newerMtime = new Date(now - 1 * 24 * 60 * 60 * 1000);
+    fs.utimesSync(olderBackup, olderMtime, olderMtime);
+    fs.utimesSync(newerBackup, newerMtime, newerMtime);
 
     expect(pruneOldBackups(
       backupDir,

@@ -166,6 +166,8 @@ export interface IssueExecutionWorkspaceSettings {
 
 export interface ExecutionWorkspaceSummary {
   id: string;
+  projectId: string;
+  sourceIssueId: string | null;
   name: string;
   mode: Exclude<ExecutionWorkspaceMode, "inherit" | "reuse_existing" | "agent_default"> | "adapter_managed" | "cloud_sandbox";
   status: ExecutionWorkspaceStatus;
@@ -173,6 +175,12 @@ export interface ExecutionWorkspaceSummary {
   branchName: string | null;
   projectWorkspaceId: string | null;
   lastUsedAt: Date;
+  serviceCount: number;
+  runningServiceCount: number;
+  failedServiceCount: number;
+  unhealthyServiceCount: number;
+  primaryServiceUrl: string | null;
+  primaryServiceUrlRunning: boolean;
 }
 
 export interface ExecutionWorkspace {

@@ -785,6 +785,10 @@ The current app also exposes V1-supporting surfaces for:
 - issue thread interactions (`suggest_tasks`, `ask_user_questions`, `request_confirmation`)
 - issue approvals, issue references/search, labels, read state, inbox/archive state, and work products
 - execution workspaces, project workspaces, workspace runtime services, and workspace operations
+- shared execution workspace identity is stable across agent/model session resets:
+  at most one reusable active shared record exists per company, issue, and project
+  workspace; concurrent creation is database-enforced and duplicate history is
+  archived without deleting the underlying project checkout
 - routines and scheduled/API/webhook triggers
 - plugin installation, configuration, state, jobs, logs, webhooks, and plugin database namespace migration
 - company import/export preview/apply, feedback export/vote routes, instance backup/config routes, invites, join requests, memberships, and permission grants

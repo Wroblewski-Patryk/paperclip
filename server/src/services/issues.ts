@@ -5271,6 +5271,27 @@ export function issueService(db: Db) {
               .where(eq(executionWorkspaces.id, workspace.id));
           }
         }
+        if (
+          (issueData.status === "done" || issueData.status === "cancelled")
+          && nextExecutionWorkspaceId
+          && existing.status !== issueData.status
+        ) {
+          const cleanupEligibleAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+          await tx
+            .update(executionWorkspaces)
+            .set({
+              status: "idle",
+              cleanupEligibleAt,
+              cleanupReason: `issue_${issueData.status}`,
+              updatedAt: new Date(),
+            })
+            .where(and(
+              eq(executionWorkspaces.id, nextExecutionWorkspaceId),
+              eq(executionWorkspaces.companyId, existing.companyId),
+              eq(executionWorkspaces.mode, "shared_workspace"),
+              inArray(executionWorkspaces.status, ["active", "in_review"]),
+            ));
+        }
         const [enriched] = await withIssueLabels(tx, [updated]);
         if (
           (issueData.status === "done" || issueData.status === "cancelled") &&

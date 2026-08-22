@@ -39,6 +39,7 @@ import {
   instanceSettingsService,
   reconcileCloudUpstreamRunsOnStartup,
   reconcilePersistedRuntimeServicesOnStartup,
+  archiveDuplicateSharedExecutionWorkspaces,
   routineService,
   secretService,
   startRoostProductMapOutboxRuntime,
@@ -758,6 +759,19 @@ export async function startServer(): Promise<StartedServer> {
     .catch((err) => {
       logger.error({ err }, "startup reconciliation of cloud upstream runs failed");
     });
+
+  const maintainSharedWorkspaceIdentity = () =>
+    archiveDuplicateSharedExecutionWorkspaces(db as any)
+      .then((result) => {
+        if (result.archived > 0 || result.expiredArchived > 0) {
+          logger.warn(result, "archived duplicate or expired shared execution workspace sessions");
+        }
+      })
+      .catch((err) => {
+        logger.error({ err }, "shared execution workspace maintenance failed");
+      });
+  void maintainSharedWorkspaceIdentity();
+  setInterval(() => void maintainSharedWorkspaceIdentity(), 30 * 60 * 1000);
 
   startRunLogRetention(db as any, {
     retentionDays: config.runLogRetentionDays,

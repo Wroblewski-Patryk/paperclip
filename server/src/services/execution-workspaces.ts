@@ -20,6 +20,7 @@ import {
   listCurrentRuntimeServicesForExecutionWorkspaces,
   listCurrentRuntimeServicesForProjectWorkspaces,
 } from "./workspace-runtime-read-model.js";
+import { canonicalWorkspacePath } from "./workspace-path-identity.js";
 
 type ExecutionWorkspaceRow = typeof executionWorkspaces.$inferSelect;
 type WorkspaceRuntimeServiceRow = typeof workspaceRuntimeServices.$inferSelect;
@@ -34,6 +35,15 @@ function readNullableString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function isUniqueViolation(error: unknown) {
+  let current = error;
+  for (let depth = 0; depth < 5 && current && typeof current === "object"; depth += 1) {
+    if ("code" in current && (current as { code?: string }).code === "23505") return true;
+    current = "cause" in current ? (current as { cause?: unknown }).cause : null;
+  }
+  return false;
 }
 
 function cloneRecord(value: unknown): Record<string, unknown> | null {
@@ -345,10 +355,17 @@ function toExecutionWorkspace(
 }
 
 function toExecutionWorkspaceSummary(
-  row: Pick<ExecutionWorkspaceRow, "id" | "name" | "mode" | "status" | "cwd" | "branchName" | "projectWorkspaceId" | "lastUsedAt">,
+  row: Pick<ExecutionWorkspaceRow, "id" | "projectId" | "sourceIssueId" | "name" | "mode" | "status" | "cwd" | "branchName" | "projectWorkspaceId" | "lastUsedAt">,
+  runtimeServices: WorkspaceRuntimeService[] = [],
 ): ExecutionWorkspaceSummary {
+  const primaryService =
+    runtimeServices.find((service) => service.status === "running" && service.url)
+    ?? runtimeServices.find((service) => service.url)
+    ?? null;
   return {
     id: row.id,
+    projectId: row.projectId,
+    sourceIssueId: row.sourceIssueId ?? null,
     name: row.name,
     mode: row.mode as ExecutionWorkspaceSummary["mode"],
     status: row.status as ExecutionWorkspaceSummary["status"],
@@ -356,6 +373,12 @@ function toExecutionWorkspaceSummary(
     branchName: row.branchName ?? null,
     projectWorkspaceId: row.projectWorkspaceId ?? null,
     lastUsedAt: row.lastUsedAt,
+    serviceCount: runtimeServices.length,
+    runningServiceCount: runtimeServices.filter((service) => service.status === "running" || service.status === "starting").length,
+    failedServiceCount: runtimeServices.filter((service) => service.status === "failed").length,
+    unhealthyServiceCount: runtimeServices.filter((service) => service.healthStatus === "unhealthy").length,
+    primaryServiceUrl: primaryService?.url ?? null,
+    primaryServiceUrlRunning: primaryService?.status === "running",
   };
 }
 
@@ -395,6 +418,29 @@ async function loadEffectiveRuntimeServicesByExecutionWorkspace(
 }
 
 export function executionWorkspaceService(db: Db) {
+  async function findReusableSharedRow(input: {
+    companyId: string;
+    projectId: string;
+    projectWorkspaceId: string;
+    sourceIssueId: string;
+    cwd: string;
+  }) {
+    const rows = await db
+      .select()
+      .from(executionWorkspaces)
+      .where(and(
+        eq(executionWorkspaces.companyId, input.companyId),
+        eq(executionWorkspaces.projectId, input.projectId),
+        eq(executionWorkspaces.projectWorkspaceId, input.projectWorkspaceId),
+        eq(executionWorkspaces.sourceIssueId, input.sourceIssueId),
+        eq(executionWorkspaces.mode, "shared_workspace"),
+        inArray(executionWorkspaces.status, ["active", "idle", "in_review"]),
+      ))
+      .orderBy(desc(executionWorkspaces.lastUsedAt), desc(executionWorkspaces.createdAt));
+    const expectedPath = canonicalWorkspacePath(input.cwd);
+    return rows.find((row) => canonicalWorkspacePath(row.cwd) === expectedPath) ?? null;
+  }
+
   function buildListConditions(
     companyId: string,
     filters?: {
@@ -402,6 +448,7 @@ export function executionWorkspaceService(db: Db) {
       projectWorkspaceId?: string;
       issueId?: string;
       status?: string;
+      mode?: string;
       reuseEligible?: boolean;
     },
   ) {
@@ -415,6 +462,11 @@ export function executionWorkspaceService(db: Db) {
       const statuses = filters.status.split(",").map((value) => value.trim()).filter(Boolean);
       if (statuses.length === 1) conditions.push(eq(executionWorkspaces.status, statuses[0]!));
       else if (statuses.length > 1) conditions.push(inArray(executionWorkspaces.status, statuses));
+    }
+    if (filters?.mode) {
+      const modes = filters.mode.split(",").map((value) => value.trim()).filter(Boolean);
+      if (modes.length === 1) conditions.push(eq(executionWorkspaces.mode, modes[0]!));
+      else if (modes.length > 1) conditions.push(inArray(executionWorkspaces.mode, modes));
     }
     if (filters?.reuseEligible) {
       conditions.push(inArray(executionWorkspaces.status, ["active", "idle", "in_review"]));
@@ -430,6 +482,7 @@ export function executionWorkspaceService(db: Db) {
       projectWorkspaceId?: string;
       issueId?: string;
       status?: string;
+      mode?: string;
       reuseEligible?: boolean;
     }) => {
       const conditions = buildListConditions(companyId, filters);
@@ -452,24 +505,22 @@ export function executionWorkspaceService(db: Db) {
       projectWorkspaceId?: string;
       issueId?: string;
       status?: string;
+      mode?: string;
       reuseEligible?: boolean;
     }) => {
       const conditions = buildListConditions(companyId, filters);
       const rows = await db
-        .select({
-          id: executionWorkspaces.id,
-          name: executionWorkspaces.name,
-          mode: executionWorkspaces.mode,
-          status: executionWorkspaces.status,
-          cwd: executionWorkspaces.cwd,
-          branchName: executionWorkspaces.branchName,
-          projectWorkspaceId: executionWorkspaces.projectWorkspaceId,
-          lastUsedAt: executionWorkspaces.lastUsedAt,
-        })
+        .select()
         .from(executionWorkspaces)
         .where(and(...conditions))
         .orderBy(desc(executionWorkspaces.lastUsedAt), desc(executionWorkspaces.createdAt));
-      return rows.map((row) => toExecutionWorkspaceSummary(row));
+      const runtimeServicesByWorkspaceId = await loadEffectiveRuntimeServicesByExecutionWorkspace(db, companyId, rows);
+      return rows.map((row) =>
+        toExecutionWorkspaceSummary(
+          row,
+          (runtimeServicesByWorkspaceId.get(row.id) ?? []).map(toRuntimeService),
+        ),
+      );
     },
 
     getById: async (id: string) => {
@@ -478,6 +529,22 @@ export function executionWorkspaceService(db: Db) {
         .from(executionWorkspaces)
         .where(eq(executionWorkspaces.id, id))
         .then((rows) => rows[0] ?? null);
+      if (!row) return null;
+      const runtimeServicesByWorkspaceId = await loadEffectiveRuntimeServicesByExecutionWorkspace(db, row.companyId, [row]);
+      return toExecutionWorkspace(
+        row,
+        (runtimeServicesByWorkspaceId.get(row.id) ?? []).map(toRuntimeService),
+      );
+    },
+
+    findReusableShared: async (input: {
+      companyId: string;
+      projectId: string;
+      projectWorkspaceId: string;
+      sourceIssueId: string;
+      cwd: string;
+    }) => {
+      const row = await findReusableSharedRow(input);
       if (!row) return null;
       const runtimeServicesByWorkspaceId = await loadEffectiveRuntimeServicesByExecutionWorkspace(db, row.companyId, [row]);
       return toExecutionWorkspace(
@@ -744,6 +811,59 @@ export function executionWorkspaceService(db: Db) {
         .returning()
         .then((rows) => rows[0] ?? null);
       return row ? toExecutionWorkspace(row) : null;
+    },
+
+    createOrReuseShared: async (data: typeof executionWorkspaces.$inferInsert) => {
+      if (
+        data.mode !== "shared_workspace"
+        || !data.sourceIssueId
+        || !data.projectWorkspaceId
+        || !data.cwd
+      ) {
+        const row = await db
+          .insert(executionWorkspaces)
+          .values(data)
+          .returning()
+          .then((rows) => rows[0] ?? null);
+        return row ? toExecutionWorkspace(row) : null;
+      }
+
+      const identity = {
+        companyId: data.companyId,
+        projectId: data.projectId,
+        projectWorkspaceId: data.projectWorkspaceId,
+        sourceIssueId: data.sourceIssueId,
+        cwd: data.cwd,
+      };
+      const existing = await findReusableSharedRow(identity);
+      if (existing) {
+        const row = await db
+          .update(executionWorkspaces)
+          .set({
+            status: "active",
+            lastUsedAt: data.lastUsedAt ?? new Date(),
+            metadata: data.metadata ?? existing.metadata,
+            updatedAt: new Date(),
+          })
+          .where(eq(executionWorkspaces.id, existing.id))
+          .returning()
+          .then((rows) => rows[0] ?? existing);
+        return toExecutionWorkspace(row);
+      }
+
+      try {
+        const row = await db
+          .insert(executionWorkspaces)
+          .values(data)
+          .returning()
+          .then((rows) => rows[0] ?? null);
+        return row ? toExecutionWorkspace(row) : null;
+      } catch (error) {
+        if (!isUniqueViolation(error)) throw error;
+        const winner = await findReusableSharedRow(identity);
+        if (!winner) throw error;
+        return toExecutionWorkspace(winner);
+      }
     },
 
     update: async (id: string, patch: Partial<typeof executionWorkspaces.$inferInsert>) => {

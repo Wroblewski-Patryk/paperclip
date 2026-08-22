@@ -6,7 +6,7 @@ import { IssuesQuicklook } from "./IssuesQuicklook";
 import type { ProjectWorkspaceSummary } from "../lib/project-workspaces-tab";
 import { cn, projectWorkspaceUrl } from "../lib/utils";
 import { timeAgo } from "../lib/timeAgo";
-import { Copy, ExternalLink, FolderOpen, GitBranch, Loader2, Play, Square } from "lucide-react";
+import { AlertTriangle, Copy, ExternalLink, FolderOpen, GitBranch, Loader2, Play, Square } from "lucide-react";
 
 function workspaceKindLabel(kind: ProjectWorkspaceSummary["kind"]) {
   return kind === "execution_workspace" ? "Execution workspace" : "Project workspace";
@@ -82,6 +82,16 @@ export function ProjectWorkspaceSummaryCard({
                   />
                   {summary.runningServiceCount}/{summary.serviceCount} services
                 </span>
+              ) : (
+                <span className="inline-flex items-center rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs text-muted-foreground">
+                  No services configured
+                </span>
+              )}
+              {summary.failedServiceCount > 0 || summary.unhealthyServiceCount > 0 ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs text-destructive">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Needs attention
+                </span>
               ) : null}
               {summary.executionWorkspaceStatus ? (
                 <span className="inline-flex items-center rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs text-muted-foreground">
@@ -101,7 +111,7 @@ export function ProjectWorkspaceSummaryCard({
             className="flex flex-col gap-2 min-[420px]:flex-row lg:w-auto lg:justify-end"
             data-testid="workspace-summary-actions"
           >
-            {summary.hasRuntimeConfig ? (
+            {summary.hasRuntimeConfig && summary.serviceCount > 0 ? (
               <Button
                 variant="outline"
                 size="sm"

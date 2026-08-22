@@ -5,8 +5,10 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { companies } from "./companies.js";
 import { issues } from "./issues.js";
 import { projectWorkspaces } from "./project_workspaces.js";
@@ -56,6 +58,9 @@ export const executionWorkspaces = pgTable(
       table.companyId,
       table.sourceIssueId,
     ),
+    activeSharedIssueWorkspaceUnique: uniqueIndex("execution_workspaces_active_shared_issue_workspace_unique")
+      .on(table.companyId, table.sourceIssueId, table.projectWorkspaceId)
+      .where(sql`${table.mode} = 'shared_workspace' and ${table.status} in ('active', 'idle', 'in_review') and ${table.sourceIssueId} is not null and ${table.projectWorkspaceId} is not null`),
     companyLastUsedIdx: index("execution_workspaces_company_last_used_idx").on(
       table.companyId,
       table.lastUsedAt,

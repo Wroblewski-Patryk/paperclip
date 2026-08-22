@@ -22,12 +22,17 @@ const mockAccessService = vi.hoisted(() => ({
 }));
 
 const mockLogActivity = vi.hoisted(() => vi.fn(async () => undefined));
+const mockWorkspaceMaintenance = vi.hoisted(() => vi.fn());
 
 vi.mock("../services/index.js", () => ({
   accessService: () => mockAccessService,
   executionWorkspaceService: () => mockExecutionWorkspaceService,
   logActivity: mockLogActivity,
   workspaceOperationService: () => mockWorkspaceOperationService,
+}));
+
+vi.mock("../services/shared-workspace-deduplication.js", () => ({
+  archiveDuplicateSharedExecutionWorkspaces: mockWorkspaceMaintenance,
 }));
 
 function createApp(companyIds = ["company-1"]) {
@@ -61,11 +66,21 @@ describe.sequential("execution workspace routes", () => {
       },
     ]);
     mockExecutionWorkspaceService.getById.mockResolvedValue(null);
+    mockWorkspaceMaintenance.mockResolvedValue({
+      dryRun: true,
+      scanned: 4,
+      duplicateCount: 0,
+      archived: 0,
+      expiredCount: 0,
+      expiredArchived: 0,
+      referenced: 4,
+      retained: 4,
+    });
   });
 
   it("uses summary mode for lightweight workspace lookups", async () => {
     const res = await request(createApp())
-      .get("/api/companies/company-1/execution-workspaces?summary=true&reuseEligible=true");
+      .get("/api/companies/company-1/execution-workspaces?summary=true&reuseEligible=true&mode=isolated_workspace,operator_branch");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
@@ -81,9 +96,46 @@ describe.sequential("execution workspace routes", () => {
       projectWorkspaceId: undefined,
       issueId: undefined,
       status: undefined,
+      mode: "isolated_workspace,operator_branch",
       reuseEligible: true,
     });
     expect(mockExecutionWorkspaceService.list).not.toHaveBeenCalled();
+  });
+
+  it("exposes a read-only workspace identity health check", async () => {
+    const res = await request(createApp())
+      .get("/api/companies/company-1/execution-workspaces/diagnostics");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      healthy: true,
+      duplicateCount: 0,
+      invariant: "one reusable shared execution workspace per issue and project workspace",
+    });
+    expect(mockWorkspaceMaintenance).toHaveBeenCalledWith(expect.anything(), {
+      companyId: "company-1",
+      dryRun: true,
+    });
+  });
+
+  it("previews maintenance by default and applies it only when explicitly requested", async () => {
+    await request(createApp())
+      .post("/api/companies/company-1/execution-workspaces/maintenance")
+      .send({})
+      .expect(200);
+    await request(createApp())
+      .post("/api/companies/company-1/execution-workspaces/maintenance")
+      .send({ dryRun: false })
+      .expect(200);
+
+    expect(mockWorkspaceMaintenance).toHaveBeenNthCalledWith(1, expect.anything(), {
+      companyId: "company-1",
+      dryRun: true,
+    });
+    expect(mockWorkspaceMaintenance).toHaveBeenNthCalledWith(2, expect.anything(), {
+      companyId: "company-1",
+      dryRun: false,
+    });
   });
 
 });

@@ -145,6 +145,16 @@ vi.mock("../realtime/live-events-ws.js", () => ({
 }));
 
 vi.mock("../services/index.js", () => ({
+  archiveDuplicateSharedExecutionWorkspaces: vi.fn(async () => ({
+    dryRun: false,
+    scanned: 0,
+    duplicateCount: 0,
+    archived: 0,
+    expiredCount: 0,
+    expiredArchived: 0,
+    referenced: 0,
+    retained: 0,
+  })),
   backfillPrincipalAccessCompatibility: vi.fn(async () => ({
     agentMembershipsInserted: 0,
     humanGrantsInserted: 0,

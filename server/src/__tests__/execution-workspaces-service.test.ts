@@ -5,7 +5,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import {
   companies,
   createDb,
@@ -243,6 +243,67 @@ describeEmbeddedPostgres("executionWorkspaceService.getCloseReadiness", () => {
       "This workspace is still linked to an open issue. Archiving it will detach this shared workspace session from those issues, but keep the underlying project workspace available.",
       "This shared workspace session points at project workspace infrastructure. Archiving it only removes the session record.",
     ]));
+  });
+
+  it("atomically reuses one shared workspace across concurrent heartbeat persistence", async () => {
+    const companyId = randomUUID();
+    const projectId = randomUUID();
+    const projectWorkspaceId = randomUUID();
+    const issueId = randomUUID();
+    const cwd = path.join(os.tmpdir(), "paperclip-shared-identity");
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: "PAP",
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(projects).values({
+      id: projectId,
+      companyId,
+      name: "Workspaces",
+      status: "in_progress",
+    });
+    await db.insert(projectWorkspaces).values({
+      id: projectWorkspaceId,
+      companyId,
+      projectId,
+      name: "Primary",
+      sourceType: "local_path",
+      isPrimary: true,
+      cwd,
+    });
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      projectId,
+      projectWorkspaceId,
+      title: "Concurrent heartbeat",
+      status: "todo",
+      priority: "medium",
+    });
+
+    const created = await Promise.all(Array.from({ length: 12 }, () =>
+      svc.createOrReuseShared({
+        companyId,
+        projectId,
+        projectWorkspaceId,
+        sourceIssueId: issueId,
+        mode: "shared_workspace",
+        strategyType: "project_primary",
+        name: "PAP-1",
+        status: "active",
+        cwd,
+        providerType: "local_fs",
+      })
+    ));
+
+    expect(new Set(created.map((workspace) => workspace?.id)).size).toBe(1);
+    const persisted = await db
+      .select()
+      .from(executionWorkspaces)
+      .where(eq(executionWorkspaces.sourceIssueId, issueId));
+    expect(persisted).toHaveLength(1);
   });
 
   it("clears matching environment selections transactionally without touching other workspaces", async () => {

@@ -17,18 +17,16 @@ describe("canReuseSharedExecutionWorkspace", () => {
       projectId: "project-1",
       projectWorkspaceId: "primary-1",
       cwd: "C:/projects/soar",
-      forceFresh: false,
     })).toBe(true);
   });
 
-  it("does not reuse for an isolated request or explicit fresh-session transition", () => {
+  it("does not reuse for an isolated request, but keeps workspace identity across a fresh model session", () => {
     expect(canReuseSharedExecutionWorkspace({
       workspace,
       requestedMode: "isolated_workspace",
       projectId: "project-1",
       projectWorkspaceId: "primary-1",
       cwd: "C:/projects/soar",
-      forceFresh: false,
     })).toBe(false);
     expect(canReuseSharedExecutionWorkspace({
       workspace,
@@ -36,8 +34,7 @@ describe("canReuseSharedExecutionWorkspace", () => {
       projectId: "project-1",
       projectWorkspaceId: "primary-1",
       cwd: "C:/projects/soar",
-      forceFresh: true,
-    })).toBe(false);
+    })).toBe(true);
   });
 
   it("rejects a different project workspace or archived record", () => {
@@ -47,7 +44,6 @@ describe("canReuseSharedExecutionWorkspace", () => {
       projectId: "project-1",
       projectWorkspaceId: "primary-2",
       cwd: "C:/projects/soar",
-      forceFresh: false,
     })).toBe(false);
     expect(canReuseSharedExecutionWorkspace({
       workspace: { ...workspace, status: "archived" },
@@ -55,7 +51,6 @@ describe("canReuseSharedExecutionWorkspace", () => {
       projectId: "project-1",
       projectWorkspaceId: "primary-1",
       cwd: "C:/projects/soar",
-      forceFresh: false,
     })).toBe(false);
   });
 });

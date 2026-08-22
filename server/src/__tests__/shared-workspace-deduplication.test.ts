@@ -28,4 +28,16 @@ describe("selectDuplicateSharedWorkspaceIds", () => {
     ];
     expect(selectDuplicateSharedWorkspaceIds(rows, new Set())).toEqual(["old"]);
   });
+
+  it("treats Windows slash and case variants as the same workspace path", () => {
+    const first = row("new", "issue-1");
+    const second = { ...row("old", "issue-1"), cwd: "c:\\PROJECTS\\SOAR\\" };
+    expect(selectDuplicateSharedWorkspaceIds([first, second], new Set())).toEqual(["old"]);
+  });
+
+  it("uses issue and project-workspace identity even when legacy rows disagree about cwd", () => {
+    const first = row("new", "issue-1");
+    const second = { ...row("old", "issue-1"), cwd: "D:/stale/copied/path" };
+    expect(selectDuplicateSharedWorkspaceIds([first, second], new Set())).toEqual(["old"]);
+  });
 });

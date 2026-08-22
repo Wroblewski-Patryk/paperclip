@@ -3517,8 +3517,40 @@ registry.registerPath({
   path: "/api/companies/{companyId}/execution-workspaces",
   tags: ["execution-workspaces"],
   summary: "List execution workspaces for a company",
-  request: { params: z.object({ companyId: z.string() }) },
+  request: {
+    params: z.object({ companyId: z.string() }),
+    query: z.object({
+      projectId: z.string().optional(),
+      projectWorkspaceId: z.string().optional(),
+      issueId: z.string().optional(),
+      status: z.string().optional(),
+      mode: z.string().optional(),
+      reuseEligible: z.enum(["true", "false"]).optional(),
+      summary: z.enum(["true", "false"]).optional(),
+    }),
+  },
   responses: { 200: r.ok(), 401: r.unauthorized },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/companies/{companyId}/execution-workspaces/diagnostics",
+  tags: ["execution-workspaces"],
+  summary: "Check shared execution workspace identity health",
+  request: { params: z.object({ companyId: z.string() }) },
+  responses: { 200: r.ok(), 401: r.unauthorized, 403: r.forbidden },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/companies/{companyId}/execution-workspaces/maintenance",
+  tags: ["execution-workspaces"],
+  summary: "Preview or apply shared execution workspace maintenance",
+  request: {
+    params: z.object({ companyId: z.string() }),
+    body: jsonBody(z.object({ dryRun: z.boolean().optional() })),
+  },
+  responses: { 200: r.ok(), 401: r.unauthorized, 403: r.forbidden },
 });
 
 registry.registerPath({

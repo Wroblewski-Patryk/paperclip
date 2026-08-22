@@ -70,6 +70,8 @@ function createSummary(overrides: Partial<ProjectWorkspaceSummary> = {}): Projec
     executionWorkspaceStatus: overrides.executionWorkspaceStatus ?? "active",
     serviceCount: overrides.serviceCount ?? 2,
     runningServiceCount: overrides.runningServiceCount ?? 0,
+    failedServiceCount: overrides.failedServiceCount ?? 0,
+    unhealthyServiceCount: overrides.unhealthyServiceCount ?? 0,
     primaryServiceUrl: overrides.primaryServiceUrl ?? "http://127.0.0.1:62474",
     primaryServiceUrlRunning: overrides.primaryServiceUrlRunning ?? false,
     hasRuntimeConfig: overrides.hasRuntimeConfig ?? true,
@@ -172,6 +174,51 @@ describe("ProjectWorkspaceSummaryCard", () => {
     act(() => {
       root.unmount();
     });
+  });
+
+  it("does not offer service control without configured services", () => {
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <ProjectWorkspaceSummaryCard
+          projectRef="paperclip-app"
+          summary={createSummary({
+            serviceCount: 0,
+            runningServiceCount: 0,
+            failedServiceCount: 0,
+            unhealthyServiceCount: 0,
+            hasRuntimeConfig: true,
+          })}
+          runtimeActionKey={null}
+          runtimeActionPending={false}
+          onRuntimeAction={() => {}}
+          onCloseWorkspace={() => {}}
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain("No services configured");
+    expect(container.textContent).not.toContain("Start services");
+    act(() => root.unmount());
+  });
+
+  it("surfaces failed and unhealthy services on the summary", () => {
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <ProjectWorkspaceSummaryCard
+          projectRef="paperclip-app"
+          summary={createSummary({ failedServiceCount: 1, unhealthyServiceCount: 1 })}
+          runtimeActionKey={null}
+          runtimeActionPending={false}
+          onRuntimeAction={() => {}}
+          onCloseWorkspace={() => {}}
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain("Needs attention");
+    act(() => root.unmount());
   });
 
   it("shows retry close for cleanup failures", () => {

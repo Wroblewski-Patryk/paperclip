@@ -86,6 +86,7 @@ export { cloudUpstreamService, reconcileCloudUpstreamRunsOnStartup } from "./clo
 export { companyPortabilityService } from "./company-portability.js";
 export { environmentService } from "./environments.js";
 export { executionWorkspaceService } from "./execution-workspaces.js";
+export { archiveDuplicateSharedExecutionWorkspaces } from "./shared-workspace-deduplication.js";
 export { workspaceOperationService } from "./workspace-operations.js";
 export { workspaceFileResourceService } from "./workspace-file-resources.js";
 export { workProductService } from "./work-products.js";

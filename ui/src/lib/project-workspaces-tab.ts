@@ -1,4 +1,4 @@
-import type { ExecutionWorkspace, Issue, Project } from "@paperclipai/shared";
+import type { ExecutionWorkspace, ExecutionWorkspaceSummary, Issue, Project } from "@paperclipai/shared";
 
 type ProjectWorkspaceLike = Pick<Project, "workspaces" | "primaryWorkspace">;
 
@@ -15,6 +15,8 @@ export interface ProjectWorkspaceSummary {
   executionWorkspaceStatus: ExecutionWorkspace["status"] | null;
   serviceCount: number;
   runningServiceCount: number;
+  failedServiceCount: number;
+  unhealthyServiceCount: number;
   primaryServiceUrl: string | null;
   primaryServiceUrlRunning: boolean;
   hasRuntimeConfig: boolean;
@@ -44,7 +46,7 @@ function primaryWorkspaceId(project: ProjectWorkspaceLike): string | null {
 }
 
 function isDefaultSharedExecutionWorkspace(input: {
-  executionWorkspace: ExecutionWorkspace;
+  executionWorkspace: ExecutionWorkspace | ExecutionWorkspaceSummary;
   issue: Issue;
   primaryWorkspaceId: string | null;
 }) {
@@ -58,6 +60,8 @@ function runtimeServiceSummary(
 ) {
   const serviceCount = services?.length ?? 0;
   const runningServiceCount = services?.filter((service) => service.status === "running").length ?? 0;
+  const failedServiceCount = services?.filter((service) => service.status === "failed").length ?? 0;
+  const unhealthyServiceCount = services?.filter((service) => service.healthStatus === "unhealthy").length ?? 0;
   const primaryService =
     services?.find((service) => service.status === "running" && service.url)
     ?? services?.find((service) => service.url)
@@ -66,15 +70,31 @@ function runtimeServiceSummary(
   return {
     serviceCount,
     runningServiceCount,
+    failedServiceCount,
+    unhealthyServiceCount,
     primaryServiceUrl: primaryService?.url ?? null,
     primaryServiceUrlRunning: primaryService?.status === "running",
   };
 }
 
+function executionWorkspaceRuntimeSummary(workspace: ExecutionWorkspace | ExecutionWorkspaceSummary) {
+  if ("serviceCount" in workspace) {
+    return {
+      serviceCount: workspace.serviceCount,
+      runningServiceCount: workspace.runningServiceCount,
+      failedServiceCount: workspace.failedServiceCount,
+      unhealthyServiceCount: workspace.unhealthyServiceCount,
+      primaryServiceUrl: workspace.primaryServiceUrl,
+      primaryServiceUrlRunning: workspace.primaryServiceUrlRunning,
+    };
+  }
+  return runtimeServiceSummary(workspace.runtimeServices);
+}
+
 export function buildProjectWorkspaceSummaries(input: {
   project: ProjectWorkspaceLike;
   issues: Issue[];
-  executionWorkspaces: ExecutionWorkspace[];
+  executionWorkspaces: Array<ExecutionWorkspace | ExecutionWorkspaceSummary>;
 }): ProjectWorkspaceSummary[] {
   const primaryId = primaryWorkspaceId(input.project);
   const executionWorkspacesById = new Map(
@@ -100,7 +120,8 @@ export function buildProjectWorkspaceSummaries(input: {
       const nextIssues = [...(existing?.issues ?? []), issue].sort(
         (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       );
-      const runtimeSummary = runtimeServiceSummary(executionWorkspace.runtimeServices);
+      const runtimeSummary = executionWorkspaceRuntimeSummary(executionWorkspace);
+      const fullExecutionWorkspace = "config" in executionWorkspace ? executionWorkspace : null;
 
       summaries.set(`execution:${executionWorkspace.id}`, {
         key: `execution:${executionWorkspace.id}`,
@@ -108,11 +129,11 @@ export function buildProjectWorkspaceSummaries(input: {
         workspaceId: executionWorkspace.id,
         workspaceName: executionWorkspace.name,
         cwd: executionWorkspace.cwd ?? null,
-        branchName: executionWorkspace.branchName ?? executionWorkspace.baseRef ?? null,
+        branchName: executionWorkspace.branchName ?? fullExecutionWorkspace?.baseRef ?? null,
         lastUpdatedAt: maxDate(
           existing?.lastUpdatedAt,
           executionWorkspace.lastUsedAt,
-          executionWorkspace.updatedAt,
+          fullExecutionWorkspace?.updatedAt,
           issue.updatedAt,
         ),
         projectWorkspaceId: executionWorkspace.projectWorkspaceId ?? issue.projectWorkspaceId ?? null,
@@ -120,7 +141,7 @@ export function buildProjectWorkspaceSummaries(input: {
         executionWorkspaceStatus: executionWorkspace.status,
         ...runtimeSummary,
         hasRuntimeConfig: Boolean(
-          executionWorkspace.config?.workspaceRuntime
+          fullExecutionWorkspace?.config?.workspaceRuntime
           ?? projectWorkspacesById.get(executionWorkspace.projectWorkspaceId ?? issue.projectWorkspaceId ?? "")?.runtimeConfig?.workspaceRuntime,
         ),
         issues: nextIssues,

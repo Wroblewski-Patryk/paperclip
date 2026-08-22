@@ -1,12 +1,13 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
-import type { ExecutionWorkspace, Issue, Project } from "@paperclipai/shared";
+import type { ExecutionWorkspaceSummary, Issue, Project } from "@paperclipai/shared";
 import { executionWorkspacesApi } from "../api/execution-workspaces";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { issuesApi } from "../api/issues";
 import { projectsApi } from "../api/projects";
 import { ProjectWorkspacesContent } from "../components/ProjectWorkspacesContent";
+import { Button } from "../components/ui/button";
 import { PageSkeleton } from "../components/PageSkeleton";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
@@ -25,7 +26,7 @@ type ProjectWorkspaceGroup = {
 function buildProjectWorkspaceGroups(input: {
   projects: Project[];
   issues: Issue[];
-  executionWorkspaces: ExecutionWorkspace[];
+  executionWorkspaces: ExecutionWorkspaceSummary[];
 }): ProjectWorkspaceGroup[] {
   const issuesByProjectId = new Map<string, Issue[]>();
   for (const issue of input.issues) {
@@ -35,7 +36,7 @@ function buildProjectWorkspaceGroups(input: {
     issuesByProjectId.set(issue.projectId, existing);
   }
 
-  const executionWorkspacesByProjectId = new Map<string, ExecutionWorkspace[]>();
+  const executionWorkspacesByProjectId = new Map<string, ExecutionWorkspaceSummary[]>();
   for (const workspace of input.executionWorkspaces) {
     if (!workspace.projectId) continue;
     const existing = executionWorkspacesByProjectId.get(workspace.projectId) ?? [];
@@ -79,6 +80,7 @@ export function Workspaces() {
     queryFn: () => instanceSettingsApi.getExperimental(),
   });
   const isolatedWorkspacesEnabled = experimentalSettingsQuery.data?.enableIsolatedWorkspaces === true;
+  const [showHistorical, setShowHistorical] = useState(false);
 
   const { data: projects = [], isLoading: projectsLoading, error: projectsError } = useQuery({
     queryKey: selectedCompanyId ? queryKeys.projects.list(selectedCompanyId) : ["projects", "__workspaces__", "disabled"],
@@ -98,7 +100,10 @@ export function Workspaces() {
     queryKey: selectedCompanyId
       ? queryKeys.executionWorkspaces.list(selectedCompanyId)
       : ["execution-workspaces", "__workspaces__", "disabled"],
-    queryFn: () => executionWorkspacesApi.list(selectedCompanyId!),
+    queryFn: () => executionWorkspacesApi.listSummaries(selectedCompanyId!, {
+      status: "active,idle,in_review,cleanup_failed",
+      mode: "isolated_workspace,operator_branch,adapter_managed,cloud_sandbox",
+    }),
     enabled: Boolean(selectedCompanyId && isolatedWorkspacesEnabled),
   });
 
@@ -106,10 +111,16 @@ export function Workspaces() {
     setBreadcrumbs([{ label: "Workspaces" }]);
   }, [setBreadcrumbs]);
 
-  const groups = useMemo(
-    () => buildProjectWorkspaceGroups({ projects, issues, executionWorkspaces }),
-    [executionWorkspaces, issues, projects],
+  const historicalProjectCount = useMemo(
+    () => projects.filter((project) => ["cancelled", "planned", "backlog"].includes(project.status)).length,
+    [projects],
   );
+  const groups = useMemo(() => {
+    const visibleProjects = showHistorical
+      ? projects
+      : projects.filter((project) => !["cancelled", "planned", "backlog"].includes(project.status));
+    return buildProjectWorkspaceGroups({ projects: visibleProjects, issues, executionWorkspaces });
+  }, [executionWorkspaces, issues, projects, showHistorical]);
   const dataLoading = projectsLoading || issuesLoading || executionWorkspacesLoading;
   const error = (projectsError ?? issuesError ?? executionWorkspacesError) as Error | null;
 
@@ -120,8 +131,13 @@ export function Workspaces() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold">Workspaces</h2>
+        {historicalProjectCount > 0 ? (
+          <Button variant="outline" size="sm" onClick={() => setShowHistorical((value) => !value)}>
+            {showHistorical ? "Hide historical" : `Show historical (${historicalProjectCount})`}
+          </Button>
+        ) : null}
       </div>
 
       {groups.length === 0 ? (

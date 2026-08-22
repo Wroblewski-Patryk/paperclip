@@ -8989,7 +8989,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     } else {
       delete context.paperclipTaskMarkdown;
     }
-    const existingExecutionWorkspace =
+    let existingExecutionWorkspace =
       issueRef?.executionWorkspaceId ? await executionWorkspacesSvc.getById(issueRef.executionWorkspaceId) : null;
     const requestedShouldReuseExisting =
       issueRef?.executionWorkspacePreference === "reuse_existing" &&
@@ -9004,6 +9004,23 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             { useProjectWorkspace: requestedExecutionWorkspaceMode !== "agent_default" },
           )
         : null;
+    if (
+      !existingExecutionWorkspace
+      && issueRef?.id
+      && trustedResolvedWorkspace
+      && requestedExecutionWorkspaceMode === "shared_workspace"
+    ) {
+      const reusableProjectWorkspaceId = issueRef.projectWorkspaceId ?? trustedResolvedWorkspace.workspaceId ?? null;
+      if (executionProjectId && reusableProjectWorkspaceId) {
+        existingExecutionWorkspace = await executionWorkspacesSvc.findReusableShared({
+          companyId: agent.companyId,
+          projectId: executionProjectId,
+          projectWorkspaceId: reusableProjectWorkspaceId,
+          sourceIssueId: issueRef.id,
+          cwd: trustedResolvedWorkspace.cwd,
+        });
+      }
+    }
     const canAutoReuseSharedWorkspace = trustedResolvedWorkspace
       ? canReuseSharedExecutionWorkspace({
           workspace: existingExecutionWorkspace,
@@ -9011,7 +9028,6 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           projectId: executionProjectId ?? null,
           projectWorkspaceId: issueRef?.projectWorkspaceId ?? trustedResolvedWorkspace.workspaceId ?? null,
           cwd: trustedResolvedWorkspace.cwd,
-          forceFresh: resetTaskSession || context.forceFreshSession === true,
         })
       : false;
     const shouldRequestExistingWorkspace = requestedShouldReuseExisting || canAutoReuseSharedWorkspace;
@@ -9275,6 +9291,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         });
     const resolvedProjectId = executionWorkspace.projectId ?? issueRef?.projectId ?? executionProjectId ?? null;
     const resolvedProjectWorkspaceId = issueRef?.projectWorkspaceId ?? resolvedWorkspace.workspaceId ?? null;
+    const nextExecutionWorkspaceMode =
+      requestedExecutionWorkspaceMode === "isolated_workspace"
+        ? "isolated_workspace"
+        : requestedExecutionWorkspaceMode === "operator_branch"
+          ? "operator_branch"
+          : requestedExecutionWorkspaceMode === "agent_default"
+            ? "adapter_managed"
+            : "shared_workspace";
     let persistedExecutionWorkspace = null;
     const nextExecutionWorkspaceMetadata = mergeExecutionWorkspaceMetadataForPersistence({
       existingMetadata: existingExecutionWorkspace?.metadata ?? null,
@@ -9299,19 +9323,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             metadata: nextExecutionWorkspaceMetadata,
           })
         : resolvedProjectId
-          ? await executionWorkspacesSvc.create({
+          ? await executionWorkspacesSvc[
+              nextExecutionWorkspaceMode === "shared_workspace" ? "createOrReuseShared" : "create"
+            ]({
               companyId: agent.companyId,
               projectId: resolvedProjectId,
               projectWorkspaceId: resolvedProjectWorkspaceId,
               sourceIssueId: issueRef?.id ?? null,
-              mode:
-                requestedExecutionWorkspaceMode === "isolated_workspace"
-                  ? "isolated_workspace"
-                  : requestedExecutionWorkspaceMode === "operator_branch"
-                    ? "operator_branch"
-                    : requestedExecutionWorkspaceMode === "agent_default"
-                      ? "adapter_managed"
-                      : "shared_workspace",
+              mode: nextExecutionWorkspaceMode,
               strategyType: executionWorkspace.strategy === "git_worktree" ? "git_worktree" : "project_primary",
               name: executionWorkspace.branchName ?? issueRef?.identifier ?? `workspace-${agent.id.slice(0, 8)}`,
               status: "active",

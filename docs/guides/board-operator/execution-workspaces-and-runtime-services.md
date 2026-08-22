@@ -45,6 +45,11 @@ Issues are attached to execution workspace behavior, not to automatic runtime ma
 - An issue may reuse an existing execution workspace when you choose reuse.
 - Compatible shared-workspace heartbeats automatically reuse the issue's current
   shared session record; they do not create a new active database row for every run.
+- Starting a fresh agent/model session does not create a fresh shared execution
+  workspace. Session continuity and workspace identity are separate concerns.
+- For a shared project checkout, Paperclip maintains at most one reusable active
+  record for each issue and project-workspace pair. This invariant is enforced in
+  both heartbeat persistence and the database, including concurrent heartbeats.
 - Multiple issues may intentionally share one execution workspace so they can work against the same branch and running runtime services.
 - Assigning or running an issue does not automatically start or stop workspace services for that workspace.
 
@@ -58,6 +63,36 @@ underlying project checkout.
 - The UI can archive an execution workspace.
 - Closing an execution workspace stops its runtime services and cleans up its workspace artifacts when allowed.
 - Shared workspaces that point at the project primary checkout are treated more conservatively during cleanup than disposable isolated workspaces.
+- Completing or cancelling an issue moves its linked shared session to `idle` and
+  schedules archival after seven days. Reopening the issue during that window
+  reactivates the same record.
+- Maintenance runs safely at server startup and every 30 minutes. Duplicate and
+  expired session rows are archived in the database; project files are not deleted.
+
+## Operations and diagnostics
+
+The board can inspect the shared-workspace invariant without changing state:
+
+```text
+GET /api/companies/{companyId}/execution-workspaces/diagnostics
+```
+
+The response is healthy when `duplicateCount` is zero. Board operators can preview
+or apply the same maintenance routine with:
+
+```text
+POST /api/companies/{companyId}/execution-workspaces/maintenance
+{ "dryRun": true }
+```
+
+Maintenance defaults to dry-run. Applying it requires an explicit
+`{ "dryRun": false }`; agent credentials cannot invoke the mutation.
+
+The global Workspaces page hides planned, backlog, and cancelled projects by
+default, offers an explicit historical toggle, and requests only lightweight
+summaries for isolated/operator-managed execution workspaces. Service failures and
+unhealthy checks are surfaced as `Needs attention`; workspaces without configured
+services no longer present a misleading start action.
 
 ## Resolved workspace logic during heartbeat runs
 
@@ -88,3 +123,7 @@ With the current implementation:
 - Execution workspace runtime overrides are stored on the execution workspace.
 - Heartbeat runs do not auto-start workspace services.
 - Server startup does not auto-restart workspace services.
+- Shared workspace identity survives fresh model sessions and concurrent heartbeat
+  attempts without multiplying active database records.
+- Workspace identity diagnostics and conservative lifecycle maintenance are
+  available to board operators.

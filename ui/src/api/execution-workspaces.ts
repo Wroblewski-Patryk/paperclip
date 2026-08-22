@@ -16,6 +16,7 @@ export const executionWorkspacesApi = {
       projectWorkspaceId?: string;
       issueId?: string;
       status?: string;
+      mode?: string;
       reuseEligible?: boolean;
     },
   ) => {
@@ -24,6 +25,7 @@ export const executionWorkspacesApi = {
     if (filters?.projectWorkspaceId) params.set("projectWorkspaceId", filters.projectWorkspaceId);
     if (filters?.issueId) params.set("issueId", filters.issueId);
     if (filters?.status) params.set("status", filters.status);
+    if (filters?.mode) params.set("mode", filters.mode);
     if (filters?.reuseEligible) params.set("reuseEligible", "true");
     params.set("summary", "true");
     const qs = params.toString();
@@ -38,6 +40,7 @@ export const executionWorkspacesApi = {
       projectWorkspaceId?: string;
       issueId?: string;
       status?: string;
+      mode?: string;
       reuseEligible?: boolean;
     },
   ) => {
@@ -46,6 +49,7 @@ export const executionWorkspacesApi = {
     if (filters?.projectWorkspaceId) params.set("projectWorkspaceId", filters.projectWorkspaceId);
     if (filters?.issueId) params.set("issueId", filters.issueId);
     if (filters?.status) params.set("status", filters.status);
+    if (filters?.mode) params.set("mode", filters.mode);
     if (filters?.reuseEligible) params.set("reuseEligible", "true");
     const qs = params.toString();
     return api.get<ExecutionWorkspace[]>(`/companies/${companyId}/execution-workspaces${qs ? `?${qs}` : ""}`);
