@@ -31,4 +31,4 @@ WHERE id IN (
 	WHERE duplicate_rank > 1
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX "execution_workspaces_active_shared_issue_workspace_unique" ON "execution_workspaces" USING btree ("company_id","source_issue_id","project_workspace_id") WHERE "execution_workspaces"."mode" = 'shared_workspace' and "execution_workspaces"."status" in ('active', 'idle', 'in_review') and "execution_workspaces"."source_issue_id" is not null and "execution_workspaces"."project_workspace_id" is not null;
+CREATE UNIQUE INDEX IF NOT EXISTS "execution_workspaces_active_shared_issue_workspace_unique" ON "execution_workspaces" USING btree ("company_id","source_issue_id","project_workspace_id") WHERE "execution_workspaces"."mode" = 'shared_workspace' and "execution_workspaces"."status" in ('active', 'idle', 'in_review') and "execution_workspaces"."source_issue_id" is not null and "execution_workspaces"."project_workspace_id" is not null;
