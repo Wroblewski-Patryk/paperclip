@@ -94,8 +94,11 @@ const prioritizedIssues = [...issues].sort((left, right) =>
   || String(left.identifier ?? "").localeCompare(String(right.identifier ?? ""), undefined, { numeric: true })
 );
 
-for (const issue of prioritizedIssues) {
-  if (terminalStatuses.has(issue.status) || issue.status !== "in_review") continue;
+for (const issueSummary of prioritizedIssues) {
+  if (terminalStatuses.has(issueSummary.status) || issueSummary.status !== "in_review") continue;
+  // Company issue lists intentionally omit the full execution state. Hydrate
+  // the detail before deciding that a typed reviewer path is absent.
+  const issue = await request("GET", `/api/issues/${issueSummary.id}`).catch(() => issueSummary);
   const [comments, interactions, approvals] = await Promise.all([
     request("GET", `/api/issues/${issue.id}/comments?order=desc&limit=24`)
     .then(commentRows)

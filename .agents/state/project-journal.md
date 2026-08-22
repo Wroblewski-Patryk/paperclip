@@ -622,6 +622,15 @@ evidence.
   now derives primary search from the capability policy and still forces the
   cheap profile off. Focused regressions pass; live capability audit reports
   39 agents, 12 search-capable primary profiles, and zero findings.
+- Full issue detail showed that compact company issue rows omit execution
+  policy/state. Both the audit and in-review reconciler incorrectly treated
+  pending typed reviewer stages as missing paths; the reconciler then attempted
+  an impossible board PATCH rejected with 422. Supervision now hydrates detail,
+  honors the execution-state participant, and suppresses active quota-held
+  reviews. Focused tests pass and the live audit's only remaining warning before
+  commit is the expected Paperclip working-tree dirt created by this repair.
+- Assigned LUC-3016 to its intended TAE verifier and LUC-2976 to RTE, clearing
+  all open/blocked-without-owner findings without starting runs through quota.
 - Paperclip main was synchronized with owner/main before this follow-up. The
   provider is now at the owner's 75% weekly hard threshold, so the DRE, RTE,
   and CTO continuations are scheduled retries until reset; this is an

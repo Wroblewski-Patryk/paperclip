@@ -9,6 +9,10 @@ import { softwarehouseGateSpecsByRootBlocker } from "./lib/softwarehouse-gates.m
 import { softwarehouseActiveApplicationProjectNames } from "./lib/softwarehouse-project-registry.mjs";
 import { isProjectTruthRolloverContainer } from "./lib/project-truth-gap-dispatcher.mjs";
 import {
+  activeExecutionQuotaHoldIssueIds,
+  hasStructuredInReviewDecisionPath,
+} from "./lib/in-review-decision-path.mjs";
+import {
   approvalRows,
   hasPendingIssueApproval,
   hasPendingReviewInteraction,
@@ -284,7 +288,7 @@ async function resolveCompany() {
 
 const company = await resolveCompany();
 
-const [health, agents, projects, routines, issues, liveRuns, secrets, managedResourceIssueSummaries] = await Promise.all([
+const [health, agents, projects, routines, issues, liveRuns, secrets, managedResourceIssueSummaries, supervisionSnapshot] = await Promise.all([
   request("GET", "/api/health"),
   request("GET", `/api/companies/${company.id}/agents`),
   request("GET", `/api/companies/${company.id}/projects`),
@@ -293,7 +297,9 @@ const [health, agents, projects, routines, issues, liveRuns, secrets, managedRes
   request("GET", `/api/companies/${company.id}/live-runs`),
   request("GET", `/api/companies/${company.id}/secrets`),
   request("GET", `/api/companies/${company.id}/issues?q=${encodeURIComponent("softwarehouse-managed-resource-lifecycle:v1")}&limit=500`),
+  request("GET", `/api/companies/${company.id}/supervision/snapshot`).catch(() => null),
 ]);
+const quotaHeldIssueIds = activeExecutionQuotaHoldIssueIds(supervisionSnapshot?.findings);
 const managedResourceIssues = await Promise.all(
   managedResourceIssueSummaries.map((issue) => request("GET", `/api/issues/${issue.id}`).catch(() => issue)),
 );
@@ -675,15 +681,20 @@ for (const issue of openIssues) {
   });
 }
 const pendingDecisionGates = [];
+const inReviewIssueDetailsById = new Map();
 for (const issue of openIssues) {
-  const [interactions, approvals] = await Promise.all([
+  const [interactions, approvals, issueDetail] = await Promise.all([
     request("GET", `/api/issues/${issue.id}/interactions`)
       .then(interactionRows)
       .catch(() => []),
     request("GET", `/api/issues/${issue.id}/approvals`)
       .then(approvalRows)
       .catch(() => []),
+    issue.status === "in_review"
+      ? request("GET", `/api/issues/${issue.id}`).catch(() => issue)
+      : Promise.resolve(issue),
   ]);
+  if (issue.status === "in_review") inReviewIssueDetailsById.set(issue.id, issueDetail);
   if (hasPendingIssueApproval(approvals)) {
     for (const approval of approvals.filter((candidate) => candidate.status === "pending")) {
       pendingDecisionGates.push({
@@ -1108,10 +1119,11 @@ const weakWorkerQueue = runnableIssues.length > 0
   && workerQueueHealth.plannedWorkerIssueCount === 0
   && workerQueueHealth.activeWorkerRunCount === 0
   && workerQueueHealth.plannedSupervisorIssueCount > workerQueueHealth.plannedWorkerIssueCount;
-const reviewIssuesWithoutPendingDecision = openIssues.filter((issue) =>
-  issue.status === "in_review"
-  && !pendingDecisionIdentifiers.has(issue.identifier)
-);
+const reviewIssuesWithoutPendingDecision = openIssues.filter((issue) => {
+  if (issue.status !== "in_review" || pendingDecisionIdentifiers.has(issue.identifier)) return false;
+  if (quotaHeldIssueIds.has(issue.id)) return false;
+  return !hasStructuredInReviewDecisionPath(inReviewIssueDetailsById.get(issue.id) ?? issue);
+});
 const recentCompletedSafeNonProductionLane = issues
   .filter((issue) => issue.title === safeNonProductionLaneTitle && ["done", "cancelled"].includes(issue.status))
   .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)))[0] ?? null;

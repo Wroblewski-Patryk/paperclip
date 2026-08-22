@@ -1493,6 +1493,13 @@ automations active until that evidence accrues; do not fabricate acceptance.
   `web_search` capability for the 12 strategic/product roles while keeping the
   cheap profile search-free. This removes the capability-audit failure that
   previously converted a normal control tick into `control_tick_failed`.
+- In-review supervision now hydrates full issue detail before judging decision
+  paths. A pending execution-policy reviewer is a valid structured path even
+  when the compact company issue list omits `executionState`; active quota-held
+  reviews are intentional waits, not missing-decision findings.
+- The last two open issues without owners were corrected: blocked LUC-3016 is
+  owned by TAE, and technical executor review LUC-2976 is owned by RTE. The
+  softwarehouse audit has no issue/routing finding after these corrections.
 - The owner's 75% weekly quota ceiling is currently a hard provider hold. New
   LUC-3022, LUC-3023, and LUC-3001 runs are `scheduled_retry` without adapter
   failure or token consumption; do not bypass the hold.

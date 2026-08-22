@@ -162,6 +162,26 @@ test("pending typed interaction suppresses duplicate in_review wait repair", () 
   assert.deepEqual(findPendingStructuredDecisionInteraction(interactions), interactions[0]);
 });
 
+test("pending execution-state reviewer remains a structured decision path when policy also exists", () => {
+  const reviewerAgentId = "44444444-4444-4444-8444-444444444444";
+  const issue = {
+    id: "11111111-1111-4111-8111-111111111111",
+    identifier: "LUC-2970",
+    status: "in_review",
+    executionPolicy: {
+      mode: "normal",
+      stages: [{ type: "review", participants: [{ type: "agent", agentId: reviewerAgentId }] }],
+    },
+    executionState: {
+      status: "pending",
+      currentStageType: "review",
+      currentParticipant: { type: "agent", agentId: reviewerAgentId },
+    },
+  };
+
+  assert.equal(hasStructuredInReviewDecisionPath(issue), true);
+});
+
 test("reversible runtime and source-control reviews stay inside the autonomous specialist lane", () => {
   const issue = {
     id: "33333333-3333-4333-8333-333333333333",

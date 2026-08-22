@@ -4253,6 +4253,20 @@ test("agent instruction sync preserves governed primary web-search capability", 
   assert.match(sync, /existingCheapAdapterConfig/);
 });
 
+test("in-review supervision hydrates issue detail before declaring a decision-path gap", async () => {
+  const [audit, reconciler] = await Promise.all([
+    readFile("scripts/audit-luckysparrow-softwarehouse.mjs", "utf8"),
+    readFile("scripts/run-in-review-decision-path.mjs", "utf8"),
+  ]);
+
+  assert.match(audit, /inReviewIssueDetailsById/);
+  assert.match(audit, /activeExecutionQuotaHoldIssueIds\(supervisionSnapshot\?\.findings\)/);
+  assert.match(audit, /quotaHeldIssueIds\.has\(issue\.id\)/);
+  assert.match(audit, /request\("GET", `\/api\/issues\/\$\{issue\.id\}`\)/);
+  assert.match(audit, /hasStructuredInReviewDecisionPath\(inReviewIssueDetailsById\.get\(issue\.id\) \?\? issue\)/);
+  assert.match(reconciler, /const issue = await request\("GET", `\/api\/issues\/\$\{issueSummary\.id\}`\)/);
+});
+
 test("in-review handoff contract keeps all five decision fields in instructions and templates", async () => {
   const [instructions, taskTemplate, workReportTemplate] = await Promise.all([
     readFile("softwarehouse/instructions/shared/90-pipeline-and-supervision.md", "utf8"),

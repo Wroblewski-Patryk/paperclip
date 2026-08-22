@@ -112,8 +112,10 @@ export function hasStructuredInReviewDecisionPath(issue, {
   if (hasPendingIssueApproval(approvals)) return true;
   if (hasPendingReviewInteraction(interactions)) return true;
 
-  const policy = issue.executionPolicy ?? issue.executionState ?? {};
+  const policy = issue.executionPolicy ?? {};
+  const state = issue.executionState ?? {};
   if (policy.currentParticipant || policy.currentReviewer || policy.pendingInteractionId) return true;
+  if (state.currentParticipant || state.currentReviewer || state.pendingInteractionId) return true;
   if (issue.reviewerUserId || issue.currentParticipantId) return true;
 
   return false;
