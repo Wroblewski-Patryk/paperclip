@@ -1,11 +1,40 @@
 # Paperclip Project Journal
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 This is the active journal of durable conversation decisions and meaningful
 operating-memory changes. It is not a transcript, live dashboard, issue log,
 or evidence store. Current truth belongs in the appropriate current-state or
 product source; detailed proof belongs in issues and work products.
+
+### 2026-08-22 - Blocker chain correction and Product Map restart
+
+- Live analysis found 143+ blocked dashboard entries were mostly descendants
+  of a smaller set of unresolved roots. There were no dependency cycles, but
+  old terminal and review states kept amplifying the visible constraint count.
+- The apparent burst of 185 isolated-workspace adapter failures was bounded to
+  2026-08-21 and had already stopped after the fail-closed workspace repair.
+  A later recovery chain incorrectly proposed enabling isolated workspaces.
+  That contradicts the canonical singleton-root contract, so LUC-3021,
+  LUC-2855, and LUC-2845 were cancelled and Featherly LUC-2833 was resumed in
+  the shared project-primary checkout with disposable local data.
+- Recovery now treats the exact workspace-disabled adapter failure as
+  non-retryable rather than spending three continuation attempts. The focused
+  classifier neighborhood passes 4/4, server typecheck passes, and all 39 live
+  managed instruction bundles explicitly forbid enabling isolated workspaces.
+- Roost Product Map release LUC-1910 no longer depends on cancelled hosted-QA
+  LUC-2153. Its sole current blocker LUC-2126 is `todo` on the approved
+  local/existing-environment verification path. The Product Map is implemented
+  in source but remains empirically incomplete until that QA and release/deploy
+  path make it owner-visible.
+- False application-gap inflation from Laravel implementation classes and Page
+  directories was removed; the focused completion-index suite passes 8/8.
+- Workspace-boundary and strict runtime-topology audits pass after removing 13
+  untracked Featherly temporary proof files. Docker inventory is advisory while
+  Docker Desktop is off and no current proof requires it.
+- The exact native host suite requested by LUC-3001 passes 125/125 across four
+  files. Evidence is attached to the issue; its governed `in_review` stage is
+  intentionally left for the active reviewer rather than bypassed by the board.
 
 ## 2026-08-21 - Application release sequencing and scope admission
 

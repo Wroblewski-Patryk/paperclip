@@ -1,5 +1,24 @@
 # Active Mission
 
+## 2026-08-22 - Blocker Root Reduction And Singleton Recovery Policy
+
+- Dashboard blocker totals are dependency-chain amplification, not independent
+  defects. Current reduction must prioritize terminal/root blockers and stale
+  relations instead of creating another coordination layer for every dependent.
+- Historical `Isolated execution workspace configuration is disabled for this
+  instance` failures are a non-retryable policy mismatch. The four canonical
+  application repositories remain singleton checkouts; isolated workspaces,
+  extra clones, and Git worktrees stay disabled. Recovery must re-scope work to
+  the project-primary workspace and disposable runtime data, never enable the
+  feature.
+- Obsolete LUC-3021/LUC-2855/LUC-2845 were cancelled. Featherly browser QA
+  LUC-2833 was resumed on the canonical workspace. Roost Product Map QA
+  LUC-2126 was resumed through local/existing-environment proof, and cancelled
+  hosted-QA LUC-2153 was removed from release LUC-1910's blocker graph.
+- Roost remains the owner-facing product-state destination, while product repos
+  remain canonical truth. LUC-1910 must deliver the visible Product Map after
+  LUC-2126 evidence; no replacement hosted QA environment may be created.
+
 ## 2026-08-21 - Native Assurance Absorption And Lifecycle Closure
 
 - External Codex automations remain read-only assurance. Their external-only

@@ -277,6 +277,13 @@ type ContinuationRetryClassification = {
 
 function classifyContinuationFailure(latestRun: LatestIssueRun): ContinuationRetryClassification {
   const errorCode = readNonEmptyString(latestRun?.errorCode);
+  const errorMessage = readNonEmptyString(latestRun?.error);
+  if (
+    errorCode === "adapter_failed" &&
+    errorMessage === "Isolated execution workspace configuration is disabled for this instance"
+  ) {
+    return { kind: "non_retryable", maxAttempts: 0, baseBackoffMs: 0, errorCode };
+  }
   if (errorCode && NON_RETRYABLE_CONTINUATION_ERROR_CODES.has(errorCode)) {
     return { kind: "non_retryable", maxAttempts: 0, baseBackoffMs: 0, errorCode };
   }
