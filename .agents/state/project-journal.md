@@ -595,3 +595,28 @@ evidence.
   Decision Center tests, 9/9 heartbeat stale-run tests, the targeted native
   supervision deduplication test, and server typecheck. Since the corrected
   runtime restart, no run has been cancelled for an assignee change.
+
+### 2026-08-22 - Dependency amplification corrected and Roost QA routed
+
+- Inspected the live blocker graph instead of treating the Dashboard affected
+  count as independent defects. No dependency cycle exists. Three obsolete
+  recovery lanes attempted to enable isolated workspaces despite the four
+  canonical repos being singleton checkouts; they were cancelled and the
+  valid Featherly/Roost verification lanes were resumed.
+- Roost LUC-2126 passed five focused Product Map state tests and the complete
+  route-capability check. It correctly stopped before claiming browser proof
+  because no managed endpoint was listening. Its newly created LUC-3022 child
+  was malformed, unassigned, and in backlog; the board repaired its description
+  and routed it as DRE-owned todo with singleton startup and cleanup rules.
+- Added a regression-backed instruction invariant forbidding unassigned
+  backlog children from deadlocking active parents. The focused gate test
+  passes and all 39 managed agent instruction bundles pass audit after sync.
+- Featherly LUC-2833 then proved the same pre-sync defect once: 15 backend
+  tests passed, but the managed preview had no real listener. LUC-3023 was
+  routed from unassigned backlog to RTE-owned todo. Its stopped run's disposable
+  SQLite database and empty proof directories were removed; application edits
+  were preserved.
+- Paperclip main was synchronized with owner/main before this follow-up. The
+  provider is now at the owner's 75% weekly hard threshold, so the DRE, RTE,
+  and CTO continuations are scheduled retries until reset; this is an
+  intentional quota hold, not an execution failure.

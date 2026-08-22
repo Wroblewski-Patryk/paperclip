@@ -4237,6 +4237,14 @@ test("softwarehouse learning loop writes bounded deduplicated learning observati
   assert.match(sync, /paperclip-organizational-memory\.mjs/);
 });
 
+test("agent instructions forbid unassigned backlog children from deadlocking active parents", async () => {
+  const sync = await readFile("scripts/sync-luckysparrow-agent-instructions.mjs", "utf8");
+
+  assert.match(sync, /Never leave an active parent blocked by a newly created unassigned `backlog` child/);
+  assert.match(sync, /routed as `todo` to a competent active agent/);
+  assert.match(sync, /owner interaction only when the missing input is genuinely owner-only/);
+});
+
 test("in-review handoff contract keeps all five decision fields in instructions and templates", async () => {
   const [instructions, taskTemplate, workReportTemplate] = await Promise.all([
     readFile("softwarehouse/instructions/shared/90-pipeline-and-supervision.md", "utf8"),

@@ -1466,3 +1466,29 @@ automations active until that evidence accrues; do not fabricate acceptance.
   Weekly quota is 61%, below the owner's 75% ceiling, and fresh live runs start
   normally. Keep autonomy graduation empirical: two independently accepted
   outcomes across two projects and fourteen healthy days are still required.
+
+## 2026-08-22 - Blocker-chain routing and Roost Product Map continuation
+
+- Dashboard dependency counts are affected descendants, not independent root
+  failures. The graph has no dependency cycle, but one obsolete workspace
+  policy mismatch amplified through several descendants. Cancelling the three
+  invalid isolation-enablement lanes and removing the stale hosted-QA edge
+  reduced the blocked set while preserving real product gates.
+- Roost Product Map source and focused route/state tests are green, but the
+  owner surface remains `source_only`: LUC-2126 still needs bounded browser
+  proof and LUC-1910 still needs release/deployment identity closure.
+- LUC-3022 was created as an unassigned backlog blocker. It is now a `todo`
+  owned by DRE with a singleton-runtime contract: reuse the canonical Roost
+  checkout, start at most one managed local candidate, return browser evidence
+  to LUC-2126, and clean temporary processes/files afterward.
+- The same pre-sync pattern appeared once more in Featherly: LUC-2833 passed
+  15 backend tests but its managed preview reported healthy without a real
+  listener. LUC-3023 is now RTE-owned `todo`, and the run's disposable SQLite
+  database plus empty proof directories were removed after the preview stopped.
+- Managed agent instructions now prohibit leaving an active parent blocked by
+  a newly created unassigned backlog child. Technical blocker children must be
+  immediately routed to a competent active agent; owner interactions remain
+  reserved for genuinely owner-only input.
+- The owner's 75% weekly quota ceiling is currently a hard provider hold. New
+  LUC-3022, LUC-3023, and LUC-3001 runs are `scheduled_retry` without adapter
+  failure or token consumption; do not bypass the hold.
