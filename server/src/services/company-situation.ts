@@ -56,6 +56,20 @@ const OWNER_READY_DECISION_CONDITION = sql`
   and jsonb_array_length(${issueThreadInteractions.payload}#>'{decisionContext,ownerBriefing,options}') >= 1
   and jsonb_typeof(${issueThreadInteractions.payload}#>'{decisionContext,ownerBriefing,afterApproval}') = 'array'
   and jsonb_array_length(${issueThreadInteractions.payload}#>'{decisionContext,ownerBriefing,afterApproval}') >= 1
+  and not (
+    ${issueThreadInteractions.kind} = 'suggest_tasks'
+    and ${issueThreadInteractions.payload}#>>'{decisionContext,decisionClass}' in ('operational', 'technical_review')
+    and jsonb_typeof(${issueThreadInteractions.payload}->'tasks') = 'array'
+    and jsonb_array_length(${issueThreadInteractions.payload}->'tasks') > 0
+    and exists (
+      select 1 from jsonb_array_elements(${issueThreadInteractions.payload}->'tasks') task
+      where nullif(task->>'assigneeAgentId', '') is not null
+    )
+    and not exists (
+      select 1 from jsonb_array_elements(${issueThreadInteractions.payload}->'tasks') task
+      where nullif(task->>'assigneeUserId', '') is not null
+    )
+  )
 `;
 
 function asIso(value: Date | string): string {
@@ -294,6 +308,20 @@ export function companySituationService(db: Db) {
                 and jsonb_array_length(interaction.payload#>'{decisionContext,ownerBriefing,options}') >= 1
                 and jsonb_typeof(interaction.payload#>'{decisionContext,ownerBriefing,afterApproval}') = 'array'
                 and jsonb_array_length(interaction.payload#>'{decisionContext,ownerBriefing,afterApproval}') >= 1
+                and not (
+                  interaction.kind = 'suggest_tasks'
+                  and interaction.payload#>>'{decisionContext,decisionClass}' in ('operational', 'technical_review')
+                  and jsonb_typeof(interaction.payload->'tasks') = 'array'
+                  and jsonb_array_length(interaction.payload->'tasks') > 0
+                  and exists (
+                    select 1 from jsonb_array_elements(interaction.payload->'tasks') task
+                    where nullif(task->>'assigneeAgentId', '') is not null
+                  )
+                  and not exists (
+                    select 1 from jsonb_array_elements(interaction.payload->'tasks') task
+                    where nullif(task->>'assigneeUserId', '') is not null
+                  )
+                )
             )
         `).then((rows) => Number(rows[0]?.count ?? 0)),
         db.execute<{ count: number | string }>(sql`

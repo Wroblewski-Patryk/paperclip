@@ -197,6 +197,23 @@ function isTerminalIssueStatus(status: string) {
   return status === "done" || status === "cancelled";
 }
 
+function isAgentGeneratedBoardRoutingProposal(
+  input: CreateIssueThreadInteraction,
+  actor: InteractionActor,
+) {
+  if (!actor.agentId || input.kind !== "suggest_tasks") return false;
+  const context = input.payload.decisionContext;
+  if (
+    context?.audience !== "board"
+    || !["operational", "technical_review"].includes(context.decisionClass)
+  ) {
+    return false;
+  }
+  return input.payload.tasks.length > 0
+    && input.payload.tasks.every((task) => !task.assigneeUserId)
+    && input.payload.tasks.some((task) => Boolean(task.assigneeAgentId));
+}
+
 function shouldReturnAcceptedConfirmationToCreatorAgent(args: {
   issue: IssueResolutionContext;
   current: IssueThreadInteractionRow;
@@ -741,6 +758,12 @@ export function issueThreadInteractionService(db: Db) {
 
       if (data.kind === "ask_user_questions") {
         await assertQuestionsAreMateriallyNew(db, issue, data.payload);
+      }
+
+      if (isAgentGeneratedBoardRoutingProposal(data, actor)) {
+        throw unprocessable(
+          "Internal agent routing is not an owner decision; route it through the manager hierarchy or ProductDelivery",
+        );
       }
 
       if (data.sourceCommentId) {

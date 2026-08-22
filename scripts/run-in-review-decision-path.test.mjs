@@ -97,6 +97,35 @@ test("generic approve labels do not turn a technical local commit into an owner 
   assert.equal(isMisroutedTechnicalInteraction(issue, interaction), true);
 });
 
+test("agent-to-agent operational task routing never becomes an owner decision", () => {
+  const issue = {
+    title: "[Soar][Runtime Handoff] Restore outbound HTTPS execution path",
+    status: "in_review",
+  };
+  const interaction = {
+    kind: "suggest_tasks",
+    status: "pending",
+    createdByAgentId: "55555555-5555-4555-8555-555555555555",
+    payload: {
+      version: 1,
+      decisionContext: {
+        audience: "board",
+        decisionClass: "operational",
+        decisionReady: true,
+        authorityReason: "AIA cannot assign RTE outside its reporting line.",
+      },
+      tasks: [{
+        clientKey: "route-rte",
+        title: "Enable governed HTTPS lane",
+        assigneeAgentId: "66666666-6666-4666-8666-666666666666",
+      }],
+    },
+  };
+
+  assert.equal(classifyInteractionDecisionAuthority(issue, interaction), "technical_reviewer");
+  assert.equal(isMisroutedTechnicalInteraction(issue, interaction), true);
+});
+
 test("negative protected-action boilerplate does not block a local source-control review", () => {
   const issue = { title: "[Featherly][Source Control] Commit focused logout coverage test" };
   const interaction = {

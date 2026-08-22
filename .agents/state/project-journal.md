@@ -541,3 +541,28 @@ evidence.
   The migrated instance is healthy on strict `3200/54329`; dashboard and agent
   availability endpoints return 200, workspace-boundary and runtime-topology
   audits pass, and temporary-resource hygiene reports zero candidates.
+
+### 2026-08-22 - Stale dispatch and false owner-routing loops closed
+
+- Native supervision no longer treats a ProductDelivery as stalled when its
+  primary task is terminal, blocked, or transferred to another agent. Active
+  owner-bottleneck findings are reconciled when that terminal/transfer fact is
+  observed, so a completed delivery cannot wake its former owner every cycle.
+- Heartbeat enqueue now revalidates issue assignment and terminal state before
+  creating a run. Stale ordinary wakes are recorded as skipped requests with
+  deterministic reasons instead of becoming queued runs that are cancelled
+  later as `issue_assignee_changed`.
+- Fully internal `suggest_tasks` routing between agents, classified as
+  operational or technical review, cannot enter or remain ready in the owner
+  Decision Center. The interaction service rejects new board-routed versions
+  at source; the recovery classifier, Decision Center, and company situation
+  projection all use the same boundary. True owner-authority and protected
+  action decisions remain gated.
+- The historical LUC-2868 RTE-routing proposal was rejected as misrouted and
+  returned to the normal agent continuation path. After controlled restart,
+  Decision Center reports zero ready owner decisions and company situation
+  reports zero pending owner-decision constraints.
+- Regression evidence includes 14/14 decision-path tests, 9/9 interaction and
+  Decision Center tests, 9/9 heartbeat stale-run tests, the targeted native
+  supervision deduplication test, and server typecheck. Since the corrected
+  runtime restart, no run has been cancelled for an assignee change.

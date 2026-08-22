@@ -154,13 +154,26 @@ describeEmbedded("native supervision engine", () => {
 
   it("detects stalled admitted work and deduplicates its finding across cycles", async () => {
     const refs = await seed();
-    await db.insert(productDeliveries).values({ companyId: refs.companyId, projectId: refs.projectId, title: "Stalled delivery", problemStatement: "No run starts", decisionContract: {}, stage: "admitted", ownerAgentId: refs.ownerId, updatedAt: new Date("2026-08-01T00:00:00Z") });
+    const [delivery] = await db.insert(productDeliveries).values({ companyId: refs.companyId, projectId: refs.projectId, title: "Stalled delivery", problemStatement: "No run starts", decisionContract: {}, stage: "admitted", ownerAgentId: refs.ownerId, updatedAt: new Date("2026-08-01T00:00:00Z") }).returning();
+    const [ownerTask] = await db.insert(issues).values({
+      companyId: refs.companyId,
+      projectId: refs.projectId,
+      title: "Route stalled delivery",
+      status: "todo",
+      assigneeAgentId: refs.ownerId,
+    }).returning();
+    await db.insert(deliveryTasks).values({
+      companyId: refs.companyId,
+      deliveryId: delivery.id,
+      issueId: ownerTask.id,
+      taskType: "implementation",
+    });
     const engine = nativeSupervisionEngine(db);
     const first = await engine.runWatchdog(refs.companyId, new Date("2026-08-04T03:01:00Z"));
-    const second = await engine.runWatchdog(refs.companyId, new Date("2026-08-04T03:11:00Z"));
+    await engine.runWatchdog(refs.companyId, new Date("2026-08-04T03:11:00Z"));
     expect(first.checks.find((check) => check.key === "stalled_ready_work")?.status).toBe("failed");
-    expect(second.findings).toHaveLength(1);
-    const rows = await db.select().from(supervisionFindings);
+    const rows = (await db.select().from(supervisionFindings))
+      .filter((finding) => finding.problemClass === "stalled_ready_work");
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       problemClass: "stalled_ready_work",
@@ -217,6 +230,52 @@ describeEmbedded("native supervision engine", () => {
     }));
     const [finding] = await db.select().from(supervisionFindings);
     expect(finding).toMatchObject({ status: "assigned", recoveryState: "dispatching", ownerAgentId: refs.ownerId });
+  });
+
+  it("does not redispatch a stalled delivery whose primary task is already terminal", async () => {
+    const refs = await seed();
+    const [delivery] = await db.insert(productDeliveries).values({
+      companyId: refs.companyId,
+      projectId: refs.projectId,
+      title: "Already completed delivery task",
+      problemStatement: "The delivery projection has not reconciled yet",
+      decisionContract: {},
+      stage: "admitted",
+      ownerAgentId: refs.ownerId,
+      updatedAt: new Date("2026-08-01T00:00:00Z"),
+    }).returning();
+    const [ownerTask] = await db.insert(issues).values({
+      companyId: refs.companyId,
+      projectId: refs.projectId,
+      title: "Completed delivery task",
+      status: "done",
+      assigneeAgentId: refs.ownerId,
+      completedAt: new Date("2026-08-01T01:00:00Z"),
+      completionEvidence: {
+        summary: "The bounded task completed.",
+        riskLevel: "standard",
+        testEvidence: { summary: "Verified.", refs: [] },
+        reviewEvidence: { summary: "Reviewed.", refs: [] },
+        documentationEvidence: { summary: "Recorded.", refs: [] },
+      },
+    }).returning();
+    await db.insert(deliveryTasks).values({
+      companyId: refs.companyId,
+      deliveryId: delivery.id,
+      issueId: ownerTask.id,
+      taskType: "implementation",
+    });
+    const enqueueWakeup = vi.fn(async () => ({}));
+
+    const result = await nativeSupervisionEngine(db, { enqueueWakeup })
+      .runWatchdog(refs.companyId, new Date("2026-08-04T03:01:00Z"));
+
+    expect(result.checks.find((check) => check.key === "stalled_ready_work")).toMatchObject({
+      status: "passed",
+      count: 0,
+    });
+    expect(result.stalledReadyDispatches).toEqual([]);
+    expect(enqueueWakeup).not.toHaveBeenCalled();
   });
 
   it("resolves an owner bottleneck after the owner delegates an executable child", async () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Approval } from "@paperclipai/shared";
-import { approvalBriefing } from "./decision-center.js";
+import type { Approval, IssueThreadInteraction } from "@paperclipai/shared";
+import { approvalBriefing, isOwnerDecisionReady } from "./decision-center.js";
 
 function approval(payload: Record<string, unknown>): Approval {
   const now = new Date("2026-08-15T12:00:00.000Z");
@@ -65,5 +65,41 @@ describe("approvalBriefing", () => {
     expect(briefing?.contextFacts.length).toBeGreaterThanOrEqual(2);
     expect(briefing?.options).toHaveLength(2);
     expect(briefing?.afterApproval).toHaveLength(1);
+  });
+});
+
+describe("isOwnerDecisionReady", () => {
+  it("keeps an AIA-prepared internal agent routing proposal out of the owner queue", () => {
+    const interaction = {
+      kind: "suggest_tasks",
+      payload: {
+        version: 1,
+        tasks: [{
+          clientKey: "route-rte",
+          title: "Enable governed HTTPS lane",
+          assigneeAgentId: "66666666-6666-4666-8666-666666666666",
+        }],
+        decisionContext: {
+          version: 1,
+          audience: "board",
+          decisionClass: "operational",
+          decisionReady: true,
+          authorityReason: "AIA cannot assign outside its reporting line.",
+          ownerBriefing: {
+            version: 1,
+            language: "pl",
+            preparedBy: "aia",
+            decision: "Przekazać zadanie RTE?",
+            contextFacts: ["To routing techniczny.", "Nie obejmuje produkcji."],
+            options: [{ id: "route", label: "Route", benefit: "Kontynuacja", cost: "Jedno zadanie", risk: "Niski" }],
+            recommendation: "Route",
+            afterApproval: ["RTE wykona zadanie."],
+            rollback: "Anulować zadanie.",
+          },
+        },
+      },
+    } as IssueThreadInteraction;
+
+    expect(isOwnerDecisionReady(interaction)).toBe(false);
   });
 });

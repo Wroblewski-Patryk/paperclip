@@ -11467,6 +11467,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             assigneeAgentId: issues.assigneeAgentId,
             executionRunId: issues.executionRunId,
             executionAgentNameKey: issues.executionAgentNameKey,
+            executionState: issues.executionState,
           })
           .from(issues)
           .where(and(eq(issues.id, issueId), eq(issues.companyId, agent.companyId)))
@@ -11485,6 +11486,59 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             requestedByActorId: opts.requestedByActorId ?? null,
             idempotencyKey: opts.idempotencyKey ?? null,
             finishedAt: new Date(),
+          });
+          return { kind: "skipped" as const };
+        }
+
+        const reviewParticipant = issue.status === "in_review"
+          ? parseIssueExecutionState(issue.executionState)?.currentParticipant ?? null
+          : null;
+        const isCurrentReviewParticipant =
+          reviewParticipant?.type === "agent" && reviewParticipant.agentId === agentId;
+        const isInteractionWake = allowsIssueInteractionWake(enrichedContextSnapshot);
+        const resumeIntent = enrichedContextSnapshot.resumeIntent === true
+          || enrichedContextSnapshot.followUpRequested === true;
+
+        if (
+          issue.assigneeAgentId !== agentId
+          && !isInteractionWake
+          && !isCurrentReviewParticipant
+        ) {
+          const now = new Date();
+          await tx.insert(agentWakeupRequests).values({
+            companyId: agent.companyId,
+            agentId,
+            projectId,
+            source,
+            triggerDetail,
+            reason: "issue_assignee_changed_before_enqueue",
+            payload: { ...(payload ?? {}), issueId },
+            status: "skipped",
+            requestedByActorType: opts.requestedByActorType ?? null,
+            requestedByActorId: opts.requestedByActorId ?? null,
+            idempotencyKey: opts.idempotencyKey ?? null,
+            error: "Wake skipped because the target issue is assigned to a different agent",
+            finishedAt: now,
+          });
+          return { kind: "skipped" as const };
+        }
+
+        if ((issue.status === "done" || issue.status === "cancelled") && !resumeIntent && !wakeCommentId) {
+          const now = new Date();
+          await tx.insert(agentWakeupRequests).values({
+            companyId: agent.companyId,
+            agentId,
+            projectId,
+            source,
+            triggerDetail,
+            reason: "issue_terminal_before_enqueue",
+            payload: { ...(payload ?? {}), issueId },
+            status: "skipped",
+            requestedByActorType: opts.requestedByActorType ?? null,
+            requestedByActorId: opts.requestedByActorId ?? null,
+            idempotencyKey: opts.idempotencyKey ?? null,
+            error: `Wake skipped because the target issue is already ${issue.status}`,
+            finishedAt: now,
           });
           return { kind: "skipped" as const };
         }

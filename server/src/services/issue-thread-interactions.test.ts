@@ -137,6 +137,41 @@ describe("issueThreadInteractionService", () => {
     expect(db.insert).not.toHaveBeenCalled();
   });
 
+  it("rejects agent-generated board approval for ordinary agent routing", async () => {
+    const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
+    const db: any = {
+      select: vi.fn(() => createSelectChain([])),
+      insert: vi.fn(),
+      update: vi.fn(),
+    };
+
+    const svc = issueThreadInteractionService(db as never);
+    await expect(svc.create({
+      id: "11111111-1111-4111-8111-111111111111",
+      companyId: "company-1",
+    }, {
+      kind: "suggest_tasks",
+      idempotencyKey: "internal-route-rte",
+      continuationPolicy: "wake_assignee",
+      payload: {
+        version: 1,
+        decisionContext: {
+          version: 1,
+          audience: "board",
+          decisionClass: "operational",
+          decisionReady: true,
+          authorityReason: "AIA cannot assign RTE outside its reporting line.",
+        },
+        tasks: [{
+          clientKey: "route-rte",
+          title: "Enable governed HTTPS lane",
+          assigneeAgentId: "66666666-6666-4666-8666-666666666666",
+        }],
+      },
+    }, { agentId: "agent-1" })).rejects.toMatchObject({ status: 422 });
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
   it("rejects a new owner questionnaire when all question ids were already answered", async () => {
     const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
     const answeredRow = {

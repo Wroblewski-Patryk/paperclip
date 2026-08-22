@@ -169,7 +169,28 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const [runningWithoutAdmission, runawayRetries, stalledReady, orphanTasks, orphanDeliveries, reviewBottlenecks, stalledBlockedChains, deploymentBottlenecks, staleRoost, duplicateRoutines, excessiveWip, activeSevereFindings, orphanExecutionLocks, evidenceFreeDone, untypedAcceptedOutcomes, taskOutcomeStateGap, acceptedOutcomeWithoutTask, costTelemetryGap, interventionLifecycleGap, observationCompletionGap, externalShadowGap, dispatchCapacityGap, runnableDispatchGap] = await Promise.all([
       scalar(companyId, sql`select count(*)::int from heartbeat_runs where company_id=${companyId} and status='running' and admission_decision_id is null`),
       scalar(companyId, sql`select count(*)::int from heartbeat_runs where company_id=${companyId} and status in ('queued','running','scheduled_retry') and greatest(process_loss_retry_count, scheduled_retry_attempt, continuation_attempt) > 2`),
-      scalar(companyId, sql`select count(*)::int from product_deliveries d where d.company_id=${companyId} and d.stage in ('admitted','implementing') and d.updated_at < ${old2h.toISOString()}::timestamptz and not exists (select 1 from heartbeat_runs r where r.company_id=d.company_id and r.status in ('queued','running') and r.context_snapshot->>'projectId'=d.project_id::text)`),
+      scalar(companyId, sql`
+        select count(*)::int
+        from product_deliveries d
+        where d.company_id=${companyId}
+          and d.stage in ('admitted','implementing')
+          and d.owner_agent_id is not null
+          and d.updated_at < ${old2h.toISOString()}::timestamptz
+          and exists (
+            select 1
+            from delivery_tasks task
+            join issues issue on issue.id=task.issue_id and issue.company_id=task.company_id
+            where task.delivery_id=d.id
+              and issue.status in ('backlog','todo','in_progress','in_review')
+              and (issue.assignee_agent_id is null or issue.assignee_agent_id=d.owner_agent_id)
+          )
+          and not exists (
+            select 1 from heartbeat_runs r
+            where r.company_id=d.company_id
+              and r.status in ('queued','running')
+              and r.context_snapshot->>'projectId'=d.project_id::text
+          )
+      `),
       scalar(companyId, sql`select count(*)::int from issues where company_id=${companyId} and status in ('todo','in_progress') and assignee_agent_id is null and hidden_at is null`),
       scalar(companyId, sql`select count(*)::int from product_deliveries d where d.company_id=${companyId} and d.stage not in ('outcome_accepted','rolled_back') and not exists (select 1 from delivery_tasks t where t.delivery_id=d.id)`),
       scalar(companyId, sql`
@@ -903,10 +924,24 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
           and delegated_child.status in ('todo','in_progress','in_review','done')
       )`,
     ));
-    return Promise.all(rows.filter((row) => Boolean(row.ownerAgentId)).map(async (row) => {
-      const task = await db.select({ issueId: deliveryTasks.issueId }).from(deliveryTasks)
+    const candidates = await Promise.all(rows.filter((row) => Boolean(row.ownerAgentId)).map(async (row): Promise<StalledReadyCandidate | null> => {
+      const task = await db.select({
+        issueId: deliveryTasks.issueId,
+        status: issues.status,
+        assigneeAgentId: issues.assigneeAgentId,
+      }).from(deliveryTasks)
+        .innerJoin(issues, and(
+          eq(issues.id, deliveryTasks.issueId),
+          eq(issues.companyId, deliveryTasks.companyId),
+        ))
         .where(eq(deliveryTasks.deliveryId, row.id)).orderBy(asc(deliveryTasks.createdAt)).limit(1)
         .then((items) => items[0] ?? null);
+      if (task && (
+        !["backlog", "todo", "in_progress", "in_review"].includes(task.status)
+        || (task.assigneeAgentId && task.assigneeAgentId !== row.ownerAgentId)
+      )) {
+        return null;
+      }
       return {
         id: row.id,
         projectId: row.projectId,
@@ -917,6 +952,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
         issueId: task?.issueId ?? null,
       };
     }));
+    return candidates.filter((candidate): candidate is StalledReadyCandidate => candidate !== null);
   }
 
   async function collectDailyRuntimeMetrics(companyId: string, now: Date) {
@@ -1002,7 +1038,17 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       const parentIssueIds = await db.select({ issueId: deliveryTasks.issueId }).from(deliveryTasks)
         .where(eq(deliveryTasks.deliveryId, finding.deliveryId!)).then((rows) => rows.map((row) => row.issueId));
       if (parentIssueIds.length === 0) continue;
-      const delegatedChild = await db.select({ id: issues.id, assigneeAgentId: issues.assigneeAgentId }).from(issues)
+      const primaryTask = await db.select({ id: issues.id, assigneeAgentId: issues.assigneeAgentId, status: issues.status }).from(issues)
+        .where(and(
+          eq(issues.companyId, companyId),
+          inArray(issues.id, parentIssueIds),
+        ))
+        .then((rows) => rows.find((row) =>
+          row.status === "done"
+          || row.status === "cancelled"
+          || (row.assigneeAgentId && row.assigneeAgentId !== finding.ownerAgentId)
+        ) ?? null);
+      const delegatedChild = primaryTask ?? await db.select({ id: issues.id, assigneeAgentId: issues.assigneeAgentId, status: issues.status }).from(issues)
         .where(and(
           eq(issues.companyId, companyId),
           inArray(issues.parentId, parentIssueIds),
@@ -1019,7 +1065,14 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
         action: "supervision.bottleneck.resolved_by_delegation",
         entityType: "supervision_finding",
         entityId: finding.id,
-        details: { deliveryId: finding.deliveryId, delegatedIssueId: delegatedChild.id, executorAgentId: delegatedChild.assigneeAgentId, resolvedAt: now.toISOString() },
+        details: {
+          deliveryId: finding.deliveryId,
+          delegatedIssueId: delegatedChild.id,
+          executorAgentId: delegatedChild.assigneeAgentId,
+          issueStatus: delegatedChild.status,
+          resolutionReason: primaryTask ? "primary_task_terminal_or_transferred" : "delegated_child_present",
+          resolvedAt: now.toISOString(),
+        },
       });
       resolvedFindingIds.push(finding.id);
     }

@@ -10,6 +10,16 @@ const ownerDecisionPattern = /\b(owner decision|board decision|owner qa|acceptan
 const interactionOwnerDecisionPattern = /\b(owner decision|board decision|owner qa|owner acceptance|production|deploy(?:ment)?|push|secret|credential|rotate|security incident|protected session|payment|billing|legal|finance|destructive|live account|real[- ]money|public release)\b/i;
 const technicalReviewPattern = /\b(source control|runtime|project truth|test|regression|documentation|docs|frontend|backend|qa|typecheck|lint|local commit|commit(?:ted)?|dirty change|worktree|fixture|architecture baseline)\b/i;
 
+function isInternalAgentRoutingProposal(interaction) {
+  if (interaction?.kind !== "suggest_tasks") return false;
+  const context = interaction?.payload?.decisionContext;
+  if (!context || !["operational", "technical_review"].includes(context.decisionClass)) return false;
+  const tasks = Array.isArray(interaction?.payload?.tasks) ? interaction.payload.tasks : [];
+  return tasks.length > 0
+    && tasks.every((task) => !task?.assigneeUserId)
+    && tasks.some((task) => Boolean(task?.assigneeAgentId));
+}
+
 function withoutNegatedProtectedTerms(value) {
   return String(value ?? "").replace(
     /\b(?:no|not|never|without|do not|does not|is not|are not|must not|cannot|can't)\b[^.!?\n]{0,160}\b(?:production|deploy(?:ment)?|push|secret|credential|rotate|protected session|payment|billing|legal|finance|destructive|live account|real[- ]money|public release)\b[^.!?\n]*/gi,
@@ -32,6 +42,12 @@ export function classifyInReviewDecisionAuthority(issue) {
 
 export function classifyInteractionDecisionAuthority(issue, interaction) {
   if (issue?.assigneeUserId || issue?.reviewerUserId) return "owner";
+  if (interaction?.payload?.decisionContext?.audience === "technical_reviewer"
+    || interaction?.payload?.decisionContext?.audience === "issue_assignee"
+    || interaction?.payload?.decisionContext?.decisionClass === "technical_review"
+    || isInternalAgentRoutingProposal(interaction)) {
+    return "technical_reviewer";
+  }
   if (ownerDecisionPattern.test(String(issue?.title ?? ""))) return "owner";
   const interactionText = [interaction?.title, interaction?.summary, interaction?.payload]
     .filter(Boolean)

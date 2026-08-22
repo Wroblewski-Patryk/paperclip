@@ -70,10 +70,20 @@ function interactionRecommendation(interaction: IssueThreadInteraction): string 
   return null;
 }
 
-function isOwnerDecisionReady(interaction: IssueThreadInteraction) {
+function isInternalAgentRoutingProposal(interaction: IssueThreadInteraction) {
+  if (interaction.kind !== "suggest_tasks") return false;
+  const context = interaction.payload.decisionContext;
+  if (!context || !["operational", "technical_review"].includes(context.decisionClass)) return false;
+  return interaction.payload.tasks.length > 0
+    && interaction.payload.tasks.every((task) => !task.assigneeUserId)
+    && interaction.payload.tasks.some((task) => Boolean(task.assigneeAgentId));
+}
+
+export function isOwnerDecisionReady(interaction: IssueThreadInteraction) {
   const context = interaction.payload.decisionContext;
   const briefing = context?.ownerBriefing;
-  return context?.audience === "board"
+  return !isInternalAgentRoutingProposal(interaction)
+    && context?.audience === "board"
     && context.decisionReady === true
     && briefing?.preparedBy === "aia"
     && briefing.language === "pl"

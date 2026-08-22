@@ -288,6 +288,51 @@ describeEmbeddedPostgres("heartbeat stale queued-run invalidation", () => {
     });
   }
 
+  it("skips a stale assignee wake before creating a heartbeat run", async () => {
+    const { companyId, agentId } = await seedCompanyAndAgent({ agentName: "FormerOwner" });
+    const replacementAgentId = randomUUID();
+    await db.insert(agents).values({
+      id: replacementAgentId,
+      companyId,
+      name: "CurrentOwner",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: { heartbeat: { wakeOnDemand: true, maxConcurrentRuns: 1 } },
+      permissions: {},
+    });
+    const [issue] = await db.insert(issues).values({
+      companyId,
+      title: "Reassigned before supervision wake",
+      status: "todo",
+      priority: "high",
+      assigneeAgentId: replacementAgentId,
+    }).returning();
+
+    const run = await heartbeat.wakeup(agentId, {
+      source: "automation",
+      triggerDetail: "system",
+      reason: "supervision_stalled_ready_owner_dispatch",
+      payload: { issueId: issue.id },
+      contextSnapshot: { issueId: issue.id },
+      requestedByActorType: "system",
+    });
+
+    const [wakeupRows, runRows] = await Promise.all([
+      db.select().from(agentWakeupRequests),
+      db.select().from(heartbeatRuns),
+    ]);
+    expect(run).toBeNull();
+    expect(runRows).toHaveLength(0);
+    expect(wakeupRows).toContainEqual(expect.objectContaining({
+      agentId,
+      status: "skipped",
+      reason: "issue_assignee_changed_before_enqueue",
+    }));
+    expect(mockAdapterExecute).not.toHaveBeenCalled();
+  });
+
   it("cancels queued runs when the issue assignee changes before the run starts", async () => {
     const { companyId, agentId } = await seedCompanyAndAgent({ agentName: "OriginalCoder" });
     const replacementAgentId = randomUUID();

@@ -387,10 +387,11 @@ describeEmbeddedPostgres("company situation service", () => {
       name: "Canary",
       status: "in_progress",
     });
-    const [acceptedTask, review, preparingReview] = await db.insert(issues).values([
+    const [acceptedTask, review, preparingReview, internalRoutingReview] = await db.insert(issues).values([
       { companyId, projectId, title: "Accepted canary task", status: "todo", assigneeAgentId: agentId },
       { companyId, projectId, title: "Waiting for explicit review decision", status: "in_review", assigneeAgentId: agentId },
       { companyId, projectId, title: "Waiting for internal AIA triage", status: "in_review", assigneeAgentId: agentId },
+      { companyId, projectId, title: "Waiting for internal agent routing", status: "in_review", assigneeAgentId: agentId },
     ]).returning();
     const [delivery] = await db.insert(productDeliveries).values({
       companyId,
@@ -447,6 +448,35 @@ describeEmbeddedPostgres("company situation service", () => {
           decisionClass: "technical_review",
           decisionReady: false,
           authorityReason: "AIA must classify this technical request first.",
+        },
+      },
+    });
+    await db.insert(issueThreadInteractions).values({
+      companyId,
+      issueId: internalRoutingReview.id,
+      kind: "suggest_tasks",
+      status: "pending",
+      continuationPolicy: "none",
+      payload: {
+        version: 1,
+        tasks: [{ clientKey: "route-rte", title: "Route to RTE", assigneeAgentId: agentId }],
+        decisionContext: {
+          version: 1,
+          audience: "board",
+          decisionClass: "operational",
+          decisionReady: true,
+          authorityReason: "AIA cannot assign outside its reporting line.",
+          ownerBriefing: {
+            version: 1,
+            language: "pl",
+            preparedBy: "aia",
+            decision: "Przekazać zadanie RTE?",
+            contextFacts: ["To routing techniczny.", "Nie obejmuje produkcji."],
+            options: [{ id: "route", label: "Przekaż", benefit: "Kontynuacja.", cost: "Jedno zadanie.", risk: "Niskie." }],
+            recommendation: "Przekaż.",
+            afterApproval: ["RTE wykona zadanie."],
+            rollback: "Anuluj zadanie.",
+          },
         },
       },
     });
