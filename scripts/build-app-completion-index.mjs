@@ -63,7 +63,7 @@ function statusBucket(entity) {
 function routeKind(entity) {
   const normalizedPath = String(entity.path ?? "").replaceAll("\\", "/").toLowerCase();
   if (/^routes\/api\.php(?:#|$)/.test(normalizedPath)) return "api_endpoint";
-  const visibleUiBoundary = /\/(?:page|pages)\//.test(normalizedPath)
+  const visibleUiBoundary = /\/(?:page|pages)\/[^/]+\/page\.(?:[jt]sx?)$/.test(normalizedPath)
     || (/\/app\//.test(normalizedPath) && /\/page\.(?:[jt]sx?)$/.test(normalizedPath))
     || /(?:page|view|screen)\.(?:[jt]sx?)$/i.test(String(entity.name ?? ""))
     || /^routes\/web\.php(?:#|$)/.test(normalizedPath)
@@ -129,7 +129,15 @@ const candidatePolicy = "product_boundaries_v2";
 
 function isAppCompletionCandidate(entity, kind) {
   if (kind) return true;
+  if (entity.type === "feature" && isBackendImplementationClass(entity)) return false;
   return entity.type === "feature" && !/\.[a-z0-9]+$/i.test(String(entity.name ?? ""));
+}
+
+function isBackendImplementationClass(entity) {
+  const name = String(entity.name ?? "").replace(/\.[^.]+$/, "");
+  const normalizedPath = String(entity.path ?? "").replaceAll("\\\\", "/").toLowerCase();
+  return /(?:request|controller|service|repository|resource|job|policy|middleware|listener|event|rule|notification|factory)$/i.test(name)
+    || /\/(?:http\/requests|services|repositories|policies|middleware|jobs|listeners|notifications|factories)\//.test(normalizedPath);
 }
 
 function completionRisk(item) {

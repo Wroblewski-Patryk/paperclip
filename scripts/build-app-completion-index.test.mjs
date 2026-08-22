@@ -370,3 +370,25 @@ test("routes only visible UI boundaries and explicit capabilities", async () => 
     ["component:audit-view", "feature:portfolio-monitoring", "route:dashboard-page"],
   );
 });
+
+test("excludes Laravel FormRequests and Page directories from completion candidates", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "app-completion-index-"));
+  const docsDir = path.join(root, "docs");
+  await mkdir(path.join(docsDir, "graphs"), { recursive: true });
+  const graph = { entities: [
+    { id: "feature:request", type: "feature", name: "StorePageRequest", path: "app/Http/Requests/StorePageRequest.php", status: "implemented" },
+    { id: "route:request", type: "route", name: "StorePageRequest.php", path: "app/Http/Requests/Page/StorePageRequest.php", status: "implemented" },
+    { id: "api:pages", type: "api_endpoint", name: "POST /pages", path: "routes/api.php#/pages", status: "implemented" },
+    { id: "feature:control", type: "feature", name: "Untested workflow", path: "docs/features/workflow.md", status: "implemented" },
+  ], relations: [] };
+  await writeFile(path.join(docsDir, "graphs", "architecture-awareness.json"), `${JSON.stringify(graph)}\n`);
+  const result = spawnSync(process.execPath, [scriptPath, "--project", "Featherly", "--root", root, "--out", docsDir], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const summary = JSON.parse(await readFile(path.join(docsDir, "status", "app-completion-index.json"), "utf8"));
+  const ids = summary.priorityReviewItems.map((item) => item.id);
+  assert.equal(ids.includes("feature:request"), false);
+  assert.equal(ids.includes("route:request"), false);
+  assert.equal(ids.includes("api:pages"), true);
+  assert.equal(ids.includes("feature:control"), true);
+  assert.equal(summary.counts.needsBrowserReview, 0);
+});
