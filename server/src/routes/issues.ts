@@ -4543,6 +4543,14 @@ export function issueRoutes(
           notInArray(issueRows.status, ["done", "cancelled"]),
         ));
       const normalizedTitle = normalizeIssueTitleForPressure(createFields.title);
+      const pressureProjects = await projectsSvc.list(companyId);
+      const projectById = new Map(pressureProjects.map((project) => [project.id, project]));
+      const targetProject = pressureProjectId ? projectById.get(pressureProjectId) : null;
+      const isControlPlaneProject = /softwarehouse|control[ -]?plane/i.test(targetProject?.name ?? "");
+      const activeApplicationProjectIds = new Set(pressureProjects
+        .filter((project) => !project.archivedAt && !["cancelled", "completed"].includes(project.status))
+        .filter((project) => !/softwarehouse|control[ -]?plane/i.test(project.name ?? ""))
+        .map((project) => project.id));
       const pressureDecision = evaluateAgentIssueCreationPressure({
         actorType: actor.actorType,
         title: createFields.title,
@@ -4557,6 +4565,8 @@ export function issueRoutes(
           ? openRows.filter((row) => row.parentId === createFields.parentId).length
           : 0,
         openCreatedByActorCount: openRows.filter((row) => row.createdByAgentId === actor.agentId).length,
+        targetProjectKind: isControlPlaneProject ? "control_plane" : targetProject ? "application" : "unknown",
+        applicationOpenIssueCount: openRows.filter((row) => row.projectId && activeApplicationProjectIds.has(row.projectId)).length,
         openIssueSoftLimit: Number(process.env.PAPERCLIP_AGENT_OPEN_ISSUE_SOFT_LIMIT ?? 80),
         saturatedParentChildLimit: Number(process.env.PAPERCLIP_AGENT_SATURATED_PARENT_CHILD_LIMIT ?? 3),
         saturatedCreatorLimit: Number(process.env.PAPERCLIP_AGENT_SATURATED_CREATOR_LIMIT ?? 5),

@@ -10,6 +10,8 @@ export type AgentIssueCreationPressureInput = {
   duplicateOpenTitleCount: number;
   openDirectChildCount: number;
   openCreatedByActorCount: number;
+  targetProjectKind?: "application" | "control_plane" | "unknown";
+  applicationOpenIssueCount?: number;
   openIssueSoftLimit?: number;
   saturatedParentChildLimit?: number;
   saturatedCreatorLimit?: number;
@@ -40,6 +42,14 @@ export function evaluateAgentIssueCreationPressure(
       allowed: false,
       code: "duplicate_open_issue",
       message: "An open issue with the same normalized title already exists. Reuse or update it instead of creating another task.",
+      saturated,
+    };
+  }
+  if (input.targetProjectKind === "control_plane" && (input.applicationOpenIssueCount ?? 0) > 0) {
+    return {
+      allowed: false,
+      code: "application_delivery_preempts_control_plane_growth",
+      message: `Application delivery has ${input.applicationOpenIssueCount} open issue(s). Autonomous agents must deliver or reconcile that work instead of creating Paperclip self-improvement tasks.`,
       saturated,
     };
   }
@@ -79,4 +89,3 @@ export function evaluateAgentIssueCreationPressure(
     saturated,
   };
 }
-

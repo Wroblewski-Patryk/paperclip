@@ -816,7 +816,7 @@ test("longevity doctor checks the single canonical active routine catalog", asyn
   assert.match(doctor, /missingCanonicalRoutineTitles/);
   assert.match(doctor, /Canonical routine coverage is not active/);
   assert.doesNotMatch(doctor, /Core routine coverage is not active/);
-  assert.equal(softwarehousePilotActiveRoutineTitles.size, 6);
+  assert.equal(softwarehousePilotActiveRoutineTitles.size, 0);
 });
 
 test("softwarehouse doctor and team adoption share the canonical routine title registry", async () => {
@@ -841,8 +841,8 @@ test("softwarehouse doctor and team adoption share the canonical routine title r
   ]) {
     assert.equal(
       softwarehousePilotActiveRuntimeRoutineTitles.has(title),
-      true,
-      `missing canonical runtime routine title: ${title}`,
+      false,
+      `model-backed control routine must remain archived: ${title}`,
     );
   }
   for (const title of [
@@ -962,6 +962,16 @@ test("workspace boundary audit rejects duplicate active roots and temporary resi
   assert.match(source, /\.pnpm-store/);
   assert.match(source, /tmp\|temp\|scratch/);
   assert.match(source, /--porcelain=v1/);
+});
+
+test("temporary hygiene owns current database, supervision, and audit test artifacts", async () => {
+  const source = await readFile("scripts/cleanup-stale-softwarehouse-temp.ps1", "utf8");
+
+  assert.match(source, /supervision-registry/);
+  assert.match(source, /db-\(\?:cwd\|home\|runtime\)/);
+  assert.match(source, /next-after\|source-after\|source-control-check/);
+  assert.match(source, /gate-specs-final/);
+  assert.match(source, /referenced by a live process/);
 });
 
 test("dashboard surfaces provider quota separately from dollar spend", async () => {

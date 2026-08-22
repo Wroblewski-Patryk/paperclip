@@ -655,3 +655,24 @@ evidence.
   fingerprints exempt only the recorded diff and fail closed when it changes.
 - Provider quota remained at 79% versus the owner's 75% threshold, so no issue
   or run was created during this repair.
+
+### 2026-08-22 - Removed the internal self-work loop
+
+- Implemented an application-delivery-first control policy shared by the host
+  tick and server admission. Existing application debt now suppresses all
+  issue-generating control-plane steps, and learning/orientation/decomposition
+  stay externalized even when the portfolio is empty.
+- Archived the six remaining model-backed control/status routines and disabled
+  their triggers. Cancelled 21 non-running envelopes left by archived routines;
+  history and comments were preserved.
+- Native findings now distinguish a refreshed observation from a material
+  recurrence. Identical evidence cannot increment counters, create duplicate
+  evidence, or wake Doctor. Doctor-based Paperclip repair is disabled by
+  default and explicitly belongs to owner plus Codex.
+- The four external Codex assurance automations were intentionally preserved.
+  Provider quota hold was respected: no agent work or new Paperclip issue was
+  started while applying this control-plane repair.
+- Temp hygiene learned the exact current DB, supervision, and audit test names;
+  twelve verified disposable resources were removed after live-process and
+  reparse-point checks. The potentially active `paperclip-codex-runtime` was
+  intentionally preserved.

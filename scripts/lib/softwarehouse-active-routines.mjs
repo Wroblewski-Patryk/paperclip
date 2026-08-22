@@ -20,13 +20,10 @@ export const softwarehouseApplicationRoutineLibrarySpecs = softwarehouseActiveAp
   },
 ]);
 
-// Keep one low-frequency project truth refresh per active application. Native
-// supervision owns queue dispatch and the local host supervisor owns the
-// deterministic control tick, so agent-run queue controllers only duplicate
-// work, spend model budget, and cannot safely nest Windows process launches.
-export const activeApplicationRoutineSpecs = softwarehouseApplicationRoutineLibrarySpecs.filter(
-  (routine) => routine.title.endsWith("Daily project status refresh"),
-);
+// Project truth is refreshed by deterministic, event-aware host checks. Model
+// routines must not wake merely because time passed: they created routine
+// envelopes, spent delivery quota, and duplicated the native control plane.
+export const activeApplicationRoutineSpecs = [];
 
 export const softwarehouseRoutineTitleRenames = new Map([
   ["[Softwarehouse] Autonomy governor", "11 Innovation: Autonomy Governor"],
@@ -40,12 +37,7 @@ export const softwarehouseRoutineTitleRenames = new Map([
   ["[Softwarehouse] Longevity snapshot backup", "04 Operations: Longevity Snapshot Backup"],
 ]);
 
-const softwarehousePilotLegacyActiveRoutineTitles = new Set([
-  "[Softwarehouse] Agent health and model governance",
-  "[Softwarehouse] Longevity snapshot backup",
-  "[Softwarehouse] Organizational learning loop",
-  ...activeApplicationRoutineSpecs.map((routine) => routine.title),
-]);
+const softwarehousePilotLegacyActiveRoutineTitles = new Set();
 
 export function canonicalSoftwarehouseRoutineTitle(title) {
   return softwarehouseRoutineTitleRenames.get(title) ?? title;

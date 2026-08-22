@@ -1,6 +1,22 @@
 # Board Context
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
+
+## 2026-08-22 Application delivery is the only autonomous work objective
+
+- Paperclip's autonomous agents deliver and verify Soar, Roost, and Featherly;
+  they do not autonomously redesign, train, diagnose, or repair the Paperclip
+  control plane.
+- Four external Codex automations remain the assurance sensors. Findings become
+  owner-visible evidence for an explicit owner/Codex repair session, not an
+  automatic tree of Paperclip issues or model-backed governance runs.
+- Deterministic native supervision and the host control tick may deduplicate,
+  reconcile, route, enforce quota/authority, and close stale state. While any
+  application delivery debt exists they must reuse existing work and cannot
+  seed learning, orientation, planning, decomposition, or self-improvement.
+- Progress is judged by shrinking application debt and dirty diffs plus growing
+  verified application commits and owner-journey proof, never by task or run
+  volume.
 
 ## 2026-08-21 Sequential application versions and owner-facing projection
 

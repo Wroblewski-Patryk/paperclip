@@ -180,8 +180,8 @@ describeEmbedded("native supervision engine", () => {
       bottleneckType: "owner_bottleneck",
       ownerAgentId: refs.ownerId,
       bottleneckStage: "admitted",
-      occurrenceCount: 2,
-      recurrenceCount: 1,
+      occurrenceCount: 1,
+      recurrenceCount: 0,
     });
     expect(rows[0]?.slaDueAt).toBeInstanceOf(Date);
     expect(rows[0]?.nextAllowedAction).toContain("Wake the delivery owner");
@@ -778,9 +778,24 @@ describeEmbedded("native supervision engine", () => {
       fingerprint: "doctor:test", problemClass: "workflow_defect", severity: "high", status: "admission_pending", classification: "requires_diagnosis", sourceKind: "daily_integrity", sourceRef: "test", title: "Diagnosis required", summary: "A deterministic detector found a workflow defect.", affectedComponent: "workflow", projectId: refs.projectId, issueId: null, deliveryId: null, deliveryTaskId: null, affectedAgentId: null, ownerAgentId: null, ownerUserId: null, admissionDecisionId: null, rootCauseId: null, nativeSafeguardId: null, retryCount: 0, economics: { retryBudget: 1 }, decision: {}, recoveryState: "detected", cooldownUntil: null, evidence: [], recurrenceEvidence: {}, runId: null, cycleId: null,
     })).finding;
     const enqueueWakeup = vi.fn(async () => ({}));
-    const result = await nativeSupervisionEngine(db, { enqueueWakeup }).dispatchDoctor(finding.id, new Date("2026-08-04T04:00:00Z"));
+    const result = await nativeSupervisionEngine(db, { enqueueWakeup, allowDoctorDispatch: true }).dispatchDoctor(finding.id, new Date("2026-08-04T04:00:00Z"));
     expect(result.status).toBe("dispatched");
     expect(enqueueWakeup).toHaveBeenCalledWith(refs.ownerId, expect.objectContaining({ reason: "supervision_finding_requires_diagnosis", contextSnapshot: expect.objectContaining({ rollbackRequired: true, contextBudget: { tokenLimit: 6000, fileLimit: 8 } }) }));
     expect(await db.select().from(supervisionInterventions)).toHaveLength(1);
+  });
+
+  it("keeps control-plane repair outside autonomous Doctor dispatch by default", async () => {
+    const refs = await seed(true);
+    const finding = (await supervisionRegistryService(db).upsertFinding(refs.companyId, {
+      fingerprint: "doctor:external-boundary", problemClass: "workflow_defect", severity: "high", status: "admission_pending", classification: "requires_diagnosis", sourceKind: "daily_integrity", sourceRef: "test", title: "Diagnosis required", summary: "A deterministic detector found a workflow defect.", affectedComponent: "workflow", projectId: refs.projectId, issueId: null, deliveryId: null, deliveryTaskId: null, affectedAgentId: null, ownerAgentId: null, ownerUserId: null, admissionDecisionId: null, rootCauseId: null, nativeSafeguardId: null, retryCount: 0, economics: { retryBudget: 1 }, decision: {}, recoveryState: "detected", cooldownUntil: null, evidence: [], recurrenceEvidence: {}, runId: null, cycleId: null,
+    })).finding;
+    const enqueueWakeup = vi.fn(async () => ({}));
+
+    const result = await nativeSupervisionEngine(db, { enqueueWakeup })
+      .dispatchDoctor(finding.id, new Date("2026-08-04T04:00:00Z"));
+
+    expect(result).toMatchObject({ status: "external_repair_required" });
+    expect(enqueueWakeup).not.toHaveBeenCalled();
+    expect(await db.select().from(supervisionInterventions)).toHaveLength(0);
   });
 });

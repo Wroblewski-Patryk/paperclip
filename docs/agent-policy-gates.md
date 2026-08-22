@@ -21,6 +21,14 @@ application source/deployed milestone. Task, document, evidence, learning, or
 run counts are diagnostic only and never compensate for missing application
 outcomes.
 
+The LuckySparrow application-delivery-first boundary is stricter: while an
+active application has any open delivery debt, autonomous agents cannot create
+control-plane self-improvement issues and the host tick cannot run its issue-
+generating learning, planning, backlog, or organizational-promotion steps.
+Native findings remain visible and deduplicated, but Paperclip code, policy,
+instruction, skill, and routine changes are an owner/Codex repair boundary.
+See `docs/softwarehouse/20-application-delivery-first-control-boundary.md`.
+
 ## Roost projection activation gate
 
 The Product Map publisher is disabled unless explicitly enabled with company-scoped source and ingest credentials. Credentials must pass pinned loopback-source/public-HTTPS-ingest validation and are never persisted in the outbox or telemetry. Enabling or changing protected ingest, pushing a product candidate, and triggering production redeploy remain deployment/security gates. Pending/dead outbox rows and stale feed lag are evidence, not authority to retry outside the bounded scheduler.

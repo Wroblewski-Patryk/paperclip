@@ -61,6 +61,22 @@ function asDate(value: string | null | undefined) {
   return value ? new Date(value) : null;
 }
 
+const VOLATILE_RECURRENCE_KEYS = new Set([
+  "cycleId", "checkedAt", "observedAt", "generatedAt", "timestamp", "lastSeenAt",
+]);
+
+function stableRecurrenceEvidence(value: unknown): string {
+  const normalize = (input: unknown): unknown => {
+    if (Array.isArray(input)) return input.map(normalize);
+    if (!input || typeof input !== "object") return input;
+    return Object.fromEntries(Object.entries(input as Record<string, unknown>)
+      .filter(([key]) => !VOLATILE_RECURRENCE_KEYS.has(key))
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, nested]) => [key, normalize(nested)]));
+  };
+  return JSON.stringify(normalize(value));
+}
+
 async function assertReferenceCompanies(db: Db, companyId: string, data: UpsertSupervisionFinding) {
   const checks = [
     data.projectId
@@ -258,6 +274,29 @@ export function supervisionRegistryService(db: Db) {
         }).returning();
 
         const created = inserted.length > 0;
+        const existing = created ? null : await tx.select().from(supervisionFindings).where(and(
+          eq(supervisionFindings.companyId, companyId),
+          eq(supervisionFindings.fingerprint, data.fingerprint),
+        )).then((rows) => rows[0] ?? null);
+        if (!created && !existing) throw conflict("Finding deduplication conflict");
+        const latestRecurrence = existing ? await tx.select().from(supervisionRecurrences).where(and(
+          eq(supervisionRecurrences.companyId, companyId),
+          eq(supervisionRecurrences.findingId, existing.id),
+        )).orderBy(desc(supervisionRecurrences.occurredAt)).limit(1).then((rows) => rows[0] ?? null) : null;
+        const materiallyChanged = created
+          || (existing ? TERMINAL_FINDING_STATUSES.includes(existing.status as typeof TERMINAL_FINDING_STATUSES[number]) : false)
+          || stableRecurrenceEvidence(latestRecurrence?.evidence) !== stableRecurrenceEvidence(data.recurrenceEvidence);
+        if (!materiallyChanged && existing) {
+          const refreshed = await tx.update(supervisionFindings).set({
+            sourceKind: data.sourceKind,
+            sourceRef: data.sourceRef,
+            summary: data.summary,
+            severity: data.severity,
+            lastSeenAt: timestamp,
+            updatedAt: timestamp,
+          }).where(eq(supervisionFindings.id, existing.id)).returning().then((rows) => rows[0]);
+          return { finding: refreshed, recurrence: null, created: false, materiallyChanged: false };
+        }
         const finding = created ? inserted[0] : await tx.update(supervisionFindings).set({
           problemClass: data.problemClass,
           severity: data.severity,
@@ -327,7 +366,7 @@ export function supervisionRegistryService(db: Db) {
             metadata: evidence.metadata,
           })));
         }
-        return { finding, recurrence, created };
+        return { finding, recurrence, created, materiallyChanged: true };
       });
     },
 

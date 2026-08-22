@@ -13,6 +13,10 @@ import { mergeProtectedDeliveryGates } from "./lib/delivery-blocker-graph.mjs";
 import { acquireSingleFlightExecution } from "./lib/single-flight-lock.mjs";
 import { resolveRuntimeBindingRepairSummary } from "./lib/softwarehouse-runtime-binding-repair-summary.mjs";
 import {
+  buildAppFirstControlPolicy,
+  shouldSkipControlStep,
+} from "./lib/softwarehouse-app-first-control-policy.mjs";
+import {
   dryRunCommandFor,
   isNonFatalBlockedRootGuardrailTimeout,
   isNonFatalJanitorBoardCancelDenied,
@@ -999,6 +1003,53 @@ async function resolveControlTickCompanyEnv() {
 
 const controlTickCompanyEnv = await resolveControlTickCompanyEnv();
 
+async function resolveAppFirstPolicy() {
+  const companyId = controlTickCompanyEnv.PAPERCLIP_COMPANY_ID;
+  if (!companyId) {
+    return {
+      profile: "application_delivery_first",
+      protectApplicationDelivery: true,
+      existingIssuesOnly: true,
+      openIssueCount: null,
+      applicationOpenIssueCount: null,
+      controlPlaneOpenIssueCount: null,
+      skippedStepNames: [],
+      reason: "Company context is unavailable; issue-generating control steps fail closed.",
+    };
+  }
+  try {
+    const openStatuses = ["backlog", "todo", "in_progress", "in_review", "blocked"];
+    const [projectsResponse, ...issueResponses] = await Promise.all([
+      fetch(`${apiBase}/api/companies/${companyId}/projects`),
+      ...openStatuses.map((status) => fetch(`${apiBase}/api/companies/${companyId}/issues?status=${status}&limit=500`)),
+    ]);
+    if (!projectsResponse.ok || issueResponses.some((response) => !response.ok)) {
+      throw new Error("Project or issue inventory returned a non-success response");
+    }
+    const projects = await projectsResponse.json();
+    const issuePages = await Promise.all(issueResponses.map((response) => response.json()));
+    const issueById = new Map(issuePages.flat().filter((issue) => issue?.id).map((issue) => [issue.id, issue]));
+    return buildAppFirstControlPolicy({
+      projects: Array.isArray(projects) ? projects : [],
+      issues: [...issueById.values()],
+      openIssueSoftLimit: Number(process.env.PAPERCLIP_AGENT_OPEN_ISSUE_SOFT_LIMIT ?? 80),
+    });
+  } catch (error) {
+    return {
+      profile: "application_delivery_first",
+      protectApplicationDelivery: true,
+      existingIssuesOnly: true,
+      openIssueCount: null,
+      applicationOpenIssueCount: null,
+      controlPlaneOpenIssueCount: null,
+      skippedStepNames: [],
+      reason: `Portfolio pressure could not be read; issue-generating control steps fail closed: ${error.message}`,
+    };
+  }
+}
+
+const appFirstPolicy = await resolveAppFirstPolicy();
+
 function runStep(step, options = {}) {
   const startedAtDate = new Date();
   const startedAt = startedAtDate.toISOString();
@@ -1006,7 +1057,12 @@ function runStep(step, options = {}) {
   console.error(`[control-tick] step:start name=${step.name} timeoutMs=${timeoutMs} startedAt=${startedAt}`);
   const result = spawnSync(process.execPath, step.command, {
     cwd: process.cwd(),
-    env: { ...process.env, ...controlTickCompanyEnv, ...(step.env ?? {}) },
+    env: {
+      ...process.env,
+      ...controlTickCompanyEnv,
+      ...(appFirstPolicy.existingIssuesOnly ? { SOFTWAREHOUSE_EXISTING_ISSUES_ONLY: "1" } : {}),
+      ...(step.env ?? {}),
+    },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     timeout: timeoutMs,
@@ -1952,6 +2008,24 @@ if (singleFlight.mode === "follower") {
     const results = [];
     const controlTickStartedAt = Date.now();
     for (const step of steps) {
+      if (shouldSkipControlStep(step.name, appFirstPolicy)) {
+        const now = new Date().toISOString();
+        results.push({
+          name: step.name,
+          ok: true,
+          skipped: true,
+          skippedReason: "application_delivery_first",
+          startedAt: now,
+          endedAt: now,
+          durationMs: 0,
+          summary: {
+            actionCount: 0,
+            appliedCount: 0,
+            policy: appFirstPolicy.reason,
+          },
+        });
+        continue;
+      }
       const elapsedMs = Date.now() - controlTickStartedAt;
       const remainingBudgetMs = controlTickBudgetMs - elapsedMs;
       if (remainingBudgetMs <= 0) {
@@ -2329,6 +2403,7 @@ if (singleFlight.mode === "follower") {
 
     const output = {
       generatedAt: new Date().toISOString(),
+      appFirstPolicy,
       controlTickBudgetMs,
       totalDurationMs: Date.now() - controlTickStartedAt,
       ok: !failedStep,

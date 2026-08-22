@@ -111,7 +111,7 @@ function cycleKey(kind: "native_watchdog" | "daily_integrity" | "weekly_meta", n
   return `${date.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
-export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorWake }) {
+export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorWake; allowDoctorDispatch?: boolean }) {
   const registry = supervisionRegistryService(db);
   const admission = admissionControlService(db);
   const observations = organizationalObservationService(db);
@@ -1259,7 +1259,9 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       });
       findings.push(result.finding.id);
       findingByProblemClass.set(check.problemClass, result.finding.id);
-      if (check.requiresDiagnosis) doctorDispatches.push(await dispatchDoctor(result.finding.id, now));
+      if (check.requiresDiagnosis && result.materiallyChanged !== false) {
+        doctorDispatches.push(await dispatchDoctor(result.finding.id, now));
+      }
     }
     const stalledReadyDispatches = await persistAndDispatchStalledReady(companyId, now, started.cycle.id);
     const orphanLockRecoveries = await recoverOrphanExecutionLocks(companyId, now);
@@ -1350,6 +1352,12 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
   async function dispatchDoctor(findingId: string, now = new Date()) {
     const finding = await registry.getFinding(findingId);
     if (!finding || !deps?.enqueueWakeup) return { status: "not_configured" as const };
+    if (deps.allowDoctorDispatch !== true) {
+      return {
+        status: "external_repair_required" as const,
+        reason: "Paperclip records and deduplicates control-plane defects; code, policy, routine, and instruction repair remains an owner/Codex boundary.",
+      };
+    }
     if (finding.cooldownUntil && finding.cooldownUntil > now) return { status: "cooldown" as const };
     const doctor = await db.select().from(agents).where(and(
       eq(agents.companyId, finding.companyId),

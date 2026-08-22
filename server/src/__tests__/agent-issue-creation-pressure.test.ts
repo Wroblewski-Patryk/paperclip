@@ -40,5 +40,22 @@ describe("agent issue creation pressure", () => {
     expect(evaluateAgentIssueCreationPressure(base).allowed).toBe(true);
     expect(evaluateAgentIssueCreationPressure({ ...base, parentId: null, openIssueCount: 20 }).allowed).toBe(true);
   });
-});
 
+  it("blocks autonomous Paperclip self-improvement while application delivery debt is open", () => {
+    expect(evaluateAgentIssueCreationPressure({
+      ...base,
+      openIssueCount: 20,
+      targetProjectKind: "control_plane",
+      applicationOpenIssueCount: 4,
+    })).toMatchObject({
+      allowed: false,
+      code: "application_delivery_preempts_control_plane_growth",
+    });
+    expect(evaluateAgentIssueCreationPressure({
+      ...base,
+      openIssueCount: 20,
+      targetProjectKind: "application",
+      applicationOpenIssueCount: 4,
+    }).allowed).toBe(true);
+  });
+});

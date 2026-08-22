@@ -1,5 +1,27 @@
 # Active Mission
 
+## 2026-08-22 - Application Delivery First; Paperclip Self-Repair Externalized
+
+- The four Codex automations remain read-only assurance and may report defects.
+  They do not create Paperclip delivery work automatically. Owner plus Codex
+  remains the only repair boundary for Paperclip code, policies, routines, and
+  managed instructions.
+- Paperclip must not respond to application delivery debt by generating more
+  control-plane, learning, orientation, decomposition, planning, or repair
+  issues. The host control tick may reconcile existing records but enters
+  `application_delivery_first` / existing-issues-only mode whenever an active
+  application has open work or the portfolio is closure-only.
+- Agent-created control-plane issues are rejected while application debt is
+  open. Application issues remain admissible under the existing deduplication,
+  WIP, hierarchy, budget, and authority gates.
+- All model-backed recurring control/status routines are archived. Native
+  deterministic supervision remains active, but identical observations only
+  refresh `lastSeenAt`; they do not invent recurrence, evidence, intervention,
+  or Doctor runs. Automatic Doctor repair is disabled by default.
+- Twenty-one non-running issue envelopes belonging to archived routines were
+  cancelled with preserved history. No application work was cancelled and no
+  agent run was started during the provider quota hold.
+
 ## 2026-08-22 - Blocker Root Reduction And Singleton Recovery Policy
 
 - Dashboard blocker totals are dependency-chain amplification, not independent

@@ -94,6 +94,21 @@ describeEmbedded("PostgreSQL supervision registry", () => {
     expect(await db.select().from(supervisionEvidenceRefs)).toHaveLength(2);
   });
 
+  it("refreshes an unchanged finding without inventing another recurrence", async () => {
+    const refs = await seed();
+    const svc = supervisionRegistryService(db);
+    const first = await svc.upsertFinding(refs.companyId, finding(refs.ownerAgentId));
+    const second = await svc.upsertFinding(refs.companyId, finding(refs.ownerAgentId));
+
+    expect(second.created).toBe(false);
+    expect(second.materiallyChanged).toBe(false);
+    expect(second.finding.id).toBe(first.finding.id);
+    expect(second.finding.occurrenceCount).toBe(1);
+    expect(second.finding.recurrenceCount).toBe(0);
+    expect(await db.select().from(supervisionRecurrences)).toHaveLength(1);
+    expect(await db.select().from(supervisionEvidenceRefs)).toHaveLength(1);
+  });
+
   it("rejects cross-company ownership in the service boundary", async () => {
     const refs = await seed();
     await expect(supervisionRegistryService(db).upsertFinding(refs.companyId, finding(refs.foreignAgentId)))
