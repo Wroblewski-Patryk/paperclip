@@ -87,7 +87,7 @@ describeEmbedded("native supervision engine", () => {
     expect(await db.select().from(supervisionFindings)).toHaveLength(1);
   });
 
-  it("turns external-only assurance findings into a native core finding", async () => {
+  it("recognizes externally discovered findings after native absorption without a generic shadow gap", async () => {
     const refs = await seed();
     await supervisionRegistryService(db).compareExternalAssurance(refs.companyId, {
       externalSource: "codex_watchdog",
@@ -98,8 +98,58 @@ describeEmbedded("native supervision engine", () => {
 
     const result = await nativeSupervisionEngine(db).runWatchdog(refs.companyId, new Date("2026-08-04T03:00:00Z"));
 
-    expect(result.checks.find((check) => check.key === "external_shadow_gap")).toMatchObject({ status: "failed", count: 1 });
-    expect((await db.select().from(supervisionFindings)).some((finding) => finding.problemClass === "external_assurance_gap")).toBe(true);
+    expect(result.checks.find((check) => check.key === "external_shadow_gap")).toMatchObject({ status: "passed", count: 0 });
+    expect((await db.select().from(supervisionFindings)).some((finding) => finding.fingerprint === "external:orphan-lock" && finding.sourceKind === "external_assurance")).toBe(true);
+  });
+
+  it("terminally reconciles expired interventions and their observation windows without reauthorization", async () => {
+    const refs = await seed();
+    const old = new Date("2026-08-04T00:00:00Z");
+    const finding = (await supervisionRegistryService(db).upsertFinding(refs.companyId, {
+      fingerprint: "lifecycle:test", problemClass: "workflow_defect", severity: "high",
+      status: "in_progress", classification: "supervision_integrity", sourceKind: "native_watchdog", sourceRef: "test",
+      title: "Bounded intervention is still active", summary: "The intervention must not wait indefinitely.",
+      affectedComponent: "supervision", ownerAgentId: refs.ownerId, retryCount: 0, economics: {}, decision: {},
+      recoveryState: "dispatching", evidence: [], recurrenceEvidence: {},
+    })).finding;
+    const [intervention] = await db.insert(supervisionInterventions).values({
+      companyId: refs.companyId,
+      findingId: finding.id,
+      ownerAgentId: refs.ownerId,
+      kind: "bounded_diagnosis",
+      status: "in_progress",
+      changeSummary: "Diagnose once",
+      expectedEffect: "Reach a terminal result",
+      rollbackPlan: "Do not retry",
+      budget: { maxObservationMinutes: 30, idempotencyKey: "lifecycle:test" },
+      startedAt: old,
+      updatedAt: old,
+    }).returning();
+    await db.insert(supervisionObservationWindows).values({
+      companyId: refs.companyId,
+      findingId: finding.id,
+      interventionId: intervention.id,
+      status: "running",
+      expectedEffect: "Intervention completes",
+      successCriteria: [{ predicate: "terminal", expected: true }],
+      startsAt: old,
+      endsAt: new Date("2026-08-04T00:30:00Z"),
+    });
+
+    const result = await nativeSupervisionEngine(db).runWatchdog(refs.companyId, new Date("2026-08-04T03:00:00Z"));
+
+    expect(result.reconciledExpiredInterventions).toEqual([
+      expect.objectContaining({ interventionId: intervention.id, status: "escalated", reason: "postcondition_timeout" }),
+    ]);
+    expect(await db.select().from(supervisionInterventions)).toContainEqual(expect.objectContaining({
+      id: intervention.id,
+      status: "escalated",
+      result: expect.objectContaining({ reauthorizationAllowed: false }),
+    }));
+    expect(await db.select().from(supervisionObservationWindows)).toContainEqual(expect.objectContaining({
+      interventionId: intervention.id,
+      status: "inconclusive",
+    }));
   });
 
   it("detects stalled admitted work and deduplicates its finding across cycles", async () => {

@@ -2425,6 +2425,37 @@ describeEmbeddedPostgres("issueService.create workspace inheritance", () => {
       requestDepth: MAX_ISSUE_REQUEST_DEPTH + 100,
     })).rejects.toMatchObject({ status: 422 });
   });
+
+  it("accepts null workspace placeholders while isolated workspaces are disabled but rejects real configuration", async () => {
+    const companyId = randomUUID();
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await instanceSettingsService(db).updateExperimental({ enableIsolatedWorkspaces: false });
+
+    const created = await svc.create(companyId, {
+      title: "Shared checkout task",
+      status: "backlog",
+      priority: "medium",
+      executionWorkspaceId: null,
+      executionWorkspacePreference: null,
+      executionWorkspaceSettings: null,
+    });
+
+    await expect(svc.update(created.id, {
+      description: "Unrelated control-plane update",
+      executionWorkspaceId: null,
+      executionWorkspacePreference: null,
+      executionWorkspaceSettings: null,
+    })).resolves.toMatchObject({ description: "Unrelated control-plane update" });
+
+    await expect(svc.update(created.id, {
+      executionWorkspacePreference: "reuse_existing",
+    })).rejects.toMatchObject({ status: 409 });
+  });
 });
 
 describeEmbeddedPostgres("issueService blockers and dependency wake readiness", () => {

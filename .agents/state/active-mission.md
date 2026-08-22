@@ -1,5 +1,24 @@
 # Active Mission
 
+## 2026-08-21 - Native Assurance Absorption And Lifecycle Closure
+
+- External Codex automations remain read-only assurance. Their external-only
+  fingerprints are now absorbed idempotently into native supervision with
+  source evidence and a native detector/regression-test closure contract; they
+  no longer collapse into one permanently recurring generic gap.
+- Native checks now cover accepted outcomes without delivery tasks, stale
+  intervention lifecycles, and expired observation windows. Bounded
+  interventions that exceed their lifetime are escalated once, their open
+  observations become inconclusive, and reauthorization is explicitly denied.
+- Terminal supervision cycles with a historical missing `finishedAt` can be
+  repaired idempotently instead of remaining half-complete.
+- Isolated execution workspaces remain disabled for the singleton application
+  roots. Null workspace placeholders are accepted as shared-checkout metadata;
+  real isolated-workspace configuration still fails closed. This removes the
+  immediate run-failure regression without weakening the singleton boundary.
+- Admission is intentionally OFF during validation and restart. Reopen it only
+  after strict-port runtime, repository, and hygiene checks pass.
+
 ## 2026-08-21 - Sequential Application Release Admission
 
 - Soar remains in `application_release:v0`; mobile v1 and AI/MCP/agent v2 are
@@ -1414,3 +1433,17 @@ automations active until that evidence accrues; do not fabricate acceptance.
 - Health, topology, workspace boundary, settings, targeted regression, and
   isolated restore evidence pass. Protected production and secret boundaries
   remain fail-closed.
+
+## 2026-08-22 - Native assurance repair is live
+
+- Paperclip `0.3.1` is healthy on the singleton strict topology `3200/54329`.
+  The workspace guard accepts neutral null placeholders and shared runtime
+  bookkeeping, but still rejects real isolated issue configuration while the
+  experimental feature is off.
+- External-only watchdog findings are converted into deduplicated native
+  findings, and native supervision owns bounded accepted-outcome,
+  intervention-timeout, observation-timeout, and cycle-finish reconciliation.
+- Admission is ON after an evidence-gated replay with zero replay failures.
+  Weekly quota is 61%, below the owner's 75% ceiling, and fresh live runs start
+  normally. Keep autonomy graduation empirical: two independently accepted
+  outcomes across two projects and fourteen healthy days are still required.

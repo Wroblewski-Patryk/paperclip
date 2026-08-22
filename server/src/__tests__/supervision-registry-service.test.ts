@@ -8,6 +8,7 @@ import {
   supervisionEvidenceRefs,
   supervisionFindings,
   supervisionRecurrences,
+  supervisionCycles,
   supervisionShadowComparisons,
 } from "@paperclipai/db";
 import { supervisionRegistryService } from "../services/supervision-registry.js";
@@ -162,7 +163,7 @@ describeEmbedded("PostgreSQL supervision registry", () => {
     expect(closed?.closedFindings[0].retainedUntil).toBeInstanceOf(Date);
   });
 
-  it("stores an idempotent shadow comparison without creating an external backlog", async () => {
+  it("stores an idempotent shadow comparison and absorbs external-only evidence into native supervision", async () => {
     const refs = await seed();
     const svc = supervisionRegistryService(db);
     await svc.upsertFinding(refs.companyId, finding(refs.ownerAgentId));
@@ -182,7 +183,33 @@ describeEmbedded("PostgreSQL supervision registry", () => {
     expect(first.comparison).toMatchObject({ status: "attention_required", matchedFingerprints: ["runtime:stalled-run:agent-1"], onlyExternal: ["external:reward-hacking"] });
     expect(first.comparison.severityMismatches).toHaveLength(1);
     expect(await db.select().from(supervisionShadowComparisons)).toHaveLength(1);
-    expect(await db.select().from(supervisionFindings)).toHaveLength(1);
+    expect(await db.select().from(supervisionFindings)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fingerprint: "external:reward-hacking", sourceKind: "external_assurance", status: "admission_pending" }),
+    ]));
+    expect(await db.select().from(supervisionFindings)).toHaveLength(2);
+    expect(first.absorbedFindings).toHaveLength(1);
+  });
+
+  it("backfills a missing cycle finish timestamp idempotently", async () => {
+    const refs = await seed();
+    const svc = supervisionRegistryService(db);
+    const started = await svc.createCycle(refs.companyId, {
+      sourceKind: "native_watchdog",
+      externalCycleId: "finish-backfill",
+      triggerKind: "test",
+      budget: {},
+      expiresAt: null,
+    });
+    await db.update(supervisionCycles).set({ status: "completed", finishedAt: null }).where(sql`${supervisionCycles.id} = ${started.cycle.id}`);
+
+    const finished = await svc.finishCycle(started.cycle.id, {
+      status: "completed",
+      metrics: { checks: 1 },
+      summary: "Recovered terminal timestamp",
+    });
+
+    expect(finished).toMatchObject({ status: "completed", metrics: { checks: 1 }, summary: "Recovered terminal timestamp" });
+    expect(finished?.finishedAt).toBeInstanceOf(Date);
   });
 
   it("maps known external assurance names to their native detector fingerprints", async () => {

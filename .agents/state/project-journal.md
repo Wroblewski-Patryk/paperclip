@@ -469,3 +469,56 @@ evidence.
   scope and LUC-2726 Roost evidence cleanup) plus five AIA preparation items.
   Neither the resolved SMTP incident nor the stale branch proposal remains in
   the ready queue.
+
+### 2026-08-21 - External assurance became native, bounded control
+
+- A fail-closed workspace guard introduced an unintended regression: internal
+  issue payloads commonly carry explicit `null` placeholders while isolated
+  workspaces are disabled, and those harmless values were rejected as if they
+  requested an isolated checkout. This caused immediate `adapter_failed`
+  runs before agents could start useful work. Null placeholders are accepted
+  again, while every non-null isolated-workspace request still returns 409.
+- Shadow assurance comparison now preserves its read-only role but converts
+  every external-only fingerprint into one native, deduplicated finding with
+  provenance and explicit native-detector/root-cause/regression closure
+  requirements. Known watchdog/Doctor aliases map to canonical detectors for
+  runnable dispatch, accepted-outcome task linkage, intervention lifetime,
+  observation completion, orphan locks, and cost telemetry.
+- Native supervision gained deterministic sensors for accepted outcomes with
+  no delivery task, stale active interventions, and overdue observation
+  windows. Expired interventions now become `escalated` exactly once, any open
+  observation becomes `inconclusive`, and the persisted result forbids
+  reauthorization. This closes the previously reported timeout and retry loop
+  rather than merely documenting it.
+- Cycle finalization is now idempotent when an already-terminal historical row
+  lacks `finishedAt`, eliminating half-complete control-plane evidence.
+- Regression evidence: 94 targeted PostgreSQL/service tests passed, including
+  null-placeholder admission, external absorption, lifecycle expiry, and cycle
+  timestamp recovery. Server typecheck passed.
+
+### 2026-08-22 - Workspace boundary repair and live reopen proof
+
+- Full serialized regression exposed two additional forms of the same
+  workspace-boundary defect. Shared runtime workspaces were still copied back
+  into issue-level `executionWorkspaceId` or `reuse_existing` settings while
+  isolated workspaces were disabled. Heartbeat now retains the runtime
+  workspace for tracing and resource claims without persisting isolated issue
+  configuration when the feature is off.
+- Accepted-plan continuation passes 4/4, workspace resource-claim contention
+  passes 9/9, and the combined issue/workspace/heartbeat regression passes
+  80/80. Genuine non-null isolated-workspace configuration still returns 409.
+- A replay test previously returned while its background heartbeat transaction
+  was still running, allowing teardown to deadlock PostgreSQL. It now waits for
+  the replayed run to reach `succeeded`; admission-control passes 14/14 without
+  leaving a transaction behind.
+- Test hygiene recognizes the bounded serialized-validation log as an owned
+  recent artifact. Stale test directories and the log were removed through the
+  validated janitor; the follow-up audit reports zero candidates.
+- One orphaned canonical PostgreSQL `io_worker` remained after its parent had
+  exited. The exact verified orphan PID was terminated; Paperclip then started
+  normally on strict `3200/54329`. Runtime topology and workspace-boundary
+  audits pass (Docker inventory remains advisory while Docker Desktop is off).
+- Admission reopened through the normal evidence-gated ON transition at 61%
+  weekly quota. Replay inspected seven requests, queued two, rejected five,
+  failed zero, and reduced deferred work to zero. Fresh AIA and CTO runs began
+  successfully instead of failing at workspace setup.

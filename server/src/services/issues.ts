@@ -4697,9 +4697,13 @@ export function issueService(db: Db) {
       } = data;
       const isolatedWorkspacesEnabled = (await instanceSettings.getExperimental()).enableIsolatedWorkspaces;
       if (!isolatedWorkspacesEnabled) {
-        delete issueData.executionWorkspaceId;
-        delete issueData.executionWorkspacePreference;
-        delete issueData.executionWorkspaceSettings;
+        if (
+          issueData.executionWorkspaceId != null ||
+          issueData.executionWorkspacePreference != null ||
+          issueData.executionWorkspaceSettings != null
+        ) {
+          throw conflict("Isolated execution workspace configuration is disabled for this instance");
+        }
       }
       if (data.assigneeAgentId && data.assigneeUserId) {
         throw unprocessable("Issue can only have one assignee");
@@ -4959,9 +4963,13 @@ export function issueService(db: Db) {
       if (expectedStatus !== undefined && existing.status !== expectedStatus) return null;
       const isolatedWorkspacesEnabled = (await instanceSettings.getExperimental()).enableIsolatedWorkspaces;
       if (!isolatedWorkspacesEnabled) {
-        delete issueData.executionWorkspaceId;
-        delete issueData.executionWorkspacePreference;
-        delete issueData.executionWorkspaceSettings;
+        if (
+          issueData.executionWorkspaceId != null ||
+          issueData.executionWorkspacePreference != null ||
+          issueData.executionWorkspaceSettings != null
+        ) {
+          throw conflict("Isolated execution workspace configuration is disabled for this instance");
+        }
       }
 
       if (issueData.status) {

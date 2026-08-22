@@ -351,6 +351,8 @@ class AdminPagesFeatureTest {
     const graph = JSON.parse(await readFile(path.join(root, "docs", "graphs", "architecture-awareness.json"), "utf8"));
     const entityByPath = new Map(graph.entities.map((entity) => [entity.path, entity]));
     const entityById = new Map(graph.entities.map((entity) => [entity.id, entity]));
+    assert.equal(entityByPath.has('tests/Feature/AccountAccessFeatureTest.php#AccountAccessFeatureTest'), false);
+    assert.equal(entityByPath.has('tests/Feature/AdminPagesFeatureTest.php#AdminPagesFeatureTest'), false);
     const login = entityByPath.get("routes/web.php#login");
     const home = entityByPath.get("routes/web.php#/");
     const install = entityByPath.get("routes/web.php#install");

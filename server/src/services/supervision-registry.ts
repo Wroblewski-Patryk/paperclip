@@ -38,6 +38,25 @@ const TERMINAL_FINDING_STATUSES = [
   "resolved", "closed", "no_action", "duplicate", "accepted_risk", "not_worth_doing", "archived",
 ] as const;
 
+function canonicalExternalFingerprint(companyId: string, fingerprint: string) {
+  if (fingerprint === "external:orphan_execution_locks") return `orphan_execution_lock:${companyId}`;
+  if (fingerprint === "external:cost_telemetry_zero_with_accepted_outcomes") return `cost_telemetry_gap:${companyId}`;
+  if (fingerprint === "external:accepted_outcome_without_task") return `accepted_outcome_without_task:${companyId}`;
+  if (fingerprint === "external:false_green_healthy_no_op_with_eligible_work") return `runnable_dispatch_gap:${companyId}`;
+  if (["external:observation_completion_integrity_gap", "external:intervention_observation_timeout_unreconciled"].includes(fingerprint)) {
+    return `observation_completion_gap:${companyId}`;
+  }
+  if (fingerprint === "external:failed_intervention_reauthorization_loop") return `intervention_lifecycle_gap:${companyId}`;
+  return fingerprint;
+}
+
+function externalProblemClass(fingerprint: string) {
+  return fingerprint
+    .replace(/^external:/, "")
+    .replace(/[^a-zA-Z0-9_-]+/g, "_")
+    .slice(0, 200) || "external_assurance_gap";
+}
+
 function asDate(value: string | null | undefined) {
   return value ? new Date(value) : null;
 }
@@ -394,7 +413,10 @@ export function supervisionRegistryService(db: Db) {
         summary: data.summary,
         finishedAt: new Date(),
         updatedAt: new Date(),
-      }).where(and(eq(supervisionCycles.id, id), eq(supervisionCycles.status, "running")))
+      }).where(and(
+        eq(supervisionCycles.id, id),
+        sql`(${supervisionCycles.status} = 'running' or (${supervisionCycles.status} = ${data.status} and ${supervisionCycles.finishedAt} is null))`,
+      ))
         .returning().then((rows) => rows[0] ?? null);
     },
 
@@ -591,14 +613,11 @@ export function supervisionRegistryService(db: Db) {
           notInArray(supervisionFindings.status, ["closed", "resolved", "no_action", "duplicate", "accepted_risk", "not_worth_doing"]),
         ));
       const nativeMap = new Map(native.map((finding) => [finding.fingerprint, finding.severity]));
-      const externalMap = new Map(data.externalFindings.map((finding) => {
-        const fingerprint = finding.fingerprint === "external:orphan_execution_locks"
-          ? `orphan_execution_lock:${companyId}`
-          : finding.fingerprint === "external:cost_telemetry_zero_with_accepted_outcomes"
-            ? `cost_telemetry_gap:${companyId}`
-            : finding.fingerprint;
-        return [fingerprint, finding.severity] as const;
-      }));
+      const externalDetails = new Map(data.externalFindings.map((finding) => [
+        canonicalExternalFingerprint(companyId, finding.fingerprint),
+        finding,
+      ] as const));
+      const externalMap = new Map([...externalDetails].map(([fingerprint, finding]) => [fingerprint, finding.severity] as const));
       const matchedFingerprints = [...nativeMap.keys()].filter((fingerprint) => externalMap.has(fingerprint)).sort();
       const onlyNative = [...nativeMap.keys()].filter((fingerprint) => !externalMap.has(fingerprint)).sort();
       const onlyExternal = [...externalMap.keys()].filter((fingerprint) => !nativeMap.has(fingerprint)).sort();
@@ -612,7 +631,54 @@ export function supervisionRegistryService(db: Db) {
         matchedFingerprints, onlyNative, onlyExternal, severityMismatches,
         metrics: { nativeCount: native.length, externalCount: externalMap.size, matchedCount: matchedFingerprints.length, onlyNativeCount: onlyNative.length, onlyExternalCount: onlyExternal.length, severityMismatchCount: severityMismatches.length },
       }).returning().then((rows) => rows[0]);
-      return { comparison, created: true };
+      const absorbedFindings: string[] = [];
+      for (const fingerprint of onlyExternal) {
+        const external = externalDetails.get(fingerprint);
+        if (!external) continue;
+        const absorbed = await supervisionRegistryService(db).upsertFinding(companyId, {
+          fingerprint,
+          problemClass: externalProblemClass(fingerprint),
+          severity: external.severity,
+          status: "admission_pending",
+          classification: "external_assurance",
+          sourceKind: "external_assurance",
+          sourceRef: `supervision_shadow_comparison:${comparison.id}`,
+          title: external.title ?? `External assurance gap: ${externalProblemClass(fingerprint)}`,
+          summary: `External assurance detected a condition that had no native finding. The native control plane absorbed it for bounded diagnosis and must add or verify a deterministic detector before closure. Source: ${data.externalSource}.`,
+          affectedComponent: "supervision_integrity",
+          projectId: null,
+          issueId: null,
+          deliveryId: null,
+          deliveryTaskId: null,
+          affectedAgentId: null,
+          ownerAgentId: null,
+          ownerUserId: null,
+          admissionDecisionId: null,
+          rootCauseId: null,
+          nativeSafeguardId: null,
+          retryCount: 0,
+          economics: { risk: external.severity, retryBudget: 1, stopBoundary: "Require a native detector or an explicit governed disposition; do not create a parallel external backlog." },
+          decision: {
+            externalInterventionRequired: true,
+            externalSource: data.externalSource,
+            externalCycleId: data.externalCycleId,
+            shadowComparisonId: comparison.id,
+            requiredClosureEvidence: ["native_detector", "root_cause_or_disposition", "regression_test"],
+          },
+          recoveryState: "detected",
+          evidence: [{
+            sourceKind: "supervision_shadow_comparison",
+            sourceRef: `supervision_shadow_comparison:${comparison.id}`,
+            label: external.title ?? fingerprint,
+            metadata: { externalSource: data.externalSource, externalCycleId: data.externalCycleId, originalFingerprint: external.fingerprint },
+          }],
+          recurrenceEvidence: { detector: "external-assurance-absorption", shadowComparisonId: comparison.id },
+          runId: null,
+          cycleId: data.nativeCycleId,
+        });
+        absorbedFindings.push(absorbed.finding.id);
+      }
+      return { comparison, created: true, absorbedFindings };
     },
 
     async snapshot(companyId: string) {

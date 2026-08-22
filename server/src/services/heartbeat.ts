@@ -9383,11 +9383,22 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     if (issueId && persistedExecutionWorkspace) {
       const nextIssueWorkspaceMode = issueExecutionWorkspaceModeForPersistedWorkspace(persistedExecutionWorkspace.mode);
       const shouldSwitchIssueToExistingWorkspace =
-        issueRef?.executionWorkspacePreference === "reuse_existing" ||
-        requestedExecutionWorkspaceMode === "isolated_workspace" ||
-        requestedExecutionWorkspaceMode === "operator_branch";
+        isolatedWorkspacesEnabled &&
+        (
+          issueRef?.executionWorkspacePreference === "reuse_existing" ||
+          requestedExecutionWorkspaceMode === "isolated_workspace" ||
+          requestedExecutionWorkspaceMode === "operator_branch"
+        );
       const nextIssuePatch: Record<string, unknown> = {};
-      if (issueRef?.executionWorkspaceId !== persistedExecutionWorkspace.id) {
+      // Shared checkout execution still has a persisted runtime workspace for
+      // tracing and resource claims, but it is not issue-level isolated
+      // workspace configuration. Do not feed that internal id back through
+      // the issue mutation boundary while the isolated-workspace feature is
+      // disabled.
+      if (
+        isolatedWorkspacesEnabled &&
+        issueRef?.executionWorkspaceId !== persistedExecutionWorkspace.id
+      ) {
         nextIssuePatch.executionWorkspaceId = persistedExecutionWorkspace.id;
       }
       if (resolvedProjectWorkspaceId && issueRef?.projectWorkspaceId !== resolvedProjectWorkspaceId) {

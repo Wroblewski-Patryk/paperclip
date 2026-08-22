@@ -495,6 +495,11 @@ describeEmbeddedPostgres("accepted plan workspace refresh", () => {
       otherActiveClaimIssueId: otherPlanningIssueId,
       otherActiveClaimIdentifier: "PAP-9302",
     }));
+    const [persistedSharedIssue] = await db
+      .select({ executionWorkspaceId: issues.executionWorkspaceId })
+      .from(issues)
+      .where(eq(issues.id, issueId));
+    expect(persistedSharedIssue?.executionWorkspaceId).toBeNull();
     expect(adapterInput.context.paperclipTaskMarkdown).toContain("Make the plan only.");
     expect(adapterInput.context.paperclipTaskMarkdown).not.toContain("Create child issues from the approved plan only");
   }, 20_000);

@@ -12,6 +12,7 @@ import {
   productDeliveries,
   supervisionFindings,
   supervisionInterventions,
+  supervisionObservationWindows,
 } from "@paperclipai/db";
 import { admissionControlService } from "./admission-control.js";
 import { supervisionRegistryService } from "./supervision-registry.js";
@@ -165,7 +166,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const old24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const reviewDispatchThreshold = new Date(now.getTime() - 15 * 60 * 1000);
     const old2h = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-    const [runningWithoutAdmission, runawayRetries, stalledReady, orphanTasks, orphanDeliveries, reviewBottlenecks, stalledBlockedChains, deploymentBottlenecks, staleRoost, duplicateRoutines, excessiveWip, activeSevereFindings, orphanExecutionLocks, evidenceFreeDone, untypedAcceptedOutcomes, taskOutcomeStateGap, costTelemetryGap, externalShadowGap, dispatchCapacityGap, runnableDispatchGap] = await Promise.all([
+    const [runningWithoutAdmission, runawayRetries, stalledReady, orphanTasks, orphanDeliveries, reviewBottlenecks, stalledBlockedChains, deploymentBottlenecks, staleRoost, duplicateRoutines, excessiveWip, activeSevereFindings, orphanExecutionLocks, evidenceFreeDone, untypedAcceptedOutcomes, taskOutcomeStateGap, acceptedOutcomeWithoutTask, costTelemetryGap, interventionLifecycleGap, observationCompletionGap, externalShadowGap, dispatchCapacityGap, runnableDispatchGap] = await Promise.all([
       scalar(companyId, sql`select count(*)::int from heartbeat_runs where company_id=${companyId} and status='running' and admission_decision_id is null`),
       scalar(companyId, sql`select count(*)::int from heartbeat_runs where company_id=${companyId} and status in ('queued','running','scheduled_retry') and greatest(process_loss_retry_count, scheduled_retry_attempt, continuation_attempt) > 2`),
       scalar(companyId, sql`select count(*)::int from product_deliveries d where d.company_id=${companyId} and d.stage in ('admitted','implementing') and d.updated_at < ${old2h.toISOString()}::timestamptz and not exists (select 1 from heartbeat_runs r where r.company_id=d.company_id and r.status in ('queued','running') and r.context_snapshot->>'projectId'=d.project_id::text)`),
@@ -271,6 +272,16 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
         where o.company_id=${companyId}
           and o.status in ('accepted','accepted_with_risk')
           and not exists (
+            select 1 from delivery_tasks dt
+            where dt.company_id=o.company_id and dt.delivery_id=o.delivery_id
+          )
+      `),
+      scalar(companyId, sql`
+        select count(*)::int
+        from product_outcomes o
+        where o.company_id=${companyId}
+          and o.status in ('accepted','accepted_with_risk')
+          and not exists (
             select 1
             from delivery_tasks dt
             join cost_events c
@@ -281,11 +292,39 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
           )
       `),
       scalar(companyId, sql`
-        select coalesce(jsonb_array_length(only_external),0)::int as count
-        from supervision_shadow_comparisons
-        where company_id=${companyId}
-        order by compared_at desc
-        limit 1
+        select count(*)::int
+        from supervision_interventions intervention
+        where intervention.company_id=${companyId}
+          and intervention.status in ('authorized','in_progress')
+          and coalesce(intervention.started_at, intervention.updated_at, intervention.created_at) < ${old2h.toISOString()}::timestamptz
+      `),
+      scalar(companyId, sql`
+        select count(*)::int
+        from supervision_observation_windows observation
+        where observation.company_id=${companyId}
+          and observation.status in ('scheduled','running')
+          and observation.ends_at < ${now.toISOString()}::timestamptz
+      `),
+      scalar(companyId, sql`
+        select count(*)::int
+        from (
+          select jsonb_array_elements_text(latest.only_external) as fingerprint
+          from (
+            select only_external
+            from supervision_shadow_comparisons
+            where company_id=${companyId}
+            order by compared_at desc
+            limit 1
+          ) latest
+        ) external_gap
+        where not exists (
+          select 1
+          from supervision_findings native_finding
+          where native_finding.company_id=${companyId}
+            and native_finding.fingerprint=external_gap.fingerprint
+            and native_finding.archived_at is null
+            and native_finding.status not in ('closed','resolved','no_action','duplicate','accepted_risk','not_worth_doing','archived')
+        )
       `),
       scalar(companyId, sql`
         select count(*)::int
@@ -371,14 +410,17 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       ["completion_evidence", "Done issues lack typed completion evidence", "evidence_completeness", evidenceFreeDone, "high", "evidence_integrity", "Terminal issue work must carry inspectable test, review, and documentation evidence.", true],
       ["outcome_predicates", "Accepted outcomes bypassed typed predicates", "outcome_acceptance_gap", untypedAcceptedOutcomes, "critical", "outcome_integrity", "Accepted outcomes must carry delivery-specific predicate evaluation and an acceptance decision.", true],
       ["task_outcome_reconciliation", "Task state conflicts with an accepted outcome", "task_outcome_state_gap", taskOutcomeStateGap, "high", "outcome_integrity", "A non-terminal task is linked to an accepted delivery outcome and must be reconciled from typed evidence before it can be dispatched or closed.", true],
+      ["accepted_outcome_task_linkage", "Accepted outcomes have no delivery task", "accepted_outcome_without_task", acceptedOutcomeWithoutTask, "high", "outcome_integrity", "Every accepted outcome must remain traceable to at least one bounded delivery task.", true],
       ["cost_telemetry", "Accepted outcomes have no cost telemetry", "cost_telemetry_gap", costTelemetryGap, "high", "economics", "Accepted outcomes without a cost event make efficiency and waste reporting untrustworthy.", true],
+      ["intervention_lifecycle", "Authorized interventions exceeded their bounded lifetime", "intervention_lifecycle_gap", interventionLifecycleGap, "high", "supervision_integrity", "An authorized or in-progress intervention must reach a terminal state instead of being reauthorized or waiting indefinitely.", true],
+      ["observation_completion", "Observation windows expired without reconciliation", "observation_completion_gap", observationCompletionGap, "high", "supervision_integrity", "Expired supervision observation windows must be completed with an evidence-backed terminal result.", true],
       ["external_shadow_gap", "External assurance found native coverage gaps", "external_assurance_gap", externalShadowGap, "high", "supervision_integrity", "The newest shadow comparison contains external-only findings that native supervision must absorb.", true],
       ["dispatch_capacity", "Ready review has no active dispatch path", "dispatch_capacity_gap", dispatchCapacityGap, "critical", "dispatch_flow", "Review work exceeded the 15-minute dispatch SLA without a structured decision path, active owner run, or scheduler heartbeat."],
       ["runnable_dispatch", "Dispatch-eligible assigned work has no active owner lane", "runnable_dispatch_gap", runnableDispatchGap, "high", "dispatch_flow", "Assigned backlog or todo work passes local scheduler exclusions, but its owner has no scheduler heartbeat or live run; priority and dependency readiness still require diagnosis."],
     ];
     return specs
-      .filter(([key]) => expanded || ["admission_coverage", "runaway_retry", "stalled_ready_work", "review_bottleneck", "blocked_attention", "active_findings_guard", "orphan_execution_locks", "completion_evidence", "outcome_predicates", "task_outcome_reconciliation", "cost_telemetry", "external_shadow_gap", "dispatch_capacity", "runnable_dispatch"].includes(key))
-      .map(([key, title, problemClass, count, severity, classification, summary]) => ({ key, title, problemClass, count, severity, classification, summary, status: count === 0 ? "passed" : severity === "warning" ? "warning" : "failed", requiresDiagnosis: ["admission_gap", "runaway_loop", "stalled_ready_work", "review_bottleneck", "blocked_chain_stalled", "deployment_bottleneck", "orphan_execution_lock", "evidence_completeness", "outcome_acceptance_gap", "task_outcome_state_gap", "cost_telemetry_gap", "external_assurance_gap"].includes(problemClass) }));
+      .filter(([key]) => expanded || ["admission_coverage", "runaway_retry", "stalled_ready_work", "review_bottleneck", "blocked_attention", "active_findings_guard", "orphan_execution_locks", "completion_evidence", "outcome_predicates", "task_outcome_reconciliation", "accepted_outcome_task_linkage", "cost_telemetry", "intervention_lifecycle", "observation_completion", "external_shadow_gap", "dispatch_capacity", "runnable_dispatch"].includes(key))
+      .map(([key, title, problemClass, count, severity, classification, summary]) => ({ key, title, problemClass, count, severity, classification, summary, status: count === 0 ? "passed" : severity === "warning" ? "warning" : "failed", requiresDiagnosis: ["admission_gap", "runaway_loop", "stalled_ready_work", "review_bottleneck", "blocked_chain_stalled", "deployment_bottleneck", "orphan_execution_lock", "evidence_completeness", "outcome_acceptance_gap", "task_outcome_state_gap", "accepted_outcome_without_task", "cost_telemetry_gap", "intervention_lifecycle_gap", "observation_completion_gap", "external_assurance_gap"].includes(problemClass) }));
   }
 
   async function collectReviewDispatchCandidates(companyId: string, now: Date): Promise<ReviewDispatchCandidate[]> {
@@ -603,6 +645,53 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       results.push({ interventionId: intervention.id, status: "verified", observationWindowId: window.id, learningDisposition: learning?.disposition });
     }
     return results;
+  }
+
+  async function reconcileExpiredInterventionLifecycles(companyId: string, now: Date) {
+    const active = await db.select().from(supervisionInterventions).where(and(
+      eq(supervisionInterventions.companyId, companyId),
+      inArray(supervisionInterventions.status, ["authorized", "in_progress"]),
+    ));
+    const reconciled: Array<Record<string, unknown>> = [];
+    for (const intervention of active) {
+      const budget = intervention.budget as { maxObservationMinutes?: number };
+      const maxObservationMinutes = Number.isFinite(budget.maxObservationMinutes)
+        ? Math.max(1, Number(budget.maxObservationMinutes))
+        : 120;
+      const lifecycleStartedAt = intervention.startedAt ?? intervention.updatedAt ?? intervention.createdAt;
+      if (now.getTime() - lifecycleStartedAt.getTime() <= maxObservationMinutes * 60_000) continue;
+
+      await registry.updateIntervention(intervention.id, {
+        status: "escalated",
+        result: {
+          reason: "postcondition_timeout",
+          reconciledAt: now.toISOString(),
+          maxObservationMinutes,
+          reauthorizationAllowed: false,
+        },
+        evidence: [{
+          sourceKind: "database_check",
+          sourceRef: `supervision_intervention:${intervention.id}:lifecycle-timeout`,
+          label: "Bounded intervention lifetime expired",
+          metadata: { lifecycleStartedAt: lifecycleStartedAt.toISOString(), checkedAt: now.toISOString(), maxObservationMinutes },
+        }],
+      });
+      await db.update(supervisionObservationWindows).set({
+        status: "inconclusive",
+        measurements: [{ predicate: "intervention_completed_within_budget", value: false }],
+        conclusion: "The intervention exceeded its bounded observation lifetime and was escalated without reauthorization.",
+        observedAt: now,
+        updatedAt: now,
+      }).where(and(
+        eq(supervisionObservationWindows.companyId, companyId),
+        eq(supervisionObservationWindows.interventionId, intervention.id),
+        inArray(supervisionObservationWindows.status, ["scheduled", "running"]),
+      ));
+      await db.update(supervisionFindings).set({ status: "needs_decision", recoveryState: "blocked", updatedAt: now })
+        .where(eq(supervisionFindings.id, intervention.findingId));
+      reconciled.push({ interventionId: intervention.id, status: "escalated", reason: "postcondition_timeout" });
+    }
+    return reconciled;
   }
 
   async function dispatchReviewCandidate(
@@ -1063,10 +1152,11 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const key = cycleKey(kind, now);
     await autonomy.refreshGovernanceExpirations(companyId);
     const reconciledAutonomyExecutions = await autonomy.reconcileExecutions(companyId);
+    const reconciledExpiredInterventions = await reconcileExpiredInterventionLifecycles(companyId, now);
     const verifiedReviewInterventions = await reconcileReviewDispatchInterventions(companyId, now);
     const reconciledDependencyEvidence = await reconcileDependencyEvidence(companyId, now);
     const started = await registry.createCycle(companyId, { sourceKind: kind, externalCycleId: key, triggerKind: kind === "native_watchdog" ? "scheduler" : "daily_schedule", budget: { llmCalls: 0, maxFindings: 100 }, expiresAt: new Date(now.getTime() + 15 * 60_000).toISOString() });
-    if (!started.created) return { cycle: started.cycle, deduplicated: true, checks: [] as CheckResult[], findings: [] as string[], doctorDispatches: [] as unknown[], verifiedReviewInterventions };
+    if (!started.created) return { cycle: started.cycle, deduplicated: true, checks: [] as CheckResult[], findings: [] as string[], doctorDispatches: [] as unknown[], verifiedReviewInterventions, reconciledExpiredInterventions };
     const checks = await collectChecks(companyId, now, kind === "daily_integrity");
     const findings: string[] = [];
     const reconciledFindings: string[] = [];
@@ -1143,7 +1233,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       : activeCanaryAuthorization
         ? await autonomy.dispatchAuthorized(autonomyDecision.decision.id, activeCanaryAuthorization.id)
         : { status: "NOT_AUTHORIZED" as const, reason: autonomyDecision.decision.reasonCode };
-    const nativeActionCount = orphanLockRecoveries.length + orphanTaskRoutes.length + reviewDispatches.filter((item) => item.status === "dispatched").length + verifiedReviewInterventions.length + (reconciledDependencyEvidence.length > 0 ? 1 : 0);
+    const nativeActionCount = orphanLockRecoveries.length + orphanTaskRoutes.length + reviewDispatches.filter((item) => item.status === "dispatched").length + verifiedReviewInterventions.length + reconciledExpiredInterventions.length + (reconciledDependencyEvidence.length > 0 ? 1 : 0);
     const homeostasis = {
       runtimeHealth: evaluateHomeostasisDimension(checks, ["admission_coverage", "runaway_retry", "orphan_execution_locks"]),
       dispatchHealth: evaluateHomeostasisDimension(checks, ["dispatch_capacity", "runnable_dispatch", "stalled_ready_work", "review_bottleneck", "blocked_attention"]),
@@ -1183,7 +1273,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       },
       outcome: failed > 0 ? "attention_required" : Object.values(homeostasis).some((dimension) => dimension.state === "unknown") ? "insufficient_sensor_coverage" : "observed_healthy",
     };
-    const cycle = await registry.finishCycle(started.cycle.id, { status: "completed", metrics: { checks: checks.length, failed, warnings, passed: checks.length - failed - warnings, findings: findings.length, reconciledFindings, orphanLockRecoveries: orphanLockRecoveries.length, orphanTaskRoutes: orphanTaskRoutes.length, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledDependencyEvidence: reconciledDependencyEvidence.length, reconciledAutonomyExecutions: reconciledAutonomyExecutions.length, homeostasis, currentConstraint, controlLoops, internalControlLane, autonomyDecision: { id: autonomyDecision.decision.id, mode: autonomyDecision.decision.mode, disposition: autonomyDecision.decision.disposition, reasonCode: autonomyDecision.decision.reasonCode, envelopeId: autonomyDecision.envelope.id, constraintId: autonomyDecision.constraint.id, created: autonomyDecision.created, dispatch: autonomyDispatch }, nextLegalActions: { contractVersion: nextActionProjection.contractVersion, distribution: nextActionProjection.distribution, blockedReasons: nextActionProjection.blockedReasons, currentConstraint: nextActionProjection.currentConstraint }, liveness: nextActionProjection.liveness, shadowDispatch: nextActionProjection.shadowDispatch, ...(dailyRuntime ? { sessionEconomics: dailyRuntime } : {}), llmCalls: 0 }, summary: `${kind}: ${failed} failed, ${warnings} warnings, ${findings.length} linked findings, ${reconciledFindings.length} reconciled findings, ${nativeActionCount} native actions; decision=${autonomyDecision.decision.mode}/${autonomyDecision.decision.disposition}.` });
+    const cycle = await registry.finishCycle(started.cycle.id, { status: "completed", metrics: { checks: checks.length, failed, warnings, passed: checks.length - failed - warnings, findings: findings.length, reconciledFindings, orphanLockRecoveries: orphanLockRecoveries.length, orphanTaskRoutes: orphanTaskRoutes.length, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledDependencyEvidence: reconciledDependencyEvidence.length, reconciledAutonomyExecutions: reconciledAutonomyExecutions.length, homeostasis, currentConstraint, controlLoops, internalControlLane, autonomyDecision: { id: autonomyDecision.decision.id, mode: autonomyDecision.decision.mode, disposition: autonomyDecision.decision.disposition, reasonCode: autonomyDecision.decision.reasonCode, envelopeId: autonomyDecision.envelope.id, constraintId: autonomyDecision.constraint.id, created: autonomyDecision.created, dispatch: autonomyDispatch }, nextLegalActions: { contractVersion: nextActionProjection.contractVersion, distribution: nextActionProjection.distribution, blockedReasons: nextActionProjection.blockedReasons, currentConstraint: nextActionProjection.currentConstraint }, liveness: nextActionProjection.liveness, shadowDispatch: nextActionProjection.shadowDispatch, ...(dailyRuntime ? { sessionEconomics: dailyRuntime } : {}), llmCalls: 0 }, summary: `${kind}: ${failed} failed, ${warnings} warnings, ${findings.length} linked findings, ${reconciledFindings.length} reconciled findings, ${nativeActionCount} native actions; decision=${autonomyDecision.decision.mode}/${autonomyDecision.decision.disposition}.` });
     const controlObservationAliases: Record<string, string> = {
       runaway_retry: "retry",
       orphan_tasks: "orphan_task",
@@ -1201,7 +1291,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
         evidenceRefs: [`supervision_cycle:${started.cycle.id}`],
       }])),
     });
-    return { cycle, deduplicated: false, checks, controlMatrix, findings, doctorDispatches, stalledReadyDispatches, orphanLockRecoveries, orphanTaskRoutes, reviewDispatch, reviewDispatches, verifiedReviewInterventions };
+    return { cycle, deduplicated: false, checks, controlMatrix, findings, doctorDispatches, stalledReadyDispatches, orphanLockRecoveries, orphanTaskRoutes, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions };
   }
 
   async function dispatchDoctor(findingId: string, now = new Date()) {

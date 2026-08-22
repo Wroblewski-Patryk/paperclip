@@ -17,7 +17,7 @@ if ($tempRoot -ne $resolvedTempRoot) {
 
 $cutoff = (Get-Date).AddHours(-$MinAgeHours)
 $namePattern = '^(?i)(pcvt-|paperclip|soar|roost|featherly|vitest|pglite|postgres)'
-$ownedRecentTestPattern = '^(?i)(pcvt-\d+-\d+-[A-Za-z0-9]+|paperclip-(?:activity-service|runtime-[A-Za-z0-9-]+|worktree-[A-Za-z0-9-]+)-[A-Za-z0-9]+)$'
+$ownedRecentTestPattern = '^(?i)(pcvt-\d+-\d+-[A-Za-z0-9]+|paperclip-(?:activity-service|runtime-[A-Za-z0-9-]+|worktree-[A-Za-z0-9-]+)-[A-Za-z0-9]+|paperclip-serialized-validation\.log)$'
 $repoDisposableNamePattern = '^(?i)(tmp-.+|(?:cto-)?closeout(?:-.+)?\.md|completion-evidence(?:-.+)?\.json|\.paperclip-dev-(?:restart|start).*\.log|coolify(?:\..+)?\.(?:html|txt))$'
 $candidates = @(
   Get-ChildItem -LiteralPath $tempRoot -Force -ErrorAction Stop |

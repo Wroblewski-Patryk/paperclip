@@ -1166,17 +1166,22 @@ for (const file of files) {
       addRelation(relations, entity, functionEntity, "implements", relativePath);
     }
 
-    for (const match of text.matchAll(classPattern)) {
-      const classEntity = addEntity(entities, {
-        type: "feature",
-        name: match[1],
-        path: `${relativePath}#${match[1]}`,
-        description: "Class inferred from source code.",
-        status: "implemented",
-        evidence: [relativePath],
-      });
-      fileEntityByPath.set(classEntity.path, classEntity);
-      addRelation(relations, entity, classEntity, "implements", relativePath);
+    // Test files are already represented by their runnable test entity. Their
+    // class declarations are test implementation details, not product
+    // boundaries, and must not become app-completion feature candidates.
+    if (!isTest) {
+      for (const match of text.matchAll(classPattern)) {
+        const classEntity = addEntity(entities, {
+          type: "feature",
+          name: match[1],
+          path: `${relativePath}#${match[1]}`,
+          description: "Class inferred from source code.",
+          status: "implemented",
+          evidence: [relativePath],
+        });
+        fileEntityByPath.set(classEntity.path, classEntity);
+        addRelation(relations, entity, classEntity, "implements", relativePath);
+      }
     }
     if (ext === ".prisma") {
       for (const match of text.matchAll(prismaModelPattern)) {

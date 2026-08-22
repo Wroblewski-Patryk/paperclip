@@ -415,7 +415,15 @@ describeEmbeddedPostgres("native admission control", () => {
     });
     const requests = await db.select().from(agentWakeupRequests);
     expect(requests.filter((row) => row.replayResult === "coalesced_on_reopen")).toHaveLength(2);
-    expect(await db.select().from(heartbeatRuns)).toHaveLength(1);
+    const [replayedRun] = await db.select().from(heartbeatRuns);
+    expect(replayedRun).toBeDefined();
+    await vi.waitFor(async () => {
+      const [settledRun] = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, replayedRun!.id));
+      expect(settledRun?.status).toBe("succeeded");
+    }, { timeout: 10_000 });
   });
 
   it("requires a new signal after a deterministic stop decision", async () => {

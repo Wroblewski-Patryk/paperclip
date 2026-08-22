@@ -498,7 +498,12 @@ Native supervision uses company-scoped PostgreSQL records for findings, recurren
 safeguards, cycles, interventions, observation windows, evidence, and owner-assurance comparisons.
 Watchdog and integrity scans are deterministic by default; repair is separately admitted and root
 cause closure requires both a verified native safeguard and a passed observation window. External
-automations may compare read-only results but are not an execution or backlog authority.
+automations may compare read-only results but are not an execution or backlog authority. An
+external-only comparison result is absorbed idempotently as a native finding with its source
+evidence and a required native-detector/regression-test closure contract; the latest comparison is
+not treated as an unresolved generic gap once that native record exists. Authorized or in-progress
+interventions and their observation windows have bounded lifetimes. Expiry terminally escalates the
+intervention, completes any open observation as inconclusive, and forbids silent reauthorization.
 
 ## 8.3 Approval Status
 
