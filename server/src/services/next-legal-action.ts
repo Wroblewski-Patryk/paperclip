@@ -91,14 +91,13 @@ export function evaluateNextLegalAction(input: {
   const ownerAvailable = row.ownerStatus === "idle" || row.ownerStatus === "active" || row.ownerStatus === "running";
   const ageHours = Number(Math.max(0, (now.getTime() - row.createdAt.getTime()) / 3_600_000).toFixed(1));
   const unblockValue = Number(fact.unblocks_count ?? 0);
-  const sourceAgeHours = Math.max(0, (now.getTime() - row.updatedAt.getTime()) / 3_600_000);
   const recordedIntentExpired = Boolean(row.intentValidUntil && row.intentValidUntil <= now);
   const recordedIntent = ["ACTIVE", "RECONFIRM_REQUIRED", "SUPERSEDED", "OBSOLETE", "SATISFIED_ELSEWHERE", "UNKNOWN"].includes(row.intentStatus ?? "")
     ? row.intentStatus as NextLegalAction["intent"]["status"]
     : null;
   const effectiveIntentStatus: NextLegalAction["intent"]["status"] = recordedIntentExpired
     ? "RECONFIRM_REQUIRED"
-    : recordedIntent ?? (row.goalStatus === "achieved" ? "RECONFIRM_REQUIRED" : sourceAgeHours <= 24 ? "ACTIVE" : "UNKNOWN");
+    : recordedIntent ?? (row.goalStatus === "achieved" ? "RECONFIRM_REQUIRED" : "UNKNOWN");
 
   let actionClass: NextLegalActionClass;
   let reasonCode: string;

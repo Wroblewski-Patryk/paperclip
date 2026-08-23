@@ -1,37 +1,37 @@
 {
-  "generated_at": "2026-08-20T17:40:38.175Z",
+  "generated_at": "2026-08-23T00:03:39.837Z",
   "project": {
     "name": "Paperclip",
     "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse"
   },
   "counts": {
-    "entities": 17375,
-    "relations": 23626,
+    "entities": 17471,
+    "relations": 23772,
     "by_type": {
       "agent": 14,
-      "api_endpoint": 474,
+      "api_endpoint": 477,
       "component": 275,
-      "document": 707,
-      "feature": 1338,
-      "function": 13258,
-      "migration": 220,
-      "model": 8,
+      "document": 708,
+      "feature": 1324,
+      "function": 13349,
+      "migration": 226,
+      "model": 9,
       "module": 108,
       "project": 1,
       "route": 176,
-      "test": 796
+      "test": 804
     },
     "by_status": {
       "blocked": 3,
       "deprecated": 6,
-      "implemented": 15225,
+      "implemented": 15308,
       "in_progress": 1,
-      "tested": 2140
+      "tested": 2153
     }
   },
   "signals": {
     "implementation_without_tests": {
-      "count": 13313,
+      "count": 13366,
       "items": [
         {
           "id": "api_endpoint:use-assets:c2ba42d242",
@@ -1418,6 +1418,22 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-companies-companyid-execution-workspaces-diagnostics:2fdcaaeb62",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/execution-workspaces/diagnostics",
+          "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/diagnostics",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-execution-workspaces-maintenance:5ac6c113e2",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/execution-workspaces/maintenance",
+          "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/maintenance",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-execution-workspaces-id:cfa7051bc9",
           "type": "api_endpoint",
           "name": "GET /execution-workspaces/:id",
@@ -1614,29 +1630,13 @@
           "type": "api_endpoint",
           "name": "GET /issues/:id/tree-control/state",
           "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-control/state",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-issues-id-tree-holds:029658b474",
-          "type": "api_endpoint",
-          "name": "GET /issues/:id/tree-holds",
-          "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-holds",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:post-issues-id-tree-holds:3ee6e39036",
-          "type": "api_endpoint",
-          "name": "POST /issues/:id/tree-holds",
-          "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-holds",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         }
       ]
     },
     "implementation_without_docs": {
-      "count": 2006,
+      "count": 1996,
       "items": [
         {
           "id": "api_endpoint:post-bootstrap-claim:8055e4b75b",
@@ -2187,6 +2187,22 @@
           "type": "api_endpoint",
           "name": "GET /companies/:companyId/execution-workspaces",
           "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-execution-workspaces-diagnostics:2fdcaaeb62",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/execution-workspaces/diagnostics",
+          "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/diagnostics",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-execution-workspaces-maintenance:5ac6c113e2",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/execution-workspaces/maintenance",
+          "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/maintenance",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -2959,6 +2975,14 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-companies-companyid-softwarehouse-coolify-featherly-inventory:2d5de315f1",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/softwarehouse/coolify/featherly-inventory",
+          "path": "server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/coolify/featherly-inventory",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-companies-companyid-softwarehouse-hierarchy-health:65d7d1249e",
           "type": "api_endpoint",
           "name": "GET /companies/:companyId/softwarehouse/hierarchy-health",
@@ -3213,35 +3237,11 @@
           "path": "server/src/routes/supervision.ts#/companies/:companyId/supervision/recover",
           "status": "implemented",
           "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:post-companies-companyid-supervision-root-causes:f226ac8db2",
-          "type": "api_endpoint",
-          "name": "POST /companies/:companyId/supervision/root-causes",
-          "path": "server/src/routes/supervision.ts#/companies/:companyId/supervision/root-causes",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:post-companies-companyid-supervision-safeguards:a4b692f0f4",
-          "type": "api_endpoint",
-          "name": "POST /companies/:companyId/supervision/safeguards",
-          "path": "server/src/routes/supervision.ts#/companies/:companyId/supervision/safeguards",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-companies-companyid-supervision-shadow-comparisons:01c6757c7d",
-          "type": "api_endpoint",
-          "name": "GET /companies/:companyId/supervision/shadow-comparisons",
-          "path": "server/src/routes/supervision.ts#/companies/:companyId/supervision/shadow-comparisons",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
         }
       ]
     },
     "actionable_implementation_without_tests": {
-      "count": 11840,
+      "count": 11903,
       "items": [
         {
           "id": "api_endpoint:use-assets:c2ba42d242",
@@ -4628,6 +4628,22 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-companies-companyid-execution-workspaces-diagnostics:2fdcaaeb62",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/execution-workspaces/diagnostics",
+          "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/diagnostics",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-execution-workspaces-maintenance:5ac6c113e2",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/execution-workspaces/maintenance",
+          "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/maintenance",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-execution-workspaces-id:cfa7051bc9",
           "type": "api_endpoint",
           "name": "GET /execution-workspaces/:id",
@@ -4826,27 +4842,11 @@
           "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-control/state",
           "status": "implemented",
           "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-issues-id-tree-holds:029658b474",
-          "type": "api_endpoint",
-          "name": "GET /issues/:id/tree-holds",
-          "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-holds",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:post-issues-id-tree-holds:3ee6e39036",
-          "type": "api_endpoint",
-          "name": "POST /issues/:id/tree-holds",
-          "path": "server/src/routes/issue-tree-control.ts#/issues/:id/tree-holds",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
         }
       ]
     },
     "actionable_implementation_without_docs": {
-      "count": 1765,
+      "count": 1769,
       "items": [
         {
           "id": "api_endpoint:post-bootstrap-claim:8055e4b75b",
@@ -5397,6 +5397,22 @@
           "type": "api_endpoint",
           "name": "GET /companies/:companyId/execution-workspaces",
           "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:get-companies-companyid-execution-workspaces-diagnostics:2fdcaaeb62",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/execution-workspaces/diagnostics",
+          "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/diagnostics",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
+          "id": "api_endpoint:post-companies-companyid-execution-workspaces-maintenance:5ac6c113e2",
+          "type": "api_endpoint",
+          "name": "POST /companies/:companyId/execution-workspaces/maintenance",
+          "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/maintenance",
           "status": "implemented",
           "owner": "Backend Platform Lead"
         },
@@ -6169,6 +6185,14 @@
           "owner": "Backend Platform Lead"
         },
         {
+          "id": "api_endpoint:get-companies-companyid-softwarehouse-coolify-featherly-inventory:2d5de315f1",
+          "type": "api_endpoint",
+          "name": "GET /companies/:companyId/softwarehouse/coolify/featherly-inventory",
+          "path": "server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/coolify/featherly-inventory",
+          "status": "implemented",
+          "owner": "Backend Platform Lead"
+        },
+        {
           "id": "api_endpoint:get-companies-companyid-softwarehouse-hierarchy-health:65d7d1249e",
           "type": "api_endpoint",
           "name": "GET /companies/:companyId/softwarehouse/hierarchy-health",
@@ -6423,40 +6447,16 @@
           "path": "server/src/routes/supervision.ts#/companies/:companyId/supervision/recover",
           "status": "implemented",
           "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:post-companies-companyid-supervision-root-causes:f226ac8db2",
-          "type": "api_endpoint",
-          "name": "POST /companies/:companyId/supervision/root-causes",
-          "path": "server/src/routes/supervision.ts#/companies/:companyId/supervision/root-causes",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:post-companies-companyid-supervision-safeguards:a4b692f0f4",
-          "type": "api_endpoint",
-          "name": "POST /companies/:companyId/supervision/safeguards",
-          "path": "server/src/routes/supervision.ts#/companies/:companyId/supervision/safeguards",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
-        },
-        {
-          "id": "api_endpoint:get-companies-companyid-supervision-shadow-comparisons:01c6757c7d",
-          "type": "api_endpoint",
-          "name": "GET /companies/:companyId/supervision/shadow-comparisons",
-          "path": "server/src/routes/supervision.ts#/companies/:companyId/supervision/shadow-comparisons",
-          "status": "implemented",
-          "owner": "Backend Platform Lead"
         }
       ]
     },
     "classified_inferred_link_noise": {
-      "count": 1487,
+      "count": 1477,
       "by_reason": {
-        "config_only_file": 292,
-        "domain_error_declaration": 95,
-        "test_fixture_function": 1014,
-        "test_support_file": 21,
+        "config_only_file": 293,
+        "domain_error_declaration": 86,
+        "test_fixture_function": 1017,
+        "test_support_file": 16,
         "typescript_type_declaration": 65
       },
       "items": [
@@ -6666,15 +6666,6 @@
           "status": "implemented",
           "owner": "Adapters Runtime Lead",
           "reason": "config_only_file"
-        },
-        {
-          "id": "feature:fakeacpruntimeerror:abe904399c",
-          "type": "feature",
-          "name": "FakeAcpRuntimeError",
-          "path": "packages/adapters/acpx-local/src/server/execute.test.ts#FakeAcpRuntimeError",
-          "status": "implemented",
-          "owner": "Adapters Runtime Lead",
-          "reason": "domain_error_declaration"
         },
         {
           "id": "feature:index-ts:035b544633",
@@ -7343,24 +7334,6 @@
           "reason": "config_only_file"
         },
         {
-          "id": "feature:mockdaytonanotfounderror:fff2ab044d",
-          "type": "feature",
-          "name": "MockDaytonaNotFoundError",
-          "path": "packages/plugins/sandbox-providers/daytona/src/plugin.test.ts#MockDaytonaNotFoundError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
-          "id": "feature:mockdaytonatimeouterror:9775ef9592",
-          "type": "feature",
-          "name": "MockDaytonaTimeoutError",
-          "path": "packages/plugins/sandbox-providers/daytona/src/plugin.test.ts#MockDaytonaTimeoutError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
           "id": "feature:vitest-config-ts:c16db09bfe",
           "type": "feature",
           "name": "vitest.config.ts",
@@ -7406,33 +7379,6 @@
           "reason": "config_only_file"
         },
         {
-          "id": "feature:mockcommandexiterror:47a107b76c",
-          "type": "feature",
-          "name": "MockCommandExitError",
-          "path": "packages/plugins/sandbox-providers/e2b/src/plugin.test.ts#MockCommandExitError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
-          "id": "feature:mocksandboxnotfounderror:080e522c62",
-          "type": "feature",
-          "name": "MockSandboxNotFoundError",
-          "path": "packages/plugins/sandbox-providers/e2b/src/plugin.test.ts#MockSandboxNotFoundError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
-          "id": "feature:mocktimeouterror:ce2742f538",
-          "type": "feature",
-          "name": "MockTimeoutError",
-          "path": "packages/plugins/sandbox-providers/e2b/src/plugin.test.ts#MockTimeoutError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
           "id": "feature:vitest-config-ts:65b893bb51",
           "type": "feature",
           "name": "vitest.config.ts",
@@ -7476,33 +7422,6 @@
           "status": "implemented",
           "owner": "Plugin Platform Lead",
           "reason": "config_only_file"
-        },
-        {
-          "id": "feature:mocknotfounderror:705ac8c7d3",
-          "type": "feature",
-          "name": "MockNotFoundError",
-          "path": "packages/plugins/sandbox-providers/modal/src/plugin.test.ts#MockNotFoundError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
-          "id": "feature:mocksandboxtimeouterror:3602893468",
-          "type": "feature",
-          "name": "MockSandboxTimeoutError",
-          "path": "packages/plugins/sandbox-providers/modal/src/plugin.test.ts#MockSandboxTimeoutError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
-          "id": "feature:mocktimeouterror:c579971b15",
-          "type": "feature",
-          "name": "MockTimeoutError",
-          "path": "packages/plugins/sandbox-providers/modal/src/plugin.test.ts#MockTimeoutError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
         },
         {
           "id": "feature:vitest-config-ts:a8bd1ac7f6",
@@ -8018,15 +7937,6 @@
           "reason": "config_only_file"
         },
         {
-          "id": "feature:fakeruntime:6263799fee",
-          "type": "feature",
-          "name": "FakeRuntime",
-          "path": "server/src/__tests__/acpx-local-execute.test.ts#FakeRuntime",
-          "status": "implemented",
-          "owner": "Backend Platform Lead",
-          "reason": "test_support_file"
-        },
-        {
           "id": "feature:plugin-worker-delayed-cjs:0710f28933",
           "type": "feature",
           "name": "plugin-worker-delayed.cjs",
@@ -8067,42 +7977,6 @@
           "type": "feature",
           "name": "fake-node-command.ts",
           "path": "server/src/__tests__/helpers/fake-node-command.ts",
-          "status": "implemented",
-          "owner": "Backend Platform Lead",
-          "reason": "test_support_file"
-        },
-        {
-          "id": "feature:blocker:4bdf335e3f",
-          "type": "feature",
-          "name": "blocker",
-          "path": "server/src/__tests__/issue-recovery-actions.test.ts#blocker",
-          "status": "implemented",
-          "owner": "Backend Platform Lead",
-          "reason": "test_support_file"
-        },
-        {
-          "id": "feature:blockers:df838cfae0",
-          "type": "feature",
-          "name": "blockers",
-          "path": "server/src/__tests__/issue-recovery-actions.test.ts#blockers",
-          "status": "implemented",
-          "owner": "Backend Platform Lead",
-          "reason": "test_support_file"
-        },
-        {
-          "id": "feature:blocker:96a75227e7",
-          "type": "feature",
-          "name": "blocker",
-          "path": "server/src/__tests__/issues-service.test.ts#blocker",
-          "status": "implemented",
-          "owner": "Backend Platform Lead",
-          "reason": "test_support_file"
-        },
-        {
-          "id": "feature:t:2585e38775",
-          "type": "feature",
-          "name": "t",
-          "path": "server/src/__tests__/plugin-database.test.ts#t",
           "status": "implemented",
           "owner": "Backend Platform Lead",
           "reason": "test_support_file"
@@ -8259,6 +8133,132 @@
           "status": "implemented",
           "owner": "Backend Platform Lead",
           "reason": "typescript_type_declaration"
+        },
+        {
+          "id": "feature:vitest-config-ts:1c6e450c6d",
+          "type": "feature",
+          "name": "vitest.config.ts",
+          "path": "server/vitest.config.ts",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:playwright-multiuser-authenticated-config-ts:f1eee35829",
+          "type": "feature",
+          "name": "playwright-multiuser-authenticated.config.ts",
+          "path": "tests/e2e/playwright-multiuser-authenticated.config.ts",
+          "status": "implemented",
+          "owner": "QA Regression Lead",
+          "reason": "test_support_file"
+        },
+        {
+          "id": "feature:playwright-multiuser-config-ts:6718b6dcb3",
+          "type": "feature",
+          "name": "playwright-multiuser.config.ts",
+          "path": "tests/e2e/playwright-multiuser.config.ts",
+          "status": "implemented",
+          "owner": "QA Regression Lead",
+          "reason": "test_support_file"
+        },
+        {
+          "id": "feature:playwright-config-ts:b1a8d16e36",
+          "type": "feature",
+          "name": "playwright.config.ts",
+          "path": "tests/e2e/playwright.config.ts",
+          "status": "implemented",
+          "owner": "QA Regression Lead",
+          "reason": "test_support_file"
+        },
+        {
+          "id": "feature:playwright-config-ts:52fa1724ea",
+          "type": "feature",
+          "name": "playwright.config.ts",
+          "path": "tests/release-smoke/playwright.config.ts",
+          "status": "implemented",
+          "owner": "QA Regression Lead",
+          "reason": "test_support_file"
+        },
+        {
+          "id": "feature:sw-js:da62d141fd",
+          "type": "feature",
+          "name": "sw.js",
+          "path": "ui/public/sw.js",
+          "status": "implemented",
+          "owner": "Frontend Experience Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:index-ts:faf85c5d71",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "ui/src/adapters/acpx-local/index.ts",
+          "status": "implemented",
+          "owner": "Frontend Experience Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:index-ts:aee580c2ad",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "ui/src/adapters/claude-local/index.ts",
+          "status": "implemented",
+          "owner": "Frontend Experience Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:index-ts:e87168a864",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "ui/src/adapters/codex-local/index.ts",
+          "status": "implemented",
+          "owner": "Frontend Experience Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:index-ts:d8d4e0749f",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "ui/src/adapters/cursor-cloud/index.ts",
+          "status": "implemented",
+          "owner": "Frontend Experience Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:index-ts:3aeae778e0",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "ui/src/adapters/cursor/index.ts",
+          "status": "implemented",
+          "owner": "Frontend Experience Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:index-ts:a70ad0156b",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "ui/src/adapters/gemini-local/index.ts",
+          "status": "implemented",
+          "owner": "Frontend Experience Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:index-ts:f85ad1bf94",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "ui/src/adapters/grok-local/index.ts",
+          "status": "implemented",
+          "owner": "Frontend Experience Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:index-ts:7de26fd672",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "ui/src/adapters/hermes-local/index.ts",
+          "status": "implemented",
+          "owner": "Frontend Experience Lead",
+          "reason": "config_only_file"
         }
       ]
     },
@@ -8279,7 +8279,7 @@
       "items": []
     },
     "implementation_without_task": {
-      "count": 2030,
+      "count": 2034,
       "items": [
         {
           "id": "api_endpoint:use-api:b4836ba90f",
@@ -9884,7 +9884,7 @@
       ]
     },
     "raw_implementation_without_task": {
-      "count": 2271,
+      "count": 2261,
       "items": [
         {
           "id": "api_endpoint:use-api:b4836ba90f",
@@ -11489,11 +11489,11 @@
       ]
     },
     "classified_task_linkage_noise": {
-      "count": 241,
+      "count": 227,
       "by_reason": {
         "config_only_file": 131,
-        "domain_error_declaration": 28,
-        "test_support_file": 21,
+        "domain_error_declaration": 19,
+        "test_support_file": 16,
         "typescript_type_declaration": 61
       },
       "items": [
@@ -11703,15 +11703,6 @@
           "status": "implemented",
           "owner": "Adapters Runtime Lead",
           "reason": "config_only_file"
-        },
-        {
-          "id": "feature:fakeacpruntimeerror:abe904399c",
-          "type": "feature",
-          "name": "FakeAcpRuntimeError",
-          "path": "packages/adapters/acpx-local/src/server/execute.test.ts#FakeAcpRuntimeError",
-          "status": "implemented",
-          "owner": "Adapters Runtime Lead",
-          "reason": "domain_error_declaration"
         },
         {
           "id": "feature:index-ts:035b544633",
@@ -12380,24 +12371,6 @@
           "reason": "config_only_file"
         },
         {
-          "id": "feature:mockdaytonanotfounderror:fff2ab044d",
-          "type": "feature",
-          "name": "MockDaytonaNotFoundError",
-          "path": "packages/plugins/sandbox-providers/daytona/src/plugin.test.ts#MockDaytonaNotFoundError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
-          "id": "feature:mockdaytonatimeouterror:9775ef9592",
-          "type": "feature",
-          "name": "MockDaytonaTimeoutError",
-          "path": "packages/plugins/sandbox-providers/daytona/src/plugin.test.ts#MockDaytonaTimeoutError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
           "id": "feature:vitest-config-ts:c16db09bfe",
           "type": "feature",
           "name": "vitest.config.ts",
@@ -12443,33 +12416,6 @@
           "reason": "config_only_file"
         },
         {
-          "id": "feature:mockcommandexiterror:47a107b76c",
-          "type": "feature",
-          "name": "MockCommandExitError",
-          "path": "packages/plugins/sandbox-providers/e2b/src/plugin.test.ts#MockCommandExitError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
-          "id": "feature:mocksandboxnotfounderror:080e522c62",
-          "type": "feature",
-          "name": "MockSandboxNotFoundError",
-          "path": "packages/plugins/sandbox-providers/e2b/src/plugin.test.ts#MockSandboxNotFoundError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
-          "id": "feature:mocktimeouterror:ce2742f538",
-          "type": "feature",
-          "name": "MockTimeoutError",
-          "path": "packages/plugins/sandbox-providers/e2b/src/plugin.test.ts#MockTimeoutError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
           "id": "feature:vitest-config-ts:65b893bb51",
           "type": "feature",
           "name": "vitest.config.ts",
@@ -12513,33 +12459,6 @@
           "status": "implemented",
           "owner": "Plugin Platform Lead",
           "reason": "config_only_file"
-        },
-        {
-          "id": "feature:mocknotfounderror:705ac8c7d3",
-          "type": "feature",
-          "name": "MockNotFoundError",
-          "path": "packages/plugins/sandbox-providers/modal/src/plugin.test.ts#MockNotFoundError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
-          "id": "feature:mocksandboxtimeouterror:3602893468",
-          "type": "feature",
-          "name": "MockSandboxTimeoutError",
-          "path": "packages/plugins/sandbox-providers/modal/src/plugin.test.ts#MockSandboxTimeoutError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
-        },
-        {
-          "id": "feature:mocktimeouterror:c579971b15",
-          "type": "feature",
-          "name": "MockTimeoutError",
-          "path": "packages/plugins/sandbox-providers/modal/src/plugin.test.ts#MockTimeoutError",
-          "status": "implemented",
-          "owner": "Plugin Platform Lead",
-          "reason": "domain_error_declaration"
         },
         {
           "id": "feature:vitest-config-ts:a8bd1ac7f6",
@@ -13163,15 +13082,6 @@
           "reason": "config_only_file"
         },
         {
-          "id": "feature:fakeruntime:6263799fee",
-          "type": "feature",
-          "name": "FakeRuntime",
-          "path": "server/src/__tests__/acpx-local-execute.test.ts#FakeRuntime",
-          "status": "implemented",
-          "owner": "Backend Platform Lead",
-          "reason": "test_support_file"
-        },
-        {
           "id": "feature:plugin-worker-delayed-cjs:0710f28933",
           "type": "feature",
           "name": "plugin-worker-delayed.cjs",
@@ -13212,42 +13122,6 @@
           "type": "feature",
           "name": "fake-node-command.ts",
           "path": "server/src/__tests__/helpers/fake-node-command.ts",
-          "status": "implemented",
-          "owner": "Backend Platform Lead",
-          "reason": "test_support_file"
-        },
-        {
-          "id": "feature:blocker:4bdf335e3f",
-          "type": "feature",
-          "name": "blocker",
-          "path": "server/src/__tests__/issue-recovery-actions.test.ts#blocker",
-          "status": "implemented",
-          "owner": "Backend Platform Lead",
-          "reason": "test_support_file"
-        },
-        {
-          "id": "feature:blockers:df838cfae0",
-          "type": "feature",
-          "name": "blockers",
-          "path": "server/src/__tests__/issue-recovery-actions.test.ts#blockers",
-          "status": "implemented",
-          "owner": "Backend Platform Lead",
-          "reason": "test_support_file"
-        },
-        {
-          "id": "feature:blocker:96a75227e7",
-          "type": "feature",
-          "name": "blocker",
-          "path": "server/src/__tests__/issues-service.test.ts#blocker",
-          "status": "implemented",
-          "owner": "Backend Platform Lead",
-          "reason": "test_support_file"
-        },
-        {
-          "id": "feature:t:2585e38775",
-          "type": "feature",
-          "name": "t",
-          "path": "server/src/__tests__/plugin-database.test.ts#t",
           "status": "implemented",
           "owner": "Backend Platform Lead",
           "reason": "test_support_file"
@@ -13296,6 +13170,132 @@
           "status": "implemented",
           "owner": "Backend Platform Lead",
           "reason": "typescript_type_declaration"
+        },
+        {
+          "id": "feature:httperror:e46795e57d",
+          "type": "feature",
+          "name": "HttpError",
+          "path": "server/src/errors.ts#HttpError",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "domain_error_declaration"
+        },
+        {
+          "id": "feature:index-ts:d6caea5c5d",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "server/src/index.ts",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:index-ts:9509bf4201",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "server/src/middleware/index.ts",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:types-ts:ff5110712d",
+          "type": "feature",
+          "name": "types.ts",
+          "path": "server/src/secrets/types.ts",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "typescript_type_declaration"
+        },
+        {
+          "id": "feature:secretproviderclienterror:130ca62e1c",
+          "type": "feature",
+          "name": "SecretProviderClientError",
+          "path": "server/src/secrets/types.ts#SecretProviderClientError",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "typescript_type_declaration"
+        },
+        {
+          "id": "feature:environmentrunerror:6bc118b51b",
+          "type": "feature",
+          "name": "EnvironmentRunError",
+          "path": "server/src/services/environment-run-orchestrator.ts#EnvironmentRunError",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "domain_error_declaration"
+        },
+        {
+          "id": "feature:index-ts:d68a6ed8e6",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "server/src/services/index.ts",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:pluginsandboxerror:a11b04a600",
+          "type": "feature",
+          "name": "PluginSandboxError",
+          "path": "server/src/services/plugin-runtime-sandbox.ts#PluginSandboxError",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "domain_error_declaration"
+        },
+        {
+          "id": "feature:index-ts:06b4925d3d",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "server/src/services/recovery/index.ts",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:index-ts:1d3ac97557",
+          "type": "feature",
+          "name": "index.ts",
+          "path": "server/src/storage/index.ts",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:types-ts:2773ae8e69",
+          "type": "feature",
+          "name": "types.ts",
+          "path": "server/src/storage/types.ts",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "typescript_type_declaration"
+        },
+        {
+          "id": "feature:express-d-ts:526fdcb28a",
+          "type": "feature",
+          "name": "express.d.ts",
+          "path": "server/src/types/express.d.ts",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "typescript_type_declaration"
+        },
+        {
+          "id": "feature:vitest-config-ts:1c6e450c6d",
+          "type": "feature",
+          "name": "vitest.config.ts",
+          "path": "server/vitest.config.ts",
+          "status": "implemented",
+          "owner": "Backend Platform Lead",
+          "reason": "config_only_file"
+        },
+        {
+          "id": "feature:playwright-multiuser-authenticated-config-ts:f1eee35829",
+          "type": "feature",
+          "name": "playwright-multiuser-authenticated.config.ts",
+          "path": "tests/e2e/playwright-multiuser-authenticated.config.ts",
+          "status": "implemented",
+          "owner": "QA Regression Lead",
+          "reason": "test_support_file"
         }
       ]
     },

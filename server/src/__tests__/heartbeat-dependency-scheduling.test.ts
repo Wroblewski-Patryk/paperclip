@@ -218,7 +218,14 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
       assigneeAgentId,
       executionState: {
         status: "changes_requested",
-        currentParticipant: { type: "agent", agentId: reviewerAgentId, userId: null },
+        currentStageId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        currentStageIndex: 0,
+        currentStageType: "review",
+        currentParticipant: { type: "agent", agentId: reviewerAgentId },
+        returnAssignee: { type: "agent", agentId: assigneeAgentId },
+        completedStageIds: [],
+        lastDecisionId: null,
+        lastDecisionOutcome: null,
       },
     });
 

@@ -162,11 +162,11 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     return rows;
   }
 
-  async function collectChecks(companyId: string, now: Date, expanded: boolean): Promise<CheckResult[]> {
+  async function collectChecks(companyId: string, now: Date, expanded: boolean, runnableDispatchGap: number): Promise<CheckResult[]> {
     const old24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const reviewDispatchThreshold = new Date(now.getTime() - 15 * 60 * 1000);
     const old2h = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-    const [runningWithoutAdmission, runawayRetries, stalledReady, orphanTasks, orphanDeliveries, reviewBottlenecks, stalledBlockedChains, deploymentBottlenecks, staleRoost, duplicateRoutines, excessiveWip, activeSevereFindings, orphanExecutionLocks, evidenceFreeDone, untypedAcceptedOutcomes, taskOutcomeStateGap, acceptedOutcomeWithoutTask, costTelemetryGap, interventionLifecycleGap, observationCompletionGap, externalShadowGap, dispatchCapacityGap, runnableDispatchGap] = await Promise.all([
+    const [runningWithoutAdmission, runawayRetries, stalledReady, orphanTasks, orphanDeliveries, reviewBottlenecks, stalledBlockedChains, deploymentBottlenecks, staleRoost, duplicateRoutines, excessiveWip, activeSevereFindings, orphanExecutionLocks, evidenceFreeDone, untypedAcceptedOutcomes, taskOutcomeStateGap, acceptedOutcomeWithoutTask, costTelemetryGap, interventionLifecycleGap, observationCompletionGap, externalShadowGap, dispatchCapacityGap] = await Promise.all([
       scalar(companyId, sql`select count(*)::int from heartbeat_runs where company_id=${companyId} and status='running' and admission_decision_id is null`),
       scalar(companyId, sql`select count(*)::int from heartbeat_runs where company_id=${companyId} and status in ('queued','running','scheduled_retry') and greatest(process_loss_retry_count, scheduled_retry_attempt, continuation_attempt) > 2`),
       scalar(companyId, sql`
@@ -323,8 +323,18 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
         select count(*)::int
         from supervision_observation_windows observation
         where observation.company_id=${companyId}
-          and observation.status in ('scheduled','running')
-          and observation.ends_at < ${now.toISOString()}::timestamptz
+          and (
+            (observation.status in ('scheduled','running') and observation.ends_at < ${now.toISOString()}::timestamptz)
+            or (
+              observation.status='passed'
+              and exists (
+                select 1 from supervision_recurrences recurrence
+                where recurrence.company_id=observation.company_id
+                  and recurrence.finding_id=observation.finding_id
+                  and recurrence.occurred_at > coalesce(observation.observed_at, observation.ends_at)
+              )
+            )
+          )
       `),
       scalar(companyId, sql`
         select count(*)::int
@@ -369,50 +379,6 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
               and interaction.status='pending'
           )
       `),
-      scalar(companyId, sql`
-        select count(distinct i.id)::int
-        from issues i
-        join agents a on a.id=i.assignee_agent_id and a.company_id=i.company_id
-        where i.company_id=${companyId}
-          and i.hidden_at is null
-          and i.origin_kind <> 'routine_execution'
-          and i.status in ('backlog','todo')
-          and a.status in ('active','idle','running')
-          and lower(coalesce(a.runtime_config#>>'{heartbeat,enabled}','false')) not in ('true','1','yes','on')
-          and not exists (
-            select 1 from heartbeat_runs r
-            where r.company_id=i.company_id and r.agent_id=a.id
-              and r.status in ('queued','running','scheduled_retry')
-          )
-          and not exists (
-            select 1 from issue_tree_hold_members hm
-            join issue_tree_holds h on h.id=hm.hold_id and h.company_id=hm.company_id
-            where hm.company_id=i.company_id and hm.issue_id=i.id and h.status='active'
-          )
-          and not exists (
-            select 1 from delivery_tasks dt
-            join product_deliveries d on d.id=dt.delivery_id and d.company_id=dt.company_id
-            join product_outcomes o on o.delivery_id=d.id and o.company_id=d.company_id
-            where dt.company_id=i.company_id and dt.issue_id=i.id
-              and d.stage='outcome_accepted'
-              and o.status in ('accepted','accepted_with_risk')
-          )
-          and not exists (
-            select 1 from issue_relations rel
-            join issues blocker on blocker.id=rel.issue_id and blocker.company_id=rel.company_id
-            where rel.company_id=i.company_id and rel.related_issue_id=i.id and rel.type='blocks' and rel.status='active'
-              and blocker.status <> 'done'
-          )
-          and not exists (
-            select 1 from issue_relations rel
-            join issues blocker on blocker.id=rel.issue_id and blocker.company_id=rel.company_id
-            join delivery_tasks dt on dt.issue_id=blocker.id and dt.company_id=blocker.company_id
-            join product_deliveries d on d.id=dt.delivery_id and d.company_id=dt.company_id
-            join product_outcomes o on o.delivery_id=d.id and o.company_id=d.company_id
-            where rel.company_id=i.company_id and rel.related_issue_id=i.id and rel.type='blocks' and rel.status='active'
-              and blocker.status='done' and o.status not in ('accepted','accepted_with_risk')
-          )
-      `),
     ]);
     const specs: Array<[string, string, string, number, CheckResult["severity"], string, string, boolean?]> = [
       ["admission_coverage", "Running work without admission", "admission_gap", runningWithoutAdmission, "critical", "governance", "Every running heartbeat must reference its admitted decision.", true],
@@ -423,7 +389,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       ["review_bottleneck", "Review queue has no decision path", "review_bottleneck", reviewBottlenecks, "high", "review_flow", "Review work exceeded the 15-minute dispatch SLA without a pending confirmation, question, or other structured decision path.", true],
       ["blocked_attention", "Blocked chains have no active resolution path", "blocked_chain_stalled", stalledBlockedChains, "high", "dependency_flow", "A blocked issue depends only on terminally stalled blocked work with no runnable blocker or active resolution run.", true],
       ["deployment_bottleneck", "Deployment progression is stale", "deployment_bottleneck", deploymentBottlenecks, "high", "deployment_flow", "Integrated or deployed work has not progressed within 24 hours.", true],
-      ["stale_roost", "Roost publication is stale", "stale_roost", staleRoost, "warning", "integration_health", "Roost outbox contains stale unpublished product state."],
+      ["stale_roost", "Roost publication is stale", "stale_roost", staleRoost, "high", "integration_health", "Roost outbox contains stale unpublished product state."],
       ["routine_overlap", "Active routines overlap by title", "routine_overlap", duplicateRoutines, "warning", "control_complexity", "Multiple active routines declare the same normalized purpose."],
       ["organization_wip", "Organization WIP exceeds default bound", "wip_exceeded", excessiveWip, "high", "economics", "Running work exceeds the default organization WIP of three."],
       ["active_findings_guard", "Active severe findings prevent a green cycle", "false_green_supervision", activeSevereFindings, "critical", "supervision_integrity", "A supervision cycle cannot report green while unresolved critical or high findings remain."],
@@ -437,7 +403,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       ["observation_completion", "Observation windows expired without reconciliation", "observation_completion_gap", observationCompletionGap, "high", "supervision_integrity", "Expired supervision observation windows must be completed with an evidence-backed terminal result.", true],
       ["external_shadow_gap", "External assurance found native coverage gaps", "external_assurance_gap", externalShadowGap, "high", "supervision_integrity", "The newest shadow comparison contains external-only findings that native supervision must absorb.", true],
       ["dispatch_capacity", "Ready review has no active dispatch path", "dispatch_capacity_gap", dispatchCapacityGap, "critical", "dispatch_flow", "Review work exceeded the 15-minute dispatch SLA without a structured decision path, active owner run, or scheduler heartbeat."],
-      ["runnable_dispatch", "Dispatch-eligible assigned work has no active owner lane", "runnable_dispatch_gap", runnableDispatchGap, "high", "dispatch_flow", "Assigned backlog or todo work passes local scheduler exclusions, but its owner has no scheduler heartbeat or live run; priority and dependency readiness still require diagnosis."],
+      ["runnable_dispatch", "Dispatch-eligible assigned work has no active dispatch", "runnable_dispatch_gap", runnableDispatchGap, "critical", "dispatch_flow", "The authoritative next-legal-action projection contains executable work, but no live execution has been dispatched."],
     ];
     return specs
       .filter(([key]) => expanded || ["admission_coverage", "runaway_retry", "stalled_ready_work", "review_bottleneck", "blocked_attention", "active_findings_guard", "orphan_execution_locks", "completion_evidence", "outcome_predicates", "task_outcome_reconciliation", "accepted_outcome_task_linkage", "cost_telemetry", "intervention_lifecycle", "observation_completion", "external_shadow_gap", "dispatch_capacity", "runnable_dispatch"].includes(key))
@@ -1210,7 +1176,11 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const reconciledDependencyEvidence = await reconcileDependencyEvidence(companyId, now);
     const started = await registry.createCycle(companyId, { sourceKind: kind, externalCycleId: key, triggerKind: kind === "native_watchdog" ? "scheduler" : "daily_schedule", budget: { llmCalls: 0, maxFindings: 100 }, expiresAt: new Date(now.getTime() + 15 * 60_000).toISOString() });
     if (!started.created) return { cycle: started.cycle, deduplicated: true, checks: [] as CheckResult[], findings: [] as string[], doctorDispatches: [] as unknown[], verifiedReviewInterventions, reconciledExpiredInterventions };
-    const checks = await collectChecks(companyId, now, kind === "daily_integrity");
+    const nextActionProjection = await nextActions.project(companyId, { now });
+    const runnableDispatchGap = nextActionProjection.actions.filter((action) =>
+      action.actionClass === "READY_FOR_EXECUTION" && action.eligibility === "eligible"
+    ).length;
+    const checks = await collectChecks(companyId, now, kind === "daily_integrity", runnableDispatchGap);
     const findings: string[] = [];
     const reconciledFindings: string[] = [];
     const findingByProblemClass = new Map<string, string>();
@@ -1278,7 +1248,6 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const failed = checks.filter((check) => check.status === "failed").length;
     const warnings = checks.filter((check) => check.status === "warning").length;
     const dailyRuntime = kind === "daily_integrity" ? await collectDailyRuntimeMetrics(companyId, now) : null;
-    const nextActionProjection = await nextActions.project(companyId, { now });
     const autonomyDecision = await autonomy.recordDecision(companyId, nextActionProjection, started.cycle.id);
     const activeCanaryAuthorization = autonomyDecision.decision.disposition === "RECOMMEND"
       ? await autonomy.getActiveCanaryAuthorization(autonomyDecision.decision.id)

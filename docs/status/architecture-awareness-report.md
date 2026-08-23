@@ -1,6 +1,6 @@
 # Architecture Awareness Report
 
-Generated: 2026-08-20T17:40:38.175Z
+Generated: 2026-08-23T00:03:39.837Z
 Project: Paperclip
 Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 
@@ -9,17 +9,17 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 | Type | Count |
 | --- | ---: |
 | agent | 14 |
-| api_endpoint | 474 |
+| api_endpoint | 477 |
 | component | 275 |
-| document | 707 |
-| feature | 1338 |
-| function | 13258 |
-| migration | 220 |
-| model | 8 |
+| document | 708 |
+| feature | 1324 |
+| function | 13349 |
+| migration | 226 |
+| model | 9 |
 | module | 108 |
 | project | 1 |
 | route | 176 |
-| test | 796 |
+| test | 804 |
 
 ## Counts By Status
 
@@ -27,22 +27,22 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 | --- | ---: |
 | blocked | 3 |
 | deprecated | 6 |
-| implemented | 15225 |
+| implemented | 15308 |
 | in_progress | 1 |
-| tested | 2140 |
+| tested | 2153 |
 
 ## Health Signals
 
-- Raw implementation entities without inferred tests: 13313
-- Actionable implementation entities without inferred tests: 11840
-- Raw implementation entities without inferred docs: 2006
-- Actionable implementation entities without inferred docs: 1765
-- Classified inferred-link noise: 1487
+- Raw implementation entities without inferred tests: 13366
+- Actionable implementation entities without inferred tests: 11903
+- Raw implementation entities without inferred docs: 1996
+- Actionable implementation entities without inferred docs: 1769
+- Classified inferred-link noise: 1477
 - Raw tasks without architecture links: 0
 - Actionable tasks without architecture links: 0
-- Raw implementation entities without task links: 2271
-- Actionable implementation entities without task links: 2030
-- Classified task-linkage noise: 241
+- Raw implementation entities without task links: 2261
+- Actionable implementation entities without task links: 2034
+- Classified task-linkage noise: 227
 - Entities without owner attribution: 0
 - Disconnected entities: 0
 
@@ -134,10 +134,10 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 
 ## Classified Inferred-Link Noise
 
-- config_only_file: 292
-- domain_error_declaration: 95
-- test_fixture_function: 1014
-- test_support_file: 21
+- config_only_file: 293
+- domain_error_declaration: 86
+- test_fixture_function: 1017
+- test_support_file: 16
 - typescript_type_declaration: 65
 
 ## Top Classified Noise Samples
@@ -165,7 +165,6 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - typescript_type_declaration: feature: types.ts (packages/adapter-utils/src/types.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/cli/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/index.ts)
-- domain_error_declaration: feature: FakeAcpRuntimeError (packages/adapters/acpx-local/src/server/execute.test.ts#FakeAcpRuntimeError)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/server/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/ui/index.ts)
 - config_only_file: feature: vitest.config.ts (packages/adapters/acpx-local/vitest.config.ts)
@@ -182,12 +181,13 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/cli/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/server/index.ts)
+- config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/ui/index.ts)
 
 ## Classified Task-Linkage Noise
 
 - config_only_file: 131
-- domain_error_declaration: 28
-- test_support_file: 21
+- domain_error_declaration: 19
+- test_support_file: 16
 - typescript_type_declaration: 61
 
 ## Top Classified Task-Linkage Noise Samples
@@ -215,7 +215,6 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - typescript_type_declaration: feature: types.ts (packages/adapter-utils/src/types.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/cli/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/index.ts)
-- domain_error_declaration: feature: FakeAcpRuntimeError (packages/adapters/acpx-local/src/server/execute.test.ts#FakeAcpRuntimeError)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/server/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/acpx-local/src/ui/index.ts)
 - config_only_file: feature: vitest.config.ts (packages/adapters/acpx-local/vitest.config.ts)
@@ -232,6 +231,7 @@ Root: C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/cli/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/index.ts)
 - config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/server/index.ts)
+- config_only_file: feature: index.ts (packages/adapters/cursor-cloud/src/ui/index.ts)
 
 ## Notes
 

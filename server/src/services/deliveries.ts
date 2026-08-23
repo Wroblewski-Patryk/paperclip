@@ -1,7 +1,8 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   agents,
+  costEvents,
   deliveryTasks,
   deliveryTransitions,
   issues,
@@ -344,6 +345,20 @@ export function deliveryService(db: Db) {
       }
       if (["accepted", "accepted_with_risk"].includes(data.status) && delivery.stage !== "observed_healthy") {
         throw unprocessable("Outcome acceptance requires an observed_healthy delivery");
+      }
+      if (["accepted", "accepted_with_risk"].includes(data.status)) {
+        const linkedTasks = await db.select({ issueId: deliveryTasks.issueId }).from(deliveryTasks)
+          .where(and(eq(deliveryTasks.companyId, delivery.companyId), eq(deliveryTasks.deliveryId, delivery.id)));
+        if (linkedTasks.length === 0) {
+          throw unprocessable("Outcome acceptance requires at least one linked delivery task");
+        }
+        const linkedCosts = await db.select({ id: costEvents.id }).from(costEvents).where(and(
+          eq(costEvents.companyId, delivery.companyId),
+          inArray(costEvents.issueId, linkedTasks.map((task) => task.issueId)),
+        )).limit(1);
+        if (linkedCosts.length === 0) {
+          throw unprocessable("Outcome acceptance requires linked cost telemetry, including an explicit zero-cost event");
+        }
       }
       if (data.acceptancePredicates && !actor.userId) {
         throw unprocessable("Only an identified board owner can replace outcome acceptance predicates");

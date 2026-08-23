@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { agents, companies, createDb, issueRelations, issues } from "@paperclipai/db";
+import { agents, companies, createDb, issueIntents, issueRelations, issues } from "@paperclipai/db";
 import type { NextLegalAction } from "@paperclipai/shared";
 import { evaluateNextLegalAction, findDependencyCycleMembers, nextLegalActionService, selectShadowDispatch } from "../services/next-legal-action.js";
 import { evaluateHomeostasisDimension } from "../services/native-supervision-engine.js";
@@ -19,6 +19,7 @@ function issue(overrides: Record<string, unknown> = {}) {
     goalId: "goal-1",
     assigneeAgentId: "agent-1",
     ownerStatus: "idle",
+    intentStatus: "ACTIVE",
     monitorNextCheckAt: null,
     createdAt: new Date("2026-08-07T18:00:00.000Z"),
     updatedAt: now,
@@ -82,8 +83,8 @@ describe("next legal action contract", () => {
     });
   });
 
-  it("requests intent confirmation for old work instead of treating readiness as organizational intent", () => {
-    expect(evaluate({ row: issue({ updatedAt: new Date("2026-08-01T00:00:00.000Z") }) })).toMatchObject({
+  it("requests intent confirmation whenever typed intent is missing, even for fresh work", () => {
+    expect(evaluate({ row: issue({ intentStatus: null }) })).toMatchObject({
       actionClass: "INTENT_CONFIRMATION_REQUIRED",
       requiredNextAction: "REQUEST_INTENT_CONFIRMATION",
       eligibility: "unknown",
@@ -214,6 +215,16 @@ describeEmbedded("next legal action projection", () => {
       { companyId, issueId: blocker.id, relatedIssueId: dependent.id, type: "blocks" },
       { companyId, issueId: blocker.id, relatedIssueId: secondDependent.id, type: "blocks" },
     ]);
+    await db.insert(issueIntents).values([blocker, dependent, secondDependent, candidate].map((item) => ({
+      companyId,
+      issueId: item.id,
+      status: "ACTIVE",
+      confirmedAt: now,
+      validUntil: new Date("2026-08-09T18:00:00.000Z"),
+      ownerAgentId: agentId,
+      source: "test",
+      reason: "Explicit test intent",
+    })));
 
     const projection = await nextLegalActionService(db).project(companyId, { now });
 

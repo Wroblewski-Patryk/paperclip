@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-08-20T17:40:38.175Z",
+  "generatedAt": "2026-08-23T00:03:39.837Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "sourceGraph": "docs/graphs/architecture-awareness.json",
   "candidatePolicy": "product_boundaries_v2",
   "counts": {
-    "items": 650,
+    "items": 552,
     "flows": 6,
-    "needsBrowserReview": 73,
-    "missingTestLink": 519,
+    "needsBrowserReview": 7,
+    "missingTestLink": 488,
     "missingDocLink": 26,
-    "implementedNeedsProof": 1,
+    "implementedNeedsProof": 0,
     "blocked": 0,
-    "riskItems": 619,
-    "appCompletionRiskItems": 619,
+    "riskItems": 521,
+    "appCompletionRiskItems": 521,
     "priorityReviewItems": 200,
     "priorityReviewLimit": 200,
     "priorityReviewTruncated": true
@@ -21,23 +21,22 @@
   "flows": [
     {
       "userFlow": "Account access",
-      "total": 19,
+      "total": 17,
       "risks": {
         "ok": 9,
         "missing_doc_link": 3,
-        "missing_test_link": 5,
-        "needs_browser_review": 2
+        "missing_test_link": 5
       },
       "gates": {
-        "auth": 19
+        "auth": 17
       }
     },
     {
       "userFlow": "Admin operation",
-      "total": 7,
+      "total": 6,
       "risks": {
         "ok": 3,
-        "missing_test_link": 4
+        "missing_test_link": 3
       },
       "gates": {
         "auth": 5
@@ -45,10 +44,10 @@
     },
     {
       "userFlow": "Dashboard overview",
-      "total": 8,
+      "total": 6,
       "risks": {
         "missing_test_link": 5,
-        "needs_browser_review": 3
+        "needs_browser_review": 1
       },
       "gates": {}
     },
@@ -64,30 +63,29 @@
     },
     {
       "userFlow": "Unclassified user workflow",
-      "total": 577,
+      "total": 491,
       "risks": {
         "ok": 19,
-        "missing_test_link": 475,
+        "missing_test_link": 445,
         "missing_doc_link": 22,
-        "implemented_needs_proof": 1,
-        "needs_browser_review": 60
+        "needs_browser_review": 5
       },
       "gates": {
         "auth": 1,
-        "configuration": 17
+        "configuration": 15
       }
     },
     {
       "userFlow": "User configuration",
-      "total": 38,
+      "total": 31,
       "risks": {
         "missing_doc_link": 1,
         "missing_test_link": 29,
-        "needs_browser_review": 8
+        "needs_browser_review": 1
       },
       "gates": {
-        "configuration": 34,
-        "auth": 2
+        "configuration": 28,
+        "auth": 1
       }
     }
   ],
@@ -261,48 +259,6 @@
       "risk": "missing_test_link"
     },
     {
-      "id": "route:auth-tsx:c56aa37d8b",
-      "type": "route",
-      "kind": "screen_or_route",
-      "name": "Auth.tsx",
-      "path": "ui/src/pages/Auth.tsx",
-      "owner": "Frontend Experience Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Account access",
-      "gates": [
-        "auth"
-      ],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": true,
-        "needsScreenshotReview": true
-      },
-      "relatedEntityCount": 11,
-      "risk": "needs_browser_review"
-    },
-    {
-      "id": "route:cliauth-tsx:a6f8065d9d",
-      "type": "route",
-      "kind": "screen_or_route",
-      "name": "CliAuth.tsx",
-      "path": "ui/src/pages/CliAuth.tsx",
-      "owner": "Frontend Experience Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Account access",
-      "gates": [
-        "auth"
-      ],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": true,
-        "needsScreenshotReview": true
-      },
-      "relatedEntityCount": 10,
-      "risk": "needs_browser_review"
-    },
-    {
       "id": "api_endpoint:post-admin-users-userid-demote-instance-admin:3a7867c655",
       "type": "api_endpoint",
       "kind": "api_endpoint",
@@ -361,25 +317,6 @@
         "needsScreenshotReview": false
       },
       "relatedEntityCount": 3,
-      "risk": "missing_test_link"
-    },
-    {
-      "id": "feature:adminpagesfeaturetest:ed061d15a9",
-      "type": "feature",
-      "kind": "feature_or_capability",
-      "name": "AdminPagesFeatureTest",
-      "path": "scripts/build-architecture-awareness-index.test.mjs#AdminPagesFeatureTest",
-      "owner": "Engineering Delivery Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Admin operation",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": true,
-        "needsBrowserProof": false,
-        "needsScreenshotReview": false
-      },
-      "relatedEntityCount": 1,
       "risk": "missing_test_link"
     },
     {
@@ -494,44 +431,6 @@
         "needsScreenshotReview": true
       },
       "relatedEntityCount": 13,
-      "risk": "needs_browser_review"
-    },
-    {
-      "id": "route:dashboard-tsx:f52edef52c",
-      "type": "route",
-      "kind": "screen_or_route",
-      "name": "Dashboard.tsx",
-      "path": "ui/src/pages/Dashboard.tsx",
-      "owner": "Frontend Experience Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Dashboard overview",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": true,
-        "needsScreenshotReview": true
-      },
-      "relatedEntityCount": 44,
-      "risk": "needs_browser_review"
-    },
-    {
-      "id": "route:dashboardlive-tsx:e910b0a38f",
-      "type": "route",
-      "kind": "screen_or_route",
-      "name": "DashboardLive.tsx",
-      "path": "ui/src/pages/DashboardLive.tsx",
-      "owner": "Frontend Experience Lead",
-      "status": "implemented_needs_proof",
-      "userFlow": "Dashboard overview",
-      "gates": [],
-      "evidence": {
-        "hasTest": false,
-        "hasDoc": false,
-        "needsBrowserProof": true,
-        "needsScreenshotReview": true
-      },
-      "relatedEntityCount": 12,
       "risk": "needs_browser_review"
     },
     {
@@ -3805,6 +3704,44 @@
       "risk": "missing_doc_link"
     },
     {
+      "id": "api_endpoint:get-companies-companyid-execution-workspaces-diagnostics:2fdcaaeb62",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /companies/:companyId/execution-workspaces/diagnostics",
+      "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/diagnostics",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:post-companies-companyid-execution-workspaces-maintenance:5ac6c113e2",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "POST /companies/:companyId/execution-workspaces/maintenance",
+      "path": "server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/maintenance",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
       "id": "api_endpoint:get-execution-workspaces-id:cfa7051bc9",
       "type": "api_endpoint",
       "kind": "api_endpoint",
@@ -3905,6 +3842,63 @@
       "kind": "api_endpoint",
       "name": "GET /execution-workspaces/:id/workspace-operations",
       "path": "server/src/routes/execution-workspaces.ts#/execution-workspaces/:id/workspace-operations",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:get-issues-issueid-file-resources-content:f3d13abf65",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /issues/:issueId/file-resources/content",
+      "path": "server/src/routes/file-resources.ts#/issues/:issueId/file-resources/content",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:get-issues-issueid-file-resources-list:2166c68a83",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /issues/:issueId/file-resources/list",
+      "path": "server/src/routes/file-resources.ts#/issues/:issueId/file-resources/list",
+      "owner": "Backend Platform Lead",
+      "status": "implemented_needs_proof",
+      "userFlow": "Unclassified user workflow",
+      "gates": [],
+      "evidence": {
+        "hasTest": false,
+        "hasDoc": false,
+        "needsBrowserProof": false,
+        "needsScreenshotReview": false
+      },
+      "relatedEntityCount": 3,
+      "risk": "missing_test_link"
+    },
+    {
+      "id": "api_endpoint:get-issues-issueid-file-resources-resolve:553be5442e",
+      "type": "api_endpoint",
+      "kind": "api_endpoint",
+      "name": "GET /issues/:issueId/file-resources/resolve",
+      "path": "server/src/routes/file-resources.ts#/issues/:issueId/file-resources/resolve",
       "owner": "Backend Platform Lead",
       "status": "implemented_needs_proof",
       "userFlow": "Unclassified user workflow",

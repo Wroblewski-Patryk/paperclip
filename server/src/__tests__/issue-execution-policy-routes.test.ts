@@ -94,7 +94,9 @@ function registerModuleMocks() {
     issueService: () => mockIssueService,
     issueThreadInteractionService: () => mockIssueThreadInteractionService,
     logActivity: mockLogActivity,
-    projectService: () => ({}),
+    projectService: () => ({
+      list: vi.fn(async () => []),
+    }),
     routineService: () => ({
       syncRunStatusForIssue: vi.fn(async () => undefined),
     }),
@@ -134,7 +136,14 @@ async function createApp(actor?: TestActor) {
     };
     next();
   });
-  app.use("/api", issueRoutes({} as any, {} as any));
+  const db = {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(async () => []),
+      })),
+    })),
+  };
+  app.use("/api", issueRoutes(db as any, {} as any));
   app.use(errorHandler);
   return app;
 }

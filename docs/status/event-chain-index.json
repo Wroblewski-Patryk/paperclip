@@ -1,6 +1,6 @@
 {
-  "observedAt": "2026-08-20T17:40:41.482Z",
-  "generatedAt": "2026-08-20T17:40:38.175Z",
+  "observedAt": "2026-08-23T00:03:48.955Z",
+  "generatedAt": "2026-08-23T00:03:39.837Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "sourceGraph": "docs/graphs/architecture-awareness.json",
@@ -11,8 +11,8 @@
   "chains": [
     {
       "userFlow": "Account access",
-      "entityCount": 1042,
-      "linkedRelationCount": 1426,
+      "entityCount": 1051,
+      "linkedRelationCount": 1439,
       "layers": {
         "frontend": {
           "count": 115,
@@ -1307,7 +1307,7 @@
           "truncated": true
         },
         "worker": {
-          "count": 115,
+          "count": 123,
           "sample": [
             {
               "id": "module:src:38f6004eb2",
@@ -1886,6 +1886,30 @@
               "status": "implemented"
             },
             {
+              "id": "function:isregistereduserowneddirtyitem:0ac12a8a4e",
+              "type": "function",
+              "name": "isRegisteredUserOwnedDirtyItem",
+              "path": "scripts/check-softwarehouse-source-control.mjs#isRegisteredUserOwnedDirtyItem",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "feature:check-softwarehouse-source-control-mjs:b209426669",
+              "type": "feature",
+              "name": "check-softwarehouse-source-control.mjs",
+              "path": "scripts/check-softwarehouse-source-control.mjs",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
+              "id": "function:loaduserownedworkregistry:1552c89905",
+              "type": "function",
+              "name": "loadUserOwnedWorkRegistry",
+              "path": "scripts/check-softwarehouse-source-control.mjs#loadUserOwnedWorkRegistry",
+              "owner": "Engineering Delivery Lead",
+              "status": "implemented"
+            },
+            {
               "id": "function:resolveboarduser:20aca17b72",
               "type": "function",
               "name": "resolveBoardUser",
@@ -1922,30 +1946,6 @@
               "type": "function",
               "name": "filesFromAuthority",
               "path": "scripts/lib/documentation-hygiene.mjs#filesFromAuthority",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:documentation-hygiene-mjs:a82d071a8f",
-              "type": "feature",
-              "name": "documentation-hygiene.mjs",
-              "path": "scripts/lib/documentation-hygiene.mjs",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "function:classifyinreviewdecisionauthority:522e0f7574",
-              "type": "function",
-              "name": "classifyInReviewDecisionAuthority",
-              "path": "scripts/lib/in-review-decision-path.mjs#classifyInReviewDecisionAuthority",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "feature:in-review-decision-path-mjs:47d139a1a9",
-              "type": "feature",
-              "name": "in-review-decision-path.mjs",
-              "path": "scripts/lib/in-review-decision-path.mjs",
               "owner": "Engineering Delivery Lead",
               "status": "implemented"
             }
@@ -2015,7 +2015,7 @@
           "truncated": false
         },
         "tests": {
-          "count": 232,
+          "count": 233,
           "sample": [
             {
               "id": "test:auth-routes-test-ts:f01314e159",
@@ -2294,6 +2294,14 @@
               "type": "test",
               "name": "build-architecture-awareness-index.test.mjs",
               "path": "scripts/build-architecture-awareness-index.test.mjs",
+              "owner": "Engineering Delivery Lead",
+              "status": "tested"
+            },
+            {
+              "id": "test:managed-resource-lifecycle-test-mjs:2c555764fc",
+              "type": "test",
+              "name": "managed-resource-lifecycle.test.mjs",
+              "path": "scripts/managed-resource-lifecycle.test.mjs",
               "owner": "Engineering Delivery Lead",
               "status": "tested"
             },
@@ -2648,14 +2656,6 @@
               "path": "server/src/__tests__/agent-skills-routes.test.ts#registerModuleMocks",
               "owner": "Backend Platform Lead",
               "status": "tested"
-            },
-            {
-              "id": "test:agent-skills-routes-test-ts:26a5b1bcde",
-              "type": "test",
-              "name": "agent-skills-routes.test.ts",
-              "path": "server/src/__tests__/agent-skills-routes.test.ts",
-              "owner": "Backend Platform Lead",
-              "status": "tested"
             }
           ],
           "truncated": true
@@ -2770,8 +2770,8 @@
     },
     {
       "userFlow": "Admin operation",
-      "entityCount": 21,
-      "linkedRelationCount": 19,
+      "entityCount": 19,
+      "linkedRelationCount": 18,
       "layers": {
         "frontend": {
           "count": 0,
@@ -2908,24 +2908,8 @@
           "truncated": false
         },
         "tests": {
-          "count": 7,
+          "count": 5,
           "sample": [
-            {
-              "id": "feature:adminpagesfeaturetest:ed061d15a9",
-              "type": "feature",
-              "name": "AdminPagesFeatureTest",
-              "path": "scripts/build-architecture-awareness-index.test.mjs#AdminPagesFeatureTest",
-              "owner": "Engineering Delivery Lead",
-              "status": "implemented"
-            },
-            {
-              "id": "test:build-architecture-awareness-index-test-mjs:dd00537c6c",
-              "type": "test",
-              "name": "build-architecture-awareness-index.test.mjs",
-              "path": "scripts/build-architecture-awareness-index.test.mjs",
-              "owner": "Engineering Delivery Lead",
-              "status": "tested"
-            },
             {
               "id": "test:first-admin-claim-test-ts:66c804a73f",
               "type": "test",
@@ -7069,11 +7053,11 @@
     },
     {
       "userFlow": "Unclassified user workflow",
-      "entityCount": 16384,
-      "linkedRelationCount": 22479,
+      "entityCount": 16480,
+      "linkedRelationCount": 22625,
       "layers": {
         "frontend": {
-          "count": 3626,
+          "count": 3627,
           "sample": [
             {
               "id": "component:index-tsx:125f329313",
@@ -7719,7 +7703,7 @@
           "truncated": true
         },
         "backend": {
-          "count": 5035,
+          "count": 5088,
           "sample": [
             {
               "id": "api_endpoint:use-api:b4836ba90f",
@@ -8365,7 +8349,7 @@
           "truncated": true
         },
         "worker": {
-          "count": 2908,
+          "count": 2957,
           "sample": [
             {
               "id": "agent:agents:b19d1471f6",
@@ -9011,7 +8995,7 @@
           "truncated": true
         },
         "data": {
-          "count": 365,
+          "count": 371,
           "sample": [
             {
               "id": "feature:issues-ts:a8560c06cf",
@@ -9657,7 +9641,7 @@
           "truncated": true
         },
         "tests": {
-          "count": 2110,
+          "count": 2096,
           "sample": [
             {
               "id": "test:auth-routes-test-ts:f01314e159",
@@ -10303,7 +10287,7 @@
           "truncated": true
         },
         "docs": {
-          "count": 458,
+          "count": 459,
           "sample": [
             {
               "id": "document:paperclip-v1-implementation-spec:8fc73fd21b",
@@ -10956,8 +10940,8 @@
     },
     {
       "userFlow": "User configuration",
-      "entityCount": 1311,
-      "linkedRelationCount": 2068,
+      "entityCount": 1312,
+      "linkedRelationCount": 2071,
       "layers": {
         "frontend": {
           "count": 328,
@@ -11606,7 +11590,7 @@
           "truncated": true
         },
         "backend": {
-          "count": 338,
+          "count": 339,
           "sample": [
             {
               "id": "api_endpoint:get-adapters-type-config-schema:560735ad04",

@@ -205,6 +205,43 @@ describeEmbedded("PostgreSQL supervision registry", () => {
     expect(first.absorbedFindings).toHaveLength(1);
   });
 
+  it("preserves external closure requirements when a native detector adopts the finding", async () => {
+    const refs = await seed();
+    const svc = supervisionRegistryService(db);
+    const comparison = await svc.compareExternalAssurance(refs.companyId, {
+      externalSource: "paperclip_watchdog",
+      externalCycleId: "external-closure-contract",
+      nativeCycleId: null,
+      externalFindings: [{ fingerprint: "external:false_green_healthy_no_op_with_eligible_work", severity: "critical", title: "Runnable work was not dispatched" }],
+    });
+    const findingId = comparison.absorbedFindings[0]!;
+
+    const adopted = await svc.upsertFinding(refs.companyId, {
+      ...finding(refs.ownerAgentId),
+      fingerprint: `runnable_dispatch_gap:${refs.companyId}`,
+      problemClass: "runnable_dispatch_gap",
+      severity: "critical",
+      sourceKind: "native_watchdog",
+      decision: { deterministicCheck: "runnable_dispatch" },
+      recurrenceEvidence: { detector: "native-watchdog", count: 1 },
+    });
+    const resolved = await svc.resolveFindingByFingerprint(refs.companyId, `runnable_dispatch_gap:${refs.companyId}`, {
+      sourceKind: "database_check",
+      sourceRef: "native-watchdog:runnable-dispatch:passed",
+      label: "detector passed once",
+      checkedAt: new Date(),
+    });
+
+    expect(adopted.finding.id).toBe(findingId);
+    expect(adopted.finding.decision).toMatchObject({
+      externalInterventionRequired: true,
+      requiredClosureEvidence: ["native_detector", "root_cause_or_disposition", "regression_test"],
+      deterministicCheck: "runnable_dispatch",
+    });
+    expect(resolved).toBeNull();
+    expect(await svc.getFinding(findingId)).toMatchObject({ status: "detected" });
+  });
+
   it("backfills a missing cycle finish timestamp idempotently", async () => {
     const refs = await seed();
     const svc = supervisionRegistryService(db);

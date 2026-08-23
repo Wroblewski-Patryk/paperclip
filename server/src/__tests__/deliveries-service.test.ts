@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   agents,
   companies,
+  costEvents,
   createDb,
   deliveryTasks,
   issues,
@@ -112,6 +113,16 @@ describeEmbedded("task, delivery, and outcome separation", () => {
       status: "done",
       priority: "medium",
       completedAt: new Date(),
+    });
+    await db.insert(costEvents).values({
+      companyId,
+      agentId: ownerAgentId,
+      issueId,
+      projectId,
+      provider: "test",
+      model: "test-model",
+      costCents: 0,
+      occurredAt: new Date(),
     });
     return { companyId, projectId, issueId, ownerAgentId, reviewerAgentId };
   }
@@ -385,6 +396,37 @@ describeEmbedded("task, delivery, and outcome separation", () => {
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
       },
     }, { userId: "owner-user" })).resolves.toMatchObject({ status: "accepted_with_risk" });
+  });
+
+  it("rejects outcome acceptance without a bounded task and linked cost telemetry", async () => {
+    const refs = await seed();
+    const svc = deliveryService(db);
+    const created = await svc.create(refs.companyId, {
+      projectId: refs.projectId,
+      title: "Acceptance traceability canary",
+      problemStatement: "Acceptance must remain attributable to bounded work and its economics.",
+      decisionContract: { expected: "typed evidence" },
+      outcomeStatement: "The accepted result is traceable.",
+      acceptanceCriteria: [{ kind: "traceability" }],
+      acceptancePredicates: [{ key: "traceability", label: "Traceability", kind: "traceability", required: true }],
+      taskIssueIds: [refs.issueId],
+    });
+    await db.update(productDeliveries).set({ stage: "observed_healthy" }).where(sql`${productDeliveries.id}=${created.id}`);
+    await db.update(productOutcomes).set({ status: "achieved" }).where(sql`${productOutcomes.deliveryId}=${created.id}`);
+    const acceptance = {
+      status: "accepted" as const,
+      evidence: [{ kind: "independent_acceptance" }],
+      predicateResults: [{ key: "traceability", passed: true, evidenceRefs: ["test:traceability"], checkedAt: new Date().toISOString() }],
+    };
+
+    await db.delete(deliveryTasks).where(sql`${deliveryTasks.deliveryId}=${created.id}`);
+    await expect(svc.updateOutcome(created.id, acceptance, { agentId: refs.reviewerAgentId }))
+      .rejects.toMatchObject({ status: 422, message: expect.stringContaining("linked delivery task") });
+
+    await db.insert(deliveryTasks).values({ companyId: refs.companyId, deliveryId: created.id, issueId: refs.issueId, role: "implementation" });
+    await db.delete(costEvents).where(sql`${costEvents.issueId}=${refs.issueId}`);
+    await expect(svc.updateOutcome(created.id, acceptance, { agentId: refs.reviewerAgentId }))
+      .rejects.toMatchObject({ status: 422, message: expect.stringContaining("linked cost telemetry") });
   });
 
   it("reopens a legacy accepted delivery when its acceptance evidence must be revalidated", async () => {

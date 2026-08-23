@@ -189,6 +189,10 @@ export function supervisionRegistryService(db: Db) {
         notInArray(supervisionFindings.status, [...TERMINAL_FINDING_STATUSES]),
       )).then((rows) => rows[0] ?? null);
       if (!existing) return null;
+      const existingDecision = existing.decision && typeof existing.decision === "object" && !Array.isArray(existing.decision)
+        ? existing.decision as Record<string, unknown>
+        : {};
+      if (existingDecision.externalInterventionRequired === true) return null;
 
       return db.transaction(async (tx) => {
         const resolved = await tx.update(supervisionFindings).set({
@@ -297,6 +301,9 @@ export function supervisionRegistryService(db: Db) {
           }).where(eq(supervisionFindings.id, existing.id)).returning().then((rows) => rows[0]);
           return { finding: refreshed, recurrence: null, created: false, materiallyChanged: false };
         }
+        const existingDecision = existing?.decision && typeof existing.decision === "object" && !Array.isArray(existing.decision)
+          ? existing.decision as Record<string, unknown>
+          : {};
         const finding = created ? inserted[0] : await tx.update(supervisionFindings).set({
           problemClass: data.problemClass,
           severity: data.severity,
@@ -319,7 +326,7 @@ export function supervisionRegistryService(db: Db) {
           nativeSafeguardId: data.nativeSafeguardId ?? sql`${supervisionFindings.nativeSafeguardId}`,
           retryCount: data.retryCount,
           economics: data.economics,
-          decision: data.decision,
+          decision: { ...existingDecision, ...data.decision },
           recoveryState: data.recoveryState,
           bottleneckType: data.bottleneckType,
           bottleneckStartedAt: asDate(data.bottleneckStartedAt),

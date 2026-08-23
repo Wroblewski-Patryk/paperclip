@@ -1,6 +1,6 @@
 # Architecture Graph
 
-Generated: 2026-08-20T17:40:38.175Z
+Generated: 2026-08-23T00:03:39.837Z
 
 ## Canonical Exports
 
@@ -248,6 +248,8 @@ Generated: 2026-08-20T17:40:38.175Z
 | api_endpoint | implemented | GET /environments/:id/leases | server/src/routes/environments.ts#/environments/:id/leases | Backend Platform Lead |
 | api_endpoint | implemented | POST /environments/:id/probe | server/src/routes/environments.ts#/environments/:id/probe | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/execution-workspaces | server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/execution-workspaces/diagnostics | server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/diagnostics | Backend Platform Lead |
+| api_endpoint | implemented | POST /companies/:companyId/execution-workspaces/maintenance | server/src/routes/execution-workspaces.ts#/companies/:companyId/execution-workspaces/maintenance | Backend Platform Lead |
 | api_endpoint | implemented | GET /execution-workspaces/:id | server/src/routes/execution-workspaces.ts#/execution-workspaces/:id | Backend Platform Lead |
 | api_endpoint | implemented | PATCH /execution-workspaces/:id | server/src/routes/execution-workspaces.ts#/execution-workspaces/:id | Backend Platform Lead |
 | api_endpoint | implemented | GET /execution-workspaces/:id/close-readiness | server/src/routes/execution-workspaces.ts#/execution-workspaces/:id/close-readiness | Backend Platform Lead |
@@ -450,6 +452,7 @@ Generated: 2026-08-20T17:40:38.175Z
 | api_endpoint | implemented | GET /sidebar-preferences/me | server/src/routes/sidebar-preferences.ts#/sidebar-preferences/me | Backend Platform Lead |
 | api_endpoint | implemented | PUT /sidebar-preferences/me | server/src/routes/sidebar-preferences.ts#/sidebar-preferences/me | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/backlog | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/backlog | Backend Platform Lead |
+| api_endpoint | implemented | GET /companies/:companyId/softwarehouse/coolify/featherly-inventory | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/coolify/featherly-inventory | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/hierarchy-health | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/hierarchy-health | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/issue-templates | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/issue-templates | Backend Platform Lead |
 | api_endpoint | implemented | GET /companies/:companyId/softwarehouse/knowledge | server/src/routes/softwarehouse.ts#/companies/:companyId/softwarehouse/knowledge | Backend Platform Lead |
@@ -510,9 +513,6 @@ Generated: 2026-08-20T17:40:38.175Z
 | component | implemented | app.tsx | packages/plugins/plugin-llm-wiki/src/ui/app.tsx | Plugin Platform Lead |
 | component | implemented | index.tsx | packages/plugins/plugin-llm-wiki/src/ui/index.tsx | Plugin Platform Lead |
 | component | implemented | index.tsx | packages/plugins/plugin-workspace-diff/src/ui/index.tsx | Plugin Platform Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/claude-local/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/codex-local/config-fields.tsx | Frontend Experience Lead |
-| component | implemented | config-fields.tsx | ui/src/adapters/cursor/config-fields.tsx | Frontend Experience Lead |
 
 ## Relation Index
 
@@ -608,6 +608,7 @@ Generated: 2026-08-20T17:40:38.175Z
 | connected_to | api_endpoint:get-companies-companyid-deliveries:df67bf764e | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:get-companies-companyid-environments-capabilities:3cf50e822b | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:get-companies-companyid-environments:ac6e4c8a72 | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
+| connected_to | api_endpoint:get-companies-companyid-execution-workspaces-diagnostics:2fdcaaeb62 | module:src-routes:b474eba4ee | server/src/routes/execution-workspaces.ts |
 | connected_to | api_endpoint:get-companies-companyid-execution-workspaces:e228eb46e6 | module:src-routes:b474eba4ee | server/src/routes/execution-workspaces.ts |
 | connected_to | api_endpoint:get-companies-companyid-goals:9613e9d197 | module:src-routes:b474eba4ee | server/src/routes/goals.ts |
 | connected_to | api_endpoint:get-companies-companyid-heartbeat-runs:d255fe604d | module:src-routes:b474eba4ee | server/src/routes/agents.ts |
@@ -642,6 +643,7 @@ Generated: 2026-08-20T17:40:38.175Z
 | connected_to | api_endpoint:get-companies-companyid-skills-skillid:5caa9c49a1 | module:src-routes:b474eba4ee | server/src/routes/company-skills.ts |
 | connected_to | api_endpoint:get-companies-companyid-skills:936e7dcc51 | module:src-routes:b474eba4ee | server/src/routes/company-skills.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-backlog:1f9fdb29d0 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
+| connected_to | api_endpoint:get-companies-companyid-softwarehouse-coolify-featherly-inventory:2d5de315f1 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-hierarchy-health:65d7d1249e | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-issue-templates:c959b5150c | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
 | connected_to | api_endpoint:get-companies-companyid-softwarehouse-knowledge:4e9c016808 | module:src-routes:b474eba4ee | server/src/routes/softwarehouse.ts |
@@ -852,6 +854,7 @@ Generated: 2026-08-20T17:40:38.175Z
 | connected_to | api_endpoint:post-companies-companyid-deliveries:295187fbac | module:src-routes:b474eba4ee | server/src/routes/deliveries.ts |
 | connected_to | api_endpoint:post-companies-companyid-environments-probe-config:79f7ee336e | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
 | connected_to | api_endpoint:post-companies-companyid-environments:641573a90a | module:src-routes:b474eba4ee | server/src/routes/environments.ts |
+| connected_to | api_endpoint:post-companies-companyid-execution-workspaces-maintenance:5ac6c113e2 | module:src-routes:b474eba4ee | server/src/routes/execution-workspaces.ts |
 | connected_to | api_endpoint:post-companies-companyid-finance-events:b2a9880193 | module:src-routes:b474eba4ee | server/src/routes/costs.ts |
 | connected_to | api_endpoint:post-companies-companyid-goals:e9fd068118 | module:src-routes:b474eba4ee | server/src/routes/goals.ts |
 | connected_to | api_endpoint:post-companies-companyid-inbox-dismissals:3dcb9a9d1c | module:src-routes:b474eba4ee | server/src/routes/inbox-dismissals.ts |
@@ -1112,6 +1115,7 @@ Generated: 2026-08-20T17:40:38.175Z
 | documents | document:ai-agent-runtime-engineer:6b2557c210 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/ai-agent-runtime-engineer.md |
 | documents | document:app-completion-review:f33aabe178 | module:docs:fae674dcd3 | docs/softwarehouse/12-app-completion-review.md |
 | documents | document:app-lifecycle-standard:34e7a021fc | module:docs:fae674dcd3 | docs/softwarehouse/13-app-lifecycle-standard.md |
+| documents | document:application-delivery-first-control-boundary:adbc53734c | module:docs:fae674dcd3 | docs/softwarehouse/20-application-delivery-first-control-boundary.md |
 | documents | document:applications-index:58fab20fb2 | module:softwarehouse:4e4b6a44d5 | softwarehouse/portfolio/APPLICATIONS_INDEX.md |
 | documents | document:approvals-md:6f24734cc1 | module:docs:fae674dcd3 | docs/guides/board-operator/approvals.md |
 | documents | document:architectural-awareness-layer:03d0191537 | component:issueproperties-tsx:4c4966e296 | LUC-6627 critical proof backfill |
@@ -1214,7 +1218,3 @@ Generated: 2026-08-20T17:40:38.175Z
 | documents | document:cto-architect:f8777b3647 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/roles-archive/legacy-2026-07-03/cto.md |
 | documents | document:current-pilot-and-intake:2083203c35 | module:shared:4bb1b95607 | shared/00-current-pilot.md |
 | documents | document:current-pilot-and-intake:905ef2c9d4 | module:softwarehouse:4e4b6a44d5 | softwarehouse/instructions/shared/00-current-pilot.md |
-| documents | document:cursor-cloud-agent-adapter-technical-plan:cbec5e2032 | module:doc:97bf06278b | doc/plans/2026-02-23-cursor-cloud-adapter.md |
-| documents | document:dashboard-and-sidebar-final-polish-audit:30f9ef6f7a | module:docs:fae674dcd3 | docs/dashboard-final-polish-audit/report.md |
-| documents | document:dashboard-interaction-polish-publish-audit:12713aa8b5 | module:docs:fae674dcd3 | docs/dashboard-publish-audit/report.md |
-| documents | document:dashboard-md:f4e44ba323 | module:docs:fae674dcd3 | docs/guides/board-operator/dashboard.md |

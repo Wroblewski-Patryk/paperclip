@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { agents, companies, costEvents, createDb, deliveryTasks, heartbeatRuns, issueRelations, issueThreadInteractions, issues, nativeSafeguards, organizationalObservations, productDeliveries, productOutcomes, projects, supervisionFindings, supervisionInterventions, supervisionObservationWindows, supervisionRootCauses } from "@paperclipai/db";
+import { agents, companies, costEvents, createDb, deliveryTasks, heartbeatRuns, issueIntents, issueRelations, issueThreadInteractions, issues, nativeSafeguards, organizationalObservations, productDeliveries, productOutcomes, projects, roostProductMapOutbox, supervisionFindings, supervisionInterventions, supervisionObservationWindows, supervisionRecurrences, supervisionRootCauses } from "@paperclipai/db";
 import { classifyNativeRemediation, nativeSupervisionEngine } from "../services/native-supervision-engine.js";
 import { supervisionRegistryService } from "../services/supervision-registry.js";
 import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.js";
@@ -495,13 +495,23 @@ describeEmbedded("native supervision engine", () => {
 
   it("reports assigned runnable work as a diagnosis constraint without auto-dispatching it", async () => {
     const refs = await seed();
-    await db.insert(issues).values({
+    const [runnable] = await db.insert(issues).values({
       companyId: refs.companyId,
       projectId: refs.projectId,
       title: "Priority and dependency readiness require diagnosis",
       status: "todo",
       originKind: "manual",
       assigneeAgentId: refs.ownerId,
+    }).returning();
+    await db.insert(issueIntents).values({
+      companyId: refs.companyId,
+      issueId: runnable.id,
+      status: "ACTIVE",
+      confirmedAt: new Date("2026-08-04T02:00:00Z"),
+      validUntil: new Date("2026-08-05T02:00:00Z"),
+      ownerAgentId: refs.ownerId,
+      source: "test",
+      reason: "Explicitly authorized canary work",
     });
 
     const result = await nativeSupervisionEngine(db).runWatchdog(
@@ -524,7 +534,74 @@ describeEmbedded("native supervision engine", () => {
     expect(await db.select().from(supervisionFindings)).toContainEqual(expect.objectContaining({
       problemClass: "runnable_dispatch_gap",
       status: "needs_decision",
+      severity: "critical",
     }));
+  });
+
+  it("reopens observation completion when a passed safeguard later recurs", async () => {
+    const refs = await seed();
+    const finding = (await supervisionRegistryService(db).upsertFinding(refs.companyId, {
+      fingerprint: `observation-canary:${refs.companyId}`,
+      problemClass: "observation_canary",
+      severity: "high",
+      status: "verified",
+      classification: "supervision_integrity",
+      sourceKind: "native_watchdog",
+      sourceRef: "test",
+      title: "Observation recurrence canary",
+      summary: "A recurrence invalidates an earlier passed observation.",
+      affectedComponent: "supervision",
+      retryCount: 0,
+      economics: {},
+      decision: {},
+      recoveryState: "observing",
+      evidence: [],
+      recurrenceEvidence: { sequence: 1 },
+    })).finding;
+    await db.insert(supervisionObservationWindows).values({
+      companyId: refs.companyId,
+      findingId: finding.id,
+      status: "passed",
+      expectedEffect: "No recurrence",
+      successCriteria: [],
+      measurements: [],
+      startsAt: new Date("2026-08-04T01:00:00Z"),
+      endsAt: new Date("2026-08-04T02:00:00Z"),
+      observedAt: new Date("2026-08-04T02:00:00Z"),
+    });
+    await db.insert(supervisionRecurrences).values({
+      companyId: refs.companyId,
+      findingId: finding.id,
+      fingerprint: finding.fingerprint,
+      evidence: { sequence: 2 },
+      occurredAt: new Date("2026-08-04T02:30:00Z"),
+    });
+
+    const result = await nativeSupervisionEngine(db).runWatchdog(refs.companyId, new Date("2026-08-04T03:00:00Z"));
+
+    expect(result.checks.find((check) => check.key === "observation_completion")).toMatchObject({ count: 1, status: "failed" });
+    expect(await db.select().from(supervisionFindings)).toContainEqual(expect.objectContaining({
+      problemClass: "observation_completion_gap",
+      status: "admission_pending",
+    }));
+  });
+
+  it("classifies stale Roost publication as a high-severity integrity failure", async () => {
+    const refs = await seed();
+    await db.insert(roostProductMapOutbox).values({
+      companyId: refs.companyId,
+      sourceSnapshotId: "stale-snapshot",
+      packetDigest: "digest",
+      idempotencyKey: "stale-roost-canary",
+      observedAt: new Date("2026-08-01T00:00:00Z"),
+      envelope: {},
+      status: "dead",
+      nextAttemptAt: new Date("2026-08-01T00:00:00Z"),
+    });
+
+    const result = await nativeSupervisionEngine(db).runDailyAudit(refs.companyId, new Date("2026-08-04T03:00:00Z"));
+
+    expect(result.checks.find((check) => check.key === "stale_roost")).toMatchObject({ count: 1, status: "failed", severity: "high" });
   });
 
   it("reconciles an active finding when its deterministic check passes", async () => {

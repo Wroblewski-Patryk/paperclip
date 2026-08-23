@@ -1,65 +1,18 @@
 {
-  "observedAt": "2026-08-20T17:40:41.482Z",
-  "generatedAt": "2026-08-20T17:40:38.175Z",
+  "observedAt": "2026-08-23T00:03:48.955Z",
+  "generatedAt": "2026-08-23T00:03:39.837Z",
   "project": "Paperclip",
   "root": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
   "repository": {
     "schemaVersion": 1,
     "repositoryRoot": "C:/Personal/Projekty/Aplikacje/Paperclip_Softwarehouse",
-    "headSha": "d4e19f347b88f44778aa00b47860e5e762bdd223",
-    "upstreamSha": "8247e184cf73d9cfa83d1e25f09931005699baea",
+    "headSha": "278a91d57ca1deb4480e7e5a6404e70c15b898a7",
+    "upstreamSha": "278a91d57ca1deb4480e7e5a6404e70c15b898a7",
     "behind": 0,
-    "ahead": 7,
-    "aheadPaths": [
-      ".agents/state/project-journal.md",
-      "AGENTS.md",
-      "doc/UI-DESIGN-SYSTEM.md",
-      "docs/api/decision-center.md",
-      "docs/guides/agent-developer/task-workflow.md",
-      "package.json",
-      "packages/adapter-utils/src/server-utils.ts",
-      "packages/adapters/openclaw-gateway/src/server/execute.ts",
-      "packages/shared/src/index.ts",
-      "packages/shared/src/issue-thread-interactions.test.ts",
-      "packages/shared/src/types/decision-center.ts",
-      "packages/shared/src/types/index.ts",
-      "packages/shared/src/types/issue.ts",
-      "packages/shared/src/validators/index.ts",
-      "packages/shared/src/validators/issue.ts",
-      "scripts/build-app-completion-index.mjs",
-      "scripts/build-architecture-awareness-index.mjs",
-      "scripts/build-project-truth-indexes.mjs",
-      "scripts/cleanup-stale-softwarehouse-temp.ps1",
-      "scripts/configure-softwarehouse-company-os.mjs",
-      "scripts/dev-runner.mjs",
-      "scripts/dev-runner.ts",
-      "scripts/dev-service-profile.test.mjs",
-      "scripts/dev-service-profile.ts",
-      "scripts/dev-service.ts",
-      "scripts/lib/in-review-decision-path.mjs",
-      "scripts/lib/product-flow-classifier.test.mjs",
-      "scripts/lib/softwarehouse-active-routines.mjs",
-      "scripts/run-in-review-decision-path.test.mjs",
-      "server/src/__tests__/dev-server-status.test.ts",
-      "server/src/__tests__/health-dev-server-token.test.ts",
-      "server/src/__tests__/heartbeat-dependency-scheduling.test.ts",
-      "server/src/__tests__/heartbeat-model-profile.test.ts",
-      "server/src/__tests__/routines-service.test.ts",
-      "server/src/dev-server-status.ts",
-      "server/src/routes/decision-center.ts",
-      "server/src/routes/health.ts",
-      "server/src/services/decision-center.test.ts",
-      "server/src/services/decision-center.ts",
-      "server/src/services/heartbeat.ts",
-      "server/src/services/issue-assignment-wakeup.ts",
-      "server/src/services/routines.ts",
-      "ui/src/components/ApprovalCard.tsx",
-      "ui/src/pages/Decisions.test.tsx",
-      "ui/src/pages/Decisions.tsx",
-      "ui/storybook/stories/control-plane-surfaces.stories.tsx"
-    ],
+    "ahead": 0,
+    "aheadPaths": [],
     "controlPlaneOnlyAhead": false,
-    "releaseSha": "d4e19f347b88f44778aa00b47860e5e762bdd223"
+    "releaseSha": "278a91d57ca1deb4480e7e5a6404e70c15b898a7"
   },
   "deployment": {
     "deployedSha": null,
@@ -68,19 +21,19 @@
   },
   "status": "gaps_require_routing",
   "counts": {
-    "appCompletionItems": 650,
+    "appCompletionItems": 552,
     "eventChains": 6,
     "incompleteEventChains": 1,
     "runtimeFindings": 0,
     "criticalRuntimeFindings": 0,
-    "appCompletionGaps": 9,
-    "indexedAppCompletionGaps": 9,
-    "knownAppCompletionRiskItems": 619,
+    "appCompletionGaps": 8,
+    "indexedAppCompletionGaps": 8,
+    "knownAppCompletionRiskItems": 521,
     "appCompletionPriorityReviewItems": 200,
     "appCompletionPriorityReviewTruncated": true,
-    "operationalGateGaps": 4,
-    "indexedGaps": 14,
-    "totalGaps": 14
+    "operationalGateGaps": 3,
+    "indexedGaps": 12,
+    "totalGaps": 12
   },
   "firstGap": {
     "kind": "event_chain_gap",
@@ -147,45 +100,24 @@
     },
     {
       "kind": "app_completion_gap",
-      "severity": "high",
-      "userFlow": "Account access",
-      "summary": "Account access has 2 item(s) with app-completion risk needs_browser_review.",
-      "nextOwner": "QA Regression Lead + Frontend Experience Lead",
-      "nextAction": "Capture browser/clickthrough proof or create the smallest Frontend/UX repair lane for this visible flow.",
-      "evidence": [
-        "ui/src/pages/Auth.tsx",
-        "ui/src/pages/CliAuth.tsx"
-      ],
-      "sourceItemId": "route:auth-tsx:c56aa37d8b",
-      "risk": "needs_browser_review",
-      "sourceItemIds": [
-        "route:auth-tsx:c56aa37d8b",
-        "route:cliauth-tsx:a6f8065d9d"
-      ],
-      "affectedItemCount": 2
-    },
-    {
-      "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Admin operation",
-      "summary": "Admin operation has 4 item(s) with app-completion risk missing_test_link.",
+      "summary": "Admin operation has 3 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
         "server/src/routes/access.ts#/admin/users/:userId/demote-instance-admin",
         "server/src/routes/access.ts#/admin/users/:userId/promote-instance-admin",
-        "server/src/routes/issues.ts#/issues/:id/admin/force-release",
-        "scripts/build-architecture-awareness-index.test.mjs#AdminPagesFeatureTest"
+        "server/src/routes/issues.ts#/issues/:id/admin/force-release"
       ],
       "sourceItemId": "api_endpoint:post-admin-users-userid-demote-instance-admin:3a7867c655",
       "risk": "missing_test_link",
       "sourceItemIds": [
         "api_endpoint:post-admin-users-userid-demote-instance-admin:3a7867c655",
         "api_endpoint:post-admin-users-userid-promote-instance-admin:9efb5ddd30",
-        "api_endpoint:post-issues-id-admin-force-release:af6e61c341",
-        "feature:adminpagesfeaturetest:ed061d15a9"
+        "api_endpoint:post-issues-id-admin-force-release:af6e61c341"
       ],
-      "affectedItemCount": 4
+      "affectedItemCount": 3
     },
     {
       "kind": "app_completion_gap",
@@ -216,22 +148,18 @@
       "kind": "app_completion_gap",
       "severity": "high",
       "userFlow": "Dashboard overview",
-      "summary": "Dashboard overview has 3 item(s) with app-completion risk needs_browser_review.",
+      "summary": "Dashboard overview has 1 item(s) with app-completion risk needs_browser_review.",
       "nextOwner": "QA Regression Lead + Frontend Experience Lead",
       "nextAction": "Capture browser/clickthrough proof or create the smallest Frontend/UX repair lane for this visible flow.",
       "evidence": [
-        "ui/src/components/ProjectDeliveryOverview.tsx",
-        "ui/src/pages/Dashboard.tsx",
-        "ui/src/pages/DashboardLive.tsx"
+        "ui/src/components/ProjectDeliveryOverview.tsx"
       ],
       "sourceItemId": "component:projectdeliveryoverview-tsx:b811de6685",
       "risk": "needs_browser_review",
       "sourceItemIds": [
-        "component:projectdeliveryoverview-tsx:b811de6685",
-        "route:dashboard-tsx:f52edef52c",
-        "route:dashboardlive-tsx:e910b0a38f"
+        "component:projectdeliveryoverview-tsx:b811de6685"
       ],
-      "affectedItemCount": 3
+      "affectedItemCount": 1
     },
     {
       "kind": "app_completion_gap",
@@ -254,7 +182,7 @@
       "kind": "app_completion_gap",
       "severity": "medium",
       "userFlow": "Unclassified user workflow",
-      "summary": "Unclassified user workflow has 164 item(s) with app-completion risk missing_test_link.",
+      "summary": "Unclassified user workflow has 169 item(s) with app-completion risk missing_test_link.",
       "nextOwner": "Test Automation Engineer + QA Regression Lead",
       "nextAction": "Add or link the smallest relevant automated/manual verification for this flow before claiming it works.",
       "evidence": [
@@ -440,14 +368,19 @@
         "api_endpoint:patch-environments-id:7fdc1ee34d",
         "api_endpoint:get-environments-id-leases:aa82420d24",
         "api_endpoint:post-environments-id-probe:a240da1ea8",
+        "api_endpoint:get-companies-companyid-execution-workspaces-diagnostics:2fdcaaeb62",
+        "api_endpoint:post-companies-companyid-execution-workspaces-maintenance:5ac6c113e2",
         "api_endpoint:get-execution-workspaces-id:cfa7051bc9",
         "api_endpoint:patch-execution-workspaces-id:414e9e82c4",
         "api_endpoint:get-execution-workspaces-id-close-readiness:290891b565",
         "api_endpoint:post-execution-workspaces-id-runtime-commands-action:29e6f890b7",
         "api_endpoint:post-execution-workspaces-id-runtime-services-action:da155089d0",
-        "api_endpoint:get-execution-workspaces-id-workspace-operations:017ded6929"
+        "api_endpoint:get-execution-workspaces-id-workspace-operations:017ded6929",
+        "api_endpoint:get-issues-issueid-file-resources-content:f3d13abf65",
+        "api_endpoint:get-issues-issueid-file-resources-list:2166c68a83",
+        "api_endpoint:get-issues-issueid-file-resources-resolve:553be5442e"
       ],
-      "affectedItemCount": 164
+      "affectedItemCount": 169
     },
     {
       "kind": "app_completion_gap",
@@ -489,15 +422,6 @@
         "api_endpoint:get-companies-companyid-execution-workspaces:e228eb46e6"
       ],
       "affectedItemCount": 13
-    },
-    {
-      "kind": "operational_gate_gap",
-      "classification": null,
-      "severity": "high",
-      "userFlow": null,
-      "summary": "release_branch_alignment: diverged",
-      "nextOwner": "Project Manager",
-      "nextAction": "Restore an exact source release candidate."
     },
     {
       "kind": "operational_gate_gap",

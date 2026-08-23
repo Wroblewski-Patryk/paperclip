@@ -1,6 +1,6 @@
 # Task Synchronization Report
 
-Generated: 2026-08-20T17:40:38.175Z
+Generated: 2026-08-23T00:03:39.837Z
 
 ## Contract
 
@@ -10,16 +10,16 @@ Every task should identify the feature/module it changes, dependency expectation
 
 - Actionable tasks without architecture links: 0
 - Raw tasks without architecture links: 0
-- Actionable implementation entities without task links: 2030
-- Raw implementation entities without task links: 2271
-- Classified task-linkage noise: 241
+- Actionable implementation entities without task links: 2034
+- Raw implementation entities without task links: 2261
+- Classified task-linkage noise: 227
 - Verified entities without proof evidence: 0
 
 ## Classified Task-Linkage Noise
 
 - config_only_file: 131
-- domain_error_declaration: 28
-- test_support_file: 21
+- domain_error_declaration: 19
+- test_support_file: 16
 - typescript_type_declaration: 61
 
 ## Actionable Tasks Without Architecture Links
