@@ -8,11 +8,13 @@ import {
   heartbeatRuns,
   issueThreadInteractions,
   issues,
+  nativeSafeguards,
   organizationalObservations,
   productDeliveries,
   supervisionFindings,
   supervisionInterventions,
   supervisionObservationWindows,
+  supervisionRootCauses,
 } from "@paperclipai/db";
 import { admissionControlService } from "./admission-control.js";
 import { supervisionRegistryService } from "./supervision-registry.js";
@@ -162,6 +164,104 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     return rows;
   }
 
+  async function reconcileInvalidatedObservationWindows(companyId: string, now: Date) {
+    const invalidated = await db.execute<{
+      id: string;
+      finding_id: string;
+      native_safeguard_id: string | null;
+      root_cause_id: string | null;
+      recurrence_id: string;
+      recurrence_occurred_at: Date | string;
+    }>(sql`
+      select distinct on (observation.id)
+        observation.id,
+        observation.finding_id,
+        observation.native_safeguard_id,
+        finding.root_cause_id,
+        recurrence.id as recurrence_id,
+        recurrence.occurred_at as recurrence_occurred_at
+      from supervision_observation_windows observation
+      join supervision_findings finding
+        on finding.id=observation.finding_id
+       and finding.company_id=observation.company_id
+      join supervision_recurrences recurrence
+        on recurrence.finding_id=observation.finding_id
+       and recurrence.company_id=observation.company_id
+       and recurrence.occurred_at > coalesce(observation.observed_at, observation.ends_at)
+      where observation.company_id=${companyId}
+        and observation.status='passed'
+      order by observation.id, recurrence.occurred_at desc
+    `);
+    if (invalidated.length === 0) return [];
+
+    const reconciled = [];
+    for (const row of invalidated) {
+      const updated = await db.transaction(async (tx) => {
+        const window = await tx.update(supervisionObservationWindows).set({
+          status: "failed",
+          measurements: [{
+            predicate: "no_recurrence_after_observation",
+            value: false,
+            recurrenceId: row.recurrence_id,
+            occurredAt: new Date(row.recurrence_occurred_at).toISOString(),
+          }],
+          conclusion: "A later recurrence invalidated the passed observation; the safeguard requires a new diagnosis and verification cycle.",
+          observedAt: now,
+          updatedAt: now,
+        }).where(and(
+          eq(supervisionObservationWindows.id, row.id),
+          eq(supervisionObservationWindows.companyId, companyId),
+          eq(supervisionObservationWindows.status, "passed"),
+        )).returning().then((rows) => rows[0] ?? null);
+        if (!window) return null;
+
+        if (row.native_safeguard_id) {
+          await tx.update(nativeSafeguards).set({
+            status: "failed",
+            enabled: false,
+            version: sql`${nativeSafeguards.version} + 1`,
+            updatedAt: now,
+          }).where(and(
+            eq(nativeSafeguards.id, row.native_safeguard_id),
+            eq(nativeSafeguards.companyId, companyId),
+            eq(nativeSafeguards.status, "verified"),
+          ));
+        }
+        if (row.root_cause_id) {
+          await tx.update(supervisionRootCauses).set({
+            status: "confirmed",
+            resolution: null,
+            resolvedAt: null,
+            updatedAt: now,
+          }).where(and(
+            eq(supervisionRootCauses.id, row.root_cause_id),
+            eq(supervisionRootCauses.companyId, companyId),
+            eq(supervisionRootCauses.status, "resolved"),
+          ));
+        }
+        return window;
+      });
+      if (updated) reconciled.push({
+        observationWindowId: row.id,
+        findingId: row.finding_id,
+        recurrenceId: row.recurrence_id,
+        safeguardId: row.native_safeguard_id,
+        rootCauseId: row.root_cause_id,
+      });
+    }
+
+    await logActivity(db, {
+      companyId,
+      actorType: "system",
+      actorId: "native-supervision",
+      action: "supervision.observations.recurrence_reconciled",
+      entityType: "company",
+      entityId: companyId,
+      details: { count: reconciled.length, observations: reconciled },
+    });
+    return reconciled;
+  }
+
   async function collectChecks(companyId: string, now: Date, expanded: boolean, runnableDispatchGap: number): Promise<CheckResult[]> {
     const old24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const reviewDispatchThreshold = new Date(now.getTime() - 15 * 60 * 1000);
@@ -303,13 +403,23 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
         where o.company_id=${companyId}
           and o.status in ('accepted','accepted_with_risk')
           and not exists (
+            with recursive delivery_issue_tree as (
+              select dt.issue_id
+              from delivery_tasks dt
+              where dt.company_id=o.company_id
+                and dt.delivery_id=o.delivery_id
+              union
+              select child.id
+              from issues child
+              join delivery_issue_tree parent on child.parent_id=parent.issue_id
+              where child.company_id=o.company_id
+                and child.hidden_at is null
+            )
             select 1
-            from delivery_tasks dt
+            from delivery_issue_tree task_issue
             join cost_events c
-              on c.company_id=dt.company_id
-             and c.issue_id=dt.issue_id
-            where dt.company_id=o.company_id
-              and dt.delivery_id=o.delivery_id
+              on c.company_id=o.company_id
+             and c.issue_id=task_issue.issue_id
           )
       `),
       scalar(companyId, sql`
@@ -1173,9 +1283,10 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const reconciledAutonomyExecutions = await autonomy.reconcileExecutions(companyId);
     const reconciledExpiredInterventions = await reconcileExpiredInterventionLifecycles(companyId, now);
     const verifiedReviewInterventions = await reconcileReviewDispatchInterventions(companyId, now);
+    const reconciledInvalidatedObservations = await reconcileInvalidatedObservationWindows(companyId, now);
     const reconciledDependencyEvidence = await reconcileDependencyEvidence(companyId, now);
     const started = await registry.createCycle(companyId, { sourceKind: kind, externalCycleId: key, triggerKind: kind === "native_watchdog" ? "scheduler" : "daily_schedule", budget: { llmCalls: 0, maxFindings: 100 }, expiresAt: new Date(now.getTime() + 15 * 60_000).toISOString() });
-    if (!started.created) return { cycle: started.cycle, deduplicated: true, checks: [] as CheckResult[], findings: [] as string[], doctorDispatches: [] as unknown[], verifiedReviewInterventions, reconciledExpiredInterventions };
+    if (!started.created) return { cycle: started.cycle, deduplicated: true, checks: [] as CheckResult[], findings: [] as string[], doctorDispatches: [] as unknown[], verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations };
     const nextActionProjection = await nextActions.project(companyId, { now });
     const runnableDispatchGap = nextActionProjection.actions.filter((action) =>
       action.actionClass === "READY_FOR_EXECUTION" && action.eligibility === "eligible"
@@ -1257,7 +1368,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       : activeCanaryAuthorization
         ? await autonomy.dispatchAuthorized(autonomyDecision.decision.id, activeCanaryAuthorization.id)
         : { status: "NOT_AUTHORIZED" as const, reason: autonomyDecision.decision.reasonCode };
-    const nativeActionCount = orphanLockRecoveries.length + orphanTaskRoutes.length + reviewDispatches.filter((item) => item.status === "dispatched").length + verifiedReviewInterventions.length + reconciledExpiredInterventions.length + (reconciledDependencyEvidence.length > 0 ? 1 : 0);
+    const nativeActionCount = orphanLockRecoveries.length + orphanTaskRoutes.length + reviewDispatches.filter((item) => item.status === "dispatched").length + verifiedReviewInterventions.length + reconciledExpiredInterventions.length + reconciledInvalidatedObservations.length + (reconciledDependencyEvidence.length > 0 ? 1 : 0);
     const homeostasis = {
       runtimeHealth: evaluateHomeostasisDimension(checks, ["admission_coverage", "runaway_retry", "orphan_execution_locks"]),
       dispatchHealth: evaluateHomeostasisDimension(checks, ["dispatch_capacity", "runnable_dispatch", "stalled_ready_work", "review_bottleneck", "blocked_attention"]),
@@ -1297,7 +1408,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       },
       outcome: failed > 0 ? "attention_required" : Object.values(homeostasis).some((dimension) => dimension.state === "unknown") ? "insufficient_sensor_coverage" : "observed_healthy",
     };
-    const cycle = await registry.finishCycle(started.cycle.id, { status: "completed", metrics: { checks: checks.length, failed, warnings, passed: checks.length - failed - warnings, findings: findings.length, reconciledFindings, orphanLockRecoveries: orphanLockRecoveries.length, orphanTaskRoutes: orphanTaskRoutes.length, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledDependencyEvidence: reconciledDependencyEvidence.length, reconciledAutonomyExecutions: reconciledAutonomyExecutions.length, homeostasis, currentConstraint, controlLoops, internalControlLane, autonomyDecision: { id: autonomyDecision.decision.id, mode: autonomyDecision.decision.mode, disposition: autonomyDecision.decision.disposition, reasonCode: autonomyDecision.decision.reasonCode, envelopeId: autonomyDecision.envelope.id, constraintId: autonomyDecision.constraint.id, created: autonomyDecision.created, dispatch: autonomyDispatch }, nextLegalActions: { contractVersion: nextActionProjection.contractVersion, distribution: nextActionProjection.distribution, blockedReasons: nextActionProjection.blockedReasons, currentConstraint: nextActionProjection.currentConstraint }, liveness: nextActionProjection.liveness, shadowDispatch: nextActionProjection.shadowDispatch, ...(dailyRuntime ? { sessionEconomics: dailyRuntime } : {}), llmCalls: 0 }, summary: `${kind}: ${failed} failed, ${warnings} warnings, ${findings.length} linked findings, ${reconciledFindings.length} reconciled findings, ${nativeActionCount} native actions; decision=${autonomyDecision.decision.mode}/${autonomyDecision.decision.disposition}.` });
+    const cycle = await registry.finishCycle(started.cycle.id, { status: "completed", metrics: { checks: checks.length, failed, warnings, passed: checks.length - failed - warnings, findings: findings.length, reconciledFindings, orphanLockRecoveries: orphanLockRecoveries.length, orphanTaskRoutes: orphanTaskRoutes.length, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledDependencyEvidence: reconciledDependencyEvidence.length, reconciledAutonomyExecutions: reconciledAutonomyExecutions.length, homeostasis, currentConstraint, controlLoops, internalControlLane, autonomyDecision: { id: autonomyDecision.decision.id, mode: autonomyDecision.decision.mode, disposition: autonomyDecision.decision.disposition, reasonCode: autonomyDecision.decision.reasonCode, envelopeId: autonomyDecision.envelope.id, constraintId: autonomyDecision.constraint.id, created: autonomyDecision.created, dispatch: autonomyDispatch }, nextLegalActions: { contractVersion: nextActionProjection.contractVersion, distribution: nextActionProjection.distribution, blockedReasons: nextActionProjection.blockedReasons, currentConstraint: nextActionProjection.currentConstraint }, liveness: nextActionProjection.liveness, shadowDispatch: nextActionProjection.shadowDispatch, ...(dailyRuntime ? { sessionEconomics: dailyRuntime } : {}), llmCalls: 0 }, summary: `${kind}: ${failed} failed, ${warnings} warnings, ${findings.length} linked findings, ${reconciledFindings.length} reconciled findings, ${nativeActionCount} native actions; decision=${autonomyDecision.decision.mode}/${autonomyDecision.decision.disposition}.` });
     const controlObservationAliases: Record<string, string> = {
       runaway_retry: "retry",
       orphan_tasks: "orphan_task",
@@ -1315,7 +1426,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
         evidenceRefs: [`supervision_cycle:${started.cycle.id}`],
       }])),
     });
-    return { cycle, deduplicated: false, checks, controlMatrix, findings, doctorDispatches, stalledReadyDispatches, orphanLockRecoveries, orphanTaskRoutes, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions };
+    return { cycle, deduplicated: false, checks, controlMatrix, findings, doctorDispatches, stalledReadyDispatches, orphanLockRecoveries, orphanTaskRoutes, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations };
   }
 
   async function dispatchDoctor(findingId: string, now = new Date()) {

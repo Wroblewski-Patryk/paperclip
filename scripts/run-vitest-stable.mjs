@@ -70,17 +70,17 @@ const generalServerBatchSize = process.platform === "win32" ? 20 : Number.MAX_SA
 // processes keep each batch observable and release jsdom/React handles between
 // groups instead of hiding the final result behind an outer command timeout.
 const uiBatchSize = process.platform === "win32" ? 40 : Number.MAX_SAFE_INTEGER;
+const windowsHookTimeoutArgs = process.platform === "win32" ? ["--hookTimeout=180000"] : [];
 const serializedServerVitestArgs = [
   "--no-file-parallelism",
   "--maxWorkers=1",
   "--minWorkers=1",
   // Embedded PostgreSQL startup and owned PID-tree cleanup can legitimately
-  // cross 30 seconds on the bounded Windows workstation under sustained
+  // cross 60 seconds on the bounded Windows workstation under sustained
   // serial test load. Keep the hook bounded, but do not report those healthy
   // lifecycle transitions as test failures.
-  ...(process.platform === "win32" ? ["--hookTimeout=60000"] : []),
+  ...windowsHookTimeoutArgs,
 ];
-const windowsHookTimeoutArgs = process.platform === "win32" ? ["--hookTimeout=60000"] : [];
 
 function walk(dir) {
   const entries = readdirSync(dir);

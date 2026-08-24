@@ -46,6 +46,12 @@ async function getWindowsProcessTreePids(rootPid: number): Promise<number[]> {
     `$seen = [System.Collections.Generic.HashSet[int]]::new()`,
     `$root = Get-CimInstance Win32_Process -Filter "ProcessId=${rootPid}" -ErrorAction SilentlyContinue`,
     `if ($null -ne $root) { $pending.Enqueue(${rootPid}) }`,
+    // A postgres child can inherit the listener and retain the exited master's
+    // PID as ParentProcessId. Seed those direct children even when the root has
+    // already disappeared so the cleanup loop can still discover and own them.
+    `Get-CimInstance Win32_Process -Filter \"ParentProcessId=${rootPid}\" -ErrorAction SilentlyContinue | ForEach-Object {`,
+    `  $pending.Enqueue([int]$_.ProcessId)`,
+    `}`,
     `while ($pending.Count -gt 0) {`,
     `  $current = $pending.Dequeue()`,
     `  if (-not $seen.Add($current)) { continue }`,

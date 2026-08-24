@@ -38,6 +38,35 @@ describe("embedded Postgres test cleanup", () => {
     expect(inspectListeners).toHaveBeenCalledTimes(4);
   });
 
+  it("kills a late child discovered after the postgres master exits", async () => {
+    const killPids = vi.fn(async () => {});
+    const inspectTree = vi
+      .fn<() => Promise<number[]>>()
+      .mockResolvedValueOnce([301, 302])
+      .mockResolvedValueOnce([303])
+      .mockResolvedValue([]);
+
+    await stopEmbeddedPostgresTestInstance(
+      {
+        process: { pid: 301 },
+        initialise: vi.fn(),
+        start: vi.fn(),
+        stop: vi.fn(),
+      } as never,
+      55434,
+      {
+        platform: "win32",
+        inspectTree,
+        inspectListeners: vi.fn(async () => []),
+        killTree: vi.fn(async () => {}),
+        killPids,
+        delay: vi.fn(async () => {}),
+      },
+    );
+
+    expect(killPids).toHaveBeenCalledWith([303]);
+  });
+
   it("refuses to kill a listener that was not captured in the owned PID tree", async () => {
     await expect(
       stopEmbeddedPostgresTestInstance(

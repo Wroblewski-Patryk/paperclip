@@ -437,7 +437,7 @@ describeEmbedded("native supervision engine", () => {
     }));
   });
 
-  it("accepts zero-cost subscription telemetry when it is linked to the delivery issue", async () => {
+  it("accepts zero-cost subscription telemetry from the delivery issue tree", async () => {
     const refs = await seed();
     const [task] = await db.insert(issues).values({
       companyId: refs.companyId,
@@ -462,6 +462,15 @@ describeEmbedded("native supervision engine", () => {
       issueId: task.id,
       role: "implementation",
     });
+    const [childTask] = await db.insert(issues).values({
+      companyId: refs.companyId,
+      projectId: refs.projectId,
+      parentId: task.id,
+      title: "Subscription-funded delivery child task",
+      status: "done",
+      originKind: "manual",
+      assigneeAgentId: refs.ownerId,
+    }).returning();
     await db.insert(productOutcomes).values({
       companyId: refs.companyId,
       deliveryId: delivery.id,
@@ -471,7 +480,7 @@ describeEmbedded("native supervision engine", () => {
     await db.insert(costEvents).values({
       companyId: refs.companyId,
       agentId: refs.ownerId,
-      issueId: task.id,
+      issueId: childTask.id,
       projectId: refs.projectId,
       provider: "openai",
       biller: "chatgpt",
@@ -538,8 +547,34 @@ describeEmbedded("native supervision engine", () => {
     }));
   });
 
-  it("reopens observation completion when a passed safeguard later recurs", async () => {
+  it("invalidates a passed observation and its safeguard when the same finding recurs later", async () => {
     const refs = await seed();
+    const [rootCause] = await db.insert(supervisionRootCauses).values({
+      companyId: refs.companyId,
+      fingerprint: `root:observation-recurrence:${refs.companyId}`,
+      problemClass: "observation_canary",
+      status: "resolved",
+      title: "Observation recurrence root cause",
+      summary: "A recurrence must invalidate earlier verification.",
+      hypothesis: "The safeguard did not hold.",
+      resolution: "The original observation passed.",
+      ownerAgentId: refs.ownerId,
+      projectId: refs.projectId,
+      confirmedAt: new Date("2026-08-04T01:00:00Z"),
+      resolvedAt: new Date("2026-08-04T02:00:00Z"),
+    }).returning();
+    const [safeguard] = await db.insert(nativeSafeguards).values({
+      companyId: refs.companyId,
+      key: "observation-recurrence-test",
+      kind: "dispatch_policy",
+      status: "verified",
+      title: "Observation recurrence test safeguard",
+      target: "test",
+      ownerAgentId: refs.ownerId,
+      rootCauseId: rootCause.id,
+      enabled: true,
+      verifiedAt: new Date("2026-08-04T02:00:00Z"),
+    }).returning();
     const finding = (await supervisionRegistryService(db).upsertFinding(refs.companyId, {
       fingerprint: `observation-canary:${refs.companyId}`,
       problemClass: "observation_canary",
@@ -555,12 +590,15 @@ describeEmbedded("native supervision engine", () => {
       economics: {},
       decision: {},
       recoveryState: "observing",
+      rootCauseId: rootCause.id,
+      nativeSafeguardId: safeguard.id,
       evidence: [],
       recurrenceEvidence: { sequence: 1 },
     })).finding;
     await db.insert(supervisionObservationWindows).values({
       companyId: refs.companyId,
       findingId: finding.id,
+      nativeSafeguardId: safeguard.id,
       status: "passed",
       expectedEffect: "No recurrence",
       successCriteria: [],
@@ -579,10 +617,27 @@ describeEmbedded("native supervision engine", () => {
 
     const result = await nativeSupervisionEngine(db).runWatchdog(refs.companyId, new Date("2026-08-04T03:00:00Z"));
 
-    expect(result.checks.find((check) => check.key === "observation_completion")).toMatchObject({ count: 1, status: "failed" });
-    expect(await db.select().from(supervisionFindings)).toContainEqual(expect.objectContaining({
-      problemClass: "observation_completion_gap",
-      status: "admission_pending",
+    expect(result.checks.find((check) => check.key === "observation_completion")).toMatchObject({ count: 0, status: "passed" });
+    expect(result.reconciledInvalidatedObservations).toContainEqual(expect.objectContaining({
+      observationWindowId: expect.any(String),
+      findingId: finding.id,
+      safeguardId: safeguard.id,
+      rootCauseId: rootCause.id,
+    }));
+    expect(await db.select().from(supervisionObservationWindows)).toContainEqual(expect.objectContaining({
+      status: "failed",
+      conclusion: expect.stringContaining("recurrence invalidated"),
+    }));
+    expect(await db.select().from(nativeSafeguards)).toContainEqual(expect.objectContaining({
+      id: safeguard.id,
+      status: "failed",
+      enabled: false,
+    }));
+    expect(await db.select().from(supervisionRootCauses)).toContainEqual(expect.objectContaining({
+      id: rootCause.id,
+      status: "confirmed",
+      resolution: null,
+      resolvedAt: null,
     }));
   });
 

@@ -14,6 +14,9 @@ test("temp hygiene covers stale disposable files without broad repository deleti
   assert.match(script, /trackedRootFileSet\.Contains/);
   assert.match(script, /GetDirectoryName\(\$fullPath\) -ne \$repoRoot/);
   assert.match(script, /Repository-root candidate is referenced by a live process/);
+  assert.match(script, /effectiveLastWriteTime/);
+  assert.match(script, /descendant\.LastWriteTime -gt \$effectiveLastWriteTime/);
+  assert.match(script, /recentlyActiveCandidates/);
   assert.match(script, /approvedApplicationRoots/);
   assert.match(script, /\(Join-Path \$applicationsRoot 'Featherly'\)/);
   assert.match(script, /\$insideApprovedApplication/);

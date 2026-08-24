@@ -19,15 +19,15 @@ $cutoff = (Get-Date).AddHours(-$MinAgeHours)
 $namePattern = '^(?i)(pcvt-|paperclip|soar|roost|featherly|vitest|pglite|postgres)'
 $ownedRecentTestPattern = '^(?i)(pcvt-\d+-\d+-[A-Za-z0-9]+|paperclip-(?:activity-service|runtime-[A-Za-z0-9-]+|worktree-[A-Za-z0-9-]+|supervision-registry|db-(?:cwd|home|runtime))-[A-Za-z0-9]+|paperclip-(?:next-after|source-after|source-control-check)\.json|paperclip-gate-specs-final\.txt|paperclip-serialized-validation\.log)$'
 $repoDisposableNamePattern = '^(?i)(tmp-.+|(?:cto-)?closeout(?:-.+)?\.md|completion-evidence(?:-.+)?\.json|\.paperclip-dev-(?:restart|start).*\.log|coolify(?:\..+)?\.(?:html|txt))$'
-$candidates = @(
+$candidateSeeds = @(
   Get-ChildItem -LiteralPath $tempRoot -Force -ErrorAction Stop |
     Where-Object {
       ($_.Name -match $namePattern -and $_.LastWriteTime -lt $cutoff) -or
       ($IncludeRecentOwnedTestArtifacts -and $_.Name -match $ownedRecentTestPattern)
     }
 )
-if ($candidates.Count -gt 1000) {
-  throw "Refusing to inspect an unexpected candidate count: $($candidates.Count)"
+if ($candidateSeeds.Count -gt 1000) {
+  throw "Refusing to inspect an unexpected candidate count: $($candidateSeeds.Count)"
 }
 
 $trackedRootFiles = @(
@@ -68,8 +68,10 @@ $allowedExternalTargets = [Collections.Generic.HashSet[string]]::new([StringComp
 $junctions = @()
 $manifest = @()
 $repoManifest = @()
+$candidates = @()
+$recentlyActiveCandidates = @()
 
-foreach ($candidate in $candidates) {
+foreach ($candidate in $candidateSeeds) {
   $fullPath = [IO.Path]::GetFullPath($candidate.FullName).TrimEnd('\')
   if ([IO.Path]::GetDirectoryName($fullPath) -ne $tempRoot) {
     throw "Candidate escaped the temporary root: $fullPath"
@@ -85,6 +87,20 @@ foreach ($candidate in $candidates) {
   if ($candidate.PSIsContainer) {
     $descendants = @(Get-ChildItem -LiteralPath $fullPath -Force -Recurse -ErrorAction Stop)
   }
+  $effectiveLastWriteTime = $candidate.LastWriteTime
+  foreach ($descendant in $descendants) {
+    if ($descendant.LastWriteTime -gt $effectiveLastWriteTime) {
+      $effectiveLastWriteTime = $descendant.LastWriteTime
+    }
+  }
+  # Directory timestamps do not advance when an existing redirected log is
+  # written. Retain the whole tree when any descendant is recent; otherwise a
+  # live runtime log directory can look stale and fail midway through removal.
+  if (-not $IncludeRecentOwnedTestArtifacts -and $effectiveLastWriteTime -ge $cutoff) {
+    $recentlyActiveCandidates += $candidate
+    continue
+  }
+  $candidates += $candidate
   $candidateJunctions = @($descendants | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint })
   foreach ($junction in $candidateJunctions) {
     $junctionPath = [IO.Path]::GetFullPath($junction.FullName)
@@ -113,7 +129,7 @@ foreach ($candidate in $candidates) {
   $manifest += [pscustomobject]@{
     path = $fullPath
     type = $(if ($candidate.PSIsContainer) { 'directory' } else { 'file' })
-    lastWriteTime = $candidate.LastWriteTime
+    lastWriteTime = $effectiveLastWriteTime
     junctionCount = $candidateJunctions.Count
   }
 }
@@ -184,14 +200,12 @@ if ($Apply -and $repoCandidates.Count -gt 0) {
   }
 }
 
-$remainingStale = @(
-  Get-ChildItem -LiteralPath $tempRoot -Force -ErrorAction Stop |
-    Where-Object { $_.Name -match $namePattern -and $_.LastWriteTime -lt $cutoff }
-)
+$remainingStale = @($candidates | Where-Object { Test-Path -LiteralPath $_.FullName })
 $retainedRecent = @(
   Get-ChildItem -LiteralPath $tempRoot -Force -ErrorAction Stop |
     Where-Object { $_.Name -match $namePattern -and $_.LastWriteTime -ge $cutoff }
 )
+$retainedRecent += $recentlyActiveCandidates
 $remainingRepoStale = @(
   Get-ChildItem -LiteralPath $repoRoot -File -Force -ErrorAction Stop |
     Where-Object {
