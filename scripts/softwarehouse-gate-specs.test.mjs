@@ -561,6 +561,11 @@ test("Windows Softwarehouse lifecycle uses one registered process tree", async (
   assert.match(starter, /Test-PaperclipHealth/);
   assert.match(starter, /-WindowStyle Hidden/);
   assert.match(stopper, /dev-service\.ts stop/);
+  assert.match(stopper, /Get-VerifiedRuntimeSupervisor/);
+  assert.match(stopper, /scripts\/dev-\(runner\|watch\)\\\.ts/);
+  assert.match(stopper, /Stop-VerifiedProcessTree/);
+  assert.match(stopper, /Sort-Object Depth -Descending/);
+  assert.match(stopper, /Refusing incomplete stop/);
   assert.doesNotMatch(stopper, /Get-CimInstance Win32_Process \| Where-Object/);
   assert.doesNotMatch(stopper, /Stop-Process[^\n]+node|Stop-Process[^\n]+postgres/i);
 });
