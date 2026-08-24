@@ -7484,9 +7484,17 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       budgetReason: budgetBlock?.reason ?? null,
     });
     if (!admissionDecision.admitted) {
-      if (["needs_decision", "paused_by_budget", "rejected_as_duplicate", "not_worth_doing"].includes(admissionDecision.disposition)) {
+      const cannotBecomeRunnableWithoutNewWakeEvidence =
+        admissionDecision.reasonCode === "evidence.unchanged";
+      if (
+        cannotBecomeRunnableWithoutNewWakeEvidence ||
+        ["needs_decision", "paused_by_budget", "rejected_as_duplicate", "not_worth_doing"].includes(
+          admissionDecision.disposition,
+        )
+      ) {
         await cancelRunInternal(run.id, admissionDecision.reason ?? admissionDecision.reasonCode, {
           startNextQueuedRun: false,
+          suppressAutomaticRecovery: true,
         });
       }
       return null;

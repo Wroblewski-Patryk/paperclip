@@ -23,6 +23,7 @@ import {
   MAX_TURN_CONTINUATION_WAKE_REASON,
   heartbeatService,
 } from "../services/heartbeat.ts";
+import { admissionControlService } from "../services/admission-control.ts";
 import { runningProcesses } from "../adapters/index.ts";
 
 const mockAdapterExecute = vi.hoisted(() =>
@@ -404,6 +405,97 @@ describeEmbeddedPostgres("heartbeat stale queued-run invalidation", () => {
     expect(wakeup?.status).toBe("skipped");
     expect(wakeup?.error).toContain("assignee changed");
     expect(countExecuteCallsForRun(runId)).toBe(0);
+  });
+
+  it("cancels a queued run when its prior stop still has unchanged evidence", async () => {
+    const { companyId, agentId } = await seedCompanyAndAgent();
+    const issueId = randomUUID();
+    const evidenceHash = "evidence-v1";
+    const wakeReason = "issue_assigned";
+    const fingerprint = `${issueId}:assignment:${wakeReason}`;
+    const admission = admissionControlService(db);
+
+    const priorStop = await admission.evaluateWork({
+      companyId,
+      agentId,
+      source: "test.prior-stop",
+      fingerprint,
+      evidenceHash,
+      expectedValue: -1,
+    });
+    expect(priorStop).toMatchObject({
+      admitted: false,
+      disposition: "not_worth_doing",
+      reasonCode: "expected_value.negative",
+    });
+
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      title: "Waiting for genuinely new evidence",
+      status: "in_progress",
+      priority: "medium",
+      assigneeAgentId: agentId,
+    });
+    const { runId, wakeupRequestId } = await seedQueuedRun({
+      companyId,
+      agentId,
+      issueId,
+      wakeReason,
+      contextExtras: { evidenceHash },
+    });
+    await db
+      .update(issues)
+      .set({
+        executionRunId: runId,
+        executionAgentNameKey: "claudecoder",
+        executionLockedAt: new Date(),
+      })
+      .where(eq(issues.id, issueId));
+
+    await heartbeat.resumeQueuedRuns();
+
+    await waitForCondition(async () => {
+      const run = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, runId))
+        .then((rows) => rows[0] ?? null);
+      return run?.status === "cancelled";
+    });
+
+    const [run, wakeup, issue] = await Promise.all([
+      db
+        .select({ status: heartbeatRuns.status, error: heartbeatRuns.error })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, runId))
+        .then((rows) => rows[0] ?? null),
+      db
+        .select({ status: agentWakeupRequests.status, error: agentWakeupRequests.error })
+        .from(agentWakeupRequests)
+        .where(eq(agentWakeupRequests.id, wakeupRequestId))
+        .then((rows) => rows[0] ?? null),
+      db
+        .select({
+          executionRunId: issues.executionRunId,
+          executionAgentNameKey: issues.executionAgentNameKey,
+          executionLockedAt: issues.executionLockedAt,
+        })
+        .from(issues)
+        .where(eq(issues.id, issueId))
+        .then((rows) => rows[0] ?? null),
+    ]);
+    const unchangedReason =
+      "A previous stop decision remains active and no new evidence was supplied";
+
+    expect(run).toEqual({ status: "cancelled", error: unchangedReason });
+    expect(wakeup).toEqual({ status: "cancelled", error: unchangedReason });
+    expect(issue).toEqual({
+      executionRunId: null,
+      executionAgentNameKey: null,
+      executionLockedAt: null,
+    });
+    expect(mockAdapterExecute).not.toHaveBeenCalled();
   });
 
   it("cancels timer-scoped runs when a completed issue with evidence is claimed", async () => {
