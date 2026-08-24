@@ -48,6 +48,8 @@ interface MissionControlDashboardProps {
   status?: SoftwarehouseControlStatusResponse | null;
   agents: Agent[];
   issues: Issue[];
+  blockedAttentionIssues?: Issue[];
+  blockedAttentionCount?: number;
   projects: Project[];
   activity: ActivityEvent[];
   quota: { value: string; description: string };
@@ -270,6 +272,8 @@ export function MissionControlDashboard({
   status,
   agents,
   issues,
+  blockedAttentionIssues: authoritativeBlockedAttentionIssues,
+  blockedAttentionCount: authoritativeBlockedAttentionCount,
   projects,
   activity,
   quota,
@@ -301,7 +305,9 @@ export function MissionControlDashboard({
 
   const blockedCount = situation?.work.blocked ?? dashboard.tasks.blocked;
   const blockedIssues = issues.filter((issue) => issue.status === "blocked");
-  const blockedAttentionIssues = blockedIssues.filter((issue) => issue.blockerAttention?.state === "needs_attention");
+  const blockedAttentionIssues = authoritativeBlockedAttentionIssues
+    ?? blockedIssues.filter((issue) => issue.blockerAttention?.state === "needs_attention");
+  const blockedAttentionCount = authoritativeBlockedAttentionCount ?? blockedAttentionIssues.length;
   const hasBlockerAttentionData = blockedIssues.some((issue) => Boolean(issue.blockerAttention));
   const dispatchConstrained = (situation?.capacity.dispatchState ?? "healthy") !== "healthy";
   const overallTone = !status?.available || dashboard.agents.error > 0
@@ -485,7 +491,7 @@ export function MissionControlDashboard({
     }
 
     if (blockedCount > 0 && !result.some((item) => item.type === "blocked work")) {
-      const attentionCount = blockedAttentionIssues.length;
+      const attentionCount = blockedAttentionCount;
       const affectedIssues = attentionCount > 0 ? blockedAttentionIssues : blockedIssues;
       result.unshift({
         id: "blocked-work",
@@ -508,7 +514,7 @@ export function MissionControlDashboard({
     }
 
     return result.slice(0, 5);
-  }, [agentMap, blockedAttentionIssues, blockedCount, blockedIssues, hasBlockerAttentionData, projects.length, situation, status]);
+  }, [agentMap, blockedAttentionCount, blockedAttentionIssues, blockedCount, blockedIssues, hasBlockerAttentionData, projects.length, situation, status]);
 
   const agentCounts = {
     running: agents.filter((agent) => agent.status === "running").length,

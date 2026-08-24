@@ -206,7 +206,7 @@ describe("MissionControlDashboard", () => {
     expect(container.textContent).toContain("Provider-reported quota");
   });
 
-  it("separates covered dependency waits from blocked issues that need attention", () => {
+  it("uses the authoritative attention count instead of the truncated dashboard issue page", () => {
     const issueBase = {
       companyId: "company-1",
       status: "blocked",
@@ -257,6 +257,8 @@ describe("MissionControlDashboard", () => {
         situation={{ ...idleSituation, work: { ...idleSituation.work, blocked: 2 } }}
         agents={[]}
         issues={issues}
+        blockedAttentionIssues={[issues[1]]}
+        blockedAttentionCount={17}
         projects={[]}
         activity={[]}
         quota={{ value: "26%", description: "OpenAI weekly limit" }}
@@ -264,7 +266,8 @@ describe("MissionControlDashboard", () => {
       />,
     );
 
-    expect(container.textContent).toContain("1 blocked issue needs attention");
+    expect(container.textContent).toContain("17 blocked issues need attention");
+    expect(container.textContent).toContain("17 issues");
     expect(container.textContent).toContain("2 blocked");
     expect(container.textContent).not.toContain("2 issues are blocked");
   });

@@ -160,6 +160,18 @@ export function Dashboard() {
     enabled: !!selectedCompanyId,
   });
 
+  const { data: blockedAttentionIssues } = useQuery({
+    queryKey: queryKeys.issues.listBlockedAttention(selectedCompanyId!),
+    queryFn: () => issuesApi.list(selectedCompanyId!, { attention: "blocked", limit: 500 }),
+    enabled: !!selectedCompanyId,
+  });
+
+  const { data: blockedAttentionCount } = useQuery({
+    queryKey: queryKeys.issues.countBlockedAttention(selectedCompanyId!),
+    queryFn: () => issuesApi.count(selectedCompanyId!, { attention: "blocked" }),
+    enabled: !!selectedCompanyId,
+  });
+
   const { data: projects } = useQuery({
     queryKey: queryKeys.projects.list(selectedCompanyId!),
     queryFn: () => projectsApi.list(selectedCompanyId!),
@@ -222,6 +234,8 @@ export function Dashboard() {
           status={softwarehouseStatus}
           agents={agents ?? []}
           issues={issues ?? []}
+          blockedAttentionIssues={blockedAttentionIssues}
+          blockedAttentionCount={blockedAttentionCount?.count}
           projects={projects ?? []}
           activity={activity ?? []}
           quota={quotaMetric}
