@@ -58,6 +58,10 @@ import type {
   InstanceDatabaseBackupTrigger,
 } from "./routes/instance-database-backups.js";
 import { startRunLogRetention } from "./services/run-log-retention.js";
+import {
+  reclaimOrphanedEmbeddedPostgresListener,
+  stopOwnedEmbeddedPostgres,
+} from "./embedded-postgres-lifecycle.js";
 
 type BetterAuthSessionUser = {
   id: string;
@@ -71,6 +75,7 @@ type BetterAuthSessionResult = {
 };
 
 type EmbeddedPostgresInstance = {
+  process?: { pid?: number };
   initialise(): Promise<void>;
   start(): Promise<void>;
   stop(): Promise<void>;
@@ -418,7 +423,18 @@ export async function startServer(): Promise<StartedServer> {
           `Embedded PostgreSQL appears to already be reachable without a pid file; reusing existing server on configured port ${configuredPort}`,
         );
       } catch {
-        const detectedPort = await detectPort(configuredPort);
+        let detectedPort = await detectPort(configuredPort);
+        if (
+          detectedPort !== configuredPort
+          && config.embeddedPostgresStrictPort
+          && await reclaimOrphanedEmbeddedPostgresListener(configuredPort)
+        ) {
+          logger.warn(
+            { port: configuredPort },
+            "Recovered an orphaned embedded PostgreSQL Windows listener before strict-port startup",
+          );
+          detectedPort = await detectPort(configuredPort);
+        }
         if (detectedPort !== configuredPort) {
           if (config.embeddedPostgresStrictPort) {
             throw new Error(
@@ -1056,7 +1072,7 @@ export async function startServer(): Promise<StartedServer> {
       if (embeddedPostgres && embeddedPostgresStartedByThisProcess) {
         logger.info({ signal }, "Stopping embedded PostgreSQL");
         try {
-          await embeddedPostgres?.stop();
+          await stopOwnedEmbeddedPostgres(embeddedPostgres, resolvedEmbeddedPostgresPort ?? config.embeddedPostgresPort);
         } catch (err) {
           logger.error({ err }, "Failed to stop embedded PostgreSQL cleanly");
         }

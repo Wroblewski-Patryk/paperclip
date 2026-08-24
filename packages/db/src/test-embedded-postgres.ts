@@ -40,32 +40,12 @@ let embeddedPostgresSupportPromise: Promise<EmbeddedPostgresTestSupport> | null 
 const DEFAULT_PAPERCLIP_EMBEDDED_POSTGRES_PORT = 54329;
 const execFileAsync = promisify(execFile);
 
-async function getWindowsPostgresPids(): Promise<Set<number>> {
-  if (process.platform !== "win32") return new Set();
-  const { stdout } = await execFileAsync(
-    "powershell.exe",
-    [
-      "-NoProfile",
-      "-NonInteractive",
-      "-Command",
-      `(Get-CimInstance Win32_Process -Filter \"Name='postgres.exe'\" -ErrorAction SilentlyContinue).ProcessId -join ','`,
-    ],
-    { windowsHide: true },
-  );
-  return new Set(
-    stdout
-      .trim()
-      .split(",")
-      .map((value) => Number.parseInt(value, 10))
-      .filter((value) => Number.isInteger(value) && value > 0),
-  );
-}
-
 async function getWindowsProcessTreePids(rootPid: number): Promise<number[]> {
   const script = [
     `$pending = [System.Collections.Generic.Queue[int]]::new()`,
     `$seen = [System.Collections.Generic.HashSet[int]]::new()`,
-    `$pending.Enqueue(${rootPid})`,
+    `$root = Get-CimInstance Win32_Process -Filter "ProcessId=${rootPid}" -ErrorAction SilentlyContinue`,
+    `if ($null -ne $root) { $pending.Enqueue(${rootPid}) }`,
     `while ($pending.Count -gt 0) {`,
     `  $current = $pending.Dequeue()`,
     `  if (-not $seen.Add($current)) { continue }`,
@@ -87,88 +67,104 @@ async function getWindowsProcessTreePids(rootPid: number): Promise<number[]> {
     .filter((value) => Number.isInteger(value) && value > 0);
 }
 
-async function getWindowsReservedPostgresPids(): Promise<Set<number>> {
-  if (process.platform !== "win32") return new Set();
-  const reservedPorts = [...getReservedTestPorts()];
-  if (reservedPorts.length === 0) return new Set();
-  const script = [
-    `$ports = @(${reservedPorts.join(",")})`,
-    `$pending = [System.Collections.Generic.Queue[int]]::new()`,
-    `$seen = [System.Collections.Generic.HashSet[int]]::new()`,
-    `Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $ports -contains [int]$_.LocalPort } | ForEach-Object {`,
-    `  if ([int]$_.OwningProcess -gt 0) { $pending.Enqueue([int]$_.OwningProcess) }`,
-    `}`,
-    `while ($pending.Count -gt 0) {`,
-    `  $current = $pending.Dequeue()`,
-    `  if (-not $seen.Add($current)) { continue }`,
-    `  Get-CimInstance Win32_Process -Filter "ParentProcessId=$current" -ErrorAction SilentlyContinue | ForEach-Object {`,
-    `    $pending.Enqueue([int]$_.ProcessId)`,
-    `  }`,
-    `}`,
-    `$seen -join ','`,
-  ].join("\n");
+async function getWindowsListenerPids(port: number): Promise<number[]> {
   const { stdout } = await execFileAsync(
     "powershell.exe",
-    ["-NoProfile", "-NonInteractive", "-Command", script],
+    [
+      "-NoProfile",
+      "-NonInteractive",
+      "-Command",
+      `@(Get-NetTCPConnection -State Listen -LocalPort ${port} -ErrorAction SilentlyContinue | ForEach-Object { [int]$_.OwningProcess } | Sort-Object -Unique) -join ','`,
+    ],
     { windowsHide: true },
   );
-  return new Set(
-    stdout
-      .trim()
-      .split(",")
-      .map((value) => Number.parseInt(value, 10))
-      .filter((value) => Number.isInteger(value) && value > 0),
-  );
+  return stdout
+    .trim()
+    .split(",")
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => Number.isInteger(value) && value > 0);
 }
 
-async function stopEmbeddedPostgresTestInstance(
+type TestShutdownDependencies = {
+  platform: NodeJS.Platform;
+  inspectTree(rootPid: number): Promise<number[]>;
+  inspectListeners(port: number): Promise<number[]>;
+  killTree(rootPid: number): Promise<void>;
+  killPids(pids: number[]): Promise<void>;
+  delay(ms: number): Promise<void>;
+};
+
+const defaultTestShutdownDependencies: TestShutdownDependencies = {
+  platform: process.platform,
+  inspectTree: getWindowsProcessTreePids,
+  inspectListeners: getWindowsListenerPids,
+  async killTree(rootPid) {
+    await execFileAsync("taskkill", ["/pid", String(rootPid), "/T", "/F"], {
+      windowsHide: true,
+    }).catch(() => {});
+  },
+  async killPids(pids) {
+    if (pids.length === 0) return;
+    await execFileAsync(
+      "taskkill",
+      [...pids.flatMap((pid) => ["/pid", String(pid)]), "/F"],
+      { windowsHide: true },
+    ).catch(() => {});
+  },
+  delay,
+};
+
+export async function stopEmbeddedPostgresTestInstance(
   instance: EmbeddedPostgresInstance | null,
-  baselineWindowsPostgresPids: Set<number>,
-) {
+  port: number,
+  dependencies: TestShutdownDependencies = defaultTestShutdownDependencies,
+): Promise<void> {
   if (!instance) return;
   const pid = (instance as unknown as { process?: { pid?: number } }).process?.pid;
-  if (process.platform === "win32" && pid) {
+  if (dependencies.platform === "win32" && pid) {
     // embedded-postgres spawns taskkill but does not await it. The Vitest
     // process can therefore exit after the master stops but before /T has
     // terminated its Postgres children, leaking one process group per test.
     // Await the exact master PID tree ourselves before the temp directory is
     // removed or the test worker exits.
-    const ownedPids = await getWindowsProcessTreePids(pid).catch(() => [pid]);
-    await execFileAsync("taskkill", ["/pid", String(pid), "/T", "/F"]).catch(() => {});
-    if (ownedPids.length > 0) {
-      await execFileAsync(
-        "taskkill",
-        [...ownedPids.flatMap((ownedPid) => ["/pid", String(ownedPid)]), "/F"],
-      ).catch(() => {});
-    }
+    const ownedPids = new Set(
+      await dependencies.inspectTree(pid).catch(() => [pid]),
+    );
+    ownedPids.add(pid);
+    await dependencies.killTree(pid);
+    await dependencies.killPids([...ownedPids]);
     // A Windows io_worker can be reparented just after taskkill returns. Do
-    // not declare cleanup complete until several consecutive PID snapshots
-    // contain only processes that predated this fixture.
+    // not declare cleanup complete until the exact tree and port are absent
+    // for several consecutive snapshots.
     let stableSnapshots = 0;
     for (let attempt = 0; attempt < 30 && stableSnapshots < 3; attempt += 1) {
-      const remainingPids = await getWindowsPostgresPids().catch(() => new Set<number>());
-      // The canonical local database may restart while a long test run is in
-      // progress (for example when the dev watcher sees generated catalog
-      // output). Protect the current process tree listening on every reserved
-      // Paperclip port instead of relying only on the PIDs captured when this
-      // fixture started.
-      const reservedPids = await getWindowsReservedPostgresPids().catch(
-        () => new Set<number>(),
-      );
-      const leakedPids = [...remainingPids].filter(
-        (candidatePid) =>
-          !baselineWindowsPostgresPids.has(candidatePid) && !reservedPids.has(candidatePid),
-      );
-      if (leakedPids.length > 0) {
+      const treePids = await dependencies.inspectTree(pid);
+      treePids.forEach((candidatePid) => ownedPids.add(candidatePid));
+      if (treePids.length > 0) {
         stableSnapshots = 0;
-        await execFileAsync(
-          "taskkill",
-          [...leakedPids.flatMap((leakedPid) => ["/pid", String(leakedPid)]), "/F"],
-        ).catch(() => {});
+        await dependencies.killPids(treePids);
       } else {
-        stableSnapshots += 1;
+        const listenerPids = await dependencies.inspectListeners(port);
+        const ownedListenerPids = listenerPids.filter((candidatePid) =>
+          ownedPids.has(candidatePid),
+        );
+        if (ownedListenerPids.length > 0) {
+          stableSnapshots = 0;
+          await dependencies.killPids(ownedListenerPids);
+        } else if (listenerPids.length > 0) {
+          throw new Error(
+            `Embedded PostgreSQL test port ${port} was rebound by an unowned process during cleanup`,
+          );
+        } else {
+          stableSnapshots += 1;
+        }
       }
-      if (stableSnapshots < 3) await delay(100);
+      if (stableSnapshots < 3) await dependencies.delay(100);
+    }
+    if (stableSnapshots < 3) {
+      throw new Error(
+        `Embedded PostgreSQL test process tree rooted at ${pid} did not release port ${port}`,
+      );
     }
     return;
   }
@@ -224,7 +220,6 @@ async function getAvailablePort(): Promise<number> {
 }
 
 async function createEmbeddedPostgresTestInstance(tempDirPrefix: string) {
-  const baselineWindowsPostgresPids = await getWindowsPostgresPids();
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), tempDirPrefix));
   const port = await getAvailablePort();
   const EmbeddedPostgres = await getEmbeddedPostgresCtor();
@@ -239,7 +234,7 @@ async function createEmbeddedPostgresTestInstance(tempDirPrefix: string) {
     onError: () => {},
   });
 
-  return { dataDir, port, instance, baselineWindowsPostgresPids };
+  return { dataDir, port, instance };
 }
 
 async function cleanupEmbeddedPostgresTestDirs(dataDir: string) {
@@ -268,15 +263,15 @@ function formatEmbeddedPostgresError(error: unknown): string {
 async function probeEmbeddedPostgresSupport(): Promise<EmbeddedPostgresTestSupport> {
   let dataDir: string | null = null;
   let instance: EmbeddedPostgresInstance | null = null;
-  let baselineWindowsPostgresPids = new Set<number>();
+  let port: number | null = null;
 
   try {
     const created = await createEmbeddedPostgresTestInstance(
       "paperclip-embedded-postgres-probe-",
     );
     dataDir = created.dataDir;
+    port = created.port;
     instance = created.instance;
-    baselineWindowsPostgresPids = created.baselineWindowsPostgresPids;
     await instance.initialise();
     await instance.start();
     return { supported: true };
@@ -286,7 +281,7 @@ async function probeEmbeddedPostgresSupport(): Promise<EmbeddedPostgresTestSuppo
       reason: formatEmbeddedPostgresError(error),
     };
   } finally {
-    await stopEmbeddedPostgresTestInstance(instance, baselineWindowsPostgresPids);
+    if (port !== null) await stopEmbeddedPostgresTestInstance(instance, port);
     if (dataDir) await cleanupEmbeddedPostgresTestDirs(dataDir);
   }
 }
@@ -303,14 +298,13 @@ export async function startEmbeddedPostgresTestDatabase(
 ): Promise<EmbeddedPostgresTestDatabase> {
   let dataDir: string | null = null;
   let instance: EmbeddedPostgresInstance | null = null;
-  let baselineWindowsPostgresPids = new Set<number>();
+  let port: number | null = null;
 
   try {
     const created = await createEmbeddedPostgresTestInstance(tempDirPrefix);
     dataDir = created.dataDir;
+    port = created.port;
     instance = created.instance;
-    baselineWindowsPostgresPids = created.baselineWindowsPostgresPids;
-    const { port } = created;
     await instance.initialise();
     await instance.start();
 
@@ -318,16 +312,19 @@ export async function startEmbeddedPostgresTestDatabase(
     await ensurePostgresDatabase(adminConnectionString, "paperclip");
     const connectionString = `postgres://paperclip:paperclip@127.0.0.1:${port}/paperclip`;
     await applyPendingMigrations(connectionString);
+    const cleanupInstance = instance;
+    const cleanupPort = port;
+    const cleanupDataDir = dataDir;
 
     return {
       connectionString,
       cleanup: async () => {
-        await stopEmbeddedPostgresTestInstance(instance, baselineWindowsPostgresPids);
-        if (dataDir) await cleanupEmbeddedPostgresTestDirs(dataDir);
+        await stopEmbeddedPostgresTestInstance(cleanupInstance, cleanupPort);
+        await cleanupEmbeddedPostgresTestDirs(cleanupDataDir);
       },
     };
   } catch (error) {
-    await stopEmbeddedPostgresTestInstance(instance, baselineWindowsPostgresPids);
+    if (port !== null) await stopEmbeddedPostgresTestInstance(instance, port);
     if (dataDir) await cleanupEmbeddedPostgresTestDirs(dataDir);
     throw new Error(
       `Failed to start embedded PostgreSQL test database: ${formatEmbeddedPostgresError(error)}`,

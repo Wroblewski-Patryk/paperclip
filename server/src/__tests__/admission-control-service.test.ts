@@ -170,6 +170,48 @@ describeEmbeddedPostgres("native admission control", () => {
     expect((await db.select().from(companies))[0].status).toBe("active");
   });
 
+  it("refuses to claim existing Paperclip self-work while application delivery debt is open", async () => {
+    const { companyId, agentId } = await seed("active");
+    const [controlProject, applicationProject] = await db.insert(projects).values([
+      { companyId, name: "LuckySparrow Softwarehouse", status: "active" },
+      { companyId, name: "Soar", status: "active" },
+    ]).returning();
+    const [controlIssue] = await db.insert(issues).values([
+      {
+        companyId,
+        projectId: controlProject!.id,
+        title: "Add clean-env one-shot Windows exact-argv executor",
+        status: "todo",
+        priority: "medium",
+        assigneeAgentId: agentId,
+      },
+      {
+        companyId,
+        projectId: applicationProject!.id,
+        title: "Ship the current Soar milestone",
+        status: "in_progress",
+        priority: "high",
+        assigneeAgentId: agentId,
+      },
+    ]).returning();
+
+    const decision = await admissionControlService(db).evaluateWork({
+      companyId,
+      projectId: controlProject!.id,
+      issueId: controlIssue!.id,
+      agentId,
+      source: "heartbeat_claim",
+      fingerprint: `claim:${controlIssue!.id}`,
+    });
+
+    expect(decision).toMatchObject({
+      admitted: false,
+      disposition: "waiting_for_signal",
+      reasonCode: "policy.application_delivery_preempts_control_plane_execution",
+    });
+    expect(decision.reason).toContain("Application delivery has 1 open issue");
+  });
+
   it("finishes active work before automatically settling draining to durable maintenance", async () => {
     const { companyId, agentId } = await seed("active");
     const admission = admissionControlService(db);

@@ -20,6 +20,7 @@ import {
   scopesCanRunConcurrently,
 } from "./project-concurrency.js";
 import { evaluateApplicationVersionPolicy } from "./application-version-policy.js";
+import { evaluateControlPlaneExecutionPolicy } from "./control-plane-execution-policy.js";
 
 export const ADMISSION_CONTROL_STATES = ["open", "draining", "maintenance", "reopening"] as const;
 export type AdmissionControlState = (typeof ADMISSION_CONTROL_STATES)[number];
@@ -360,6 +361,27 @@ export function admissionControlService(db: Db) {
         };
       }
     }
+    const applicationOpenIssueCount = issueContext
+      ? await db.execute<{ count: number | string }>(sql`
+        select count(*) as count
+        from issues application_issue
+        join projects application_project
+          on application_project.company_id = application_issue.company_id
+         and application_project.id = application_issue.project_id
+        where application_issue.company_id = ${input.companyId}
+          and application_issue.status not in ('done', 'cancelled')
+          and application_project.archived_at is null
+          and application_project.status not in ('completed', 'cancelled')
+          and application_project.name ~* '^(Soar|Roost|Featherly)$'
+      `).then((rows) => Number(rows[0]?.count ?? 0))
+      : 0;
+    const controlPlaneExecutionDecision = issueContext
+      ? evaluateControlPlaneExecutionPolicy({
+        projectName: issueContext.projectName,
+        issueTitle: issueContext.title,
+        applicationOpenIssueCount,
+      })
+      : { blocked: false, reasonCode: null };
 
     const [running] = await db.execute<{
       organization_wip: number | string;
@@ -472,6 +494,11 @@ export function admissionControlService(db: Db) {
       disposition = "waiting_for_signal";
       reasonCode = "product_version.predecessor_not_accepted";
       reason = `${applicationVersionDecision.application?.name ?? "Application"} ${applicationVersionDecision.targetVersion} remains locked until ${applicationVersionDecision.predecessorVersion} is explicitly accepted`;
+      admitted = false;
+    } else if (controlPlaneExecutionDecision.blocked) {
+      disposition = "waiting_for_signal";
+      reasonCode = controlPlaneExecutionDecision.reasonCode!;
+      reason = `Application delivery has ${applicationOpenIssueCount} open issue(s); Paperclip code and system work remains reserved for the owner/Codex`;
       admitted = false;
     } else if (restartDrainRequired) {
       disposition = "waiting_for_signal";

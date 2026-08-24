@@ -27,6 +27,9 @@ control-plane self-improvement issues and the host tick cannot run its issue-
 generating learning, planning, backlog, or organizational-promotion steps.
 Native findings remain visible and deduplicated, but Paperclip code, policy,
 instruction, skill, and routine changes are an owner/Codex repair boundary.
+Claim-time admission enforces the same boundary for existing control-plane
+issues while application delivery debt remains open. Explicit Soar, Roost, or
+Featherly work may still use the shared Softwarehouse coordination project.
 See `docs/softwarehouse/20-application-delivery-first-control-boundary.md`.
 
 ## Roost projection activation gate
