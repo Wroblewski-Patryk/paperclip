@@ -1,7 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { evaluateExecutionQuota, resolveExecutionQuotaScope } from "../services/execution-quota.js";
+import {
+  evaluateExecutionQuota,
+  executionQuotaRunInputTokens,
+  resolveExecutionQuotaScope,
+  resolveIssueExecutionTokenLimit,
+} from "../services/execution-quota.js";
 
 describe("execution quota", () => {
+  it("leaves room for a fresh bounded session after the session ceiling is reached", () => {
+    expect(resolveIssueExecutionTokenLimit({
+      sessionRawInputTokenLimit: 14_700_000,
+    })).toBe(29_400_000);
+  });
+
+  it("preserves an explicit governed issue limit", () => {
+    expect(resolveIssueExecutionTokenLimit({
+      configuredLimit: 9_000_000,
+      sessionRawInputTokenLimit: 14_700_000,
+    })).toBe(9_000_000);
+  });
+
+  it("charges a resumed session by its normalized run delta instead of its cumulative provider total", () => {
+    expect(executionQuotaRunInputTokens({
+      inputTokens: 1_500_000,
+      rawInputTokens: 8_000_000,
+      usageSource: "session_delta",
+    })).toBe(1_500_000);
+    expect(executionQuotaRunInputTokens({ rawInputTokens: 8_000_000 })).toBe(8_000_000);
+  });
+
   it.each([
     [6_999, "normal"], [7_000, "warning"], [9_000, "throttle"], [10_000, "hold"], [20_000, "emergency"],
   ])("classifies %i raw tokens as %s", (observed, state) => {

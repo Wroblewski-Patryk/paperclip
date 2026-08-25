@@ -87,6 +87,44 @@ describeEmbedded("native supervision engine", () => {
     expect(await db.select().from(supervisionFindings)).toHaveLength(1);
   });
 
+  it("reconciles runtime-budget holds created by a superseded policy version", async () => {
+    const refs = await seed();
+    const registry = supervisionRegistryService(db);
+    for (const problemClass of ["execution_quota_exceeded", "session_runtime_budget_exhausted"] as const) {
+      await registry.upsertFinding(refs.companyId, {
+        fingerprint: `legacy:${problemClass}`,
+        problemClass,
+        severity: "high",
+        status: "needs_decision",
+        classification: "quota_bottleneck",
+        sourceKind: "native_watchdog",
+        sourceRef: "legacy-policy-test",
+        title: "Legacy runtime budget hold",
+        summary: "This hold used the superseded runtime-budget calibration.",
+        affectedComponent: "heartbeat.runtime_budget",
+        ownerAgentId: refs.ownerId,
+        retryCount: 0,
+        economics: {},
+        decision: { policyVersion: 1 },
+        recoveryState: "blocked",
+        evidence: [],
+        recurrenceEvidence: {},
+      });
+    }
+
+    const result = await nativeSupervisionEngine(db).runWatchdog(
+      refs.companyId,
+      new Date("2026-08-04T03:00:00Z"),
+    );
+    const findings = await db.select().from(supervisionFindings);
+
+    expect(result.reconciledRuntimeBudgetFindings).toHaveLength(2);
+    expect(findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ problemClass: "execution_quota_exceeded", status: "resolved", recoveryState: "healthy" }),
+      expect.objectContaining({ problemClass: "session_runtime_budget_exhausted", status: "resolved", recoveryState: "healthy" }),
+    ]));
+  });
+
   it("recognizes externally discovered findings after native absorption without a generic shadow gap", async () => {
     const refs = await seed();
     await supervisionRegistryService(db).compareExternalAssurance(refs.companyId, {

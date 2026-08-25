@@ -93,10 +93,17 @@ import {
   type ContextManifestSource,
 } from "./context-admission.js";
 import { supervisionRegistryService } from "./supervision-registry.js";
-import { evaluateExecutionQuota, resolveExecutionQuotaScope } from "./execution-quota.js";
+import {
+  evaluateExecutionQuota,
+  executionQuotaRunInputTokens,
+  RUNTIME_BUDGET_POLICY_VERSION,
+  resolveExecutionQuotaScope,
+  resolveIssueExecutionTokenLimit,
+} from "./execution-quota.js";
 import {
   emptySessionRuntimeUsage,
   evaluateSessionRuntimeBudget,
+  resolveSessionCompactionRawInputLimit,
   resolveSessionRuntimeLimits,
   type SessionRuntimeUsage,
 } from "./session-runtime-budget.js";
@@ -4185,7 +4192,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     ) {
       reason =
         `session raw input reached ${formatCount(latestRawUsage.inputTokens)} tokens ` +
-        `(hard context-admission threshold ${formatCount(hardRawInputTokenLimit)})`;
+        `(hard session runtime threshold ${formatCount(hardRawInputTokenLimit)})`;
     } else if (policy.maxSessionRuns > 0 && runs.length > policy.maxSessionRuns) {
       reason = `session exceeded ${policy.maxSessionRuns} runs`;
     } else if (
@@ -9623,7 +9630,15 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       continuationSummaryBody: continuationSummary?.body ?? null,
       hardRawInputTokenLimit: (() => {
         const budget = parseObject(parseObject(context.nativeContext).budget);
-        return typeof budget.tokenLimit === "number" ? budget.tokenLimit : null;
+        const roleIdentity = [agent.name, agent.title, agent.role].filter(Boolean).join(" ");
+        const fallbackBudget = resolveContextBudget({
+          workType: deriveContextWorkType(context, roleIdentity),
+          role: roleIdentity,
+        });
+        return resolveSessionCompactionRawInputLimit({
+          configured: parseObject(budget.sessionRuntime),
+          contextHardTokenLimit: asNumber(budget.hardTokenLimit, fallbackBudget.hardTokenLimit),
+        });
       })(),
     });
     if (sessionCompaction.rotate) {
@@ -9863,10 +9878,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         const effectiveHardTokenLimit = typeof nativeBudget.hardTokenLimit === "number"
           ? nativeBudget.hardTokenLimit
           : fallbackBudget.hardTokenLimit;
-        const explicitIssueExecutionLimit = asNumber(nativeBudget.executionHardRawInputTokenLimit, 0);
-        const issueExecutionLimit = explicitIssueExecutionLimit > 0
-          ? Math.floor(explicitIssueExecutionLimit)
-          : Math.max(1_000_000, effectiveHardTokenLimit * 500);
+        const quotaSessionRuntimeLimits = resolveSessionRuntimeLimits({
+          configured: parseObject(nativeBudget.sessionRuntime),
+          contextHardTokenLimit: effectiveHardTokenLimit,
+        });
+        const issueExecutionLimit = resolveIssueExecutionTokenLimit({
+          configuredLimit: nativeBudget.executionHardRawInputTokenLimit,
+          sessionRawInputTokenLimit: quotaSessionRuntimeLimits.rawInputTokens,
+        });
         const routineTriggeredAt = issueId && issueRef?.originKind === "routine_execution" && issueRef.originRunId
           ? await db
               .select({ triggeredAt: routineRuns.triggeredAt })
@@ -9896,7 +9915,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         )) : [];
         const observedRawInputTokens = priorIssueRuns.reduce((total, prior) => {
           const usage = parseObject(prior.usageJson);
-          return total + Math.max(0, Math.floor(asNumber(usage.rawInputTokens, asNumber(usage.inputTokens, 0))));
+          // inputTokens is normalized to the current run when a Codex session is
+          // resumed. rawInputTokens is the cumulative provider total and would
+          // double-count earlier turns across successive runs.
+          return total + executionQuotaRunInputTokens(usage);
         }, 0);
         const criticalCloseout = issueId ? await db.select({ id: productDeliveries.id }).from(productDeliveries)
           .innerJoin(deliveryTasks, eq(deliveryTasks.deliveryId, productDeliveries.id))
@@ -9922,7 +9944,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             affectedComponent: "heartbeat.execution_quota", projectId: issueRef?.projectId ?? null, issueId, deliveryId: null, deliveryTaskId: null,
             affectedAgentId: agent.id, ownerAgentId: agent.reportsTo ?? agent.id, ownerUserId: null, admissionDecisionId: null, rootCauseId: null,
             nativeSafeguardId: null, retryCount: 0, economics: { risk: "high", tokenBudget: issueExecutionLimit, stopBoundary: "No additional issue run without owner quota action or protected closeout." },
-            decision: { ...executionQuota, metric: "raw_input_tokens" }, recoveryState: "blocked", bottleneckType: "quota_bottleneck", bottleneckStartedAt: new Date().toISOString(),
+            decision: { ...executionQuota, metric: "raw_input_tokens", policyVersion: RUNTIME_BUDGET_POLICY_VERSION }, recoveryState: "blocked", bottleneckType: "quota_bottleneck", bottleneckStartedAt: new Date().toISOString(),
             bottleneckStage: "pre_invocation", dependency: "Owner quota decision or derived critical closeout is required.", slaDueAt: null,
             nextAllowedAction: "Hold all agents for this issue until quota is raised or closeout is authorized.", escalationCondition: "Owner approval required.",
             cooldownUntil: null, evidence: [{ sourceKind: "heartbeat_run", sourceRef: run.id, label: "issue-scoped hard quota", metadata: executionQuota }],
@@ -10123,7 +10145,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             ownerAgentId: agent.reportsTo ?? agent.id,
             retryCount: usage.retries,
             economics: { tokenBudget: sessionRuntimeLimits.rawInputTokens, timeBudgetMinutes: Math.floor(sessionRuntimeLimits.elapsedMs / 60_000), retryBudget: sessionRuntimeLimits.retries, stopBoundary: "Only an audited, time-bounded delivery override may resume this session." },
-            decision: evaluation,
+            decision: { ...evaluation, policyVersion: RUNTIME_BUDGET_POLICY_VERSION },
             recoveryState: "blocked",
             bottleneckType: "quota_bottleneck",
             bottleneckStartedAt: new Date().toISOString(),

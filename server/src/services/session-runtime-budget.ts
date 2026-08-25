@@ -48,8 +48,11 @@ export function resolveSessionRuntimeLimits(input: {
 }): SessionRuntimeLimits {
   const configured = input.configured ?? {};
   const hardContext = Math.max(1, Math.floor(input.contextHardTokenLimit));
-  const uncachedInputTokens = finiteLimit(configured.uncachedInputTokens, Math.max(100_000, hardContext * 25));
-  const cachedInputTokens = finiteLimit(configured.cachedInputTokens, Math.max(1_000_000, hardContext * 500));
+  // Raw adapter usage counts the context again for every model invocation. Most
+  // of that input is cached, so the session guard must leave materially more
+  // headroom than the one-shot prompt-admission budget while remaining bounded.
+  const uncachedInputTokens = finiteLimit(configured.uncachedInputTokens, Math.max(200_000, hardContext * 50));
+  const cachedInputTokens = finiteLimit(configured.cachedInputTokens, Math.max(2_000_000, hardContext * 1_000));
   return {
     // Total input is cached + uncached. Its default ceiling must not contradict
     // the two independently enforced component ceilings. Explicit operator
@@ -64,6 +67,13 @@ export function resolveSessionRuntimeLimits(input: {
     retries: finiteLimit(configured.retries, 3),
     elapsedMs: finiteLimit(configured.elapsedMs, 90 * 60_000),
   };
+}
+
+export function resolveSessionCompactionRawInputLimit(input: {
+  configured?: Record<string, unknown> | null;
+  contextHardTokenLimit: number;
+}) {
+  return resolveSessionRuntimeLimits(input).rawInputTokens;
 }
 
 export function emptySessionRuntimeUsage(): SessionRuntimeUsage {

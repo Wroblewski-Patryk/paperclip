@@ -1135,6 +1135,10 @@ The control plane enforces a cumulative session runtime budget over raw,
 uncached, cached, and output tokens plus tool/file/iteration/retry/time usage.
 It exposes deterministic health states and stops an exhausted local adapter
 session during execution, not merely after the process exits.
+The default issue execution ceiling is higher than the bounded session ceiling,
+so a session rotation can continue valuable issue work without silently resetting
+the issue-wide guard. Resumed-session provider totals are normalized to per-run
+deltas before they contribute to the issue-wide ceiling.
 
 ProductDelivery acceptance uses typed predicate definitions and timestamped
 results. Required missing, failed, stale, or expired evidence fails closed.

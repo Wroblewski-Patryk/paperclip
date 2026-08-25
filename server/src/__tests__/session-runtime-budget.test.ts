@@ -3,6 +3,7 @@ import {
   combineSessionRuntimeUsage,
   emptySessionRuntimeUsage,
   evaluateSessionRuntimeBudget,
+  resolveSessionCompactionRawInputLimit,
   resolveSessionRuntimeLimits,
 } from "../services/session-runtime-budget.js";
 
@@ -31,11 +32,15 @@ describe("session runtime budget", () => {
     const defaults = resolveSessionRuntimeLimits({ contextHardTokenLimit: 12_000 });
 
     expect(defaults).toMatchObject({
-      rawInputTokens: 6_300_000,
-      cachedInputTokens: 6_000_000,
-      uncachedInputTokens: 300_000,
+      rawInputTokens: 12_600_000,
+      cachedInputTokens: 12_000_000,
+      uncachedInputTokens: 600_000,
     });
     expect(defaults.rawInputTokens).toBe(defaults.cachedInputTokens + defaults.uncachedInputTokens);
+  });
+
+  it("rotates against the runtime ceiling rather than the one-shot prompt ceiling", () => {
+    expect(resolveSessionCompactionRawInputLimit({ contextHardTokenLimit: 14_000 })).toBe(14_700_000);
   });
 
   it.each([[69, "healthy"], [70, "warning"], [85, "throttle"], [95, "near_limit"]] as const)("maps %i%% to %s", (percent, state) => {

@@ -1,10 +1,38 @@
 export type ExecutionQuotaState = "normal" | "warning" | "throttle" | "hold" | "emergency";
 
+export const RUNTIME_BUDGET_POLICY_VERSION = 2;
+
 export type ExecutionQuotaScope = {
   scopeType: "issue" | "routine_run";
   scopeId: string;
   windowStart: Date | null;
 };
+
+export function resolveIssueExecutionTokenLimit(input: {
+  configuredLimit?: unknown;
+  sessionRawInputTokenLimit: number;
+}) {
+  const configured = input.configuredLimit;
+  if (typeof configured === "number" && Number.isFinite(configured) && configured > 0) {
+    return Math.floor(configured);
+  }
+
+  // An issue must be able to continue in a fresh bounded session after one
+  // session reaches its rotation/stop boundary. Keeping the issue ceiling at
+  // the same value as the session ceiling made that recovery action impossible.
+  return Math.max(4_000_000, Math.floor(input.sessionRawInputTokenLimit) * 2);
+}
+
+export function executionQuotaRunInputTokens(usage: Record<string, unknown>) {
+  const normalized = usage.inputTokens;
+  const raw = usage.rawInputTokens;
+  const value = typeof normalized === "number" && Number.isFinite(normalized)
+    ? normalized
+    : typeof raw === "number" && Number.isFinite(raw)
+      ? raw
+      : 0;
+  return Math.max(0, Math.floor(value));
+}
 
 export function resolveExecutionQuotaScope(input: {
   issueId: string;

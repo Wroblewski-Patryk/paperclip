@@ -86,6 +86,9 @@ by project, while independent projects may proceed in parallel. Reusable routine
 execution quota to the current routine-run epoch; ordinary issues retain issue-lifetime quota. A
 quota hard hold is a policy decision, not a transient adapter failure: recovery suppresses automatic
 execution and preserves an invokable recovery owner through a `wake_owner` technical-review policy.
+The issue-wide quota intentionally spans multiple bounded adapter sessions. Session rotation uses the
+session runtime ceiling rather than the one-shot prompt-admission ceiling, and resumed-session usage is
+counted by normalized per-run deltas so cumulative provider totals are not charged more than once.
 Board escalation is the fallback only when no invokable owner exists; neither path resets or raises
 the quota. Native stale-review consumption remains
 active even when agent timers are enabled and admits at most one review lane per supervision cycle.

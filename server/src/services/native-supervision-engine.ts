@@ -23,6 +23,7 @@ import { buildNativeControlMatrix } from "./native-control-contract.js";
 import { organizationalObservationService } from "./organizational-observations.js";
 import { nextLegalActionService } from "./next-legal-action.js";
 import { autonomyDecisionService } from "./autonomy-decision.js";
+import { RUNTIME_BUDGET_POLICY_VERSION } from "./execution-quota.js";
 
 type CheckResult = {
   key: string;
@@ -118,6 +119,32 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
   const admission = admissionControlService(db);
   const observations = organizationalObservationService(db);
   const nextActions = nextLegalActionService(db);
+
+  async function reconcileSupersededRuntimeBudgetFindings(companyId: string, now: Date) {
+    return db.update(supervisionFindings).set({
+      status: "resolved",
+      recoveryState: "healthy",
+      bottleneckResolvedAt: now,
+      closedAt: now,
+      updatedAt: now,
+      decision: sql`${supervisionFindings.decision} || jsonb_build_object(
+        'resolutionReason', 'runtime_budget_policy_superseded',
+        'resolvedPolicyVersion', ${RUNTIME_BUDGET_POLICY_VERSION}::integer
+      )`,
+    }).where(and(
+      eq(supervisionFindings.companyId, companyId),
+      inArray(supervisionFindings.problemClass, ["execution_quota_exceeded", "session_runtime_budget_exhausted"]),
+      isNull(supervisionFindings.closedAt),
+      sql`coalesce(
+        case
+          when coalesce(${supervisionFindings.decision}->>'policyVersion', '') ~ '^[0-9]+$'
+            then (${supervisionFindings.decision}->>'policyVersion')::integer
+          else 1
+        end,
+        1
+      ) < ${RUNTIME_BUDGET_POLICY_VERSION}`,
+    )).returning({ id: supervisionFindings.id });
+  }
   const autonomy = autonomyDecisionService(db, { enqueueWakeup: deps?.enqueueWakeup });
 
   async function scalar(companyId: string, statement: ReturnType<typeof sql>) {
@@ -1279,6 +1306,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
 
   async function runCycle(companyId: string, kind: "native_watchdog" | "daily_integrity", now = new Date()) {
     const key = cycleKey(kind, now);
+    const reconciledRuntimeBudgetFindings = await reconcileSupersededRuntimeBudgetFindings(companyId, now);
     await autonomy.refreshGovernanceExpirations(companyId);
     const reconciledAutonomyExecutions = await autonomy.reconcileExecutions(companyId);
     const reconciledExpiredInterventions = await reconcileExpiredInterventionLifecycles(companyId, now);
@@ -1286,7 +1314,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const reconciledInvalidatedObservations = await reconcileInvalidatedObservationWindows(companyId, now);
     const reconciledDependencyEvidence = await reconcileDependencyEvidence(companyId, now);
     const started = await registry.createCycle(companyId, { sourceKind: kind, externalCycleId: key, triggerKind: kind === "native_watchdog" ? "scheduler" : "daily_schedule", budget: { llmCalls: 0, maxFindings: 100 }, expiresAt: new Date(now.getTime() + 15 * 60_000).toISOString() });
-    if (!started.created) return { cycle: started.cycle, deduplicated: true, checks: [] as CheckResult[], findings: [] as string[], doctorDispatches: [] as unknown[], verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations };
+    if (!started.created) return { cycle: started.cycle, deduplicated: true, checks: [] as CheckResult[], findings: [] as string[], doctorDispatches: [] as unknown[], verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledRuntimeBudgetFindings };
     const nextActionProjection = await nextActions.project(companyId, { now });
     const runnableDispatchGap = nextActionProjection.actions.filter((action) =>
       action.actionClass === "READY_FOR_EXECUTION" && action.eligibility === "eligible"
@@ -1408,7 +1436,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       },
       outcome: failed > 0 ? "attention_required" : Object.values(homeostasis).some((dimension) => dimension.state === "unknown") ? "insufficient_sensor_coverage" : "observed_healthy",
     };
-    const cycle = await registry.finishCycle(started.cycle.id, { status: "completed", metrics: { checks: checks.length, failed, warnings, passed: checks.length - failed - warnings, findings: findings.length, reconciledFindings, orphanLockRecoveries: orphanLockRecoveries.length, orphanTaskRoutes: orphanTaskRoutes.length, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledDependencyEvidence: reconciledDependencyEvidence.length, reconciledAutonomyExecutions: reconciledAutonomyExecutions.length, homeostasis, currentConstraint, controlLoops, internalControlLane, autonomyDecision: { id: autonomyDecision.decision.id, mode: autonomyDecision.decision.mode, disposition: autonomyDecision.decision.disposition, reasonCode: autonomyDecision.decision.reasonCode, envelopeId: autonomyDecision.envelope.id, constraintId: autonomyDecision.constraint.id, created: autonomyDecision.created, dispatch: autonomyDispatch }, nextLegalActions: { contractVersion: nextActionProjection.contractVersion, distribution: nextActionProjection.distribution, blockedReasons: nextActionProjection.blockedReasons, currentConstraint: nextActionProjection.currentConstraint }, liveness: nextActionProjection.liveness, shadowDispatch: nextActionProjection.shadowDispatch, ...(dailyRuntime ? { sessionEconomics: dailyRuntime } : {}), llmCalls: 0 }, summary: `${kind}: ${failed} failed, ${warnings} warnings, ${findings.length} linked findings, ${reconciledFindings.length} reconciled findings, ${nativeActionCount} native actions; decision=${autonomyDecision.decision.mode}/${autonomyDecision.decision.disposition}.` });
+    const cycle = await registry.finishCycle(started.cycle.id, { status: "completed", metrics: { checks: checks.length, failed, warnings, passed: checks.length - failed - warnings, findings: findings.length, reconciledFindings, reconciledRuntimeBudgetFindings: reconciledRuntimeBudgetFindings.map((finding) => finding.id), orphanLockRecoveries: orphanLockRecoveries.length, orphanTaskRoutes: orphanTaskRoutes.length, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledDependencyEvidence: reconciledDependencyEvidence.length, reconciledAutonomyExecutions: reconciledAutonomyExecutions.length, homeostasis, currentConstraint, controlLoops, internalControlLane, autonomyDecision: { id: autonomyDecision.decision.id, mode: autonomyDecision.decision.mode, disposition: autonomyDecision.decision.disposition, reasonCode: autonomyDecision.decision.reasonCode, envelopeId: autonomyDecision.envelope.id, constraintId: autonomyDecision.constraint.id, created: autonomyDecision.created, dispatch: autonomyDispatch }, nextLegalActions: { contractVersion: nextActionProjection.contractVersion, distribution: nextActionProjection.distribution, blockedReasons: nextActionProjection.blockedReasons, currentConstraint: nextActionProjection.currentConstraint }, liveness: nextActionProjection.liveness, shadowDispatch: nextActionProjection.shadowDispatch, ...(dailyRuntime ? { sessionEconomics: dailyRuntime } : {}), llmCalls: 0 }, summary: `${kind}: ${failed} failed, ${warnings} warnings, ${findings.length} linked findings, ${reconciledFindings.length} reconciled findings, ${nativeActionCount} native actions; decision=${autonomyDecision.decision.mode}/${autonomyDecision.decision.disposition}.` });
     const controlObservationAliases: Record<string, string> = {
       runaway_retry: "retry",
       orphan_tasks: "orphan_task",
@@ -1426,7 +1454,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
         evidenceRefs: [`supervision_cycle:${started.cycle.id}`],
       }])),
     });
-    return { cycle, deduplicated: false, checks, controlMatrix, findings, doctorDispatches, stalledReadyDispatches, orphanLockRecoveries, orphanTaskRoutes, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations };
+    return { cycle, deduplicated: false, checks, controlMatrix, findings, doctorDispatches, stalledReadyDispatches, orphanLockRecoveries, orphanTaskRoutes, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledRuntimeBudgetFindings };
   }
 
   async function dispatchDoctor(findingId: string, now = new Date()) {
