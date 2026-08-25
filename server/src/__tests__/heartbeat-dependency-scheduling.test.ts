@@ -1110,7 +1110,7 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     await db.insert(issues).values({
       id: sourceIssueId,
       companyId,
-      title: "Source implementation",
+      title: "[Project Alpha][Backend] Source implementation",
       status: "in_review",
       priority: "high",
       assigneeAgentId: proposerId,
@@ -1134,6 +1134,7 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
       eq(issues.originId, proposalId),
     )).then((rows) => rows[0] ?? null);
     expect(reviewIssue).toMatchObject({
+      title: "[Project Alpha][Backend][Work Proposal] Route source implementation",
       parentId: sourceIssueId,
       assigneeAgentId: targetParentId,
     });

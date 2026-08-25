@@ -205,7 +205,7 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
       .where(eq(issues.id, issueId))
       .then((rows) => rows[0]);
     expect(row).toEqual({
-      status: "todo",
+      status: "backlog",
       assigneeAgentId: null,
       checkoutRunId: null,
       executionRunId: null,
@@ -250,6 +250,7 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.issue).toMatchObject({
       id: issueId,
+      status: "backlog",
       assigneeAgentId: null,
       checkoutRunId: null,
       executionRunId: null,
@@ -281,6 +282,37 @@ describeEmbeddedPostgres("stale issue execution lock routes", () => {
         prevExecutionRunId: failedRunId,
         clearAssignee: true,
       },
+    });
+  });
+
+  it("keeps an assigned executable issue runnable when admin force-release preserves its assignee", async () => {
+    const { companyId, agentId, failedRunId, currentRunId } = await seedCompanyAgentAndRuns();
+    const issueId = randomUUID();
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      title: "Admin lock-only force release",
+      status: "in_progress",
+      priority: "high",
+      assigneeAgentId: agentId,
+      checkoutRunId: currentRunId,
+      executionRunId: failedRunId,
+      executionAgentNameKey: "codexcoder",
+      executionLockedAt: new Date(),
+    });
+
+    const res = await request(createApp(boardActor(companyId)))
+      .post(`/api/issues/${issueId}/admin/force-release`)
+      .send();
+
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.issue).toMatchObject({
+      id: issueId,
+      status: "in_progress",
+      assigneeAgentId: agentId,
+      checkoutRunId: null,
+      executionRunId: null,
+      executionLockedAt: null,
     });
   });
 });

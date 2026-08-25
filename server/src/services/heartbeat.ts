@@ -6927,6 +6927,9 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     let enqueued = 0;
     let skipped = 0;
 
+    const leadingSourceTags = (title: string) =>
+      title.match(/^((?:\[[^\]\r\n]+\])+)/u)?.[1] ?? "";
+
     for (const row of submitted) {
       const existingReview = await db
         .select({ id: issues.id })
@@ -6945,7 +6948,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       }
 
       const reviewIssue = await issuesSvc.create(row.proposal.companyId, {
-        title: `[Work Proposal] ${row.proposal.title}`,
+        title: `${leadingSourceTags(row.sourceIssue.title)}[Work Proposal] ${row.proposal.title}`,
         description: [
           "Review and disposition an upward work proposal through the governed hierarchy.",
           "",

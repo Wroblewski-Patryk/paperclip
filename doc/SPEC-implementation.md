@@ -678,6 +678,7 @@ Server behavior:
 Compatibility note (2026-08): callers that previously moved a terminal issue directly to an open status or included a terminal status in checkout `expectedStatuses` now receive `409`. They must send explicit structured resume/reopen intent first. This preserves completion evidence and prevents timer/scoped-wake claims from silently reopening finished work.
 
 `POST /issues/:issueId/admin/force-release` is an operator recovery endpoint for stale harness locks. It requires board access to the issue company, clears checkout and execution run lock fields, and may clear the agent assignee when `clearAssignee=true` is passed. The route must write an `issue.admin_force_release` activity log entry containing the previous checkout and execution run IDs.
+When `clearAssignee=true` removes the owner from an executable `todo` or `in_progress` issue, the issue returns to `backlog`; lock recovery must not create an executable issue without an owner. The ordinary assignee release path follows the same invariant.
 
 ## 10.5 Projects
 
@@ -783,6 +784,7 @@ Emergency cancellation remains a separate operator action.
 The current app also exposes V1-supporting surfaces for:
 
 - issue thread interactions (`suggest_tasks`, `ask_user_questions`, `request_confirmation`)
+- governed work-proposal review issues, which preserve leading source-issue tags so project identity is not lost during hierarchical routing
 - issue approvals, issue references/search, labels, read state, inbox/archive state, and work products
 - execution workspaces, project workspaces, workspace runtime services, and workspace operations
 - shared execution workspace identity is stable across agent/model session resets:

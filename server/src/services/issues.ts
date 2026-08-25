@@ -5656,7 +5656,7 @@ export function issueService(db: Db) {
       const updated = await db
         .update(issues)
         .set({
-          status: "todo",
+          status: "backlog",
           assigneeAgentId: null,
           checkoutRunId: null,
           executionRunId: null,
@@ -5680,6 +5680,7 @@ export function issueService(db: Db) {
         const existing = await tx
           .select({
             id: issues.id,
+            status: issues.status,
             checkoutRunId: issues.checkoutRunId,
             executionRunId: issues.executionRunId,
           })
@@ -5697,6 +5698,9 @@ export function issueService(db: Db) {
         };
         if (options.clearAssignee) {
           patch.assigneeAgentId = null;
+          if (existing.status === "todo" || existing.status === "in_progress") {
+            patch.status = "backlog";
+          }
         }
 
         const updated = await tx
