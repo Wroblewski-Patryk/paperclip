@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { agents, companies, costEvents, createDb, deliveryTasks, heartbeatRuns, issueIntents, issueRelations, issueThreadInteractions, issues, nativeSafeguards, organizationalObservations, productDeliveries, productOutcomes, projects, roostProductMapOutbox, supervisionFindings, supervisionInterventions, supervisionObservationWindows, supervisionRecurrences, supervisionRootCauses } from "@paperclipai/db";
+import { activityLog, agents, companies, costEvents, createDb, deliveryTasks, heartbeatRuns, issueIntents, issueRelations, issueThreadInteractions, issues, nativeSafeguards, organizationalObservations, productDeliveries, productOutcomes, projects, roostProductMapOutbox, supervisionFindings, supervisionInterventions, supervisionObservationWindows, supervisionRecurrences, supervisionRootCauses } from "@paperclipai/db";
 import { classifyNativeRemediation, nativeSupervisionEngine } from "../services/native-supervision-engine.js";
 import { supervisionRegistryService } from "../services/supervision-registry.js";
 import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.js";
@@ -123,6 +123,58 @@ describeEmbedded("native supervision engine", () => {
       expect.objectContaining({ problemClass: "execution_quota_exceeded", status: "resolved", recoveryState: "healthy" }),
       expect.objectContaining({ problemClass: "session_runtime_budget_exhausted", status: "resolved", recoveryState: "healthy" }),
     ]));
+  });
+
+  it("reconciles completed per-run incidents before evaluating the severe-finding guard", async () => {
+    const refs = await seed();
+    const issueId = randomUUID();
+    const contextRunId = randomUUID();
+    const silentRunId = randomUUID();
+    await db.insert(issues).values({ id: issueId, companyId: refs.companyId, projectId: refs.projectId, title: "Completed work", status: "done", assigneeAgentId: refs.ownerId });
+    await db.insert(heartbeatRuns).values([
+      { id: contextRunId, companyId: refs.companyId, agentId: refs.ownerId, status: "failed", finishedAt: new Date("2026-08-04T01:00:00Z") },
+      { id: silentRunId, companyId: refs.companyId, agentId: refs.ownerId, status: "succeeded", finishedAt: new Date("2026-08-04T02:00:00Z") },
+    ]);
+    const registry = supervisionRegistryService(db);
+    await registry.upsertFinding(refs.companyId, {
+      fingerprint: `context_budget_exceeded:${contextRunId}`, problemClass: "context_budget_exceeded", severity: "high",
+      status: "detected", classification: "context_bottleneck", sourceKind: "native_watchdog", sourceRef: `heartbeat_runs:${contextRunId}`,
+      title: "Context blocked", summary: "Historical context admission block", affectedComponent: "heartbeat.context_admission",
+      issueId, affectedAgentId: refs.ownerId, ownerAgentId: refs.ownerId, retryCount: 0, economics: {}, decision: {}, recoveryState: "blocked", evidence: [], recurrenceEvidence: {}, runId: contextRunId,
+    });
+    await registry.upsertFinding(refs.companyId, {
+      fingerprint: `active-run-output-silence:${silentRunId}`, problemClass: "active_run_output_silence", severity: "high",
+      status: "needs_decision", classification: "runtime_health", sourceKind: "native_watchdog", sourceRef: `heartbeat_run:${silentRunId}`,
+      title: "Silent run", summary: "Run was silent while active", affectedComponent: "heartbeat_runtime",
+      affectedAgentId: refs.ownerId, retryCount: 0, economics: {}, decision: {}, recoveryState: "review_required", evidence: [], recurrenceEvidence: {}, runId: silentRunId,
+    });
+
+    const result = await nativeSupervisionEngine(db).runWatchdog(refs.companyId, new Date("2026-08-04T03:00:00Z"));
+    expect(result.reconciledRuntimeIncidentFindings).toHaveLength(2);
+    expect(result.checks.find((check) => check.key === "active_findings_guard")).toMatchObject({ status: "passed", count: 0 });
+    expect(await db.select({ status: supervisionFindings.status }).from(supervisionFindings)).toEqual([
+      { status: "resolved" },
+      { status: "resolved" },
+    ]);
+  });
+
+  it("audits only agent closures made after typed completion evidence became active", async () => {
+    const refs = await seed();
+    const historicalId = randomUUID();
+    const evidenceId = randomUUID();
+    const violationId = randomUUID();
+    await db.insert(issues).values([
+      { id: historicalId, companyId: refs.companyId, projectId: refs.projectId, title: "Historical", status: "done" },
+      { id: evidenceId, companyId: refs.companyId, projectId: refs.projectId, title: "Evidence rollout", status: "done", completionEvidence: { schemaVersion: 1, testEvidence: [], reviewEvidence: [], documentationEvidence: [], learningDisposition: { status: "not_applicable", summary: "test" } } },
+      { id: violationId, companyId: refs.companyId, projectId: refs.projectId, title: "Missing modern evidence", status: "done" },
+    ]);
+    await db.insert(activityLog).values([
+      { companyId: refs.companyId, actorType: "agent", actorId: refs.ownerId, agentId: refs.ownerId, action: "issue.updated", entityType: "issue", entityId: evidenceId, details: { status: "done", completionEvidence: { schemaVersion: 1 } }, createdAt: new Date("2026-08-04T01:00:00Z") },
+      { companyId: refs.companyId, actorType: "agent", actorId: refs.ownerId, agentId: refs.ownerId, action: "issue.updated", entityType: "issue", entityId: violationId, details: { status: "done" }, createdAt: new Date("2026-08-04T02:00:00Z") },
+    ]);
+
+    const result = await nativeSupervisionEngine(db).runDailyAudit(refs.companyId, new Date("2026-08-04T03:00:00Z"));
+    expect(result.checks.find((check) => check.key === "completion_evidence")).toMatchObject({ status: "failed", count: 1 });
   });
 
   it("recognizes externally discovered findings after native absorption without a generic shadow gap", async () => {

@@ -242,6 +242,30 @@ describeEmbedded("PostgreSQL supervision registry", () => {
     expect(await svc.getFinding(findingId)).toMatchObject({ status: "detected" });
   });
 
+  it("resolves a transient external finding when the same source omits it from a newer cycle", async () => {
+    const refs = await seed();
+    const svc = supervisionRegistryService(db);
+    const first = await svc.compareExternalAssurance(refs.companyId, {
+      externalSource: "daily_integrity_audit",
+      externalCycleId: "quota-high",
+      nativeCycleId: null,
+      externalFindings: [{ fingerprint: "external:provider_quota_near_hold", severity: "warning", title: "Quota is high" }],
+    });
+    const second = await svc.compareExternalAssurance(refs.companyId, {
+      externalSource: "daily_integrity_audit",
+      externalCycleId: "quota-recovered",
+      nativeCycleId: null,
+      externalFindings: [],
+    });
+
+    expect(first.absorbedFindings).toHaveLength(1);
+    expect(second.reconciledExternalFindings).toEqual(first.absorbedFindings);
+    expect(second.comparison).toMatchObject({ status: "aligned", onlyNative: [], onlyExternal: [] });
+    expect(await db.select().from(supervisionFindings)).toEqual([
+      expect.objectContaining({ fingerprint: "external:provider_quota_near_hold", status: "resolved", recoveryState: "healthy" }),
+    ]);
+  });
+
   it("backfills a missing cycle finish timestamp idempotently", async () => {
     const refs = await seed();
     const svc = supervisionRegistryService(db);

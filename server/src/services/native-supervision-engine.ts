@@ -145,6 +145,56 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       ) < ${RUNTIME_BUDGET_POLICY_VERSION}`,
     )).returning({ id: supervisionFindings.id });
   }
+
+  async function reconcileCompletedRuntimeIncidentFindings(companyId: string, now: Date) {
+    const rows = await db.execute<{ fingerprint: string; problem_class: string; run_status: string | null; issue_status: string | null }>(sql`
+      select finding.fingerprint, finding.problem_class, run.status as run_status, issue.status as issue_status
+      from supervision_findings finding
+      left join heartbeat_runs run
+        on run.id::text=split_part(finding.source_ref, ':', 2)
+       and run.company_id=finding.company_id
+      left join issues issue
+        on issue.id=finding.issue_id
+       and issue.company_id=finding.company_id
+      where finding.company_id=${companyId}
+        and finding.archived_at is null
+        and finding.status not in ('closed','resolved','no_action','duplicate','accepted_risk','not_worth_doing','archived')
+        and (
+          (
+            finding.problem_class='active_run_output_silence'
+            and run.status in ('succeeded','failed','cancelled','timed_out')
+          )
+          or (
+            finding.problem_class='context_budget_exceeded'
+            and (
+              issue.status in ('done','cancelled')
+              or exists (
+                select 1
+                from heartbeat_runs later
+                where later.company_id=finding.company_id
+                  and later.status='succeeded'
+                  and later.created_at > run.created_at
+                  and later.context_snapshot->>'issueId'=finding.issue_id::text
+              )
+            )
+          )
+        )
+    `);
+    const reconciled = [];
+    for (const row of rows) {
+      const resolved = await registry.resolveFindingByFingerprint(companyId, row.fingerprint, {
+        sourceKind: "database_check",
+        sourceRef: `runtime_incident_reconciliation:${row.problem_class}`,
+        label: row.problem_class === "active_run_output_silence"
+          ? "Source run reached a terminal state"
+          : "Blocked context incident no longer prevents issue execution",
+        metadata: { runStatus: row.run_status, issueStatus: row.issue_status, checkedAt: now.toISOString() },
+        checkedAt: now,
+      });
+      if (resolved) reconciled.push(resolved);
+    }
+    return reconciled;
+  }
   const autonomy = autonomyDecisionService(db, { enqueueWakeup: deps?.enqueueWakeup });
 
   async function scalar(companyId: string, statement: ReturnType<typeof sql>) {
@@ -393,7 +443,33 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
           and i.execution_locked_at < ${old2h.toISOString()}::timestamptz
           and (r.id is null or r.status in ('succeeded','failed','cancelled','timed_out'))
       `),
-      scalar(companyId, sql`select count(*)::int from issues where company_id=${companyId} and status='done' and completion_evidence is null and hidden_at is null`),
+      scalar(companyId, sql`
+        with evidence_enforcement as (
+          select min(created_at) as started_at
+          from activity_log
+          where company_id=${companyId}
+            and action='issue.updated'
+            and details ? 'completionEvidence'
+        )
+        select count(*)::int
+        from issues i
+        where i.company_id=${companyId}
+          and i.status='done'
+          and i.completion_evidence is null
+          and i.hidden_at is null
+          and exists (
+            select 1
+            from activity_log activity
+            cross join evidence_enforcement enforcement
+            where activity.company_id=i.company_id
+              and activity.entity_type='issue'
+              and activity.entity_id=i.id::text
+              and activity.action='issue.updated'
+              and activity.actor_type='agent'
+              and activity.details->>'status'='done'
+              and activity.created_at >= enforcement.started_at
+          )
+      `),
       scalar(companyId, sql`
         select count(*)::int
         from product_outcomes
@@ -1307,6 +1383,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
   async function runCycle(companyId: string, kind: "native_watchdog" | "daily_integrity", now = new Date()) {
     const key = cycleKey(kind, now);
     const reconciledRuntimeBudgetFindings = await reconcileSupersededRuntimeBudgetFindings(companyId, now);
+    const reconciledRuntimeIncidentFindings = await reconcileCompletedRuntimeIncidentFindings(companyId, now);
     await autonomy.refreshGovernanceExpirations(companyId);
     const reconciledAutonomyExecutions = await autonomy.reconcileExecutions(companyId);
     const reconciledExpiredInterventions = await reconcileExpiredInterventionLifecycles(companyId, now);
@@ -1314,7 +1391,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
     const reconciledInvalidatedObservations = await reconcileInvalidatedObservationWindows(companyId, now);
     const reconciledDependencyEvidence = await reconcileDependencyEvidence(companyId, now);
     const started = await registry.createCycle(companyId, { sourceKind: kind, externalCycleId: key, triggerKind: kind === "native_watchdog" ? "scheduler" : "daily_schedule", budget: { llmCalls: 0, maxFindings: 100 }, expiresAt: new Date(now.getTime() + 15 * 60_000).toISOString() });
-    if (!started.created) return { cycle: started.cycle, deduplicated: true, checks: [] as CheckResult[], findings: [] as string[], doctorDispatches: [] as unknown[], verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledRuntimeBudgetFindings };
+    if (!started.created) return { cycle: started.cycle, deduplicated: true, checks: [] as CheckResult[], findings: [] as string[], doctorDispatches: [] as unknown[], verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledRuntimeBudgetFindings, reconciledRuntimeIncidentFindings };
     const nextActionProjection = await nextActions.project(companyId, { now });
     const runnableDispatchGap = nextActionProjection.actions.filter((action) =>
       action.actionClass === "READY_FOR_EXECUTION" && action.eligibility === "eligible"
@@ -1436,7 +1513,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
       },
       outcome: failed > 0 ? "attention_required" : Object.values(homeostasis).some((dimension) => dimension.state === "unknown") ? "insufficient_sensor_coverage" : "observed_healthy",
     };
-    const cycle = await registry.finishCycle(started.cycle.id, { status: "completed", metrics: { checks: checks.length, failed, warnings, passed: checks.length - failed - warnings, findings: findings.length, reconciledFindings, reconciledRuntimeBudgetFindings: reconciledRuntimeBudgetFindings.map((finding) => finding.id), orphanLockRecoveries: orphanLockRecoveries.length, orphanTaskRoutes: orphanTaskRoutes.length, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledDependencyEvidence: reconciledDependencyEvidence.length, reconciledAutonomyExecutions: reconciledAutonomyExecutions.length, homeostasis, currentConstraint, controlLoops, internalControlLane, autonomyDecision: { id: autonomyDecision.decision.id, mode: autonomyDecision.decision.mode, disposition: autonomyDecision.decision.disposition, reasonCode: autonomyDecision.decision.reasonCode, envelopeId: autonomyDecision.envelope.id, constraintId: autonomyDecision.constraint.id, created: autonomyDecision.created, dispatch: autonomyDispatch }, nextLegalActions: { contractVersion: nextActionProjection.contractVersion, distribution: nextActionProjection.distribution, blockedReasons: nextActionProjection.blockedReasons, currentConstraint: nextActionProjection.currentConstraint }, liveness: nextActionProjection.liveness, shadowDispatch: nextActionProjection.shadowDispatch, ...(dailyRuntime ? { sessionEconomics: dailyRuntime } : {}), llmCalls: 0 }, summary: `${kind}: ${failed} failed, ${warnings} warnings, ${findings.length} linked findings, ${reconciledFindings.length} reconciled findings, ${nativeActionCount} native actions; decision=${autonomyDecision.decision.mode}/${autonomyDecision.decision.disposition}.` });
+    const cycle = await registry.finishCycle(started.cycle.id, { status: "completed", metrics: { checks: checks.length, failed, warnings, passed: checks.length - failed - warnings, findings: findings.length, reconciledFindings, reconciledRuntimeBudgetFindings: reconciledRuntimeBudgetFindings.map((finding) => finding.id), reconciledRuntimeIncidentFindings: reconciledRuntimeIncidentFindings.map((finding) => finding.id), orphanLockRecoveries: orphanLockRecoveries.length, orphanTaskRoutes: orphanTaskRoutes.length, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledDependencyEvidence: reconciledDependencyEvidence.length, reconciledAutonomyExecutions: reconciledAutonomyExecutions.length, homeostasis, currentConstraint, controlLoops, internalControlLane, autonomyDecision: { id: autonomyDecision.decision.id, mode: autonomyDecision.decision.mode, disposition: autonomyDecision.decision.disposition, reasonCode: autonomyDecision.decision.reasonCode, envelopeId: autonomyDecision.envelope.id, constraintId: autonomyDecision.constraint.id, created: autonomyDecision.created, dispatch: autonomyDispatch }, nextLegalActions: { contractVersion: nextActionProjection.contractVersion, distribution: nextActionProjection.distribution, blockedReasons: nextActionProjection.blockedReasons, currentConstraint: nextActionProjection.currentConstraint }, liveness: nextActionProjection.liveness, shadowDispatch: nextActionProjection.shadowDispatch, ...(dailyRuntime ? { sessionEconomics: dailyRuntime } : {}), llmCalls: 0 }, summary: `${kind}: ${failed} failed, ${warnings} warnings, ${findings.length} linked findings, ${reconciledFindings.length + reconciledRuntimeIncidentFindings.length} reconciled findings, ${nativeActionCount} native actions; decision=${autonomyDecision.decision.mode}/${autonomyDecision.decision.disposition}.` });
     const controlObservationAliases: Record<string, string> = {
       runaway_retry: "retry",
       orphan_tasks: "orphan_task",
@@ -1454,7 +1531,7 @@ export function nativeSupervisionEngine(db: Db, deps?: { enqueueWakeup?: DoctorW
         evidenceRefs: [`supervision_cycle:${started.cycle.id}`],
       }])),
     });
-    return { cycle, deduplicated: false, checks, controlMatrix, findings, doctorDispatches, stalledReadyDispatches, orphanLockRecoveries, orphanTaskRoutes, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledRuntimeBudgetFindings };
+    return { cycle, deduplicated: false, checks, controlMatrix, findings, doctorDispatches, stalledReadyDispatches, orphanLockRecoveries, orphanTaskRoutes, reviewDispatch, reviewDispatches, verifiedReviewInterventions, reconciledExpiredInterventions, reconciledInvalidatedObservations, reconciledRuntimeBudgetFindings, reconciledRuntimeIncidentFindings };
   }
 
   async function dispatchDoctor(findingId: string, now = new Date()) {

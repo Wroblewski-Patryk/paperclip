@@ -652,6 +652,52 @@ export function supervisionRegistryService(db: Db) {
         eq(supervisionShadowComparisons.externalCycleId, data.externalCycleId),
       )).then((rows) => rows[0] ?? null);
       if (existing) return { comparison: existing, created: false };
+      const externalDetails = new Map(data.externalFindings.map((finding) => [
+        canonicalExternalFingerprint(companyId, finding.fingerprint),
+        finding,
+      ] as const));
+      const activeExternalFindings = await db.select().from(supervisionFindings).where(and(
+        eq(supervisionFindings.companyId, companyId),
+        eq(supervisionFindings.sourceKind, "external_assurance"),
+        isNull(supervisionFindings.archivedAt),
+        notInArray(supervisionFindings.status, [...TERMINAL_FINDING_STATUSES]),
+      ));
+      const reconciledExternalFindings: string[] = [];
+      for (const finding of activeExternalFindings) {
+        const decision = finding.decision && typeof finding.decision === "object" && !Array.isArray(finding.decision)
+          ? finding.decision as Record<string, unknown>
+          : {};
+        if (decision.externalSource !== data.externalSource || externalDetails.has(finding.fingerprint)) continue;
+        const checkedAt = new Date();
+        const resolved = await db.transaction(async (tx) => {
+          const updated = await tx.update(supervisionFindings).set({
+            status: "resolved",
+            recoveryState: "healthy",
+            closedAt: checkedAt,
+            updatedAt: checkedAt,
+            decision: {
+              ...decision,
+              externalInterventionRequired: false,
+              resolution: "absent_from_newer_complete_external_cycle",
+              resolvedByExternalCycleId: data.externalCycleId,
+            },
+          }).where(and(
+            eq(supervisionFindings.id, finding.id),
+            notInArray(supervisionFindings.status, [...TERMINAL_FINDING_STATUSES]),
+          )).returning().then((rows) => rows[0] ?? null);
+          if (!updated) return null;
+          await tx.insert(supervisionEvidenceRefs).values({
+            companyId,
+            findingId: updated.id,
+            sourceKind: "supervision_shadow_comparison",
+            sourceRef: `external_cycle:${data.externalSource}:${data.externalCycleId}`,
+            label: "Finding absent from newer external assurance cycle",
+            metadata: { externalSource: data.externalSource, externalCycleId: data.externalCycleId },
+          });
+          return updated;
+        });
+        if (resolved) reconciledExternalFindings.push(resolved.id);
+      }
       const native = await db.select({ fingerprint: supervisionFindings.fingerprint, severity: supervisionFindings.severity })
         .from(supervisionFindings).where(and(
           eq(supervisionFindings.companyId, companyId),
@@ -659,10 +705,6 @@ export function supervisionRegistryService(db: Db) {
           notInArray(supervisionFindings.status, ["closed", "resolved", "no_action", "duplicate", "accepted_risk", "not_worth_doing"]),
         ));
       const nativeMap = new Map(native.map((finding) => [finding.fingerprint, finding.severity]));
-      const externalDetails = new Map(data.externalFindings.map((finding) => [
-        canonicalExternalFingerprint(companyId, finding.fingerprint),
-        finding,
-      ] as const));
       const externalMap = new Map([...externalDetails].map(([fingerprint, finding]) => [fingerprint, finding.severity] as const));
       const matchedFingerprints = [...nativeMap.keys()].filter((fingerprint) => externalMap.has(fingerprint)).sort();
       const onlyNative = [...nativeMap.keys()].filter((fingerprint) => !externalMap.has(fingerprint)).sort();
@@ -724,7 +766,7 @@ export function supervisionRegistryService(db: Db) {
         });
         absorbedFindings.push(absorbed.finding.id);
       }
-      return { comparison, created: true, absorbedFindings };
+      return { comparison, created: true, absorbedFindings, reconciledExternalFindings };
     },
 
     async snapshot(companyId: string) {
