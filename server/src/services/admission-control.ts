@@ -372,7 +372,7 @@ export function admissionControlService(db: Db) {
           and application_issue.status not in ('done', 'cancelled')
           and application_project.archived_at is null
           and application_project.status not in ('completed', 'cancelled')
-          and application_project.name ~* '^(Soar|Roost|Featherly)$'
+          and application_project.name ~* '(^|: )(Soar|Roost|Featherly)$'
       `).then((rows) => Number(rows[0]?.count ?? 0))
       : 0;
     const controlPlaneExecutionDecision = issueContext

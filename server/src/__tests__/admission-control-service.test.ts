@@ -174,7 +174,7 @@ describeEmbeddedPostgres("native admission control", () => {
     const { companyId, agentId } = await seed("active");
     const [controlProject, applicationProject] = await db.insert(projects).values([
       { companyId, name: "LuckySparrow Softwarehouse", status: "active" },
-      { companyId, name: "Soar", status: "active" },
+      { companyId, name: "11 Innovation: Soar", status: "active" },
     ]).returning();
     const [controlIssue] = await db.insert(issues).values([
       {

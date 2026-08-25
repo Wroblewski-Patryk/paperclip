@@ -41,6 +41,23 @@ function readRunningPostmasterPid(postmasterPidFile: string): number | null {
   }
 }
 
+export async function resolveReusablePostmasterPid(
+  postmasterPidFile: string,
+  expectedPort: number,
+): Promise<number | null> {
+  const pid = readRunningPostmasterPid(postmasterPidFile);
+  if (!pid) return null;
+
+  const port = readPidFilePort(postmasterPidFile) ?? expectedPort;
+  if (await isPortInUse(port)) return pid;
+
+  // Windows can recycle a stopped postmaster's PID for an unrelated process.
+  // A live PID without the matching listener is therefore stale ownership
+  // evidence and must not prevent the embedded cluster from restarting.
+  rmSync(postmasterPidFile, { force: true });
+  return null;
+}
+
 function readPidFilePort(postmasterPidFile: string): number | null {
   if (!existsSync(postmasterPidFile)) return null;
   try {
@@ -97,7 +114,7 @@ async function ensureEmbeddedPostgresConnection(
   const selectedPort = await findAvailablePort(preferredPort);
   const postmasterPidFile = path.resolve(dataDir, "postmaster.pid");
   const pgVersionFile = path.resolve(dataDir, "PG_VERSION");
-  const runningPid = readRunningPostmasterPid(postmasterPidFile);
+  const runningPid = await resolveReusablePostmasterPid(postmasterPidFile, preferredPort);
   const runningPort = readPidFilePort(postmasterPidFile);
   const preferredAdminConnectionString = `postgres://paperclip:paperclip@127.0.0.1:${preferredPort}/postgres`;
   const logBuffer = createEmbeddedPostgresLogBuffer();
